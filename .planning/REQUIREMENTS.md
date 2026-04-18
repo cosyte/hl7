@@ -8,12 +8,12 @@ All requirements are user-facing behaviors a developer consuming `@cosyte/hl7-pa
 
 ### Project Setup & Build (SETUP)
 
-- [ ] **SETUP-01** — Developer can run `pnpm install && pnpm build && pnpm test` from a clean clone and all three succeed.
-- [ ] **SETUP-02** — Package publishes as dual ESM + CJS with a correct `exports` map; consumers on either module system resolve the right entry point.
+- [x] **SETUP-01** — Developer can run `pnpm install && pnpm build && pnpm test` from a clean clone and all three succeed. _(Verified 2026-04-18 in Plan 01-04 pipeline smoke run.)_
+- [x] **SETUP-02** — Package publishes as dual ESM + CJS with a correct `exports` map; consumers on either module system resolve the right entry point. _(Verified 2026-04-18 in Plan 01-04: ESM `import { VERSION }` and CJS `require(...).VERSION` both return `"0.0.0"` from the built `dist/`.)_
 - [x] **SETUP-03** — Package has zero runtime dependencies in `package.json` (dev deps permitted).
-- [ ] **SETUP-04** — TypeScript consumers get full IntelliSense (types, JSDoc, `@example` tags) on every public API surface. _(groundwork in Plan 01-01: VERSION stub has `@example`; full validation pending public API)_
+- [x] **SETUP-04** — TypeScript consumers get full IntelliSense (types, JSDoc, `@example` tags) on every public API surface. _(Groundwork in Plan 01-01; verified in Plan 01-04 by inspecting emitted `dist/index.d.ts` — `VERSION`'s `@example` block is preserved through the tsup dts pipeline. `eslint-plugin-jsdoc` `require-example` rule enforces this for every future public export.)_
 - [x] **SETUP-05** — Repo targets Node 18+ and compiles to ES2022 with `"strict": true` and `"noUncheckedIndexedAccess": true`.
-- [ ] **SETUP-06** — `pnpm lint` and `pnpm typecheck` pass with zero warnings.
+- [x] **SETUP-06** — `pnpm lint` and `pnpm typecheck` pass with zero warnings. _(Verified 2026-04-18 in Plan 01-04 with `--max-warnings=0`.)_
 
 ### Core Parsing (PARSE)
 
@@ -168,12 +168,12 @@ Every v1 REQ-ID maps to exactly one phase in `ROADMAP.md`. 97/97 mapped.
 
 | REQ-ID | Phase | Status |
 |--------|-------|--------|
-| SETUP-01 | Phase 1 — Project Foundation | Pending |
-| SETUP-02 | Phase 1 — Project Foundation | Pending |
+| SETUP-01 | Phase 1 — Project Foundation | Complete (01-04) |
+| SETUP-02 | Phase 1 — Project Foundation | Complete (01-04) |
 | SETUP-03 | Phase 1 — Project Foundation | Complete (01-01) |
-| SETUP-04 | Phase 1 — Project Foundation | Staged (01-01; full validation pending public API) |
+| SETUP-04 | Phase 1 — Project Foundation | Complete (01-04; enforced via lint for future exports) |
 | SETUP-05 | Phase 1 — Project Foundation | Complete (01-01) |
-| SETUP-06 | Phase 1 — Project Foundation | Pending |
+| SETUP-06 | Phase 1 — Project Foundation | Complete (01-04) |
 | PARSE-01 | Phase 2 — Core Parser & Tolerance | Pending |
 | PARSE-02 | Phase 2 — Core Parser & Tolerance | Pending |
 | PARSE-03 | Phase 2 — Core Parser & Tolerance | Pending |

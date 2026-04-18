@@ -38,7 +38,7 @@ Plans:
 - [x] 01-PLAN-01-package-scaffold.md — Scaffold package.json, tsconfig, LICENSE, .gitignore, src/index.ts stub
 - [x] 01-PLAN-02-build-system.md — Create tsup.config.ts for dual ESM+CJS build with .d.ts
 - [x] 01-PLAN-03-lint-and-test.md — ESLint flat config, Prettier, Vitest config, sanity test
-- [ ] 01-PLAN-04-smoke-verification.md — Run full pnpm pipeline end-to-end, commit lockfile, add CI workflow
+- [x] 01-PLAN-04-smoke-verification.md — Run full pnpm pipeline end-to-end, commit lockfile, add CI workflow
 **UI hint**: no
 
 ### Phase 2: Core Parser & Tolerance
@@ -150,7 +150,7 @@ Within each phase, plans that touch disjoint modules may run in parallel; plans 
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Project Foundation | 3/4 | In progress | — |
+| 1. Project Foundation | 4/4 | Complete (pending verify) | 2026-04-18 |
 | 2. Core Parser & Tolerance | 0/0 | Not started | — |
 | 3. Structural Model & Types | 0/0 | Not started | — |
 | 4. Named Helpers | 0/0 | Not started | — |
@@ -161,4 +161,4 @@ Within each phase, plans that touch disjoint modules may run in parallel; plans 
 
 ---
 
-*Last updated: 2026-04-18 (Phase 1 Plan 03 complete)*
+*Last updated: 2026-04-18 (Phase 1 Plan 04 complete — Phase 1 plans all done, pending verify/validate)*

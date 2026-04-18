@@ -8,16 +8,16 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 
 - **Name:** `@cosyte/hl7-parser`
 - **Core value:** A developer can parse a real-world, vendor-quirky HL7 v2 message and pull useful fields out of it in one line — without having read the HL7 spec.
-- **Current focus:** Phase 1 — Project Foundation (Plans 01, 02, 03 complete; Plan 04 smoke-verification next)
+- **Current focus:** Phase 1 — Project Foundation (all 4 plans complete; pending /gsd-verify-work 1 and /gsd-validate-phase 1)
 - **Workflow config:** standard granularity, yolo mode, parallelization enabled, plan-check + verifier + Nyquist validation on, auto-advance on.
 
 ## Current Position
 
 - **Milestone:** v1
 - **Phase:** 1 — Project Foundation
-- **Plans:** 4 plans across 3 waves (01 package-scaffold ✓, 02 build-system, 03 lint-and-test, 04 smoke-verification)
-- **Status:** In progress — Plans 01, 02, 03 complete; Plan 04 (smoke-verification) next
-- **Progress:** 0/8 phases complete; 3/4 Phase 1 plans complete
+- **Plans:** 4 plans across 3 waves (01 package-scaffold ✓, 02 build-system ✓, 03 lint-and-test ✓, 04 smoke-verification ✓)
+- **Status:** All Phase 1 plans complete — pending /gsd-verify-work 1 (verifier) and /gsd-validate-phase 1 (Nyquist) before phase transition
+- **Progress:** 0/8 phases complete (Phase 1 deliverables done, verification gates pending); 4/4 Phase 1 plans complete
 
 ```
 [░░░░░░░░░░░░░░░░░░░░] 0%   (0 / 8 phases)
@@ -25,16 +25,17 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 
 ## Performance Metrics
 
-- **Phases completed:** 0
-- **Plans completed:** 3
-- **REQ-IDs validated:** 0 / 97 (7 partially satisfied/staged: SETUP-02 staged, SETUP-03, SETUP-04 seeded, SETUP-05, SETUP-06 staged via lint rules)
-- **Known coverage:** TBD (target ≥ 90% on parser/model/helpers — thresholds declared in vitest.config.ts)
+- **Phases completed:** 0 (Phase 1 plans done; pending verifier + Nyquist + transition)
+- **Plans completed:** 4
+- **REQ-IDs validated:** 6 / 97 (SETUP-01, SETUP-02, SETUP-03, SETUP-04, SETUP-05, SETUP-06 — all Phase 1 SETUP requirements verified end-to-end by Plan 04 pipeline run)
+- **Known coverage:** N/A for Phase 1 (only sanity test exists; 2/2 passing). Coverage enforcement starts in Phase 7 via `pnpm test:coverage`.
 
 | Phase | Plan | Duration | Tasks | Files |
 |-------|------|----------|-------|-------|
 | 1 | 01 package-scaffold | 2 min | 3 | 9 |
 | 1 | 02 build-system | 1 min | 2 | 1 |
 | 1 | 03 lint-and-test | 2 min | 4 | 6 |
+| 1 | 04 smoke-verification | 4 min | 2 (+ 2 auto-fix commits) | 2 created, 4 modified |
 
 ## Accumulated Context
 
@@ -59,6 +60,10 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 - CLAUDE.md guardrails (no any, no unjustified as, JSDoc+@example on public exports, no console) enforced as ESLint errors — not just typecheck (Plan 01-03).
 - Vitest config declares per-directory coverage thresholds (src/parser/**, src/model/**, src/helpers/** at ≥ 90% lines/functions/statements, ≥ 85% branches) now for shape stability; Phase 7 is the enforcement gate via `pnpm test:coverage` (Plan 01-03).
 - Prettier config (`printWidth:100`, `tabWidth:2`, `semi:true`, `singleQuote:false`, `trailingComma:all`, `endOfLine:lf`) aligned with `.editorconfig` exactly; `.planning/` excluded to avoid markdown-code-fence reflow churn (Plan 01-03).
+- Removed `rootDir: ./src` from base `tsconfig.json`: it forbade `tsc --noEmit` from typechecking test files and root-level config files that the `include` glob also matched. Emit scoping is handled by tsup's `entry` + `tsconfig.build.json`'s narrower `include` (Plan 01-04, Rule 1 integration bug fix).
+- `src/index.ts` file-level JSDoc cannot start with `@{package-name}` pattern because `eslint-plugin-jsdoc`'s `check-tag-names` rule parses leading `@tokens` as tag names. Put the package name in backticks mid-sentence instead (Plan 01-04, Rule 1 fix).
+- CI workflow at `.github/workflows/ci.yml` runs Node 18/20/22 matrix with `permissions: contents: read` + `concurrency` + `cancel-in-progress`. All actions pinned to `@v4` major tag. `pnpm install --frozen-lockfile` enforces lockfile consistency; final step re-runs ESM/CJS dual-module smoke to guard SETUP-02 (Plan 01-04).
+- `pnpm-lock.yaml` is committed (not in `.gitignore`) for supply-chain reproducibility (T-01-01/T-01-04-01 mitigation) (Plan 01-04).
 
 ### Active Todos
 
@@ -77,10 +82,10 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 
 ## Session Continuity
 
-- **Last action:** Phase 1 Plan 03 (lint-and-test) executed — 4 tasks, 6 files created (eslint.config.js, .eslintignore, .prettierrc.json, .prettierignore, vitest.config.ts, test/sanity.test.ts), zero deviations. Commits: 83d27b8, f5f1c80, 6bef5c4, ae9ef6f.
-- **Next action:** Execute Plan 04 (smoke-verification) — runs the full `pnpm install / build / typecheck / lint / test / format:check` pipeline for the first time and commits `pnpm-lock.yaml`.
+- **Last action:** Phase 1 Plan 04 (smoke-verification) executed — ran full pipeline end-to-end, 2 Rule 1 integration bugs auto-fixed (tsconfig rootDir, src/index.ts JSDoc tag), prettier normalization applied to CLAUDE.md + package.json, `pnpm-lock.yaml` committed, `.github/workflows/ci.yml` created. All six SETUP requirements now VERIFIED. Commits: 8403738 (fix), e77305c (style), 4d45b5c (feat-lockfile), e317b23 (feat-CI).
+- **Next action:** `/gsd-verify-work 1` to confirm Phase 1 deliverables match phase goal, then `/gsd-validate-phase 1` for Nyquist coverage audit, then `/gsd-transition` to plan Phase 2 (Core Parser & Tolerance).
 - **Open questions:** None currently.
 
 ---
 
-*Last updated: 2026-04-18 (Plan 01-03 complete)*
+*Last updated: 2026-04-18 (Plan 01-04 complete — Phase 1 plans all done, pending verify/validate)*
