@@ -10,9 +10,9 @@ All requirements are user-facing behaviors a developer consuming `@cosyte/hl7-pa
 
 - [ ] **SETUP-01** — Developer can run `pnpm install && pnpm build && pnpm test` from a clean clone and all three succeed.
 - [ ] **SETUP-02** — Package publishes as dual ESM + CJS with a correct `exports` map; consumers on either module system resolve the right entry point.
-- [ ] **SETUP-03** — Package has zero runtime dependencies in `package.json` (dev deps permitted).
-- [ ] **SETUP-04** — TypeScript consumers get full IntelliSense (types, JSDoc, `@example` tags) on every public API surface.
-- [ ] **SETUP-05** — Repo targets Node 18+ and compiles to ES2022 with `"strict": true` and `"noUncheckedIndexedAccess": true`.
+- [x] **SETUP-03** — Package has zero runtime dependencies in `package.json` (dev deps permitted).
+- [ ] **SETUP-04** — TypeScript consumers get full IntelliSense (types, JSDoc, `@example` tags) on every public API surface. _(groundwork in Plan 01-01: VERSION stub has `@example`; full validation pending public API)_
+- [x] **SETUP-05** — Repo targets Node 18+ and compiles to ES2022 with `"strict": true` and `"noUncheckedIndexedAccess": true`.
 - [ ] **SETUP-06** — `pnpm lint` and `pnpm typecheck` pass with zero warnings.
 
 ### Core Parsing (PARSE)
@@ -170,9 +170,9 @@ Every v1 REQ-ID maps to exactly one phase in `ROADMAP.md`. 97/97 mapped.
 |--------|-------|--------|
 | SETUP-01 | Phase 1 — Project Foundation | Pending |
 | SETUP-02 | Phase 1 — Project Foundation | Pending |
-| SETUP-03 | Phase 1 — Project Foundation | Pending |
-| SETUP-04 | Phase 1 — Project Foundation | Pending |
-| SETUP-05 | Phase 1 — Project Foundation | Pending |
+| SETUP-03 | Phase 1 — Project Foundation | Complete (01-01) |
+| SETUP-04 | Phase 1 — Project Foundation | Staged (01-01; full validation pending public API) |
+| SETUP-05 | Phase 1 — Project Foundation | Complete (01-01) |
 | SETUP-06 | Phase 1 — Project Foundation | Pending |
 | PARSE-01 | Phase 2 — Core Parser & Tolerance | Pending |
 | PARSE-02 | Phase 2 — Core Parser & Tolerance | Pending |

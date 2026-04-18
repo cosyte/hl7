@@ -35,7 +35,7 @@ North star: **A developer can parse a real-world, vendor-quirky HL7 v2 message a
   4. A developer editing any `.ts` file gets strict-mode errors for `any`, unchecked index access, and missing types from their editor immediately.
 **Plans**: 4 plans
 Plans:
-- [ ] 01-PLAN-01-package-scaffold.md — Scaffold package.json, tsconfig, LICENSE, .gitignore, src/index.ts stub
+- [x] 01-PLAN-01-package-scaffold.md — Scaffold package.json, tsconfig, LICENSE, .gitignore, src/index.ts stub
 - [ ] 01-PLAN-02-build-system.md — Create tsup.config.ts for dual ESM+CJS build with .d.ts
 - [ ] 01-PLAN-03-lint-and-test.md — ESLint flat config, Prettier, Vitest config, sanity test
 - [ ] 01-PLAN-04-smoke-verification.md — Run full pnpm pipeline end-to-end, commit lockfile, add CI workflow
@@ -150,7 +150,7 @@ Within each phase, plans that touch disjoint modules may run in parallel; plans 
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Project Foundation | 0/0 | Not started | — |
+| 1. Project Foundation | 1/4 | In progress | — |
 | 2. Core Parser & Tolerance | 0/0 | Not started | — |
 | 3. Structural Model & Types | 0/0 | Not started | — |
 | 4. Named Helpers | 0/0 | Not started | — |
@@ -161,4 +161,4 @@ Within each phase, plans that touch disjoint modules may run in parallel; plans 
 
 ---
 
-*Last updated: 2026-04-18 (roadmap created)*
+*Last updated: 2026-04-18 (Phase 1 Plan 01 complete)*
