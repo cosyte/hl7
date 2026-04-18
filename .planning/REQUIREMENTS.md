@@ -164,8 +164,108 @@ All requirements are user-facing behaviors a developer consuming `@cosyte/hl7-pa
 
 ## Traceability
 
-_Filled by roadmapper: every v1 REQ-ID maps to exactly one phase in ROADMAP.md._
+Every v1 REQ-ID maps to exactly one phase in `ROADMAP.md`. 97/97 mapped.
 
-| REQ-ID | Phase |
-|--------|-------|
-| (populated by roadmapper) | — |
+| REQ-ID | Phase | Status |
+|--------|-------|--------|
+| SETUP-01 | Phase 1 — Project Foundation | Pending |
+| SETUP-02 | Phase 1 — Project Foundation | Pending |
+| SETUP-03 | Phase 1 — Project Foundation | Pending |
+| SETUP-04 | Phase 1 — Project Foundation | Pending |
+| SETUP-05 | Phase 1 — Project Foundation | Pending |
+| SETUP-06 | Phase 1 — Project Foundation | Pending |
+| PARSE-01 | Phase 2 — Core Parser & Tolerance | Pending |
+| PARSE-02 | Phase 2 — Core Parser & Tolerance | Pending |
+| PARSE-03 | Phase 2 — Core Parser & Tolerance | Pending |
+| PARSE-04 | Phase 2 — Core Parser & Tolerance | Pending |
+| PARSE-05 | Phase 2 — Core Parser & Tolerance | Pending |
+| PARSE-06 | Phase 2 — Core Parser & Tolerance | Pending |
+| PARSE-07 | Phase 2 — Core Parser & Tolerance | Pending |
+| PARSE-08 | Phase 2 — Core Parser & Tolerance | Pending |
+| PARSE-09 | Phase 2 — Core Parser & Tolerance | Pending |
+| TOL-01 | Phase 2 — Core Parser & Tolerance | Pending |
+| TOL-02 | Phase 2 — Core Parser & Tolerance | Pending |
+| TOL-03 | Phase 2 — Core Parser & Tolerance | Pending |
+| TOL-04 | Phase 2 — Core Parser & Tolerance | Pending |
+| TOL-05 | Phase 2 — Core Parser & Tolerance | Pending |
+| TOL-06 | Phase 2 — Core Parser & Tolerance | Pending |
+| TOL-07 | Phase 2 — Core Parser & Tolerance | Pending |
+| TOL-08 | Phase 2 — Core Parser & Tolerance | Pending |
+| TOL-09 | Phase 2 — Core Parser & Tolerance | Pending |
+| TOL-10 | Phase 2 — Core Parser & Tolerance | Pending |
+| MODEL-01 | Phase 3 — Structural Model & Types | Pending |
+| MODEL-02 | Phase 3 — Structural Model & Types | Pending |
+| MODEL-03 | Phase 3 — Structural Model & Types | Pending |
+| MODEL-04 | Phase 3 — Structural Model & Types | Pending |
+| MODEL-05 | Phase 3 — Structural Model & Types | Pending |
+| MODEL-06 | Phase 3 — Structural Model & Types | Pending |
+| MODEL-07 | Phase 3 — Structural Model & Types | Pending |
+| TYPES-01 | Phase 3 — Structural Model & Types | Pending |
+| TYPES-02 | Phase 3 — Structural Model & Types | Pending |
+| TYPES-03 | Phase 3 — Structural Model & Types | Pending |
+| TYPES-04 | Phase 3 — Structural Model & Types | Pending |
+| HELPERS-01 | Phase 4 — Named Helpers | Pending |
+| HELPERS-02 | Phase 4 — Named Helpers | Pending |
+| HELPERS-03 | Phase 4 — Named Helpers | Pending |
+| HELPERS-04 | Phase 4 — Named Helpers | Pending |
+| HELPERS-05 | Phase 4 — Named Helpers | Pending |
+| HELPERS-06 | Phase 4 — Named Helpers | Pending |
+| HELPERS-07 | Phase 4 — Named Helpers | Pending |
+| SER-01 | Phase 5 — Serialization & Round-Trip | Pending |
+| SER-02 | Phase 5 — Serialization & Round-Trip | Pending |
+| SER-03 | Phase 5 — Serialization & Round-Trip | Pending |
+| SER-04 | Phase 5 — Serialization & Round-Trip | Pending |
+| SER-05 | Phase 5 — Serialization & Round-Trip | Pending |
+| SER-06 | Phase 5 — Serialization & Round-Trip | Pending |
+| PROF-01 | Phase 6 — Profile System & Built-ins | Pending |
+| PROF-02 | Phase 6 — Profile System & Built-ins | Pending |
+| PROF-03 | Phase 6 — Profile System & Built-ins | Pending |
+| PROF-04 | Phase 6 — Profile System & Built-ins | Pending |
+| PROF-05 | Phase 6 — Profile System & Built-ins | Pending |
+| PROF-06 | Phase 6 — Profile System & Built-ins | Pending |
+| PROF-07 | Phase 6 — Profile System & Built-ins | Pending |
+| PROF-08 | Phase 6 — Profile System & Built-ins | Pending |
+| PROF-09 | Phase 6 — Profile System & Built-ins | Pending |
+| BIP-01 | Phase 6 — Profile System & Built-ins | Pending |
+| BIP-02 | Phase 6 — Profile System & Built-ins | Pending |
+| BIP-03 | Phase 6 — Profile System & Built-ins | Pending |
+| BIP-04 | Phase 6 — Profile System & Built-ins | Pending |
+| BIP-05 | Phase 6 — Profile System & Built-ins | Pending |
+| BIP-06 | Phase 6 — Profile System & Built-ins | Pending |
+| TEST-01 | Phase 7 — Testing Hardening & Fixtures | Pending |
+| TEST-02 | Phase 7 — Testing Hardening & Fixtures | Pending |
+| TEST-03 | Phase 7 — Testing Hardening & Fixtures | Pending |
+| TEST-04 | Phase 7 — Testing Hardening & Fixtures | Pending |
+| TEST-05 | Phase 7 — Testing Hardening & Fixtures | Pending |
+| TEST-06 | Phase 7 — Testing Hardening & Fixtures | Pending |
+| TEST-07 | Phase 7 — Testing Hardening & Fixtures | Pending |
+| TEST-08 | Phase 7 — Testing Hardening & Fixtures | Pending |
+| EX-01 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
+| EX-02 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
+| EX-03 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
+| KIT-01 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
+| KIT-02 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
+| KIT-03 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
+| KIT-04 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
+| KIT-05 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
+| KIT-06 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
+| KIT-07 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
+| DOC-01 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
+| DOC-02 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
+| DOC-03 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
+| DOC-04 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
+| DOC-05 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
+| DOC-06 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
+| DOC-07 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
+| DOC-08 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
+| DOC-09 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
+| DOC-10 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
+| DOC-11 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
+| DOC-12 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
+| DOC-13 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
+| DOC-14 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
+| DOC-15 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
+
+**Coverage:** 97 / 97 v1 REQ-IDs mapped (no orphans, no duplicates).
+
+*Last updated: 2026-04-18 (traceability populated by roadmapper).*
