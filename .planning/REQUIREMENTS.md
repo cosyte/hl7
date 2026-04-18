@@ -19,7 +19,7 @@ All requirements are user-facing behaviors a developer consuming `@cosyte/hl7-pa
 
 - [ ] **PARSE-01** — `parseHL7(raw)` parses any well-formed HL7 v2.1–v2.8 message and returns an `Hl7Message` object.
 - [ ] **PARSE-02** — Parser reads encoding characters from MSH-1 and MSH-2 rather than hardcoding `|^~\&`; custom delimiters in MSH are honored throughout the message.
-- [ ] **PARSE-03** — Parser handles all HL7 escape sequences (`\F\`, `\S\`, `\T\`, `\R\`, `\E\`, `\.br\`, `\X..\`, `\Z..\`); unescape on access, re-escape on serialize.
+- [x] **PARSE-03** — Parser handles all HL7 escape sequences (`\F\`, `\S\`, `\T\`, `\R\`, `\E\`, `\.br\`, `\X..\`, `\Z..\`); unescape on access, re-escape on serialize.
 - [ ] **PARSE-04** — Parser preserves segments in original order, including repeating segments and Z-segments.
 - [ ] **PARSE-05** — Parser correctly decomposes fields into repetitions (`~`), components (`^`), and subcomponents (`&`) as a nested structure.
 - [ ] **PARSE-06** — Parser distinguishes empty fields (`||`) from null fields (`""`) per HL7 spec semantics.
@@ -65,7 +65,7 @@ All requirements are user-facing behaviors a developer consuming `@cosyte/hl7-pa
 - [ ] **TOL-07** — `trimFields: true` (default) trims leading/trailing whitespace and emits `FIELD_WHITESPACE_TRIMMED` only when non-whitespace content existed around the value.
 - [ ] **TOL-08** — `dateFormats: [...]` option provides fallback formats; order-sensitive; emits `TIMESTAMP_FALLBACK_FORMAT` when a non-HL7 format succeeds.
 - [ ] **TOL-09** — Built-in timestamp fallbacks (ISO 8601, `YYYY-MM-DD`, `MM/DD/YYYY`, `MM/DD/YYYY HH:mm:ss`) are tried when the user-supplied list is empty or doesn't match.
-- [ ] **TOL-10** — Unknown escape sequences are preserved verbatim in unescaped output and warn `UNKNOWN_ESCAPE_SEQUENCE`.
+- [x] **TOL-10** — Unknown escape sequences are preserved verbatim in unescaped output and warn `UNKNOWN_ESCAPE_SEQUENCE`.
 
 ### Serialization & Round-Trip (SER)
 
@@ -176,7 +176,7 @@ Every v1 REQ-ID maps to exactly one phase in `ROADMAP.md`. 97/97 mapped.
 | SETUP-06 | Phase 1 — Project Foundation | Complete (01-04) |
 | PARSE-01 | Phase 2 — Core Parser & Tolerance | Pending |
 | PARSE-02 | Phase 2 — Core Parser & Tolerance | Pending |
-| PARSE-03 | Phase 2 — Core Parser & Tolerance | Pending |
+| PARSE-03 | Phase 2 — Core Parser & Tolerance | Complete (02-04) |
 | PARSE-04 | Phase 2 — Core Parser & Tolerance | Pending |
 | PARSE-05 | Phase 2 — Core Parser & Tolerance | Pending |
 | PARSE-06 | Phase 2 — Core Parser & Tolerance | Pending |
@@ -192,7 +192,7 @@ Every v1 REQ-ID maps to exactly one phase in `ROADMAP.md`. 97/97 mapped.
 | TOL-07 | Phase 2 — Core Parser & Tolerance | Pending |
 | TOL-08 | Phase 2 — Core Parser & Tolerance | Pending |
 | TOL-09 | Phase 2 — Core Parser & Tolerance | Pending |
-| TOL-10 | Phase 2 — Core Parser & Tolerance | Pending |
+| TOL-10 | Phase 2 — Core Parser & Tolerance | Complete (02-04) |
 | MODEL-01 | Phase 3 — Structural Model & Types | Pending |
 | MODEL-02 | Phase 3 — Structural Model & Types | Pending |
 | MODEL-03 | Phase 3 — Structural Model & Types | Pending |

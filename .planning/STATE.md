@@ -8,7 +8,7 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 
 - **Name:** `@cosyte/hl7-parser`
 - **Core value:** A developer can parse a real-world, vendor-quirky HL7 v2 message and pull useful fields out of it in one line — without having read the HL7 spec.
-- **Current focus:** Phase 2 — Core Parser & Tolerance (Plan 01 complete; Plans 02–05 Wave 2 ready to execute in parallel; Plan 06 Wave 3 last. Phase 1 still pending /gsd-verify-work 1 and /gsd-validate-phase 1)
+- **Current focus:** Phase 2 — Core Parser & Tolerance (Plans 01/02/03/04 complete; Plan 05 Wave 2 remaining; Plan 06 Wave 3 last. Phase 1 still pending /gsd-verify-work 1 and /gsd-validate-phase 1)
 - **Workflow config:** standard granularity, yolo mode, parallelization enabled, plan-check + verifier + Nyquist validation on, auto-advance on.
 
 ## Current Position
@@ -17,7 +17,7 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 - **Phase:** 2 — Core Parser & Tolerance
 - **Plans:** 6 plans across 3 waves (01 warnings/errors/message-shell — Wave 1 COMPLETE; 02 normalize+mllp+charset, 03 segments+delimiters+tokenize, 04 escapes, 05 dateFormats — Wave 2 parallel, READY; 06 parseHL7 public + strict-mode capstone — Wave 3)
 - **Status:** Wave 1 complete (Plan 01 shipped: types, warnings registry, error taxonomy, Hl7Message shell). Wave 2 (Plans 02–05) can execute in parallel now — all share the types/warnings/errors surface locked by Plan 01. Unified HL7 1-indexed `fields[]` convention locked in `src/parser/types.ts`.
-- **Progress:** 0/8 phases complete (Phase 1 deliverables done, verification gates pending); 4/4 Phase 1 plans complete; 1/6 Phase 2 plans complete
+- **Progress:** 0/8 phases complete (Phase 1 deliverables done, verification gates pending); 4/4 Phase 1 plans complete; 4/6 Phase 2 plans complete
 
 ```
 [░░░░░░░░░░░░░░░░░░░░] 0%   (0 / 8 phases)
@@ -37,6 +37,7 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 | 1 | 03 lint-and-test | 2 min | 4 | 6 |
 | 1 | 04 smoke-verification | 4 min | 2 (+ 2 auto-fix commits) | 2 created, 4 modified |
 | 2 | 01 warnings/errors/message-shell | 8 min | 3 (2 TDD cycles) | 8 created |
+| 2 | 04 escape-sequences | 6 min | 1 (1 TDD cycle) | 2 created |
 
 ## Accumulated Context
 
@@ -83,11 +84,11 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 
 ## Session Continuity
 
-- **Last action:** Phase 2 Plan 01 executed — shipped `src/parser/types.ts`, `src/parser/warnings.ts`, `src/parser/errors.ts`, `src/model/message.ts` plus 4 test files (20/20 passing). Commits: `a589d08` (RED types+warnings+errors tests), `e8de15a` (GREEN types+warnings+errors sources), `03ecd53` (RED message test), `c487414` (GREEN message shell). Typecheck + lint + test + build all green. `src/index.ts` unchanged (barrel update is Plan 06).
-- **Next action:** Execute Wave 2 of Phase 2 — Plans 02, 03, 04, 05 may run in parallel now that the types/warnings/errors surface is locked. Plan 06 runs last (Wave 3). Still open: `/gsd-verify-work 1` + `/gsd-validate-phase 1` for Phase 1.
+- **Last action:** Phase 2 Plan 04 executed — shipped `src/parser/escapes.ts` + `test/parser-escapes.test.ts` (15/15 passing). Commits: `ab20484` (RED test), `0d5303a` (GREEN unescape+reescape). Typecheck + lint + test + build all green. Closes PARSE-03 and TOL-10. `src/index.ts` unchanged (barrel update is Plan 06).
+- **Next action:** Execute Plan 05 (dateFormats plumbing) — last remaining Wave 2 plan — then Plan 06 Wave 3 capstone. Still open: `/gsd-verify-work 1` + `/gsd-validate-phase 1` for Phase 1.
 - **Open questions:** Plan 06 must decide strict-mode code mapping (widen `Hl7ParseError.code` vs. new `Hl7StrictError` class vs. preserve warning code in a side channel). See Plan 01 summary §"Keys for Plan 06" for details.
-- **Resume file:** `.planning/phases/02-core-parser-and-tolerance/02-01-SUMMARY.md`
+- **Resume file:** `.planning/phases/02-core-parser-and-tolerance/02-04-SUMMARY.md`
 
 ---
 
-*Last updated: 2026-04-18 (Phase 2 Plan 01 complete — wave 1 done, Wave 2 ready)*
+*Last updated: 2026-04-18 (Phase 2 Plan 04 complete — escapes done, Plan 05 remaining in Wave 2)*

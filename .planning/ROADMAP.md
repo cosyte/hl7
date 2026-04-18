@@ -56,7 +56,7 @@ Plans:
 - [x] 02-PLAN-01-warnings-errors-and-message-shell.md — Warnings registry, errors classes (4 fatal codes), shared types, Hl7Message shell
 - [ ] 02-PLAN-02-input-normalization-mllp-and-charset.md — normalize (line endings only) + normalizeBuffer (Buffer → string via MSH-18 charset) + stripMllp
 - [ ] 02-PLAN-03-segments-delimiters-and-tokenize.md — splitSegments + readDelimiters (3 fatals) + tokenize (fields/reps/comps/subs) + whitespace trim warning
-- [ ] 02-PLAN-04-escape-sequences.md — unescape (all 8 HL7 escape forms + unknown warning) + reescape
+- [x] 02-PLAN-04-escape-sequences.md — unescape (all 8 HL7 escape forms + unknown warning) + reescape
 - [ ] 02-PLAN-05-dateformats-plumbing.md — parseHl7Timestamp cascade (HL7 → user → built-ins) + TIMESTAMP_FALLBACK_FORMAT
 - [ ] 02-PLAN-06-public-parsehl7-and-strict-mode.md — parseHL7 public entry + emitWarning chokepoint + strict-mode escalation + src/index.ts barrel update
 **UI hint**: no
