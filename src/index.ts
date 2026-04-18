@@ -1,5 +1,5 @@
 /**
- * @cosyte/hl7-parser — public entry point.
+ * Public entry point for the `@cosyte/hl7-parser` package.
  *
  * The full public API (parseHL7, defineProfile, helpers, types) is populated
  * in subsequent phases. This stub keeps the module resolvable and typed so
