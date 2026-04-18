@@ -53,7 +53,7 @@ Plans:
   5. A developer supplying `dateFormats: [...]` sees non-HL7 timestamp formats accepted in order with a `TIMESTAMP_FALLBACK_FORMAT` warning, falling back to built-in ISO/date/US formats when no user format matches.
 **Plans**: 6 plans
 Plans:
-- [ ] 02-PLAN-01-warnings-errors-and-message-shell.md — Warnings registry, errors classes (4 fatal codes), shared types, Hl7Message shell
+- [x] 02-PLAN-01-warnings-errors-and-message-shell.md — Warnings registry, errors classes (4 fatal codes), shared types, Hl7Message shell
 - [ ] 02-PLAN-02-input-normalization-mllp-and-charset.md — normalize (line endings only) + normalizeBuffer (Buffer → string via MSH-18 charset) + stripMllp
 - [ ] 02-PLAN-03-segments-delimiters-and-tokenize.md — splitSegments + readDelimiters (3 fatals) + tokenize (fields/reps/comps/subs) + whitespace trim warning
 - [ ] 02-PLAN-04-escape-sequences.md — unescape (all 8 HL7 escape forms + unknown warning) + reescape
