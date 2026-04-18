@@ -8,7 +8,7 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 
 - **Name:** `@cosyte/hl7-parser`
 - **Core value:** A developer can parse a real-world, vendor-quirky HL7 v2 message and pull useful fields out of it in one line — without having read the HL7 spec.
-- **Current focus:** Phase 1 — Project Foundation (Plan 01 complete; Wave 2 next)
+- **Current focus:** Phase 1 — Project Foundation (Plans 01, 02 complete; Plan 03 in Wave 2, then Plan 04)
 - **Workflow config:** standard granularity, yolo mode, parallelization enabled, plan-check + verifier + Nyquist validation on, auto-advance on.
 
 ## Current Position
@@ -16,8 +16,8 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 - **Milestone:** v1
 - **Phase:** 1 — Project Foundation
 - **Plans:** 4 plans across 3 waves (01 package-scaffold ✓, 02 build-system, 03 lint-and-test, 04 smoke-verification)
-- **Status:** In progress — Plan 01 complete, Wave 2 ready (Plans 02, 03 parallel)
-- **Progress:** 0/8 phases complete; 1/4 Phase 1 plans complete
+- **Status:** In progress — Plans 01, 02 complete; Plan 03 (lint-and-test) next in Wave 2, then Plan 04 (smoke-verification)
+- **Progress:** 0/8 phases complete; 2/4 Phase 1 plans complete
 
 ```
 [░░░░░░░░░░░░░░░░░░░░] 0%   (0 / 8 phases)
@@ -26,13 +26,14 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 ## Performance Metrics
 
 - **Phases completed:** 0
-- **Plans completed:** 1
-- **REQ-IDs validated:** 0 / 97 (3 partially satisfied: SETUP-03, SETUP-04 seeded, SETUP-05)
+- **Plans completed:** 2
+- **REQ-IDs validated:** 0 / 97 (5 partially satisfied/staged: SETUP-02 staged, SETUP-03, SETUP-04 seeded, SETUP-05)
 - **Known coverage:** TBD (target ≥ 90% on parser/model/helpers)
 
 | Phase | Plan | Duration | Tasks | Files |
 |-------|------|----------|-------|-------|
 | 1 | 01 package-scaffold | 2 min | 3 | 9 |
+| 1 | 02 build-system | 1 min | 2 | 1 |
 
 ## Accumulated Context
 
@@ -50,6 +51,8 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 - Strict TypeScript goes beyond `strict: true` — also `exactOptionalPropertyTypes`, `useUnknownInCatchVariables`, `noPropertyAccessFromIndexSignature` (Plan 01-01).
 - `packageManager: pnpm@9.0.0` pinned for reproducibility (Plan 01-01).
 - Wave 2 plans (02, 03) must NOT modify package.json — all devDeps and scripts are already wired in Plan 01 (Plan 01-01).
+- tsup outExtension override forces `.mjs`/`.cjs` suffixes because tsup's defaults would not match the `exports` map in package.json (Plan 01-02).
+- `skipNodeModulesBundle: true` in tsup.config keeps zero-runtime-deps posture honest — any future runtime dep would require an explicit architectural decision (Plan 01-02).
 
 ### Active Todos
 
@@ -68,10 +71,10 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 
 ## Session Continuity
 
-- **Last action:** Phase 1 Plan 01 (package-scaffold) executed — 3 tasks, 9 files created, zero deviations. Commits: 54d82c7, 7451c08, 260156e.
-- **Next action:** Execute Wave 2 (Plans 02 build-system + 03 lint-and-test in parallel), then Plan 04 smoke-verification.
+- **Last action:** Phase 1 Plan 02 (build-system) executed — 2 tasks (1 new-file, 1 verify-only), 1 file created (tsup.config.ts), zero deviations. Commit: d703742.
+- **Next action:** Execute Plan 03 (lint-and-test), then Plan 04 (smoke-verification).
 - **Open questions:** None currently.
 
 ---
 
-*Last updated: 2026-04-18 (Plan 01-01 complete)*
+*Last updated: 2026-04-18 (Plan 01-02 complete)*
