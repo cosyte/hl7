@@ -18,6 +18,7 @@ See `.planning/PROJECT.md` for full context, requirements, constraints, and key 
 ## GSD Workflow
 
 **Config** (`.planning/config.json`):
+
 - Mode: `yolo` (auto-approve plans/execution)
 - Granularity: `standard` (5–8 phases, 3–5 plans each)
 - Parallelization: enabled
@@ -25,6 +26,7 @@ See `.planning/PROJECT.md` for full context, requirements, constraints, and key 
 - Commit docs: yes
 
 **Typical phase loop:**
+
 1. `/gsd-plan-phase N` — decompose phase into plans (with plan-check agent)
 2. `/gsd-execute-phase N` — execute plans in parallel where possible, atomic commits
 3. `/gsd-verify-work N` — verifier confirms deliverables match phase goal
@@ -32,6 +34,7 @@ See `.planning/PROJECT.md` for full context, requirements, constraints, and key 
 5. `/gsd-transition` — update PROJECT.md, advance state
 
 **Commands most likely needed:**
+
 - `/gsd-progress` — status + routing
 - `/gsd-next` — auto-advance to next logical step
 - `/gsd-plan-phase N` — plan a specific phase

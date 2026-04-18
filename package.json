@@ -2,7 +2,14 @@
   "name": "@cosyte/hl7-parser",
   "version": "0.0.0",
   "description": "Developer-focused HL7 v2 parser and utility library for Node.js and TypeScript.",
-  "keywords": ["hl7", "hl7v2", "parser", "healthcare", "interoperability", "typescript"],
+  "keywords": [
+    "hl7",
+    "hl7v2",
+    "parser",
+    "healthcare",
+    "interoperability",
+    "typescript"
+  ],
   "homepage": "https://github.com/cosyte/hl7-parser#readme",
   "bugs": {
     "url": "https://github.com/cosyte/hl7-parser/issues"
