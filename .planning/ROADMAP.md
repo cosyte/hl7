@@ -33,7 +33,12 @@ North star: **A developer can parse a real-world, vendor-quirky HL7 v2 message a
   2. A developer importing the package from an ESM project and another from a CJS project both resolve the correct entry through the `exports` map and receive typed intellisense.
   3. A developer inspecting `package.json` sees zero runtime `dependencies`, `"type": "module"`, dual-build artifacts declared, and Node 18+ engines field.
   4. A developer editing any `.ts` file gets strict-mode errors for `any`, unchecked index access, and missing types from their editor immediately.
-**Plans**: TBD
+**Plans**: 4 plans
+Plans:
+- [ ] 01-PLAN-01-package-scaffold.md — Scaffold package.json, tsconfig, LICENSE, .gitignore, src/index.ts stub
+- [ ] 01-PLAN-02-build-system.md — Create tsup.config.ts for dual ESM+CJS build with .d.ts
+- [ ] 01-PLAN-03-lint-and-test.md — ESLint flat config, Prettier, Vitest config, sanity test
+- [ ] 01-PLAN-04-smoke-verification.md — Run full pnpm pipeline end-to-end, commit lockfile, add CI workflow
 **UI hint**: no
 
 ### Phase 2: Core Parser & Tolerance
