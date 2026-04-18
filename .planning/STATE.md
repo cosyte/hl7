@@ -8,15 +8,15 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 
 - **Name:** `@cosyte/hl7-parser`
 - **Core value:** A developer can parse a real-world, vendor-quirky HL7 v2 message and pull useful fields out of it in one line — without having read the HL7 spec.
-- **Current focus:** Phase 1 — Project Foundation (all 4 plans complete; pending /gsd-verify-work 1 and /gsd-validate-phase 1)
+- **Current focus:** Phase 2 — Core Parser & Tolerance (6 plans written, verified, ready to execute; Phase 1 still pending /gsd-verify-work 1 and /gsd-validate-phase 1)
 - **Workflow config:** standard granularity, yolo mode, parallelization enabled, plan-check + verifier + Nyquist validation on, auto-advance on.
 
 ## Current Position
 
 - **Milestone:** v1
-- **Phase:** 1 — Project Foundation
-- **Plans:** 4 plans across 3 waves (01 package-scaffold ✓, 02 build-system ✓, 03 lint-and-test ✓, 04 smoke-verification ✓)
-- **Status:** All Phase 1 plans complete — pending /gsd-verify-work 1 (verifier) and /gsd-validate-phase 1 (Nyquist) before phase transition
+- **Phase:** 2 — Core Parser & Tolerance
+- **Plans:** 6 plans across 3 waves (01 warnings/errors/message-shell — Wave 1; 02 normalize+mllp+charset, 03 segments+delimiters+tokenize, 04 escapes, 05 dateFormats — Wave 2 parallel; 06 parseHL7 public + strict-mode capstone — Wave 3)
+- **Status:** Ready to execute — plans passed plan-checker (iteration 2, all blockers fixed). Unified HL7 1-indexed `fields[]` convention locked across Plans 01/03/06. Pipeline order matches D-03: empty → BOM → MLLP → normalize.
 - **Progress:** 0/8 phases complete (Phase 1 deliverables done, verification gates pending); 4/4 Phase 1 plans complete
 
 ```
@@ -82,10 +82,11 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 
 ## Session Continuity
 
-- **Last action:** Phase 1 Plan 04 (smoke-verification) executed — ran full pipeline end-to-end, 2 Rule 1 integration bugs auto-fixed (tsconfig rootDir, src/index.ts JSDoc tag), prettier normalization applied to CLAUDE.md + package.json, `pnpm-lock.yaml` committed, `.github/workflows/ci.yml` created. All six SETUP requirements now VERIFIED. Commits: 8403738 (fix), e77305c (style), 4d45b5c (feat-lockfile), e317b23 (feat-CI).
-- **Next action:** `/gsd-verify-work 1` to confirm Phase 1 deliverables match phase goal, then `/gsd-validate-phase 1` for Nyquist coverage audit, then `/gsd-transition` to plan Phase 2 (Core Parser & Tolerance).
+- **Last action:** Phase 2 context captured — `/gsd-discuss-phase 2` completed 4 gray areas (parser pipeline shape, Phase 2/3 output boundary, warning-code registry, error class hierarchy). 15 decisions locked in `.planning/phases/02-core-parser-and-tolerance/02-CONTEXT.md`; full Q&A trail in `02-DISCUSSION-LOG.md`. Phase 1 verification gates (`/gsd-verify-work 1`, `/gsd-validate-phase 1`) still pending.
+- **Next action:** `/gsd-plan-phase 2` to decompose Phase 2 into plans. (Still open: `/gsd-verify-work 1` + `/gsd-validate-phase 1` for Phase 1 — run those before or in parallel with Phase 2 planning.)
 - **Open questions:** None currently.
+- **Resume file:** `.planning/phases/02-core-parser-and-tolerance/02-CONTEXT.md`
 
 ---
 
-*Last updated: 2026-04-18 (Plan 01-04 complete — Phase 1 plans all done, pending verify/validate)*
+*Last updated: 2026-04-18 (Phase 2 context captured; Phase 1 still pending verify/validate)*

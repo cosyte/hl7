@@ -51,7 +51,14 @@ Plans:
   3. A developer parsing a structurally broken message (missing MSH, truncated MSH, invalid encoding chars, empty input) receives a thrown `Hl7ParseError` with a stable code, position, and snippet — even in lenient mode.
   4. A developer opting into `{ strict: true }` gets every Tier 2 deviation escalated to a thrown `Hl7ParseError` rather than a warning.
   5. A developer supplying `dateFormats: [...]` sees non-HL7 timestamp formats accepted in order with a `TIMESTAMP_FALLBACK_FORMAT` warning, falling back to built-in ISO/date/US formats when no user format matches.
-**Plans**: TBD
+**Plans**: 6 plans
+Plans:
+- [ ] 02-PLAN-01-warnings-errors-and-message-shell.md — Warnings registry, errors classes (4 fatal codes), shared types, Hl7Message shell
+- [ ] 02-PLAN-02-input-normalization-mllp-and-charset.md — normalize (line endings only) + normalizeBuffer (Buffer → string via MSH-18 charset) + stripMllp
+- [ ] 02-PLAN-03-segments-delimiters-and-tokenize.md — splitSegments + readDelimiters (3 fatals) + tokenize (fields/reps/comps/subs) + whitespace trim warning
+- [ ] 02-PLAN-04-escape-sequences.md — unescape (all 8 HL7 escape forms + unknown warning) + reescape
+- [ ] 02-PLAN-05-dateformats-plumbing.md — parseHl7Timestamp cascade (HL7 → user → built-ins) + TIMESTAMP_FALLBACK_FORMAT
+- [ ] 02-PLAN-06-public-parsehl7-and-strict-mode.md — parseHL7 public entry + emitWarning chokepoint + strict-mode escalation + src/index.ts barrel update
 **UI hint**: no
 
 ### Phase 3: Structural Model & Types
@@ -151,7 +158,7 @@ Within each phase, plans that touch disjoint modules may run in parallel; plans 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Project Foundation | 4/4 | Complete (pending verify) | 2026-04-18 |
-| 2. Core Parser & Tolerance | 0/0 | Not started | — |
+| 2. Core Parser & Tolerance | 0/6 | Planned | — |
 | 3. Structural Model & Types | 0/0 | Not started | — |
 | 4. Named Helpers | 0/0 | Not started | — |
 | 5. Serialization & Round-Trip | 0/0 | Not started | — |
