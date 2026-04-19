@@ -97,3 +97,25 @@ export { parseXcn } from "./model/types/xcn.js";
 
 // Phase 3 HL7 namespace re-export (D-13) — `HL7.XPN`, `HL7.XAD`, ..., `HL7.XCN`.
 export * as HL7 from "./model/types/namespace.js";
+
+// Phase 4 named helpers — type-only exports. Runtime behavior lives on
+// `Hl7Message` instance getters (`.meta`, `.patient`, `.visit`) and
+// collection methods (`.observations()`, `.orders()`, `.nextOfKin()`,
+// `.allergies()`, `.diagnoses()`, `.insurance()`). HELPERS-01..07.
+export type {
+  Allergy,
+  Diagnosis,
+  Insurance,
+  Meta,
+  NextOfKin,
+  Observation,
+  ObservationBase,
+  Order,
+  Patient,
+  Visit,
+} from "./helpers/types.js";
+
+// Phase 4: `pickMrn` is exposed as a named export so Phase 6 profile override
+// hooks can substitute a profile-aware variant without patching the helper
+// that calls it (D-07/D-08/D-10 default; Phase 6 hook-point).
+export { pickMrn } from "./helpers/pick-mrn.js";

@@ -19,6 +19,26 @@ import type {
   RawSegment,
 } from "../parser/types.js";
 import type { Hl7ParseWarning } from "../parser/warnings.js";
+import { allergies as walkAllergies } from "../helpers/allergies.js";
+import { diagnoses as walkDiagnoses } from "../helpers/diagnoses.js";
+import { insurance as walkInsurance } from "../helpers/insurance.js";
+import { buildMeta } from "../helpers/meta.js";
+import { nextOfKin as walkNextOfKin } from "../helpers/next-of-kin.js";
+import { observations as walkObservations } from "../helpers/observations.js";
+import { orders as walkOrders } from "../helpers/orders.js";
+import { buildPatient } from "../helpers/patient.js";
+import type {
+  Allergy,
+  Diagnosis,
+  Insurance,
+  Meta,
+  NextOfKin,
+  Observation,
+  Order,
+  Patient,
+  Visit,
+} from "../helpers/types.js";
+import { buildVisit } from "../helpers/visit.js";
 
 /**
  * HL7 segment-name shape: 3 uppercase ASCII letters OR `Z[A-Z0-9]{2}` (D-19).
@@ -120,6 +140,30 @@ export class Hl7Message {
    * @internal
    */
   private _allSegments: readonly Segment[] | undefined;
+
+  /**
+   * Lazily built `Meta` view (Phase 4 D-02 memoization). Dropped wholesale
+   * by `invalidateCaches`. `Meta` is always defined (D-03 — MSH absence
+   * throws `NO_MSH_SEGMENT` at parse time) so no null-sentinel is needed.
+   * @internal
+   */
+  private _meta: Meta | undefined;
+
+  /**
+   * Lazily built `Patient | undefined` view (Phase 4 D-02 memoization). Uses
+   * a null-sentinel cache because `undefined` means "not yet computed" while
+   * `null` means "computed, absent". D-04: no PID → public value `undefined`.
+   * @internal
+   */
+  private _patient: Patient | null | undefined;
+
+  /**
+   * Lazily built `Visit | undefined` view (Phase 4 D-02 memoization). Same
+   * null-sentinel convention as `_patient`. HELPERS-03: no PV1 → public
+   * value `undefined`.
+   * @internal
+   */
+  private _visit: Visit | null | undefined;
 
   /**
    * Construct a new `Hl7Message`. The constructor takes a plain init
@@ -229,6 +273,145 @@ export class Hl7Message {
     }
     this._allSegments = built;
     return built;
+  }
+
+  /**
+   * MSH-derived message metadata (type, controlId, timestamp, version, etc.).
+   * D-01: plain object. D-02: memoized — `msg.meta === msg.meta` across
+   * reads until mutation invalidates. D-03: always defined (MSH absence
+   * throws `NO_MSH_SEGMENT` at parse time).
+   *
+   * @example
+   * ```ts
+   * console.log(msg.meta.type);                     // "ADT^A01"
+   * console.log(msg.meta.timestamp?.toISOString()); // flat Date (D-18)
+   * console.log(msg.meta.controlId);                // "MSG001"
+   * ```
+   */
+  public get meta(): Meta {
+    return (this._meta ??= buildMeta(this));
+  }
+
+  /**
+   * PID-derived patient view, or `undefined` when no PID segment exists
+   * (D-04). D-02: memoized. HELPERS-07: never throws — absent fields
+   * surface as `undefined` on the returned `Patient` object.
+   *
+   * @example
+   * ```ts
+   * console.log(msg.patient?.mrn);
+   * console.log(msg.patient?.fullName);
+   * console.log(msg.patient?.dateOfBirth?.toISOString());
+   * ```
+   */
+  public get patient(): Patient | undefined {
+    if (this._patient === undefined) {
+      this._patient = buildPatient(this) ?? null;
+    }
+    return this._patient === null ? undefined : this._patient;
+  }
+
+  /**
+   * PV1-derived visit view, or `undefined` when no PV1 segment exists
+   * (HELPERS-03). D-02: memoized. HELPERS-07: never throws.
+   *
+   * @example
+   * ```ts
+   * console.log(msg.visit?.patientClass);                 // "I"
+   * console.log(msg.visit?.admitDateTime?.toISOString());
+   * console.log(msg.visit?.attendingDoctor?.familyName);
+   * ```
+   */
+  public get visit(): Visit | undefined {
+    if (this._visit === undefined) {
+      this._visit = buildVisit(this) ?? null;
+    }
+    return this._visit === null ? undefined : this._visit;
+  }
+
+  /**
+   * Every OBX segment as a typed Observation in document order. D-05:
+   * returns `[]` when no OBX present. D-06: NOT memoized — each call
+   * re-walks `rawSegments`. Value type is discriminated per D-13.
+   *
+   * @example
+   * ```ts
+   * for (const obs of msg.observations()) {
+   *   if (obs.valueType === "NM") console.log(obs.value); // number | undefined
+   * }
+   * ```
+   */
+  public observations(): readonly Observation[] {
+    return walkObservations(this);
+  }
+
+  /**
+   * Every OBR as an Order with its OBX children grouped positionally (D-12).
+   * D-05: returns `[]` when no OBR present. D-06: not memoized.
+   *
+   * @example
+   * ```ts
+   * for (const order of msg.orders()) {
+   *   console.log(order.placerOrderNumber, order.observations.length);
+   * }
+   * ```
+   */
+  public orders(): readonly Order[] {
+    return walkOrders(this);
+  }
+
+  /**
+   * Every NK1 as a NextOfKin entry in document order. D-05: returns `[]`
+   * when no NK1 present.
+   *
+   * @example
+   * ```ts
+   * for (const nk of msg.nextOfKin()) {
+   *   console.log(nk.name?.familyName, nk.relationship?.text);
+   * }
+   * ```
+   */
+  public nextOfKin(): readonly NextOfKin[] {
+    return walkNextOfKin(this);
+  }
+
+  /**
+   * Every AL1 as an Allergy in document order. D-05: returns `[]` when no
+   * AL1 present.
+   *
+   * @example
+   * ```ts
+   * for (const al of msg.allergies()) console.log(al.code?.text, al.severity);
+   * ```
+   */
+  public allergies(): readonly Allergy[] {
+    return walkAllergies(this);
+  }
+
+  /**
+   * Every DG1 as a Diagnosis in document order. D-05: returns `[]` when no
+   * DG1 present.
+   *
+   * @example
+   * ```ts
+   * for (const dg of msg.diagnoses()) console.log(dg.code?.identifier);
+   * ```
+   */
+  public diagnoses(): readonly Diagnosis[] {
+    return walkDiagnoses(this);
+  }
+
+  /**
+   * Every IN1 as an Insurance entry with positional IN2/IN3 presence flags.
+   * D-05: returns `[]` when no IN1 present.
+   *
+   * @example
+   * ```ts
+   * for (const ins of msg.insurance()) console.log(ins.planId?.text);
+   * ```
+   */
+  public insurance(): readonly Insurance[] {
+    return walkInsurance(this);
   }
 
   /**
@@ -477,13 +660,17 @@ export class Hl7Message {
   }
 
   /**
-   * Drop both wrapper caches wholesale (D-17). Called by every mutation
-   * method so subsequent `segments(type)` / `allSegments()` calls rebuild
-   * from the mutated `rawSegments` tree.
+   * Drop every wrapper AND helper cache wholesale (Phase 3 D-17 + Phase 4
+   * D-02). Called by every mutation method so subsequent `segments(type)` /
+   * `allSegments()` / `meta` / `patient` / `visit` reads rebuild from the
+   * mutated `rawSegments` tree.
    * @internal
    */
   private invalidateCaches(): void {
     this._segmentsByType = undefined;
     this._allSegments = undefined;
+    this._meta = undefined;
+    this._patient = undefined;
+    this._visit = undefined;
   }
 }
