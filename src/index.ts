@@ -89,5 +89,11 @@ export { parseNm } from "./model/types/nm.js";
 export type { HD } from "./model/types/hd.js";
 export { parseHd } from "./model/types/hd.js";
 
-// Phase 3 HL7 namespace re-export (D-13) — `HL7.XPN`, `HL7.XAD`, etc.
+// Phase 4: XCN composite (11th v1 composite — D-24 option (a)). Used by
+// helpers for `visit.attendingDoctor` / `visit.referringDoctor` (PV1-7/8)
+// and `order.orderedBy` (OBR-16). Structurally XPN + ID prefix + nested HD.
+export type { XCN } from "./model/types/xcn.js";
+export { parseXcn } from "./model/types/xcn.js";
+
+// Phase 3 HL7 namespace re-export (D-13) — `HL7.XPN`, `HL7.XAD`, ..., `HL7.XCN`.
 export * as HL7 from "./model/types/namespace.js";

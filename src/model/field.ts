@@ -32,6 +32,7 @@ import { parseNm, type NM } from "./types/nm.js";
 import { parsePl, type PL } from "./types/pl.js";
 import { parseTs, type TS } from "./types/ts.js";
 import { parseXad, type XAD } from "./types/xad.js";
+import { parseXcn, type XCN } from "./types/xcn.js";
 import { parseXpn, type XPN } from "./types/xpn.js";
 import { parseXtn, type XTN } from "./types/xtn.js";
 
@@ -269,6 +270,22 @@ export class Field {
    */
   public asHd(): HD {
     return parseHd(this.repetitions[0] ?? EMPTY_REP, this.enc);
+  }
+
+  /**
+   * Coerce this field's first repetition to a typed `XCN` (Extended Composite
+   * ID Number and Name for Persons). `assigningAuthority` is a nested `HD`.
+   * Common on OBR-16 (ordering provider), PV1-7 (attending doctor), PV1-8
+   * (referring doctor). Empty field → `{}` (never throws).
+   *
+   * @example
+   * ```ts
+   * const orderedBy = msg.segments("OBR")[0]?.field(16)?.asXcn();
+   * console.log(orderedBy?.idNumber, orderedBy?.familyName, orderedBy?.identifierTypeCode);
+   * ```
+   */
+  public asXcn(): XCN {
+    return parseXcn(this.repetitions[0] ?? EMPTY_REP, this.enc);
   }
 }
 

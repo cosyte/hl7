@@ -28,3 +28,5 @@ export type { NM } from "./nm.js";
 export { parseNm } from "./nm.js";
 export type { HD } from "./hd.js";
 export { parseHd } from "./hd.js";
+export type { XCN } from "./xcn.js";
+export { parseXcn } from "./xcn.js";
