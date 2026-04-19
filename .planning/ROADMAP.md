@@ -123,7 +123,14 @@ Plans:
   3. A developer calling `parseHL7(raw, profile)` sees `msg.profile?.name` and `msg.profile?.lineage` populated, custom Z-segments accessible by declared field name, and re-serialization producing spec-clean HL7.
   4. A developer calling `setDefaultProfile(p)` / `getDefaultProfile()` / `setDefaultProfile(null)` can manage a process-scoped default; explicit arguments override and `parseHL7(raw, { profile: null })` opts out for a single call.
   5. A developer importing `profiles.epic`, `profiles.cerner`, `profiles.meditech`, `profiles.athena`, or `profiles.genericLab` and parsing a realistic vendor-shape fixture with the profile receives fewer warnings than parsing the same fixture in lenient mode without a profile; each built-in is defined through the public `defineProfile()` API.
-**Plans**: TBD
+**Plans**: 6 plans
+Plans:
+- [ ] 06-01-PLAN.md — defineProfile() core + 4 validation throws + describe() + types (PROF-01/02/04/05/07-types)
+- [ ] 06-02-PLAN.md — extends + merge semantics (lineage, dateFormats, customSegments, onWarning chain; PROF-03)
+- [ ] 06-03-PLAN.md — Segment.get(name) + UNKNOWN_SEGMENT emit/suppression + D-21 merged dateFormats plumbing (PROF-02/06/07/09)
+- [ ] 06-04-PLAN.md — setDefaultProfile/getDefaultProfile + parseHL7 dispatch (PROF-08)
+- [ ] 06-05-PLAN.md — 5 built-in vendor profiles (epic, cerner, meditech, athena, genericLab) + handcrafted fixtures (BIP-01..05)
+- [ ] 06-06-PLAN.md — profiles barrel + src/index.ts public exports + BIP-06 fixture-parity tests
 **UI hint**: no
 
 ### Phase 7: Testing Hardening & Fixtures
