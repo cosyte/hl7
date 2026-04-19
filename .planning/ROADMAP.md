@@ -109,7 +109,7 @@ Plans:
 - [x] 05-PLAN-01-scaffold-emit-field-and-method-wiring.md — Emit-field primitive (FULLY IMPLEMENTED), 6 stub files with LIVE SerializedMessage + BuildMessageInit types, 3 Hl7Message instance methods wired
 - [x] 05-PLAN-02-to-string-and-round-trip.md — Fill emitMessage body (MSH special-case + CR terminator); 5 round-trip fixtures + SER-02 structural-equivalence sweep; Rule-3 deviation: Phase 2 tokenize now unescapes on parse (closes SER-01, SER-02, SER-05)
 - [x] 05-PLAN-03-to-json.md — Fill emitJson body (raw-tree mirror + stable warnings + conditional profile + W5 boundary freeze; B3 dead-code `?? []` removed) (closes SER-03)
-- [ ] 05-PLAN-04-pretty-print.md — Fill emitPrettyPrint body (header + segment-per-line with labeled fields) (closes SER-04)
+- [x] 05-PLAN-04-pretty-print.md — Fill emitPrettyPrint body (D-25 header + D-23 segment-per-line with labeled fields + MSH offset + W2 raw-escape docs) (closes SER-04)
 - [ ] 05-PLAN-05-build-message.md — Fill buildMessage + formatHl7Timestamp + generateControlId bodies with addSegment chaining + round-trip tests (closes SER-06)
 **UI hint**: no
 

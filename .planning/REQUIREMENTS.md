@@ -72,7 +72,7 @@ All requirements are user-facing behaviors a developer consuming `@cosyte/hl7-pa
 - [x] **SER-01** — `msg.toString()` produces spec-clean HL7 regardless of quirks in the input (Postel's Law: conservative emitter). (Phase 5 Plan 02)
 - [x] **SER-02** — Round-trip `parse → toString → parse` yields an equivalent `Hl7Message` object for every fixture. (Phase 5 Plan 02)
 - [x] **SER-03** — `msg.toJSON()` returns a structured JSON representation of the full message. (Phase 5 Plan 03)
-- [ ] **SER-04** — `msg.prettyPrint()` returns a human-readable multi-line string for logging/debugging.
+- [x] **SER-04** — `msg.prettyPrint()` returns a human-readable multi-line string for logging/debugging. (Phase 5 Plan 04)
 - [x] **SER-05** — Escape sequences are correctly re-encoded on serialize (unescaped content → escaped). (Phase 5 Plan 02)
 - [ ] **SER-06** — `buildMessage({...}).addSegment(...).toString()` constructs a valid outbound HL7 message for tests and small tools.
 
@@ -214,7 +214,7 @@ Every v1 REQ-ID maps to exactly one phase in `ROADMAP.md`. 97/97 mapped.
 | SER-01 | Phase 5 — Serialization & Round-Trip | Complete (Plan 02 — emitMessage body D-01/D-05/D-06/D-07/D-08) |
 | SER-02 | Phase 5 — Serialization & Round-Trip | Complete (Plan 02 — 5-fixture round-trip sweep + tokenize unescape-on-parse Rule-3 deviation) |
 | SER-03 | Phase 5 — Serialization & Round-Trip | Complete (Plan 03 — emitJson body D-17 raw-tree mirror + D-19 stable warnings + D-20 conditional profile + W5 boundary freeze) |
-| SER-04 | Phase 5 — Serialization & Round-Trip | Pending |
+| SER-04 | Phase 5 — Serialization & Round-Trip | Complete (Plan 04 — emitPrettyPrint body D-22..D-26 + W2 raw-escape JSDoc + 29-test suite across 6 decision blocks) |
 | SER-05 | Phase 5 — Serialization & Round-Trip | Complete (Plan 02 — reescape chokepoint observable via emitField + round-trip fixtures) |
 | SER-06 | Phase 5 — Serialization & Round-Trip | Pending |
 | PROF-01 | Phase 6 — Profile System & Built-ins | Pending |
