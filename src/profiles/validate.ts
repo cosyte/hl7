@@ -210,3 +210,58 @@ export function validateDateFormats(
     }
   }
 }
+
+/**
+ * Post-merge D-06 DEFENSE-IN-DEPTH check: within a single segment, the
+ * SAME field name MUST NOT resolve to DIFFERENT positions. Cross-
+ * position aliasing (two names, same position) is allowed — that's
+ * intentional convenience.
+ *
+ * **Runtime observation:** Given the current `mergeCustomSegments`
+ * strategy (accumulator keyed by position, where later layers overwrite
+ * same-position entries), a name cannot survive at two positions: if a
+ * parent has `{ a: 3 }` and a child has `{ a: 5 }`, the accumulator
+ * produces `{ 3: "a", 5: "a" }` which lowers to `{ a: 5 }` (the second
+ * assignment wins inside the final `Record`). If a parent has
+ * `{ a: 3, b: 3 }` (two names at the same position — legal) and the
+ * child has `{ a: 5 }`, the accumulator produces `{ 3: "b", 5: "a" }` →
+ * output `{ a: 5, b: 3 }`; `a` maps to ONE position (5), no violation.
+ * Therefore this validator never fires under the present strategy.
+ *
+ * It stays as code-level defense-in-depth because (a) it is cheap
+ * (O(N) over fields of the merged map) and (b) if a future contributor
+ * changes `mergeCustomSegments` to a name-keyed accumulator (e.g. to
+ * preserve "last write per name" semantics that could allow a name to
+ * remain at two positions), this validator becomes reachable and
+ * catches the bug before the profile ships. The test suite asserts
+ * the validator's presence and contract; it intentionally does NOT
+ * assert that `defineProfile` throws through the current merge path for
+ * a duplicate-name-different-position case, because that case is
+ * unreachable today.
+ *
+ * @internal
+ */
+export function validateUniqueFieldNames(
+  map: Readonly<Record<string, CustomSegmentDefinition>>,
+  profileName: string,
+): void {
+  for (const segName of Object.keys(map)) {
+    const entry = map[segName];
+    if (entry === undefined) continue;
+    const positionsByName = new Map<string, number>();
+    for (const fieldName of Object.keys(entry.fields)) {
+      const pos = entry.fields[fieldName];
+      if (pos === undefined) continue;
+      const prior = positionsByName.get(fieldName);
+      if (prior !== undefined && prior !== pos) {
+        throw new ProfileDefinitionError(
+          `Profile '${profileName}' customSegments['${segName}']: field name '${fieldName}' ` +
+            `maps to BOTH position ${String(prior)} AND position ${String(pos)} after extends merge. ` +
+            `Each field name within a segment must map to exactly one position.`,
+          profileName,
+        );
+      }
+      positionsByName.set(fieldName, pos);
+    }
+  }
+}
