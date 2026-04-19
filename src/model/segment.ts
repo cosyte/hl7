@@ -40,6 +40,15 @@ export class Segment {
   /** The full `RawSegment` this wrapper wraps. Exposed for mutation methods (Plan 04). @internal */
   public readonly raw: RawSegment;
 
+  /**
+   * Lookup map from profile-declared field name → 1-indexed HL7 position.
+   * Absent when no profile was applied to the parent message, or when the
+   * applied profile does not declare `customSegments` for this segment's
+   * type. Consumed by `get(name)` to resolve named-field access (PROF-07).
+   * @internal
+   */
+  public readonly customFields: Readonly<Record<string, number>> | undefined;
+
   /** Lazy cache of Field wrappers — one per fields[] position. @internal */
   private _fieldWrappers: Field[] | undefined;
 
@@ -47,14 +56,25 @@ export class Segment {
    * Construct a new `Segment`. Called internally by `Hl7Message`; user code
    * should obtain `Segment` instances via `msg.segments(type)` or
    * `msg.allSegments()`.
+   *
+   * The optional `customFields` parameter is the per-segment slice of the
+   * applied profile's merged `customSegments` map (PROF-07 / D-16). When
+   * supplied, `get(name)` resolves names against it; otherwise `get(name)`
+   * always returns `undefined`.
    * @internal
    */
-  public constructor(raw: RawSegment, enc: EncodingCharacters, absoluteIndex: number) {
+  public constructor(
+    raw: RawSegment,
+    enc: EncodingCharacters,
+    absoluteIndex: number,
+    customFields?: Readonly<Record<string, number>>,
+  ) {
     this.raw = raw;
     this.type = raw.name;
     this.fields = raw.fields;
     this.enc = enc;
     this.absoluteIndex = absoluteIndex;
+    this.customFields = customFields;
   }
 
   /**
@@ -96,5 +116,42 @@ export class Segment {
     const idx = this.type === "MSH" ? n - 1 : n;
     const f = this._fieldWrappers[idx];
     return f ?? Field.empty(this.enc);
+  }
+
+  /**
+   * Return the `Field` at the profile-declared position for `name`, or
+   * `undefined` when no custom mapping exists (PROF-07). Unlike `field(n)`,
+   * missing names return `undefined` — NOT a synthetic empty Field — so
+   * typos surface instead of silently resolving to an empty string (D-14).
+   *
+   * For segments without a profile-declared customSegments slice (most
+   * non-Z segments, and any Z-segment whose host message had no profile
+   * applied), this method always returns `undefined` (D-15 defense-in-depth
+   * — D-05 already rejects standard-segment overlays at `defineProfile()`
+   * time).
+   *
+   * When the declared position is out of range for the underlying
+   * `RawSegment.fields`, `get(name)` returns `undefined` (NOT a
+   * synthetic-empty Field) so callers can distinguish "name not declared"
+   * from "name declared but position missing in the raw message" only at
+   * the presence level (both collapse to `undefined` per D-14).
+   *
+   * @example
+   * ```ts
+   * const zpi = msg.allSegments().find((s) => s.type === "ZPI");
+   * console.log(zpi?.get("encounterId")?.value);
+   * ```
+   */
+  public get(name: string): Field | undefined {
+    const position = this.customFields?.[name];
+    if (position === undefined) return undefined;
+    // Delegate to field(n) for MSH-offset + wrapper-cache consistency.
+    // field(n) returns Field.empty(enc) when out-of-range; we check whether
+    // the field has content and return undefined for out-of-range so typos
+    // surface (not a silent-empty read).
+    const f = this.field(position);
+    // Treat "field has no repetitions AND not explicit-null" as out-of-range.
+    if (f.repetitions.length === 0 && !f.isNull) return undefined;
+    return f;
   }
 }

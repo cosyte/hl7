@@ -12,6 +12,7 @@
 import { parsePath, resolvePath } from "./dot-path.js";
 import { Segment } from "./segment.js";
 import type {
+  CustomSegmentDefinition,
   EncodingCharacters,
   RawComponent,
   RawField,
@@ -90,6 +91,19 @@ export interface Hl7MessageInit {
   readonly version: string;
   readonly warnings: readonly Hl7ParseWarning[];
   readonly profile?: { readonly name: string; readonly lineage: readonly string[] };
+  /**
+   * Merged customSegments map from the applied profile (D-16). Threaded
+   * into Segment constructors so `seg.get(fieldName)` can resolve custom
+   * positions (PROF-07). Absent when no profile was applied.
+   */
+  readonly customSegments?: Readonly<Record<string, CustomSegmentDefinition>>;
+  /**
+   * Merged `dateFormats` list — `options.dateFormats ++ profile.dateFormats`
+   * deduped first-occurrence per D-21. Consumed by `msg.meta.timestamp` and
+   * any future helper that calls `parseHl7Timestamp` directly. Absent when
+   * neither `options.dateFormats` nor `profile.dateFormats` was supplied.
+   */
+  readonly dateFormats?: readonly string[];
 }
 
 /**
@@ -130,6 +144,22 @@ export class Hl7Message {
   public readonly version: string;
   public readonly warnings: readonly Hl7ParseWarning[];
   public readonly profile: { readonly name: string; readonly lineage: readonly string[] } | undefined;
+
+  /**
+   * Merged `dateFormats` list — `options.dateFormats ++ profile.dateFormats`
+   * deduped first-occurrence per D-21. Empty array when neither source
+   * supplied any formats. Exposed publicly so helpers (`msg.meta.timestamp`)
+   * and advanced callers can introspect the active cascade.
+   */
+  public readonly dateFormats: readonly string[];
+
+  /**
+   * Merged `customSegments` map from the applied profile, stored so
+   * `allSegments()` can hand per-segment slices to `Segment` constructors
+   * (D-16). Undefined when no profile was applied.
+   * @internal
+   */
+  private _customSegments: Readonly<Record<string, CustomSegmentDefinition>> | undefined;
 
   /**
    * Lazily built cache of Segment wrappers keyed by segment type. Built on
@@ -192,6 +222,14 @@ export class Hl7Message {
     // The public field declares `... | undefined`, so direct assignment is
     // sound.
     this.profile = init.profile;
+    // D-16: stash the merged customSegments map so allSegments() can hand
+    // per-segment slices to Segment constructors. Conditional assignment
+    // under exactOptionalPropertyTypes — absent key stays undefined.
+    if (init.customSegments !== undefined) this._customSegments = init.customSegments;
+    // D-21: merged dateFormats list (options ++ profile). Empty array when
+    // neither source supplied any formats so the public field is always
+    // defined (simpler consumer contract than `readonly string[] | undefined`).
+    this.dateFormats = init.dateFormats ?? [];
   }
 
   /**
@@ -276,7 +314,16 @@ export class Hl7Message {
     for (let i = 0; i < this.rawSegments.length; i++) {
       const raw = this.rawSegments[i];
       if (raw === undefined) continue;
-      built.push(new Segment(raw, this.encodingCharacters, i));
+      // D-16: hand each Segment its per-segment customFields slice so
+      // `seg.get(name)` can resolve named positions. Conditional-pass under
+      // exactOptionalPropertyTypes so the optional 4th ctor param stays
+      // truly absent (not explicitly undefined) when no profile applied.
+      const customFields = this._customSegments?.[raw.name]?.fields;
+      if (customFields !== undefined) {
+        built.push(new Segment(raw, this.encodingCharacters, i, customFields));
+      } else {
+        built.push(new Segment(raw, this.encodingCharacters, i));
+      }
     }
     this._allSegments = built;
     return built;
