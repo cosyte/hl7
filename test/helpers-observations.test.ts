@@ -8,6 +8,8 @@
 
 import { describe, expect, it } from "vitest";
 
+import type { CE } from "../src/model/types/ce.js";
+import type { CWE } from "../src/model/types/cwe.js";
 import { parseHL7 } from "../src/parser/index.js";
 
 const MSH = "MSH|^~\\&|APP|FAC|||20250102||ORU^R01|1|P|2.5\r";
@@ -66,9 +68,13 @@ describe("helpers/observations: msg.observations() — D-13 value-type dispatch"
     const o = msg.observations()[0];
     expect(o?.valueType).toBe("CWE");
     if (o?.valueType === "CWE") {
-      expect(o.value?.identifier).toBe("E11.9");
-      expect(o.value?.text).toBe("Type 2 DM");
-      expect(o.value?.nameOfCodingSystem).toBe("I10");
+      // The Observation union's final `{ valueType: string }` catch-all arm
+      // prevents TS from ruling out `string` narrowing, so cast the value
+      // explicitly to the CWE composite we know it is at runtime.
+      const v = o.value as CWE | undefined;
+      expect(v?.identifier).toBe("E11.9");
+      expect(v?.text).toBe("Type 2 DM");
+      expect(v?.nameOfCodingSystem).toBe("I10");
     } else {
       throw new Error("Expected CWE branch");
     }
@@ -79,8 +85,9 @@ describe("helpers/observations: msg.observations() — D-13 value-type dispatch"
     const o = msg.observations()[0];
     expect(o?.valueType).toBe("CE");
     if (o?.valueType === "CE") {
-      expect(o.value?.identifier).toBe("M");
-      expect(o.value?.text).toBe("Male");
+      const v = o.value as CE | undefined;
+      expect(v?.identifier).toBe("M");
+      expect(v?.text).toBe("Male");
     } else {
       throw new Error("Expected CE branch");
     }
