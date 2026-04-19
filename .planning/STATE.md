@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: milestone
-status: "Phase 4 VERIFIED. Verifier PASSED 4/4 success criteria + 7/7 HELPERS REQ-IDs (HELPERS-01..07) with codebase-evidence cites and end-to-end DX scratch demo. All 9 named helper surfaces ship: msg.meta / msg.patient / msg.visit / msg.observations() / msg.orders() / msg.nextOfKin() / msg.allergies() / msg.diagnoses() / msg.insurance(). 459/459 tests passing across 41 files; typecheck + lint + build green. Plan 03 deviation (widened SEGMENT_NAME_RE to /^[A-Z][A-Z0-9]{2}$/u) confirmed safe superset. Pending: /gsd-validate-phase 4 (Nyquist). Phases 1, 2, 3 verify + Nyquist audits still open."
-last_updated: "2026-04-19T00:00:00.000Z"
+status: "Phase 5 Plan 01 COMPLETE. Scaffold landed — emit-field primitive fully implemented (D-02 strip + D-04 reescape chokepoint + D-06 MSH loud guard); 6 stub files with live SerializedMessage + BuildMessageInit types; 3 Hl7Message instance methods (toString/toJSON/prettyPrint) wired; barrel extended with buildMessage + BuildMessageInit + SerializedMessage; vitest per-dir coverage thresholds extended to src/serialize/** and src/builder/**. 488/488 tests passing across 42 files (+29 from Plan 01); typecheck + lint + build green. Plans 02-05 can now edit only their assigned function body in disjoint files. Pending: /gsd-execute-phase 5 continuation (Plans 02-05). Phase 4 still pending /gsd-validate-phase 4 (Nyquist). Phases 1-3 verify + Nyquist audits still open."
+last_updated: "2026-04-19T19:24:14.000Z"
 progress:
   total_phases: 8
   completed_phases: 0
   total_plans: 0
-  completed_plans: 19
+  completed_plans: 20
 ---
 
 # @cosyte/hl7-parser — STATE
@@ -21,27 +21,27 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 
 - **Name:** `@cosyte/hl7-parser`
 - **Core value:** A developer can parse a real-world, vendor-quirky HL7 v2 message and pull useful fields out of it in one line — without having read the HL7 spec.
-- **Current focus:** Phase 4 — Named Helpers (COMPLETE — verifier PASSED 4/4 success criteria + 7/7 HELPERS REQ-IDs on 2026-04-19. Pending /gsd-validate-phase 4 Nyquist audit. Phase 3 still pending /gsd-validate-phase 3; Phase 2 still pending /gsd-verify-work 2 + /gsd-validate-phase 2; Phase 1 still pending /gsd-verify-work 1 + /gsd-validate-phase 1. Next phase: 5 — Serialization & Round-Trip.)
+- **Current focus:** Phase 5 — Serialization & Round-Trip (Plan 01 COMPLETE — scaffold + emit-field primitive + method wiring; Plans 02-05 pending). Phase 4 Nyquist still pending. Phase 3 still pending /gsd-validate-phase 3; Phase 2 still pending /gsd-verify-work 2 + /gsd-validate-phase 2; Phase 1 still pending /gsd-verify-work 1 + /gsd-validate-phase 1.
 - **Workflow config:** standard granularity, yolo mode, parallelization enabled, plan-check + verifier + Nyquist validation on, auto-advance on.
 
 ## Current Position
 
 - **Milestone:** v1
-- **Phase:** 4 — Named Helpers (COMPLETE — verifier PASSED 4/4 success criteria + 7/7 HELPERS REQ-IDs on 2026-04-19; Nyquist validation still pending)
-- **Plans:** 4 plans across 3 waves (01 scaffold-xcn-and-cache — Wave 1 DONE; 02 meta-and-patient — Wave 2 first plan DONE; 03 visit-and-observations — Wave 2 remainder DONE; 04 orders-and-collections — Wave 3 capstone DONE)
-- **Status:** Phase 4 complete. All 9 named helper surfaces ship: msg.meta / msg.patient / msg.visit / msg.observations() / msg.orders() / msg.nextOfKin() / msg.allergies() / msg.diagnoses() / msg.insurance(). XCN shipped as 11th v1 composite (D-24a). pickMrn + 9 helper type interfaces + Hl7Message cache wiring (3 getters + 6 methods + 3 cache slots + extended invalidateCaches) laid down in Wave 1. buildMeta / buildPatient (Wave 2 Plan 02), buildVisit / observations (Wave 2 Plan 03), orders / nextOfKin / allergies / diagnoses / insurance (Wave 3 Plan 04) fully implemented. North-star DX verified end-to-end via scratch demo against dist/index.mjs on a realistic ORU^R01 fixture — one-line access to msg.meta.type, msg.patient?.mrn, msg.patient?.fullName (Western order), msg.visit?.attendingDoctor?.idNumber (XCN via D-24a), msg.observations()[i].value (typed per D-13), msg.orders()[0].observations, plus all 4 collection helpers. HELPERS-07 never-throws sweep confirms all 9 surfaces handle empty / minimal / malformed input gracefully. Plan 03 Rule-3 deviation widened SEGMENT_NAME_RE from `/^(?:[A-Z]{3}|Z[A-Z0-9]{2})$/u` to `/^[A-Z][A-Z0-9]{2}$/u` (strict superset; unblocks PV1/IN1/DG1/AL1/NK1 mutation tests; fixes latent Phase 3 bug). 459/459 tests passing across 41 files; typecheck + lint (max-warnings=0) + build all green.
-- **Progress:** 2/8 phases verified; 4/4 Phase 1 + 6/6 Phase 2 + 4/4 Phase 3 + 4/4 Phase 4 plans complete
+- **Phase:** 5 — Serialization & Round-Trip (Plan 01 DONE; Plans 02/03/04/05 pending, disjoint-file contract in place)
+- **Plans:** 5 plans (01 scaffold-emit-field-and-method-wiring — DONE; 02 to-string-and-round-trip — pending; 03 to-json — pending; 04 pretty-print — pending; 05 build-message — pending)
+- **Status:** Plan 01 landed the disjoint-file scaffold. `src/serialize/emit-field.ts` FULLY IMPLEMENTED with 29-test suite covering D-02 trailing-empty strip + isNull preservation, D-04 reescape chokepoint across all 5 delimiters + `\n`, D-06 MSH loud-guard throw, D-07 purity. 6 stub files created (`to-string.ts`, `to-json.ts`, `pretty-print.ts`, `build-message.ts`, `format-timestamp.ts`, `control-id.ts`) — each throws `NOT IMPLEMENTED — Phase 5 Plan 0N will fill this`. `SerializedMessage` + `BuildMessageInit` interfaces are LIVE (consumable from `src/index.ts` today); JSDoc captures W1 empty-vs-null wire semantics on `BuildMessageInit` and W5 boundary-freeze on `SerializedMessage`. `Hl7Message` gains 3 new instance methods (`toString`, `toJSON`, `prettyPrint`), each a thin delegate to its module-level emitter; no new cache slots (D-30). `src/index.ts` exports `buildMessage` + `BuildMessageInit` + `SerializedMessage`. `vitest.config.ts` extends per-directory coverage thresholds to `src/serialize/**` and `src/builder/**` at the same >= 90% bar as Phase 1/2/3/4 dirs (Phase 7 coverage-gate readiness). Zero deviations. 488/488 tests passing across 42 files (+29 from Plan 01 baseline). Typecheck + lint (max-warnings=0) + build all green.
+- **Progress:** 2/8 phases verified; 4/4 Phase 1 + 6/6 Phase 2 + 4/4 Phase 3 + 4/4 Phase 4 + 1/5 Phase 5 plans complete
 
 ```
-[█████░░░░░░░░░░░░░░░] 25%   (2 / 8 phases verified)
+[█████░░░░░░░░░░░░░░░] 25%   (2 / 8 phases verified; Phase 5 in progress — 1 / 5 plans done)
 ```
 
 ## Performance Metrics
 
-- **Phases completed:** 2 (Phase 3 verified 2026-04-18; Phase 4 verified 2026-04-19; Phases 1 & 2 plans done but pending verifier + Nyquist; Phase 3 Nyquist still pending)
-- **Plans completed:** 19 (4 Phase-1 + 6 Phase-2 + 4 Phase-3 + 4 Phase-4)
-- **REQ-IDs validated:** 38 / 97 (SETUP-01..06 + PARSE-01..09 + TOL-01..10 + MODEL-01..07 + TYPES-01..04). All 7 MODEL + all 4 TYPES requirements now closed. Phase 7 will confirm via the coverage sweep + vendor-quirks fixtures.
-- **Known coverage:** Phase 1 sanity 2/2. Phase 2 (Plans 01–06): full suite 123/123 passing. Phase 3 Plans 01 + 02 + 03 + 04: full suite 327/327 passing across 31 files (model-field-coercions 13, model-mutation 28, model-public-exports 6 new this plan + prior 280). Coverage enforcement starts in Phase 7 via `pnpm test:coverage`.
+- **Phases completed:** 2 (Phase 3 verified 2026-04-18; Phase 4 verified 2026-04-19; Phases 1 & 2 plans done but pending verifier + Nyquist; Phase 3 Nyquist still pending; Phase 5 in progress — Plan 01/5 done)
+- **Plans completed:** 20 (4 Phase-1 + 6 Phase-2 + 4 Phase-3 + 4 Phase-4 + 1 Phase-5)
+- **REQ-IDs validated:** 38 / 97 (SETUP-01..06 + PARSE-01..09 + TOL-01..10 + MODEL-01..07 + TYPES-01..04). All 7 MODEL + all 4 TYPES requirements now closed. Phase 7 will confirm via the coverage sweep + vendor-quirks fixtures. SER-01/02/05 tracked — SER-05 primitive is in place via `emit-field.ts` but not observable until Plan 02 fills `emitMessage`.
+- **Known coverage:** Phase 1 sanity 2/2. Phase 2 (Plans 01–06): full suite 123/123 passing. Phase 3 Plans 01 + 02 + 03 + 04: 327 tests. Phase 4 Plans 01-04: 459 tests. Phase 5 Plan 01: +29 tests (serialize-emit-field). Total: 488/488 passing across 42 test files. Coverage enforcement starts in Phase 7 via `pnpm test:coverage`; per-directory thresholds for `src/serialize/**` and `src/builder/**` now declared (Plan 5-01).
 
 | Phase | Plan | Duration | Tasks | Files |
 |-------|------|----------|-------|-------|
@@ -61,6 +61,7 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 | 4 | 02 meta-and-patient | 10 min | 3 (3 TDD cycles) | 3 created, 2 modified |
 | 4 | 03 visit-and-observations | 9 min | 3 (2 TDD + 1 cache-test + Rule 3 regex fix) | 3 created, 4 modified |
 | 4 | 04 orders-and-collections | 8 min | 2 TDD cycles | 2 created, 5 modified |
+| 5 | 01 scaffold-emit-field-and-method-wiring | 5 min | 4 (1 TDD + 3 scaffold) | 8 created, 3 modified |
 
 ## Accumulated Context
 
@@ -115,6 +116,13 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 - HL7 namespace is types-only; parsers exported as named values alongside (D-13 "named exports AND re-exported under an HL7 namespace"). `src/model/types/namespace.ts` holds nothing but `export type { ... }`; `export * as HL7 from "./namespace.js"` in `src/index.ts` surfaces it. Consumers import types as either `import type { XPN }` or `HL7.XPN`; parsers as `import { parseXpn }` (Plan 03-04).
 - `setField` auto-creates missing repetitions / components / subcomponents within an existing field, but does NOT auto-create missing segments. Throws `TypeError` with an actionable message (`Add it first with addSegment(...)`). Matches CONTEXT.md Claude's Discretion recommendation (Plan 03-04).
 - `setField` rebuilds the affected path leaf-to-root (new RawComponent → new RawRepetition → new RawField → new RawSegment), keeping declared `readonly Raw*` shapes structurally immutable. Only readonly bypass: reassigning `this.rawSegments` (documented inline as D-16). ~125 object allocations per mutation — negligible (Plan 03-04).
+- `emitField` is the SOLE D-04 reescape chokepoint — every other emitter (`emitMessage`, `emitPrettyPrint`, future Phase 6 profile hooks) composes on it and never calls `reescape` directly. Strips trailing empty components AND trailing empty subcomponents per D-02; preserves `RawField.isNull === true` as the two-character literal `""` (quote-quote). Zero module-level state, no caching (D-30) (Plan 05-01).
+- `emitSegment` throws a loud `Error` on MSH input — the one deliberate deviation from D-07 "never throws" purity. Justified because silent mis-emission on MSH would re-escape the encoding chars in MSH-2 and produce garbage output downstream. Guards the D-06 routing contract: the only correct caller for MSH is `to-string.ts::emitMessage`, which inlines MSH-1/MSH-2 before handing MSH-3..N to `emitField` directly. Error message explicitly tells the caller to route through `to-string.ts`'s D-06 path (Plan 05-01).
+- `Hl7Message.toString` / `toJSON` / `prettyPrint` are class-method-delegates-to-module-level-emitter (mirrors Phase 4 `observations()` delegating to `walkObservations`). Method body is a single-line `return emit*(this);`. Naming `toString` overrides `Object.prototype.toString` with matching return type (`(): string`) — TS + ESLint accept it without the `override` keyword (class extends nothing) (Plan 05-01).
+- Stubs that throw a plan-identified `NOT IMPLEMENTED — Phase 5 Plan 0N` marker are the disjoint-file contract gate. Plans 02/03/04/05 each replace ONE function body (`emitMessage`, `emitJson`, `emitPrettyPrint`, `buildMessage` + its two helpers respectively); NOBODY touches `src/model/message.ts`, `src/index.ts`, `src/serialize/emit-field.ts`, `vitest.config.ts`, or the LIVE `SerializedMessage` / `BuildMessageInit` interface declarations (Plan 05-01).
+- `SerializedMessage` is boundary-frozen (top-level `Object.freeze` only); inner arrays are `readonly` at the TypeScript level but mutable at runtime. Deep-freeze explicitly rejected per D-30 (emit is hot-path; type-level readonly contract is sufficient). Documented inline on the interface JSDoc so Plan 03's `emitJson` implementer has a locked semantic to conform to (Plan 05-01).
+- `BuildMessageInit` empty-vs-null semantics documented on the interface JSDoc: omitting a field and passing an empty string produce IDENTICAL wire output (both emit as absent). To emit HL7 explicit null (`""`) at a specific position, `buildMessage({...}).setField(path, '""')` — the Phase 3 `setField` mutation sets `isNull=true` which the emitter preserves per D-02. No separate null-marker input shape. Documented at the interface level so Plan 05's `buildMessage` implementer doesn't need to re-invent it (Plan 05-01).
+- Vitest per-directory coverage thresholds extended to `src/serialize/**` and `src/builder/**` at the same `lines: 90, branches: 85, functions: 90, statements: 90` bar as Phase 1/2/3/4 dirs. Load-bearing for Phase 7's `pnpm test:coverage` gate — without it, a low-coverage new dir could hide behind the 90% top-level average (Plan 05-01).
 
 ### Active Todos
 
@@ -133,11 +141,11 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 
 ## Session Continuity
 
-- **Last action:** Phase 4 Plan 04 (orders + collections) executed 2026-04-19. HELPERS-05 + HELPERS-06 + HELPERS-07 closed — Phase 4 COMPLETE. `orders()` implements a two-slot ORC state machine (pendingOrc / currentOrc) over `msg.allSegments()` for D-12 positional OBX grouping + ORC-1 → orderControl attachment; reuses `buildObservation` from Plan 03 so OBX → Observation dispatch lives in exactly ONE place. `nextOfKin` / `allergies` / `diagnoses` are simple segment walkers; `insurance` is a single-slot IN1 state machine setting positional `hasIn2` / `hasIn3` booleans. Universal HELPERS-07 never-throws sweep proves all 9 Phase 4 helpers handle empty / minimal / malformed input gracefully. Two [Rule 1 - Bug] fixture fixes applied during TDD GREEN (OBR fixture off-by-one → XCN at OBR-17 corrected to OBR-16; NK1 fixture off-by-one → FTHR at NK1-8 corrected to NK1-7). Full suite green at 459/459 across 41 files (+28 from Plan 03 baseline).
-- **Next action:** `/gsd-verify-work 4` then `/gsd-validate-phase 4` (Nyquist). ⚠ Phase 1 & 2 & 3 verification gates (`/gsd-verify-work 1`, `/gsd-validate-phase 1`, `/gsd-verify-work 2`, `/gsd-validate-phase 2`, `/gsd-validate-phase 3`) still open. After Phase 4 is verified + validated, `/gsd-plan-phase 5` (mutation-on-helpers).
+- **Last action:** Phase 5 Plan 01 (scaffold-emit-field-and-method-wiring) executed 2026-04-19. Shipped the disjoint-file scaffold so Plans 02-05 can edit ONLY their assigned function body without conflict. `src/serialize/emit-field.ts` FULLY IMPLEMENTED (D-02 strip + D-04 reescape chokepoint + D-06 MSH loud guard) with 29-test TDD suite. 6 stub files created with interface declarations LIVE (`SerializedMessage` in `to-json.ts`, `BuildMessageInit` in `build-message.ts`) — JSDoc on those interfaces captures W1 (empty-vs-null wire semantics) and W5 (boundary-freeze) so downstream plans don't need to re-invent the wording. `Hl7Message` gains 3 instance methods (`toString`, `toJSON`, `prettyPrint`) each delegating to its module-level emitter; no new cache slots (D-30). `src/index.ts` exports `buildMessage` (value) + `BuildMessageInit` (type) + `SerializedMessage` (type). `vitest.config.ts` extends per-directory coverage thresholds to `src/serialize/**` and `src/builder/**` at >= 90% bar. Full suite green at 488/488 across 42 files (+29 from Plan 04 baseline). Zero deviations — the MSH loud-guard throw in `emitSegment` is a documented-in-plan deliberate deviation from D-07 "never throws" purity, not an auto-fix.
+- **Next action:** `/gsd-execute-phase 5` continuation — Plan 02 (to-string-and-round-trip). Plans 02/03/04/05 can run in parallel against the disjoint-file contract locked in Plan 01. ⚠ Phase 1 & 2 & 3 & 4 verification + Nyquist gates still open (not blocking Phase 5 execution under yolo mode).
 - **Open questions:** (none added this plan). Phase 7 may lift selected IN2 / IN3 fields into Insurance based on vendor-quirk fixture evidence (carry-over). Phase 8's README Error Handling section should document the strict-mode `err.code` widening (carry-over from Phase 2).
-- **Resume file:** .planning/phases/04-named-helpers/04-04-SUMMARY.md
+- **Resume file:** .planning/phases/05-serialization-and-round-trip/05-01-SUMMARY.md
 
 ---
 
-*Last updated: 2026-04-19 (Phase 4 COMPLETE — all 4 plans executed; HELPERS-01..07 all closed; 9 named helper surfaces ship; 459/459 tests; pending `/gsd-verify-work 4` + `/gsd-validate-phase 4`)*
+*Last updated: 2026-04-19 (Phase 5 Plan 01 DONE — scaffold + emit-field primitive + method wiring; 488/488 tests; ready for Plans 02-05 parallel execution)*

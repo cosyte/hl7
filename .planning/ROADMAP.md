@@ -106,7 +106,7 @@ Plans:
   4. A developer using `buildMessage({...}).addSegment('PID', [...]).toString()` constructs a valid outbound HL7 message from scratch.
 **Plans**: 5 plans
 Plans:
-- [ ] 05-PLAN-01-scaffold-emit-field-and-method-wiring.md — Emit-field primitive (FULLY IMPLEMENTED), 6 stub files with LIVE SerializedMessage + BuildMessageInit types, 3 Hl7Message instance methods wired
+- [x] 05-PLAN-01-scaffold-emit-field-and-method-wiring.md — Emit-field primitive (FULLY IMPLEMENTED), 6 stub files with LIVE SerializedMessage + BuildMessageInit types, 3 Hl7Message instance methods wired
 - [ ] 05-PLAN-02-to-string-and-round-trip.md — Fill emitMessage body (MSH special-case + CR terminator); 5 round-trip fixtures + SER-02 structural-equivalence sweep (closes SER-01, SER-02, SER-05)
 - [ ] 05-PLAN-03-to-json.md — Fill emitJson body (raw-tree mirror + stable warnings + conditional profile) (closes SER-03)
 - [ ] 05-PLAN-04-pretty-print.md — Fill emitPrettyPrint body (header + segment-per-line with labeled fields) (closes SER-04)
