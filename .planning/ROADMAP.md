@@ -127,7 +127,7 @@ Plans:
 Plans:
 - [x] 06-01-PLAN.md — defineProfile() core + 4 validation throws + describe() + types (PROF-01/02/04/05/07-types)
 - [x] 06-02-PLAN.md — extends + merge semantics (lineage, dateFormats, customSegments, onWarning chain; PROF-03)
-- [ ] 06-03-PLAN.md — Segment.get(name) + UNKNOWN_SEGMENT emit/suppression + D-21 merged dateFormats plumbing (PROF-02/06/07/09)
+- [x] 06-03-PLAN.md — Segment.get(name) + UNKNOWN_SEGMENT emit/suppression + D-21 merged dateFormats plumbing + D-22 onWarning chain hoist (PROF-02/06/07/09)
 - [ ] 06-04-PLAN.md — setDefaultProfile/getDefaultProfile + parseHL7 dispatch (PROF-08)
 - [ ] 06-05-PLAN.md — 5 built-in vendor profiles (epic, cerner, meditech, athena, genericLab) + handcrafted fixtures (BIP-01..05)
 - [ ] 06-06-PLAN.md — profiles barrel + src/index.ts public exports + BIP-06 fixture-parity tests

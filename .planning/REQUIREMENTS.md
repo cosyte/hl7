@@ -83,10 +83,10 @@ All requirements are user-facing behaviors a developer consuming `@cosyte/hl7-pa
 - [x] **PROF-03** — `extends: parentProfile` and `extends: [p1, p2]` inherit and compose options; merge semantics match spec (scalars overwrite, arrays concat+dedupe, `customSegments` deep-merge per key, `onWarning` handlers chain). (closed Phase 6 Plan 02 — mergeLineage D-03 + mergeDateFormats D-10 + mergeCustomSegments D-11 position-indexed + mergeScalar D-09 last-wins + composeOnWarning D-12 with per-handler try/catch; post-merge D-05 rogue-parent re-check + D-06 defense-in-depth validator installed)
 - [x] **PROF-04** — `profile.name`, `profile.description`, `profile.customSegments`, `profile.dateFormats`, `profile.lineage` are readonly and reflect applied options. (closed Phase 6 Plan 01 — Profile interface readonly; defineProfile output Object.freeze'd at boundary)
 - [x] **PROF-05** — `profile.describe()` returns a non-empty human-readable summary containing the profile name. (closed Phase 6 Plan 01 — buildDescribe always starts with `Profile '<name>'`)
-- [ ] **PROF-06** — `parseHL7(raw, profile)` applies profile behavior to the parse; `msg.profile?.name` and `msg.profile?.lineage` are set on the parsed message.
-- [x] **PROF-07** — Registered Z-segments (via `customSegments`) are accessible by field name: `msg.segments('ZPI')[0].get('encounterId')`. (TYPE ONLY closed Phase 6 Plan 01 — CustomSegmentDefinition interface declared; runtime Segment.get lands in Plan 06-03)
+- [x] **PROF-06** — `parseHL7(raw, profile)` applies profile behavior to the parse; `msg.profile?.name` and `msg.profile?.lineage` are set on the parsed message. (closed Phase 6 Plan 03 — customSegments threaded end-to-end via Hl7MessageInit.customSegments; D-22 profile.onWarning chain hoisted into makeEmitter fires BEFORE options.onWarning inside per-handler try/catch; effectiveProfile resolved at new Step 6.5 BEFORE emitter construction so full-parse coverage including Buffer-decode + MLLP replay; attribution {name, lineage} already landed in Phase 2 Step 13)
+- [x] **PROF-07** — Registered Z-segments (via `customSegments`) are accessible by field name: `msg.segments('ZPI')[0].get('encounterId')`. (closed Phase 6 Plan 03 — Segment.get(name) runtime delivered with D-14 narrow: undefined for missing name AND out-of-range position; types already closed in Plan 01)
 - [ ] **PROF-08** — `setDefaultProfile(p)` / `getDefaultProfile()` / `setDefaultProfile(null)` manage a process-scoped default; explicit argument overrides; `parseHL7(raw, { profile: null })` opts out for one call.
-- [ ] **PROF-09** — Round-trip: a message parsed with a custom profile and re-serialized produces spec-clean HL7 (profile quirks affect parsing, not serialization).
+- [x] **PROF-09** — Round-trip: a message parsed with a custom profile and re-serialized produces spec-clean HL7 (profile quirks affect parsing, not serialization). (closed Phase 6 Plan 03 — `parseHL7(raw, profile).toString() === parseHL7(raw).toString()` anchored by test; toString() is profile-agnostic per PROJECT.md Postel's Law — no emit-side profile hooks)
 
 ### Built-in Profiles (BIP)
 
@@ -222,10 +222,10 @@ Every v1 REQ-ID maps to exactly one phase in `ROADMAP.md`. 97/97 mapped.
 | PROF-03 | Phase 6 — Profile System & Built-ins | Closed (Plan 02) |
 | PROF-04 | Phase 6 — Profile System & Built-ins | Closed (Plan 01) |
 | PROF-05 | Phase 6 — Profile System & Built-ins | Closed (Plan 01) |
-| PROF-06 | Phase 6 — Profile System & Built-ins | Pending |
-| PROF-07 | Phase 6 — Profile System & Built-ins | Types closed (Plan 01); runtime Segment.get in Plan 03 |
+| PROF-06 | Phase 6 — Profile System & Built-ins | Closed (Plan 03 — customSegments threading + D-22 onWarning chain hoist) |
+| PROF-07 | Phase 6 — Profile System & Built-ins | Closed (types Plan 01; runtime Segment.get Plan 03) |
 | PROF-08 | Phase 6 — Profile System & Built-ins | Pending |
-| PROF-09 | Phase 6 — Profile System & Built-ins | Pending |
+| PROF-09 | Phase 6 — Profile System & Built-ins | Closed (Plan 03 — toString() profile-agnostic round-trip anchored by test) |
 | BIP-01 | Phase 6 — Profile System & Built-ins | Pending |
 | BIP-02 | Phase 6 — Profile System & Built-ins | Pending |
 | BIP-03 | Phase 6 — Profile System & Built-ins | Pending |
