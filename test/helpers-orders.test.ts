@@ -12,7 +12,7 @@ const PID = "PID|||X\r";
 const TWO_ORDERS =
   MSH + PID +
   "ORC|NW\r" +
-  "OBR|1|PLACER1|FILLER1|GLU^Glucose^LN|||||||||||||XCN1^Doe^John\r" +
+  "OBR|1|PLACER1|FILLER1|GLU^Glucose^LN||||||||||||XCN1^Doe^John\r" +
   "OBX|1|NM|GLU^Glucose^LN||120|mg/dL\r" +
   "OBX|2|NM|CR^Creatinine^LN||1.0|mg/dL\r" +
   "OBR|2|PLACER2|FILLER2|HGB^Hemoglobin^LN\r" +
