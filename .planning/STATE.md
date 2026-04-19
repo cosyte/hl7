@@ -8,16 +8,16 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 
 - **Name:** `@cosyte/hl7-parser`
 - **Core value:** A developer can parse a real-world, vendor-quirky HL7 v2 message and pull useful fields out of it in one line — without having read the HL7 spec.
-- **Current focus:** Phase 2 — Core Parser & Tolerance (Plans 01/02/03/04 complete; Plan 05 Wave 2 remaining; Plan 06 Wave 3 last. Phase 1 still pending /gsd-verify-work 1 and /gsd-validate-phase 1)
+- **Current focus:** Phase 2 — Core Parser & Tolerance (COMPLETE — all 6 plans shipped; pending /gsd-verify-work 2 and /gsd-validate-phase 2. Phase 1 still pending /gsd-verify-work 1 and /gsd-validate-phase 1)
 - **Workflow config:** standard granularity, yolo mode, parallelization enabled, plan-check + verifier + Nyquist validation on, auto-advance on.
 
 ## Current Position
 
 - **Milestone:** v1
 - **Phase:** 2 — Core Parser & Tolerance
-- **Plans:** 6 plans across 3 waves (01 warnings/errors/message-shell — Wave 1 COMPLETE; 02 normalize+mllp+charset, 03 segments+delimiters+tokenize, 04 escapes, 05 dateFormats — Wave 2 parallel, READY; 06 parseHL7 public + strict-mode capstone — Wave 3)
-- **Status:** Wave 1 + Wave 2 complete. Plan 01 shipped types/warnings/errors/message-shell; Plans 02/03/04/05 shipped normalize+mllp, segments+delimiters+tokenize, escapes, and dateFormats plumbing. Wave 3 (Plan 06 parseHL7 public API + strict-mode capstone) is the last remaining Phase 2 plan. Unified HL7 1-indexed `fields[]` convention locked in `src/parser/types.ts`.
-- **Progress:** 0/8 phases complete (Phase 1 deliverables done, verification gates pending); 4/4 Phase 1 plans complete; 5/6 Phase 2 plans complete
+- **Plans:** 6 plans across 3 waves (01 warnings/errors/message-shell — Wave 1 COMPLETE; 02 normalize+mllp+charset, 03 segments+delimiters+tokenize, 04 escapes, 05 dateFormats — Wave 2 parallel, COMPLETE; 06 parseHL7 public + strict-mode capstone — Wave 3 COMPLETE)
+- **Status:** All three waves complete. Plan 01 shipped types/warnings/errors/message-shell; Plans 02/03/04/05 shipped normalize+mllp, segments+delimiters+tokenize, escapes, and dateFormats plumbing; Plan 06 shipped the public parseHL7 entry point, the emit chokepoint with strict-mode escalation, and the full src/index.ts barrel. Unified HL7 1-indexed `fields[]` convention locked in `src/parser/types.ts` and exercised through to MSH-12 version extraction. PARSE-01 + TOL-01 + TOL-02 verified end-to-end.
+- **Progress:** 0/8 phases complete (Phases 1 & 2 deliverables done, verification gates pending); 4/4 Phase 1 plans complete; 6/6 Phase 2 plans complete
 
 ```
 [░░░░░░░░░░░░░░░░░░░░] 0%   (0 / 8 phases)
@@ -27,8 +27,8 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 
 - **Phases completed:** 0 (Phase 1 plans done; pending verifier + Nyquist + transition)
 - **Plans completed:** 6
-- **REQ-IDs validated:** 8 / 97 (SETUP-01..06 + TOL-08 + TOL-09). Phase 2 TOL-03/TOL-04/TOL-05 *typed surface* shipped in Plan 01; runtime emission validated in Plans 02–06.
-- **Known coverage:** Phase 1 sanity 2/2. Phase 2 (Plans 01–05): full suite 97/97 passing across 12 files (types 5, warnings 6, errors 4, message 5, normalize 8, mllp 7, segments 7, delimiters 10, tokenize 15, escapes 15, dates 13, sanity 2). Coverage enforcement starts in Phase 7 via `pnpm test:coverage`.
+- **REQ-IDs validated:** 27 / 97 (SETUP-01..06 + PARSE-01..09 + TOL-01..10 + plus the typed-surface TOL-03/04/05 re-exercised end-to-end through the public parseHL7 barrel). Phase 7 will confirm via the coverage sweep + vendor-quirks fixtures.
+- **Known coverage:** Phase 1 sanity 2/2. Phase 2 (Plans 01–06): full suite 123/123 passing across 13 files (types 5, warnings 6, errors 4, message 5, normalize 8, mllp 7, segments 7, delimiters 10, tokenize 15, escapes 15, dates 13, parser-public 26, sanity 2). Coverage enforcement starts in Phase 7 via `pnpm test:coverage`.
 
 | Phase | Plan | Duration | Tasks | Files |
 |-------|------|----------|-------|-------|
@@ -39,6 +39,7 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 | 2 | 01 warnings/errors/message-shell | 8 min | 3 (2 TDD cycles) | 8 created |
 | 2 | 04 escape-sequences | 6 min | 1 (1 TDD cycle) | 2 created |
 | 2 | 05 dateFormats-plumbing | 3 min | 1 (1 TDD cycle) | 2 created |
+| 2 | 06 parseHL7-public-and-strict-mode | 4 min | 1 (1 TDD cycle) | 2 created, 1 modified |
 
 ## Accumulated Context
 
@@ -85,11 +86,11 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 
 ## Session Continuity
 
-- **Last action:** Phase 2 Plan 05 executed — shipped `src/parser/dates.ts` + `test/parser-dates.test.ts` (13/13 passing). Commits: `dd7e3c1` (RED test), `97cbf3f` (GREEN timestamp cascade). Typecheck + lint + test + build all green; full repo suite 97/97. Closes TOL-08 and TOL-09. `src/index.ts` unchanged (barrel update is Plan 06). Wave 2 of Phase 2 is now complete.
-- **Next action:** Execute Plan 06 (parseHL7 public API + strict-mode capstone) — the Wave 3 capstone that wires everything together behind the public `parseHL7()` export. Still open: `/gsd-verify-work 1` + `/gsd-validate-phase 1` for Phase 1.
-- **Open questions:** Plan 06 must decide strict-mode code mapping (widen `Hl7ParseError.code` vs. new `Hl7StrictError` class vs. preserve warning code in a side channel). See Plan 01 summary §"Keys for Plan 06" for details.
-- **Resume file:** `.planning/phases/02-core-parser-and-tolerance/02-05-SUMMARY.md`
+- **Last action:** Phase 2 Plan 06 executed — shipped `src/parser/index.ts` + `test/parser-public.test.ts`; modified `src/index.ts` to add the full Phase 2 barrel. Commits: `60c5817` (RED integration tests), `846a652` (GREEN parseHL7 + barrel). Typecheck + lint --max-warnings=0 + test + build all green; full repo suite 123/123. Closes PARSE-01, TOL-01, TOL-02. Strict-mode code mapping resolved via Plan 06 option (b): `as unknown as FatalCode` cast inside makeEmitter with inline justification. All 19 Phase 2 REQ-IDs are code-complete.
+- **Next action:** Run `/gsd-verify-work 2` then `/gsd-validate-phase 2` for Phase 2 completion; then `/gsd-transition` to advance to Phase 3 (Read-path traversal + typed composites). Phase 1 `/gsd-verify-work 1` + `/gsd-validate-phase 1` also still open from earlier.
+- **Open questions:** (none for Phase 2 — strict-mode mapping resolved in Plan 06). Phase 8's README Error Handling section should document the strict-mode `err.code` widening (under `{ strict: true }` a thrown Hl7ParseError may carry any WarningCode in addition to the four FatalCodes).
+- **Resume file:** `.planning/phases/02-core-parser-and-tolerance/02-06-SUMMARY.md`
 
 ---
 
-*Last updated: 2026-04-18 (Phase 2 Plan 05 complete — dateFormats plumbing done, Wave 2 complete, Plan 06 Wave 3 is last remaining)*
+*Last updated: 2026-04-18 (Phase 2 Plan 06 complete — Phase 2 all 6 plans done, parseHL7 public API shipped, 19/19 Phase 2 REQ-IDs code-complete; pending Phase 2 verification gates)*
