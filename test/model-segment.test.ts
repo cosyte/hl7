@@ -8,7 +8,7 @@ import type { RawSegment } from "../src/parser/types.js";
 
 const FIXTURE =
   "MSH|^~\\&|APP|FAC|APP|FAC|20250101||ADT^A01|1|P|2.5\r" +
-  "PID|||123|ALT||Smith\\F\\Jr^Jane\r" +
+  "PID|||123|ALT|Smith\\F\\Jr^Jane\r" +
   "OBX|1|TX|GLUC|1|120";
 
 describe("model/segment: Segment wrapper", () => {
