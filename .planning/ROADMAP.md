@@ -13,7 +13,7 @@ North star: **A developer can parse a real-world, vendor-quirky HL7 v2 message a
 
 - [ ] **Phase 1: Project Foundation** — Scaffold the repo, build, lint, and TypeScript toolchain so any subsequent phase can iterate.
 - [ ] **Phase 2: Core Parser & Tolerance** — Tokenize HL7 input into segments/fields/components/subcomponents with a lenient default, warnings system, and strict-mode escalation.
-- [ ] **Phase 3: Structural Model & Types** — Expose the parsed message as an immutable, dot-path-accessible model with typed composite types (XPN, XAD, TS/DTM, etc.).
+- [x] **Phase 3: Structural Model & Types** — Expose the parsed message as an immutable, dot-path-accessible model with typed composite types (XPN, XAD, TS/DTM, etc.). (completed 2026-04-18)
 - [ ] **Phase 4: Named Helpers** — Ship the one-line DX: `msg.meta`, `msg.patient`, `msg.visit`, `msg.observations()`, and friends.
 - [ ] **Phase 5: Serialization & Round-Trip** — `toString()`, `toJSON()`, `prettyPrint()`, and `buildMessage()` produce spec-clean HL7 and preserve semantics across parse → mutate → serialize → parse.
 - [ ] **Phase 6: Profile System & Built-ins** — `defineProfile()` API with merge/extend semantics plus 5 built-in vendor profiles (epic, cerner, meditech, athena, genericLab).
@@ -75,7 +75,7 @@ Plans:
 - [x] 03-PLAN-01-read-path-foundation.md — Dot-path tokenizer/resolver, Segment + Field wrappers, Hl7Message.get/getAll/segments/allSegments with wrapper caches
 - [x] 03-PLAN-02-composites-person-address-identifier.md — Composite parsers XPN, XAD, CX, CWE, CE, HD + shared helpers
 - [x] 03-PLAN-03-composites-telecom-location-timestamp-numeric.md — Composite parsers XTN, PL, TS/DTM (delegates to parseHl7Timestamp), NM
-- [ ] 03-PLAN-04-mutation-and-barrel.md — Field.asXxx coercions, setField/addSegment/removeSegment, HL7 namespace barrel + src/index.ts final exports
+- [x] 03-PLAN-04-mutation-and-barrel.md — Field.asXxx coercions, setField/addSegment/removeSegment, HL7 namespace barrel + src/index.ts final exports
 **UI hint**: no
 
 ### Phase 4: Named Helpers

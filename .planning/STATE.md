@@ -8,24 +8,24 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 
 - **Name:** `@cosyte/hl7-parser`
 - **Core value:** A developer can parse a real-world, vendor-quirky HL7 v2 message and pull useful fields out of it in one line — without having read the HL7 spec.
-- **Current focus:** Phase 3 — Structural Model & Types (ALL 4 PLANS COMPLETE — capstone shipped. Pending /gsd-verify-work 3 + /gsd-validate-phase 3. Phase 2 still pending /gsd-verify-work 2 + /gsd-validate-phase 2; Phase 1 still pending /gsd-verify-work 1 + /gsd-validate-phase 1.)
+- **Current focus:** Phase 3 — Structural Model & Types (COMPLETE — verifier PASSED 4/4 success criteria + 11/11 REQ-IDs. Pending /gsd-validate-phase 3 Nyquist audit. Phase 2 still pending /gsd-verify-work 2 + /gsd-validate-phase 2; Phase 1 still pending /gsd-verify-work 1 + /gsd-validate-phase 1. Next phase: 4 — Named Helpers.)
 - **Workflow config:** standard granularity, yolo mode, parallelization enabled, plan-check + verifier + Nyquist validation on, auto-advance on.
 
 ## Current Position
 
 - **Milestone:** v1
-- **Phase:** 3 — Structural Model & Types (ALL 4 PLANS COMPLETE — pending /gsd-verify-work 3 + /gsd-validate-phase 3)
+- **Phase:** 3 — Structural Model & Types (COMPLETE — verifier PASSED 4/4 success criteria + 11/11 REQ-IDs on 2026-04-18; Nyquist validation still pending)
 - **Plans:** 4 plans across 3 waves (01 read-path-foundation — Wave 1 DONE; 02 composites-person-address-identifier — Wave 2 first plan DONE; 03 composites-telecom-location-timestamp-numeric — Wave 2 remainder DONE; 04 mutation-and-barrel — Wave 3 capstone DONE)
 - **Status:** Plan 04 (capstone) executed. All 10 `.asXxx()` composite coercions wired on Field (XPN/XAD/CX/CWE/CE/XTN/PL/TS/NM/HD) with shared EMPTY_REP fallback. Hl7Message gains setField/addSegment/removeSegment mutation API — chainable (D-15), cache-invalidating (D-17 wholesale), warnings-preserving (D-16), with D-18/D-19 validation. HL7 namespace barrel + named-exports shipped via `src/index.ts` + new `src/model/types/namespace.ts` + `src/model/types/index.ts`. MODEL-06, MODEL-07, TYPES-02 CLOSED. Bug fix [Rule 1]: Segment.field() needed the user-facing MSH offset symmetric with dot-path resolver (MSH.3 → fields[2]); previously untested at the wrapper level. 327/327 tests passing across 31 files; typecheck + lint + build all green.
-- **Progress:** 0/8 phases complete; 4/4 Phase 1 plans complete; 6/6 Phase 2 plans complete; 4/4 Phase 3 plans executed
+- **Progress:** 1/8 phases complete (Phase 3 verified); 4/4 Phase 1 plans complete; 6/6 Phase 2 plans complete; 4/4 Phase 3 plans complete
 
 ```
-[░░░░░░░░░░░░░░░░░░░░] 0%   (0 / 8 phases)
+[██░░░░░░░░░░░░░░░░░░] 12%   (1 / 8 phases)
 ```
 
 ## Performance Metrics
 
-- **Phases completed:** 0 (Phase 1 plans done; pending verifier + Nyquist + transition)
+- **Phases completed:** 1 (Phase 3 verified 2026-04-18; Phases 1 & 2 plans done but pending verifier + Nyquist)
 - **Plans completed:** 9
 - **REQ-IDs validated:** 38 / 97 (SETUP-01..06 + PARSE-01..09 + TOL-01..10 + MODEL-01..07 + TYPES-01..04). All 7 MODEL + all 4 TYPES requirements now closed. Phase 7 will confirm via the coverage sweep + vendor-quirks fixtures.
 - **Known coverage:** Phase 1 sanity 2/2. Phase 2 (Plans 01–06): full suite 123/123 passing. Phase 3 Plans 01 + 02 + 03 + 04: full suite 327/327 passing across 31 files (model-field-coercions 13, model-mutation 28, model-public-exports 6 new this plan + prior 280). Coverage enforcement starts in Phase 7 via `pnpm test:coverage`.
@@ -116,11 +116,11 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 
 ## Session Continuity
 
-- **Last action:** Executed Phase 3 Plan 04 (mutation-and-barrel — Wave 3 capstone) 2026-04-19. 2 TDD cycles + 1 barrel-only feat landed 5 commits: 01ace0d/3b0d07a (Field.asXxx coercions + Segment.field MSH offset bug fix), 4e86d89/c919278 (mutation API), b382c94 (HL7 namespace + barrel). MODEL-06, MODEL-07, TYPES-02 CLOSED — Phase 3 is fully shipped. Full suite 327/327 green; typecheck + lint (max-warnings=0) + build all pass. dist/index.d.ts carries all 10 composite interfaces + `namespace as HL7`. SUMMARY at `.planning/phases/03-structural-model-and-types/03-04-SUMMARY.md`.
-- **Next action:** Run `/gsd-verify-work 3` and `/gsd-validate-phase 3` to confirm Phase 3 deliverables. Then `/gsd-transition` to advance state, then `/gsd-plan-phase 4` for named helpers (HELPERS-01..07). ⚠ Phase 1 & 2 verification gates (`/gsd-verify-work 1`, `/gsd-validate-phase 1`, `/gsd-verify-work 2`, `/gsd-validate-phase 2`) are still open.
+- **Last action:** `/gsd-execute-phase 3` completed 2026-04-18. All 4 plans shipped across 3 waves (sequential on main, no worktrees — wave-2 had read-dep). 327/327 tests green; typecheck + lint + build all pass. Verifier produced `03-VERIFICATION.md` with status=passed, 4/4 success criteria verified, 11/11 REQ-IDs (MODEL-01..07, TYPES-01..04) satisfied.
+- **Next action:** `/gsd-validate-phase 3` for Nyquist coverage audit, then `/gsd-discuss-phase 4` or `/gsd-plan-phase 4` for named helpers (HELPERS-01..07). ⚠ Phase 1 & 2 verification gates (`/gsd-verify-work 1`, `/gsd-validate-phase 1`, `/gsd-verify-work 2`, `/gsd-validate-phase 2`) are still open.
 - **Open questions:** (none added this plan). Phase 8's README Error Handling section should document the strict-mode `err.code` widening (carry-over from Phase 2).
-- **Resume file:** `.planning/phases/03-structural-model-and-types/03-04-SUMMARY.md`
+- **Resume file:** `.planning/phases/03-structural-model-and-types/03-VERIFICATION.md`
 
 ---
 
-*Last updated: 2026-04-19 (Phase 3 Plan 04 executed — capstone complete; MODEL-06/07 + TYPES-02 closed; 327/327 tests green across 31 files)*
+*Last updated: 2026-04-18 (Phase 3 complete — all 4 plans shipped, verifier PASSED 4/4 success criteria + 11/11 REQ-IDs, 327/327 tests across 31 files)*
