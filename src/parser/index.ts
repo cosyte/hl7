@@ -36,18 +36,24 @@ import type {
 import { Hl7Message } from "../model/message.js";
 
 /**
- * The canonical list of `ParseOptions` keys. Used by
+ * The list of `ParseOptions` keys that are TRULY options-only — i.e. keys
+ * that appear on `ParseOptions` but NOT on `Profile`. Used by
  * `discriminateOptionsOrProfile` to decide whether an anonymous second
  * argument is a `ParseOptions` (has at least one of these keys) or a
- * `Profile` (no options-only key, has a string `name`). Kept as a readonly
- * tuple so future additions are type-checked against `ParseOptions`.
+ * `Profile` (no options-only key, has a string `name`).
+ *
+ * Deliberately EXCLUDES `onWarning` and `dateFormats` even though they're
+ * valid `ParseOptions` keys — those two also appear on `Profile` (Profile
+ * carries `onWarning`/`dateFormats` fields), so checking for them would
+ * mis-classify a `defineProfile()` output (which always has `dateFormats`,
+ * even as `[]`) as a `ParseOptions` when a caller passes it as the second
+ * arg. The subset below is the precise "disambiguates options from
+ * profile" witness set — every key here is options-only.
  *
  * @internal
  */
 const OPTIONS_ONLY_KEYS: readonly (keyof ParseOptions)[] = [
   "strict",
-  "onWarning",
-  "dateFormats",
   "stripMllpFraming",
   "trimFields",
   "profile",
@@ -72,16 +78,28 @@ function discriminateOptionsOrProfile(
   arg: ParseOptions | Profile | undefined,
 ): ParseOptions {
   if (arg === undefined) return {};
-  const hasOptionsKey = OPTIONS_ONLY_KEYS.some((k) =>
-    Object.prototype.hasOwnProperty.call(arg, k),
-  );
-  if (hasOptionsKey) {
+  // A Profile is REQUIRED to have `name: string` (parser/types.ts locked
+  // interface). Any arg without a string `name` is therefore unambiguously
+  // ParseOptions — including bare option bags like `{ onWarning }` or
+  // `{ dateFormats }` whose keys overlap with Profile but whose shape
+  // lacks the required `name` witness.
+  const hasStringName =
+    typeof (arg as { name?: unknown }).name === "string";
+  if (!hasStringName) {
     return arg as ParseOptions;
   }
-  if (typeof (arg as { name?: unknown }).name === "string") {
-    return { profile: arg as Profile };
+  // Arg has a string `name`. Check for TRULY options-only keys (keys that
+  // cannot appear on a Profile) to decide whether the caller intended
+  // options with a rogue `name` field (e.g. `{ name: "x", strict: true }`)
+  // vs a real Profile. Uses hasOwnProperty.call against prototype
+  // pollution per T-02-06-01.
+  const hasOptionsOnlyKey = OPTIONS_ONLY_KEYS.some((k) =>
+    Object.prototype.hasOwnProperty.call(arg, k),
+  );
+  if (hasOptionsOnlyKey) {
+    return arg as ParseOptions;
   }
-  return {};
+  return { profile: arg as Profile };
 }
 
 /**
