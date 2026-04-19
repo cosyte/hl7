@@ -103,26 +103,42 @@ describe("emitMessage — D-05 segment terminator", () => {
 });
 
 describe("emitMessage — D-04 re-escape through emitField (SER-05)", () => {
-  it("field with embedded | reescapes through emitField on round-trip", () => {
-    // Build a message whose PID-5 subcomponent contains an HL7 escape \F\.
-    // After parse, the Field.value is the literal "|"; on emit it re-escapes.
+  it("embedded HL7 escape sequences round-trip through emit (unescape-on-parse + reescape-on-emit)", () => {
+    // Phase 2 tokenize runs every subcomponent through `unescape`, so the raw
+    // tree stores DECODED strings. Input `Smith\F\Jones` becomes the literal
+    // subcomponent `Smith|Jones` in rawSegments. On emit, `reescape` inverts
+    // that back to `Smith\F\Jones`. This is the inverse pair that makes SER-02
+    // structural round-trip equivalence hold.
     const raw =
       "MSH|^~\\&|A|B|C|D|20260419|||MSG1|P|2.5\r" +
       "PID|1||MRN001||Smith\\F\\Jones^John\r";
-    const msg = parseHL7(raw);
-    const out = msg.toString();
-    // The literal "|" from \F\ must NOT appear inside the PID name
-    // subcomponent position — it must be re-escaped to \F\.
-    expect(out).toContain("Smith\\F\\Jones");
+    const original = parseHL7(raw);
+    // Raw tree holds the DECODED subcomponent (pipe char, not \F\).
+    const pid = original.rawSegments.find((s) => s.name === "PID");
+    expect(pid?.fields[5]?.repetitions[0]?.components[0]?.subcomponents[0]).toBe(
+      "Smith|Jones",
+    );
+    // Emit re-escapes the pipe back to \F\.
+    const emitted = original.toString();
+    expect(emitted).toContain("Smith\\F\\Jones");
+    expect(emitted).not.toContain("\\E\\F\\E\\"); // no double-escape
+    // Re-parse produces identical raw tree (SER-02 structural equivalence).
+    const roundTripped = parseHL7(emitted);
+    expect(roundTripped.rawSegments).toEqual(original.rawSegments);
   });
 
-  it("field with embedded \\n emits \\.br\\", () => {
-    // Parse decoded \.br\ → literal \n, then emit → \.br\.
+  it("decoded \\n in a subcomponent emits as \\.br\\ (SER-05)", () => {
+    // Hand-build a message whose subcomponent contains a LITERAL \n char.
+    // parseHL7 never produces \n in the raw tree (tokenize is byte-faithful
+    // and segment terminators are stripped), so we construct the message
+    // via parse + setField to get literal \n into the raw subcomponent.
     const raw =
       "MSH|^~\\&|A|B|C|D|20260419|||MSG1|P|2.5\r" +
-      "OBX|1|TX|NOTE||line1\\.br\\line2||||F\r";
+      "OBX|1|TX|NOTE||placeholder||||F\r";
     const msg = parseHL7(raw);
+    msg.setField("OBX.5", "line1\nline2");
     const out = msg.toString();
+    // reescape translates \n → \.br\ on emit.
     expect(out).toContain("line1\\.br\\line2");
     expect(out.includes("\n")).toBe(false);
   });
@@ -266,15 +282,20 @@ describe("emitMessage — W3 trailing segment-level empty fields preserved", () 
   });
 
   it("segment with trailing empty fields — structural round-trip preserves field count", () => {
-    // PID with 10 positions after name: "1","","","","","","present","","",""
+    // PID raw has 11 `|` separators → 11 HL7 field positions (PID-1..PID-11),
+    // the 7th is "present", 4 trailing empties follow. Including the fields[0]
+    // placeholder, rawSegments.find('PID').fields.length === 12.
     const raw =
       "MSH|^~\\&|A|B|C|D|20260419|||MSG1|P|2.5\r" +
       "PID|1||||||present||||\r";
-    const msg = parseHL7(raw);
-    const roundTripped = parseHL7(msg.toString());
-    const pid = roundTripped.rawSegments.find((s) => s.name === "PID");
-    expect(pid).toBeDefined();
-    // fields[0] is placeholder + 10 HL7 positions = 11 entries.
-    expect(pid?.fields.length).toBe(11);
+    const original = parseHL7(raw);
+    const roundTripped = parseHL7(original.toString());
+    const pidOriginal = original.rawSegments.find((s) => s.name === "PID");
+    const pidRound = roundTripped.rawSegments.find((s) => s.name === "PID");
+    expect(pidOriginal).toBeDefined();
+    expect(pidRound).toBeDefined();
+    // Structural equivalence: same field count preserved on round-trip (W3).
+    expect(pidRound?.fields.length).toBe(pidOriginal?.fields.length);
+    expect(pidRound?.fields.length).toBe(12);
   });
 });
