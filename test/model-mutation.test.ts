@@ -16,7 +16,7 @@ import { parseHL7 } from "../src/parser/index.js";
 const FIXTURE =
   "MSH|^~\\&|APP|FAC|APP|FAC|20250101||ADT^A01|1|P|2.5\r" +
   "EVN|A01|20250101\r" +
-  "PID|||123|ALT~ALT2||Smith^Jane||19800115|F\r" +
+  "PID|||123|ALT~ALT2|Smith^Jane|||F\r" +
   "OBX|1|TX|GLUC|1|120\r" +
   "OBX|2|TX|HGB|2|14.0";
 

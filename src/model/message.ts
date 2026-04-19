@@ -9,10 +9,35 @@
  * the typed `segments(type)` method.
  */
 
-import { resolvePath } from "./dot-path.js";
+import { parsePath, resolvePath } from "./dot-path.js";
 import { Segment } from "./segment.js";
-import type { EncodingCharacters, RawSegment } from "../parser/types.js";
+import type {
+  EncodingCharacters,
+  RawComponent,
+  RawField,
+  RawRepetition,
+  RawSegment,
+} from "../parser/types.js";
 import type { Hl7ParseWarning } from "../parser/warnings.js";
+
+/**
+ * HL7 segment-name shape: 3 uppercase ASCII letters OR `Z[A-Z0-9]{2}` (D-19).
+ * Enforced symmetrically on `addSegment` and `removeSegment` so consumers see
+ * consistent validation for any mutation that takes a segment name.
+ * @internal
+ */
+const SEGMENT_NAME_RE = /^(?:[A-Z]{3}|Z[A-Z0-9]{2})$/u;
+
+/**
+ * Shallow-copy a readonly array to a mutable one. Mutation methods rebuild
+ * the affected path from leaf to root to keep the declared `readonly Raw*`
+ * shapes honest — this helper is the one sanctioned bridge from readonly to
+ * mutable for Phase 3 mutation.
+ * @internal
+ */
+function toMutableArray<T>(arr: readonly T[]): T[] {
+  return arr.slice();
+}
 
 /**
  * Constructor init shape for `Hl7Message`. Exposed for advanced use (e.g.
@@ -204,5 +229,261 @@ export class Hl7Message {
     }
     this._allSegments = built;
     return built;
+  }
+
+  /**
+   * Set the string value at a dot-path. Mutates the underlying tree and
+   * returns `this` for chaining (D-15). Auto-creates missing repetitions,
+   * components, and subcomponents WITHIN an existing field, but does NOT
+   * auto-create segments — callers must `addSegment` first (throws
+   * `TypeError` with an actionable message otherwise).
+   *
+   * The value is accepted verbatim: unescaped delimiter characters are NOT
+   * rejected on input (D-18). Re-escaping on serialize is Phase 5's concern.
+   *
+   * MSH-1 / MSH-2 follow the user-facing HL7 convention — `setField("MSH.3", ...)`
+   * targets MSH-3 (sending application), matching `msg.get("MSH.3")`.
+   *
+   * Segment/Field wrapper caches are invalidated wholesale on success (D-17).
+   * The frozen `warnings` array is never touched (D-16).
+   *
+   * @example
+   * ```ts
+   * msg.setField("PID.8", "F");           // patient sex → F
+   * msg.setField("PID.5.1", "Jones");     // family name
+   * msg.setField("PID.4[2].1", "MRN2");   // create third repetition of PID-4
+   * ```
+   */
+  public setField(path: string, value: string): this {
+    // D-18: parsePath throws TypeError on malformed path.
+    const parsed = parsePath(path);
+
+    // Find the target segment by type + 0-indexed occurrence.
+    let seen = 0;
+    let segIdx = -1;
+    for (let i = 0; i < this.rawSegments.length; i++) {
+      const s = this.rawSegments[i];
+      if (s === undefined) continue;
+      if (s.name === parsed.segmentType) {
+        if (seen === parsed.segmentIndex) {
+          segIdx = i;
+          break;
+        }
+        seen++;
+      }
+    }
+    if (segIdx === -1) {
+      throw new TypeError(
+        `setField: segment "${parsed.segmentType}" (occurrence ${String(parsed.segmentIndex)}) not found. ` +
+          `Add it first with addSegment("${parsed.segmentType}", [...]).`,
+      );
+    }
+
+    // MSH offset: HL7 MSH-3 lives at fields[2], MSH-12 at fields[11]. Non-MSH
+    // segments keep straight 1-indexed access (fields[0] = name placeholder).
+    const rawFieldIndex =
+      parsed.segmentType === "MSH" ? parsed.fieldIndex - 1 : parsed.fieldIndex;
+
+    // Rebuild the affected path from leaf to root, keeping every Raw* shape
+    // structurally immutable. The only readonly bypass is reassigning the
+    // `rawSegments` reference on `this` — per D-16, the tree is mutable
+    // through the mutation API.
+    const mutSegments = toMutableArray(this.rawSegments);
+    const seg = mutSegments[segIdx];
+    // Exhaustive guard — the index was just located above.
+    if (seg === undefined) {
+      throw new Error("setField: internal invariant — segment disappeared after lookup.");
+    }
+
+    const mutFields = toMutableArray(seg.fields);
+    while (mutFields.length <= rawFieldIndex) {
+      mutFields.push({ repetitions: [], isNull: false });
+    }
+    const field = mutFields[rawFieldIndex];
+    if (field === undefined) {
+      throw new Error("setField: internal invariant — field missing after growth.");
+    }
+
+    const mutReps = toMutableArray(field.repetitions);
+    const repIdx = parsed.repetitionIndex ?? 0;
+    while (mutReps.length <= repIdx) {
+      mutReps.push({ components: [] });
+    }
+    const rep = mutReps[repIdx];
+    if (rep === undefined) {
+      throw new Error("setField: internal invariant — repetition missing after growth.");
+    }
+
+    const mutComps = toMutableArray(rep.components);
+    const compIdx = (parsed.componentIndex ?? 1) - 1;
+    while (mutComps.length <= compIdx) {
+      mutComps.push({ subcomponents: [] });
+    }
+    const comp = mutComps[compIdx];
+    if (comp === undefined) {
+      throw new Error("setField: internal invariant — component missing after growth.");
+    }
+
+    const mutSubs = toMutableArray(comp.subcomponents);
+    const subIdx = (parsed.subcomponentIndex ?? 1) - 1;
+    while (mutSubs.length <= subIdx) {
+      mutSubs.push("");
+    }
+    mutSubs[subIdx] = value;
+
+    const newComp: RawComponent = { subcomponents: mutSubs };
+    mutComps[compIdx] = newComp;
+    const newRep: RawRepetition = { components: mutComps };
+    mutReps[repIdx] = newRep;
+    const newField: RawField = { repetitions: mutReps, isNull: field.isNull };
+    mutFields[rawFieldIndex] = newField;
+    const newSeg: RawSegment = { name: seg.name, fields: mutFields };
+    mutSegments[segIdx] = newSeg;
+
+    // One readonly bypass — reassign the rawSegments reference. Consumers are
+    // warned by D-16 that the tree is mutable via the mutation API.
+    (this as { -readonly [K in keyof this]: this[K] }).rawSegments = mutSegments;
+
+    this.invalidateCaches();
+    return this;
+  }
+
+  /**
+   * Append a new segment to the end of the message. `name` must match
+   * `/^(?:[A-Z]{3}|Z[A-Z0-9]{2})$/u` — throws `TypeError` otherwise (D-19).
+   *
+   * `fields` is interpreted in HL7 1-indexed terms: `addSegment("NTE", [a, b, c])`
+   * produces a segment whose `NTE-1 = a`, `NTE-2 = b`, `NTE-3 = c`. The
+   * internal `RawSegment.fields[0]` name/separator placeholder is synthesized
+   * by this method.
+   *
+   * Each entry may be a plain string (treated as a single-subcomponent
+   * single-component single-repetition field) or a full `RawField` object
+   * for advanced callers who need structured content.
+   *
+   * Invalidates caches on return; warnings untouched (D-16).
+   *
+   * @example
+   * ```ts
+   * msg.addSegment("NTE", ["", "note text"]);
+   * msg.get("NTE.2"); // "note text"
+   * ```
+   */
+  public addSegment(name: string, fields: readonly (string | RawField)[]): this {
+    if (!SEGMENT_NAME_RE.test(name)) {
+      throw new TypeError(
+        `addSegment: invalid segment name "${name}". ` +
+          `Expected 3 uppercase ASCII letters (e.g. "PID") or Z-segment shape Z[A-Z0-9]{2} (e.g. "ZPI").`,
+      );
+    }
+
+    // fields[0] is the name-placeholder slot; user-supplied fields start at
+    // position 1. An empty string becomes an empty field (no repetitions),
+    // matching the natural HL7 "empty field between pipes" semantics.
+    const rawFields: RawField[] = [{ repetitions: [], isNull: false }];
+    for (const f of fields) {
+      if (typeof f === "string") {
+        if (f === "") {
+          rawFields.push({ repetitions: [], isNull: false });
+        } else {
+          rawFields.push({
+            repetitions: [{ components: [{ subcomponents: [f] }] }],
+            isNull: false,
+          });
+        }
+      } else {
+        rawFields.push(f);
+      }
+    }
+
+    const newSegment: RawSegment = { name, fields: rawFields };
+    const mut = toMutableArray(this.rawSegments);
+    mut.push(newSegment);
+    (this as { -readonly [K in keyof this]: this[K] }).rawSegments = mut;
+
+    this.invalidateCaches();
+    return this;
+  }
+
+  /**
+   * Remove segments by type + occurrence or by type + all. Call shapes:
+   *
+   * - `removeSegment("NTE")` — remove the FIRST NTE (occurrence 0).
+   * - `removeSegment("OBX", 1)` — remove the SECOND OBX (0-indexed per D-01).
+   * - `removeSegment("OBX", { all: true })` — remove ALL OBX segments.
+   *
+   * `MSH` is protected — `removeSegment("MSH")` throws `TypeError` (every
+   * HL7 message must retain its MSH segment). Unknown segment types are a
+   * no-op (idempotent; no throw). Segment name must match the D-19 shape
+   * regex — invalid shapes throw `TypeError` for symmetry with `addSegment`.
+   *
+   * Invalidates caches on return; warnings untouched (D-16).
+   *
+   * @example
+   * ```ts
+   * msg.removeSegment("NTE");                // remove first NTE
+   * msg.removeSegment("OBX", 1);             // remove second OBX
+   * msg.removeSegment("OBX", { all: true }); // remove all remaining OBX
+   * ```
+   */
+  public removeSegment(
+    segmentType: string,
+    occurrenceOrOptions?: number | { readonly all?: boolean },
+  ): this {
+    if (!SEGMENT_NAME_RE.test(segmentType)) {
+      throw new TypeError(
+        `removeSegment: invalid segment name "${segmentType}". ` +
+          `Expected 3 uppercase ASCII letters or Z[A-Z0-9]{2}.`,
+      );
+    }
+    if (segmentType === "MSH") {
+      throw new TypeError(
+        `removeSegment: refusing to remove MSH (every HL7 message must have exactly one MSH segment).`,
+      );
+    }
+
+    const all =
+      typeof occurrenceOrOptions === "object" && occurrenceOrOptions.all === true;
+    const targetOccurrence =
+      typeof occurrenceOrOptions === "number" ? occurrenceOrOptions : 0;
+
+    const mut = toMutableArray(this.rawSegments);
+    if (all) {
+      const filtered = mut.filter((s) => s.name !== segmentType);
+      (this as { -readonly [K in keyof this]: this[K] }).rawSegments = filtered;
+    } else {
+      let seen = 0;
+      let removeAt = -1;
+      for (let i = 0; i < mut.length; i++) {
+        const s = mut[i];
+        if (s === undefined) continue;
+        if (s.name === segmentType) {
+          if (seen === targetOccurrence) {
+            removeAt = i;
+            break;
+          }
+          seen++;
+        }
+      }
+      if (removeAt !== -1) {
+        mut.splice(removeAt, 1);
+        (this as { -readonly [K in keyof this]: this[K] }).rawSegments = mut;
+      }
+      // else: no-op — unknown segment type or occurrence out of range.
+    }
+
+    this.invalidateCaches();
+    return this;
+  }
+
+  /**
+   * Drop both wrapper caches wholesale (D-17). Called by every mutation
+   * method so subsequent `segments(type)` / `allSegments()` calls rebuild
+   * from the mutated `rawSegments` tree.
+   * @internal
+   */
+  private invalidateCaches(): void {
+    this._segmentsByType = undefined;
+    this._allSegments = undefined;
   }
 }
