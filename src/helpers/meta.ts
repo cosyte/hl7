@@ -14,6 +14,7 @@
  */
 
 import type { Hl7Message } from "../model/message.js";
+import { parseHl7Timestamp } from "../parser/dates.js";
 
 import type { Meta } from "./types.js";
 
@@ -76,10 +77,21 @@ export function buildMeta(msg: Hl7Message): Meta {
   const controlId = msg.get("MSH.10");
   if (controlId !== undefined && controlId !== "") out.controlId = controlId;
 
-  // ─── MSH-7 timestamp (D-18 flat Date) ─────────────────────────────────
+  // ─── MSH-7 timestamp (D-18 flat Date + D-21 merged dateFormats) ────────
+  // Call parseHl7Timestamp DIRECTLY (not via .asTs() which hard-codes `{}`)
+  // so Phase 6 D-21 `options.dateFormats ++ profile.dateFormats` is honoured
+  // for MSH-7. .asTs() stays unchanged for composite callers (Phase 3 D-10
+  // "zero duplicate date logic"); meta.ts is the non-composite caller that
+  // benefits from the merged cascade.
   if (msh !== undefined) {
-    const ts = msh.field(7).asTs();
-    if (ts.date !== undefined) out.timestamp = ts.date;
+    const tsField = msh.field(7);
+    const tsRaw = tsField.value;
+    if (tsRaw !== "") {
+      const parsed = parseHl7Timestamp(tsRaw, { userFormats: msg.dateFormats });
+      if (parsed !== undefined && !Number.isNaN(parsed.getTime())) {
+        out.timestamp = parsed;
+      }
+    }
   }
 
   // ─── MSH-12 version ───────────────────────────────────────────────────

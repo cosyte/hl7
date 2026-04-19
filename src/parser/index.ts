@@ -18,13 +18,20 @@ import type { Buffer } from "node:buffer";
 
 import { DEFAULT_ENCODING_CHARACTERS, readDelimiters } from "./delimiters.js";
 import { FATAL_CODES, Hl7ParseError } from "./errors.js";
+import { KNOWN_SEGMENTS } from "./known-segments.js";
 import { emitIfFramed, stripMllp } from "./mllp.js";
 import { mapHl7Charset, normalize, normalizeBuffer } from "./normalize.js";
 import { snippet as segmentSnippet, splitSegments } from "./segments.js";
 import { tokenize } from "./tokenize.js";
-import { encodingMismatch } from "./warnings.js";
+import { encodingMismatch, unknownSegment } from "./warnings.js";
 import type { Hl7ParseWarning } from "./warnings.js";
-import type { Hl7Position, ParseOptions, Profile, RawSegment } from "./types.js";
+import type {
+  CustomSegmentDefinition,
+  Hl7Position,
+  ParseOptions,
+  Profile,
+  RawSegment,
+} from "./types.js";
 
 import { Hl7Message } from "../model/message.js";
 
@@ -80,9 +87,19 @@ function discriminateOptionsOrProfile(
 /**
  * Build the single `emit` chokepoint passed into every parser stage per
  * CONTEXT.md D-11. Lenient mode: push the warning to the accumulator
- * array and invoke `options.onWarning`. Strict mode: throw an
- * `Hl7ParseError` whose `code` carries the warning code and do NOT
- * invoke the callback or append to the array.
+ * array, invoke `effectiveProfile?.onWarning` FIRST (D-22) inside its own
+ * try/catch so handler throws are swallowed silently, THEN invoke
+ * `options.onWarning` inside its own try/catch (consistency with the
+ * profile chain so a noisy caller handler cannot break the parser).
+ * Strict mode: throw an `Hl7ParseError` whose `code` carries the warning
+ * code; neither onWarning handler fires (preserves the existing
+ * lenient-vs-strict split from Phase 2).
+ *
+ * D-22 ordering: profile handlers are observers that run FIRST; caller
+ * handler runs LAST. Preserves the "profile behavior, then caller
+ * behavior" layering pattern — the profile sees warnings as they arise;
+ * the caller's handler sees post-profile-handler warnings (same object,
+ * same time, just guaranteed ordering).
  *
  * @remarks
  * Under strict mode the thrown error's `code` is a `WarningCode` string
@@ -98,6 +115,7 @@ function makeEmitter(
   warnings: Hl7ParseWarning[],
   options: ParseOptions,
   input: string,
+  effectiveProfile: Profile | undefined,
 ): (w: Hl7ParseWarning) => void {
   return (w) => {
     if (options.strict === true) {
@@ -122,7 +140,27 @@ function makeEmitter(
       );
     }
     warnings.push(w);
-    options.onWarning?.(w);
+    // D-22: profile.onWarning fires BEFORE options.onWarning. Each call is
+    // wrapped in its own try/catch so a throw in one handler cannot prevent
+    // the other from receiving the warning, and cannot bubble out of the
+    // parser (consistent with the D-12 silent-swallow contract for the
+    // profile-chain composer). Symmetric treatment of options.onWarning
+    // keeps the contract uniform — a noisy caller handler is as contained
+    // as a noisy profile handler.
+    if (effectiveProfile?.onWarning !== undefined) {
+      try {
+        effectiveProfile.onWarning(w);
+      } catch {
+        /* D-22 silent swallow */
+      }
+    }
+    if (options.onWarning !== undefined) {
+      try {
+        options.onWarning(w);
+      } catch {
+        /* D-22 symmetric silent swallow */
+      }
+    }
   };
 }
 
@@ -338,9 +376,20 @@ export function parseHL7(
   // Step 6: Normalize line endings to `\r` (Tier-1 silent).
   const inputForPipeline = normalize(text);
 
-  // Step 7: All Tier-3 fatals are past. Build the real emitter and
-  // forward any warnings captured during the Buffer decode.
-  const emit = makeEmitter(warnings, options, inputForPipeline);
+  // Step 6.5: Resolve effectiveProfile BEFORE makeEmitter so the D-22
+  // onWarning chain is wired from the VERY FIRST emission (Buffer-decode
+  // warnings in Step 7 replay included — those are real signal the
+  // profile author wants to see). Plan 04 will later extend this block
+  // with default-profile fallback; Plan 03 reads ONLY options.profile.
+  const profileOpt = options.profile;
+  const effectiveProfile: Profile | undefined =
+    profileOpt !== undefined && profileOpt !== null ? profileOpt : undefined;
+
+  // Step 7: All Tier-3 fatals are past. Build the real emitter (now
+  // profile-aware per D-22) and forward any warnings captured during the
+  // Buffer decode. Buffer-decode warnings route through BOTH profile and
+  // options handlers — full fidelity from the first warning onwards.
+  const emit = makeEmitter(warnings, options, inputForPipeline, effectiveProfile);
   for (const pre of bufferWarnings) emit(pre);
 
   // Step 8: MLLP framing warning (Tier-2) — fired AFTER the fatal checks
@@ -377,37 +426,85 @@ export function parseHL7(
     options.trimFields ?? true,
   );
 
+  // Step 11.5: Emit UNKNOWN_SEGMENT for any non-standard segment name that
+  // is not declared in the active profile (D-31). Uses the already-resolved
+  // effectiveProfile for customSegments suppression. O(N) — one Set.has +
+  // one hasOwnProperty per segment. Uses Object.prototype.hasOwnProperty.call
+  // to guard against prototype pollution (matches the T-02-06-01 mitigation
+  // in discriminateOptionsOrProfile).
+  const profileCustomSegments = effectiveProfile?.customSegments;
+  for (let segIdx = 0; segIdx < rawSegments.length; segIdx++) {
+    const rawSeg = rawSegments[segIdx];
+    if (rawSeg === undefined) continue;
+    const isKnown = KNOWN_SEGMENTS.has(rawSeg.name);
+    const isProfileClaimed =
+      profileCustomSegments !== undefined &&
+      Object.prototype.hasOwnProperty.call(profileCustomSegments, rawSeg.name);
+    if (!isKnown && !isProfileClaimed) {
+      emit(unknownSegment({ segmentIndex: segIdx }, rawSeg.name));
+    }
+  }
+
   // Step 12: Version extraction — Phase 4 extends this via msg.meta.
   const version = extractVersion(rawSegments[0]);
 
-  // Step 13: Profile attribution (PROF-08 opt-out: profile === null).
-  const profileOpt = options.profile;
+  // Step 13: Profile attribution + merged customSegments / dateFormats for
+  // Hl7Message init. Step 13 is a CONSUMER of the already-resolved
+  // effectiveProfile (resolution moved to Step 6.5 per Plan 03 Option A).
   const profileInit =
-    profileOpt !== undefined && profileOpt !== null
+    effectiveProfile !== undefined
       ? {
-          name: profileOpt.name,
-          lineage: profileOpt.lineage ?? [profileOpt.name],
+          name: effectiveProfile.name,
+          lineage: effectiveProfile.lineage ?? [effectiveProfile.name],
         }
       : undefined;
 
-  // `exactOptionalPropertyTypes` forces an omit-when-undefined discipline:
-  // the init shape's `profile?: {...}` cannot be set to `undefined`
-  // explicitly — we must conditionally build the init object.
-  if (profileInit === undefined) {
-    return new Hl7Message({
-      segments: rawSegments,
-      encodingCharacters: encoding,
-      version,
-      warnings,
-    });
+  // D-21: options.dateFormats precede profile.dateFormats in the try-order.
+  // Dedupe preserving first occurrence. `mergedDateFormats` stays undefined
+  // when neither source supplied any formats so the Hl7MessageInit omission
+  // discipline (exactOptionalPropertyTypes) is honoured.
+  const optionFormats = options.dateFormats ?? [];
+  const profileFormats = effectiveProfile?.dateFormats ?? [];
+  const mergedFormats: string[] = [];
+  const seenFormats = new Set<string>();
+  for (const f of optionFormats) {
+    if (!seenFormats.has(f)) {
+      seenFormats.add(f);
+      mergedFormats.push(f);
+    }
   }
-  return new Hl7Message({
+  for (const f of profileFormats) {
+    if (!seenFormats.has(f)) {
+      seenFormats.add(f);
+      mergedFormats.push(f);
+    }
+  }
+  const mergedDateFormats: readonly string[] | undefined =
+    mergedFormats.length > 0 ? Object.freeze(mergedFormats) : undefined;
+
+  const mergedCustomSegments = effectiveProfile?.customSegments;
+
+  // exactOptionalPropertyTypes: conditionally assign each optional init key.
+  type Init = {
+    segments: readonly RawSegment[];
+    encodingCharacters: typeof encoding;
+    version: string;
+    warnings: readonly Hl7ParseWarning[];
+    profile?: { readonly name: string; readonly lineage: readonly string[] };
+    customSegments?: Readonly<Record<string, CustomSegmentDefinition>>;
+    dateFormats?: readonly string[];
+  };
+  const init: Init = {
     segments: rawSegments,
     encodingCharacters: encoding,
     version,
     warnings,
-    profile: profileInit,
-  });
+  };
+  if (profileInit !== undefined) init.profile = profileInit;
+  if (mergedCustomSegments !== undefined) init.customSegments = mergedCustomSegments;
+  if (mergedDateFormats !== undefined) init.dateFormats = mergedDateFormats;
+
+  return new Hl7Message(init);
 }
 
 // Re-export DEFAULT_ENCODING_CHARACTERS so consumers who need it do not
