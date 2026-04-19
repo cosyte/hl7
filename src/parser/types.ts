@@ -86,6 +86,20 @@ export interface ParseOptions {
   readonly stripMllpFraming?: boolean;
   readonly trimFields?: boolean;
   readonly profile?: Profile | null;
+  /**
+   * Override the character set used to decode `Buffer` input. When supplied
+   * this wins over MSH-18 auto-discovery. When both are supplied and they
+   * disagree (after alias normalization) the parser emits
+   * `ENCODING_MISMATCH` and honours this override. Ignored for `string`
+   * input.
+   *
+   * @example
+   * ```ts
+   * import { parseHL7 } from "@cosyte/hl7-parser";
+   * parseHL7(buf, { charset: "ISO-8859-1" });
+   * ```
+   */
+  readonly charset?: string;
 }
 
 /**
