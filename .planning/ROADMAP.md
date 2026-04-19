@@ -104,7 +104,13 @@ Plans:
   2. A developer running `parseHL7(msg.toString())` on any fixture receives a message object equivalent to the original (same segments, fields, components, repetitions).
   3. A developer calling `msg.toJSON()` receives a structured JSON representation suitable for snapshotting or cross-process transport, and `msg.prettyPrint()` returns a human-readable multi-line string.
   4. A developer using `buildMessage({...}).addSegment('PID', [...]).toString()` constructs a valid outbound HL7 message from scratch.
-**Plans**: TBD
+**Plans**: 5 plans
+Plans:
+- [ ] 05-PLAN-01-scaffold-emit-field-and-method-wiring.md — Emit-field primitive (FULLY IMPLEMENTED), 6 stub files with LIVE SerializedMessage + BuildMessageInit types, 3 Hl7Message instance methods wired
+- [ ] 05-PLAN-02-to-string-and-round-trip.md — Fill emitMessage body (MSH special-case + CR terminator); 5 round-trip fixtures + SER-02 structural-equivalence sweep (closes SER-01, SER-02, SER-05)
+- [ ] 05-PLAN-03-to-json.md — Fill emitJson body (raw-tree mirror + stable warnings + conditional profile) (closes SER-03)
+- [ ] 05-PLAN-04-pretty-print.md — Fill emitPrettyPrint body (header + segment-per-line with labeled fields) (closes SER-04)
+- [ ] 05-PLAN-05-build-message.md — Fill buildMessage + formatHl7Timestamp + generateControlId bodies with addSegment chaining + round-trip tests (closes SER-06)
 **UI hint**: no
 
 ### Phase 6: Profile System & Built-ins
@@ -171,7 +177,7 @@ Within each phase, plans that touch disjoint modules may run in parallel; plans 
 | 2. Core Parser & Tolerance | 0/6 | Planned | — |
 | 3. Structural Model & Types | 4/4 | Complete (pending verify) | 2026-04-19 |
 | 4. Named Helpers | 4/4 | Complete (verified) | 2026-04-19 |
-| 5. Serialization & Round-Trip | 0/0 | Not started | — |
+| 5. Serialization & Round-Trip | 0/5 | Planned | — |
 | 6. Profile System & Built-ins | 0/0 | Not started | — |
 | 7. Testing Hardening & Fixtures | 0/0 | Not started | — |
 | 8. Examples, Starter Kit & Documentation | 0/0 | Not started | — |
