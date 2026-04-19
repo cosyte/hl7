@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: milestone
-status: "Phase 4 planned. 4 PLAN.md files across 3 waves — Plan 01 (scaffold + XCN composite per D-24a + cache-slot wiring), Plan 02 (meta + patient, Wave 2), Plan 03 (visit + observations, Wave 2 parallel), Plan 04 (orders + 4 collections, Wave 3). All 7 HELPERS-0X REQ-IDs covered. Plan checker PASSED on iteration 2 (3 warnings from initial review — 'delete broken draft' instruction removed from Plan 04 Task 1, diagnoses fixture/assertion reconciled, Plan 01 scope-note added — all resolved). Ready to execute."
+status: "Phase 4 EXECUTED. All 4 plans complete — 01 scaffold-xcn-and-cache, 02 meta-and-patient, 03 visit-and-observations, 04 orders-and-collections. All 7 HELPERS-0X REQ-IDs (HELPERS-01..07) CLOSED. All 9 named helper surfaces ship: msg.meta / msg.patient / msg.visit / msg.observations() / msg.orders() / msg.nextOfKin() / msg.allergies() / msg.diagnoses() / msg.insurance(). 459/459 tests passing across 41 files. Pending: /gsd-verify-work 4 + /gsd-validate-phase 4. Phases 1, 2, 3 verify + Nyquist audits still open."
 last_updated: "2026-04-19T00:00:00.000Z"
 progress:
   total_phases: 8
   completed_phases: 0
   total_plans: 0
-  completed_plans: 18
+  completed_plans: 19
 ---
 
 # @cosyte/hl7-parser — STATE
@@ -39,7 +39,7 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 ## Performance Metrics
 
 - **Phases completed:** 1 (Phase 3 verified 2026-04-18; Phases 1 & 2 plans done but pending verifier + Nyquist)
-- **Plans completed:** 9
+- **Plans completed:** 19 (4 Phase-1 + 6 Phase-2 + 4 Phase-3 + 4 Phase-4)
 - **REQ-IDs validated:** 38 / 97 (SETUP-01..06 + PARSE-01..09 + TOL-01..10 + MODEL-01..07 + TYPES-01..04). All 7 MODEL + all 4 TYPES requirements now closed. Phase 7 will confirm via the coverage sweep + vendor-quirks fixtures.
 - **Known coverage:** Phase 1 sanity 2/2. Phase 2 (Plans 01–06): full suite 123/123 passing. Phase 3 Plans 01 + 02 + 03 + 04: full suite 327/327 passing across 31 files (model-field-coercions 13, model-mutation 28, model-public-exports 6 new this plan + prior 280). Coverage enforcement starts in Phase 7 via `pnpm test:coverage`.
 
@@ -60,6 +60,7 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 | 4 | 01 scaffold-xcn-and-cache | 12 min | 3 (2 TDD + 1 wiring) | 15 created, 5 modified |
 | 4 | 02 meta-and-patient | 10 min | 3 (3 TDD cycles) | 3 created, 2 modified |
 | 4 | 03 visit-and-observations | 9 min | 3 (2 TDD + 1 cache-test + Rule 3 regex fix) | 3 created, 4 modified |
+| 4 | 04 orders-and-collections | 8 min | 2 TDD cycles | 2 created, 5 modified |
 
 ## Accumulated Context
 
@@ -132,11 +133,11 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 
 ## Session Continuity
 
-- **Last action:** Phase 4 Plan 03 (visit + observations) executed 2026-04-19. HELPERS-03 + HELPERS-04 + HELPERS-07 closed for PV1 and OBX surfaces. `buildVisit` projects 7 locked fields (patientClass / location PL / attendingDoctor XCN / referringDoctor XCN / visitNumber / admitDateTime Date / dischargeDateTime Date); `observations()` + `buildObservation` ship the D-13 value-type dispatch (NM / TS / DT / CWE / CE / others) with D-15 common fields. [Rule 3 deviation] `SEGMENT_NAME_RE` widened from `/^(?:[A-Z]{3}|Z[A-Z0-9]{2})$/u` to `/^[A-Z][A-Z0-9]{2}$/u` in `src/model/message.ts` + `src/model/dot-path.ts` to unblock Plan 03 cache-invalidation tests that mutate PV1 — the old regex rejected standard HL7 v2 segment names containing digits (PV1/IN1/DG1/AL1/NK1/PV2). Full suite green at 431/431.
-- **Next action:** `/gsd-execute-phase 4` to execute Wave 3 (Plan 04 orders + 4 collections). ⚠ Phase 1 & 2 verification gates (`/gsd-verify-work 1`, `/gsd-validate-phase 1`, `/gsd-verify-work 2`, `/gsd-validate-phase 2`) and `/gsd-validate-phase 3` Nyquist audit are still open from prior phases.
-- **Open questions:** (none added this plan). Phase 8's README Error Handling section should document the strict-mode `err.code` widening (carry-over from Phase 2).
-- **Resume file:** .planning/phases/04-named-helpers/04-PLAN-01-scaffold-xcn-and-cache.md
+- **Last action:** Phase 4 Plan 04 (orders + collections) executed 2026-04-19. HELPERS-05 + HELPERS-06 + HELPERS-07 closed — Phase 4 COMPLETE. `orders()` implements a two-slot ORC state machine (pendingOrc / currentOrc) over `msg.allSegments()` for D-12 positional OBX grouping + ORC-1 → orderControl attachment; reuses `buildObservation` from Plan 03 so OBX → Observation dispatch lives in exactly ONE place. `nextOfKin` / `allergies` / `diagnoses` are simple segment walkers; `insurance` is a single-slot IN1 state machine setting positional `hasIn2` / `hasIn3` booleans. Universal HELPERS-07 never-throws sweep proves all 9 Phase 4 helpers handle empty / minimal / malformed input gracefully. Two [Rule 1 - Bug] fixture fixes applied during TDD GREEN (OBR fixture off-by-one → XCN at OBR-17 corrected to OBR-16; NK1 fixture off-by-one → FTHR at NK1-8 corrected to NK1-7). Full suite green at 459/459 across 41 files (+28 from Plan 03 baseline).
+- **Next action:** `/gsd-verify-work 4` then `/gsd-validate-phase 4` (Nyquist). ⚠ Phase 1 & 2 & 3 verification gates (`/gsd-verify-work 1`, `/gsd-validate-phase 1`, `/gsd-verify-work 2`, `/gsd-validate-phase 2`, `/gsd-validate-phase 3`) still open. After Phase 4 is verified + validated, `/gsd-plan-phase 5` (mutation-on-helpers).
+- **Open questions:** (none added this plan). Phase 7 may lift selected IN2 / IN3 fields into Insurance based on vendor-quirk fixture evidence (carry-over). Phase 8's README Error Handling section should document the strict-mode `err.code` widening (carry-over from Phase 2).
+- **Resume file:** .planning/phases/04-named-helpers/04-04-SUMMARY.md
 
 ---
 
-*Last updated: 2026-04-19 (Phase 4 Plans 01 + 02 + 03 executed; HELPERS-01..04 + HELPERS-07 closed for MSH/PID/PV1/OBX; Wave 3 pending — Plan 04 orders + collections)*
+*Last updated: 2026-04-19 (Phase 4 COMPLETE — all 4 plans executed; HELPERS-01..07 all closed; 9 named helper surfaces ship; 459/459 tests; pending `/gsd-verify-work 4` + `/gsd-validate-phase 4`)*
