@@ -19,3 +19,40 @@
  * ```
  */
 export const VERSION: string = "0.0.0";
+
+export { parseHL7 } from "./parser/index.js";
+export { Hl7Message } from "./model/message.js";
+export { FATAL_CODES, Hl7ParseError, ProfileDefinitionError } from "./parser/errors.js";
+export type { FatalCode } from "./parser/errors.js";
+export {
+  WARNING_CODES,
+  mllpFramingStripped,
+  fieldWhitespaceTrimmed,
+  unknownEscapeSequence,
+  timestampFallbackFormat,
+  segmentCase,
+  extraFields,
+  unknownSegment,
+  duplicateRequiredSegment,
+  encodingMismatch,
+  missingRequiredField,
+  outOfOrderSegment,
+  versionMismatch,
+  unknownCharset,
+} from "./parser/warnings.js";
+export type { WarningCode, Hl7ParseWarning } from "./parser/warnings.js";
+export { DEFAULT_ENCODING_CHARACTERS } from "./parser/delimiters.js";
+export type {
+  Hl7Position,
+  ParseOptions,
+  OnWarningCallback,
+  Profile,
+  EncodingCharacters,
+  RawSegment,
+  RawField,
+  RawRepetition,
+  RawComponent,
+} from "./parser/types.js";
+export { BUILTIN_DATE_FALLBACKS, parseHl7Timestamp } from "./parser/dates.js";
+export type { ParseHl7TimestampOptions } from "./parser/dates.js";
+export { unescape, reescape } from "./parser/escapes.js";
