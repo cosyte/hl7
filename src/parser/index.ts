@@ -34,6 +34,7 @@ import type {
 } from "./types.js";
 
 import { Hl7Message } from "../model/message.js";
+import { getDefaultProfile } from "../profiles/default.js";
 
 /**
  * The list of `ParseOptions` keys that are TRULY options-only — i.e. keys
@@ -394,14 +395,28 @@ export function parseHL7(
   // Step 6: Normalize line endings to `\r` (Tier-1 silent).
   const inputForPipeline = normalize(text);
 
-  // Step 6.5: Resolve effectiveProfile BEFORE makeEmitter so the D-22
-  // onWarning chain is wired from the VERY FIRST emission (Buffer-decode
-  // warnings in Step 7 replay included — those are real signal the
-  // profile author wants to see). Plan 04 will later extend this block
-  // with default-profile fallback; Plan 03 reads ONLY options.profile.
-  const profileOpt = options.profile;
-  const effectiveProfile: Profile | undefined =
-    profileOpt !== undefined && profileOpt !== null ? profileOpt : undefined;
+  // Step 6.5 (Plan 04 extends): Resolve effectiveProfile BEFORE makeEmitter
+  // so the D-22 onWarning chain is wired from the VERY FIRST emission
+  // (Buffer-decode warnings in Step 7 replay included). Plan 04 extends
+  // Plan 03's single-line assignment into a 3-branch discrimination per
+  // D-19 "explicit wins; null opts out; undefined falls back to default":
+  //   - options.profile === null → explicit opt-out for this call (D-19).
+  //     Registered default is IGNORED; msg.profile === undefined.
+  //   - options.profile !== undefined → explicit Profile wins over any
+  //     registered default.
+  //   - options.profile === undefined → fall back to the registered default
+  //     via getDefaultProfile() (which may itself be undefined, in which
+  //     case effectiveProfile stays undefined and parseHL7 behaves exactly
+  //     like the no-profile case — zero semantic change for unregistered
+  //     consumers).
+  let effectiveProfile: Profile | undefined;
+  if (options.profile === null) {
+    effectiveProfile = undefined;
+  } else if (options.profile !== undefined) {
+    effectiveProfile = options.profile;
+  } else {
+    effectiveProfile = getDefaultProfile();
+  }
 
   // Step 7: All Tier-3 fatals are past. Build the real emitter (now
   // profile-aware per D-22) and forward any warnings captured during the
