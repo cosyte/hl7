@@ -62,3 +62,32 @@ export { Segment } from "./model/segment.js";
 export { Field } from "./model/field.js";
 export { parsePath, resolvePath } from "./model/dot-path.js";
 export type { DotPath } from "./model/dot-path.js";
+
+// Phase 3 typed composites — named exports for the 10 v1 composites
+// (XPN, XAD, CX, CWE, CE, XTN, PL, TS, NM, HD) alongside their parser
+// functions. D-13: these are ALSO re-exported under the `HL7` namespace
+// below so `import { HL7 } from "@cosyte/hl7-parser"; type T = HL7.XPN`
+// resolves to the same interface as the named `XPN` import.
+export type { XPN } from "./model/types/xpn.js";
+export { parseXpn } from "./model/types/xpn.js";
+export type { XAD } from "./model/types/xad.js";
+export { parseXad } from "./model/types/xad.js";
+export type { CX } from "./model/types/cx.js";
+export { parseCx } from "./model/types/cx.js";
+export type { CWE } from "./model/types/cwe.js";
+export { parseCwe } from "./model/types/cwe.js";
+export type { CE } from "./model/types/ce.js";
+export { parseCe } from "./model/types/ce.js";
+export type { XTN } from "./model/types/xtn.js";
+export { parseXtn } from "./model/types/xtn.js";
+export type { PL } from "./model/types/pl.js";
+export { parsePl } from "./model/types/pl.js";
+export type { TS } from "./model/types/ts.js";
+export { parseTs } from "./model/types/ts.js";
+export type { NM } from "./model/types/nm.js";
+export { parseNm } from "./model/types/nm.js";
+export type { HD } from "./model/types/hd.js";
+export { parseHd } from "./model/types/hd.js";
+
+// Phase 3 HL7 namespace re-export (D-13) — `HL7.XPN`, `HL7.XAD`, etc.
+export * as HL7 from "./model/types/namespace.js";
