@@ -13,11 +13,20 @@
  * chars string (MSH-2). Non-MSH (PID, EVN, ZPI, ...): `fields[0]` holds the
  * segment name, `fields[1]` holds the HL7 first field (PID-1).
  *
- * Escape sequences (`\F\`, `\S\`, ...) are NOT expanded here — Plan 04's
- * escape stage handles unescape on-access so the raw tree is byte-faithful
- * to the input for Plan 05's serializer round-trips.
+ * Escape expansion (Phase 5 round-trip contract): each subcomponent is run
+ * through `unescape()` during tokenization, so the raw tree holds DECODED
+ * strings (e.g. `Smith|Jones`, not `Smith\F\Jones`). This is the exact
+ * inverse of `reescape()` in `src/serialize/emit-field.ts`, which is how the
+ * serializer produces spec-clean output and how SER-02 structural round-trip
+ * equivalence holds: `parseHL7(msg.toString()).rawSegments` deeply equals
+ * `msg.rawSegments`. `UNKNOWN_ESCAPE_SEQUENCE` warnings from `unescape`
+ * propagate through the `emit` callback. The MSH-1 / MSH-2 positional
+ * placeholders (`fields[0]`, `fields[1]`) are intentionally NOT unescaped —
+ * they hold the literal delimiter / encoding chars and participate in
+ * serialization via the D-06 special-case path, not via `emitField`.
  */
 
+import { unescape } from "./escapes.js";
 import { fieldWhitespaceTrimmed } from "./warnings.js";
 import type { Hl7ParseWarning } from "./warnings.js";
 import type {
@@ -197,20 +206,64 @@ function tokenizeField(
 
   const reps = value.split(enc.repetition);
   const repetitions: RawRepetition[] = [];
-  for (const rep of reps) repetitions.push(tokenizeRepetition(rep, enc));
+  for (let rIdx = 0; rIdx < reps.length; rIdx++) {
+    const rep = reps[rIdx];
+    if (rep === undefined) continue;
+    repetitions.push(
+      tokenizeRepetition(rep, enc, emit, { ...position, repetitionIndex: rIdx + 1 }),
+    );
+  }
   return { repetitions, isNull: false };
 }
 
 /** @internal */
-function tokenizeRepetition(raw: string, enc: EncodingCharacters): RawRepetition {
+function tokenizeRepetition(
+  raw: string,
+  enc: EncodingCharacters,
+  emit: (w: Hl7ParseWarning) => void,
+  position: Hl7Position,
+): RawRepetition {
   const comps = raw.split(enc.component);
   const components: RawComponent[] = [];
-  for (const c of comps) components.push(tokenizeComponent(c, enc));
+  for (let cIdx = 0; cIdx < comps.length; cIdx++) {
+    const c = comps[cIdx];
+    if (c === undefined) continue;
+    components.push(
+      tokenizeComponent(c, enc, emit, { ...position, componentIndex: cIdx + 1 }),
+    );
+  }
   return { components };
 }
 
-/** @internal */
-function tokenizeComponent(raw: string, enc: EncodingCharacters): RawComponent {
+/**
+ * Tokenize a single component into its subcomponents, running each
+ * subcomponent string through `unescape` so the raw tree stores DECODED
+ * values (inverse of `reescape` at emit time). This is load-bearing for
+ * SER-02 structural round-trip equivalence — without it, the raw tree would
+ * store literal `\F\` / `\E\` / `\.br\` sequences and emit would double-
+ * escape them into `\E\F\E\` / etc.
+ *
+ * `UNKNOWN_ESCAPE_SEQUENCE` warnings from `unescape` propagate through the
+ * `emit` callback with the full positional context (segment, field, rep,
+ * component, subcomponent all 1-indexed).
+ *
+ * @internal
+ */
+function tokenizeComponent(
+  raw: string,
+  enc: EncodingCharacters,
+  emit: (w: Hl7ParseWarning) => void,
+  position: Hl7Position,
+): RawComponent {
   const subs = raw.split(enc.subcomponent);
-  return { subcomponents: subs };
+  const decoded: string[] = [];
+  for (let sIdx = 0; sIdx < subs.length; sIdx++) {
+    const sub = subs[sIdx];
+    if (sub === undefined) {
+      decoded.push("");
+      continue;
+    }
+    decoded.push(unescape(sub, enc, emit, { ...position, subcomponentIndex: sIdx + 1 }));
+  }
+  return { subcomponents: decoded };
 }
