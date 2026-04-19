@@ -85,7 +85,7 @@ All requirements are user-facing behaviors a developer consuming `@cosyte/hl7-pa
 - [x] **PROF-05** — `profile.describe()` returns a non-empty human-readable summary containing the profile name. (closed Phase 6 Plan 01 — buildDescribe always starts with `Profile '<name>'`)
 - [x] **PROF-06** — `parseHL7(raw, profile)` applies profile behavior to the parse; `msg.profile?.name` and `msg.profile?.lineage` are set on the parsed message. (closed Phase 6 Plan 03 — customSegments threaded end-to-end via Hl7MessageInit.customSegments; D-22 profile.onWarning chain hoisted into makeEmitter fires BEFORE options.onWarning inside per-handler try/catch; effectiveProfile resolved at new Step 6.5 BEFORE emitter construction so full-parse coverage including Buffer-decode + MLLP replay; attribution {name, lineage} already landed in Phase 2 Step 13)
 - [x] **PROF-07** — Registered Z-segments (via `customSegments`) are accessible by field name: `msg.segments('ZPI')[0].get('encounterId')`. (closed Phase 6 Plan 03 — Segment.get(name) runtime delivered with D-14 narrow: undefined for missing name AND out-of-range position; types already closed in Plan 01)
-- [ ] **PROF-08** — `setDefaultProfile(p)` / `getDefaultProfile()` / `setDefaultProfile(null)` manage a process-scoped default; explicit argument overrides; `parseHL7(raw, { profile: null })` opts out for one call.
+- [x] **PROF-08** — `setDefaultProfile(p)` / `getDefaultProfile()` / `setDefaultProfile(null)` manage a process-scoped default; explicit argument overrides; `parseHL7(raw, { profile: null })` opts out for one call. (closed Phase 6 Plan 04 — module-level `let _defaultProfile` in src/profiles/default.ts; parseHL7 Step 6.5 3-branch D-19 discrimination layered on top of Plan 03's hoist; D-20 effects equivalence via default vs explicit anchored by 4 tests; afterEach test-isolation discipline documented in JSDoc + enforced in test file)
 - [x] **PROF-09** — Round-trip: a message parsed with a custom profile and re-serialized produces spec-clean HL7 (profile quirks affect parsing, not serialization). (closed Phase 6 Plan 03 — `parseHL7(raw, profile).toString() === parseHL7(raw).toString()` anchored by test; toString() is profile-agnostic per PROJECT.md Postel's Law — no emit-side profile hooks)
 
 ### Built-in Profiles (BIP)
@@ -224,7 +224,7 @@ Every v1 REQ-ID maps to exactly one phase in `ROADMAP.md`. 97/97 mapped.
 | PROF-05 | Phase 6 — Profile System & Built-ins | Closed (Plan 01) |
 | PROF-06 | Phase 6 — Profile System & Built-ins | Closed (Plan 03 — customSegments threading + D-22 onWarning chain hoist) |
 | PROF-07 | Phase 6 — Profile System & Built-ins | Closed (types Plan 01; runtime Segment.get Plan 03) |
-| PROF-08 | Phase 6 — Profile System & Built-ins | Pending |
+| PROF-08 | Phase 6 — Profile System & Built-ins | Closed (Plan 04 — setDefaultProfile/getDefaultProfile + parseHL7 Step 6.5 3-branch D-19 discrimination) |
 | PROF-09 | Phase 6 — Profile System & Built-ins | Closed (Plan 03 — toString() profile-agnostic round-trip anchored by test) |
 | BIP-01 | Phase 6 — Profile System & Built-ins | Pending |
 | BIP-02 | Phase 6 — Profile System & Built-ins | Pending |
