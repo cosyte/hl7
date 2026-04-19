@@ -8,16 +8,16 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 
 - **Name:** `@cosyte/hl7-parser`
 - **Core value:** A developer can parse a real-world, vendor-quirky HL7 v2 message and pull useful fields out of it in one line — without having read the HL7 spec.
-- **Current focus:** Phase 3 — Structural Model & Types (IN PROGRESS — Plans 01 + 02 complete; Plans 03/04 pending. Phase 2 still pending /gsd-verify-work 2 + /gsd-validate-phase 2; Phase 1 still pending /gsd-verify-work 1 + /gsd-validate-phase 1.)
+- **Current focus:** Phase 3 — Structural Model & Types (IN PROGRESS — Plans 01 + 02 + 03 complete; Plan 04 (capstone) pending. Phase 2 still pending /gsd-verify-work 2 + /gsd-validate-phase 2; Phase 1 still pending /gsd-verify-work 1 + /gsd-validate-phase 1.)
 - **Workflow config:** standard granularity, yolo mode, parallelization enabled, plan-check + verifier + Nyquist validation on, auto-advance on.
 
 ## Current Position
 
 - **Milestone:** v1
-- **Phase:** 3 — Structural Model & Types (IN PROGRESS — Plans 01 + 02 complete; Plans 03/04 pending)
-- **Plans:** 4 plans across 3 waves (01 read-path-foundation — Wave 1 DONE; 02 composites-person-address-identifier — Wave 2 first plan DONE; 03 composites-telecom-location-timestamp-numeric — Wave 2 remainder; 04 mutation-and-barrel — Wave 3 capstone)
-- **Status:** Plans 01 + 02 executed. Plan 02 ships 6 of 10 typed composite parsers: XPN (14 cols), XAD (12), HD (3), CX (10 with nested-HD synthesis on assigningAuthority), CWE (9 trimmed for v1), CE (6). Shared _shared.ts helpers (readSubcomponent, readComponent) centralise auto-unescape + empty-string→undefined mapping. All exactOptionalPropertyTypes-compliant via Mutable<T> + conditional assignment (no object-literal as casts). 242/242 tests passing; lint + typecheck + build green. Zero modifications to src/index.ts — Plan 04 wires the HL7 namespace barrel + Field.asXxx() coercions.
-- **Progress:** 0/8 phases complete; 4/4 Phase 1 plans complete; 6/6 Phase 2 plans complete; 2/4 Phase 3 plans executed
+- **Phase:** 3 — Structural Model & Types (IN PROGRESS — Plans 01 + 02 + 03 complete; Plan 04 pending)
+- **Plans:** 4 plans across 3 waves (01 read-path-foundation — Wave 1 DONE; 02 composites-person-address-identifier — Wave 2 first plan DONE; 03 composites-telecom-location-timestamp-numeric — Wave 2 remainder DONE; 04 mutation-and-barrel — Wave 3 capstone)
+- **Status:** Plans 01 + 02 + 03 executed. Plan 03 ships the remaining 4 of 10 typed composite parsers: XTN (12 v1 cols, trimmed from 14), PL (11 v1 cols, trimmed from 12, with nested-HD synthesis on facility mirroring CX.assigningAuthority), TS/DTM (2-key always-present shape { raw, date }; delegates to Phase 2's parseHl7Timestamp per D-10), NM (2-key always-present shape { raw, value }; strict Number(raw) not parseFloat). TYPES-01 now CLOSED (all 10 composites ship); TYPES-03 + TYPES-04 CLOSED via parseTs + NaN-gate. 280/280 tests passing; lint + typecheck + build green. Zero modifications to src/index.ts — Plan 04 wires the HL7 namespace barrel + Field.asXxx() coercions.
+- **Progress:** 0/8 phases complete; 4/4 Phase 1 plans complete; 6/6 Phase 2 plans complete; 3/4 Phase 3 plans executed
 
 ```
 [░░░░░░░░░░░░░░░░░░░░] 0%   (0 / 8 phases)
@@ -27,8 +27,8 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 
 - **Phases completed:** 0 (Phase 1 plans done; pending verifier + Nyquist + transition)
 - **Plans completed:** 8
-- **REQ-IDs validated:** 32 / 97 (SETUP-01..06 + PARSE-01..09 + TOL-01..10 + MODEL-01..05). TYPES-01 + TYPES-02 are partially progressed (6 of 10 composites ship; full close lands in Plan 04). Phase 7 will confirm via the coverage sweep + vendor-quirks fixtures.
-- **Known coverage:** Phase 1 sanity 2/2. Phase 2 (Plans 01–06): full suite 123/123 passing. Phase 3 Plans 01 + 02: full suite 242/242 passing across 24 files (types-shared 7, types-xpn 7, types-xad 5, types-hd 6, types-cx 7, types-cwe 5, types-ce 5 new this plan + prior 200). Coverage enforcement starts in Phase 7 via `pnpm test:coverage`.
+- **REQ-IDs validated:** 35 / 97 (SETUP-01..06 + PARSE-01..09 + TOL-01..10 + MODEL-01..05 + TYPES-01 + TYPES-03 + TYPES-04). TYPES-02 remains pending — Plan 04 wires Field.asXxx() which closes it. Phase 7 will confirm via the coverage sweep + vendor-quirks fixtures.
+- **Known coverage:** Phase 1 sanity 2/2. Phase 2 (Plans 01–06): full suite 123/123 passing. Phase 3 Plans 01 + 02 + 03: full suite 280/280 passing across 28 files (types-ts 12, types-nm 10, types-xtn 7, types-pl 9 new this plan + prior 242). Coverage enforcement starts in Phase 7 via `pnpm test:coverage`.
 
 | Phase | Plan | Duration | Tasks | Files |
 |-------|------|----------|-------|-------|
@@ -42,6 +42,7 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 | 2 | 06 parseHL7-public-and-strict-mode | 4 min | 1 (1 TDD cycle) | 2 created, 1 modified |
 | 3 | 01 read-path-foundation | 11 min | 3 (3 TDD cycles) | 7 created, 4 modified |
 | 3 | 02 composites-person-address-identifier | 5 min | 3 (3 TDD cycles) | 14 created (7 src + 7 test) |
+| 3 | 03 composites-telecom-location-timestamp-numeric | 4 min | 3 (handshake + 2 TDD cycles) | 8 created (4 src + 4 test) |
 
 ## Accumulated Context
 
@@ -83,6 +84,12 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 - CWE trimmed to 9 components for v1 (full v2.6+ has 22). The 9 core fields (identifier, text, coding systems, version ids, originalText) cover common HL7 v2.5 use cases; v2 may restore the full shape (Plan 03-02).
 - `exactOptionalPropertyTypes`-compliant composite construction via `Mutable<T>` local + conditional assignment. `type Mutable<T> = { -readonly [K in keyof T]?: T[K] }` + per-field `if (x !== undefined) out.x = x` + implicit return. Passes `consistent-type-assertions: objectLiteralTypeAssertions: "never"` without any cast (Plan 03-02).
 - Plan 02 and Plan 03 file ownership stays truly disjoint: Plan 02 ships 6 composites (XPN, XAD, CX, CWE, CE, HD) + `_shared.ts`; Plan 03 adds 4 (XTN, PL, TS, NM) and consumes `_shared.ts` + `hd.ts`. Zero shared-edit risk. Plan 04 handles `src/index.ts` barrel + `HL7` namespace + `Field.asXxx()` wiring (Plan 03-02).
+- TS composite shape locked to `{ raw: string; date: Date | undefined }` per D-14 — BOTH keys ALWAYS present. `date` is typed as `Date | undefined` (not optional), so callers can destructure uniformly whether the parse succeeded or failed. NM composite parallels this with `{ raw: string; value: number | undefined }`. Distinguishes scalar composites from structured composites (XPN/XAD/etc all-optional) (Plan 03-03).
+- `parseTs` delegates to `parseHl7Timestamp({})` — empty options, silent (no emit/position). Phase 4's `msg.meta.timestamp` helper may call `parseHl7Timestamp` DIRECTLY with user `dateFormats`/`emit`/`position`; the composite layer stays stateless so `Field.asTs()` works identically whether the user supplied dateFormats or not. D-10 zero duplicate date logic preserved (Plan 03-03).
+- NM uses strict `Number(raw)` over `parseFloat(raw)` — trailing non-numeric characters invalidate the parse (`Number("12abc") === NaN` vs `parseFloat("12abc") === 12`). Matches developer expectation for HL7 NM fields that should be strictly numeric. Documented in NM JSDoc so maintainers don't "optimise" it back to parseFloat. Explicit empty-string pre-check prevents JS's `Number("") === 0` trap (Plan 03-03).
+- D-24 NaN-gate layered on parseTs delegate output: `parsed !== undefined && !Number.isNaN(parsed.getTime())` prevents `new Date("20251345")` (month 13 → NaN time) from leaking as an Invalid Date. This is how TYPES-04 (no-throw) becomes observable at the composite layer — callers get undefined, never an Invalid Date (Plan 03-03).
+- XTN trimmed from 14 → 12 for v1 (dropped 2 rarely-used legacy slots 13/14); PL trimmed from 12 → 11 for v1 (dropped entityIdentifier slot 12). Both trimming decisions interface-level only — parsers silently ignore additional trailing components from the raw tree. v2 may restore full shapes if vendor-quirk fixtures require them (Plan 03-03).
+- PL.facility uses inline `parseFacility` nested-HD synthesis helper — mirrors `parseCx::parseAssigningAuthority` from Plan 02. Helper kept inline in pl.ts, NOT promoted to `_shared.ts`. Pattern now exists in 2 places (CX, PL); DRY threshold for promoting to `_shared` is 3 occurrences. Keeps `_shared.ts` focused on truly-universal helpers (readComponent, readSubcomponent) used by every composite (Plan 03-03).
 
 ### Active Todos
 
@@ -101,11 +108,11 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 
 ## Session Continuity
 
-- **Last action:** Executed Phase 3 Plan 02 (composites-person-address-identifier) 2026-04-19. 3 TDD cycles (test→feat) landed 6 commits: 2d41168/79aed3a (_shared helpers), 4ad6975/c6cbf32 (XPN/XAD/HD), 050214f/93c9ddd (CX/CWE/CE). 6 of 10 typed composites ship; CX demonstrates nested-HD synthesis pattern. Full suite 242/242 green; typecheck + lint + build all pass. SUMMARY at `.planning/phases/03-structural-model-and-types/03-02-SUMMARY.md`.
-- **Next action:** Execute Phase 3 Plan 03 (composites-telecom-location-timestamp-numeric — Wave 2 remainder: XTN, PL, TS/DTM, NM). Plan 03 consumes `_shared.ts` (readSubcomponent, readComponent) and `hd.ts` from Plan 02. After Plan 03 completes, Plan 04 (mutation-and-barrel) is the Wave-3 capstone that wires `Field.asXxx()` coercions and the `HL7` namespace barrel. ⚠ Phase 1 & 2 verification gates (`/gsd-verify-work 1`, `/gsd-validate-phase 1`, `/gsd-verify-work 2`, `/gsd-validate-phase 2`) are still open.
+- **Last action:** Executed Phase 3 Plan 03 (composites-telecom-location-timestamp-numeric) 2026-04-19. Task 0 handshake verified Plan 02's `_shared.ts` + `hd.ts` exist. 2 TDD cycles (test→feat) landed 4 commits: b09f279/a702ade (TS + NM), 084736e/c16c940 (XTN + PL). Remaining 4 of 10 typed composites ship — TYPES-01 CLOSED (all 10 composites now shipped across Plans 02+03). TYPES-03 + TYPES-04 CLOSED via parseTs + NaN-gate. Full suite 280/280 green; typecheck + lint + build all pass. SUMMARY at `.planning/phases/03-structural-model-and-types/03-03-SUMMARY.md`.
+- **Next action:** Execute Phase 3 Plan 04 (mutation-and-barrel — Wave 3 capstone). Plan 04 wires `Field.asXxx()` coercions (all 10 composites), adds `setField`/`addSegment`/`removeSegment` mutation methods with cache invalidation (D-17), exports types + `HL7` namespace via `src/index.ts` (D-13), and closes TYPES-02 + MODEL-06 + MODEL-07. ⚠ Phase 1 & 2 verification gates (`/gsd-verify-work 1`, `/gsd-validate-phase 1`, `/gsd-verify-work 2`, `/gsd-validate-phase 2`) are still open.
 - **Open questions:** (none added this plan). Phase 8's README Error Handling section should document the strict-mode `err.code` widening (carry-over from Phase 2).
-- **Resume file:** `.planning/phases/03-structural-model-and-types/03-02-SUMMARY.md`
+- **Resume file:** `.planning/phases/03-structural-model-and-types/03-03-SUMMARY.md`
 
 ---
 
-*Last updated: 2026-04-19 (Phase 3 Plan 02 executed — 6 composites shipped; 242/242 tests green)*
+*Last updated: 2026-04-19 (Phase 3 Plan 03 executed — all 10 v1 composites shipped; 280/280 tests green; TYPES-01/03/04 closed)*

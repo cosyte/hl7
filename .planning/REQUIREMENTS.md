@@ -49,10 +49,10 @@ All requirements are user-facing behaviors a developer consuming `@cosyte/hl7-pa
 
 ### Data Types (TYPES)
 
-- [ ] **TYPES-01** — TypeScript interfaces exist and are exported for the common composite types: XPN, XAD, CX, CWE/CE, XTN, PL, TS/DTM, NM, HD.
+- [x] **TYPES-01** — TypeScript interfaces exist and are exported for the common composite types: XPN, XAD, CX, CWE/CE, XTN, PL, TS/DTM, NM, HD.
 - [ ] **TYPES-02** — Helpers return parsed instances of these types (e.g. `patient.name` is a parsed `XPN`).
-- [ ] **TYPES-03** — HL7 TS/DTM strings (`YYYYMMDDHHMMSS[.SSSS][+/-ZZZZ]`) parse to JS `Date` with valid truncations; raw string remains accessible.
-- [ ] **TYPES-04** — Unparseable timestamps return `undefined` for the `Date` getter (no throw); raw remains accessible.
+- [x] **TYPES-03** — HL7 TS/DTM strings (`YYYYMMDDHHMMSS[.SSSS][+/-ZZZZ]`) parse to JS `Date` with valid truncations; raw string remains accessible.
+- [x] **TYPES-04** — Unparseable timestamps return `undefined` for the `Date` getter (no throw); raw remains accessible.
 
 ### Real-World Tolerance (TOL)
 
@@ -200,10 +200,10 @@ Every v1 REQ-ID maps to exactly one phase in `ROADMAP.md`. 97/97 mapped.
 | MODEL-05 | Phase 3 — Structural Model & Types | Complete (Plan 01) |
 | MODEL-06 | Phase 3 — Structural Model & Types | Pending |
 | MODEL-07 | Phase 3 — Structural Model & Types | Pending |
-| TYPES-01 | Phase 3 — Structural Model & Types | Pending |
-| TYPES-02 | Phase 3 — Structural Model & Types | Pending |
-| TYPES-03 | Phase 3 — Structural Model & Types | Pending |
-| TYPES-04 | Phase 3 — Structural Model & Types | Pending |
+| TYPES-01 | Phase 3 — Structural Model & Types | Complete (Plan 03) |
+| TYPES-02 | Phase 3 — Structural Model & Types | Pending (Plan 04 wires Field.asXxx) |
+| TYPES-03 | Phase 3 — Structural Model & Types | Complete (Plan 03) |
+| TYPES-04 | Phase 3 — Structural Model & Types | Complete (Plan 03) |
 | HELPERS-01 | Phase 4 — Named Helpers | Pending |
 | HELPERS-02 | Phase 4 — Named Helpers | Pending |
 | HELPERS-03 | Phase 4 — Named Helpers | Pending |
