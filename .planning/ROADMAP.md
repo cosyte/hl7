@@ -164,7 +164,7 @@ Within each phase, plans that touch disjoint modules may run in parallel; plans 
 |-------|----------------|--------|-----------|
 | 1. Project Foundation | 4/4 | Complete (pending verify) | 2026-04-18 |
 | 2. Core Parser & Tolerance | 0/6 | Planned | — |
-| 3. Structural Model & Types | 3/4 | In Progress | — |
+| 3. Structural Model & Types | 4/4 | Complete (pending verify) | 2026-04-19 |
 | 4. Named Helpers | 0/0 | Not started | — |
 | 5. Serialization & Round-Trip | 0/0 | Not started | — |
 | 6. Profile System & Built-ins | 0/0 | Not started | — |
@@ -173,4 +173,4 @@ Within each phase, plans that touch disjoint modules may run in parallel; plans 
 
 ---
 
-*Last updated: 2026-04-19 (Phase 3 Plan 03 complete — all 10 v1 composites shipped: XPN, XAD, CX, CWE, CE, HD, XTN, PL, TS, NM; Plan 04 is the wave-3 capstone with Field.asXxx + barrel)*
+*Last updated: 2026-04-19 (Phase 3 complete — 4/4 plans executed; TYPES-01..04 + MODEL-01..07 closed; 327/327 tests green; pending /gsd-verify-work 3 + /gsd-validate-phase 3)*
