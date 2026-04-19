@@ -69,11 +69,11 @@ All requirements are user-facing behaviors a developer consuming `@cosyte/hl7-pa
 
 ### Serialization & Round-Trip (SER)
 
-- [ ] **SER-01** — `msg.toString()` produces spec-clean HL7 regardless of quirks in the input (Postel's Law: conservative emitter).
-- [ ] **SER-02** — Round-trip `parse → toString → parse` yields an equivalent `Hl7Message` object for every fixture.
+- [x] **SER-01** — `msg.toString()` produces spec-clean HL7 regardless of quirks in the input (Postel's Law: conservative emitter). (Phase 5 Plan 02)
+- [x] **SER-02** — Round-trip `parse → toString → parse` yields an equivalent `Hl7Message` object for every fixture. (Phase 5 Plan 02)
 - [ ] **SER-03** — `msg.toJSON()` returns a structured JSON representation of the full message.
 - [ ] **SER-04** — `msg.prettyPrint()` returns a human-readable multi-line string for logging/debugging.
-- [ ] **SER-05** — Escape sequences are correctly re-encoded on serialize (unescaped content → escaped).
+- [x] **SER-05** — Escape sequences are correctly re-encoded on serialize (unescaped content → escaped). (Phase 5 Plan 02)
 - [ ] **SER-06** — `buildMessage({...}).addSegment(...).toString()` constructs a valid outbound HL7 message for tests and small tools.
 
 ### Profiles (PROF)
@@ -211,11 +211,11 @@ Every v1 REQ-ID maps to exactly one phase in `ROADMAP.md`. 97/97 mapped.
 | HELPERS-05 | Phase 4 — Named Helpers | Complete (Plan 04) |
 | HELPERS-06 | Phase 4 — Named Helpers | Complete (Plan 04) |
 | HELPERS-07 | Phase 4 — Named Helpers | Complete (Plans 02 + 03 + 04 — universal never-throws sweep) |
-| SER-01 | Phase 5 — Serialization & Round-Trip | Pending |
-| SER-02 | Phase 5 — Serialization & Round-Trip | Pending |
+| SER-01 | Phase 5 — Serialization & Round-Trip | Complete (Plan 02 — emitMessage body D-01/D-05/D-06/D-07/D-08) |
+| SER-02 | Phase 5 — Serialization & Round-Trip | Complete (Plan 02 — 5-fixture round-trip sweep + tokenize unescape-on-parse Rule-3 deviation) |
 | SER-03 | Phase 5 — Serialization & Round-Trip | Pending |
 | SER-04 | Phase 5 — Serialization & Round-Trip | Pending |
-| SER-05 | Phase 5 — Serialization & Round-Trip | Pending |
+| SER-05 | Phase 5 — Serialization & Round-Trip | Complete (Plan 02 — reescape chokepoint observable via emitField + round-trip fixtures) |
 | SER-06 | Phase 5 — Serialization & Round-Trip | Pending |
 | PROF-01 | Phase 6 — Profile System & Built-ins | Pending |
 | PROF-02 | Phase 6 — Profile System & Built-ins | Pending |

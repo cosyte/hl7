@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: milestone
-status: "Phase 5 Plan 01 COMPLETE. Scaffold landed — emit-field primitive fully implemented (D-02 strip + D-04 reescape chokepoint + D-06 MSH loud guard); 6 stub files with live SerializedMessage + BuildMessageInit types; 3 Hl7Message instance methods (toString/toJSON/prettyPrint) wired; barrel extended with buildMessage + BuildMessageInit + SerializedMessage; vitest per-dir coverage thresholds extended to src/serialize/** and src/builder/**. 488/488 tests passing across 42 files (+29 from Plan 01); typecheck + lint + build green. Plans 02-05 can now edit only their assigned function body in disjoint files. Pending: /gsd-execute-phase 5 continuation (Plans 02-05). Phase 4 still pending /gsd-validate-phase 4 (Nyquist). Phases 1-3 verify + Nyquist audits still open."
-last_updated: "2026-04-19T19:24:14.000Z"
+status: "Phase 5 Plan 02 COMPLETE. emitMessage body shipped (D-01 walk + D-06 MSH special-case + D-05 CR terminator + D-07 pure + D-08 no-MLLP); SER-02 round-trip sweep landed (5 fixtures × structural + idempotency + specific preservation checks). RULE-3 DEVIATION: Phase 2 tokenize now unescapes subcomponents on parse (raw tree stores DECODED strings) — this inverse of reescape-on-emit makes SER-02 first-pass structural equivalence hold; previously only second-pass idempotency worked. Zero pre-existing test fallout from tokenize change. 526/526 tests passing across 44 files (+38 from Plan 02); typecheck + lint (max-warnings=0) + build green. SER-01 + SER-02 + SER-05 now closed. Pending: /gsd-execute-phase 5 continuation (Plans 03-05). Phase 4 still pending /gsd-validate-phase 4 (Nyquist). Phases 1-3 verify + Nyquist audits still open."
+last_updated: "2026-04-19T19:52:00.000Z"
 progress:
   total_phases: 8
   completed_phases: 0
   total_plans: 0
-  completed_plans: 20
+  completed_plans: 21
 ---
 
 # @cosyte/hl7-parser — STATE
@@ -21,27 +21,27 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 
 - **Name:** `@cosyte/hl7-parser`
 - **Core value:** A developer can parse a real-world, vendor-quirky HL7 v2 message and pull useful fields out of it in one line — without having read the HL7 spec.
-- **Current focus:** Phase 5 — Serialization & Round-Trip (Plan 01 COMPLETE — scaffold + emit-field primitive + method wiring; Plans 02-05 pending). Phase 4 Nyquist still pending. Phase 3 still pending /gsd-validate-phase 3; Phase 2 still pending /gsd-verify-work 2 + /gsd-validate-phase 2; Phase 1 still pending /gsd-verify-work 1 + /gsd-validate-phase 1.
+- **Current focus:** Phase 5 — Serialization & Round-Trip (Plans 01 + 02 COMPLETE — scaffold + emit-field primitive + method wiring + to-string + round-trip sweep; Plans 03-05 pending). Phase 4 Nyquist still pending. Phase 3 still pending /gsd-validate-phase 3; Phase 2 still pending /gsd-verify-work 2 + /gsd-validate-phase 2; Phase 1 still pending /gsd-verify-work 1 + /gsd-validate-phase 1.
 - **Workflow config:** standard granularity, yolo mode, parallelization enabled, plan-check + verifier + Nyquist validation on, auto-advance on.
 
 ## Current Position
 
 - **Milestone:** v1
-- **Phase:** 5 — Serialization & Round-Trip (Plan 01 DONE; Plans 02/03/04/05 pending, disjoint-file contract in place)
-- **Plans:** 5 plans (01 scaffold-emit-field-and-method-wiring — DONE; 02 to-string-and-round-trip — pending; 03 to-json — pending; 04 pretty-print — pending; 05 build-message — pending)
-- **Status:** Plan 01 landed the disjoint-file scaffold. `src/serialize/emit-field.ts` FULLY IMPLEMENTED with 29-test suite covering D-02 trailing-empty strip + isNull preservation, D-04 reescape chokepoint across all 5 delimiters + `\n`, D-06 MSH loud-guard throw, D-07 purity. 6 stub files created (`to-string.ts`, `to-json.ts`, `pretty-print.ts`, `build-message.ts`, `format-timestamp.ts`, `control-id.ts`) — each throws `NOT IMPLEMENTED — Phase 5 Plan 0N will fill this`. `SerializedMessage` + `BuildMessageInit` interfaces are LIVE (consumable from `src/index.ts` today); JSDoc captures W1 empty-vs-null wire semantics on `BuildMessageInit` and W5 boundary-freeze on `SerializedMessage`. `Hl7Message` gains 3 new instance methods (`toString`, `toJSON`, `prettyPrint`), each a thin delegate to its module-level emitter; no new cache slots (D-30). `src/index.ts` exports `buildMessage` + `BuildMessageInit` + `SerializedMessage`. `vitest.config.ts` extends per-directory coverage thresholds to `src/serialize/**` and `src/builder/**` at the same >= 90% bar as Phase 1/2/3/4 dirs (Phase 7 coverage-gate readiness). Zero deviations. 488/488 tests passing across 42 files (+29 from Plan 01 baseline). Typecheck + lint (max-warnings=0) + build all green.
-- **Progress:** 2/8 phases verified; 4/4 Phase 1 + 6/6 Phase 2 + 4/4 Phase 3 + 4/4 Phase 4 + 1/5 Phase 5 plans complete
+- **Phase:** 5 — Serialization & Round-Trip (Plans 01 + 02 DONE; Plans 03/04/05 pending, disjoint-file contract in place)
+- **Plans:** 5 plans (01 scaffold-emit-field-and-method-wiring — DONE; 02 to-string-and-round-trip — DONE; 03 to-json — pending; 04 pretty-print — pending; 05 build-message — pending)
+- **Status:** Plan 02 closed SER-01 + SER-02 + SER-05. `src/serialize/to-string.ts::emitMessage` body implemented (D-01 walk + D-06 MSH special-case + D-05 CR joins + D-07 pure + D-08 no-MLLP + W3 trailing-field preservation). 23-test `test/serialize-to-string.test.ts` unit suite covers all decisions above plus D-04 reescape through the chokepoint (W4 explicit input-shape test), D-02 isNull preservation, and D-03 byte-identical idempotency from the second pass. 15-test `test/round-trip.test.ts` integration sweep exercises 5 canonical fixtures (`canonical-adt-a01`, `oru-r01-repetitions`, `null-fields`, `embedded-delimiters`, `decoded-br`) under `test/fixtures/round-trip/`; confirms SER-02 structural equivalence + D-03 idempotency + specific preservation (isNull, all-5-escape-forms, `\.br\` emission, `~`-separated reps, segment roster). **RULE-3 DEVIATION — Phase 2 tokenize unescapes on parse:** `src/parser/tokenize.ts::tokenizeComponent` now runs every subcomponent through `unescape(sub, enc, emit, position)` so the raw tree stores DECODED strings (e.g. `Smith|Jones` not `Smith\F\Jones`). This is the exact inverse of Phase 5 `reescape` and resolves the Phase 2 / Phase 5 architectural contradiction that would have blocked first-pass SER-02 structural equivalence. `UNKNOWN_ESCAPE_SEQUENCE` warnings from `unescape` propagate through tokenize's emit callback with full positional context. MSH-1 / MSH-2 placeholders NOT unescaped (they flow through the D-06 emission path, not `emitField`). `src/model/field.ts::value` getter's unescape-on-access left in place (no-op on decoded subcomponents; non-breaking for raw callers). Zero pre-existing test fallout — `parser-escapes.test.ts` tests primitives directly and was unaffected. 526/526 tests passing across 44 files (+38 from Plan 02 baseline). Typecheck + lint (max-warnings=0) + build + bundle-smoke all green.
+- **Progress:** 2/8 phases verified; 4/4 Phase 1 + 6/6 Phase 2 + 4/4 Phase 3 + 4/4 Phase 4 + 2/5 Phase 5 plans complete
 
 ```
-[█████░░░░░░░░░░░░░░░] 25%   (2 / 8 phases verified; Phase 5 in progress — 1 / 5 plans done)
+[██████░░░░░░░░░░░░░░] 25%   (2 / 8 phases verified; Phase 5 in progress — 2 / 5 plans done)
 ```
 
 ## Performance Metrics
 
-- **Phases completed:** 2 (Phase 3 verified 2026-04-18; Phase 4 verified 2026-04-19; Phases 1 & 2 plans done but pending verifier + Nyquist; Phase 3 Nyquist still pending; Phase 5 in progress — Plan 01/5 done)
-- **Plans completed:** 20 (4 Phase-1 + 6 Phase-2 + 4 Phase-3 + 4 Phase-4 + 1 Phase-5)
-- **REQ-IDs validated:** 38 / 97 (SETUP-01..06 + PARSE-01..09 + TOL-01..10 + MODEL-01..07 + TYPES-01..04). All 7 MODEL + all 4 TYPES requirements now closed. Phase 7 will confirm via the coverage sweep + vendor-quirks fixtures. SER-01/02/05 tracked — SER-05 primitive is in place via `emit-field.ts` but not observable until Plan 02 fills `emitMessage`.
-- **Known coverage:** Phase 1 sanity 2/2. Phase 2 (Plans 01–06): full suite 123/123 passing. Phase 3 Plans 01 + 02 + 03 + 04: 327 tests. Phase 4 Plans 01-04: 459 tests. Phase 5 Plan 01: +29 tests (serialize-emit-field). Total: 488/488 passing across 42 test files. Coverage enforcement starts in Phase 7 via `pnpm test:coverage`; per-directory thresholds for `src/serialize/**` and `src/builder/**` now declared (Plan 5-01).
+- **Phases completed:** 2 (Phase 3 verified 2026-04-18; Phase 4 verified 2026-04-19; Phases 1 & 2 plans done but pending verifier + Nyquist; Phase 3 Nyquist still pending; Phase 5 in progress — Plans 01+02/5 done)
+- **Plans completed:** 21 (4 Phase-1 + 6 Phase-2 + 4 Phase-3 + 4 Phase-4 + 2 Phase-5)
+- **REQ-IDs validated:** 41 / 97 (SETUP-01..06 + PARSE-01..09 + TOL-01..10 + MODEL-01..07 + TYPES-01..04 + SER-01 + SER-02 + SER-05). All 7 MODEL + all 4 TYPES requirements closed; 3/6 SER requirements closed after Plan 02. Phase 7 will confirm via the coverage sweep + vendor-quirks fixtures.
+- **Known coverage:** Phase 1 sanity 2/2. Phase 2 (Plans 01–06): full suite 123/123 passing. Phase 3 Plans 01 + 02 + 03 + 04: 327 tests. Phase 4 Plans 01-04: 459 tests. Phase 5 Plan 01: +29 tests (serialize-emit-field). Phase 5 Plan 02: +38 tests (23 serialize-to-string + 15 round-trip sweep). Total: 526/526 passing across 44 test files. Coverage enforcement starts in Phase 7 via `pnpm test:coverage`; per-directory thresholds for `src/serialize/**` and `src/builder/**` declared in Plan 5-01.
 
 | Phase | Plan | Duration | Tasks | Files |
 |-------|------|----------|-------|-------|
@@ -62,6 +62,7 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 | 4 | 03 visit-and-observations | 9 min | 3 (2 TDD + 1 cache-test + Rule 3 regex fix) | 3 created, 4 modified |
 | 4 | 04 orders-and-collections | 8 min | 2 TDD cycles | 2 created, 5 modified |
 | 5 | 01 scaffold-emit-field-and-method-wiring | 5 min | 4 (1 TDD + 3 scaffold) | 8 created, 3 modified |
+| 5 | 02 to-string-and-round-trip | 15 min | 2 (1 TDD + 1 fixture sweep + 1 Rule-3 deviation) | 7 created, 2 modified |
 
 ## Accumulated Context
 
@@ -123,6 +124,8 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 - `SerializedMessage` is boundary-frozen (top-level `Object.freeze` only); inner arrays are `readonly` at the TypeScript level but mutable at runtime. Deep-freeze explicitly rejected per D-30 (emit is hot-path; type-level readonly contract is sufficient). Documented inline on the interface JSDoc so Plan 03's `emitJson` implementer has a locked semantic to conform to (Plan 05-01).
 - `BuildMessageInit` empty-vs-null semantics documented on the interface JSDoc: omitting a field and passing an empty string produce IDENTICAL wire output (both emit as absent). To emit HL7 explicit null (`""`) at a specific position, `buildMessage({...}).setField(path, '""')` — the Phase 3 `setField` mutation sets `isNull=true` which the emitter preserves per D-02. No separate null-marker input shape. Documented at the interface level so Plan 05's `buildMessage` implementer doesn't need to re-invent it (Plan 05-01).
 - Vitest per-directory coverage thresholds extended to `src/serialize/**` and `src/builder/**` at the same `lines: 90, branches: 85, functions: 90, statements: 90` bar as Phase 1/2/3/4 dirs. Load-bearing for Phase 7's `pnpm test:coverage` gate — without it, a low-coverage new dir could hide behind the 90% top-level average (Plan 05-01).
+- **Phase 2 tokenize now unescapes subcomponents on parse (Plan 05-02 Rule-3 deviation).** `tokenizeComponent` runs every subcomponent through `unescape(sub, enc, emit, position)`, so the raw tree stores DECODED strings (e.g. `Smith|Jones` not `Smith\F\Jones`). This is the exact inverse of Phase 5 `reescape` on emit — the pair makes SER-02 first-pass structural equivalence hold. Without this fix, emit would double-escape literal backslashes in the raw tree (`Smith\F\Jones` → `Smith\E\F\E\Jones`), and SER-02 structural round-trip would only hold on the second pass via D-03 idempotency normalization. MSH-1 / MSH-2 placeholders intentionally NOT unescaped (they flow through the D-06 emission path). `UNKNOWN_ESCAPE_SEQUENCE` warnings from `unescape` propagate with full positional context (segment, field, rep, component, subcomponent all 1-indexed). `src/model/field.ts::value` getter's unescape-on-access left in place — double-unescape on a decoded subcomponent is identity; removing would break non-parser callers (Plan 05-02).
+- **SER-02 first-pass structural equivalence confirmed.** 5 canonical fixtures under `test/fixtures/round-trip/` (canonical-adt-a01, oru-r01-repetitions, null-fields, embedded-delimiters, decoded-br) round-trip with `rawSegments` deep equality on the first pass — not just byte-identical idempotency from the second pass. `encodingCharacters` also preserved structurally. Fixtures use literal CR byte terminators (written via Node script because the Write tool normalises to LF) (Plan 05-02).
 
 ### Active Todos
 
@@ -141,11 +144,11 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 
 ## Session Continuity
 
-- **Last action:** Phase 5 Plan 01 (scaffold-emit-field-and-method-wiring) executed 2026-04-19. Shipped the disjoint-file scaffold so Plans 02-05 can edit ONLY their assigned function body without conflict. `src/serialize/emit-field.ts` FULLY IMPLEMENTED (D-02 strip + D-04 reescape chokepoint + D-06 MSH loud guard) with 29-test TDD suite. 6 stub files created with interface declarations LIVE (`SerializedMessage` in `to-json.ts`, `BuildMessageInit` in `build-message.ts`) — JSDoc on those interfaces captures W1 (empty-vs-null wire semantics) and W5 (boundary-freeze) so downstream plans don't need to re-invent the wording. `Hl7Message` gains 3 instance methods (`toString`, `toJSON`, `prettyPrint`) each delegating to its module-level emitter; no new cache slots (D-30). `src/index.ts` exports `buildMessage` (value) + `BuildMessageInit` (type) + `SerializedMessage` (type). `vitest.config.ts` extends per-directory coverage thresholds to `src/serialize/**` and `src/builder/**` at >= 90% bar. Full suite green at 488/488 across 42 files (+29 from Plan 04 baseline). Zero deviations — the MSH loud-guard throw in `emitSegment` is a documented-in-plan deliberate deviation from D-07 "never throws" purity, not an auto-fix.
-- **Next action:** `/gsd-execute-phase 5` continuation — Plan 02 (to-string-and-round-trip). Plans 02/03/04/05 can run in parallel against the disjoint-file contract locked in Plan 01. ⚠ Phase 1 & 2 & 3 & 4 verification + Nyquist gates still open (not blocking Phase 5 execution under yolo mode).
-- **Open questions:** (none added this plan). Phase 7 may lift selected IN2 / IN3 fields into Insurance based on vendor-quirk fixture evidence (carry-over). Phase 8's README Error Handling section should document the strict-mode `err.code` widening (carry-over from Phase 2).
-- **Resume file:** .planning/phases/05-serialization-and-round-trip/05-01-SUMMARY.md
+- **Last action:** Phase 5 Plan 02 (to-string-and-round-trip) executed 2026-04-19. Shipped the `emitMessage` body (D-01 walk + D-06 MSH special-case + D-05 CR joins + D-07 pure + D-08 no-MLLP + W3 trailing-field preservation) with 23-test unit suite, plus the SER-02 round-trip sweep (15 tests × 5 fixtures — structural equivalence + idempotency + specific preservation checks). **Rule-3 deviation:** Phase 2 `tokenize.ts` now unescapes subcomponents on parse so the raw tree stores DECODED strings — resolves Phase 2 / Phase 5 architectural contradiction and makes SER-02 first-pass structural equivalence hold (previously only second-pass idempotency worked). Zero pre-existing test fallout. SER-01 + SER-02 + SER-05 now closed; SER-03 / SER-04 / SER-06 remain pending in Plans 03-05. 526/526 tests passing across 44 files (+38 from Plan 02). Typecheck + lint + build + bundle-smoke all green. New shared invariant for Plans 03-05: `rawSegments[i].fields[j].repetitions[k].components[l].subcomponents[m]` holds DECODED text (no `\F\` / `\E\` / `\.br\` sequences in the tree).
+- **Next action:** `/gsd-execute-phase 5` continuation — Plans 03 (to-json) + 04 (pretty-print) + 05 (build-message). All three remain disjoint and can run in parallel against the contract locked in Plan 01. ⚠ Phase 1 & 2 & 3 & 4 verification + Nyquist gates still open (not blocking Phase 5 execution under yolo mode).
+- **Open questions:** (none added this plan). Plan 03 implementer should note that `SerializedMessage.segments[].fields[].repetitions[].components[].subcomponents[]` now holds DECODED strings — mirror directly, no escape re-application. Phase 7 may lift selected IN2 / IN3 fields into Insurance based on vendor-quirk fixture evidence (carry-over). Phase 8's README Error Handling section should document the strict-mode `err.code` widening (carry-over from Phase 2).
+- **Resume file:** .planning/phases/05-serialization-and-round-trip/05-02-SUMMARY.md
 
 ---
 
-*Last updated: 2026-04-19 (Phase 5 Plan 01 DONE — scaffold + emit-field primitive + method wiring; 488/488 tests; ready for Plans 02-05 parallel execution)*
+*Last updated: 2026-04-19 (Phase 5 Plan 02 DONE — emitMessage body + SER-02 round-trip sweep + Phase 2 tokenize unescape-on-parse Rule-3 deviation; 526/526 tests; ready for Plans 03-05 parallel execution)*
