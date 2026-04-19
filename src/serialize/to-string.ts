@@ -83,6 +83,18 @@ export function emitMessage(msg: Hl7Message): string {
  * Trailing empty fields in MSH-3..N are PRESERVED (W3) — no trimming of
  * the `tailParts` array before joining.
  *
+ * **IMPORTANT — `seg.fields[0]` and `seg.fields[1]` content is IGNORED**
+ * (WR-02): MSH-1 and MSH-2 are emitted from `msg.encodingCharacters` per
+ * D-06, which is the single source of truth. This is a deliberate
+ * deviation from the general D-01 "walk `msg.rawSegments` verbatim"
+ * doctrine, because running MSH-2 through `emitField` would re-escape
+ * the encoding chars and produce garbage. For parser-produced messages
+ * `fields[0]` / `fields[1]` always match `encodingCharacters`. For
+ * synthetic messages constructed via `new Hl7Message({...})` directly,
+ * the burden is on the caller to keep `encodingCharacters` aligned with
+ * the raw tree's MSH-1/MSH-2 placeholders — if they diverge, this
+ * emitter silently favors `encodingCharacters`.
+ *
  * @internal
  */
 function emitMshSegment(seg: RawSegment, enc: EncodingCharacters): string {
