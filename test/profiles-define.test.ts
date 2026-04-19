@@ -52,18 +52,32 @@ describe("defineProfile: happy path", () => {
     expect(p.dateFormats).toEqual(["MM/DD/YYYY", "YYYY-MM-DD"]);
   });
 
-  it("Wave-1: extends option accepted but lineage stays [name]", () => {
-    // Plan 06-02 will extend lineage computation — for Wave 1, lineage
-    // is always [opts.name] regardless of extends.
+  it("Wave-2: extends computes full lineage [parent, child]", () => {
+    // Plan 06-02 replaces the Wave-1 stub — lineage now flattens parent
+    // lineage + appends child name, deduped by first occurrence (D-03).
     const parent = defineProfile({ name: "parent" });
     const child = defineProfile({ name: "child", extends: parent });
-    expect(child.lineage).toEqual(["child"]);
+    expect(child.lineage).toEqual(["parent", "child"]);
   });
 
-  it("preserves onWarning callback reference", () => {
-    const handler = (): void => undefined;
+  it("invokes onWarning callback when supplied (composed via D-12 chain)", () => {
+    // Plan 06-02 introduces composeOnWarning — even a single handler is
+    // wrapped in a chain closure for uniform D-12 try/catch behavior. The
+    // behavior contract ("handler runs when onWarning fires") is what
+    // matters; reference identity was an implementation detail of the
+    // Wave-1 stub that Plan 02 deliberately replaces.
+    let called = false;
+    const handler = (): void => {
+      called = true;
+    };
     const p = defineProfile({ name: "x", onWarning: handler });
-    expect(p.onWarning).toBe(handler);
+    expect(typeof p.onWarning).toBe("function");
+    p.onWarning?.({
+      code: "UNKNOWN_SEGMENT",
+      message: "x",
+      position: { segmentIndex: 0 },
+    } as unknown as Parameters<NonNullable<typeof p.onWarning>>[0]);
+    expect(called).toBe(true);
   });
 });
 

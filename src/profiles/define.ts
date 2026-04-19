@@ -26,10 +26,19 @@ import type {
 
 import { buildDescribe } from "./describe.js";
 import {
+  composeOnWarning,
+  mergeCustomSegments,
+  mergeDateFormats,
+  mergeLineage,
+  mergeScalar,
+  normaliseParents,
+} from "./merge.js";
+import {
   validateCustomSegments,
   validateDateFormats,
   validateOptionKeys,
   validateProfileName,
+  validateUniqueFieldNames,
 } from "./validate.js";
 
 /**
@@ -108,15 +117,38 @@ export function defineProfile(opts: DefineProfileOptions): Profile {
   validateProfileName(opts);
   validateOptionKeys(opts);
 
-  const customSegments = opts.customSegments ?? {};
+  // Pre-merge: validate self-declared customSegments + dateFormats in
+  // isolation so errors surface with the offending profile's own name
+  // (not "after merge" — a user hitting D-05 should see their own
+  // profile flagged, not the composed lineage).
+  const selfCustomSegments = opts.customSegments ?? {};
+  validateCustomSegments(selfCustomSegments, opts.name);
+  const selfDateFormats = opts.dateFormats ?? [];
+  validateDateFormats(selfDateFormats, opts.name);
+
+  // D-03 + D-09..D-12 — full merge. Plan 06-02 replaces the Wave-1
+  // lineage stub with this block.
+  const parents = normaliseParents(opts.extends);
+  const lineage = mergeLineage(parents, opts.name);
+  const dateFormats = mergeDateFormats(parents, selfDateFormats);
+  const customSegments = mergeCustomSegments(parents, selfCustomSegments);
+  const description = mergeScalar(parents, opts.description, "description");
+  const onWarning = composeOnWarning([
+    ...parents.map((p) => p.onWarning),
+    opts.onWarning,
+  ]);
+
+  // Post-merge re-validation. `validateCustomSegments` catches the D-05
+  // rogue-parent scenario (a hand-crafted Profile bypassing
+  // defineProfile whose customSegments contains a non-Z key).
+  // `validateUniqueFieldNames` is installed as DEFENSE-IN-DEPTH — it is
+  // unreachable via the present mergeCustomSegments strategy (position-
+  // indexed accumulator collapses same-name-different-position cases
+  // to a single entry) but guards against future merge-strategy
+  // changes. Both validators are O(N) over the merged map and run once
+  // per defineProfile call.
   validateCustomSegments(customSegments, opts.name);
-
-  const dateFormats = opts.dateFormats ?? [];
-  validateDateFormats(dateFormats, opts.name);
-
-  // Wave-1 lineage stub: single-profile → lineage === [opts.name].
-  // Plan 06-02 replaces this body with `mergeLineage(parents, opts.name)`.
-  const lineage: readonly string[] = Object.freeze([opts.name]);
+  validateUniqueFieldNames(customSegments, opts.name);
 
   // Assemble the frozen Profile. exactOptionalPropertyTypes discipline:
   // conditionally assign optional fields rather than writing
@@ -129,8 +161,8 @@ export function defineProfile(opts: DefineProfileOptions): Profile {
     customSegments,
     dateFormats,
   };
-  if (opts.description !== undefined) profile.description = opts.description;
-  if (opts.onWarning !== undefined) profile.onWarning = opts.onWarning;
+  if (description !== undefined) profile.description = description;
+  if (onWarning !== undefined) profile.onWarning = onWarning;
 
   // D-04: `describe()` attached as a method — closes over the assembled
   // profile object so calling `.describe()` always reflects the
