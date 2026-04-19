@@ -138,21 +138,32 @@ describe("buildMessage (SER-06)", () => {
     });
 
     it("chained result round-trips through parseHL7", () => {
+      // D-15 scalar-string input: `addSegment` treats each string entry as a
+      // single subcomponent — delimiter chars like `^` are reescape'd to
+      // `\S\` on emit, so the round-trip yields a single-component PID-5,
+      // not a composite XPN. Callers who need XPN components should use
+      // `setField("PID.5.1", "Doe").setField("PID.5.2", "John")` after
+      // construction (exercised below).
       const msg = buildMessage({ type: "ADT^A01", controlId: "MSG001" })
-        .addSegment("PID", ["1", "", "MRN123", "", "Doe^John", "", "19800115", "M"]);
+        .addSegment("PID", ["1", "", "MRN123", "", "", "", "19800115", "M"])
+        .setField("PID.5.1", "Doe")
+        .setField("PID.5.2", "John");
       const out = msg.toString();
       const round = parseHL7(out);
       expect(round.rawSegments.length).toBe(2);
       expect(round.meta.controlId).toBe("MSG001");
       expect(round.patient?.mrn).toBe("MRN123");
       expect(round.patient?.familyName).toBe("Doe");
+      expect(round.patient?.givenName).toBe("John");
     });
   });
 
   describe("validation (D-16)", () => {
     it("throws TypeError on missing type", () => {
-      expect(() => buildMessage({} as BuildMessageInit)).toThrow(TypeError);
-      expect(() => buildMessage({} as BuildMessageInit)).toThrow(/type/);
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      const missingType = {} as BuildMessageInit;
+      expect(() => buildMessage(missingType)).toThrow(TypeError);
+      expect(() => buildMessage(missingType)).toThrow(/type/);
     });
 
     it("throws TypeError on empty type", () => {
