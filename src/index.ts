@@ -56,3 +56,9 @@ export type {
 export { BUILTIN_DATE_FALLBACKS, parseHl7Timestamp } from "./parser/dates.js";
 export type { ParseHl7TimestampOptions } from "./parser/dates.js";
 export { unescape, reescape } from "./parser/escapes.js";
+
+// Phase 3 structural model — read-path foundation.
+export { Segment } from "./model/segment.js";
+export { Field } from "./model/field.js";
+export { parsePath, resolvePath } from "./model/dot-path.js";
+export type { DotPath } from "./model/dot-path.js";

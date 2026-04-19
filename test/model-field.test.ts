@@ -80,7 +80,7 @@ describe("model/field: Field wrapper", () => {
     const msg = parseHL7(
       "MSH|^~\\&|A|F|A|F|20250101||ADT^A01|1|P|2.5\rPID|||1|A|Smith\\F\\Jr^Jane",
     );
-    const pid = msg.segments[1];
+    const pid = msg.rawSegments[1];
     if (pid === undefined) throw new Error("no PID");
     // Build a Segment manually since Hl7Message.segments(type) lands in Task 3.
     const seg = new Segment(pid, msg.encodingCharacters, 1);

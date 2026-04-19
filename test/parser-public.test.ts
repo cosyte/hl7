@@ -22,7 +22,7 @@ describe("parseHL7: happy paths", () => {
     expect(msg).toBeInstanceOf(Hl7Message);
     expect(msg.encodingCharacters).toEqual(DEFAULT_ENCODING_CHARACTERS);
     expect(msg.version).toBe("2.5");
-    expect(msg.segments).toHaveLength(3);
+    expect(msg.rawSegments).toHaveLength(3);
     expect(msg.warnings).toHaveLength(0);
     expect(msg.profile).toBeUndefined();
   });
@@ -31,7 +31,7 @@ describe("parseHL7: happy paths", () => {
     const fromString = parseHL7(VALID_MSG);
     const fromBuffer = parseHL7(Buffer.from(VALID_MSG, "utf-8"));
     expect(fromBuffer.version).toBe(fromString.version);
-    expect(fromBuffer.segments.length).toBe(fromString.segments.length);
+    expect(fromBuffer.rawSegments.length).toBe(fromString.rawSegments.length);
   });
 
   it("freezes msg.warnings so consumers cannot mutate parser output", () => {
@@ -254,7 +254,7 @@ describe("parseHL7: PARSE-01 end-to-end — well-formed v2.x messages parse corr
     const msg = parseHL7(
       "MSH|^~\\&|APP|FAC|APP|FAC|20250101||ADT^A01|1|P|2.5\rPID|||1\rNK1|1\rNK1|2\rZPI|custom",
     );
-    expect(msg.segments.map((s) => s.name)).toEqual(["MSH", "PID", "NK1", "NK1", "ZPI"]);
+    expect(msg.rawSegments.map((s) => s.name)).toEqual(["MSH", "PID", "NK1", "NK1", "ZPI"]);
   });
 
   it("returns version as empty string when MSH-12 is absent", () => {
@@ -290,8 +290,8 @@ describe("PARSE-09 — MSH-18 charset wiring", () => {
   const LATIN1_U_UMLAUT = "\u00DC";
 
   /** Walk the 1-indexed positional tree to pull PID-5's first subcomponent. */
-  const readPid5 = (msg: { segments: readonly { name: string; fields: readonly { repetitions: readonly { components: readonly { subcomponents: readonly string[] }[] }[] }[] }[] }): string => {
-    const pid = msg.segments[1];
+  const readPid5 = (msg: { rawSegments: readonly { name: string; fields: readonly { repetitions: readonly { components: readonly { subcomponents: readonly string[] }[] }[] }[] }[] }): string => {
+    const pid = msg.rawSegments[1];
     expect(pid?.name).toBe("PID");
     const field = pid?.fields[5];
     const rep = field?.repetitions[0];

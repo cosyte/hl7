@@ -29,7 +29,7 @@ describe("model/segment: Segment wrapper", () => {
 
   it("exposes seg.type equal to raw.name", () => {
     const msg = parseHL7(FIXTURE);
-    const rawPid = msg.segments[1];
+    const rawPid = msg.rawSegments[1];
     if (rawPid === undefined) throw new Error("no PID");
     const seg = new Segment(rawPid, msg.encodingCharacters, 1);
     expect(seg.type).toBe("PID");
@@ -37,7 +37,7 @@ describe("model/segment: Segment wrapper", () => {
 
   it("caches Field wrappers by position — seg.field(3) === seg.field(3) (D-12)", () => {
     const msg = parseHL7(FIXTURE);
-    const rawPid = msg.segments[1];
+    const rawPid = msg.rawSegments[1];
     if (rawPid === undefined) throw new Error("no PID");
     const seg = new Segment(rawPid, msg.encodingCharacters, 1);
     const f1 = seg.field(3);
@@ -48,7 +48,7 @@ describe("model/segment: Segment wrapper", () => {
 
   it("returns a Field wrapping fields[0] (the name placeholder) when asked", () => {
     const msg = parseHL7(FIXTURE);
-    const rawPid = msg.segments[1];
+    const rawPid = msg.rawSegments[1];
     if (rawPid === undefined) throw new Error("no PID");
     const seg = new Segment(rawPid, msg.encodingCharacters, 1);
     const f0 = seg.field(0);
@@ -59,7 +59,7 @@ describe("model/segment: Segment wrapper", () => {
 
   it("returns a synthetic empty Field for out-of-range positions (MODEL-05)", () => {
     const msg = parseHL7(FIXTURE);
-    const rawPid = msg.segments[1];
+    const rawPid = msg.rawSegments[1];
     if (rawPid === undefined) throw new Error("no PID");
     const seg = new Segment(rawPid, msg.encodingCharacters, 1);
     const f = seg.field(99);
@@ -70,7 +70,7 @@ describe("model/segment: Segment wrapper", () => {
 
   it("returns the same synthetic empty Field instance for repeat out-of-range calls", () => {
     const msg = parseHL7(FIXTURE);
-    const rawPid = msg.segments[1];
+    const rawPid = msg.rawSegments[1];
     if (rawPid === undefined) throw new Error("no PID");
     const seg = new Segment(rawPid, msg.encodingCharacters, 1);
     expect(seg.field(99)).toBe(seg.field(99));
@@ -78,7 +78,7 @@ describe("model/segment: Segment wrapper", () => {
 
   it("resolves real PID field values via the wrapper (integration)", () => {
     const msg = parseHL7(FIXTURE);
-    const rawPid = msg.segments[1];
+    const rawPid = msg.rawSegments[1];
     if (rawPid === undefined) throw new Error("no PID");
     const seg = new Segment(rawPid, msg.encodingCharacters, 1);
     // PID.5 = Smith\F\Jr^Jane — first subcomponent auto-unescaped.

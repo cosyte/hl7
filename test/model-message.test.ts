@@ -22,7 +22,7 @@ describe("model/message: Hl7Message shell", () => {
       version: "2.5",
       warnings: noWarnings,
     });
-    expect(msg.segments).toBe(emptySegments);
+    expect(msg.rawSegments).toBe(emptySegments);
     expect(msg.encodingCharacters.field).toBe("|");
     expect(msg.version).toBe("2.5");
     expect(msg.warnings).toHaveLength(0);
