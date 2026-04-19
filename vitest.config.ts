@@ -55,6 +55,23 @@ export default defineConfig({
           functions: 90,
           statements: 90,
         },
+        // Phase 5 additions — `src/serialize/**` is the emit pipeline
+        // (emit-field, to-string, to-json, pretty-print); `src/builder/**`
+        // is the outbound factory (build-message, format-timestamp,
+        // control-id). Same >= 90% bar so Phase 7's `pnpm test:coverage`
+        // gate applies uniformly across the whole `src/` tree.
+        "src/serialize/**": {
+          lines: 90,
+          branches: 85,
+          functions: 90,
+          statements: 90,
+        },
+        "src/builder/**": {
+          lines: 90,
+          branches: 85,
+          functions: 90,
+          statements: 90,
+        },
       },
     },
   },
