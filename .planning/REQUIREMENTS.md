@@ -80,7 +80,7 @@ All requirements are user-facing behaviors a developer consuming `@cosyte/hl7-pa
 
 - [x] **PROF-01** — `defineProfile({ name, ...options })` returns a valid `Profile` object; name is required. (closed Phase 6 Plan 01)
 - [x] **PROF-02** — `defineProfile()` throws `ProfileDefinitionError` with a clear message for invalid input: bad segment names (not 3 chars, not uppercase), duplicate field names within a segment, unknown option keys, malformed date format strings. (closed Phase 6 Plan 01 — all 4 throw paths D-05/D-07/D-08 + name validation wired; duplicate-field post-merge check deferred to Plan 06-02)
-- [ ] **PROF-03** — `extends: parentProfile` and `extends: [p1, p2]` inherit and compose options; merge semantics match spec (scalars overwrite, arrays concat+dedupe, `customSegments` deep-merge per key, `onWarning` handlers chain).
+- [x] **PROF-03** — `extends: parentProfile` and `extends: [p1, p2]` inherit and compose options; merge semantics match spec (scalars overwrite, arrays concat+dedupe, `customSegments` deep-merge per key, `onWarning` handlers chain). (closed Phase 6 Plan 02 — mergeLineage D-03 + mergeDateFormats D-10 + mergeCustomSegments D-11 position-indexed + mergeScalar D-09 last-wins + composeOnWarning D-12 with per-handler try/catch; post-merge D-05 rogue-parent re-check + D-06 defense-in-depth validator installed)
 - [x] **PROF-04** — `profile.name`, `profile.description`, `profile.customSegments`, `profile.dateFormats`, `profile.lineage` are readonly and reflect applied options. (closed Phase 6 Plan 01 — Profile interface readonly; defineProfile output Object.freeze'd at boundary)
 - [x] **PROF-05** — `profile.describe()` returns a non-empty human-readable summary containing the profile name. (closed Phase 6 Plan 01 — buildDescribe always starts with `Profile '<name>'`)
 - [ ] **PROF-06** — `parseHL7(raw, profile)` applies profile behavior to the parse; `msg.profile?.name` and `msg.profile?.lineage` are set on the parsed message.
@@ -219,7 +219,7 @@ Every v1 REQ-ID maps to exactly one phase in `ROADMAP.md`. 97/97 mapped.
 | SER-06 | Phase 5 — Serialization & Round-Trip | Complete (Plan 05 — buildMessage + formatHl7Timestamp + generateControlId bodies; D-09..D-16 + D-07 runtime-confirmed; W1 reinforced on function-level JSDoc + 2 dedicated tests; 40-test suite across 3 new files) |
 | PROF-01 | Phase 6 — Profile System & Built-ins | Closed (Plan 01) |
 | PROF-02 | Phase 6 — Profile System & Built-ins | Closed (Plan 01) |
-| PROF-03 | Phase 6 — Profile System & Built-ins | Pending |
+| PROF-03 | Phase 6 — Profile System & Built-ins | Closed (Plan 02) |
 | PROF-04 | Phase 6 — Profile System & Built-ins | Closed (Plan 01) |
 | PROF-05 | Phase 6 — Profile System & Built-ins | Closed (Plan 01) |
 | PROF-06 | Phase 6 — Profile System & Built-ins | Pending |
