@@ -65,8 +65,8 @@ interface MutableDotPath {
   subcomponentIndex?: number;
 }
 
-/** Segment-name shape — 3 uppercase ASCII letters OR `Z[A-Z0-9]{2}` (D-19 symmetry with addSegment). @internal */
-const SEGMENT_NAME_RE = /^(?:[A-Z]{3}|Z[A-Z0-9]{2})$/u;
+/** Segment-name shape — `[A-Z][A-Z0-9]{2}` (D-19 symmetry with addSegment). Matches standard HL7 v2 segment names (PID, PV1, OBX, NK1, DG1, IN1…) and Z-segment customs (ZPI, ZX1…). @internal */
+const SEGMENT_NAME_RE = /^[A-Z][A-Z0-9]{2}$/u;
 
 /** Phase 3 auto-unescape pass uses a no-op emitter — no warnings surface on reads. @internal */
 const NOOP_EMITTER = (_w: Hl7ParseWarning): void => {
@@ -94,14 +94,14 @@ export function parsePath(path: string): DotPath {
 
   let i = 0;
 
-  // 1. Segment name — must be 3 chars, either [A-Z]{3} or Z[A-Z0-9]{2}.
+  // 1. Segment name — must be 3 chars matching [A-Z][A-Z0-9]{2}.
   if (path.length < 3) {
     throw new TypeError(`Invalid HL7 dot-path: "${path}" (segment name too short).`);
   }
   const segmentType = path.slice(0, 3);
   if (!SEGMENT_NAME_RE.test(segmentType)) {
     throw new TypeError(
-      `Invalid HL7 dot-path: "${path}" (segment name must be 3 uppercase ASCII letters or Z[A-Z0-9]{2}).`,
+      `Invalid HL7 dot-path: "${path}" (segment name must match [A-Z][A-Z0-9]{2}).`,
     );
   }
   i = 3;

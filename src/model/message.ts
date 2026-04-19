@@ -41,12 +41,16 @@ import type {
 import { buildVisit } from "../helpers/visit.js";
 
 /**
- * HL7 segment-name shape: 3 uppercase ASCII letters OR `Z[A-Z0-9]{2}` (D-19).
- * Enforced symmetrically on `addSegment` and `removeSegment` so consumers see
- * consistent validation for any mutation that takes a segment name.
+ * HL7 segment-name shape: 3 characters, first an uppercase ASCII letter,
+ * remaining two uppercase ASCII letters or digits — `[A-Z][A-Z0-9]{2}`.
+ * This matches standard HL7 v2 segment names (MSH, PID, PV1, PV2, OBX,
+ * OBR, NK1, AL1, DG1, IN1, IN2, IN3, …) AND Z-segment custom shapes
+ * (ZPI, ZX1, …). Enforced symmetrically on `addSegment` and
+ * `removeSegment` so consumers see consistent validation for any mutation
+ * that takes a segment name.
  * @internal
  */
-const SEGMENT_NAME_RE = /^(?:[A-Z]{3}|Z[A-Z0-9]{2})$/u;
+const SEGMENT_NAME_RE = /^[A-Z][A-Z0-9]{2}$/u;
 
 /**
  * Shallow-copy a readonly array to a mutable one. Mutation methods rebuild
@@ -556,7 +560,7 @@ export class Hl7Message {
     if (!SEGMENT_NAME_RE.test(name)) {
       throw new TypeError(
         `addSegment: invalid segment name "${name}". ` +
-          `Expected 3 uppercase ASCII letters (e.g. "PID") or Z-segment shape Z[A-Z0-9]{2} (e.g. "ZPI").`,
+          `Expected 3 chars matching [A-Z][A-Z0-9]{2} (e.g. "PID", "PV1", "OBX", "ZPI").`,
       );
     }
 
@@ -616,7 +620,7 @@ export class Hl7Message {
     if (!SEGMENT_NAME_RE.test(segmentType)) {
       throw new TypeError(
         `removeSegment: invalid segment name "${segmentType}". ` +
-          `Expected 3 uppercase ASCII letters or Z[A-Z0-9]{2}.`,
+          `Expected 3 chars matching [A-Z][A-Z0-9]{2} (e.g. "PID", "PV1", "OBX", "ZPI").`,
       );
     }
     if (segmentType === "MSH") {
