@@ -11,14 +11,17 @@ import { parseHL7 } from "../src/parser/index.js";
 
 const MSH = "MSH|^~\\&|APP|FAC|||20250102||ADT^A01|1|P|2.5";
 
+// PID field layout (HL7 v2.5): 1=SetID, 2=ExtId, 3=Identifiers, 4=AltId,
+// 5=Name (XPN), 6=MotherMaidenName, 7=DOB, 8=Sex, 9=Alias, 10=Race,
+// 11=Address, 12=County, 13=HomePhone, 14=BusinessPhone, 15=Language.
 const FULL =
   `${MSH}\r` +
-  "PID|||MRN123^^^HOSP^MR~ALT456|||Smith^Jane^Q^Jr^Mrs^MD||19800115|F||" +
-  "|123 Main St^Apt 4^Boston^MA^02101^USA||" +
+  "PID|1||MRN123^^^HOSP^MR~ALT456||Smith^Jane^Q^Jr^Mrs^MD||19800115|F|||" +
+  "123 Main St^Apt 4^Boston^MA^02101^USA||" +
   "(555)555-1234^PRN^PH~(555)555-5678^WPN^PH";
 
 const NO_PID = MSH;
-const MIN_PID = `${MSH}\r` + "PID|||";
+const MIN_PID = `${MSH}\r` + "PID|1";
 
 describe("helpers/patient: msg.patient (HELPERS-02)", () => {
   it("returns undefined when no PID exists (D-04)", () => {
@@ -84,17 +87,17 @@ describe("helpers/patient: msg.patient (HELPERS-02)", () => {
   });
 
   it("fullName omits missing parts cleanly — no double spaces", () => {
-    const fx = `${MSH}\r` + "PID|||X|||Smith^Jane";
+    const fx = `${MSH}\r` + "PID|||X||Smith^Jane";
     expect(parseHL7(fx).patient?.fullName).toBe("Jane Smith");
   });
 
   it("fullName with only familyName drops the trailing comma", () => {
-    const fx = `${MSH}\r` + "PID|||X|||Smith";
+    const fx = `${MSH}\r` + "PID|||X||Smith";
     expect(parseHL7(fx).patient?.fullName).toBe("Smith");
   });
 
   it("fullName with only suffix has no leading comma", () => {
-    const fx = `${MSH}\r` + "PID|||X|||^^^Jr";
+    const fx = `${MSH}\r` + "PID|||X||^^^Jr";
     expect(parseHL7(fx).patient?.fullName).toBe("Jr");
   });
 
@@ -155,7 +158,8 @@ describe("helpers/patient: msg.patient (HELPERS-02)", () => {
   });
 
   it("PID-13 home phone alone produces a one-element phoneNumbers array", () => {
-    const fx = `${MSH}\r` + "PID|||X|||||||||||(555)123-4567^PRN^PH";
+    // PID-13 is the home phone; need 12 pipes after "PID" to land a value at PID-13.
+    const fx = `${MSH}\r` + "PID|||X||||||||||(555)123-4567^PRN^PH";
     const phones = parseHL7(fx).patient?.phoneNumbers;
     expect(phones).toHaveLength(1);
     expect(phones?.[0]?.telephoneNumber).toBe("(555)123-4567");
@@ -175,7 +179,7 @@ describe("helpers/patient: msg.patient (HELPERS-02)", () => {
   });
 
   it("auto-unescapes string fields (D-23)", () => {
-    const fx = `${MSH}\r` + "PID|||X|||O\\F\\Brien^Patrick";
+    const fx = `${MSH}\r` + "PID|||X||O\\F\\Brien^Patrick";
     const p = parseHL7(fx).patient;
     expect(p?.familyName).toBe("O|Brien"); // \F\ → "|"
     expect(p?.givenName).toBe("Patrick");
