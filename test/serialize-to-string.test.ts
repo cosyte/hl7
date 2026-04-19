@@ -14,7 +14,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { parseHL7 } from "../src/index.js";
+import { Hl7Message, parseHL7 } from "../src/index.js";
 import { DEFAULT_ENCODING_CHARACTERS } from "../src/parser/delimiters.js";
 import type { RawField } from "../src/parser/types.js";
 import { emitField } from "../src/serialize/emit-field.js";
@@ -228,6 +228,22 @@ describe("emitMessage — D-07 purity", () => {
     expect(after).not.toBe(before);
     expect(after).toContain("MRN999");
     expect(after).not.toContain("MRN001");
+  });
+});
+
+describe("emitMessage — WR-01 zero-segment guard", () => {
+  it("throws a typed Error when rawSegments is empty", () => {
+    // Synthetic message with zero segments — only reachable via direct
+    // `new Hl7Message({...})` construction. parseHL7 rejects such inputs
+    // upstream with NO_MSH_SEGMENT.
+    const empty = new Hl7Message({
+      segments: [],
+      encodingCharacters: DEFAULT_ENCODING_CHARACTERS,
+      version: "2.5",
+      warnings: [],
+    });
+    expect(() => empty.toString()).toThrow(Error);
+    expect(() => empty.toString()).toThrow(/zero segments/);
   });
 });
 

@@ -35,11 +35,27 @@ import type { EncodingCharacters, RawSegment } from "../parser/types.js";
  * fields are PRESERVED to maintain HL7 positional addressing. `emitMessage`
  * does not alter either behavior.
  *
- * Pure — never warns, never throws (D-07).
+ * Pure for all well-formed inputs — never warns on structurally valid
+ * messages (D-07). Throws a typed `Error` ONLY for the structurally
+ * invalid case of `msg.rawSegments.length === 0` (W1 fix): emitting a
+ * bare `"\r"` for a zero-segment message would violate the "serializer
+ * is conservative (always emits spec-clean HL7)" guardrail, since
+ * `parseHL7("\r")` fails with `NO_MSH_SEGMENT`. The throw mirrors the
+ * D-06 MSH guard in `emitSegment` — catch programmer misuse loudly at
+ * the call site rather than silently corrupting wire output. The parser
+ * cannot produce an empty `rawSegments`, so this path is only reachable
+ * via direct `new Hl7Message({ segments: [] })` construction or post-
+ * `removeSegment` edge cases.
  *
  * @internal
  */
 export function emitMessage(msg: Hl7Message): string {
+  if (msg.rawSegments.length === 0) {
+    throw new Error(
+      "emitMessage: refusing to emit a message with zero segments. " +
+        "Every HL7 message must contain at least an MSH segment per HL7 v2 spec.",
+    );
+  }
   const enc = msg.encodingCharacters;
   const segmentStrings: string[] = [];
   for (const seg of msg.rawSegments) {
