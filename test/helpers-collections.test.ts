@@ -16,7 +16,7 @@ describe("helpers/collections: nextOfKin (HELPERS-06, NK1)", () => {
   });
 
   it("builds one entry per NK1 with full field set", () => {
-    const fx = MSH + PID + "NK1|1|Doe^John^^^Mr|FTH|456 Oak St^^Boston^MA|(555)111-2222|||FTHR";
+    const fx = MSH + PID + "NK1|1|Doe^John^^^Mr|FTH|456 Oak St^^Boston^MA|(555)111-2222||FTHR";
     const nk = parseHL7(fx).nextOfKin();
     expect(nk).toHaveLength(1);
     expect(nk[0]?.name?.familyName).toBe("Doe");
