@@ -78,13 +78,13 @@ All requirements are user-facing behaviors a developer consuming `@cosyte/hl7-pa
 
 ### Profiles (PROF)
 
-- [ ] **PROF-01** — `defineProfile({ name, ...options })` returns a valid `Profile` object; name is required.
-- [ ] **PROF-02** — `defineProfile()` throws `ProfileDefinitionError` with a clear message for invalid input: bad segment names (not 3 chars, not uppercase), duplicate field names within a segment, unknown option keys, malformed date format strings.
+- [x] **PROF-01** — `defineProfile({ name, ...options })` returns a valid `Profile` object; name is required. (closed Phase 6 Plan 01)
+- [x] **PROF-02** — `defineProfile()` throws `ProfileDefinitionError` with a clear message for invalid input: bad segment names (not 3 chars, not uppercase), duplicate field names within a segment, unknown option keys, malformed date format strings. (closed Phase 6 Plan 01 — all 4 throw paths D-05/D-07/D-08 + name validation wired; duplicate-field post-merge check deferred to Plan 06-02)
 - [ ] **PROF-03** — `extends: parentProfile` and `extends: [p1, p2]` inherit and compose options; merge semantics match spec (scalars overwrite, arrays concat+dedupe, `customSegments` deep-merge per key, `onWarning` handlers chain).
-- [ ] **PROF-04** — `profile.name`, `profile.description`, `profile.customSegments`, `profile.dateFormats`, `profile.lineage` are readonly and reflect applied options.
-- [ ] **PROF-05** — `profile.describe()` returns a non-empty human-readable summary containing the profile name.
+- [x] **PROF-04** — `profile.name`, `profile.description`, `profile.customSegments`, `profile.dateFormats`, `profile.lineage` are readonly and reflect applied options. (closed Phase 6 Plan 01 — Profile interface readonly; defineProfile output Object.freeze'd at boundary)
+- [x] **PROF-05** — `profile.describe()` returns a non-empty human-readable summary containing the profile name. (closed Phase 6 Plan 01 — buildDescribe always starts with `Profile '<name>'`)
 - [ ] **PROF-06** — `parseHL7(raw, profile)` applies profile behavior to the parse; `msg.profile?.name` and `msg.profile?.lineage` are set on the parsed message.
-- [ ] **PROF-07** — Registered Z-segments (via `customSegments`) are accessible by field name: `msg.segments('ZPI')[0].get('encounterId')`.
+- [x] **PROF-07** — Registered Z-segments (via `customSegments`) are accessible by field name: `msg.segments('ZPI')[0].get('encounterId')`. (TYPE ONLY closed Phase 6 Plan 01 — CustomSegmentDefinition interface declared; runtime Segment.get lands in Plan 06-03)
 - [ ] **PROF-08** — `setDefaultProfile(p)` / `getDefaultProfile()` / `setDefaultProfile(null)` manage a process-scoped default; explicit argument overrides; `parseHL7(raw, { profile: null })` opts out for one call.
 - [ ] **PROF-09** — Round-trip: a message parsed with a custom profile and re-serialized produces spec-clean HL7 (profile quirks affect parsing, not serialization).
 
@@ -217,13 +217,13 @@ Every v1 REQ-ID maps to exactly one phase in `ROADMAP.md`. 97/97 mapped.
 | SER-04 | Phase 5 — Serialization & Round-Trip | Complete (Plan 04 — emitPrettyPrint body D-22..D-26 + W2 raw-escape JSDoc + 29-test suite across 6 decision blocks) |
 | SER-05 | Phase 5 — Serialization & Round-Trip | Complete (Plan 02 — reescape chokepoint observable via emitField + round-trip fixtures) |
 | SER-06 | Phase 5 — Serialization & Round-Trip | Complete (Plan 05 — buildMessage + formatHl7Timestamp + generateControlId bodies; D-09..D-16 + D-07 runtime-confirmed; W1 reinforced on function-level JSDoc + 2 dedicated tests; 40-test suite across 3 new files) |
-| PROF-01 | Phase 6 — Profile System & Built-ins | Pending |
-| PROF-02 | Phase 6 — Profile System & Built-ins | Pending |
+| PROF-01 | Phase 6 — Profile System & Built-ins | Closed (Plan 01) |
+| PROF-02 | Phase 6 — Profile System & Built-ins | Closed (Plan 01) |
 | PROF-03 | Phase 6 — Profile System & Built-ins | Pending |
-| PROF-04 | Phase 6 — Profile System & Built-ins | Pending |
-| PROF-05 | Phase 6 — Profile System & Built-ins | Pending |
+| PROF-04 | Phase 6 — Profile System & Built-ins | Closed (Plan 01) |
+| PROF-05 | Phase 6 — Profile System & Built-ins | Closed (Plan 01) |
 | PROF-06 | Phase 6 — Profile System & Built-ins | Pending |
-| PROF-07 | Phase 6 — Profile System & Built-ins | Pending |
+| PROF-07 | Phase 6 — Profile System & Built-ins | Types closed (Plan 01); runtime Segment.get in Plan 03 |
 | PROF-08 | Phase 6 — Profile System & Built-ins | Pending |
 | PROF-09 | Phase 6 — Profile System & Built-ins | Pending |
 | BIP-01 | Phase 6 — Profile System & Built-ins | Pending |
