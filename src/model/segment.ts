@@ -58,17 +58,25 @@ export class Segment {
   }
 
   /**
-   * Return the `Field` wrapper at position `n`. Indexing follows the Phase 2
-   * 1-indexed `RawSegment.fields` convention — `seg.field(5)` on a PID
-   * segment maps to PID-5. Returns a synthetic empty `Field`
-   * (`.isNull === false`, `.value === ""`) when `n` is out of range — never
-   * throws (MODEL-05). Successive calls with the same `n` return the same
-   * `Field` instance (D-12).
+   * Return the `Field` wrapper at HL7 position `n`. Indexing follows the HL7
+   * 1-indexed convention — `seg.field(5)` on a PID segment maps to PID-5.
+   * MSH segments use the same user-facing convention: `msh.field(1)` returns
+   * the field-separator (MSH-1), `msh.field(2)` returns encoding chars
+   * (MSH-2), `msh.field(3)` returns MSH-3, and so on — the internal
+   * `fields[N-1]` offset for MSH segments is applied here (mirrors the
+   * dot-path resolver in `dot-path.ts`, keeping `msg.segments('MSH')[0].field(3)`
+   * and `msg.get('MSH.3')` in agreement).
+   *
+   * Returns a synthetic empty `Field` (`.isNull === false`, `.value === ""`)
+   * when `n` is out of range — never throws (MODEL-05). Successive calls with
+   * the same `n` return the same `Field` instance (D-12).
    *
    * @example
    * ```ts
    * const pid5 = msg.segments("PID")[0]?.field(5);
    * console.log(pid5?.value); // "Smith"
+   * const msh3 = msg.segments("MSH")[0]?.field(3);
+   * console.log(msh3?.value); // sending application (HL7 MSH-3)
    * ```
    */
   public field(n: number): Field {
@@ -82,7 +90,11 @@ export class Segment {
           }),
       );
     }
-    const f = this._fieldWrappers[n];
+    // MSH offset: HL7 MSH-1 lives at fields[0] (separator), MSH-2 at fields[1]
+    // (encoding chars), MSH-3 at fields[2], etc. Non-MSH segments use a
+    // straight 1:1 mapping because fields[0] is the segment-name placeholder.
+    const idx = this.type === "MSH" ? n - 1 : n;
+    const f = this._fieldWrappers[idx];
     return f ?? Field.empty(this.enc);
   }
 }

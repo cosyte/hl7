@@ -22,7 +22,7 @@ import { parseHL7 } from "../src/parser/index.js";
 // - OBX-5: NM (120)
 const FIXTURE =
   "MSH|^~\\&|APP^1.2.3^UUID|FAC|APP2|FAC2|20250102153045||ADT^A01|1|P|2.5\r" +
-  "PID|||123456^1^M11^AUTH&1.2.3&UUID^MR||Smith^Jane^Q^Jr.^Mrs.||19800115|F||||123 Main St^Apt 4^Boston^MA^02101^USA||(555)555-1234^PRN^PH^jane@example.com\r" +
+  "PID|||123456^1^M11^AUTH&1.2.3&UUID^MR||Smith^Jane^Q^Jr.^Mrs.||19800115|F|||123 Main St^Apt 4^Boston^MA^02101^USA||(555)555-1234^PRN^PH^jane@example.com\r" +
   "PV1|1|I|ICU^101^A^HOSP&1.2.3&UUID\r" +
   "OBX|1|NM|GLU^Glucose^LN|1|120|mg/dL|80-110||||F";
 

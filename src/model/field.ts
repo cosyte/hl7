@@ -5,8 +5,13 @@
  * repetition. Constructed internally by `Segment.field(n)`; user code never
  * calls `new Field(...)` directly.
  *
- * Typed composite coercions (`asXpn`, `asXad`, etc.) are wired in Plan 04
- * after all 10 composite parsers ship in Plans 02 + 03.
+ * Typed composite coercions (`asXpn`, `asXad`, `asCx`, `asCwe`, `asCe`,
+ * `asXtn`, `asPl`, `asTs`, `asNm`, `asHd`) delegate to the corresponding
+ * composite parsers from `./types/*`. Coercions are lazy and NOT memoized
+ * in v1 (D-09) — each call re-parses the first repetition. Empty fields
+ * return empty typed objects (`{}` for optional-field composites,
+ * `{ raw: "", date: undefined }` / `{ raw: "", value: undefined }` for
+ * the TS/NM scalar composites).
  */
 
 import { DEFAULT_ENCODING_CHARACTERS } from "../parser/delimiters.js";
@@ -14,10 +19,21 @@ import { unescape } from "../parser/escapes.js";
 import type {
   EncodingCharacters,
   Hl7Position,
+  RawComponent,
   RawField,
   RawRepetition,
 } from "../parser/types.js";
 import type { Hl7ParseWarning } from "../parser/warnings.js";
+import { parseCe, type CE } from "./types/ce.js";
+import { parseCwe, type CWE } from "./types/cwe.js";
+import { parseCx, type CX } from "./types/cx.js";
+import { parseHd, type HD } from "./types/hd.js";
+import { parseNm, type NM } from "./types/nm.js";
+import { parsePl, type PL } from "./types/pl.js";
+import { parseTs, type TS } from "./types/ts.js";
+import { parseXad, type XAD } from "./types/xad.js";
+import { parseXpn, type XPN } from "./types/xpn.js";
+import { parseXtn, type XTN } from "./types/xtn.js";
 
 /** Phase 3 leaf reads emit no warnings — the Field.value getter passes this no-op emitter to unescape. @internal */
 const NOOP_EMITTER = (_w: Hl7ParseWarning): void => {
@@ -113,6 +129,147 @@ export class Field {
   public static empty(_enc: EncodingCharacters): Field {
     return EMPTY_FIELD;
   }
+
+  /**
+   * Coerce this field's first repetition to a typed `XPN` (Extended Person
+   * Name). Absent components are OMITTED from the result
+   * (`exactOptionalPropertyTypes`). Not memoized in v1 — each call re-parses
+   * (D-09).
+   *
+   * @example
+   * ```ts
+   * const pid5 = msg.segments("PID")[0]?.field(5);
+   * const name = pid5?.asXpn();
+   * console.log(name?.familyName, name?.givenName);
+   * ```
+   */
+  public asXpn(): XPN {
+    return parseXpn(this.repetitions[0] ?? EMPTY_REP, this.enc);
+  }
+
+  /**
+   * Coerce this field's first repetition to a typed `XAD` (Extended Address).
+   *
+   * @example
+   * ```ts
+   * const addr = msg.segments("PID")[0]?.field(11)?.asXad();
+   * console.log(addr?.street, addr?.city, addr?.stateOrProvince);
+   * ```
+   */
+  public asXad(): XAD {
+    return parseXad(this.repetitions[0] ?? EMPTY_REP, this.enc);
+  }
+
+  /**
+   * Coerce this field's first repetition to a typed `CX` (Extended Composite
+   * ID). `assigningAuthority` is a nested `HD`.
+   *
+   * @example
+   * ```ts
+   * const mrn = msg.segments("PID")[0]?.field(3)?.asCx();
+   * console.log(mrn?.idNumber, mrn?.assigningAuthority?.namespaceId);
+   * ```
+   */
+  public asCx(): CX {
+    return parseCx(this.repetitions[0] ?? EMPTY_REP, this.enc);
+  }
+
+  /**
+   * Coerce this field's first repetition to a typed `CWE` (Coded With
+   * Exceptions).
+   *
+   * @example
+   * ```ts
+   * const code = msg.segments("OBX")[0]?.field(3)?.asCwe();
+   * console.log(code?.identifier, code?.text);
+   * ```
+   */
+  public asCwe(): CWE {
+    return parseCwe(this.repetitions[0] ?? EMPTY_REP, this.enc);
+  }
+
+  /**
+   * Coerce this field's first repetition to a typed `CE` (Coded Element).
+   *
+   * @example
+   * ```ts
+   * const code = msg.segments("OBX")[0]?.field(3)?.asCe();
+   * console.log(code?.identifier, code?.text);
+   * ```
+   */
+  public asCe(): CE {
+    return parseCe(this.repetitions[0] ?? EMPTY_REP, this.enc);
+  }
+
+  /**
+   * Coerce this field's first repetition to a typed `XTN` (Extended
+   * Telecommunication Number).
+   *
+   * @example
+   * ```ts
+   * const phone = msg.segments("PID")[0]?.field(13)?.asXtn();
+   * console.log(phone?.telephoneNumber);
+   * ```
+   */
+  public asXtn(): XTN {
+    return parseXtn(this.repetitions[0] ?? EMPTY_REP, this.enc);
+  }
+
+  /**
+   * Coerce this field's first repetition to a typed `PL` (Person Location).
+   * `facility` is a nested `HD`.
+   *
+   * @example
+   * ```ts
+   * const loc = msg.segments("PV1")[0]?.field(3)?.asPl();
+   * console.log(loc?.pointOfCare, loc?.room, loc?.facility?.namespaceId);
+   * ```
+   */
+  public asPl(): PL {
+    return parsePl(this.repetitions[0] ?? EMPTY_REP, this.enc);
+  }
+
+  /**
+   * Coerce this field's first repetition to a typed `TS` (Time Stamp).
+   * `{ raw, date }` — `date` is `undefined` on unparseable input (no throw).
+   *
+   * @example
+   * ```ts
+   * const ts = msg.segments("MSH")[0]?.field(7)?.asTs();
+   * console.log(ts?.raw, ts?.date?.toISOString());
+   * ```
+   */
+  public asTs(): TS {
+    return parseTs(this.repetitions[0] ?? EMPTY_REP, this.enc);
+  }
+
+  /**
+   * Coerce this field's first repetition to a typed `NM` (Numeric).
+   * `{ raw, value }` — `value` is `undefined` on non-numeric input.
+   *
+   * @example
+   * ```ts
+   * const nm = msg.segments("OBX")[0]?.field(5)?.asNm();
+   * console.log(nm?.value);
+   * ```
+   */
+  public asNm(): NM {
+    return parseNm(this.repetitions[0] ?? EMPTY_REP, this.enc);
+  }
+
+  /**
+   * Coerce this field's first repetition to a typed `HD` (Hierarchic
+   * Designator).
+   *
+   * @example
+   * ```ts
+   * const sending = msg.segments("MSH")[0]?.field(3)?.asHd();
+   * console.log(sending?.namespaceId);
+   * ```
+   */
+  public asHd(): HD {
+    return parseHd(this.repetitions[0] ?? EMPTY_REP, this.enc);
+  }
 }
 
 const EMPTY_RAW_FIELD: RawField = Object.freeze({
@@ -121,3 +278,13 @@ const EMPTY_RAW_FIELD: RawField = Object.freeze({
 });
 
 const EMPTY_FIELD = new Field(EMPTY_RAW_FIELD, DEFAULT_ENCODING_CHARACTERS, DEFAULT_POSITION);
+
+/**
+ * Synthetic empty repetition — feeds composite parsers for empty fields so
+ * they return `{}` / empty typed objects instead of throwing. Shared across
+ * every `.asXxx()` coercion. Frozen so no parser can mutate the sentinel.
+ * @internal
+ */
+const EMPTY_REP: RawRepetition = Object.freeze({
+  components: Object.freeze([]) as readonly RawComponent[],
+});
