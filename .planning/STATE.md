@@ -2,8 +2,8 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: milestone
-status: "Plan 04 (capstone) executed. All 10 `.asXxx()` composite coercions wired on Field (XPN/XAD/CX/CWE/CE/XTN/PL/TS/NM/HD) with shared EMPTY_REP fallback. Hl7Message gains setField/addSegment/removeSegment mutation API — chainable (D-15), cache-invalidating (D-17 wholesale), warnings-preserving (D-16), with D-18/D-19 validation. HL7 namespace barrel + named-exports shipped via `src/index.ts` + new `src/model/types/namespace.ts` + `src/model/types/index.ts`. MODEL-06, MODEL-07, TYPES-02 CLOSED. Bug fix [Rule 1]: Segment.field() needed the user-facing MSH offset symmetric with dot-path resolver (MSH.3 → fields[2]); previously untested at the wrapper level. 327/327 tests passing across 31 files; typecheck + lint + build all green."
-last_updated: "2026-04-19T14:16:25.152Z"
+status: "Phase 4 planned. 4 PLAN.md files across 3 waves — Plan 01 (scaffold + XCN composite per D-24a + cache-slot wiring), Plan 02 (meta + patient, Wave 2), Plan 03 (visit + observations, Wave 2 parallel), Plan 04 (orders + 4 collections, Wave 3). All 7 HELPERS-0X REQ-IDs covered. Plan checker PASSED on iteration 2 (3 warnings from initial review — 'delete broken draft' instruction removed from Plan 04 Task 1, diagnoses fixture/assertion reconciled, Plan 01 scope-note added — all resolved). Ready to execute."
+last_updated: "2026-04-19T00:00:00.000Z"
 progress:
   total_phases: 8
   completed_phases: 0
@@ -129,11 +129,11 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 
 ## Session Continuity
 
-- **Last action:** `/gsd-execute-phase 3` completed 2026-04-18. All 4 plans shipped across 3 waves (sequential on main, no worktrees — wave-2 had read-dep). 327/327 tests green; typecheck + lint + build all pass. Verifier produced `03-VERIFICATION.md` with status=passed, 4/4 success criteria verified, 11/11 REQ-IDs (MODEL-01..07, TYPES-01..04) satisfied.
-- **Next action:** `/gsd-validate-phase 3` for Nyquist coverage audit, then `/gsd-discuss-phase 4` or `/gsd-plan-phase 4` for named helpers (HELPERS-01..07). ⚠ Phase 1 & 2 verification gates (`/gsd-verify-work 1`, `/gsd-validate-phase 1`, `/gsd-verify-work 2`, `/gsd-validate-phase 2`) are still open.
+- **Last action:** `/gsd-plan-phase 4` completed 2026-04-19. 4 PLAN.md files across 3 waves. Plan checker PASSED on iteration 2 (revision cleaned 3 warnings: Plan 04 Task 1 dual-draft structure → single state machine; Plan 04 Task 2 diagnoses fixture/assertion consistency; Plan 01 added rationale for 21-file scaffold). All 7 HELPERS-0X REQ-IDs covered. `04-PATTERNS.md` produced by gsd-pattern-mapper (25/25 analogs mapped). D-24 XCN gate locked as option (a) — XCN ships as 11th v1 composite in Plan 01. Cache-invalidation extension (`_meta`/`_patient`/`_visit` slots) wired alongside existing `_segmentsByType`/`_allSegments` drops per D-02.
+- **Next action:** `/gsd-execute-phase 4` to execute Wave 1 → Wave 2 (Plans 02+03 parallel) → Wave 3. ⚠ Phase 1 & 2 verification gates (`/gsd-verify-work 1`, `/gsd-validate-phase 1`, `/gsd-verify-work 2`, `/gsd-validate-phase 2`) and `/gsd-validate-phase 3` Nyquist audit are still open from prior phases.
 - **Open questions:** (none added this plan). Phase 8's README Error Handling section should document the strict-mode `err.code` widening (carry-over from Phase 2).
-- **Resume file:** .planning/phases/04-named-helpers/04-CONTEXT.md
+- **Resume file:** .planning/phases/04-named-helpers/04-PLAN-01-scaffold-xcn-and-cache.md
 
 ---
 
-*Last updated: 2026-04-18 (Phase 3 complete — all 4 plans shipped, verifier PASSED 4/4 success criteria + 11/11 REQ-IDs, 327/327 tests across 31 files)*
+*Last updated: 2026-04-19 (Phase 4 planned — 4 plans, 3 waves, 7 REQ-IDs covered, plan-checker PASSED iteration 2)*

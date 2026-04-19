@@ -87,7 +87,12 @@ Plans:
   2. A developer can read `msg.patient.mrn`, `msg.patient.fullName`, `msg.patient.dateOfBirth`, and the full patient contract on any message with a PID; absent fields return `undefined` and never throw.
   3. A developer can read `msg.visit?.patientClass`, `msg.visit?.admitDateTime`, and visit fields on messages with a PV1 segment, and `msg.visit` itself is `undefined` (or nullable) on messages without one.
   4. A developer can iterate `msg.observations()`, `msg.orders()` (with observations linked to their parent order), `msg.nextOfKin()`, `msg.allergies()`, `msg.diagnoses()`, and `msg.insurance()` and receive typed arrays (empty when the source segments are absent).
-**Plans**: TBD
+**Plans**: 4 plans
+Plans:
+- [ ] 04-PLAN-01-scaffold-xcn-and-cache.md — Helper type declarations, XCN composite (D-24a), pickMrn, 9 stub builders, Hl7Message getters/methods wiring, cache slot extension
+- [ ] 04-PLAN-02-meta-and-patient.md — buildMeta (HELPERS-01) + buildPatient (HELPERS-02) with pickMrn hook + cache-invalidation test suite foundation
+- [ ] 04-PLAN-03-visit-and-observations.md — buildVisit (HELPERS-03) with XCN doctors + observations walker (HELPERS-04) with D-13 valueType dispatch + append visit cases to cache-invalidation test
+- [ ] 04-PLAN-04-orders-and-collections.md — orders() with D-12 positional OBX grouping (HELPERS-05) + nextOfKin/allergies/diagnoses/insurance collections with IN1/IN2/IN3 grouping (HELPERS-06) + universal HELPERS-07 never-throws sweep
 **UI hint**: no
 
 ### Phase 5: Serialization & Round-Trip
@@ -165,7 +170,7 @@ Within each phase, plans that touch disjoint modules may run in parallel; plans 
 | 1. Project Foundation | 4/4 | Complete (pending verify) | 2026-04-18 |
 | 2. Core Parser & Tolerance | 0/6 | Planned | — |
 | 3. Structural Model & Types | 4/4 | Complete (pending verify) | 2026-04-19 |
-| 4. Named Helpers | 0/0 | Not started | — |
+| 4. Named Helpers | 0/4 | Planned | — |
 | 5. Serialization & Round-Trip | 0/0 | Not started | — |
 | 6. Profile System & Built-ins | 0/0 | Not started | — |
 | 7. Testing Hardening & Fixtures | 0/0 | Not started | — |
