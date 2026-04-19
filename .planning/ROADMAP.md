@@ -73,7 +73,7 @@ Plans:
 **Plans**: 4 plans
 Plans:
 - [x] 03-PLAN-01-read-path-foundation.md — Dot-path tokenizer/resolver, Segment + Field wrappers, Hl7Message.get/getAll/segments/allSegments with wrapper caches
-- [ ] 03-PLAN-02-composites-person-address-identifier.md — Composite parsers XPN, XAD, CX, CWE, CE, HD + shared helpers
+- [x] 03-PLAN-02-composites-person-address-identifier.md — Composite parsers XPN, XAD, CX, CWE, CE, HD + shared helpers
 - [ ] 03-PLAN-03-composites-telecom-location-timestamp-numeric.md — Composite parsers XTN, PL, TS/DTM (delegates to parseHl7Timestamp), NM
 - [ ] 03-PLAN-04-mutation-and-barrel.md — Field.asXxx coercions, setField/addSegment/removeSegment, HL7 namespace barrel + src/index.ts final exports
 **UI hint**: no
@@ -164,7 +164,7 @@ Within each phase, plans that touch disjoint modules may run in parallel; plans 
 |-------|----------------|--------|-----------|
 | 1. Project Foundation | 4/4 | Complete (pending verify) | 2026-04-18 |
 | 2. Core Parser & Tolerance | 0/6 | Planned | — |
-| 3. Structural Model & Types | 0/4 | Planned | — |
+| 3. Structural Model & Types | 2/4 | In Progress | — |
 | 4. Named Helpers | 0/0 | Not started | — |
 | 5. Serialization & Round-Trip | 0/0 | Not started | — |
 | 6. Profile System & Built-ins | 0/0 | Not started | — |
@@ -173,4 +173,4 @@ Within each phase, plans that touch disjoint modules may run in parallel; plans 
 
 ---
 
-*Last updated: 2026-04-18 (Phase 1 Plan 04 complete — Phase 1 plans all done, pending verify/validate)*
+*Last updated: 2026-04-19 (Phase 3 Plan 02 complete — 6 composites shipped: XPN, XAD, CX, CWE, CE, HD; Plan 03 next)*
