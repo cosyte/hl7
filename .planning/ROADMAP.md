@@ -70,7 +70,12 @@ Plans:
   2. A developer accessing a non-existent path or segment type receives `undefined` or `[]` rather than an exception.
   3. A developer mutating a message via `setField`, `addSegment`, or `removeSegment` sees changes reflected on subsequent reads; direct field mutation on an unwrapped object has no effect (immutability by default).
   4. A developer importing the library receives typed interfaces for XPN, XAD, CX, CWE/CE, XTN, PL, TS/DTM, NM, and HD, and can parse a TS/DTM string into a JS `Date` (with `undefined` for unparseable input and raw string always accessible).
-**Plans**: TBD
+**Plans**: 4 plans
+Plans:
+- [ ] 03-PLAN-01-read-path-foundation.md — Dot-path tokenizer/resolver, Segment + Field wrappers, Hl7Message.get/getAll/segments/allSegments with wrapper caches
+- [ ] 03-PLAN-02-composites-person-address-identifier.md — Composite parsers XPN, XAD, CX, CWE, CE, HD + shared helpers
+- [ ] 03-PLAN-03-composites-telecom-location-timestamp-numeric.md — Composite parsers XTN, PL, TS/DTM (delegates to parseHl7Timestamp), NM
+- [ ] 03-PLAN-04-mutation-and-barrel.md — Field.asXxx coercions, setField/addSegment/removeSegment, HL7 namespace barrel + src/index.ts final exports
 **UI hint**: no
 
 ### Phase 4: Named Helpers
@@ -159,7 +164,7 @@ Within each phase, plans that touch disjoint modules may run in parallel; plans 
 |-------|----------------|--------|-----------|
 | 1. Project Foundation | 4/4 | Complete (pending verify) | 2026-04-18 |
 | 2. Core Parser & Tolerance | 0/6 | Planned | — |
-| 3. Structural Model & Types | 0/0 | Not started | — |
+| 3. Structural Model & Types | 0/4 | Planned | — |
 | 4. Named Helpers | 0/0 | Not started | — |
 | 5. Serialization & Round-Trip | 0/0 | Not started | — |
 | 6. Profile System & Built-ins | 0/0 | Not started | — |

@@ -8,16 +8,16 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 
 - **Name:** `@cosyte/hl7-parser`
 - **Core value:** A developer can parse a real-world, vendor-quirky HL7 v2 message and pull useful fields out of it in one line — without having read the HL7 spec.
-- **Current focus:** Phase 2 — Core Parser & Tolerance (COMPLETE — all 6 plans shipped; pending /gsd-verify-work 2 and /gsd-validate-phase 2. Phase 1 still pending /gsd-verify-work 1 and /gsd-validate-phase 1)
+- **Current focus:** Phase 3 — Structural Model & Types (PLANNED — 4 plans across 3 waves, ready to execute. Phase 2 still pending /gsd-verify-work 2 + /gsd-validate-phase 2; Phase 1 still pending /gsd-verify-work 1 + /gsd-validate-phase 1.)
 - **Workflow config:** standard granularity, yolo mode, parallelization enabled, plan-check + verifier + Nyquist validation on, auto-advance on.
 
 ## Current Position
 
 - **Milestone:** v1
-- **Phase:** 2 — Core Parser & Tolerance
-- **Plans:** 6 plans across 3 waves (01 warnings/errors/message-shell — Wave 1 COMPLETE; 02 normalize+mllp+charset, 03 segments+delimiters+tokenize, 04 escapes, 05 dateFormats — Wave 2 parallel, COMPLETE; 06 parseHL7 public + strict-mode capstone — Wave 3 COMPLETE)
-- **Status:** All three waves complete. Plan 01 shipped types/warnings/errors/message-shell; Plans 02/03/04/05 shipped normalize+mllp, segments+delimiters+tokenize, escapes, and dateFormats plumbing; Plan 06 shipped the public parseHL7 entry point, the emit chokepoint with strict-mode escalation, and the full src/index.ts barrel. Unified HL7 1-indexed `fields[]` convention locked in `src/parser/types.ts` and exercised through to MSH-12 version extraction. PARSE-01 + TOL-01 + TOL-02 verified end-to-end.
-- **Progress:** 0/8 phases complete (Phases 1 & 2 deliverables done, verification gates pending); 4/4 Phase 1 plans complete; 6/6 Phase 2 plans complete
+- **Phase:** 3 — Structural Model & Types (PLANNED — ready to execute)
+- **Plans:** 4 plans across 3 waves (01 read-path-foundation — Wave 1; 02 composites-person-address-identifier, 03 composites-telecom-location-timestamp-numeric — Wave 2 parallel; 04 mutation-and-barrel — Wave 3 capstone)
+- **Status:** Planning complete. Plan checker VERIFICATION PASSED with 2 non-blocking warnings (Plan 03 reads `_shared.ts`/`hd.ts` from Plan 02 — relies on wave-2 listed-order execution; Plan 01's `segments` → `rawSegments` rename migration grep is narrow but final `pnpm test` gate catches regressions). All 24 CONTEXT.md decisions (D-01..D-24) and all 11 phase REQ-IDs (MODEL-01..07, TYPES-01..04) mapped to plans.
+- **Progress:** 0/8 phases complete; 4/4 Phase 1 plans complete; 6/6 Phase 2 plans complete; 0/4 Phase 3 plans executed
 
 ```
 [░░░░░░░░░░░░░░░░░░░░] 0%   (0 / 8 phases)
@@ -86,11 +86,11 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 
 ## Session Continuity
 
-- **Last action:** Phase 2 Plan 06 executed — shipped `src/parser/index.ts` + `test/parser-public.test.ts`; modified `src/index.ts` to add the full Phase 2 barrel. Commits: `60c5817` (RED integration tests), `846a652` (GREEN parseHL7 + barrel). Typecheck + lint --max-warnings=0 + test + build all green; full repo suite 123/123. Closes PARSE-01, TOL-01, TOL-02. Strict-mode code mapping resolved via Plan 06 option (b): `as unknown as FatalCode` cast inside makeEmitter with inline justification. All 19 Phase 2 REQ-IDs are code-complete.
-- **Next action:** Run `/gsd-verify-work 2` then `/gsd-validate-phase 2` for Phase 2 completion; then `/gsd-transition` to advance to Phase 3 (Read-path traversal + typed composites). Phase 1 `/gsd-verify-work 1` + `/gsd-validate-phase 1` also still open from earlier.
+- **Last action:** `/gsd-plan-phase 3` completed 2026-04-18. Pattern mapper produced `03-PATTERNS.md` (26 files classified; all with codebase analogs). Planner produced 4 PLAN.md files across 3 waves. Plan checker returned VERIFICATION PASSED with 2 non-blocking warnings (W-1: Plan 03 read-dep on Plan 02; W-2: rename-grep scope). No code changed yet; Phase 2 Plan 06 remains the last code action.
+- **Next action:** `/gsd-execute-phase 3` to execute the 4 plans. ⚠ Phase 2 `/gsd-verify-work 2` + `/gsd-validate-phase 2` and Phase 1 `/gsd-verify-work 1` + `/gsd-validate-phase 1` are still open — run before Phase 3 execution if verification gates matter for your workflow. Also ⚠ wave-2 scheduler must run Plan 02 before Plan 03 (Plan 03 reads `_shared.ts`/`hd.ts` written by Plan 02); Plan 03 Task 0 fails-fast if parallel scheduling misfires.
 - **Open questions:** (none for Phase 2 — strict-mode mapping resolved in Plan 06). Phase 8's README Error Handling section should document the strict-mode `err.code` widening (under `{ strict: true }` a thrown Hl7ParseError may carry any WarningCode in addition to the four FatalCodes).
 - **Resume file:** `.planning/phases/02-core-parser-and-tolerance/02-06-SUMMARY.md`
 
 ---
 
-*Last updated: 2026-04-18 (Phase 2 Plan 06 complete — Phase 2 all 6 plans done, parseHL7 public API shipped, 19/19 Phase 2 REQ-IDs code-complete; pending Phase 2 verification gates)*
+*Last updated: 2026-04-18 (Phase 3 planned — 4 plans ready to execute; verification PASSED with 2 non-blocking warnings; Phases 1 & 2 verification gates still pending)*
