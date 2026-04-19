@@ -41,11 +41,11 @@ All requirements are user-facing behaviors a developer consuming `@cosyte/hl7-pa
 
 - [ ] **HELPERS-01** — `msg.meta` exposes: `type`, `messageCode`, `triggerEvent`, `messageStructure`, `controlId`, `timestamp` (Date), `version`, `sendingApp`, `sendingFacility`, `receivingApp`, `receivingFacility`, `processingId`.
 - [ ] **HELPERS-02** — `msg.patient` exposes: `mrn`, `identifiers[]`, `name` (XPN), `familyName`, `givenName`, `middleName`, `fullName`, `dateOfBirth` (Date), `sex`, `address` (XAD), `phoneNumbers[]`, `race`, `ethnicity`, `language`. All return `undefined` (not throw) when absent.
-- [ ] **HELPERS-03** — `msg.visit` (nullable) exposes: `patientClass`, `location` (PL), `admitDateTime`, `dischargeDateTime`, `attendingDoctor` (XCN), `referringDoctor`, `visitNumber`.
-- [ ] **HELPERS-04** — `msg.observations()` returns an array of observation objects with `setId`, `valueType`, `identifier` (CWE), `value` (typed by valueType), `units`, `referenceRange`, `abnormalFlags`, `status`, `observedDateTime`.
+- [x] **HELPERS-03** — `msg.visit` (nullable) exposes: `patientClass`, `location` (PL), `admitDateTime`, `dischargeDateTime`, `attendingDoctor` (XCN), `referringDoctor`, `visitNumber`. (Phase 4 Plan 03 — buildVisit with D-24a XCN doctors, D-18 flat Dates, D-01 frozen.)
+- [x] **HELPERS-04** — `msg.observations()` returns an array of observation objects with `setId`, `valueType`, `identifier` (CWE), `value` (typed by valueType), `units`, `referenceRange`, `abnormalFlags`, `status`, `observedDateTime`. (Phase 4 Plan 03 — D-13 dispatch NM/TS/DT/CWE/CE/others; buildObservation exported for Plan 04.)
 - [ ] **HELPERS-05** — `msg.orders()` returns orders linked to their OBX observations with `placerOrderNumber`, `fillerOrderNumber`, `orderControl`, `orderStatus`, `orderedBy`, `universalServiceId`, `observations[]`.
 - [ ] **HELPERS-06** — `msg.nextOfKin()`, `msg.allergies()`, `msg.diagnoses()`, `msg.insurance()` return typed arrays (empty when absent).
-- [ ] **HELPERS-07** — All helpers return `undefined` / empty arrays for missing optional data; never throw.
+- [x] **HELPERS-07** — All helpers return `undefined` / empty arrays for missing optional data; never throw. (Phase 4 Plans 02 + 03 — closed for MSH / PID / PV1 / OBX surfaces; remaining OBR / NK1 / AL1 / DG1 / IN1 surfaces close in Plan 04.)
 
 ### Data Types (TYPES)
 
@@ -206,11 +206,11 @@ Every v1 REQ-ID maps to exactly one phase in `ROADMAP.md`. 97/97 mapped.
 | TYPES-04 | Phase 3 — Structural Model & Types | Complete (Plan 03) |
 | HELPERS-01 | Phase 4 — Named Helpers | Pending |
 | HELPERS-02 | Phase 4 — Named Helpers | Pending |
-| HELPERS-03 | Phase 4 — Named Helpers | Pending |
-| HELPERS-04 | Phase 4 — Named Helpers | Pending |
+| HELPERS-03 | Phase 4 — Named Helpers | Complete (Plan 03) |
+| HELPERS-04 | Phase 4 — Named Helpers | Complete (Plan 03) |
 | HELPERS-05 | Phase 4 — Named Helpers | Pending |
 | HELPERS-06 | Phase 4 — Named Helpers | Pending |
-| HELPERS-07 | Phase 4 — Named Helpers | Pending |
+| HELPERS-07 | Phase 4 — Named Helpers | Partial (Plans 02 + 03 — MSH/PID/PV1/OBX closed; OBR/NK1/AL1/DG1/IN1 pending Plan 04) |
 | SER-01 | Phase 5 — Serialization & Round-Trip | Pending |
 | SER-02 | Phase 5 — Serialization & Round-Trip | Pending |
 | SER-03 | Phase 5 — Serialization & Round-Trip | Pending |

@@ -8,7 +8,7 @@ progress:
   total_phases: 8
   completed_phases: 0
   total_plans: 0
-  completed_plans: 15
+  completed_plans: 18
 ---
 
 # @cosyte/hl7-parser — STATE
@@ -57,6 +57,9 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 | 3 | 02 composites-person-address-identifier | 5 min | 3 (3 TDD cycles) | 14 created (7 src + 7 test) |
 | 3 | 03 composites-telecom-location-timestamp-numeric | 4 min | 3 (handshake + 2 TDD cycles) | 8 created (4 src + 4 test) |
 | 3 | 04 mutation-and-barrel | 8 min | 3 (2 TDD + 1 barrel) | 5 created, 4 modified |
+| 4 | 01 scaffold-xcn-and-cache | 12 min | 3 (2 TDD + 1 wiring) | 15 created, 5 modified |
+| 4 | 02 meta-and-patient | 10 min | 3 (3 TDD cycles) | 3 created, 2 modified |
+| 4 | 03 visit-and-observations | 9 min | 3 (2 TDD + 1 cache-test + Rule 3 regex fix) | 3 created, 4 modified |
 
 ## Accumulated Context
 
@@ -129,11 +132,11 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 
 ## Session Continuity
 
-- **Last action:** `/gsd-plan-phase 4` completed 2026-04-19. 4 PLAN.md files across 3 waves. Plan checker PASSED on iteration 2 (revision cleaned 3 warnings: Plan 04 Task 1 dual-draft structure → single state machine; Plan 04 Task 2 diagnoses fixture/assertion consistency; Plan 01 added rationale for 21-file scaffold). All 7 HELPERS-0X REQ-IDs covered. `04-PATTERNS.md` produced by gsd-pattern-mapper (25/25 analogs mapped). D-24 XCN gate locked as option (a) — XCN ships as 11th v1 composite in Plan 01. Cache-invalidation extension (`_meta`/`_patient`/`_visit` slots) wired alongside existing `_segmentsByType`/`_allSegments` drops per D-02.
-- **Next action:** `/gsd-execute-phase 4` to execute Wave 1 → Wave 2 (Plans 02+03 parallel) → Wave 3. ⚠ Phase 1 & 2 verification gates (`/gsd-verify-work 1`, `/gsd-validate-phase 1`, `/gsd-verify-work 2`, `/gsd-validate-phase 2`) and `/gsd-validate-phase 3` Nyquist audit are still open from prior phases.
+- **Last action:** Phase 4 Plan 03 (visit + observations) executed 2026-04-19. HELPERS-03 + HELPERS-04 + HELPERS-07 closed for PV1 and OBX surfaces. `buildVisit` projects 7 locked fields (patientClass / location PL / attendingDoctor XCN / referringDoctor XCN / visitNumber / admitDateTime Date / dischargeDateTime Date); `observations()` + `buildObservation` ship the D-13 value-type dispatch (NM / TS / DT / CWE / CE / others) with D-15 common fields. [Rule 3 deviation] `SEGMENT_NAME_RE` widened from `/^(?:[A-Z]{3}|Z[A-Z0-9]{2})$/u` to `/^[A-Z][A-Z0-9]{2}$/u` in `src/model/message.ts` + `src/model/dot-path.ts` to unblock Plan 03 cache-invalidation tests that mutate PV1 — the old regex rejected standard HL7 v2 segment names containing digits (PV1/IN1/DG1/AL1/NK1/PV2). Full suite green at 431/431.
+- **Next action:** `/gsd-execute-phase 4` to execute Wave 3 (Plan 04 orders + 4 collections). ⚠ Phase 1 & 2 verification gates (`/gsd-verify-work 1`, `/gsd-validate-phase 1`, `/gsd-verify-work 2`, `/gsd-validate-phase 2`) and `/gsd-validate-phase 3` Nyquist audit are still open from prior phases.
 - **Open questions:** (none added this plan). Phase 8's README Error Handling section should document the strict-mode `err.code` widening (carry-over from Phase 2).
 - **Resume file:** .planning/phases/04-named-helpers/04-PLAN-01-scaffold-xcn-and-cache.md
 
 ---
 
-*Last updated: 2026-04-19 (Phase 4 planned — 4 plans, 3 waves, 7 REQ-IDs covered, plan-checker PASSED iteration 2)*
+*Last updated: 2026-04-19 (Phase 4 Plans 01 + 02 + 03 executed; HELPERS-01..04 + HELPERS-07 closed for MSH/PID/PV1/OBX; Wave 3 pending — Plan 04 orders + collections)*
