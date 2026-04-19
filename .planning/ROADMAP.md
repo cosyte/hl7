@@ -14,7 +14,7 @@ North star: **A developer can parse a real-world, vendor-quirky HL7 v2 message a
 - [ ] **Phase 1: Project Foundation** — Scaffold the repo, build, lint, and TypeScript toolchain so any subsequent phase can iterate.
 - [ ] **Phase 2: Core Parser & Tolerance** — Tokenize HL7 input into segments/fields/components/subcomponents with a lenient default, warnings system, and strict-mode escalation.
 - [x] **Phase 3: Structural Model & Types** — Expose the parsed message as an immutable, dot-path-accessible model with typed composite types (XPN, XAD, TS/DTM, etc.). (completed 2026-04-18)
-- [x] **Phase 4: Named Helpers** — Ship the one-line DX: `msg.meta`, `msg.patient`, `msg.visit`, `msg.observations()`, and friends. (completed 2026-04-19, pending verify)
+- [x] **Phase 4: Named Helpers** — Ship the one-line DX: `msg.meta`, `msg.patient`, `msg.visit`, `msg.observations()`, and friends. (completed 2026-04-19, verified 2026-04-19)
 - [ ] **Phase 5: Serialization & Round-Trip** — `toString()`, `toJSON()`, `prettyPrint()`, and `buildMessage()` produce spec-clean HL7 and preserve semantics across parse → mutate → serialize → parse.
 - [ ] **Phase 6: Profile System & Built-ins** — `defineProfile()` API with merge/extend semantics plus 5 built-in vendor profiles (epic, cerner, meditech, athena, genericLab).
 - [ ] **Phase 7: Testing Hardening & Fixtures** — Canonical, edge-case, vendor-quirk, strict-mode, and profile-authoring test suites that verify ≥ 90% coverage on core modules.
@@ -170,7 +170,7 @@ Within each phase, plans that touch disjoint modules may run in parallel; plans 
 | 1. Project Foundation | 4/4 | Complete (pending verify) | 2026-04-18 |
 | 2. Core Parser & Tolerance | 0/6 | Planned | — |
 | 3. Structural Model & Types | 4/4 | Complete (pending verify) | 2026-04-19 |
-| 4. Named Helpers | 4/4 | Complete (pending verify) | 2026-04-19 |
+| 4. Named Helpers | 4/4 | Complete (verified) | 2026-04-19 |
 | 5. Serialization & Round-Trip | 0/0 | Not started | — |
 | 6. Profile System & Built-ins | 0/0 | Not started | — |
 | 7. Testing Hardening & Fixtures | 0/0 | Not started | — |
@@ -178,4 +178,4 @@ Within each phase, plans that touch disjoint modules may run in parallel; plans 
 
 ---
 
-*Last updated: 2026-04-19 (Phase 3 complete — 4/4 plans executed; TYPES-01..04 + MODEL-01..07 closed; 327/327 tests green; pending /gsd-verify-work 3 + /gsd-validate-phase 3)*
+*Last updated: 2026-04-19 (Phase 4 verified — 4/4 plans executed; HELPERS-01..07 closed; 459/459 tests green across 41 files; verifier PASSED 4/4 success criteria + 7/7 REQ-IDs; pending /gsd-validate-phase 4 Nyquist audit)*

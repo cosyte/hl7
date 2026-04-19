@@ -2,7 +2,7 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: milestone
-status: "Phase 4 EXECUTED. All 4 plans complete — 01 scaffold-xcn-and-cache, 02 meta-and-patient, 03 visit-and-observations, 04 orders-and-collections. All 7 HELPERS-0X REQ-IDs (HELPERS-01..07) CLOSED. All 9 named helper surfaces ship: msg.meta / msg.patient / msg.visit / msg.observations() / msg.orders() / msg.nextOfKin() / msg.allergies() / msg.diagnoses() / msg.insurance(). 459/459 tests passing across 41 files. Pending: /gsd-verify-work 4 + /gsd-validate-phase 4. Phases 1, 2, 3 verify + Nyquist audits still open."
+status: "Phase 4 VERIFIED. Verifier PASSED 4/4 success criteria + 7/7 HELPERS REQ-IDs (HELPERS-01..07) with codebase-evidence cites and end-to-end DX scratch demo. All 9 named helper surfaces ship: msg.meta / msg.patient / msg.visit / msg.observations() / msg.orders() / msg.nextOfKin() / msg.allergies() / msg.diagnoses() / msg.insurance(). 459/459 tests passing across 41 files; typecheck + lint + build green. Plan 03 deviation (widened SEGMENT_NAME_RE to /^[A-Z][A-Z0-9]{2}$/u) confirmed safe superset. Pending: /gsd-validate-phase 4 (Nyquist). Phases 1, 2, 3 verify + Nyquist audits still open."
 last_updated: "2026-04-19T00:00:00.000Z"
 progress:
   total_phases: 8
@@ -21,24 +21,24 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 
 - **Name:** `@cosyte/hl7-parser`
 - **Core value:** A developer can parse a real-world, vendor-quirky HL7 v2 message and pull useful fields out of it in one line — without having read the HL7 spec.
-- **Current focus:** Phase 3 — Structural Model & Types (COMPLETE — verifier PASSED 4/4 success criteria + 11/11 REQ-IDs. Pending /gsd-validate-phase 3 Nyquist audit. Phase 2 still pending /gsd-verify-work 2 + /gsd-validate-phase 2; Phase 1 still pending /gsd-verify-work 1 + /gsd-validate-phase 1. Next phase: 4 — Named Helpers.)
+- **Current focus:** Phase 4 — Named Helpers (COMPLETE — verifier PASSED 4/4 success criteria + 7/7 HELPERS REQ-IDs on 2026-04-19. Pending /gsd-validate-phase 4 Nyquist audit. Phase 3 still pending /gsd-validate-phase 3; Phase 2 still pending /gsd-verify-work 2 + /gsd-validate-phase 2; Phase 1 still pending /gsd-verify-work 1 + /gsd-validate-phase 1. Next phase: 5 — Serialization & Round-Trip.)
 - **Workflow config:** standard granularity, yolo mode, parallelization enabled, plan-check + verifier + Nyquist validation on, auto-advance on.
 
 ## Current Position
 
 - **Milestone:** v1
-- **Phase:** 3 — Structural Model & Types (COMPLETE — verifier PASSED 4/4 success criteria + 11/11 REQ-IDs on 2026-04-18; Nyquist validation still pending)
-- **Plans:** 4 plans across 3 waves (01 read-path-foundation — Wave 1 DONE; 02 composites-person-address-identifier — Wave 2 first plan DONE; 03 composites-telecom-location-timestamp-numeric — Wave 2 remainder DONE; 04 mutation-and-barrel — Wave 3 capstone DONE)
-- **Status:** Plan 04 (capstone) executed. All 10 `.asXxx()` composite coercions wired on Field (XPN/XAD/CX/CWE/CE/XTN/PL/TS/NM/HD) with shared EMPTY_REP fallback. Hl7Message gains setField/addSegment/removeSegment mutation API — chainable (D-15), cache-invalidating (D-17 wholesale), warnings-preserving (D-16), with D-18/D-19 validation. HL7 namespace barrel + named-exports shipped via `src/index.ts` + new `src/model/types/namespace.ts` + `src/model/types/index.ts`. MODEL-06, MODEL-07, TYPES-02 CLOSED. Bug fix [Rule 1]: Segment.field() needed the user-facing MSH offset symmetric with dot-path resolver (MSH.3 → fields[2]); previously untested at the wrapper level. 327/327 tests passing across 31 files; typecheck + lint + build all green.
-- **Progress:** 1/8 phases complete (Phase 3 verified); 4/4 Phase 1 plans complete; 6/6 Phase 2 plans complete; 4/4 Phase 3 plans complete
+- **Phase:** 4 — Named Helpers (COMPLETE — verifier PASSED 4/4 success criteria + 7/7 HELPERS REQ-IDs on 2026-04-19; Nyquist validation still pending)
+- **Plans:** 4 plans across 3 waves (01 scaffold-xcn-and-cache — Wave 1 DONE; 02 meta-and-patient — Wave 2 first plan DONE; 03 visit-and-observations — Wave 2 remainder DONE; 04 orders-and-collections — Wave 3 capstone DONE)
+- **Status:** Phase 4 complete. All 9 named helper surfaces ship: msg.meta / msg.patient / msg.visit / msg.observations() / msg.orders() / msg.nextOfKin() / msg.allergies() / msg.diagnoses() / msg.insurance(). XCN shipped as 11th v1 composite (D-24a). pickMrn + 9 helper type interfaces + Hl7Message cache wiring (3 getters + 6 methods + 3 cache slots + extended invalidateCaches) laid down in Wave 1. buildMeta / buildPatient (Wave 2 Plan 02), buildVisit / observations (Wave 2 Plan 03), orders / nextOfKin / allergies / diagnoses / insurance (Wave 3 Plan 04) fully implemented. North-star DX verified end-to-end via scratch demo against dist/index.mjs on a realistic ORU^R01 fixture — one-line access to msg.meta.type, msg.patient?.mrn, msg.patient?.fullName (Western order), msg.visit?.attendingDoctor?.idNumber (XCN via D-24a), msg.observations()[i].value (typed per D-13), msg.orders()[0].observations, plus all 4 collection helpers. HELPERS-07 never-throws sweep confirms all 9 surfaces handle empty / minimal / malformed input gracefully. Plan 03 Rule-3 deviation widened SEGMENT_NAME_RE from `/^(?:[A-Z]{3}|Z[A-Z0-9]{2})$/u` to `/^[A-Z][A-Z0-9]{2}$/u` (strict superset; unblocks PV1/IN1/DG1/AL1/NK1 mutation tests; fixes latent Phase 3 bug). 459/459 tests passing across 41 files; typecheck + lint (max-warnings=0) + build all green.
+- **Progress:** 2/8 phases verified; 4/4 Phase 1 + 6/6 Phase 2 + 4/4 Phase 3 + 4/4 Phase 4 plans complete
 
 ```
-[██░░░░░░░░░░░░░░░░░░] 12%   (1 / 8 phases)
+[█████░░░░░░░░░░░░░░░] 25%   (2 / 8 phases verified)
 ```
 
 ## Performance Metrics
 
-- **Phases completed:** 1 (Phase 3 verified 2026-04-18; Phases 1 & 2 plans done but pending verifier + Nyquist)
+- **Phases completed:** 2 (Phase 3 verified 2026-04-18; Phase 4 verified 2026-04-19; Phases 1 & 2 plans done but pending verifier + Nyquist; Phase 3 Nyquist still pending)
 - **Plans completed:** 19 (4 Phase-1 + 6 Phase-2 + 4 Phase-3 + 4 Phase-4)
 - **REQ-IDs validated:** 38 / 97 (SETUP-01..06 + PARSE-01..09 + TOL-01..10 + MODEL-01..07 + TYPES-01..04). All 7 MODEL + all 4 TYPES requirements now closed. Phase 7 will confirm via the coverage sweep + vendor-quirks fixtures.
 - **Known coverage:** Phase 1 sanity 2/2. Phase 2 (Plans 01–06): full suite 123/123 passing. Phase 3 Plans 01 + 02 + 03 + 04: full suite 327/327 passing across 31 files (model-field-coercions 13, model-mutation 28, model-public-exports 6 new this plan + prior 280). Coverage enforcement starts in Phase 7 via `pnpm test:coverage`.
