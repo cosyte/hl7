@@ -15,7 +15,7 @@ North star: **A developer can parse a real-world, vendor-quirky HL7 v2 message a
 - [ ] **Phase 2: Core Parser & Tolerance** — Tokenize HL7 input into segments/fields/components/subcomponents with a lenient default, warnings system, and strict-mode escalation.
 - [x] **Phase 3: Structural Model & Types** — Expose the parsed message as an immutable, dot-path-accessible model with typed composite types (XPN, XAD, TS/DTM, etc.). (completed 2026-04-18)
 - [x] **Phase 4: Named Helpers** — Ship the one-line DX: `msg.meta`, `msg.patient`, `msg.visit`, `msg.observations()`, and friends. (completed 2026-04-19, verified 2026-04-19)
-- [ ] **Phase 5: Serialization & Round-Trip** — `toString()`, `toJSON()`, `prettyPrint()`, and `buildMessage()` produce spec-clean HL7 and preserve semantics across parse → mutate → serialize → parse.
+- [x] **Phase 5: Serialization & Round-Trip** — `toString()`, `toJSON()`, `prettyPrint()`, and `buildMessage()` produce spec-clean HL7 and preserve semantics across parse → mutate → serialize → parse. (completed 2026-04-19, verified 2026-04-19)
 - [ ] **Phase 6: Profile System & Built-ins** — `defineProfile()` API with merge/extend semantics plus 5 built-in vendor profiles (epic, cerner, meditech, athena, genericLab).
 - [ ] **Phase 7: Testing Hardening & Fixtures** — Canonical, edge-case, vendor-quirk, strict-mode, and profile-authoring test suites that verify ≥ 90% coverage on core modules.
 - [ ] **Phase 8: Examples, Starter Kit & Documentation** — Three runnable examples, publishable profile starter kit, and the complete README + ancillary docs.
