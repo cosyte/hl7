@@ -65,9 +65,11 @@ export function generateControlId(): string {
   let suffix = "";
   for (let i = 0; i < 6; i++) {
     // noUncheckedIndexedAccess: bytes is a Buffer of known length 6, so
-    // bytes[i] is a number (0..255). The `!` reflects that invariant — the
-    // loop bound is a literal 6 that matches the requested byte count.
-    const idx = bytes[i]! % ALNUM_ALPHABET.length;
+    // bytes[i] is a number (0..255). The `?? 0` reflects that invariant
+    // without a forbidden non-null assertion — the loop bound is a literal 6
+    // that matches the requested byte count, so bytes[i] is always defined.
+    const byte = bytes[i] ?? 0;
+    const idx = byte % ALNUM_ALPHABET.length;
     // ALNUM_ALPHABET.charAt(idx) is always a single-char string.
     suffix += ALNUM_ALPHABET.charAt(idx);
   }
