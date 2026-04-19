@@ -74,6 +74,17 @@ export interface BuildMessageInit {
   /**
    * HL7 message type, e.g. `"ADT^A01"` (code + trigger) or
    * `"ORU^R01^ORU_R01"` (code + trigger + structure). Required (D-16).
+   *
+   * The string is split on `^` into MSH-9 components; each component is
+   * emitted verbatim. Literal `^` characters in a component are NOT
+   * representable via this field — splitting is unconditional. Callers
+   * needing that edge case should build the message and then use
+   * `.setField("MSH.9.1", ...)` etc. after construction.
+   *
+   * Rejected at runtime (D-16 / WR-04):
+   * - empty string `""` or whitespace-only `"   "`;
+   * - strings whose every `^`-split component is empty/whitespace
+   *   (e.g. `"^"`, `"^^"`, `"   ^   "`).
    */
   readonly type: string;
   readonly sendingApp?: string;
@@ -156,6 +167,21 @@ export function buildMessage(init: BuildMessageInit): Hl7Message {
       "buildMessage: `type` is required and must be a non-empty string " +
         '(e.g. "ADT^A01" or "ORU^R01^ORU_R01"). ' +
         `Received: ${JSON.stringify(init === null || init === undefined ? init : init.type)}.`,
+    );
+  }
+
+  // WR-04: tighten D-16 — split on `^` and reject a string whose every
+  // component is empty/whitespace (e.g. `"^"`, `"   ^   "`, `"^^"`). The
+  // outer `.trim().length === 0` check above catches `""` and `"   "`, but
+  // passes `"^"` (split → `["",""]` → MSH-9 emits as `^` which round-trips
+  // but is malformed). Reject at the factory instead of letting garbage
+  // through.
+  const typeParts = init.type.split("^");
+  if (typeParts.every((p) => p.trim().length === 0)) {
+    throw new TypeError(
+      "buildMessage: `type` must contain at least one non-empty component " +
+        '(e.g. "ADT^A01", not "^" or "^^"). ' +
+        `Received: ${JSON.stringify(init.type)}.`,
     );
   }
 

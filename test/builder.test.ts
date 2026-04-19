@@ -177,6 +177,22 @@ describe("buildMessage (SER-06)", () => {
     it("throws TypeError when type is not a string", () => {
       expect(() => buildMessage({ type: 123 as unknown as string })).toThrow(TypeError);
     });
+
+    it("throws TypeError on `^` only (all components empty — WR-04)", () => {
+      expect(() => buildMessage({ type: "^" })).toThrow(TypeError);
+    });
+
+    it("throws TypeError on `^^` (three empty components — WR-04)", () => {
+      expect(() => buildMessage({ type: "^^" })).toThrow(TypeError);
+    });
+
+    it("throws TypeError on whitespace-only components like `   ^   ` (WR-04)", () => {
+      expect(() => buildMessage({ type: "   ^   " })).toThrow(TypeError);
+    });
+
+    it("accepts single-component type (no `^`) — still valid", () => {
+      expect(() => buildMessage({ type: "ADT" })).not.toThrow();
+    });
   });
 
   describe("W1 empty-vs-null wire semantics", () => {
