@@ -103,10 +103,38 @@ export interface ParseOptions {
 }
 
 /**
+ * Shape of a single custom Z-segment declaration used by profile authoring
+ * (`defineProfile()`). `fields` maps a caller-visible field NAME to its
+ * 1-indexed HL7 position within the segment. Declared here (alongside
+ * `Profile`) to keep the parser's type module the single source of truth;
+ * `src/profiles/define.ts` re-exports this type so consumers can write
+ * `import type { CustomSegmentDefinition } from "@cosyte/hl7-parser"`
+ * after Plan 06's barrel-sweep.
+ *
+ * @example
+ * ```ts
+ * import type { CustomSegmentDefinition } from "@cosyte/hl7-parser";
+ * const zdp: CustomSegmentDefinition = {
+ *   fields: { departmentCode: 3, departmentName: 4 },
+ * };
+ * ```
+ */
+export interface CustomSegmentDefinition {
+  readonly fields: Readonly<Record<string, number>>;
+}
+
+/**
  * Structural placeholder for HL7 profiles. A profile bundles vendor-specific
  * tolerances, date formats, custom segment definitions, and optional
  * callbacks. Phase 2 ships only the type — the `defineProfile()` builder
  * and runtime effects land in Phase 6.
+ *
+ * Phase 6 Plan 01 tightens `customSegments` to the locked
+ * `CustomSegmentDefinition` shape and adds an optional `describe?` method
+ * so `defineProfile()`-produced profiles can be introspected without
+ * consumers needing to narrow away from the `Profile` type. The `describe`
+ * method is only populated by `defineProfile()` — hand-authored `Profile`
+ * objects may omit it.
  *
  * @example
  * ```ts
@@ -115,6 +143,9 @@ export interface ParseOptions {
  *   name: "epic",
  *   description: "Epic-specific quirks and date formats",
  *   dateFormats: ["YYYYMMDDHHmmss", "YYYYMMDD"],
+ *   customSegments: {
+ *     ZDP: { fields: { departmentCode: 3, departmentName: 4 } },
+ *   },
  * };
  * ```
  */
@@ -123,8 +154,9 @@ export interface Profile {
   readonly description?: string;
   readonly lineage?: readonly string[];
   readonly dateFormats?: readonly string[];
-  readonly customSegments?: Readonly<Record<string, unknown>>;
+  readonly customSegments?: Readonly<Record<string, CustomSegmentDefinition>>;
   readonly onWarning?: OnWarningCallback;
+  readonly describe?: () => string;
 }
 
 /**

@@ -215,6 +215,32 @@ function parseIso8601(raw: string): Date | undefined {
 const TOKENS = ["YYYY", "MM", "DD", "HH", "mm", "ss"] as const;
 
 /**
+ * Every date-format token the library's format-string matcher and
+ * `defineProfile()` D-08 validator recognize. Re-exported from
+ * `@cosyte/hl7-parser` so profile authors can introspect the valid
+ * token set without importing internal modules. `SSSS` (fractional
+ * seconds) is recognised by the D-08 validator only — the internal
+ * format matcher doesn't consume it because milliseconds already flow
+ * through the HL7 TS/DTM strict path (see `parseHl7TsDtm` above).
+ *
+ * @example
+ * ```ts
+ * import { SUPPORTED_DATE_TOKENS } from "@cosyte/hl7-parser";
+ * console.log(SUPPORTED_DATE_TOKENS);
+ * // ["YYYY", "MM", "DD", "HH", "mm", "ss", "SSSS"]
+ * ```
+ */
+export const SUPPORTED_DATE_TOKENS: readonly string[] = [
+  "YYYY",
+  "MM",
+  "DD",
+  "HH",
+  "mm",
+  "ss",
+  "SSSS",
+] as const;
+
+/**
  * Length in digits for each token — used by `matchTokenFormat` to slice a
  * chunk of the input of exactly the right size.
  *
