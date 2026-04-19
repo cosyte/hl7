@@ -74,7 +74,7 @@ All requirements are user-facing behaviors a developer consuming `@cosyte/hl7-pa
 - [x] **SER-03** — `msg.toJSON()` returns a structured JSON representation of the full message. (Phase 5 Plan 03)
 - [x] **SER-04** — `msg.prettyPrint()` returns a human-readable multi-line string for logging/debugging. (Phase 5 Plan 04)
 - [x] **SER-05** — Escape sequences are correctly re-encoded on serialize (unescaped content → escaped). (Phase 5 Plan 02)
-- [ ] **SER-06** — `buildMessage({...}).addSegment(...).toString()` constructs a valid outbound HL7 message for tests and small tools.
+- [x] **SER-06** — `buildMessage({...}).addSegment(...).toString()` constructs a valid outbound HL7 message for tests and small tools. (Phase 5 Plan 05)
 
 ### Profiles (PROF)
 
@@ -216,7 +216,7 @@ Every v1 REQ-ID maps to exactly one phase in `ROADMAP.md`. 97/97 mapped.
 | SER-03 | Phase 5 — Serialization & Round-Trip | Complete (Plan 03 — emitJson body D-17 raw-tree mirror + D-19 stable warnings + D-20 conditional profile + W5 boundary freeze) |
 | SER-04 | Phase 5 — Serialization & Round-Trip | Complete (Plan 04 — emitPrettyPrint body D-22..D-26 + W2 raw-escape JSDoc + 29-test suite across 6 decision blocks) |
 | SER-05 | Phase 5 — Serialization & Round-Trip | Complete (Plan 02 — reescape chokepoint observable via emitField + round-trip fixtures) |
-| SER-06 | Phase 5 — Serialization & Round-Trip | Pending |
+| SER-06 | Phase 5 — Serialization & Round-Trip | Complete (Plan 05 — buildMessage + formatHl7Timestamp + generateControlId bodies; D-09..D-16 + D-07 runtime-confirmed; W1 reinforced on function-level JSDoc + 2 dedicated tests; 40-test suite across 3 new files) |
 | PROF-01 | Phase 6 — Profile System & Built-ins | Pending |
 | PROF-02 | Phase 6 — Profile System & Built-ins | Pending |
 | PROF-03 | Phase 6 — Profile System & Built-ins | Pending |

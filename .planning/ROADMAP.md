@@ -110,7 +110,7 @@ Plans:
 - [x] 05-PLAN-02-to-string-and-round-trip.md — Fill emitMessage body (MSH special-case + CR terminator); 5 round-trip fixtures + SER-02 structural-equivalence sweep; Rule-3 deviation: Phase 2 tokenize now unescapes on parse (closes SER-01, SER-02, SER-05)
 - [x] 05-PLAN-03-to-json.md — Fill emitJson body (raw-tree mirror + stable warnings + conditional profile + W5 boundary freeze; B3 dead-code `?? []` removed) (closes SER-03)
 - [x] 05-PLAN-04-pretty-print.md — Fill emitPrettyPrint body (D-25 header + D-23 segment-per-line with labeled fields + MSH offset + W2 raw-escape docs) (closes SER-04)
-- [ ] 05-PLAN-05-build-message.md — Fill buildMessage + formatHl7Timestamp + generateControlId bodies with addSegment chaining + round-trip tests (closes SER-06)
+- [x] 05-PLAN-05-build-message.md — Fill buildMessage + formatHl7Timestamp + generateControlId bodies with addSegment chaining + round-trip tests (closes SER-06)
 **UI hint**: no
 
 ### Phase 6: Profile System & Built-ins
@@ -184,4 +184,4 @@ Within each phase, plans that touch disjoint modules may run in parallel; plans 
 
 ---
 
-*Last updated: 2026-04-19 (Phase 5 Plan 03 complete — emitJson body with raw-tree mirror + stable warnings + conditional `{name, lineage}` profile + W5 top-level boundary freeze; D-17/D-18/D-19/D-20/D-21/D-30 runtime-confirmed; B3 restructure landed (type-unreachable tests dropped, structural two-keys assertion added, dead-code `?? []` fallback removed). SER-03 closed. 549/549 tests green across 45 files (+23 from Plan 03); Plans 04/05 pending parallel execution)*
+*Last updated: 2026-04-19 (Phase 5 Plan 05 complete — buildMessage + formatHl7Timestamp + generateControlId bodies implemented; SER-06 closed. All 6 SER REQ-IDs closed (SER-01..06). D-09/D-10/D-11/D-12/D-13/D-14/D-15/D-16/D-07 runtime-confirmed; W1 empty-vs-null wire semantics reinforced on function-level JSDoc + 2 dedicated tests. Rule-1 test fix (PID composite via setField chain) + Rule-3 lint fix (eslint-disable on `{} as BuildMessageInit`) applied inline. 618/618 tests green across 49 files (+40 from Plan 05). Phase 5 plans all complete — pending /gsd-verify-work 5 + /gsd-validate-phase 5.)*
