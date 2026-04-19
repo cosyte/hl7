@@ -108,7 +108,7 @@ Plans:
 Plans:
 - [x] 05-PLAN-01-scaffold-emit-field-and-method-wiring.md — Emit-field primitive (FULLY IMPLEMENTED), 6 stub files with LIVE SerializedMessage + BuildMessageInit types, 3 Hl7Message instance methods wired
 - [x] 05-PLAN-02-to-string-and-round-trip.md — Fill emitMessage body (MSH special-case + CR terminator); 5 round-trip fixtures + SER-02 structural-equivalence sweep; Rule-3 deviation: Phase 2 tokenize now unescapes on parse (closes SER-01, SER-02, SER-05)
-- [ ] 05-PLAN-03-to-json.md — Fill emitJson body (raw-tree mirror + stable warnings + conditional profile) (closes SER-03)
+- [x] 05-PLAN-03-to-json.md — Fill emitJson body (raw-tree mirror + stable warnings + conditional profile + W5 boundary freeze; B3 dead-code `?? []` removed) (closes SER-03)
 - [ ] 05-PLAN-04-pretty-print.md — Fill emitPrettyPrint body (header + segment-per-line with labeled fields) (closes SER-04)
 - [ ] 05-PLAN-05-build-message.md — Fill buildMessage + formatHl7Timestamp + generateControlId bodies with addSegment chaining + round-trip tests (closes SER-06)
 **UI hint**: no
@@ -177,11 +177,11 @@ Within each phase, plans that touch disjoint modules may run in parallel; plans 
 | 2. Core Parser & Tolerance | 0/6 | Planned | — |
 | 3. Structural Model & Types | 4/4 | Complete (pending verify) | 2026-04-19 |
 | 4. Named Helpers | 4/4 | Complete (verified) | 2026-04-19 |
-| 5. Serialization & Round-Trip | 2/5 | In progress | Plans 01 + 02 done 2026-04-19 |
+| 5. Serialization & Round-Trip | 3/5 | In progress | Plans 01 + 02 + 03 done 2026-04-19 |
 | 6. Profile System & Built-ins | 0/0 | Not started | — |
 | 7. Testing Hardening & Fixtures | 0/0 | Not started | — |
 | 8. Examples, Starter Kit & Documentation | 0/0 | Not started | — |
 
 ---
 
-*Last updated: 2026-04-19 (Phase 5 Plan 02 complete — emitMessage body + SER-02 round-trip sweep + Phase 2 tokenize unescape-on-parse Rule-3 deviation; SER-01 / SER-02 / SER-05 closed; 526/526 tests green across 44 files; Plans 03/04/05 pending parallel execution)*
+*Last updated: 2026-04-19 (Phase 5 Plan 03 complete — emitJson body with raw-tree mirror + stable warnings + conditional `{name, lineage}` profile + W5 top-level boundary freeze; D-17/D-18/D-19/D-20/D-21/D-30 runtime-confirmed; B3 restructure landed (type-unreachable tests dropped, structural two-keys assertion added, dead-code `?? []` fallback removed). SER-03 closed. 549/549 tests green across 45 files (+23 from Plan 03); Plans 04/05 pending parallel execution)*
