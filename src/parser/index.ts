@@ -19,9 +19,10 @@ import type { Buffer } from "node:buffer";
 import { DEFAULT_ENCODING_CHARACTERS, readDelimiters } from "./delimiters.js";
 import { FATAL_CODES, Hl7ParseError } from "./errors.js";
 import { emitIfFramed, stripMllp } from "./mllp.js";
-import { normalize, normalizeBuffer } from "./normalize.js";
+import { mapHl7Charset, normalize, normalizeBuffer } from "./normalize.js";
 import { snippet as segmentSnippet, splitSegments } from "./segments.js";
 import { tokenize } from "./tokenize.js";
+import { encodingMismatch } from "./warnings.js";
 import type { Hl7ParseWarning } from "./warnings.js";
 import type { Hl7Position, ParseOptions, Profile, RawSegment } from "./types.js";
 
@@ -43,6 +44,7 @@ const OPTIONS_ONLY_KEYS: readonly (keyof ParseOptions)[] = [
   "stripMllpFraming",
   "trimFields",
   "profile",
+  "charset",
 ];
 
 /**
@@ -137,6 +139,98 @@ function buildSnippet(input: string, _position: Hl7Position): string {
 }
 
 /**
+ * Shallow MSH-18 extractor for the tentative-decode first pass of Buffer
+ * charset resolution. Deliberately avoids calling `readDelimiters` or
+ * `tokenize` — those can throw on malformed MSH, which would defeat the
+ * "tentative" contract of the first pass.
+ *
+ * Line-ending agnostic: splits on `/[\r\n]/` so a Buffer that uses Unix
+ * (`\n`), classic Mac (`\r`), or mixed line endings still isolates segment
+ * 0 correctly. A bare split on `\r` alone here would silently regress
+ * PARSE-09 on `\n`-only Buffer traffic (the whole message would become
+ * segment 0, `parts[17]` would swallow subsequent segments, and the
+ * charset token would become a garbage string that falls through to
+ * UTF-8).
+ *
+ * Returns the trimmed MSH-18 token, or `undefined` on any failure (no
+ * segment boundary, segment not `MSH`, `parts[17]` missing or empty). The
+ * caller falls back to UTF-8 on `undefined`.
+ *
+ * @internal
+ */
+function extractMsh18FromTentativeDecode(tentativeText: string): string | undefined {
+  const firstSegment = tentativeText.split(/[\r\n]/)[0];
+  if (firstSegment === undefined) return undefined;
+  if (!firstSegment.startsWith("MSH")) return undefined;
+  // HL7 field-separator character is at index 3 of the MSH segment (after
+  // the three-letter segment name).
+  const fieldSep = firstSegment.charAt(3);
+  if (fieldSep === "") return undefined;
+  const parts = firstSegment.split(fieldSep);
+  // Per the unified 1-indexed convention: parts[0] = "MSH", parts[1] =
+  // encoding characters (MSH-2), ..., parts[17] = MSH-18.
+  const raw = parts[17];
+  if (raw === undefined) return undefined;
+  const trimmed = raw.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+/**
+ * Resolve the effective charset for a `Buffer` input and return the
+ * decoded, line-ending-normalized text. Implements the locked precedence
+ * rule (design decision (c)):
+ *
+ *   1. If `options.charset` is supplied AND MSH-18 is declared, emit
+ *      `ENCODING_MISMATCH` when they disagree after alias normalization;
+ *      always honour the override.
+ *   2. Else if `options.charset` is supplied, use it.
+ *   3. Else if MSH-18 is declared, use it (triggers `UNKNOWN_CHARSET`
+ *      fallback inside `normalizeBuffer` when the label is unsupported).
+ *   4. Else fall through to `normalizeBuffer`'s UTF-8 default.
+ *
+ * Two-pass mechanics: MSH-1 through MSH-18 are always 7-bit ASCII in real
+ * HL7 traffic, so a tentative UTF-8 decode reliably surfaces MSH-18 even
+ * when the payload declares a non-UTF-8 charset. The second pass
+ * (`normalizeBuffer`) re-decodes with the resolved charset.
+ *
+ * @internal
+ */
+function resolveBufferCharset(
+  raw: Buffer,
+  options: ParseOptions,
+  emit: (w: Hl7ParseWarning) => void,
+): string {
+  const override = options.charset;
+  // Pass 1: tentative UTF-8 decode to read MSH-18. This is cheap — for
+  // UTF-8 payloads the tentative decode is exactly what `normalizeBuffer`
+  // would produce anyway; for non-UTF-8 payloads the MSH header bytes are
+  // ASCII so MSH-18 still surfaces correctly even if the body garbles.
+  const tentative = new TextDecoder("utf-8").decode(raw);
+  const declared = extractMsh18FromTentativeDecode(tentative);
+
+  if (override !== undefined && declared !== undefined) {
+    const overrideNorm = mapHl7Charset(override);
+    const declaredNorm = mapHl7Charset(declared);
+    if (overrideNorm !== declaredNorm) {
+      emit(
+        encodingMismatch(
+          { segmentIndex: 0 },
+          `options.charset="${override}" disagrees with MSH-18="${declared}"`,
+        ),
+      );
+    }
+    return normalizeBuffer(raw, override, emit);
+  }
+  if (override !== undefined) {
+    return normalizeBuffer(raw, override, emit);
+  }
+  if (declared !== undefined) {
+    return normalizeBuffer(raw, declared, emit);
+  }
+  return normalizeBuffer(raw, undefined, emit);
+}
+
+/**
  * Read MSH-12 (version) from the first tokenized segment. Per the unified
  * HL7 1-indexed convention locked in Plan 03, `fields[0]` is the
  * separator/name placeholder, `fields[1]` is MSH-2 (encoding chars),
@@ -207,7 +301,7 @@ export function parseHL7(
   if (typeof raw === "string") {
     text = raw;
   } else {
-    text = normalizeBuffer(raw, undefined, bufferEmit);
+    text = resolveBufferCharset(raw, options, bufferEmit);
   }
 
   // Step 2: EMPTY_INPUT fatal check at the top of the pipeline (D-03).

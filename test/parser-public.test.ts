@@ -267,17 +267,22 @@ describe("PARSE-09 — MSH-18 charset wiring", () => {
   // Build a message whose MSH-18 declares the supplied charset. PID-5 carries
   // the supplied patient-surname token (which may be a single non-ASCII
   // character that round-trips only under the declared charset). Fields are
-  // laid out so that MSH-18 (the 18th pipe-separated field) sits in the
-  // position required by the 1-indexed tokenizer convention.
+  // laid out so that MSH-18 sits at the 18th HL7 field position.
   //
-  // MSH layout (pipe count):
-  //   MSH | ^~\& | APP | FAC | APP | FAC | 20250101 |  | ADT^A01 | 1 | P | 2.5 |  |  |  |  |  | <charset>
-  //    0    1     2     3     4     5     6          7    8        9   10  11    12 13 14 15 16  17 (= MSH-18)
-  // Note: `MSH` + field-separator counts as MSH-1; the encoding chars are
-  // MSH-2; so MSH-18 is 16 additional `|` delimiters past the encoding chars.
+  // HL7 MSH numbering: MSH-1 is the field separator character itself; MSH-2
+  // is the first value after the first `|` (encoding chars). So the MSH-18
+  // value is at index 17 when splitting "MSH|a|b|..." on `|` (because
+  // parts[0]="MSH", parts[1]=MSH-2, ..., parts[17]=MSH-18). Concretely the
+  // message below places the charset token 16 fields after the encoding
+  // chars:
+  //   parts[0]=MSH, [1]=^~\&, [2]=APP, [3]=FAC, [4]=APP, [5]=FAC,
+  //   [6]=20250101, [7]="", [8]=ADT^A01, [9]=1, [10]=P, [11]=2.5,
+  //   [12]="", [13]="", [14]="", [15]="", [16]="", [17]=<charset>
+  // After MSH-12 ("2.5") we need 5 empty fields (MSH-13..17) then MSH-18
+  // = charset — i.e. six pipes: `2.5||||||<charset>`.
   const buildMessage = (charset: string, pidSurname: string, lineSep: string): string =>
     [
-      `MSH|^~\\&|APP|FAC|APP|FAC|20250101||ADT^A01|1|P|2.5|||||||${charset}`,
+      `MSH|^~\\&|APP|FAC|APP|FAC|20250101||ADT^A01|1|P|2.5||||||${charset}`,
       `PID|||123||${pidSurname}`,
     ].join(lineSep);
 

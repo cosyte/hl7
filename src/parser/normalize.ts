@@ -89,9 +89,14 @@ export function normalizeBuffer(
  * labels that Node's `TextDecoder` recognizes. Unknown labels are passed
  * through uppercased so the caller's `try/catch` can trip `UNKNOWN_CHARSET`.
  *
+ * Exported for the `parseHL7` Buffer-path's override-vs-declared charset
+ * comparison — normalising both strings through this shared table is the
+ * only way to avoid false-positive `ENCODING_MISMATCH` warnings on synonym
+ * pairs (e.g. `UNICODE UTF-8` vs `UTF-8`, or `8859/1` vs `ISO-8859-1`).
+ *
  * @internal
  */
-function mapHl7Charset(raw: string): string {
+export function mapHl7Charset(raw: string): string {
   const trimmed = raw.trim().toUpperCase();
   switch (trimmed) {
     case "":
