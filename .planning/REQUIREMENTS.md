@@ -29,11 +29,11 @@ All requirements are user-facing behaviors a developer consuming `@cosyte/hl7-pa
 
 ### Model & Access (MODEL)
 
-- [ ] **MODEL-01** — `msg.get('PID.5.1')` resolves a dot-path to a string value; `msg.get('OBX[2].5')` supports zero-indexed repeating-segment access.
-- [ ] **MODEL-02** — `msg.getAll('NK1')` returns every segment of a type; `msg.segments('OBX')` returns typed Segment objects.
-- [ ] **MODEL-03** — Segment objects expose `field(n)`, `.fields`, `.type`, with Field → Component → Subcomponent traversal.
-- [ ] **MODEL-04** — `msg.allSegments()` iterates every segment in original order.
-- [ ] **MODEL-05** — `get()` / `getAll()` return `undefined` / `[]` (not throw) when a path does not resolve.
+- [x] **MODEL-01** — `msg.get('PID.5.1')` resolves a dot-path to a string value; `msg.get('OBX[2].5')` supports zero-indexed repeating-segment access. (Phase 3 Plan 01)
+- [x] **MODEL-02** — `msg.getAll('NK1')` returns every segment of a type; `msg.segments('OBX')` returns typed Segment objects. (Phase 3 Plan 01)
+- [x] **MODEL-03** — Segment objects expose `field(n)`, `.fields`, `.type`, with Field → Component → Subcomponent traversal. (Phase 3 Plan 01)
+- [x] **MODEL-04** — `msg.allSegments()` iterates every segment in original order. (Phase 3 Plan 01)
+- [x] **MODEL-05** — `get()` / `getAll()` return `undefined` / `[]` (not throw) when a path does not resolve. (Phase 3 Plan 01)
 - [ ] **MODEL-06** — Parsed `Hl7Message` is immutable by default; mutation is possible only via explicit methods (`setField`, `addSegment`, `removeSegment`).
 - [ ] **MODEL-07** — `msg.setField('PID.8', 'F')` updates a field; `msg.addSegment('NTE', [...])` and `msg.removeSegment(...)` mutate the message; all are reflected in subsequent reads and serialization.
 
@@ -193,11 +193,11 @@ Every v1 REQ-ID maps to exactly one phase in `ROADMAP.md`. 97/97 mapped.
 | TOL-08 | Phase 2 — Core Parser & Tolerance | Pending |
 | TOL-09 | Phase 2 — Core Parser & Tolerance | Pending |
 | TOL-10 | Phase 2 — Core Parser & Tolerance | Complete (02-04) |
-| MODEL-01 | Phase 3 — Structural Model & Types | Pending |
-| MODEL-02 | Phase 3 — Structural Model & Types | Pending |
-| MODEL-03 | Phase 3 — Structural Model & Types | Pending |
-| MODEL-04 | Phase 3 — Structural Model & Types | Pending |
-| MODEL-05 | Phase 3 — Structural Model & Types | Pending |
+| MODEL-01 | Phase 3 — Structural Model & Types | Complete (Plan 01) |
+| MODEL-02 | Phase 3 — Structural Model & Types | Complete (Plan 01) |
+| MODEL-03 | Phase 3 — Structural Model & Types | Complete (Plan 01) |
+| MODEL-04 | Phase 3 — Structural Model & Types | Complete (Plan 01) |
+| MODEL-05 | Phase 3 — Structural Model & Types | Complete (Plan 01) |
 | MODEL-06 | Phase 3 — Structural Model & Types | Pending |
 | MODEL-07 | Phase 3 — Structural Model & Types | Pending |
 | TYPES-01 | Phase 3 — Structural Model & Types | Pending |

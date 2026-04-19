@@ -72,7 +72,7 @@ Plans:
   4. A developer importing the library receives typed interfaces for XPN, XAD, CX, CWE/CE, XTN, PL, TS/DTM, NM, and HD, and can parse a TS/DTM string into a JS `Date` (with `undefined` for unparseable input and raw string always accessible).
 **Plans**: 4 plans
 Plans:
-- [ ] 03-PLAN-01-read-path-foundation.md — Dot-path tokenizer/resolver, Segment + Field wrappers, Hl7Message.get/getAll/segments/allSegments with wrapper caches
+- [x] 03-PLAN-01-read-path-foundation.md — Dot-path tokenizer/resolver, Segment + Field wrappers, Hl7Message.get/getAll/segments/allSegments with wrapper caches
 - [ ] 03-PLAN-02-composites-person-address-identifier.md — Composite parsers XPN, XAD, CX, CWE, CE, HD + shared helpers
 - [ ] 03-PLAN-03-composites-telecom-location-timestamp-numeric.md — Composite parsers XTN, PL, TS/DTM (delegates to parseHl7Timestamp), NM
 - [ ] 03-PLAN-04-mutation-and-barrel.md — Field.asXxx coercions, setField/addSegment/removeSegment, HL7 namespace barrel + src/index.ts final exports
