@@ -39,6 +39,9 @@ import type {
   Visit,
 } from "../helpers/types.js";
 import { buildVisit } from "../helpers/visit.js";
+import { emitPrettyPrint } from "../serialize/pretty-print.js";
+import { emitJson, type SerializedMessage } from "../serialize/to-json.js";
+import { emitMessage } from "../serialize/to-string.js";
 
 /**
  * HL7 segment-name shape: 3 characters, first an uppercase ASCII letter,
@@ -416,6 +419,77 @@ export class Hl7Message {
    */
   public insurance(): readonly Insurance[] {
     return walkInsurance(this);
+  }
+
+  /**
+   * Emit this message as spec-clean HL7 (SER-01). Re-walks `rawSegments`
+   * on every call (D-30 no caching). Segments are joined with `\r` per
+   * D-05; MSH-1 and MSH-2 are inlined verbatim from
+   * `this.encodingCharacters` per D-06; every field string passes through
+   * `reescape` per D-04. `RawField.isNull === true` is preserved as the
+   * HL7 literal `""` (D-02). Pure — never warns, never throws (D-07).
+   *
+   * @example
+   * ```ts
+   * import { parseHL7 } from "@cosyte/hl7-parser";
+   * const msg = parseHL7(raw);
+   * console.log(msg.toString()); // spec-clean, CR-separated HL7
+   * ```
+   */
+  public toString(): string {
+    return emitMessage(this);
+  }
+
+  /**
+   * Emit this message as a structured `SerializedMessage` JSON projection
+   * (SER-03). Invoked automatically by `JSON.stringify(msg)` (D-18).
+   * Re-walks `rawSegments` on every call (D-30 no caching). Mirrors the
+   * raw tree one-for-one, preserves `isNull`, always includes
+   * `warnings: []`, and includes `profile: { name, lineage }` only when
+   * `this.profile` is truthy (D-19/D-20). Pure — never warns, never throws.
+   *
+   * @example
+   * ```ts
+   * import { parseHL7 } from "@cosyte/hl7-parser";
+   * const msg = parseHL7(raw);
+   * const snap = msg.toJSON();
+   * console.log(snap.segments[0]?.name); // "MSH"
+   * console.log(JSON.stringify(msg));     // same content, auto-invokes toJSON
+   * ```
+   */
+  public toJSON(): SerializedMessage {
+    return emitJson(this);
+  }
+
+  /**
+   * Emit this message as a human-readable multi-line string for logs and
+   * debugging (SER-04). Single opinionated format (D-22 no options):
+   * header line with type / controlId / timestamp / segment count, then
+   * one line per segment with labeled `[N]=value` fields (D-23). Composite
+   * values render as their raw HL7 string — depth stops at field level
+   * (D-24). Pure — never warns, never throws (D-26).
+   *
+   * **Field values render as their raw HL7 string representation.**
+   * Embedded delimiters in user data appear as escape sequences — e.g.
+   * a patient family name containing `|` renders as `Smith\F\Jones`
+   * (NOT `Smith|Jones`). This preserves round-trip fidelity: copy-pasting
+   * prettyPrint output into `parseHL7` yields a structurally equivalent
+   * message. For un-escaped human display, parse the composite first via
+   * typed accessors (e.g. `msg.patient?.familyName`) — those return
+   * already-decoded strings.
+   *
+   * @example
+   * ```ts
+   * import { parseHL7 } from "@cosyte/hl7-parser";
+   * const msg = parseHL7(raw);
+   * console.log(msg.prettyPrint());
+   * // HL7 ADT^A01  controlId=MSG001  timestamp=2026-04-19T10:15:00Z  (5 segments)
+   * // MSH  [3]=SENDAPP  [4]=SENDFAC  ...
+   * // PID  [1]=1  [3]=MRN123  [5]=Doe^John
+   * ```
+   */
+  public prettyPrint(): string {
+    return emitPrettyPrint(this);
   }
 
   /**

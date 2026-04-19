@@ -119,3 +119,14 @@ export type {
 // hooks can substitute a profile-aware variant without patching the helper
 // that calls it (D-07/D-08/D-10 default; Phase 6 hook-point).
 export { pickMrn } from "./helpers/pick-mrn.js";
+
+// Phase 5: outbound construction + serialization types.
+// D-09: `buildMessage` is a top-level named export, symmetric with `parseHL7`.
+// D-21: `SerializedMessage` is a top-level type export (not under the HL7
+// namespace — that namespace is composite-type territory).
+// The three emit methods (`toString`, `toJSON`, `prettyPrint`) land as
+// instance methods on the already-exported `Hl7Message` class — no new
+// named exports needed for them.
+export { buildMessage } from "./builder/build-message.js";
+export type { BuildMessageInit } from "./builder/build-message.js";
+export type { SerializedMessage } from "./serialize/to-json.js";
