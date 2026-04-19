@@ -1,3 +1,16 @@
+---
+gsd_state_version: 1.0
+milestone: v2.1
+milestone_name: milestone
+status: "Plan 04 (capstone) executed. All 10 `.asXxx()` composite coercions wired on Field (XPN/XAD/CX/CWE/CE/XTN/PL/TS/NM/HD) with shared EMPTY_REP fallback. Hl7Message gains setField/addSegment/removeSegment mutation API — chainable (D-15), cache-invalidating (D-17 wholesale), warnings-preserving (D-16), with D-18/D-19 validation. HL7 namespace barrel + named-exports shipped via `src/index.ts` + new `src/model/types/namespace.ts` + `src/model/types/index.ts`. MODEL-06, MODEL-07, TYPES-02 CLOSED. Bug fix [Rule 1]: Segment.field() needed the user-facing MSH offset symmetric with dot-path resolver (MSH.3 → fields[2]); previously untested at the wrapper level. 327/327 tests passing across 31 files; typecheck + lint + build all green."
+last_updated: "2026-04-19T14:16:25.152Z"
+progress:
+  total_phases: 8
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 15
+---
+
 # @cosyte/hl7-parser — STATE
 
 Project memory for session-to-session continuity. Updated at phase/plan boundaries.
@@ -119,7 +132,7 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 - **Last action:** `/gsd-execute-phase 3` completed 2026-04-18. All 4 plans shipped across 3 waves (sequential on main, no worktrees — wave-2 had read-dep). 327/327 tests green; typecheck + lint + build all pass. Verifier produced `03-VERIFICATION.md` with status=passed, 4/4 success criteria verified, 11/11 REQ-IDs (MODEL-01..07, TYPES-01..04) satisfied.
 - **Next action:** `/gsd-validate-phase 3` for Nyquist coverage audit, then `/gsd-discuss-phase 4` or `/gsd-plan-phase 4` for named helpers (HELPERS-01..07). ⚠ Phase 1 & 2 verification gates (`/gsd-verify-work 1`, `/gsd-validate-phase 1`, `/gsd-verify-work 2`, `/gsd-validate-phase 2`) are still open.
 - **Open questions:** (none added this plan). Phase 8's README Error Handling section should document the strict-mode `err.code` widening (carry-over from Phase 2).
-- **Resume file:** `.planning/phases/03-structural-model-and-types/03-VERIFICATION.md`
+- **Resume file:** .planning/phases/04-named-helpers/04-CONTEXT.md
 
 ---
 
