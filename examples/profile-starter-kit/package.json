@@ -1,7 +1,7 @@
 {
   "name": "@{{YOUR_ORG}}/hl7-profile-{{PROFILE_NAME}}",
   "version": "0.1.0",
-  "description": "HL7 profile package for {{YOUR_ORG}} integrations, built with @cosyte/hl7-parser.",
+  "description": "HL7 profile package for {{YOUR_ORG}} integrations, built with @cosyte/hl7.",
   "license": "MIT",
   "type": "module",
   "engines": {
@@ -36,15 +36,15 @@
     "prepublishOnly": "pnpm typecheck && pnpm lint && pnpm test && pnpm build"
   },
   "peerDependencies": {
-    "@cosyte/hl7-parser": ">=0.1.0"
+    "@cosyte/hl7": ">=0.1.0"
   },
   "peerDependenciesMeta": {
-    "@cosyte/hl7-parser": {
+    "@cosyte/hl7": {
       "optional": false
     }
   },
   "devDependencies": {
-    "@cosyte/hl7-parser": "file:../..",
+    "@cosyte/hl7": "file:../..",
     "@types/node": "^20.11.0",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",

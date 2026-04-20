@@ -2,7 +2,7 @@ import { defineConfig } from "tsup";
 
 /**
  * tsup config for the profile starter kit. Dual ESM+CJS build matching
- * the peer @cosyte/hl7-parser surface.
+ * the peer @cosyte/hl7 surface.
  */
 export default defineConfig({
   entry: ["src/index.ts"],

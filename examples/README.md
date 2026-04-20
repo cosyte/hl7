@@ -1,7 +1,7 @@
 # Examples
 
 Three runnable TypeScript scripts that demonstrate the one-line-extraction
-value prop of `@cosyte/hl7-parser`. Each example reads a synthetic HL7
+value prop of `@cosyte/hl7`. Each example reads a synthetic HL7
 fixture from `examples/data/`, calls the library, and prints labeled
 human-readable output via `console.log`. Run them from the repo root with
 `pnpm tsx examples/<file>.ts`, or run all three at once via

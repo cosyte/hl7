@@ -18,7 +18,7 @@
 
 import { readFileSync } from "node:fs";
 
-import { parseHL7 } from "@cosyte/hl7-parser";
+import { parseHL7 } from "@cosyte/hl7";
 
 const raw = readFileSync("examples/data/oru-r01-lab.hl7", "utf8");
 const msg = parseHL7(raw);

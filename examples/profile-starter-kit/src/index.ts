@@ -8,7 +8,7 @@
  * Customize by following CUSTOMIZING.md.
  */
 
-import { defineProfile, profiles } from "@cosyte/hl7-parser";
+import { defineProfile, profiles } from "@cosyte/hl7";
 
 /**
  * Sample profile exported by this starter kit. Swap the identifier
@@ -17,7 +17,7 @@ import { defineProfile, profiles } from "@cosyte/hl7-parser";
  *
  * @example
  * ```ts
- * import { parseHL7 } from "@cosyte/hl7-parser";
+ * import { parseHL7 } from "@cosyte/hl7";
  * import { MyProfile } from "@{{YOUR_ORG}}/hl7-profile-{{PROFILE_NAME}}";
  *
  * const msg = parseHL7(raw, MyProfile);

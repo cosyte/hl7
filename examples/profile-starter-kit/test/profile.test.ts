@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 import { describe, expect, it } from "vitest";
-import { parseHL7 } from "@cosyte/hl7-parser";
+import { parseHL7 } from "@cosyte/hl7";
 
 import { MyProfile } from "../src/index.js";
 

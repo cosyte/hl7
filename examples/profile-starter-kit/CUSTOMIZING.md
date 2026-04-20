@@ -22,14 +22,14 @@ Replace the placeholders with your real values.
 `README.md`, `LICENSE`, `CUSTOMIZING.md` (this file — leave it alone or
 delete after reading).
 
-Also update the `@cosyte/hl7-parser` entry under `devDependencies` in
+Also update the `@cosyte/hl7` entry under `devDependencies` in
 `package.json`. The starter-kit default is `"file:../.."` so the kit can
-build inside the parent `@cosyte/hl7-parser` repo; your downstream package
+build inside the parent `@cosyte/hl7` repo; your downstream package
 should pin a published version instead:
 
 ```json
 "devDependencies": {
-  "@cosyte/hl7-parser": "^0.1.0"
+  "@cosyte/hl7": "^0.1.0"
 }
 ```
 
@@ -146,4 +146,4 @@ npm view @{{YOUR_ORG}}/hl7-profile-{{PROFILE_NAME}} version
 ---
 
 Questions or bug reports → open an issue against
-[`@cosyte/hl7-parser`](https://github.com/cosyte/hl7-parser/issues).
+[`@cosyte/hl7`](https://github.com/cosyte/hl7-parser/issues).
