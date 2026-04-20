@@ -16,7 +16,7 @@ North star: **A developer can parse a real-world, vendor-quirky HL7 v2 message a
 - [x] **Phase 3: Structural Model & Types** — Expose the parsed message as an immutable, dot-path-accessible model with typed composite types (XPN, XAD, TS/DTM, etc.). (completed 2026-04-18)
 - [x] **Phase 4: Named Helpers** — Ship the one-line DX: `msg.meta`, `msg.patient`, `msg.visit`, `msg.observations()`, and friends. (completed 2026-04-19, verified 2026-04-19)
 - [x] **Phase 5: Serialization & Round-Trip** — `toString()`, `toJSON()`, `prettyPrint()`, and `buildMessage()` produce spec-clean HL7 and preserve semantics across parse → mutate → serialize → parse. (completed 2026-04-19, verified 2026-04-19)
-- [ ] **Phase 6: Profile System & Built-ins** — `defineProfile()` API with merge/extend semantics plus 5 built-in vendor profiles (epic, cerner, meditech, athena, genericLab).
+- [x] **Phase 6: Profile System & Built-ins** — `defineProfile()` API with merge/extend semantics plus 5 built-in vendor profiles (epic, cerner, meditech, athena, genericLab). *(completed 2026-04-19)*
 - [ ] **Phase 7: Testing Hardening & Fixtures** — Canonical, edge-case, vendor-quirk, strict-mode, and profile-authoring test suites that verify ≥ 90% coverage on core modules.
 - [ ] **Phase 8: Examples, Starter Kit & Documentation** — Three runnable examples, publishable profile starter kit, and the complete README + ancillary docs.
 
@@ -184,11 +184,11 @@ Within each phase, plans that touch disjoint modules may run in parallel; plans 
 | 2. Core Parser & Tolerance | 0/6 | Planned | — |
 | 3. Structural Model & Types | 4/4 | Complete (pending verify) | 2026-04-19 |
 | 4. Named Helpers | 4/4 | Complete (verified) | 2026-04-19 |
-| 5. Serialization & Round-Trip | 3/5 | In progress | Plans 01 + 02 + 03 done 2026-04-19 |
-| 6. Profile System & Built-ins | 5/6 | In progress | Plans 01-05 done 2026-04-19 |
+| 5. Serialization & Round-Trip | 5/5 | Complete (verified) | 2026-04-19 |
+| 6. Profile System & Built-ins | 6/6 | Complete (verified) | 2026-04-19 |
 | 7. Testing Hardening & Fixtures | 0/0 | Not started | — |
 | 8. Examples, Starter Kit & Documentation | 0/0 | Not started | — |
 
 ---
 
-*Last updated: 2026-04-19 (Phase 6 Plan 05 complete — 5 built-in vendor profiles shipped via public defineProfile() API + 5 synthetic CR-terminated vendor-shape fixtures. BIP-01..05 closed. 2ed522f (5 profile src files) + a7e243e (5 vendor-shape fixtures); 1 Rule-3 auto-fix (jsdoc/require-jsdoc on export const declarations). 724/724 tests green (unchanged — plan adds no tests per scope; BIP-06 fixture-parity tests land in Plan 06-06). Next: /gsd-execute-phase 6 Plan 06 — profiles barrel + public exports + BIP-06 fixture-parity tests.)*
+*Last updated: 2026-04-19 (Phase 6 COMPLETE + VERIFIED — all 6 plans landed across 5 waves; verifier PASSED 5/5 ROADMAP success criteria and 15/15 REQ-IDs (PROF-01..09 + BIP-01..06). 753/753 tests green (+129 from 624 baseline); typecheck + lint --max-warnings=0 + dual ESM/CJS build all clean. Key deliverables: defineProfile factory (06-01), extends merge semantics with lineage dedupe + dateFormats concat + onWarning chain (06-02), Segment.get(name) + UNKNOWN_SEGMENT emit/suppression + D-22 makeEmitter hoist (06-03), setDefaultProfile/getDefaultProfile + D-19 3-branch dispatch (06-04), 5 built-in vendor profiles (epic, cerner, meditech, athena, genericLab) via public API + 5 synthetic fixtures (06-05), profiles barrel + Phase 6 public exports + BIP-06 fixture-parity tests (06-06). D-21, D-22, D-26 all honored. Next: /gsd-validate-phase 6 (Nyquist), then Phase 7 — Testing Hardening & Fixtures.)*
