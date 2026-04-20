@@ -243,13 +243,13 @@ Every v1 REQ-ID maps to exactly one phase in `ROADMAP.md`. 97/97 mapped.
 | EX-01 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
 | EX-02 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
 | EX-03 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
-| KIT-01 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
-| KIT-02 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
-| KIT-03 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
-| KIT-04 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
-| KIT-05 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
-| KIT-06 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
-| KIT-07 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
+| KIT-01 | Phase 8 — Examples, Starter Kit & Documentation | Closed (Plan 08-02 — examples/profile-starter-kit/ subtree with package.json + tsconfig.json + tsup.config.ts + vitest.config.ts + eslint.config.js + .prettierrc.json + sample src/index.ts + test/profile.test.ts + test/fixtures/sample.hl7) |
+| KIT-02 | Phase 8 — Examples, Starter Kit & Documentation | Closed (Plan 08-02 — `pnpm install --no-frozen-lockfile && pnpm test` green inside the kit; 4/4 assertions pass against ZAL sample fixture) |
+| KIT-03 | Phase 8 — Examples, Starter Kit & Documentation | Closed (Plan 08-02 — `pnpm build` produces dist/index.mjs + dist/index.cjs + dist/index.d.ts matching the exports map) |
+| KIT-04 | Phase 8 — Examples, Starter Kit & Documentation | Closed (Plan 08-02 — .github/workflows/ci.yml push/PR + .github/workflows/publish.yml workflow_dispatch-only with NODE_AUTH_TOKEN scoped to single step; both actionlint-clean) |
+| KIT-05 | Phase 8 — Examples, Starter Kit & Documentation | Closed (Plan 08-02 — package.json has peerDependencies.@cosyte/hl7-parser + publishConfig.access:public + files:["dist","README.md","LICENSE","CUSTOMIZING.md"] + no top-level dependencies block + prepublishOnly chains typecheck→lint→test→build) |
+| KIT-06 | Phase 8 — Examples, Starter Kit & Documentation | Closed (Plan 08-02 — CUSTOMIZING.md walks through 5 numbered steps: rename → swap base profile → define Z-segments → write fixtures → publish; each step closes with a runnable Verify block) |
+| KIT-07 | Phase 8 — Examples, Starter Kit & Documentation | Closed (Plan 08-02 — `{{YOUR_ORG}}` + `{{PROFILE_NAME}}` + `MyProfile` placeholder triple appears consistently across package.json + src/ + test/ + README.md + LICENSE + CUSTOMIZING.md; kit's ci.yml runs green with placeholders intact — no rename required for verification) |
 | DOC-01 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
 | DOC-02 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
 | DOC-03 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
