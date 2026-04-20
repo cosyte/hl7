@@ -1,6 +1,6 @@
 /**
- * SER-02 round-trip structural-equivalence sweep. For each of 5 canonical
- * fixtures, asserts:
+ * SER-02 round-trip structural-equivalence sweep. For each canonical
+ * fixture under `test/fixtures/canonical/`, asserts:
  *   - `parseHL7(fixture)` succeeds.
  *   - `parseHL7(parseHL7(fixture).toString()).rawSegments` deeply equals
  *     `parseHL7(fixture).rawSegments` (D-03 structural — not byte —
@@ -8,14 +8,14 @@
  *   - `parseHL7(emitted).toString() === emitted` byte-for-byte (D-03
  *     idempotency from the second pass).
  *
- * Also covers specific preservation checks:
- *   - null-fields: RawField.isNull === true survives the round-trip.
- *   - embedded-delimiters: all 5 HL7 escape forms round-trip (raw tree holds
- *     DECODED subcomponents per Phase 2 tokenize unescape-on-parse; emit
- *     re-escapes back to wire form).
- *   - decoded-br: `\.br\` in OBX-5 emits back as `\.br\` (reescape translates
- *     literal `\n` -> `\.br\`).
- *   - oru-r01-repetitions: `~`-separated repetition count is preserved.
+ * Also covers specific preservation checks for the 3 migrated edge-case
+ * fixtures (null-fields, embedded-delimiters, decoded-br — now under
+ * `test/fixtures/edge-cases/` per Phase 7 Plan 01 D-08), plus the
+ * oru-r01 repetition-count check and the adt-a01 segment-roster check.
+ *
+ * The shared `assertStructuralRoundTrip` helper is extracted to
+ * `test/_helpers/structural-equivalence.ts` (D-19) so canonical-messages
+ * (Plan 02) and any future round-trip-checking test can import it.
  */
 
 import { readFileSync } from "node:fs";
@@ -26,29 +26,26 @@ import { describe, expect, it } from "vitest";
 
 import { parseHL7 } from "../src/index.js";
 
+import { assertStructuralRoundTrip } from "./_helpers/structural-equivalence.js";
+
 const FIXTURE_DIR = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
   "fixtures",
-  "round-trip",
+  "canonical",
+);
+
+const EDGE_CASE_DIR = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "fixtures",
+  "edge-cases",
 );
 
 function loadFixture(name: string): string {
   return readFileSync(path.join(FIXTURE_DIR, `${name}.hl7`), "utf8");
 }
 
-/**
- * SER-02 structural-equivalence helper.
- * D-03: compares `rawSegments` trees + `encodingCharacters` deeply. Byte
- * equivalence is NOT asserted on the first pass — MLLP / BOM / CRLF /
- * custom-delimiter inputs may emit a different (spec-clean) string on the
- * first pass but structurally equivalent when re-parsed.
- */
-function assertStructuralRoundTrip(raw: string): void {
-  const original = parseHL7(raw);
-  const emitted = original.toString();
-  const roundTripped = parseHL7(emitted);
-  expect(roundTripped.rawSegments).toEqual(original.rawSegments);
-  expect(roundTripped.encodingCharacters).toEqual(original.encodingCharacters);
+function loadEdgeCaseFixture(name: string): string {
+  return readFileSync(path.join(EDGE_CASE_DIR, `${name}.hl7`), "utf8");
 }
 
 /**
@@ -60,13 +57,7 @@ function assertIdempotency(raw: string): void {
   expect(twice).toBe(once);
 }
 
-const FIXTURES = [
-  "canonical-adt-a01",
-  "oru-r01-repetitions",
-  "null-fields",
-  "embedded-delimiters",
-  "decoded-br",
-] as const;
+const FIXTURES = ["adt-a01", "oru-r01"] as const;
 
 describe("round-trip: SER-02 structural-equivalence sweep", () => {
   for (const name of FIXTURES) {
@@ -82,7 +73,7 @@ describe("round-trip: SER-02 structural-equivalence sweep", () => {
 
 describe("round-trip: specific preservation checks", () => {
   it("null-fields preserves RawField.isNull === true through round-trip", () => {
-    const raw = loadFixture("null-fields");
+    const raw = loadEdgeCaseFixture("null-fields");
     const original = parseHL7(raw);
     const roundTripped = parseHL7(original.toString());
     // PID-2, PID-9, PID-10 are "" nulls in the fixture.
@@ -101,7 +92,7 @@ describe("round-trip: specific preservation checks", () => {
   });
 
   it("embedded-delimiters preserves all 5 escape forms through round-trip", () => {
-    const raw = loadFixture("embedded-delimiters");
+    const raw = loadEdgeCaseFixture("embedded-delimiters");
     const original = parseHL7(raw);
     const roundTripped = parseHL7(original.toString());
     // Structural equivalence: same raw tree after re-parse.
@@ -135,7 +126,7 @@ describe("round-trip: specific preservation checks", () => {
   });
 
   it("decoded-br emits \\n positions back as \\.br\\ on emit", () => {
-    const raw = loadFixture("decoded-br");
+    const raw = loadEdgeCaseFixture("decoded-br");
     const original = parseHL7(raw);
     const emitted = original.toString();
     // After emit, OBX-5 should contain \.br\ (NOT literal \n) because
@@ -152,8 +143,8 @@ describe("round-trip: specific preservation checks", () => {
     assertStructuralRoundTrip(raw);
   });
 
-  it("oru-r01-repetitions preserves ~-separated repetition count", () => {
-    const raw = loadFixture("oru-r01-repetitions");
+  it("oru-r01 preserves ~-separated repetition count", () => {
+    const raw = loadFixture("oru-r01");
     const original = parseHL7(raw);
     const roundTripped = parseHL7(original.toString());
     // PID-3 has 2 repetitions (MRN ~ SSN) in the fixture.
@@ -168,8 +159,8 @@ describe("round-trip: specific preservation checks", () => {
     expect(obxRound.length).toBe(3);
   });
 
-  it("canonical-adt-a01 structural round-trip produces identical rawSegments tree", () => {
-    const raw = loadFixture("canonical-adt-a01");
+  it("adt-a01 structural round-trip produces identical rawSegments tree", () => {
+    const raw = loadFixture("adt-a01");
     const original = parseHL7(raw);
     const roundTripped = parseHL7(original.toString());
     // Deep structural equivalence on the whole tree.
