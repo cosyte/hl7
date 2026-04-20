@@ -17,7 +17,7 @@ North star: **A developer can parse a real-world, vendor-quirky HL7 v2 message a
 - [x] **Phase 4: Named Helpers** — Ship the one-line DX: `msg.meta`, `msg.patient`, `msg.visit`, `msg.observations()`, and friends. (completed 2026-04-19, verified 2026-04-19)
 - [x] **Phase 5: Serialization & Round-Trip** — `toString()`, `toJSON()`, `prettyPrint()`, and `buildMessage()` produce spec-clean HL7 and preserve semantics across parse → mutate → serialize → parse. (completed 2026-04-19, verified 2026-04-19)
 - [x] **Phase 6: Profile System & Built-ins** — `defineProfile()` API with merge/extend semantics plus 5 built-in vendor profiles (epic, cerner, meditech, athena, genericLab). *(completed 2026-04-19)*
-- [ ] **Phase 7: Testing Hardening & Fixtures** — Canonical, edge-case, vendor-quirk, strict-mode, and profile-authoring test suites that verify ≥ 90% coverage on core modules.
+- [x] **Phase 7: Testing Hardening & Fixtures** — Canonical, edge-case, vendor-quirk, strict-mode, and profile-authoring test suites that verify ≥ 90% coverage on core modules. *(completed 2026-04-19)*
 - [ ] **Phase 8: Examples, Starter Kit & Documentation** — Three runnable examples, publishable profile starter kit, and the complete README + ancillary docs.
 
 ---
@@ -150,7 +150,7 @@ Plans:
 - [x] 07-03-PLAN.md — Author 11 edge-case fixtures + parser-edge-cases.test.ts (TEST-03) *(completed 2026-04-20 — commits ad4964a + a934437; 789/789 tests green; TEST-03 closed)*
 - [x] 07-04-PLAN.md — Author 13 vendor-quirks fixtures (one per WARNING_CODES entry) + parser-strict-mode-sweep.test.ts (TEST-05 + TEST-06) *(completed 2026-04-20 — commits f718c10 + 7f714e6; 815/815 tests green + 14 todo; TEST-05 + TEST-06 closed; 6 codes emit today, 7 have factories but no parser call site tracked via it.todo)*
 - [x] 07-05-PLAN.md — Author 4 malformed fixtures (one per FATAL_CODES entry) + parser-malformed-sweep.test.ts (TEST-04) *(completed 2026-04-19 — commits 7110694 + 0490069; 824/824 tests green + 14 todo; TEST-04 closed; each fixture asserts throw+code+position+snippet in lenient & strict modes)*
-- [ ] 07-06-PLAN.md — Tighten vitest.config.ts coverage gate (branches 85→90) + add CI coverage step (TEST-01) — capstone
+- [x] 07-06-PLAN.md — Tighten vitest.config.ts coverage gate (branches 85→90) + add CI coverage step (TEST-01) — capstone *(completed 2026-04-19 — commits d263222 + c66af76; Scenario A: per-dir branches 85→90 on parser/model/helpers/serialize/builder, global kept at 85 to avoid implicitly gating ungated profiles/**; CI `Test (with coverage)` step added between Test and Build across Node 18/20/22 matrix; pnpm test:coverage exit 0; actionlint clean; TEST-01 closed — all 8 Phase 7 REQ-IDs now closed)*
 - [x] 07-07-PLAN.md — TEST-08 audit + targeted gap patches in profiles-*.test.ts + TEST-07 confirmation (TEST-07 + TEST-08) *(completed 2026-04-19 — commit 6f17863; audit mapped all 8 TEST-08 cases to existing Phase 6 tests with 0 gaps; TEST-07 confirmed closed by Phase 6 BIP-06; 824/824 tests green + 14 todo — zero test-file deltas)*
 **UI hint**: no
 

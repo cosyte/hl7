@@ -99,7 +99,7 @@ All requirements are user-facing behaviors a developer consuming `@cosyte/hl7-pa
 
 ### Testing & Fixtures (TEST)
 
-- [ ] **TEST-01** — `pnpm test --coverage` reports ≥ 90% line coverage on `src/parser/`, `src/model/`, `src/helpers/`.
+- [x] **TEST-01** — `pnpm test --coverage` reports ≥ 90% line coverage on `src/parser/`, `src/model/`, `src/helpers/`. _(Closed 2026-04-19 by Plan 07-06 — branch threshold tightened 85 -> 90 on five per-dir entries in `vitest.config.ts` (parser/model/helpers + Phase-5 serialize/builder). Final numbers: parser 91.66% / model 90.26% / helpers 95.60% / serialize 92.85% / builder 93.54% branches; lines/funcs/statements all ≥ 97.27%. `.github/workflows/ci.yml` gains a `Test (with coverage)` step invoking `pnpm test:coverage` across Node 18/20/22 matrix — coverage regression fails the build on every PR.)_
 - [x] **TEST-02** — Canonical fixtures exist and round-trip losslessly for: ADT^A01, ADT^A04, ADT^A08, ORU^R01, ORM^O01, SIU^S12, MDM^T02, at least one with Z-segments, at least one with repeating fields, at least one with nested subcomponents.
 - [x] **TEST-03** — Edge-case fixtures cover: CR/LF/CRLF/mixed line endings, trailing newline and none, empty and null fields, consecutive delimiters, unknown escapes, custom MSH delimiters, `\.br\` multi-line OBX values, Unicode, missing optional segments.
 - [x] **TEST-04** — Malformed messages throw `Hl7ParseError` with descriptive position/snippet (missing MSH, truncated MSH, invalid encoding chars, empty input). _(Closed 2026-04-19 by Plan 07-05 — 4 fixtures under `test/fixtures/malformed/` (one per `FATAL_CODES` entry) + `test/parser-malformed-sweep.test.ts` parameterized `describe.each` over `readdirSync`. Each fixture asserts `parseHL7` throws `Hl7ParseError` with `err.code` matching `fileToCode(filename)` and `err.position` + `err.snippet` defined per TOL-02, in BOTH lenient and strict mode (Tier-3 mode-independence).)_
@@ -232,7 +232,7 @@ Every v1 REQ-ID maps to exactly one phase in `ROADMAP.md`. 97/97 mapped.
 | BIP-04 | Phase 6 — Profile System & Built-ins | Closed (Plan 05 — src/profiles/athena.ts via public defineProfile() API) |
 | BIP-05 | Phase 6 — Profile System & Built-ins | Closed (Plan 05 — src/profiles/genericLab.ts via public defineProfile() API) |
 | BIP-06 | Phase 6 — Profile System & Built-ins | Closed (Plan 06 — test/profiles-builtins.test.ts per-vendor warning-reduction + round-trip) |
-| TEST-01 | Phase 7 — Testing Hardening & Fixtures | Pending |
+| TEST-01 | Phase 7 — Testing Hardening & Fixtures | Closed (Plan 07-06 — vitest branches 85→90 on 5 per-dir entries + `Test (with coverage)` step added to `.github/workflows/ci.yml` running `pnpm test:coverage` across Node 18/20/22) |
 | TEST-02 | Phase 7 — Testing Hardening & Fixtures | Closed (Plan 07-02 — 9 canonical fixtures + test/canonical-messages.test.ts sweep) |
 | TEST-03 | Phase 7 — Testing Hardening & Fixtures | Closed (Plan 07-03 — 14 edge-case fixtures + test/parser-edge-cases.test.ts with 15 explicit per-scenario it() blocks) |
 | TEST-04 | Phase 7 — Testing Hardening & Fixtures | Closed (Plan 07-05 — 4 malformed fixtures + test/parser-malformed-sweep.test.ts parameterized sweep; asserts throw+code+position+snippet in lenient & strict modes) |
