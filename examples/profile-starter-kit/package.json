@@ -1,0 +1,57 @@
+{
+  "name": "@{{YOUR_ORG}}/hl7-profile-{{PROFILE_NAME}}",
+  "version": "0.1.0",
+  "description": "HL7 profile package for {{YOUR_ORG}} integrations, built with @cosyte/hl7-parser.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CUSTOMIZING.md"
+  ],
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint \"src/**/*.ts\" \"test/**/*.ts\" --max-warnings=0",
+    "test": "vitest run",
+    "prepublishOnly": "pnpm typecheck && pnpm lint && pnpm test && pnpm build"
+  },
+  "peerDependencies": {
+    "@cosyte/hl7-parser": ">=0.1.0"
+  },
+  "peerDependenciesMeta": {
+    "@cosyte/hl7-parser": {
+      "optional": false
+    }
+  },
+  "devDependencies": {
+    "@cosyte/hl7-parser": "file:../..",
+    "@types/node": "^20.11.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.3.0",
+    "vitest": "^1.2.0"
+  }
+}
