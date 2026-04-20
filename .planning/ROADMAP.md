@@ -149,7 +149,7 @@ Plans:
 - [x] 07-02-PLAN.md — Author 7 canonical fixtures (adt-a04/a08, orm-o01, siu-s12, mdm-t02, z-segments, nested-subcomponents) + canonical-messages.test.ts (TEST-02) *(completed 2026-04-20 — commits 956aae2 + 17954b1; 774/774 tests green; TEST-02 closed)*
 - [x] 07-03-PLAN.md — Author 11 edge-case fixtures + parser-edge-cases.test.ts (TEST-03) *(completed 2026-04-20 — commits ad4964a + a934437; 789/789 tests green; TEST-03 closed)*
 - [x] 07-04-PLAN.md — Author 13 vendor-quirks fixtures (one per WARNING_CODES entry) + parser-strict-mode-sweep.test.ts (TEST-05 + TEST-06) *(completed 2026-04-20 — commits f718c10 + 7f714e6; 815/815 tests green + 14 todo; TEST-05 + TEST-06 closed; 6 codes emit today, 7 have factories but no parser call site tracked via it.todo)*
-- [ ] 07-05-PLAN.md — Author 4 malformed fixtures (one per FATAL_CODES entry) + parser-malformed-sweep.test.ts (TEST-04)
+- [x] 07-05-PLAN.md — Author 4 malformed fixtures (one per FATAL_CODES entry) + parser-malformed-sweep.test.ts (TEST-04) *(completed 2026-04-19 — commits 7110694 + 0490069; 824/824 tests green + 14 todo; TEST-04 closed; each fixture asserts throw+code+position+snippet in lenient & strict modes)*
 - [ ] 07-06-PLAN.md — Tighten vitest.config.ts coverage gate (branches 85→90) + add CI coverage step (TEST-01) — capstone
 - [ ] 07-07-PLAN.md — TEST-08 audit + targeted gap patches in profiles-*.test.ts + TEST-07 confirmation (TEST-07 + TEST-08)
 **UI hint**: no
@@ -194,7 +194,7 @@ Within each phase, plans that touch disjoint modules may run in parallel; plans 
 | 4. Named Helpers | 4/4 | Complete (verified) | 2026-04-19 |
 | 5. Serialization & Round-Trip | 5/5 | Complete (verified) | 2026-04-19 |
 | 6. Profile System & Built-ins | 6/6 | Complete (verified) | 2026-04-19 |
-| 7. Testing Hardening & Fixtures | 3/7 | In Progress (Wave 2 — TEST-02 + TEST-03 closed) | — |
+| 7. Testing Hardening & Fixtures | 5/7 | In Progress (Wave 2 complete — TEST-02 + TEST-03 + TEST-04 + TEST-05 + TEST-06 closed) | — |
 | 8. Examples, Starter Kit & Documentation | 0/0 | Not started | — |
 
 ---
