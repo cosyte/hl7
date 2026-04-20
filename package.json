@@ -1,6 +1,6 @@
 {
   "name": "@cosyte/hl7-parser",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Developer-focused HL7 v2 parser and utility library for Node.js and TypeScript.",
   "keywords": [
     "hl7",
@@ -58,6 +58,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "clean": "rm -rf dist coverage",
+    "examples": "tsx scripts/run-examples.ts",
     "prepublishOnly": "pnpm clean && pnpm typecheck && pnpm lint && pnpm test && pnpm build"
   },
   "devDependencies": {
@@ -70,6 +71,7 @@
     "eslint-plugin-jsdoc": "^48.0.0",
     "prettier": "^3.2.0",
     "tsup": "^8.0.0",
+    "tsx": "^4.0.0",
     "typescript": "^5.3.0",
     "vitest": "^1.2.0"
   },
