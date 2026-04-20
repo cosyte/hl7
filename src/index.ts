@@ -130,3 +130,27 @@ export { pickMrn } from "./helpers/pick-mrn.js";
 export { buildMessage } from "./builder/build-message.js";
 export type { BuildMessageInit } from "./builder/build-message.js";
 export type { SerializedMessage } from "./serialize/to-json.js";
+
+// Phase 6: profile system + built-in vendor profiles.
+// D-26: defineProfile / setDefaultProfile / getDefaultProfile are top-level
+// values; built-ins are exposed under the `profiles` namespace object, not
+// as top-level named exports (`epic` is too generic a name for a top-level
+// export).
+export {
+  defineProfile,
+  setDefaultProfile,
+  getDefaultProfile,
+  profiles,
+} from "./profiles/index.js";
+export type {
+  DefineProfileOptions,
+  CustomSegmentDefinition,
+} from "./profiles/index.js";
+
+// Plan 01 additive: SUPPORTED_DATE_TOKENS re-export so profile authors can
+// introspect valid date-format tokens without reaching into internals.
+export { SUPPORTED_DATE_TOKENS } from "./parser/dates.js";
+
+// Plan 03 additive: KNOWN_SEGMENTS re-export so advanced consumers can
+// inspect the UNKNOWN_SEGMENT detection set (read-only).
+export { KNOWN_SEGMENTS } from "./parser/known-segments.js";
