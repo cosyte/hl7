@@ -100,7 +100,7 @@ All requirements are user-facing behaviors a developer consuming `@cosyte/hl7-pa
 ### Testing & Fixtures (TEST)
 
 - [ ] **TEST-01** — `pnpm test --coverage` reports ≥ 90% line coverage on `src/parser/`, `src/model/`, `src/helpers/`.
-- [ ] **TEST-02** — Canonical fixtures exist and round-trip losslessly for: ADT^A01, ADT^A04, ADT^A08, ORU^R01, ORM^O01, SIU^S12, MDM^T02, at least one with Z-segments, at least one with repeating fields, at least one with nested subcomponents.
+- [x] **TEST-02** — Canonical fixtures exist and round-trip losslessly for: ADT^A01, ADT^A04, ADT^A08, ORU^R01, ORM^O01, SIU^S12, MDM^T02, at least one with Z-segments, at least one with repeating fields, at least one with nested subcomponents.
 - [ ] **TEST-03** — Edge-case fixtures cover: CR/LF/CRLF/mixed line endings, trailing newline and none, empty and null fields, consecutive delimiters, unknown escapes, custom MSH delimiters, `\.br\` multi-line OBX values, Unicode, missing optional segments.
 - [ ] **TEST-04** — Malformed messages throw `Hl7ParseError` with descriptive position/snippet (missing MSH, truncated MSH, invalid encoding chars, empty input).
 - [ ] **TEST-05** — `test/fixtures/vendor-quirks/` contains at least one fixture per Tier 2 scenario listed in the spec, each verified to emit the expected warning and still parse in lenient mode.
@@ -233,7 +233,7 @@ Every v1 REQ-ID maps to exactly one phase in `ROADMAP.md`. 97/97 mapped.
 | BIP-05 | Phase 6 — Profile System & Built-ins | Closed (Plan 05 — src/profiles/genericLab.ts via public defineProfile() API) |
 | BIP-06 | Phase 6 — Profile System & Built-ins | Closed (Plan 06 — test/profiles-builtins.test.ts per-vendor warning-reduction + round-trip) |
 | TEST-01 | Phase 7 — Testing Hardening & Fixtures | Pending |
-| TEST-02 | Phase 7 — Testing Hardening & Fixtures | Pending |
+| TEST-02 | Phase 7 — Testing Hardening & Fixtures | Closed (Plan 07-02 — 9 canonical fixtures + test/canonical-messages.test.ts sweep) |
 | TEST-03 | Phase 7 — Testing Hardening & Fixtures | Pending |
 | TEST-04 | Phase 7 — Testing Hardening & Fixtures | Pending |
 | TEST-05 | Phase 7 — Testing Hardening & Fixtures | Pending |
