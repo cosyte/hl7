@@ -1,7 +1,7 @@
 import { defineConfig } from "tsup";
 
 /**
- * tsup build configuration for @cosyte/hl7-parser.
+ * tsup build configuration for @cosyte/hl7.
  *
  * Produces dual-format output matching the `exports` map in package.json:
  *   - dist/index.mjs   (ESM, consumed via the `import` condition)

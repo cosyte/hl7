@@ -1,7 +1,7 @@
 import { defineConfig } from "vitest/config";
 
 /**
- * Vitest configuration for @cosyte/hl7-parser.
+ * Vitest configuration for @cosyte/hl7.
  *
  * Phase 1 ships a minimal test surface (just a sanity test) but declares
  * coverage thresholds now so Phase 7 only has to flip `enabled: true` on

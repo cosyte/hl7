@@ -1,10 +1,10 @@
-# @cosyte/hl7-parser — Project Guide for Claude
+# @cosyte/hl7 — Project Guide for Claude
 
 This repo is managed with the **GSD (Get Shit Done)** workflow. Planning artifacts live in `.planning/` and are committed with the code.
 
 ## Project
 
-**`@cosyte/hl7-parser`** — a developer-focused HL7 v2 parser + utility library for Node.js/TypeScript, published under the Cosyte brand. Open-source (MIT).
+**`@cosyte/hl7`** — a developer-focused HL7 v2 parser + utility library for Node.js/TypeScript, published under the Cosyte brand. Open-source (MIT).
 
 **North star:** A developer can parse a real-world, vendor-quirky HL7 v2 message and pull useful fields out in one line — without reading the HL7 spec.
 

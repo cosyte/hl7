@@ -1,4 +1,4 @@
-# Contributing to @cosyte/hl7-parser
+# Contributing to @cosyte/hl7
 
 Thanks for considering a contribution. This library grows faster when
 real integration teams surface vendor quirks, ship profiles for the
@@ -118,9 +118,9 @@ npm package. The starter kit produces a ready-to-publish scaffold.
    or run `pnpm publish --access public` from your laptop.
 
 Your profile will install as
-`@yourorg/hl7-profile-name` alongside `@cosyte/hl7-parser` as a peer.
+`@yourorg/hl7-profile-name` alongside `@cosyte/hl7` as a peer.
 
 ---
 
 Questions? Open an issue at
-[github.com/cosyte/hl7-parser/issues](https://github.com/cosyte/hl7-parser/issues).
+[github.com/cosyte/hl7/issues](https://github.com/cosyte/hl7/issues).

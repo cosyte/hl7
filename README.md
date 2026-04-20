@@ -1,9 +1,9 @@
-# @cosyte/hl7-parser
+# @cosyte/hl7
 
 > Parse real-world, vendor-quirky HL7 v2 messages and extract the fields you need in one line — without reading the spec.
 
-[![npm version](https://img.shields.io/npm/v/@cosyte/hl7-parser.svg)](https://www.npmjs.com/package/@cosyte/hl7-parser)
-[![CI](https://img.shields.io/github/actions/workflow/status/cosyte/hl7-parser/ci.yml?branch=main&label=CI)](https://github.com/cosyte/hl7-parser/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/@cosyte/hl7.svg)](https://www.npmjs.com/package/@cosyte/hl7)
+[![CI](https://img.shields.io/github/actions/workflow/status/cosyte/hl7/ci.yml?branch=main&label=CI)](https://github.com/cosyte/hl7/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](https://nodejs.org)
 
@@ -16,12 +16,12 @@ A developer-focused HL7 v2 parser and utility library for Node.js and TypeScript
 Three lines of useful output after install + parse. No HL7 spec knowledge required.
 
 ```bash
-# pnpm (recommended) — also works with: npm install @cosyte/hl7-parser  |  yarn add @cosyte/hl7-parser
-pnpm add @cosyte/hl7-parser
+# pnpm (recommended) — also works with: npm install @cosyte/hl7  |  yarn add @cosyte/hl7
+pnpm add @cosyte/hl7
 ```
 
 ```ts
-import { parseHL7 } from "@cosyte/hl7-parser";
+import { parseHL7 } from "@cosyte/hl7";
 
 const msg = parseHL7(rawHL7);
 console.log(msg.patient?.fullName); // "John Q. Doe"
@@ -78,7 +78,7 @@ Three ways to reach into a parsed message, each optimised for a different use ca
 Typed views over the common-case data. Zero HL7 literacy required.
 
 ```ts
-import { parseHL7 } from "@cosyte/hl7-parser";
+import { parseHL7 } from "@cosyte/hl7";
 
 const msg = parseHL7(raw);
 
@@ -97,7 +97,7 @@ Use these for the 90% case. Helpers return `undefined` (not throws) when the und
 String paths following HL7's own `SEG.field.component.subcomponent` convention. Indices are 1-based to match the spec.
 
 ```ts
-import { parseHL7 } from "@cosyte/hl7-parser";
+import { parseHL7 } from "@cosyte/hl7";
 
 const msg = parseHL7(raw);
 
@@ -114,7 +114,7 @@ Reach for dot-paths when you want a specific field the helpers don't surface —
 Walk the segment/field/component/subcomponent tree directly. For advanced extractors, round-trip edits, and anything the other two patterns don't cover.
 
 ```ts
-import { parseHL7 } from "@cosyte/hl7-parser";
+import { parseHL7 } from "@cosyte/hl7";
 
 const msg = parseHL7(raw);
 
@@ -133,14 +133,14 @@ Every level (segment / field / repetition / component / subcomponent) is address
 
 ## Cookbook
 
-Runnable recipes for the tasks developers hit most often. Every snippet imports from `@cosyte/hl7-parser` and uses APIs exported from [`src/index.ts`](./src/index.ts). Keep them short; lean on the named-helper surface first.
+Runnable recipes for the tasks developers hit most often. Every snippet imports from `@cosyte/hl7` and uses APIs exported from [`src/index.ts`](./src/index.ts). Keep them short; lean on the named-helper surface first.
 
 ### Patient demographics
 
 Reach for the `msg.patient` helper for the name/MRN/DOB trio that covers 95% of demographic extractions.
 
 ```ts
-import { parseHL7 } from "@cosyte/hl7-parser";
+import { parseHL7 } from "@cosyte/hl7";
 
 const msg = parseHL7(raw);
 const p = msg.patient;
@@ -159,7 +159,7 @@ console.log(p?.address?.city);   // XAD composite
 Iterate `msg.observations()` for the flat-list view of every `OBX` segment, regardless of whether they're grouped under an `OBR`.
 
 ```ts
-import { parseHL7 } from "@cosyte/hl7-parser";
+import { parseHL7 } from "@cosyte/hl7";
 
 const msg = parseHL7(raw);
 
@@ -176,7 +176,7 @@ Observations are discriminated by `valueType` (`"NM"` -> number, `"TS"`/`"DT"` -
 The `msg.visit` helper surfaces `PV1` data including the `PL` (Person Location) composite — ward / room / bed / facility in one go.
 
 ```ts
-import { parseHL7 } from "@cosyte/hl7-parser";
+import { parseHL7 } from "@cosyte/hl7";
 
 const msg = parseHL7(raw);
 const loc = msg.visit?.location;
@@ -194,7 +194,7 @@ console.log(loc?.facility?.namespaceId); // "MAIN"
 `setField` mutates the positional tree in-place; `toString()` emits spec-clean HL7 (Postel's Law). See [`examples/modify-and-resend.ts`](./examples/modify-and-resend.ts) for the end-to-end script.
 
 ```ts
-import { parseHL7 } from "@cosyte/hl7-parser";
+import { parseHL7 } from "@cosyte/hl7";
 
 const msg = parseHL7(raw);
 
@@ -212,7 +212,7 @@ const outbound = msg.toString();                   // spec-clean HL7 wire format
 `msg.allergies()` walks every `AL1` segment and returns a typed list.
 
 ```ts
-import { parseHL7 } from "@cosyte/hl7-parser";
+import { parseHL7 } from "@cosyte/hl7";
 
 const msg = parseHL7(raw);
 
@@ -229,7 +229,7 @@ Fields are parsed into their spec-typed shapes (`code` is a `CWE` composite, `on
 A profile is plain data: a name, optional extra `dateFormats`, and a `customSegments` map of Z-segment declarations. The record shape maps a caller-visible field name to its 1-indexed HL7 position.
 
 ```ts
-import { defineProfile, parseHL7 } from "@cosyte/hl7-parser";
+import { defineProfile, parseHL7 } from "@cosyte/hl7";
 
 const myProfile = defineProfile({
   name: "myhospital",
@@ -251,7 +251,7 @@ Pass the profile as the second argument to `parseHL7`; afterwards, `seg.get("fie
 `extends` layers one profile on top of another. Use it to add hospital-specific Z-segments on top of a vendor baseline.
 
 ```ts
-import { defineProfile, profiles, parseHL7 } from "@cosyte/hl7-parser";
+import { defineProfile, profiles, parseHL7 } from "@cosyte/hl7";
 
 const myEpic = defineProfile({
   name: "my-epic",
@@ -272,7 +272,7 @@ Date formats concatenate (deduped), `customSegments` deep-merge per key, `onWarn
 Pass an array to `extends` to merge multiple parents. Useful when combining a vendor profile with a market-specific overlay (e.g. Epic + reference-lab conventions).
 
 ```ts
-import { defineProfile, profiles, parseHL7 } from "@cosyte/hl7-parser";
+import { defineProfile, profiles, parseHL7 } from "@cosyte/hl7";
 
 const combined = defineProfile({
   name: "epic-plus-lab",
@@ -311,7 +311,7 @@ import {
   profiles,
   setDefaultProfile,
   getDefaultProfile,
-} from "@cosyte/hl7-parser";
+} from "@cosyte/hl7";
 
 setDefaultProfile(profiles.epic);
 console.log(getDefaultProfile()?.name); // "epic"
@@ -329,7 +329,7 @@ The default is scoped to the current Node process — not shared across workers,
 HL7's canonical `YYYYMMDDHHmmss` format parses with zero warnings. Everything else — vendor-quirky `MM/DD/YYYY`, ISO `YYYY-MM-DD`, legacy `YYYYMMDD HHmm` — parses via the `dateFormats` option, which tries each format in order.
 
 ```ts
-import { parseHL7 } from "@cosyte/hl7-parser";
+import { parseHL7 } from "@cosyte/hl7";
 
 const msg = parseHL7(raw, {
   dateFormats: ["MM/DD/YYYY HH:mm:ss", "MM/DD/YYYY", "YYYY-MM-DD"],
@@ -345,7 +345,7 @@ When a fallback format wins, the parser emits a `TIMESTAMP_FALLBACK_FORMAT` warn
 MLLP (Minimum Lower Layer Protocol) wraps HL7 messages in VT / FS / CR bytes for TCP transport. The parser strips them by default and emits a `MLLP_FRAMING_STRIPPED` warning so you know preprocessing happened.
 
 ```ts
-import { parseHL7, WARNING_CODES } from "@cosyte/hl7-parser";
+import { parseHL7, WARNING_CODES } from "@cosyte/hl7";
 
 const msg = parseHL7(mllpFramed);
 const framed = msg.warnings.some(
@@ -368,7 +368,7 @@ Batch files (FHS/BHS/BTS/FTS envelopes around multiple messages) are **not suppo
 `msg.meta` exposes MSH-9 pre-decomposed into its three components — use them instead of parsing the raw string.
 
 ```ts
-import { parseHL7 } from "@cosyte/hl7-parser";
+import { parseHL7 } from "@cosyte/hl7";
 
 const msg = parseHL7(raw);
 
@@ -389,7 +389,7 @@ Matching on `messageCode` + `triggerEvent` is more robust than string-equals on 
 `msg.prettyPrint()` returns a multi-line, labeled view of the positional tree — useful for dev-time debugging and log snapshots.
 
 ```ts
-import { parseHL7 } from "@cosyte/hl7-parser";
+import { parseHL7 } from "@cosyte/hl7";
 
 const msg = parseHL7(raw);
 console.log(msg.prettyPrint());
@@ -416,7 +416,7 @@ Profiles are the growth loop. Built-ins cover the common vendor patterns; real i
 `defineProfile({ name, customSegments, dateFormats, onWarning, description })` returns a frozen `Profile` object. `customSegments` is a record mapping segment name -> `{ fields: { aliasName: 1-indexedPosition } }`.
 
 ```ts
-import { defineProfile, type CustomSegmentDefinition } from "@cosyte/hl7-parser";
+import { defineProfile, type CustomSegmentDefinition } from "@cosyte/hl7";
 
 const zdp: CustomSegmentDefinition = {
   fields: { departmentCode: 3, departmentName: 4 },
@@ -437,7 +437,7 @@ Invalid input (missing name, malformed Z-segment name, unsupported date tokens, 
 Use `extends` to layer profiles. Single parent or array of parents, both supported.
 
 ```ts
-import { defineProfile, profiles } from "@cosyte/hl7-parser";
+import { defineProfile, profiles } from "@cosyte/hl7";
 
 const myEpic = defineProfile({
   name: "my-epic",
@@ -472,7 +472,7 @@ The merge is validated post-hoc: duplicate field names across merged segments th
 Every `defineProfile()` result carries a `.describe()` method and an introspectable `lineage` array — useful for debugging which layers contributed what.
 
 ```ts
-import { defineProfile, profiles } from "@cosyte/hl7-parser";
+import { defineProfile, profiles } from "@cosyte/hl7";
 
 const p = defineProfile({
   name: "my-epic",
@@ -520,7 +520,7 @@ Every deviation the parser encounters is classified into one of four tiers:
 Tier-2 warnings are plain data attached to `msg.warnings`. Every warning carries a stable string `code`, a human-readable `message`, and a `position` with 1-indexed `segmentIndex`/`fieldIndex`/etc. so you can programmatically react to specific deviations:
 
 ```ts
-import { parseHL7 } from "@cosyte/hl7-parser";
+import { parseHL7 } from "@cosyte/hl7";
 
 const msg = parseHL7(raw);
 for (const w of msg.warnings) {
@@ -545,7 +545,7 @@ The library throws exactly three error types, all exported from the package barr
 Thrown by `parseHL7` when the input hits one of the 4 Tier-3 fatal codes (see above). Carries positional context plus a short snippet of the offending input.
 
 ```ts
-import { parseHL7, Hl7ParseError, FATAL_CODES } from "@cosyte/hl7-parser";
+import { parseHL7, Hl7ParseError, FATAL_CODES } from "@cosyte/hl7";
 
 try {
   parseHL7("");
@@ -570,7 +570,7 @@ if (err instanceof Hl7ParseError && err.code === FATAL_CODES.NO_MSH_SEGMENT) {
 Tier-2 deviations — plain data, not thrown. Accumulated on `msg.warnings` and delivered to any `onWarning` callback in parse order. See the iteration example in [Real-World Tolerance](#real-world-tolerance).
 
 ```ts
-import type { Hl7ParseWarning, WarningCode } from "@cosyte/hl7-parser";
+import type { Hl7ParseWarning, WarningCode } from "@cosyte/hl7";
 
 function label(w: Hl7ParseWarning): string {
   const c: WarningCode = w.code;
@@ -589,7 +589,7 @@ Use the `WarningCode` union + `switch` for exhaustive handling — the type syst
 Thrown by `defineProfile()` when the options are structurally invalid. Covers the four failure modes locked by the profile system:
 
 ```ts
-import { defineProfile, ProfileDefinitionError } from "@cosyte/hl7-parser";
+import { defineProfile, ProfileDefinitionError } from "@cosyte/hl7";
 
 try {
   defineProfile({
