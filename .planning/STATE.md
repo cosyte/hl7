@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: milestone
 status: executing
-last_updated: "2026-04-19T23:56:49Z"
+last_updated: "2026-04-20T00:10:00Z"
 progress:
   total_phases: 8
   completed_phases: 0
   total_plans: 6
-  completed_plans: 29
+  completed_plans: 30
   percent: 100
 ---
 
@@ -27,14 +27,14 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 
 ## Current Position
 
-Phase: 6 (Profile System & Built-ins) — EXECUTING
-Plan: 6 of 6 (Plans 06-01, 06-02, 06-03, 06-04, 06-05 DONE)
+Phase: 6 (Profile System & Built-ins) — EXECUTION COMPLETE
+Plan: 6 of 6 DONE (all 6 plans complete; pending /gsd-verify-work 6 + /gsd-validate-phase 6)
 
 - **Milestone:** v1
-- **Phase:** 6 — Profile System & Built-ins (PLANNED; 6 plans across 5 waves; ready to execute). Phase 5 still pending /gsd-verify-work 5 + /gsd-validate-phase 5.
-- **Plans:** 6 plans — 06-01 defineProfile core + validation + describe + types (Wave 1); 06-02 extends merge semantics (Wave 2, parallel with 06-03); 06-03 Segment.get + UNKNOWN_SEGMENT emit/suppression + D-22 makeEmitter hoist (Wave 2); 06-04 default-profile management (Wave 3); 06-05 5 built-in vendor profiles + fixtures (Wave 4); 06-06 barrel + public exports + BIP-06 fixture-parity tests (Wave 5). Phase 5 plans (all DONE): 01 scaffold-emit-field-and-method-wiring; 02 to-string-and-round-trip; 03 to-json; 04 pretty-print; 05 build-message.
-- **Status:** Executing Phase 6
-- **Progress:** 2/8 phases verified; 4/4 Phase 1 + 6/6 Phase 2 + 4/4 Phase 3 + 4/4 Phase 4 + 5/5 Phase 5 plans complete
+- **Phase:** 6 — Profile System & Built-ins (EXECUTION COMPLETE; all 6 plans done across 5 waves). Phase 5 + Phase 6 both pending /gsd-verify-work + /gsd-validate-phase.
+- **Plans:** 6 plans — 06-01 defineProfile core + validation + describe + types (Wave 1) DONE; 06-02 extends merge semantics (Wave 2, parallel with 06-03) DONE; 06-03 Segment.get + UNKNOWN_SEGMENT emit/suppression + D-22 makeEmitter hoist (Wave 2) DONE; 06-04 default-profile management (Wave 3) DONE; 06-05 5 built-in vendor profiles + fixtures (Wave 4) DONE; 06-06 barrel + public exports + BIP-06 fixture-parity tests (Wave 5) DONE. Phase 5 plans (all DONE): 01 scaffold-emit-field-and-method-wiring; 02 to-string-and-round-trip; 03 to-json; 04 pretty-print; 05 build-message.
+- **Status:** Phase 6 execution complete
+- **Progress:** 2/8 phases verified; 4/4 Phase 1 + 6/6 Phase 2 + 4/4 Phase 3 + 4/4 Phase 4 + 5/5 Phase 5 + 6/6 Phase 6 plans complete
 
 ```
 [████████░░░░░░░░░░░░] 25%   (2 / 8 phases verified; Phase 5 execution complete — 5 / 5 plans done, pending verify + Nyquist)
@@ -43,9 +43,9 @@ Plan: 6 of 6 (Plans 06-01, 06-02, 06-03, 06-04, 06-05 DONE)
 ## Performance Metrics
 
 - **Phases completed:** 2 (Phase 3 verified 2026-04-18; Phase 4 verified 2026-04-19; Phases 1 & 2 plans done but pending verifier + Nyquist; Phase 3 Nyquist still pending; Phase 5 execution complete — all 5 plans done, pending verify + Nyquist)
-- **Plans completed:** 29 (4 Phase-1 + 6 Phase-2 + 4 Phase-3 + 4 Phase-4 + 5 Phase-5 + 5 Phase-6 plans)
-- **REQ-IDs validated:** 60 / 97 (SETUP-01..06 + PARSE-01..09 + TOL-01..10 + MODEL-01..07 + TYPES-01..04 + SER-01..06 + PROF-01/02/03/04/05/06/07/08/09 + BIP-01/02/03/04/05). All 7 MODEL + all 4 TYPES + all 6 SER requirements closed after Plan 05; PROF-01/04/05 + PROF-07 (types only) closed after Plan 06-01; PROF-03 (extends merge semantics) closed after Plan 06-02; PROF-02 (customSegments shape enforced) + PROF-06 (profile attribution + D-22 chain) + PROF-07 (Segment.get runtime) + PROF-09 (round-trip agnostic) closed after Plan 06-03; PROF-08 (default-profile management + D-19 dispatch) closed after Plan 06-04; BIP-01..05 (5 built-in vendor profiles shipped via public defineProfile() API) closed after Plan 06-05 (BIP-06 fixture-parity assertions + barrel pending Plan 06-06). Phase 7 will confirm via the coverage sweep + vendor-quirks fixtures.
-- **Known coverage:** Phase 1 sanity 2/2. Phase 2 (Plans 01–06): full suite 123/123 passing. Phase 3 Plans 01 + 02 + 03 + 04: 327 tests. Phase 4 Plans 01-04: 459 tests. Phase 5 Plan 01: +29 tests (serialize-emit-field). Phase 5 Plan 02: +38 tests (23 serialize-to-string + 15 round-trip sweep). Phase 5 Plan 03: +23 tests (serialize-to-json across 8 decision blocks). Phase 5 Plan 04: +29 tests (serialize-pretty-print across 6 decision blocks). Phase 5 Plan 05: +40 tests (9 builder-format-timestamp + 8 builder-control-id + 23 builder integration). Phase 6 Plan 01: +35 tests (profiles-define across 9 describe blocks — SUPPORTED_DATE_TOKENS + happy-path + D-05/07/08 validation + name + describe() + frozen). Phase 6 Plan 02: +21 tests (profiles-extends across 7 describe blocks — D-03 lineage + D-10 dateFormats + D-11 customSegments + D-09 scalars + D-12 onWarning chain + D-05 rogue parent + frozen + describe-lineage). Phase 6 Plan 03: +32 tests (23 profiles-custom-segments across 5 describe blocks — Segment.get + UNKNOWN_SEGMENT emit/suppression + D-21 merged dateFormats + PROF-09 round-trip + backward-compat; 9 profiles-onwarning-chain D-22 tests — ordering + reference identity + throw-isolation × 2 + strict short-circuit + multi-warning invariant + Option A early-pipeline MLLP coverage). Plan 06-04: +13 tests (profiles-default across 4 describe blocks — basic wiring + D-19 dispatch + D-20 effects equivalence + afterEach test-isolation contract). Total: 724/724 passing across 54 test files (+13 from Plan 03 baseline of 711). Coverage enforcement starts in Phase 7 via `pnpm test:coverage`; per-directory thresholds for `src/serialize/**` and `src/builder/**` declared in Plan 5-01.
+- **Plans completed:** 30 (4 Phase-1 + 6 Phase-2 + 4 Phase-3 + 4 Phase-4 + 5 Phase-5 + 6 Phase-6 plans)
+- **REQ-IDs validated:** 61 / 97 (SETUP-01..06 + PARSE-01..09 + TOL-01..10 + MODEL-01..07 + TYPES-01..04 + SER-01..06 + PROF-01/02/03/04/05/06/07/08/09 + BIP-01/02/03/04/05/06). All 7 MODEL + all 4 TYPES + all 6 SER requirements closed after Plan 05; PROF-01/04/05 + PROF-07 (types only) closed after Plan 06-01; PROF-03 (extends merge semantics) closed after Plan 06-02; PROF-02 (customSegments shape enforced) + PROF-06 (profile attribution + D-22 chain) + PROF-07 (Segment.get runtime) + PROF-09 (round-trip agnostic) closed after Plan 06-03; PROF-08 (default-profile management + D-19 dispatch) closed after Plan 06-04; BIP-01..05 (5 built-in vendor profiles shipped via public defineProfile() API) closed after Plan 06-05; BIP-06 (per-vendor fixture-parity warning-reduction assertions + public barrel) closed after Plan 06-06. Phase 6 execution COMPLETE; phase 7 will add coverage sweep + vendor-quirks fixtures.
+- **Known coverage:** Phase 1 sanity 2/2. Phase 2 (Plans 01–06): full suite 123/123 passing. Phase 3 Plans 01 + 02 + 03 + 04: 327 tests. Phase 4 Plans 01-04: 459 tests. Phase 5 Plan 01: +29 tests (serialize-emit-field). Phase 5 Plan 02: +38 tests (23 serialize-to-string + 15 round-trip sweep). Phase 5 Plan 03: +23 tests (serialize-to-json across 8 decision blocks). Phase 5 Plan 04: +29 tests (serialize-pretty-print across 6 decision blocks). Phase 5 Plan 05: +40 tests (9 builder-format-timestamp + 8 builder-control-id + 23 builder integration). Phase 6 Plan 01: +35 tests (profiles-define across 9 describe blocks — SUPPORTED_DATE_TOKENS + happy-path + D-05/07/08 validation + name + describe() + frozen). Phase 6 Plan 02: +21 tests (profiles-extends across 7 describe blocks — D-03 lineage + D-10 dateFormats + D-11 customSegments + D-09 scalars + D-12 onWarning chain + D-05 rogue parent + frozen + describe-lineage). Phase 6 Plan 03: +32 tests (23 profiles-custom-segments across 5 describe blocks — Segment.get + UNKNOWN_SEGMENT emit/suppression + D-21 merged dateFormats + PROF-09 round-trip + backward-compat; 9 profiles-onwarning-chain D-22 tests — ordering + reference identity + throw-isolation × 2 + strict short-circuit + multi-warning invariant + Option A early-pipeline MLLP coverage). Plan 06-04: +13 tests (profiles-default across 4 describe blocks — basic wiring + D-19 dispatch + D-20 effects equivalence + afterEach test-isolation contract). Plan 06-06: +29 tests (profiles-builtins across 7 describe blocks — D-26 public surface × 5 + per-vendor BIP-06 fixture parity × 5 vendors + D-28 cross-profile smoke + PROF-09 round-trip byte-equivalence). Total: 753/753 passing across 55 test files (+29 from Plan 04 baseline of 724). Coverage enforcement starts in Phase 7 via `pnpm test:coverage`; per-directory thresholds for `src/serialize/**` and `src/builder/**` declared in Plan 5-01.
 
 | Phase | Plan | Duration | Tasks | Files |
 |-------|------|----------|-------|-------|
@@ -75,6 +75,7 @@ Plan: 6 of 6 (Plans 06-01, 06-02, 06-03, 06-04, 06-05 DONE)
 | 6 | 03 segment-get-and-unknown-segment-and-D22-hoist | 10 min | 4 + 2 Rule-1 inline fixes (discriminateOptionsOrProfile narrowed to truly-options-only keys + test-scope adjustment for TIMESTAMP_FALLBACK_FORMAT warning which requires eager MSH-7 parse outside Plan 06-03 scope) | 4 created (known-segments.ts + 2 test files + SUMMARY), 4 modified src (segment.ts, message.ts, parser/index.ts, helpers/meta.ts) |
 | 6 | 04 default-profile-management | 3 min | 2 (both TDD) — ZERO deviations | 3 created (src/profiles/default.ts, test/profiles-default.test.ts, SUMMARY), 1 modified (src/parser/index.ts Step 6.5 + 1 new import) |
 | 6 | 05 built-in-vendor-profiles-and-fixtures | 4 min | 2 + 1 Rule-3 auto-fix (jsdoc/require-jsdoc on `export const <vendor>` — added export-adjacent JSDoc block alongside file-header block) | 11 created (5 src/profiles/<vendor>.ts + 5 test/fixtures/vendor-shapes/**/*.hl7 + 1 SUMMARY), 0 modified |
+| 6 | 06 barrel-and-fixture-tests | 3 min | 2 + 1 Rule-1 test-assertion fix (athena ZCA providerName — fixture stops at field 5 so assertion updated to exercise D-14 undefined-for-out-of-range contract instead) | 3 created (src/profiles/index.ts + test/profiles-builtins.test.ts + SUMMARY), 1 modified (src/index.ts Phase 6 block appended) |
 
 ## Accumulated Context
 

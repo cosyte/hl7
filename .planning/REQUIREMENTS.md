@@ -95,7 +95,7 @@ All requirements are user-facing behaviors a developer consuming `@cosyte/hl7-pa
 - [x] **BIP-03** — `profiles.meditech` ships and is authored via the public `defineProfile()` API. (closed Phase 6 Plan 05 — src/profiles/meditech.ts with `YYYYMMDDHHmm` minute-precision + customSegments ZVI)
 - [x] **BIP-04** — `profiles.athena` ships and is authored via the public `defineProfile()` API. (closed Phase 6 Plan 05 — src/profiles/athena.ts with `MM/DD/YYYY` + customSegments ZCA; AM/PM meridian variant dropped per SUPPORTED_DATE_TOKENS set)
 - [x] **BIP-05** — `profiles.genericLab` ships and is authored via the public `defineProfile()` API. (closed Phase 6 Plan 05 — src/profiles/genericLab.ts with ASTM-era `YYYYMMDD HHmm` + ISO date-only + customSegments ZLB/ZNT)
-- [ ] **BIP-06** — Each built-in profile reduces warnings on a realistic vendor-shape fixture versus lenient mode without a profile.
+- [x] **BIP-06** — Each built-in profile reduces warnings on a realistic vendor-shape fixture versus lenient mode without a profile. (closed Phase 6 Plan 06 — test/profiles-builtins.test.ts asserts `UNKNOWN_SEGMENT` absent with profile for declared Z-segments across all 5 vendors + cross-profile smoke `withP.warnings.length <= without.warnings.length`)
 
 ### Testing & Fixtures (TEST)
 
@@ -231,7 +231,7 @@ Every v1 REQ-ID maps to exactly one phase in `ROADMAP.md`. 97/97 mapped.
 | BIP-03 | Phase 6 — Profile System & Built-ins | Closed (Plan 05 — src/profiles/meditech.ts via public defineProfile() API) |
 | BIP-04 | Phase 6 — Profile System & Built-ins | Closed (Plan 05 — src/profiles/athena.ts via public defineProfile() API) |
 | BIP-05 | Phase 6 — Profile System & Built-ins | Closed (Plan 05 — src/profiles/genericLab.ts via public defineProfile() API) |
-| BIP-06 | Phase 6 — Profile System & Built-ins | Pending |
+| BIP-06 | Phase 6 — Profile System & Built-ins | Closed (Plan 06 — test/profiles-builtins.test.ts per-vendor warning-reduction + round-trip) |
 | TEST-01 | Phase 7 — Testing Hardening & Fixtures | Pending |
 | TEST-02 | Phase 7 — Testing Hardening & Fixtures | Pending |
 | TEST-03 | Phase 7 — Testing Hardening & Fixtures | Pending |
