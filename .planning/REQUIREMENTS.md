@@ -90,11 +90,11 @@ All requirements are user-facing behaviors a developer consuming `@cosyte/hl7-pa
 
 ### Built-in Profiles (BIP)
 
-- [ ] **BIP-01** — `profiles.epic` ships and is authored via the public `defineProfile()` API.
-- [ ] **BIP-02** — `profiles.cerner` ships and is authored via the public `defineProfile()` API.
-- [ ] **BIP-03** — `profiles.meditech` ships and is authored via the public `defineProfile()` API.
-- [ ] **BIP-04** — `profiles.athena` ships and is authored via the public `defineProfile()` API.
-- [ ] **BIP-05** — `profiles.genericLab` ships and is authored via the public `defineProfile()` API.
+- [x] **BIP-01** — `profiles.epic` ships and is authored via the public `defineProfile()` API. (closed Phase 6 Plan 05 — src/profiles/epic.ts with dateFormats `["MM/DD/YYYY HH:mm:ss", "MM/DD/YYYY"]` + customSegments ZDP/ZRS; barrel access as `profiles.epic` lands in Plan 06-06)
+- [x] **BIP-02** — `profiles.cerner` ships and is authored via the public `defineProfile()` API. (closed Phase 6 Plan 05 — src/profiles/cerner.ts with ISO-8601-T + ISO date-only formats + customSegments ZDS/ZCO)
+- [x] **BIP-03** — `profiles.meditech` ships and is authored via the public `defineProfile()` API. (closed Phase 6 Plan 05 — src/profiles/meditech.ts with `YYYYMMDDHHmm` minute-precision + customSegments ZVI)
+- [x] **BIP-04** — `profiles.athena` ships and is authored via the public `defineProfile()` API. (closed Phase 6 Plan 05 — src/profiles/athena.ts with `MM/DD/YYYY` + customSegments ZCA; AM/PM meridian variant dropped per SUPPORTED_DATE_TOKENS set)
+- [x] **BIP-05** — `profiles.genericLab` ships and is authored via the public `defineProfile()` API. (closed Phase 6 Plan 05 — src/profiles/genericLab.ts with ASTM-era `YYYYMMDD HHmm` + ISO date-only + customSegments ZLB/ZNT)
 - [ ] **BIP-06** — Each built-in profile reduces warnings on a realistic vendor-shape fixture versus lenient mode without a profile.
 
 ### Testing & Fixtures (TEST)
@@ -226,11 +226,11 @@ Every v1 REQ-ID maps to exactly one phase in `ROADMAP.md`. 97/97 mapped.
 | PROF-07 | Phase 6 — Profile System & Built-ins | Closed (types Plan 01; runtime Segment.get Plan 03) |
 | PROF-08 | Phase 6 — Profile System & Built-ins | Closed (Plan 04 — setDefaultProfile/getDefaultProfile + parseHL7 Step 6.5 3-branch D-19 discrimination) |
 | PROF-09 | Phase 6 — Profile System & Built-ins | Closed (Plan 03 — toString() profile-agnostic round-trip anchored by test) |
-| BIP-01 | Phase 6 — Profile System & Built-ins | Pending |
-| BIP-02 | Phase 6 — Profile System & Built-ins | Pending |
-| BIP-03 | Phase 6 — Profile System & Built-ins | Pending |
-| BIP-04 | Phase 6 — Profile System & Built-ins | Pending |
-| BIP-05 | Phase 6 — Profile System & Built-ins | Pending |
+| BIP-01 | Phase 6 — Profile System & Built-ins | Closed (Plan 05 — src/profiles/epic.ts via public defineProfile() API) |
+| BIP-02 | Phase 6 — Profile System & Built-ins | Closed (Plan 05 — src/profiles/cerner.ts via public defineProfile() API) |
+| BIP-03 | Phase 6 — Profile System & Built-ins | Closed (Plan 05 — src/profiles/meditech.ts via public defineProfile() API) |
+| BIP-04 | Phase 6 — Profile System & Built-ins | Closed (Plan 05 — src/profiles/athena.ts via public defineProfile() API) |
+| BIP-05 | Phase 6 — Profile System & Built-ins | Closed (Plan 05 — src/profiles/genericLab.ts via public defineProfile() API) |
 | BIP-06 | Phase 6 — Profile System & Built-ins | Pending |
 | TEST-01 | Phase 7 — Testing Hardening & Fixtures | Pending |
 | TEST-02 | Phase 7 — Testing Hardening & Fixtures | Pending |

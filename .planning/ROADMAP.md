@@ -129,7 +129,7 @@ Plans:
 - [x] 06-02-PLAN.md — extends + merge semantics (lineage, dateFormats, customSegments, onWarning chain; PROF-03)
 - [x] 06-03-PLAN.md — Segment.get(name) + UNKNOWN_SEGMENT emit/suppression + D-21 merged dateFormats plumbing + D-22 onWarning chain hoist (PROF-02/06/07/09)
 - [x] 06-04-PLAN.md — setDefaultProfile/getDefaultProfile + parseHL7 dispatch (PROF-08)
-- [ ] 06-05-PLAN.md — 5 built-in vendor profiles (epic, cerner, meditech, athena, genericLab) + handcrafted fixtures (BIP-01..05)
+- [x] 06-05-PLAN.md — 5 built-in vendor profiles (epic, cerner, meditech, athena, genericLab) + handcrafted fixtures (BIP-01..05)
 - [ ] 06-06-PLAN.md — profiles barrel + src/index.ts public exports + BIP-06 fixture-parity tests
 **UI hint**: no
 
@@ -185,10 +185,10 @@ Within each phase, plans that touch disjoint modules may run in parallel; plans 
 | 3. Structural Model & Types | 4/4 | Complete (pending verify) | 2026-04-19 |
 | 4. Named Helpers | 4/4 | Complete (verified) | 2026-04-19 |
 | 5. Serialization & Round-Trip | 3/5 | In progress | Plans 01 + 02 + 03 done 2026-04-19 |
-| 6. Profile System & Built-ins | 0/0 | Not started | — |
+| 6. Profile System & Built-ins | 5/6 | In progress | Plans 01-05 done 2026-04-19 |
 | 7. Testing Hardening & Fixtures | 0/0 | Not started | — |
 | 8. Examples, Starter Kit & Documentation | 0/0 | Not started | — |
 
 ---
 
-*Last updated: 2026-04-19 (Phase 5 Plan 05 complete — buildMessage + formatHl7Timestamp + generateControlId bodies implemented; SER-06 closed. All 6 SER REQ-IDs closed (SER-01..06). D-09/D-10/D-11/D-12/D-13/D-14/D-15/D-16/D-07 runtime-confirmed; W1 empty-vs-null wire semantics reinforced on function-level JSDoc + 2 dedicated tests. Rule-1 test fix (PID composite via setField chain) + Rule-3 lint fix (eslint-disable on `{} as BuildMessageInit`) applied inline. 618/618 tests green across 49 files (+40 from Plan 05). Phase 5 plans all complete — pending /gsd-verify-work 5 + /gsd-validate-phase 5.)*
+*Last updated: 2026-04-19 (Phase 6 Plan 05 complete — 5 built-in vendor profiles shipped via public defineProfile() API + 5 synthetic CR-terminated vendor-shape fixtures. BIP-01..05 closed. 2ed522f (5 profile src files) + a7e243e (5 vendor-shape fixtures); 1 Rule-3 auto-fix (jsdoc/require-jsdoc on export const declarations). 724/724 tests green (unchanged — plan adds no tests per scope; BIP-06 fixture-parity tests land in Plan 06-06). Next: /gsd-execute-phase 6 Plan 06 — profiles barrel + public exports + BIP-06 fixture-parity tests.)*
