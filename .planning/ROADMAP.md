@@ -164,7 +164,13 @@ Plans:
   3. A developer opening the README on GitHub or npm sees the one-sentence value prop as the first line, badges, a 30-second copy-pasteable quickstart, a 6–8-bullet feature list, an "HL7 in 90 seconds" section, the three access patterns, the full cookbook (all recipes listed in the spec), a top-level Profiles section, a 4-tier tolerance section with table and runnable example, an Error Handling section, a Contributing section, and the "Built by Cosyte" footer with license link.
   4. A developer looking for release history, license, or roadmap finds `CHANGELOG.md` in Keep-a-Changelog format with an `[Unreleased]` section, `LICENSE` (MIT) at the repo root, and a roadmap/stretch-goals section documenting the v2 deferrals (typed overlays, schema validation, streaming, JSON Schema/Zod, batch files, type-safe custom-segment fields).
   5. A developer reading the "Publishing Your Profile" recipe is linked directly to `examples/profile-starter-kit/` and referenced to `CUSTOMIZING.md`.
-**Plans**: TBD
+**Plans**: 5 plans
+Plans:
+- [ ] 08-01-PLAN.md — examples/ tree (3 runnable scripts + 3 fixtures + README + smoke runner) — EX-01/02/03
+- [ ] 08-02-PLAN.md — examples/profile-starter-kit/ subtree (configs + sample profile + test + fixture + ci.yml + publish.yml + README + CUSTOMIZING.md + LICENSE) — KIT-01/02/03/04/05/06/07
+- [ ] 08-03-PLAN.md — Comprehensive README.md replacement (13 sections) — DOC-01/02/03/04/05/06/07/08/09/10/11/12/13
+- [ ] 08-04-PLAN.md — CHANGELOG.md (Keep-a-Changelog) + CONTRIBUTING.md + LICENSE verify — DOC-14/15
+- [ ] 08-05-PLAN.md — Wave-2 capstone: package.json version bump + tsx devDep + scripts.examples + ci.yml wiring + publish.yml + peer-dep resolution + end-to-end smoke
 **UI hint**: no
 
 ---
