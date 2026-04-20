@@ -148,7 +148,7 @@ Plans:
 - [x] 07-01-PLAN.md — Fixture tree migration (round-trip → canonical/edge-cases) + extract test/_helpers/ + capture pre-Phase-7 coverage baseline (foundation) *(completed 2026-04-19 — commit b7a527a; 747/747 tests green post-migration; baseline: all 5 gated dirs PASS, lowest branch 90.26%)*
 - [x] 07-02-PLAN.md — Author 7 canonical fixtures (adt-a04/a08, orm-o01, siu-s12, mdm-t02, z-segments, nested-subcomponents) + canonical-messages.test.ts (TEST-02) *(completed 2026-04-20 — commits 956aae2 + 17954b1; 774/774 tests green; TEST-02 closed)*
 - [x] 07-03-PLAN.md — Author 11 edge-case fixtures + parser-edge-cases.test.ts (TEST-03) *(completed 2026-04-20 — commits ad4964a + a934437; 789/789 tests green; TEST-03 closed)*
-- [ ] 07-04-PLAN.md — Author 13 vendor-quirks fixtures (one per WARNING_CODES entry) + parser-strict-mode-sweep.test.ts (TEST-05 + TEST-06)
+- [x] 07-04-PLAN.md — Author 13 vendor-quirks fixtures (one per WARNING_CODES entry) + parser-strict-mode-sweep.test.ts (TEST-05 + TEST-06) *(completed 2026-04-20 — commits f718c10 + 7f714e6; 815/815 tests green + 14 todo; TEST-05 + TEST-06 closed; 6 codes emit today, 7 have factories but no parser call site tracked via it.todo)*
 - [ ] 07-05-PLAN.md — Author 4 malformed fixtures (one per FATAL_CODES entry) + parser-malformed-sweep.test.ts (TEST-04)
 - [ ] 07-06-PLAN.md — Tighten vitest.config.ts coverage gate (branches 85→90) + add CI coverage step (TEST-01) — capstone
 - [ ] 07-07-PLAN.md — TEST-08 audit + targeted gap patches in profiles-*.test.ts + TEST-07 confirmation (TEST-07 + TEST-08)
