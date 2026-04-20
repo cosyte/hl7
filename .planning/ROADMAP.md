@@ -170,7 +170,7 @@ Plans:
 - [x] 08-02-PLAN.md — examples/profile-starter-kit/ subtree (configs + sample profile + test + fixture + ci.yml + publish.yml + README + CUSTOMIZING.md + LICENSE) — KIT-01/02/03/04/05/06/07 ✅ 2026-04-20 (15 files, commits 43fccae+3c303c0, in-kit pipeline green + actionlint clean)
 - [ ] 08-03-PLAN.md — Comprehensive README.md replacement (13 sections) — DOC-01/02/03/04/05/06/07/08/09/10/11/12/13
 - [ ] 08-04-PLAN.md — CHANGELOG.md (Keep-a-Changelog) + CONTRIBUTING.md + LICENSE verify — DOC-14/15
-- [ ] 08-05-PLAN.md — Wave-2 capstone: package.json version bump + tsx devDep + scripts.examples + ci.yml wiring + publish.yml + peer-dep resolution + end-to-end smoke
+- [x] 08-05-PLAN.md — Wave-2 capstone: package.json version bump + tsx devDep + scripts.examples + ci.yml wiring + publish.yml + peer-dep resolution + end-to-end smoke ✅ 2026-04-20 (3 commits f08b1dc+f9f2f6b+cfbac6f; pipeline green; tarball dry-run 10 files 346.2kB)
 **UI hint**: no
 
 ---

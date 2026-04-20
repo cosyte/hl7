@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: milestone
-status: "Phase 8 Plan 02 COMPLETE 2026-04-20 (Wave 1 — profile starter kit shipped, KIT-01..07 closed). Created full examples/profile-starter-kit/ subtree — 15 files covering package.json (peerDependencies + publishConfig.access:public + files allow-list + zero runtime deps), tsconfig/tsup/vitest/eslint/prettier configs, sample profile src/index.ts (extends profiles.genericLab, declares ZAL Z-segment with canonical CustomSegmentDefinition record shape `{allergyId:1, severity:2, verifiedAt:3}`), 4-test vitest file, synthetic ADT^A01 fixture (MRN-KIT-001, CR-only separators), 2 GitHub Actions workflows (ci.yml push/PR + publish.yml workflow_dispatch-only with NODE_AUTH_TOKEN scoped to single step), README + CUSTOMIZING.md (5 numbered steps each closing with Verify block) + LICENSE + .gitignore. In-kit pipeline green standalone (pnpm install --no-frozen-lockfile: 3.3s; typecheck 0 errors; lint 0 warnings --max-warnings=0; 4/4 tests pass; build ESM 488B + CJS 517B + DTS 900B). actionlint clean on both workflows. Commits 43fccae (Task 1 configs+source+fixture+LICENSE) + 3c303c0 (Task 2 docs+workflows). 3 deviations: (1) Rule-3 devDependencies.@cosyte/hl7-parser uses `file:../..` instead of plan's `workspace:*` (repo has no pnpm-workspace.yaml yet — that's Plan 08-05's scope; also package isn't published so npm fallback fails); (2) Rule-2 README + CUSTOMIZING step 1 document the `file:../..` default and downstream replacement path; (3) Rule-2 pnpm-lock.yaml added to kit .gitignore (templates shouldn't ship lockfiles). Next: /gsd-execute-phase 8 Plan 03."
-last_updated: "2026-04-20T03:30:00Z"
+status: "Phase 8 Plan 05 COMPLETE 2026-04-20 (Wave 2 capstone — integration + publish wiring). Parent package.json bumped 0.0.0 -> 0.1.0 (CONTEXT D-20); added scripts.examples (wires Plan 08-01 scripts/run-examples.ts) + tsx ^4.0.0 devDep (resolves to 4.21.0); dependencies remains {} (zero runtime deps preserved). .github/workflows/ci.yml gained 3 matrix-gated steps (if: matrix.node == '20') after Test (with coverage): Examples (smoke) runs pnpm examples; Starter kit (install + test + build) runs the full kit pipeline from working-directory: examples/profile-starter-kit; Validate kit workflows (actionlint) uses reviewdog/action-actionlint@v1 on both kit workflows. NEW .github/workflows/publish.yml — workflow_dispatch-only (T-08-19 mitigated), permissions contents:read + id-token:write (T-08-21 provenance), NODE_AUTH_TOKEN scoped to single Publish to npm step's env (T-08-20), uses pnpm install --frozen-lockfile (parent has lockfile), pnpm publish --access public --no-git-checks. Peer-dep resolution: Path B chosen (no workspace wiring needed — Plan 08-02's file:../.. devDep resolves kit peer against parent tree directly); no pnpm-workspace.yaml, no .npmrc changes. End-to-end capstone pipeline green: pnpm install/typecheck/lint/test(824 pass 14 todo)/build(ESM 110KB + CJS 111KB + DTS 132KB)/examples (3x OK) all exit 0; kit pipeline green (install 902ms, 4/4 tests, build 488B+517B+900B); actionlint clean on all 4 workflow files; pnpm publish --dry-run confirms clean 10-file/346.2kB tarball (CHANGELOG + LICENSE + README + dist/* + package.json). 3 atomic commits: f08b1dc (Task 1 version+scripts.examples+tsx), f9f2f6b (Task 2 ci.yml 3 new steps), cfbac6f (Task 4 publish.yml). 1 deviation: Rule-3 Path B chosen over Path A because Plan 08-02's file:../.. preempted the workspace-vs-filter decision — simpler outcome. Next: /gsd-verify-work 8."
+last_updated: "2026-04-20T03:50:00Z"
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 5
-  completed_plans: 2
-  percent: 40
+  completed_plans: 5
+  percent: 56
 ---
 
 # @cosyte/hl7-parser — STATE
