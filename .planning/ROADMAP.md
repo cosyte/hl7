@@ -147,7 +147,7 @@ Plans:
 Plans:
 - [x] 07-01-PLAN.md — Fixture tree migration (round-trip → canonical/edge-cases) + extract test/_helpers/ + capture pre-Phase-7 coverage baseline (foundation) *(completed 2026-04-19 — commit b7a527a; 747/747 tests green post-migration; baseline: all 5 gated dirs PASS, lowest branch 90.26%)*
 - [x] 07-02-PLAN.md — Author 7 canonical fixtures (adt-a04/a08, orm-o01, siu-s12, mdm-t02, z-segments, nested-subcomponents) + canonical-messages.test.ts (TEST-02) *(completed 2026-04-20 — commits 956aae2 + 17954b1; 774/774 tests green; TEST-02 closed)*
-- [ ] 07-03-PLAN.md — Author 11 edge-case fixtures + parser-edge-cases.test.ts (TEST-03)
+- [x] 07-03-PLAN.md — Author 11 edge-case fixtures + parser-edge-cases.test.ts (TEST-03) *(completed 2026-04-20 — commits ad4964a + a934437; 789/789 tests green; TEST-03 closed)*
 - [ ] 07-04-PLAN.md — Author 13 vendor-quirks fixtures (one per WARNING_CODES entry) + parser-strict-mode-sweep.test.ts (TEST-05 + TEST-06)
 - [ ] 07-05-PLAN.md — Author 4 malformed fixtures (one per FATAL_CODES entry) + parser-malformed-sweep.test.ts (TEST-04)
 - [ ] 07-06-PLAN.md — Tighten vitest.config.ts coverage gate (branches 85→90) + add CI coverage step (TEST-01) — capstone
@@ -194,9 +194,9 @@ Within each phase, plans that touch disjoint modules may run in parallel; plans 
 | 4. Named Helpers | 4/4 | Complete (verified) | 2026-04-19 |
 | 5. Serialization & Round-Trip | 5/5 | Complete (verified) | 2026-04-19 |
 | 6. Profile System & Built-ins | 6/6 | Complete (verified) | 2026-04-19 |
-| 7. Testing Hardening & Fixtures | 1/7 | In Progress (Wave 1 DONE) | — |
+| 7. Testing Hardening & Fixtures | 3/7 | In Progress (Wave 2 — TEST-02 + TEST-03 closed) | — |
 | 8. Examples, Starter Kit & Documentation | 0/0 | Not started | — |
 
 ---
 
-*Last updated: 2026-04-19 (Phase 7 Plan 01 COMPLETE — Wave 1 foundation landed: migrated test/fixtures/round-trip/ → test/fixtures/canonical/ (adt-a01, oru-r01) + test/fixtures/edge-cases/ (decoded-br, embedded-delimiters, null-fields) via git mv (history preserved); extracted assertStructuralRoundTrip → test/_helpers/structural-equivalence.ts (D-19) and fileToCode → test/_helpers/fixture-code.ts (D-12); updated test/round-trip.test.ts to reference canonical/ paths with loadEdgeCaseFixture helper for preservation checks. Pre-Phase-7 coverage baseline captured in commit b7a527a body — all 5 gated dirs PASS (lowest branch = src/model/** at 90.26%); branch 85→90 bump is safe across gated dirs in Plan 06 per measured headroom. 747/747 tests green (753 pre-migration minus 6 sweep tests — 3 edge-case fixtures × 2 sweep iterations each — that Plan 03 will re-exercise). pnpm typecheck clean; pnpm lint clean (--max-warnings=0). Next: Plan 07-02 (canonical-messages.test.ts + 7 new canonical fixtures) + Plan 07-03 + Plan 07-04 + Plan 07-05 run in parallel as Wave 2.)*
+*Last updated: 2026-04-20 (Phase 7 Plan 03 COMPLETE — Wave 2 TEST-03 closed: 11 new edge-case fixtures (lf/crlf/mixed/trailing/no-trailing line-endings, empty-fields, consecutive-delimiters, unknown-escapes, custom-msh-delimiters, unicode-names, missing-optional-segments) + per-dir README + test/parser-edge-cases.test.ts with 8 describe blocks × 15 explicit it() blocks per CONTEXT.md D-22 (NOT parameterized). 789/789 tests green (+15 from Plan 02 774). pnpm typecheck clean; pnpm lint clean (--max-warnings=0). Deviations: Rule 1 corrected encodingCharacters property names (.field/.component/.repetition/.escape/.subcomponent — plan spec had .fieldSeparator/.componentSeparator). Commits ad4964a + a934437. Next: Plan 07-04 (vendor-quirks fixtures + strict-mode sweep) + Plan 07-05 (malformed fixtures + sweep) as Wave 2 continuation.)*
