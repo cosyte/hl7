@@ -19,6 +19,7 @@ North star: **A developer can parse a real-world, vendor-quirky HL7 v2 message a
 - [x] **Phase 6: Profile System & Built-ins** — `defineProfile()` API with merge/extend semantics plus 5 built-in vendor profiles (epic, cerner, meditech, athena, genericLab). *(completed 2026-04-19)*
 - [x] **Phase 7: Testing Hardening & Fixtures** — Canonical, edge-case, vendor-quirk, strict-mode, and profile-authoring test suites that verify ≥ 90% coverage on core modules. *(completed 2026-04-19)*
 - [ ] **Phase 8: Examples, Starter Kit & Documentation** — Three runnable examples, publishable profile starter kit, and the complete README + ancillary docs.
+- [ ] **Phase 9: Rename Package to @cosyte/hl7** — Rename the package from `@cosyte/hl7-parser` to `@cosyte/hl7` (full HL7 toolkit — parser, builder, mutator, serializer, helpers — not just a parser).
 
 ---
 
@@ -173,6 +174,24 @@ Plans:
 - [x] 08-05-PLAN.md — Wave-2 capstone: package.json version bump + tsx devDep + scripts.examples + ci.yml wiring + publish.yml + peer-dep resolution + end-to-end smoke ✅ 2026-04-20 (3 commits f08b1dc+f9f2f6b+cfbac6f; pipeline green; tarball dry-run 10 files 346.2kB)
 **UI hint**: no
 
+### Phase 9: Rename Package to @cosyte/hl7
+**Goal**: Rename the published package from `@cosyte/hl7-parser` to `@cosyte/hl7` so the name reflects the actual surface area — a full HL7 v2 toolkit (parser, builder, mutator, serializer, and helpers), not just a parser. Every reference in source, configs, docs, examples, starter kit, and CI/publish workflows points at the new name; the first published tag under the new name installs and round-trips cleanly.
+**Depends on**: Phase 8
+**Requirements**: (none — rename-only phase; no new functional REQ-IDs)
+**Success Criteria** (what must be TRUE):
+  1. A developer searching the repo for `@cosyte/hl7-parser` finds zero occurrences outside of CHANGELOG rename-history entries.
+  2. A developer running `pnpm install && pnpm build && pnpm test && pnpm examples` against the renamed repo sees every command exit 0 with zero warnings.
+  3. A developer installing the newly published `@cosyte/hl7` package in a fresh project can `import { parseHL7, buildMessage } from "@cosyte/hl7"` and run a canonical example end-to-end.
+  4. A developer reading the README, CHANGELOG, examples, and profile starter kit sees the `@cosyte/hl7` name used consistently; CHANGELOG calls out the rename with a migration note.
+  5. A developer checking `.github/workflows/publish.yml` sees it publish under the new name; any legacy `@cosyte/hl7-parser` publish path is either retired or redirected per the rename plan.
+**Plans**: 4 plans
+Plans:
+- [ ] 09-PLAN-01-identity-files.md — Wave 1: rename package.json (name, description, keywords, URLs), rewrite CHANGELOG.md with D-07 breadcrumb, sweep README/CONTRIBUTING/CLAUDE/tsup.config.ts/vitest.config.ts
+- [ ] 09-PLAN-02-source-and-tests.md — Wave 2: sweep all 51 src/**/*.ts JSDoc/docblocks + test/model-public-exports.test.ts; verify typecheck
+- [ ] 09-PLAN-03-examples-and-starter-kit.md — Wave 3: sweep examples/ top-level (3 runnables + README) + examples/profile-starter-kit/ (6 files + lockfile)
+- [ ] 09-PLAN-04-verification-and-publish-dry-run.md — Wave 4: authoritative grep sweep + full pipeline (install/typecheck/lint/test/build/examples) + pnpm publish --dry-run under new name
+**UI hint**: no
+
 ---
 
 ## Parallelization Notes
@@ -187,6 +206,7 @@ Within each phase, plans that touch disjoint modules may run in parallel; plans 
 - **Phase 6:** `defineProfile()` core + validation errors is the first plan; `extends`/merge semantics and default-profile management can then parallelize. The five built-in profiles (epic, cerner, meditech, athena, genericLab) are mutually independent and all parallelizable once the API surface stabilizes.
 - **Phase 7:** Fixture authoring (canonical, edge-case, vendor-quirk, built-in-profile, profile-authoring) parallelizes across contributors. Coverage enforcement and strict-mode escalation sweep are final gates.
 - **Phase 8:** The three examples are independent. Starter kit assembly is one plan; README authoring decomposes into quickstart + feature list, access patterns, cookbook, profiles section, tolerance section, error handling, contributing/footer — most of which parallelize. CHANGELOG and LICENSE are trivially parallel.
+- **Phase 9:** Rename sweeps across source/configs, docs/examples, and starter kit can largely parallelize (disjoint files); a final publish-verify plan runs last to confirm the new name resolves end-to-end.
 
 ---
 
@@ -202,6 +222,7 @@ Within each phase, plans that touch disjoint modules may run in parallel; plans 
 | 6. Profile System & Built-ins | 6/6 | Complete (verified) | 2026-04-19 |
 | 7. Testing Hardening & Fixtures | 5/7 | In Progress (Wave 2 complete — TEST-02 + TEST-03 + TEST-04 + TEST-05 + TEST-06 closed) | — |
 | 8. Examples, Starter Kit & Documentation | 0/0 | Not started | — |
+| 9. Rename Package to @cosyte/hl7 | 0/4 | Planned | — |
 
 ---
 

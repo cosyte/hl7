@@ -258,6 +258,8 @@ No new trust boundaries or surfaces introduced by this plan beyond what the regi
 
 ## Self-Check: PASSED
 
+(File + commit self-check re-verified at plan close: publish.yml, SUMMARY.md, and commits f08b1dc / f9f2f6b / cfbac6f all FOUND.)
+
 ## Next Phase Readiness
 
 - **`/gsd-verify-work 8`** is the next workflow step. Phase 8's 25 REQs (EX-01..03 + KIT-01..07 + DOC-01..15) are all observable via the parent CI pipeline + the 3 new gates wired by this plan.

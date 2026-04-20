@@ -88,6 +88,10 @@ Next Step: /gsd-verify-work 7
 
 ## Accumulated Context
 
+### Roadmap Evolution
+
+- Phase 9 added: Rename package to `@cosyte/hl7` (full HL7 toolkit — parser, builder, mutator, serializer, helpers — not just a parser).
+
 ### Key Decisions (carry-forward from PROJECT.md)
 
 - Lenient parsing is the default; strict is opt-in.
