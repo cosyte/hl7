@@ -21,9 +21,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.0] - 2026-04-19
 
-Initial public release of `@cosyte/hl7-parser`. First tagged version with a
+Initial public release of `@cosyte/hl7`. First tagged version with a
 complete v1 API surface, five built-in vendor profiles, and a publishable
 profile starter kit.
+
+Notes: Package renamed from `@cosyte/hl7-parser` to `@cosyte/hl7` before first publish. No consumers existed under the previous name.
 
 ### Added
 
@@ -52,7 +54,7 @@ profile starter kit.
 - **Composite types** — parsed instances and exported TypeScript
   interfaces for XPN, XAD, CX, CWE, CE, XTN, PL, TS/DTM, NM, HD, and XCN
   (11 types). Also available under the `HL7` namespace:
-  `import { HL7 } from "@cosyte/hl7-parser"; type T = HL7.XPN`.
+  `import { HL7 } from "@cosyte/hl7"; type T = HL7.XPN`.
 - **Named helpers** — one-line extraction for the most common HL7
   fields: `msg.meta`, `msg.patient`, `msg.visit`, `msg.observations()`,
   `msg.orders()`, `msg.nextOfKin()`, `msg.allergies()`, `msg.diagnoses()`,
@@ -123,5 +125,5 @@ _Nothing yet._
 
 _Nothing yet._
 
-[Unreleased]: https://github.com/cosyte/hl7-parser/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/cosyte/hl7-parser/releases/tag/v0.1.0
+[Unreleased]: https://github.com/cosyte/hl7/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/cosyte/hl7/releases/tag/v0.1.0
