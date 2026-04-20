@@ -143,7 +143,15 @@ Plans:
   3. A developer reviewing `test/fixtures/vendor-quirks/` finds at least one fixture per Tier 2 scenario; each one parses in lenient mode with the expected warning code and throws `Hl7ParseError` under `{ strict: true }`.
   4. A developer reviewing the profile test suite finds at least one fixture per built-in profile demonstrating fewer warnings with the profile than without, plus full coverage of `defineProfile` validation, `extends`, merge semantics, default-profile management, `describe()`, attribution, and round-trip.
   5. A developer parsing a malformed message (missing/truncated MSH, invalid encoding chars, empty input) sees `Hl7ParseError` with a descriptive position and snippet — verified by tests.
-**Plans**: TBD
+**Plans**: 7 plans
+Plans:
+- [x] 07-01-PLAN.md — Fixture tree migration (round-trip → canonical/edge-cases) + extract test/_helpers/ + capture pre-Phase-7 coverage baseline (foundation) *(completed 2026-04-19 — commit b7a527a; 747/747 tests green post-migration; baseline: all 5 gated dirs PASS, lowest branch 90.26%)*
+- [ ] 07-02-PLAN.md — Author 7 canonical fixtures (adt-a04/a08, orm-o01, siu-s12, mdm-t02, z-segments, nested-subcomponents) + canonical-messages.test.ts (TEST-02)
+- [ ] 07-03-PLAN.md — Author 11 edge-case fixtures + parser-edge-cases.test.ts (TEST-03)
+- [ ] 07-04-PLAN.md — Author 13 vendor-quirks fixtures (one per WARNING_CODES entry) + parser-strict-mode-sweep.test.ts (TEST-05 + TEST-06)
+- [ ] 07-05-PLAN.md — Author 4 malformed fixtures (one per FATAL_CODES entry) + parser-malformed-sweep.test.ts (TEST-04)
+- [ ] 07-06-PLAN.md — Tighten vitest.config.ts coverage gate (branches 85→90) + add CI coverage step (TEST-01) — capstone
+- [ ] 07-07-PLAN.md — TEST-08 audit + targeted gap patches in profiles-*.test.ts + TEST-07 confirmation (TEST-07 + TEST-08)
 **UI hint**: no
 
 ### Phase 8: Examples, Starter Kit & Documentation
@@ -186,9 +194,9 @@ Within each phase, plans that touch disjoint modules may run in parallel; plans 
 | 4. Named Helpers | 4/4 | Complete (verified) | 2026-04-19 |
 | 5. Serialization & Round-Trip | 5/5 | Complete (verified) | 2026-04-19 |
 | 6. Profile System & Built-ins | 6/6 | Complete (verified) | 2026-04-19 |
-| 7. Testing Hardening & Fixtures | 0/0 | Not started | — |
+| 7. Testing Hardening & Fixtures | 1/7 | In Progress (Wave 1 DONE) | — |
 | 8. Examples, Starter Kit & Documentation | 0/0 | Not started | — |
 
 ---
 
-*Last updated: 2026-04-19 (Phase 6 COMPLETE + VERIFIED — all 6 plans landed across 5 waves; verifier PASSED 5/5 ROADMAP success criteria and 15/15 REQ-IDs (PROF-01..09 + BIP-01..06). 753/753 tests green (+129 from 624 baseline); typecheck + lint --max-warnings=0 + dual ESM/CJS build all clean. Key deliverables: defineProfile factory (06-01), extends merge semantics with lineage dedupe + dateFormats concat + onWarning chain (06-02), Segment.get(name) + UNKNOWN_SEGMENT emit/suppression + D-22 makeEmitter hoist (06-03), setDefaultProfile/getDefaultProfile + D-19 3-branch dispatch (06-04), 5 built-in vendor profiles (epic, cerner, meditech, athena, genericLab) via public API + 5 synthetic fixtures (06-05), profiles barrel + Phase 6 public exports + BIP-06 fixture-parity tests (06-06). D-21, D-22, D-26 all honored. Next: /gsd-validate-phase 6 (Nyquist), then Phase 7 — Testing Hardening & Fixtures.)*
+*Last updated: 2026-04-19 (Phase 7 Plan 01 COMPLETE — Wave 1 foundation landed: migrated test/fixtures/round-trip/ → test/fixtures/canonical/ (adt-a01, oru-r01) + test/fixtures/edge-cases/ (decoded-br, embedded-delimiters, null-fields) via git mv (history preserved); extracted assertStructuralRoundTrip → test/_helpers/structural-equivalence.ts (D-19) and fileToCode → test/_helpers/fixture-code.ts (D-12); updated test/round-trip.test.ts to reference canonical/ paths with loadEdgeCaseFixture helper for preservation checks. Pre-Phase-7 coverage baseline captured in commit b7a527a body — all 5 gated dirs PASS (lowest branch = src/model/** at 90.26%); branch 85→90 bump is safe across gated dirs in Plan 06 per measured headroom. 747/747 tests green (753 pre-migration minus 6 sweep tests — 3 edge-case fixtures × 2 sweep iterations each — that Plan 03 will re-exercise). pnpm typecheck clean; pnpm lint clean (--max-warnings=0). Next: Plan 07-02 (canonical-messages.test.ts + 7 new canonical fixtures) + Plan 07-03 + Plan 07-04 + Plan 07-05 run in parallel as Wave 2.)*

@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: milestone
-status: "Phase 6 COMPLETE + VERIFIED 2026-04-19 via /gsd-execute-phase 6. Verifier PASSED 5/5 ROADMAP success criteria and 15/15 REQ-IDs (PROF-01..09 + BIP-01..06). All 6 plans landed across 5 waves; 753/753 tests green; typecheck + lint --max-warnings=0 + dual ESM/CJS build all clean. D-21, D-22, D-26 all honored. Next: /gsd-validate-phase 6 (Nyquist), then Phase 7 — Testing Hardening & Fixtures."
-last_updated: "2026-04-19T20:20:00Z"
+status: "Phase 7 Plan 01 COMPLETE 2026-04-19. Migrated test/fixtures/round-trip/ to canonical/ + edge-cases/ (D-08), extracted assertStructuralRoundTrip (D-19) + fileToCode (D-12) helpers to test/_helpers/ (D-29), updated test/round-trip.test.ts to reference new paths. Captured pre-Phase-7 coverage baseline (all 5 gated dirs PASS; branches headroom 90.26–95.09% = safe for 85→90 bump in Plan 06). 747/747 tests green (753 pre-migration minus 6 sweep iterations for 3 edge-case fixtures now owned by Plan 03). Commit b7a527a."
+last_updated: "2026-04-19T21:10:00Z"
 progress:
   total_phases: 8
   completed_phases: 3
-  total_plans: 6
-  completed_plans: 30
+  total_plans: 7
+  completed_plans: 31
   percent: 100
 ---
 
@@ -27,23 +27,23 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 
 ## Current Position
 
-Phase: 6 (Profile System & Built-ins) — COMPLETE + VERIFIED
-Next Phase: 7 — Testing Hardening & Fixtures
+Phase: 7 (Testing Hardening & Fixtures) — IN PROGRESS (Plan 07-01 COMPLETE)
+Next Plan: 07-02 (Wave 2 — canonical-messages.test.ts)
 
 - **Milestone:** v1
-- **Phase:** 6 — Profile System & Built-ins (COMPLETE + VERIFIED 2026-04-19). Phase 5 pending /gsd-validate-phase 5.
-- **Plans:** 6 plans — 06-01 defineProfile core + validation + describe + types (Wave 1) DONE; 06-02 extends merge semantics (Wave 2, parallel with 06-03) DONE; 06-03 Segment.get + UNKNOWN_SEGMENT emit/suppression + D-22 makeEmitter hoist (Wave 2) DONE; 06-04 default-profile management (Wave 3) DONE; 06-05 5 built-in vendor profiles + fixtures (Wave 4) DONE; 06-06 barrel + public exports + BIP-06 fixture-parity tests (Wave 5) DONE. Phase 5 plans (all DONE): 01 scaffold-emit-field-and-method-wiring; 02 to-string-and-round-trip; 03 to-json; 04 pretty-print; 05 build-message.
-- **Status:** Phase 6 COMPLETE + VERIFIED
-- **Progress:** 3/8 phases verified (Phase 3, Phase 4, Phase 6); 4/4 Phase 1 + 6/6 Phase 2 + 4/4 Phase 3 + 4/4 Phase 4 + 5/5 Phase 5 + 6/6 Phase 6 plans complete
+- **Phase:** 7 — Testing Hardening & Fixtures (IN PROGRESS). Plan 07-01 complete 2026-04-19 (Wave 1 foundation: fixture migration + helper extraction + coverage baseline). Phase 6 COMPLETE + VERIFIED 2026-04-19. Phase 5 pending /gsd-validate-phase 5.
+- **Plans:** 7 plans (Phase 7) — 07-01 fixture migration + helpers + coverage baseline (Wave 1) DONE; 07-02 canonical-messages.test.ts + 8 canonical fixtures (Wave 2), 07-03 parser-edge-cases.test.ts + 11 edge-case fixtures (Wave 2), 07-04 vendor-quirks fixtures + strict-mode sweep (Wave 2), 07-05 malformed fixtures + sweep (Wave 2), 07-06 coverage gate + CI wiring (Wave 3), 07-07 TEST-08 profile audit (Wave 3). Phase 6 plans (all DONE): 01 defineProfile; 02 extends merge; 03 Segment.get + UNKNOWN_SEGMENT + D-22 hoist; 04 default-profile; 05 5 built-ins + fixtures; 06 barrel + fixture-parity tests.
+- **Status:** Phase 7 IN PROGRESS — 1/7 plans done
+- **Progress:** 3/8 phases verified (Phase 3, Phase 4, Phase 6); 4/4 Phase 1 + 6/6 Phase 2 + 4/4 Phase 3 + 4/4 Phase 4 + 5/5 Phase 5 + 6/6 Phase 6 + 1/7 Phase 7 plans complete
 
 ```
-[████████████░░░░░░░░] 38%   (3 / 8 phases verified; Phase 5 execution complete but unverified; Phase 6 verified)
+[████████████░░░░░░░░] 38%   (3 / 8 phases verified; Phase 5 execution complete but unverified; Phase 6 verified; Phase 7 Wave 1 foundation landed)
 ```
 
 ## Performance Metrics
 
 - **Phases completed:** 2 (Phase 3 verified 2026-04-18; Phase 4 verified 2026-04-19; Phases 1 & 2 plans done but pending verifier + Nyquist; Phase 3 Nyquist still pending; Phase 5 execution complete — all 5 plans done, pending verify + Nyquist)
-- **Plans completed:** 30 (4 Phase-1 + 6 Phase-2 + 4 Phase-3 + 4 Phase-4 + 5 Phase-5 + 6 Phase-6 plans)
+- **Plans completed:** 31 (4 Phase-1 + 6 Phase-2 + 4 Phase-3 + 4 Phase-4 + 5 Phase-5 + 6 Phase-6 + 1 Phase-7 plan)
 - **REQ-IDs validated:** 61 / 97 (SETUP-01..06 + PARSE-01..09 + TOL-01..10 + MODEL-01..07 + TYPES-01..04 + SER-01..06 + PROF-01/02/03/04/05/06/07/08/09 + BIP-01/02/03/04/05/06). All 7 MODEL + all 4 TYPES + all 6 SER requirements closed after Plan 05; PROF-01/04/05 + PROF-07 (types only) closed after Plan 06-01; PROF-03 (extends merge semantics) closed after Plan 06-02; PROF-02 (customSegments shape enforced) + PROF-06 (profile attribution + D-22 chain) + PROF-07 (Segment.get runtime) + PROF-09 (round-trip agnostic) closed after Plan 06-03; PROF-08 (default-profile management + D-19 dispatch) closed after Plan 06-04; BIP-01..05 (5 built-in vendor profiles shipped via public defineProfile() API) closed after Plan 06-05; BIP-06 (per-vendor fixture-parity warning-reduction assertions + public barrel) closed after Plan 06-06. Phase 6 execution COMPLETE; phase 7 will add coverage sweep + vendor-quirks fixtures.
 - **Known coverage:** Phase 1 sanity 2/2. Phase 2 (Plans 01–06): full suite 123/123 passing. Phase 3 Plans 01 + 02 + 03 + 04: 327 tests. Phase 4 Plans 01-04: 459 tests. Phase 5 Plan 01: +29 tests (serialize-emit-field). Phase 5 Plan 02: +38 tests (23 serialize-to-string + 15 round-trip sweep). Phase 5 Plan 03: +23 tests (serialize-to-json across 8 decision blocks). Phase 5 Plan 04: +29 tests (serialize-pretty-print across 6 decision blocks). Phase 5 Plan 05: +40 tests (9 builder-format-timestamp + 8 builder-control-id + 23 builder integration). Phase 6 Plan 01: +35 tests (profiles-define across 9 describe blocks — SUPPORTED_DATE_TOKENS + happy-path + D-05/07/08 validation + name + describe() + frozen). Phase 6 Plan 02: +21 tests (profiles-extends across 7 describe blocks — D-03 lineage + D-10 dateFormats + D-11 customSegments + D-09 scalars + D-12 onWarning chain + D-05 rogue parent + frozen + describe-lineage). Phase 6 Plan 03: +32 tests (23 profiles-custom-segments across 5 describe blocks — Segment.get + UNKNOWN_SEGMENT emit/suppression + D-21 merged dateFormats + PROF-09 round-trip + backward-compat; 9 profiles-onwarning-chain D-22 tests — ordering + reference identity + throw-isolation × 2 + strict short-circuit + multi-warning invariant + Option A early-pipeline MLLP coverage). Plan 06-04: +13 tests (profiles-default across 4 describe blocks — basic wiring + D-19 dispatch + D-20 effects equivalence + afterEach test-isolation contract). Plan 06-06: +29 tests (profiles-builtins across 7 describe blocks — D-26 public surface × 5 + per-vendor BIP-06 fixture parity × 5 vendors + D-28 cross-profile smoke + PROF-09 round-trip byte-equivalence). Total: 753/753 passing across 55 test files (+29 from Plan 04 baseline of 724). Coverage enforcement starts in Phase 7 via `pnpm test:coverage`; per-directory thresholds for `src/serialize/**` and `src/builder/**` declared in Plan 5-01.
 
@@ -76,6 +76,7 @@ Next Phase: 7 — Testing Hardening & Fixtures
 | 6 | 04 default-profile-management | 3 min | 2 (both TDD) — ZERO deviations | 3 created (src/profiles/default.ts, test/profiles-default.test.ts, SUMMARY), 1 modified (src/parser/index.ts Step 6.5 + 1 new import) |
 | 6 | 05 built-in-vendor-profiles-and-fixtures | 4 min | 2 + 1 Rule-3 auto-fix (jsdoc/require-jsdoc on `export const <vendor>` — added export-adjacent JSDoc block alongside file-header block) | 11 created (5 src/profiles/<vendor>.ts + 5 test/fixtures/vendor-shapes/**/*.hl7 + 1 SUMMARY), 0 modified |
 | 6 | 06 barrel-and-fixture-tests | 3 min | 2 + 1 Rule-1 test-assertion fix (athena ZCA providerName — fixture stops at field 5 so assertion updated to exercise D-14 undefined-for-out-of-range contract instead) | 3 created (src/profiles/index.ts + test/profiles-builtins.test.ts + SUMMARY), 1 modified (src/index.ts Phase 6 block appended) |
+| 7 | 01 fixture-migration-and-helpers | 5 min | 2 (Task 1 measurement, Task 2 migration+helpers) + 1 Rule-3 prettier --write on fixture-code.ts | 7 created (5 fixture renames via git mv + 2 helpers in test/_helpers/), 1 modified (test/round-trip.test.ts) |
 
 ## Accumulated Context
 
