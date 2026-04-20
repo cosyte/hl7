@@ -1,22 +1,25 @@
 {
-  "name": "@cosyte/hl7-parser",
+  "name": "@cosyte/hl7",
   "version": "0.1.0",
-  "description": "Developer-focused HL7 v2 parser and utility library for Node.js and TypeScript.",
+  "description": "Developer-focused HL7 v2 toolkit for Node.js and TypeScript — parser, builder, mutator, serializer, and one-line helpers.",
   "keywords": [
     "hl7",
     "hl7v2",
     "parser",
     "healthcare",
     "interoperability",
-    "typescript"
+    "typescript",
+    "builder",
+    "serializer",
+    "toolkit"
   ],
-  "homepage": "https://github.com/cosyte/hl7-parser#readme",
+  "homepage": "https://github.com/cosyte/hl7#readme",
   "bugs": {
-    "url": "https://github.com/cosyte/hl7-parser/issues"
+    "url": "https://github.com/cosyte/hl7/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/cosyte/hl7-parser.git"
+    "url": "git+https://github.com/cosyte/hl7.git"
   },
   "license": "MIT",
   "author": "Cosyte <hello@cosyte.com> (https://cosyte.com)",
