@@ -34,7 +34,7 @@ import { readComponent } from "./_shared.js";
  *
  * @example
  * ```ts
- * import type { XPN } from "@cosyte/hl7-parser";
+ * import type { XPN } from "@cosyte/hl7";
  * const name: XPN = { familyName: "Smith", givenName: "Jane", prefix: "Mrs." };
  * ```
  */
@@ -62,7 +62,7 @@ export interface XPN {
  *
  * @example
  * ```ts
- * import { parseXpn, DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7-parser";
+ * import { parseXpn, DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7";
  * const rep = { components: [
  *   { subcomponents: ["Smith"] },
  *   { subcomponents: ["Jane"] },

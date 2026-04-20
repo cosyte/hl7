@@ -1,5 +1,5 @@
 /**
- * Segment-split stage for the `@cosyte/hl7-parser` parser pipeline. After
+ * Segment-split stage for the `@cosyte/hl7` parser pipeline. After
  * input normalization (line endings unified to `\r`), this module turns the
  * single-string input into an ordered array of segment strings with stable
  * positions. Purely mechanical — no HL7 semantics are evaluated here. MSH
@@ -22,7 +22,7 @@
  *
  * @example
  * ```ts
- * import { splitSegments } from "@cosyte/hl7-parser";
+ * import { splitSegments } from "@cosyte/hl7";
  * splitSegments("MSH|A\rPID|1\r"); // ["MSH|A", "PID|1"]
  * splitSegments("MSH|A\r\rPID|1"); // ["MSH|A", "", "PID|1"]
  * ```
@@ -41,7 +41,7 @@ export function splitSegments(normalized: string): readonly string[] {
  *
  * @example
  * ```ts
- * import { snippet } from "@cosyte/hl7-parser";
+ * import { snippet } from "@cosyte/hl7";
  * snippet("MSH|^~\\&|APP|FAC"); // "MSH|^~\\&|APP|FAC"
  * ```
  *

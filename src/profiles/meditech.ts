@@ -6,7 +6,7 @@
  *
  * @example
  * ```ts
- * import { parseHL7, profiles } from "@cosyte/hl7-parser";
+ * import { parseHL7, profiles } from "@cosyte/hl7";
  * const msg = parseHL7(raw, profiles.meditech);
  * const zvi = msg.allSegments().find((s) => s.type === "ZVI");
  * console.log(zvi?.get("visitReason")?.value);
@@ -21,7 +21,7 @@ import { defineProfile } from "./define.js";
  *
  * @example
  * ```ts
- * import { parseHL7, profiles } from "@cosyte/hl7-parser";
+ * import { parseHL7, profiles } from "@cosyte/hl7";
  * const msg = parseHL7(raw, profiles.meditech);
  * ```
  */

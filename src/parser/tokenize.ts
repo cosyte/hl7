@@ -1,5 +1,5 @@
 /**
- * Tokenizer stage for the `@cosyte/hl7-parser` parser pipeline. Decomposes
+ * Tokenizer stage for the `@cosyte/hl7` parser pipeline. Decomposes
  * an ordered list of segment strings into the nested positional tree that
  * `Hl7Message` holds — `RawSegment` -> `RawField` -> `RawRepetition` ->
  * `RawComponent` -> subcomponent strings. Honors custom encoding characters
@@ -52,7 +52,7 @@ import type {
  *
  * @example
  * ```ts
- * import { tokenize, DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7-parser";
+ * import { tokenize, DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7";
  * const tree = tokenize(
  *   ["MSH|^~\\&|APP", "PID|1||Doe^Jane"],
  *   DEFAULT_ENCODING_CHARACTERS,

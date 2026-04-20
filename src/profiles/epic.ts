@@ -10,7 +10,7 @@
  *
  * @example
  * ```ts
- * import { parseHL7, profiles } from "@cosyte/hl7-parser";
+ * import { parseHL7, profiles } from "@cosyte/hl7";
  * const msg = parseHL7(raw, profiles.epic);
  * const zdp = msg.allSegments().find((s) => s.type === "ZDP");
  * console.log(zdp?.get("departmentCode")?.value);
@@ -25,7 +25,7 @@ import { defineProfile } from "./define.js";
  *
  * @example
  * ```ts
- * import { parseHL7, profiles } from "@cosyte/hl7-parser";
+ * import { parseHL7, profiles } from "@cosyte/hl7";
  * const msg = parseHL7(raw, profiles.epic);
  * ```
  */

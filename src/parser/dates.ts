@@ -1,5 +1,5 @@
 /**
- * Timestamp parsing helper for the `@cosyte/hl7-parser` parser pipeline —
+ * Timestamp parsing helper for the `@cosyte/hl7` parser pipeline —
  * cascades from HL7 TS/DTM (YYYY[MM[DD[HH[MM[SS[.SSSS]]]]]] with optional
  * trailing offset) to user-supplied format strings to built-in ISO / date /
  * US-style fallbacks. The function emits a `TIMESTAMP_FALLBACK_FORMAT`
@@ -26,7 +26,7 @@ import type { Hl7Position } from "./types.js";
  *
  * @example
  * ```ts
- * import { BUILTIN_DATE_FALLBACKS } from "@cosyte/hl7-parser";
+ * import { BUILTIN_DATE_FALLBACKS } from "@cosyte/hl7";
  * console.log(BUILTIN_DATE_FALLBACKS);
  * // ["ISO-8601", "YYYY-MM-DD", "MM/DD/YYYY", "MM/DD/YYYY HH:mm:ss"]
  * ```
@@ -74,7 +74,7 @@ export interface ParseHl7TimestampOptions {
  *
  * @example
  * ```ts
- * import { parseHl7Timestamp } from "@cosyte/hl7-parser";
+ * import { parseHl7Timestamp } from "@cosyte/hl7";
  *
  * // Strict HL7 TS/DTM — no warning
  * const a = parseHl7Timestamp("20250102153045", {});
@@ -217,7 +217,7 @@ const TOKENS = ["YYYY", "MM", "DD", "HH", "mm", "ss"] as const;
 /**
  * Every date-format token the library's format-string matcher and
  * `defineProfile()` D-08 validator recognize. Re-exported from
- * `@cosyte/hl7-parser` so profile authors can introspect the valid
+ * `@cosyte/hl7` so profile authors can introspect the valid
  * token set without importing internal modules. `SSSS` (fractional
  * seconds) is recognised by the D-08 validator only — the internal
  * format matcher doesn't consume it because milliseconds already flow
@@ -225,7 +225,7 @@ const TOKENS = ["YYYY", "MM", "DD", "HH", "mm", "ss"] as const;
  *
  * @example
  * ```ts
- * import { SUPPORTED_DATE_TOKENS } from "@cosyte/hl7-parser";
+ * import { SUPPORTED_DATE_TOKENS } from "@cosyte/hl7";
  * console.log(SUPPORTED_DATE_TOKENS);
  * // ["YYYY", "MM", "DD", "HH", "mm", "ss", "SSSS"]
  * ```

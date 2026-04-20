@@ -121,7 +121,7 @@ export interface Hl7MessageInit {
  *
  * @example
  * ```ts
- * import { parseHL7 } from "@cosyte/hl7-parser";
+ * import { parseHL7 } from "@cosyte/hl7";
  * const msg = parseHL7(raw);
  * console.log(msg.get("PID.5.1"));         // "Smith"
  * for (const obx of msg.segments("OBX")) {
@@ -478,7 +478,7 @@ export class Hl7Message {
    *
    * @example
    * ```ts
-   * import { parseHL7 } from "@cosyte/hl7-parser";
+   * import { parseHL7 } from "@cosyte/hl7";
    * const msg = parseHL7(raw);
    * console.log(msg.toString()); // spec-clean, CR-separated HL7
    * ```
@@ -497,7 +497,7 @@ export class Hl7Message {
    *
    * @example
    * ```ts
-   * import { parseHL7 } from "@cosyte/hl7-parser";
+   * import { parseHL7 } from "@cosyte/hl7";
    * const msg = parseHL7(raw);
    * const snap = msg.toJSON();
    * console.log(snap.segments[0]?.name); // "MSH"
@@ -527,7 +527,7 @@ export class Hl7Message {
    *
    * @example
    * ```ts
-   * import { parseHL7 } from "@cosyte/hl7-parser";
+   * import { parseHL7 } from "@cosyte/hl7";
    * const msg = parseHL7(raw);
    * console.log(msg.prettyPrint());
    * // HL7 ADT^A01  controlId=MSG001  timestamp=2026-04-19T10:15:00Z  (5 segments)

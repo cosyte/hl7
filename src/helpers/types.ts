@@ -32,7 +32,7 @@ import type { XTN } from "../model/types/xtn.js";
  *
  * @example
  * ```ts
- * import type { Meta } from "@cosyte/hl7-parser";
+ * import type { Meta } from "@cosyte/hl7";
  * const meta: Meta = {
  *   type: "ADT^A01",
  *   messageCode: "ADT",
@@ -79,7 +79,7 @@ export interface Meta {
  *
  * @example
  * ```ts
- * import type { Patient } from "@cosyte/hl7-parser";
+ * import type { Patient } from "@cosyte/hl7";
  * const p: Patient = {
  *   mrn: "MRN123",
  *   identifiers: [{ idNumber: "MRN123", identifierTypeCode: "MR" }],
@@ -131,7 +131,7 @@ export interface Patient {
  *
  * @example
  * ```ts
- * import type { Visit } from "@cosyte/hl7-parser";
+ * import type { Visit } from "@cosyte/hl7";
  * const v: Visit = {
  *   patientClass: "I",
  *   location: { pointOfCare: "ICU", room: "101" },
@@ -165,7 +165,7 @@ export interface Visit {
  *
  * @example
  * ```ts
- * import type { ObservationBase } from "@cosyte/hl7-parser";
+ * import type { ObservationBase } from "@cosyte/hl7";
  * const base: ObservationBase = {
  *   setId: "1",
  *   identifier: { identifier: "GLU", text: "Glucose" },
@@ -203,7 +203,7 @@ export interface ObservationBase {
  *
  * @example
  * ```ts
- * import type { Observation } from "@cosyte/hl7-parser";
+ * import type { Observation } from "@cosyte/hl7";
  * const glucose: Observation = {
  *   setId: "1",
  *   identifier: { identifier: "GLU", text: "Glucose" },
@@ -231,7 +231,7 @@ export type Observation = ObservationBase &
  *
  * @example
  * ```ts
- * import type { Order } from "@cosyte/hl7-parser";
+ * import type { Order } from "@cosyte/hl7";
  * const order: Order = {
  *   placerOrderNumber: "PLACER1",
  *   fillerOrderNumber: "FILLER1",
@@ -264,7 +264,7 @@ export interface Order {
  *
  * @example
  * ```ts
- * import type { NextOfKin } from "@cosyte/hl7-parser";
+ * import type { NextOfKin } from "@cosyte/hl7";
  * const nk: NextOfKin = {
  *   name: { familyName: "Doe", givenName: "John" },
  *   relationship: { identifier: "FTH", text: "Father" },
@@ -289,7 +289,7 @@ export interface NextOfKin {
  *
  * @example
  * ```ts
- * import type { Allergy } from "@cosyte/hl7-parser";
+ * import type { Allergy } from "@cosyte/hl7";
  * const al: Allergy = {
  *   type: "DA",
  *   code: { identifier: "PEN", text: "Penicillin" },
@@ -316,7 +316,7 @@ export interface Allergy {
  *
  * @example
  * ```ts
- * import type { Diagnosis } from "@cosyte/hl7-parser";
+ * import type { Diagnosis } from "@cosyte/hl7";
  * const dg: Diagnosis = {
  *   code: { identifier: "E11.9", text: "Type 2 diabetes" },
  *   description: "Type 2 diabetes mellitus without complications",
@@ -342,7 +342,7 @@ export interface Diagnosis {
  *
  * @example
  * ```ts
- * import type { Insurance } from "@cosyte/hl7-parser";
+ * import type { Insurance } from "@cosyte/hl7";
  * const ins: Insurance = {
  *   planId: { identifier: "PLAN1", text: "Aetna PPO" },
  *   policyNumber: "POL123",

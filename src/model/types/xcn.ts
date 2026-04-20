@@ -43,7 +43,7 @@ import { parseHd, type HD } from "./hd.js";
  *
  * @example
  * ```ts
- * import type { XCN } from "@cosyte/hl7-parser";
+ * import type { XCN } from "@cosyte/hl7";
  * const orderingProvider: XCN = {
  *   idNumber: "1234567890",
  *   familyName: "Smith",
@@ -104,7 +104,7 @@ function parseAssigningAuthority(
  *
  * @example
  * ```ts
- * import { parseXcn, DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7-parser";
+ * import { parseXcn, DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7";
  * const rep = { components: [
  *   { subcomponents: ["1234567890"] },
  *   { subcomponents: ["Smith"] },

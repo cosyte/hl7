@@ -145,7 +145,7 @@ function dispatchValue(
  *
  * @example
  * ```ts
- * import { parseHL7 } from "@cosyte/hl7-parser";
+ * import { parseHL7 } from "@cosyte/hl7";
  * const msg = parseHL7(raw);
  * const obx = msg.segments("OBX")[0];
  * if (obx !== undefined) {
@@ -168,7 +168,7 @@ export function buildObservation(obx: Segment): Observation {
  *
  * @example
  * ```ts
- * import { parseHL7 } from "@cosyte/hl7-parser";
+ * import { parseHL7 } from "@cosyte/hl7";
  * const msg = parseHL7(raw);
  * for (const obs of msg.observations()) {
  *   if (obs.valueType === "NM") console.log(obs.value); // number | undefined

@@ -1,5 +1,5 @@
 /**
- * Public entry point for the `@cosyte/hl7-parser` parser — composes every
+ * Public entry point for the `@cosyte/hl7` parser — composes every
  * parser stage built across Plans 01–05 (normalize, strip MLLP, split
  * segments, read delimiters, tokenize) and routes every Tier-2 warning
  * through a single `emitWarning` chokepoint. The four Tier-3 fatal codes
@@ -322,7 +322,7 @@ function extractVersion(msh: RawSegment | undefined): string {
  *
  * @example
  * ```ts
- * import { parseHL7, WARNING_CODES } from "@cosyte/hl7-parser";
+ * import { parseHL7, WARNING_CODES } from "@cosyte/hl7";
  *
  * const msg = parseHL7(
  *   "MSH|^~\\&|APP|FAC|APP|FAC|20250101||ADT^A01|1|P|2.5\rPID|||123",

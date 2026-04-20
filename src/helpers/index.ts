@@ -6,7 +6,7 @@
  * the types + `pickMrn`.
  *
  * Not part of the public package surface — `src/index.ts` is the sole
- * entry point for the `@cosyte/hl7-parser` barrel.
+ * entry point for the `@cosyte/hl7` barrel.
  */
 
 export type {

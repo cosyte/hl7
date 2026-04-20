@@ -1,5 +1,5 @@
 /**
- * HL7 escape-sequence handling for the `@cosyte/hl7-parser` parser pipeline
+ * HL7 escape-sequence handling for the `@cosyte/hl7` parser pipeline
  * — expands reserved-delimiter escapes on parse (`unescape`) and re-escapes
  * them back when emitting spec-clean HL7 on serialize (`reescape`).
  *
@@ -42,7 +42,7 @@ import { unknownEscapeSequence, type Hl7ParseWarning } from "./warnings.js";
  *
  * @example
  * ```ts
- * import { unescape, DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7-parser";
+ * import { unescape, DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7";
  * const warnings: Array<unknown> = [];
  * const out = unescape(
  *   "patient\\F\\name\\.br\\DOB",
@@ -137,7 +137,7 @@ function expandSequence(seq: string, enc: EncodingCharacters): string | null {
  *
  * @example
  * ```ts
- * import { reescape, DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7-parser";
+ * import { reescape, DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7";
  * reescape("Smith|John", DEFAULT_ENCODING_CHARACTERS); // "Smith\\F\\John"
  * reescape("line1\nline2", DEFAULT_ENCODING_CHARACTERS); // "line1\\.br\\line2"
  * ```

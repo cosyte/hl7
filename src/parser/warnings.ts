@@ -1,5 +1,5 @@
 /**
- * Tier-2 warning registry and factories for the `@cosyte/hl7-parser` parser
+ * Tier-2 warning registry and factories for the `@cosyte/hl7` parser
  * pipeline. Consumers compare `warning.code === WARNING_CODES.<CODE>` to
  * narrow and react; the parser uses the factories here to construct every
  * warning it emits so that messages, payload shape, and positional context
@@ -16,7 +16,7 @@ import type { Hl7Position } from "./types.js";
  *
  * @example
  * ```ts
- * import { parseHL7, WARNING_CODES } from "@cosyte/hl7-parser";
+ * import { parseHL7, WARNING_CODES } from "@cosyte/hl7";
  * const msg = parseHL7(raw);
  * if (msg.warnings.some((w) => w.code === WARNING_CODES.MLLP_FRAMING_STRIPPED)) {
  *   // handle MLLP-wrapped input
@@ -47,7 +47,7 @@ export const WARNING_CODES = {
  *
  * @example
  * ```ts
- * import type { Hl7ParseWarning, WarningCode } from "@cosyte/hl7-parser";
+ * import type { Hl7ParseWarning, WarningCode } from "@cosyte/hl7";
  * function describe(w: Hl7ParseWarning): string {
  *   const code: WarningCode = w.code;
  *   switch (code) {
@@ -69,7 +69,7 @@ export type WarningCode = (typeof WARNING_CODES)[keyof typeof WARNING_CODES];
  *
  * @example
  * ```ts
- * import type { Hl7ParseWarning } from "@cosyte/hl7-parser";
+ * import type { Hl7ParseWarning } from "@cosyte/hl7";
  * const w: Hl7ParseWarning = {
  *   code: "UNKNOWN_SEGMENT",
  *   message: "Unknown segment: ZZZ",
@@ -90,7 +90,7 @@ export interface Hl7ParseWarning {
  *
  * @example
  * ```ts
- * import { mllpFramingStripped } from "@cosyte/hl7-parser";
+ * import { mllpFramingStripped } from "@cosyte/hl7";
  * const w = mllpFramingStripped({ segmentIndex: 0 });
  * ```
  */
@@ -109,7 +109,7 @@ export function mllpFramingStripped(position: Hl7Position): Hl7ParseWarning {
  *
  * @example
  * ```ts
- * import { fieldWhitespaceTrimmed } from "@cosyte/hl7-parser";
+ * import { fieldWhitespaceTrimmed } from "@cosyte/hl7";
  * const w = fieldWhitespaceTrimmed(
  *   { segmentIndex: 1, fieldIndex: 5 },
  *   "  SMITH ",
@@ -136,7 +136,7 @@ export function fieldWhitespaceTrimmed(
  *
  * @example
  * ```ts
- * import { unknownEscapeSequence } from "@cosyte/hl7-parser";
+ * import { unknownEscapeSequence } from "@cosyte/hl7";
  * const w = unknownEscapeSequence({ segmentIndex: 2, fieldIndex: 3 }, "Z99");
  * ```
  */
@@ -159,7 +159,7 @@ export function unknownEscapeSequence(
  *
  * @example
  * ```ts
- * import { timestampFallbackFormat } from "@cosyte/hl7-parser";
+ * import { timestampFallbackFormat } from "@cosyte/hl7";
  * const w = timestampFallbackFormat(
  *   { segmentIndex: 1, fieldIndex: 7 },
  *   "YYYY-MM-DD",
@@ -184,7 +184,7 @@ export function timestampFallbackFormat(
  *
  * @example
  * ```ts
- * import { segmentCase } from "@cosyte/hl7-parser";
+ * import { segmentCase } from "@cosyte/hl7";
  * const w = segmentCase({ segmentIndex: 3 }, "pid");
  * ```
  */
@@ -203,7 +203,7 @@ export function segmentCase(position: Hl7Position, observed: string): Hl7ParseWa
  *
  * @example
  * ```ts
- * import { extraFields } from "@cosyte/hl7-parser";
+ * import { extraFields } from "@cosyte/hl7";
  * const w = extraFields({ segmentIndex: 4 }, "PID", 3);
  * ```
  */
@@ -226,7 +226,7 @@ export function extraFields(
  *
  * @example
  * ```ts
- * import { unknownSegment } from "@cosyte/hl7-parser";
+ * import { unknownSegment } from "@cosyte/hl7";
  * const w = unknownSegment({ segmentIndex: 7 }, "ZZZ");
  * ```
  */
@@ -249,7 +249,7 @@ export function unknownSegment(
  *
  * @example
  * ```ts
- * import { duplicateRequiredSegment } from "@cosyte/hl7-parser";
+ * import { duplicateRequiredSegment } from "@cosyte/hl7";
  * const w = duplicateRequiredSegment({ segmentIndex: 1 }, "MSH");
  * ```
  */
@@ -272,7 +272,7 @@ export function duplicateRequiredSegment(
  *
  * @example
  * ```ts
- * import { encodingMismatch } from "@cosyte/hl7-parser";
+ * import { encodingMismatch } from "@cosyte/hl7";
  * const w = encodingMismatch({ segmentIndex: 0 }, "MSH-2 declares ^~\\& but segment used !@#$");
  * ```
  */
@@ -294,7 +294,7 @@ export function encodingMismatch(
  *
  * @example
  * ```ts
- * import { missingRequiredField } from "@cosyte/hl7-parser";
+ * import { missingRequiredField } from "@cosyte/hl7";
  * const w = missingRequiredField({ segmentIndex: 0, fieldIndex: 3 }, "MSH", 3);
  * ```
  */
@@ -317,7 +317,7 @@ export function missingRequiredField(
  *
  * @example
  * ```ts
- * import { outOfOrderSegment } from "@cosyte/hl7-parser";
+ * import { outOfOrderSegment } from "@cosyte/hl7";
  * const w = outOfOrderSegment({ segmentIndex: 2 }, "EVN");
  * ```
  */
@@ -339,7 +339,7 @@ export function outOfOrderSegment(
  *
  * @example
  * ```ts
- * import { versionMismatch } from "@cosyte/hl7-parser";
+ * import { versionMismatch } from "@cosyte/hl7";
  * const w = versionMismatch({ segmentIndex: 0, fieldIndex: 12 }, "2.9", "2.5");
  * ```
  */
@@ -362,7 +362,7 @@ export function versionMismatch(
  *
  * @example
  * ```ts
- * import { unknownCharset } from "@cosyte/hl7-parser";
+ * import { unknownCharset } from "@cosyte/hl7";
  * const w = unknownCharset({ segmentIndex: 0, fieldIndex: 18 }, "ISO IR 999");
  * ```
  */

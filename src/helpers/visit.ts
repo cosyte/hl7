@@ -45,7 +45,7 @@ function nonEmptyXcn(xcn: XCN): XCN | undefined {
  *
  * @example
  * ```ts
- * import { parseHL7 } from "@cosyte/hl7-parser";
+ * import { parseHL7 } from "@cosyte/hl7";
  * const msg = parseHL7(raw);
  * console.log(msg.visit?.patientClass);                 // "I"
  * console.log(msg.visit?.location?.pointOfCare);        // "ICU"

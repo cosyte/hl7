@@ -40,7 +40,7 @@ import type { Hl7ParseWarning } from "../parser/warnings.js";
  *
  * @example
  * ```ts
- * import { parseHL7, type SerializedMessage } from "@cosyte/hl7-parser";
+ * import { parseHL7, type SerializedMessage } from "@cosyte/hl7";
  * const msg = parseHL7(raw);
  * const snap: SerializedMessage = msg.toJSON();
  * console.log(snap.segments[0]?.name);        // "MSH"

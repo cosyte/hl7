@@ -1,5 +1,5 @@
 /**
- * Public entry point for the `@cosyte/hl7-parser` package.
+ * Public entry point for the `@cosyte/hl7` package.
  *
  * The full public API (parseHL7, defineProfile, helpers, types) is populated
  * in subsequent phases. This stub keeps the module resolvable and typed so
@@ -14,7 +14,7 @@
  *
  * @example
  * ```ts
- * import { VERSION } from "@cosyte/hl7-parser";
+ * import { VERSION } from "@cosyte/hl7";
  * console.log(VERSION);
  * ```
  */
@@ -66,7 +66,7 @@ export type { DotPath } from "./model/dot-path.js";
 // Phase 3 typed composites — named exports for the 10 v1 composites
 // (XPN, XAD, CX, CWE, CE, XTN, PL, TS, NM, HD) alongside their parser
 // functions. D-13: these are ALSO re-exported under the `HL7` namespace
-// below so `import { HL7 } from "@cosyte/hl7-parser"; type T = HL7.XPN`
+// below so `import { HL7 } from "@cosyte/hl7"; type T = HL7.XPN`
 // resolves to the same interface as the named `XPN` import.
 export type { XPN } from "./model/types/xpn.js";
 export { parseXpn } from "./model/types/xpn.js";

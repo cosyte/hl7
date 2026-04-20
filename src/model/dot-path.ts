@@ -1,5 +1,5 @@
 /**
- * Dot-path tokenizer and resolver for the `@cosyte/hl7-parser` structural
+ * Dot-path tokenizer and resolver for the `@cosyte/hl7` structural
  * model. Parses strings like `PID.5.1`, `OBX[2].5`, `PID.3[0].1` into a
  * discriminated-token descriptor, then resolves that descriptor against a
  * `readonly RawSegment[]` tree to produce the auto-unescaped leaf string (or
@@ -34,7 +34,7 @@ import type { Hl7ParseWarning } from "../parser/warnings.js";
  *
  * @example
  * ```ts
- * import { parsePath } from "@cosyte/hl7-parser";
+ * import { parsePath } from "@cosyte/hl7";
  * parsePath("OBX[2].5.1");
  * // { segmentType: "OBX", segmentIndex: 2, fieldIndex: 5,
  * //   repetitionIndex: 0, componentIndex: 1 }
@@ -81,7 +81,7 @@ const NOOP_EMITTER = (_w: Hl7ParseWarning): void => {
  *
  * @example
  * ```ts
- * import { parsePath } from "@cosyte/hl7-parser";
+ * import { parsePath } from "@cosyte/hl7";
  * parsePath("PID.5.1");       // { segmentType: "PID", segmentIndex: 0, fieldIndex: 5, componentIndex: 1 }
  * parsePath("OBX[2].5");      // { segmentType: "OBX", segmentIndex: 2, fieldIndex: 5 }
  * parsePath("PID.3[1].1");    // { segmentType: "PID", segmentIndex: 0, fieldIndex: 3, repetitionIndex: 1, componentIndex: 1 }
@@ -200,7 +200,7 @@ export function parsePath(path: string): DotPath {
  *
  * @example
  * ```ts
- * import { parseHL7, resolvePath } from "@cosyte/hl7-parser";
+ * import { parseHL7, resolvePath } from "@cosyte/hl7";
  * const msg = parseHL7(raw);
  * resolvePath("PID.5.1", msg.rawSegments, msg.encodingCharacters); // "Smith"
  * resolvePath("NOT.9", msg.rawSegments, msg.encodingCharacters);    // undefined

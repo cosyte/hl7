@@ -7,7 +7,7 @@
  *
  * @example
  * ```ts
- * import { parseHL7, profiles } from "@cosyte/hl7-parser";
+ * import { parseHL7, profiles } from "@cosyte/hl7";
  * const msg = parseHL7(raw, profiles.cerner);
  * const zds = msg.allSegments().find((s) => s.type === "ZDS");
  * console.log(zds?.get("summaryText")?.value);
@@ -22,7 +22,7 @@ import { defineProfile } from "./define.js";
  *
  * @example
  * ```ts
- * import { parseHL7, profiles } from "@cosyte/hl7-parser";
+ * import { parseHL7, profiles } from "@cosyte/hl7";
  * const msg = parseHL7(raw, profiles.cerner);
  * ```
  */

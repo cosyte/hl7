@@ -1,5 +1,5 @@
 /**
- * MSH delimiter-discovery stage for the `@cosyte/hl7-parser` parser pipeline.
+ * MSH delimiter-discovery stage for the `@cosyte/hl7` parser pipeline.
  * Reads the 5 encoding characters (MSH-1 field separator + MSH-2 component /
  * repetition / escape / subcomponent) from the first segment and throws a
  * Tier-3 `Hl7ParseError` if the structural preconditions fail. Downstream
@@ -23,7 +23,7 @@ import type { EncodingCharacters } from "./types.js";
  *
  * @example
  * ```ts
- * import { DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7-parser";
+ * import { DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7";
  * DEFAULT_ENCODING_CHARACTERS.field; // "|"
  * ```
  */
@@ -50,7 +50,7 @@ export const DEFAULT_ENCODING_CHARACTERS: EncodingCharacters = {
  *
  * @example
  * ```ts
- * import { readDelimiters } from "@cosyte/hl7-parser";
+ * import { readDelimiters } from "@cosyte/hl7";
  * const enc = readDelimiters("MSH|^~\\&|APP|FAC|...");
  * enc.field;        // "|"
  * enc.component;    // "^"

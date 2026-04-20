@@ -9,7 +9,7 @@
  *
  * @example
  * ```ts
- * import { parseHL7, profiles } from "@cosyte/hl7-parser";
+ * import { parseHL7, profiles } from "@cosyte/hl7";
  * const msg = parseHL7(raw, profiles.genericLab);
  * const znt = msg.allSegments().find((s) => s.type === "ZNT");
  * console.log(znt?.get("noteText")?.value);
@@ -24,7 +24,7 @@ import { defineProfile } from "./define.js";
  *
  * @example
  * ```ts
- * import { parseHL7, profiles } from "@cosyte/hl7-parser";
+ * import { parseHL7, profiles } from "@cosyte/hl7";
  * const msg = parseHL7(raw, profiles.genericLab);
  * ```
  */

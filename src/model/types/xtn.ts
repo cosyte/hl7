@@ -37,7 +37,7 @@ import { readComponent } from "./_shared.js";
  *
  * @example
  * ```ts
- * import type { XTN } from "@cosyte/hl7-parser";
+ * import type { XTN } from "@cosyte/hl7";
  * const phone: XTN = {
  *   telephoneNumber: "(555) 555-1234",
  *   telecommunicationUseCode: "WPN",
@@ -68,7 +68,7 @@ export interface XTN {
  *
  * @example
  * ```ts
- * import { parseXtn, DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7-parser";
+ * import { parseXtn, DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7";
  * const rep = { components: [
  *   { subcomponents: ["555-1234"] },
  *   { subcomponents: ["PRN"] },

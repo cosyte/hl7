@@ -1,5 +1,5 @@
 /**
- * Shared type definitions consumed across the `@cosyte/hl7-parser` parser
+ * Shared type definitions consumed across the `@cosyte/hl7` parser
  * pipeline. These types are contracts between parser stages (normalize,
  * mllp, segments, delimiters, tokenize) and the `Hl7Message` model shell.
  *
@@ -28,7 +28,7 @@ import type { Hl7ParseWarning } from "./warnings.js";
  *
  * @example
  * ```ts
- * import type { Hl7Position } from "@cosyte/hl7-parser";
+ * import type { Hl7Position } from "@cosyte/hl7";
  * const pos: Hl7Position = { segmentIndex: 2, fieldIndex: 5 };
  * ```
  */
@@ -47,7 +47,7 @@ export interface Hl7Position {
  *
  * @example
  * ```ts
- * import { parseHL7, type OnWarningCallback } from "@cosyte/hl7-parser";
+ * import { parseHL7, type OnWarningCallback } from "@cosyte/hl7";
  * const onWarning: OnWarningCallback = (w) => {
  *   console.warn(w.code, w.message);
  * };
@@ -70,7 +70,7 @@ export type OnWarningCallback = (warning: Hl7ParseWarning) => void;
  *
  * @example
  * ```ts
- * import { parseHL7, type ParseOptions } from "@cosyte/hl7-parser";
+ * import { parseHL7, type ParseOptions } from "@cosyte/hl7";
  * const opts: ParseOptions = {
  *   strict: true,
  *   onWarning: (w) => console.warn(w.code),
@@ -95,7 +95,7 @@ export interface ParseOptions {
    *
    * @example
    * ```ts
-   * import { parseHL7 } from "@cosyte/hl7-parser";
+   * import { parseHL7 } from "@cosyte/hl7";
    * parseHL7(buf, { charset: "ISO-8859-1" });
    * ```
    */
@@ -108,12 +108,12 @@ export interface ParseOptions {
  * 1-indexed HL7 position within the segment. Declared here (alongside
  * `Profile`) to keep the parser's type module the single source of truth;
  * `src/profiles/define.ts` re-exports this type so consumers can write
- * `import type { CustomSegmentDefinition } from "@cosyte/hl7-parser"`
+ * `import type { CustomSegmentDefinition } from "@cosyte/hl7"`
  * after Plan 06's barrel-sweep.
  *
  * @example
  * ```ts
- * import type { CustomSegmentDefinition } from "@cosyte/hl7-parser";
+ * import type { CustomSegmentDefinition } from "@cosyte/hl7";
  * const zdp: CustomSegmentDefinition = {
  *   fields: { departmentCode: 3, departmentName: 4 },
  * };
@@ -138,7 +138,7 @@ export interface CustomSegmentDefinition {
  *
  * @example
  * ```ts
- * import type { Profile } from "@cosyte/hl7-parser";
+ * import type { Profile } from "@cosyte/hl7";
  * const epic: Profile = {
  *   name: "epic",
  *   description: "Epic-specific quirks and date formats",
@@ -167,7 +167,7 @@ export interface Profile {
  *
  * @example
  * ```ts
- * import type { EncodingCharacters } from "@cosyte/hl7-parser";
+ * import type { EncodingCharacters } from "@cosyte/hl7";
  * const enc: EncodingCharacters = {
  *   field: "|",
  *   component: "^",
@@ -192,7 +192,7 @@ export interface EncodingCharacters {
  *
  * @example
  * ```ts
- * import type { RawComponent } from "@cosyte/hl7-parser";
+ * import type { RawComponent } from "@cosyte/hl7";
  * const comp: RawComponent = { subcomponents: ["Smith", "John"] };
  * ```
  */
@@ -207,7 +207,7 @@ export interface RawComponent {
  *
  * @example
  * ```ts
- * import type { RawRepetition } from "@cosyte/hl7-parser";
+ * import type { RawRepetition } from "@cosyte/hl7";
  * const rep: RawRepetition = { components: [{ subcomponents: ["Smith"] }] };
  * ```
  */
@@ -223,7 +223,7 @@ export interface RawRepetition {
  *
  * @example
  * ```ts
- * import type { RawField } from "@cosyte/hl7-parser";
+ * import type { RawField } from "@cosyte/hl7";
  * const nullField: RawField = { repetitions: [], isNull: true };
  * const emptyField: RawField = { repetitions: [], isNull: false };
  * ```
@@ -241,7 +241,7 @@ export interface RawField {
  *
  * @example
  * ```ts
- * import type { RawSegment } from "@cosyte/hl7-parser";
+ * import type { RawSegment } from "@cosyte/hl7";
  * const pid: RawSegment = {
  *   name: "PID",
  *   fields: [

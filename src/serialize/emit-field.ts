@@ -1,5 +1,5 @@
 /**
- * HL7 emit primitives for the `@cosyte/hl7-parser` serializer pipeline —
+ * HL7 emit primitives for the `@cosyte/hl7` serializer pipeline —
  * walks a `RawField` / `RawSegment` tree and produces spec-clean HL7 text
  * by joining repetitions, components, and subcomponents with the active
  * delimiters and re-escaping user content via `reescape`.

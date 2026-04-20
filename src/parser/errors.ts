@@ -1,5 +1,5 @@
 /**
- * Fatal error taxonomy for the `@cosyte/hl7-parser` parser pipeline. Four
+ * Fatal error taxonomy for the `@cosyte/hl7` parser pipeline. Four
  * Tier-3 codes cover every unrecoverable structural failure; anything less
  * severe is a Tier-2 warning (see `./warnings.ts`). `Hl7ParseError` is
  * thrown directly; consumers narrow via the `code` discriminant.
@@ -18,7 +18,7 @@ import type { Hl7Position } from "./types.js";
  *
  * @example
  * ```ts
- * import { parseHL7, FATAL_CODES, Hl7ParseError } from "@cosyte/hl7-parser";
+ * import { parseHL7, FATAL_CODES, Hl7ParseError } from "@cosyte/hl7";
  * try {
  *   parseHL7("");
  * } catch (err) {
@@ -43,7 +43,7 @@ export const FATAL_CODES = {
  *
  * @example
  * ```ts
- * import type { FatalCode } from "@cosyte/hl7-parser";
+ * import type { FatalCode } from "@cosyte/hl7";
  * function describe(code: FatalCode): string {
  *   switch (code) {
  *     case "EMPTY_INPUT":
@@ -73,7 +73,7 @@ export type FatalCode = (typeof FATAL_CODES)[keyof typeof FATAL_CODES];
  *
  * @example
  * ```ts
- * import { parseHL7, Hl7ParseError } from "@cosyte/hl7-parser";
+ * import { parseHL7, Hl7ParseError } from "@cosyte/hl7";
  * try {
  *   parseHL7("");
  * } catch (err) {
@@ -118,7 +118,7 @@ export class Hl7ParseError extends Error {
  *
  * @example
  * ```ts
- * import { ProfileDefinitionError } from "@cosyte/hl7-parser";
+ * import { ProfileDefinitionError } from "@cosyte/hl7";
  * throw new ProfileDefinitionError(
  *   "Unknown parent profile: epic-v7",
  *   "my-epic-extension",

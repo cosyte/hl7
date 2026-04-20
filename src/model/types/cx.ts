@@ -47,7 +47,7 @@ import { parseHd, type HD } from "./hd.js";
  *
  * @example
  * ```ts
- * import type { CX } from "@cosyte/hl7-parser";
+ * import type { CX } from "@cosyte/hl7";
  * const mrn: CX = {
  *   idNumber: "123456",
  *   assigningAuthority: { namespaceId: "EPIC", universalId: "1.2.840.114350", universalIdType: "ISO" },
@@ -104,7 +104,7 @@ function parseAssigningAuthority(
  *
  * @example
  * ```ts
- * import { parseCx, DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7-parser";
+ * import { parseCx, DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7";
  * const rep = { components: [
  *   { subcomponents: ["123"] },
  *   { subcomponents: [""] },

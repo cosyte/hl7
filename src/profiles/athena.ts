@@ -11,7 +11,7 @@
  *
  * @example
  * ```ts
- * import { parseHL7, profiles } from "@cosyte/hl7-parser";
+ * import { parseHL7, profiles } from "@cosyte/hl7";
  * const msg = parseHL7(raw, profiles.athena);
  * const zca = msg.allSegments().find((s) => s.type === "ZCA");
  * console.log(zca?.get("providerName")?.value);
@@ -26,7 +26,7 @@ import { defineProfile } from "./define.js";
  *
  * @example
  * ```ts
- * import { parseHL7, profiles } from "@cosyte/hl7-parser";
+ * import { parseHL7, profiles } from "@cosyte/hl7";
  * const msg = parseHL7(raw, profiles.athena);
  * ```
  */

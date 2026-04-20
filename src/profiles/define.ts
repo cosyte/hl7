@@ -14,7 +14,7 @@
  *
  * Type ownership: `CustomSegmentDefinition` is declared CANONICALLY in
  * `src/parser/types.ts` (alongside `Profile`) and re-exported from THIS
- * module so `@cosyte/hl7-parser` consumers can reach it via either entry
+ * module so `@cosyte/hl7` consumers can reach it via either entry
  * point. Single source of truth; no circular type imports.
  */
 
@@ -49,7 +49,7 @@ import {
  *
  * @example
  * ```ts
- * import type { CustomSegmentDefinition } from "@cosyte/hl7-parser";
+ * import type { CustomSegmentDefinition } from "@cosyte/hl7";
  * const zdp: CustomSegmentDefinition = {
  *   fields: { departmentCode: 3, departmentName: 4 },
  * };
@@ -64,7 +64,7 @@ export type { CustomSegmentDefinition } from "../parser/types.js";
  *
  * @example
  * ```ts
- * import { defineProfile, type DefineProfileOptions } from "@cosyte/hl7-parser";
+ * import { defineProfile, type DefineProfileOptions } from "@cosyte/hl7";
  * const opts: DefineProfileOptions = {
  *   name: "my-lab",
  *   dateFormats: ["MM/DD/YYYY"],
@@ -96,7 +96,7 @@ export interface DefineProfileOptions {
  *
  * @example
  * ```ts
- * import { defineProfile } from "@cosyte/hl7-parser";
+ * import { defineProfile } from "@cosyte/hl7";
  * const epic = defineProfile({
  *   name: "epic",
  *   description: "Epic-specific quirks and ADT date formats",

@@ -35,7 +35,7 @@ const DEFAULT_POSITION: Hl7Position = { segmentIndex: 0 };
  *
  * @example
  * ```ts
- * import type { NM } from "@cosyte/hl7-parser";
+ * import type { NM } from "@cosyte/hl7";
  * const glucose: NM = { raw: "120", value: 120 };
  * const bad: NM = { raw: "N/A", value: undefined };
  * ```
@@ -56,7 +56,7 @@ export interface NM {
  *
  * @example
  * ```ts
- * import { parseNm, DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7-parser";
+ * import { parseNm, DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7";
  * const rep = { components: [{ subcomponents: ["120.5"] }] };
  * const nm = parseNm(rep, DEFAULT_ENCODING_CHARACTERS);
  * console.log(nm.value); // 120.5

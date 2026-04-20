@@ -1,6 +1,6 @@
 /**
  * MLLP (Minimal Lower Layer Protocol) framing byte removal for the
- * `@cosyte/hl7-parser` parser pipeline. MLLP wraps an HL7 v2 message with a
+ * `@cosyte/hl7` parser pipeline. MLLP wraps an HL7 v2 message with a
  * start-block byte (`0x0B` / VT) and an end-block pair (`0x1C` / FS followed
  * by `0x0D` / CR). This module strips those control bytes and flags the event
  * via the `MLLP_FRAMING_STRIPPED` Tier-2 warning (TOL-06).
@@ -23,7 +23,7 @@ import type { Hl7Position } from "./types.js";
  *
  * @example
  * ```ts
- * import { stripMllp, type StripMllpResult } from "@cosyte/hl7-parser";
+ * import { stripMllp, type StripMllpResult } from "@cosyte/hl7";
  * const r: StripMllpResult = stripMllp("\u000BMSH|...\u001C\u000D");
  * // r.stripped === "MSH|..."; r.wasFramed === true
  * ```
@@ -45,7 +45,7 @@ export interface StripMllpResult {
  *
  * @example
  * ```ts
- * import { stripMllp } from "@cosyte/hl7-parser";
+ * import { stripMllp } from "@cosyte/hl7";
  * const { stripped, wasFramed } = stripMllp("\u000BMSH|^~\\&|APP\rPID|1\u001C\u000D");
  * // stripped === "MSH|^~\\&|APP\rPID|1"; wasFramed === true
  * ```
@@ -74,7 +74,7 @@ export function stripMllp(input: string): StripMllpResult {
  *
  * @example
  * ```ts
- * import { stripMllp, emitIfFramed } from "@cosyte/hl7-parser";
+ * import { stripMllp, emitIfFramed } from "@cosyte/hl7";
  * const result = stripMllp(raw);
  * emitIfFramed(result, (w) => console.warn(w.code), { segmentIndex: 0 });
  * ```

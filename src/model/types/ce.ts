@@ -30,7 +30,7 @@ import { readComponent } from "./_shared.js";
  *
  * @example
  * ```ts
- * import type { CE } from "@cosyte/hl7-parser";
+ * import type { CE } from "@cosyte/hl7";
  * const code: CE = { identifier: "GLU", text: "Glucose", nameOfCodingSystem: "LN" };
  * ```
  */
@@ -50,7 +50,7 @@ export interface CE {
  *
  * @example
  * ```ts
- * import { parseCe, DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7-parser";
+ * import { parseCe, DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7";
  * const rep = { components: [
  *   { subcomponents: ["GLU"] },
  *   { subcomponents: ["Glucose"] },

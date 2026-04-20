@@ -30,7 +30,7 @@ function stringOrUndefined(v: string): string | undefined {
  *
  * @example
  * ```ts
- * import { parseHL7 } from "@cosyte/hl7-parser";
+ * import { parseHL7 } from "@cosyte/hl7";
  * const msg = parseHL7(raw);
  * for (const dg of msg.diagnoses()) {
  *   console.log(dg.code?.identifier, dg.description, dg.type);

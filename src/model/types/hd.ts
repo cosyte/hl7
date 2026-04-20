@@ -24,7 +24,7 @@ import { readComponent } from "./_shared.js";
  *
  * @example
  * ```ts
- * import type { HD } from "@cosyte/hl7-parser";
+ * import type { HD } from "@cosyte/hl7";
  * const authority: HD = { namespaceId: "EPIC", universalId: "1.2.840.114350", universalIdType: "ISO" };
  * ```
  */
@@ -41,7 +41,7 @@ export interface HD {
  *
  * @example
  * ```ts
- * import { parseHd, DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7-parser";
+ * import { parseHd, DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7";
  * const rep = { components: [
  *   { subcomponents: ["EPIC"] },
  *   { subcomponents: ["1.2.840.114350"] },

@@ -65,7 +65,7 @@ function composeFullName(name: XPN): string | undefined {
  *
  * @example
  * ```ts
- * import { parseHL7 } from "@cosyte/hl7-parser";
+ * import { parseHL7 } from "@cosyte/hl7";
  * const msg = parseHL7(raw);
  * console.log(msg.patient?.mrn);                        // first CX-5="MR" idNumber
  * console.log(msg.patient?.fullName);                   // "Jane Q Smith, Jr"

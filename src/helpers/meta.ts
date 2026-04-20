@@ -27,7 +27,7 @@ import type { Meta } from "./types.js";
  *
  * @example
  * ```ts
- * import { parseHL7 } from "@cosyte/hl7-parser";
+ * import { parseHL7 } from "@cosyte/hl7";
  * const msg = parseHL7(raw);
  * console.log(msg.meta.type);                     // "ADT^A01^ADT_A01"
  * console.log(msg.meta.controlId);                // "MSG001"

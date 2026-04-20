@@ -49,7 +49,7 @@ import { parseHd, type HD } from "./hd.js";
  *
  * @example
  * ```ts
- * import type { PL } from "@cosyte/hl7-parser";
+ * import type { PL } from "@cosyte/hl7";
  * const bed: PL = {
  *   pointOfCare: "ICU",
  *   room: "101",
@@ -108,7 +108,7 @@ function parseFacility(
  *
  * @example
  * ```ts
- * import { parsePl, DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7-parser";
+ * import { parsePl, DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7";
  * const rep = { components: [
  *   { subcomponents: ["ICU"] },
  *   { subcomponents: ["101"] },

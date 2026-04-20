@@ -32,7 +32,7 @@ import { readComponent } from "./_shared.js";
  *
  * @example
  * ```ts
- * import type { XAD } from "@cosyte/hl7-parser";
+ * import type { XAD } from "@cosyte/hl7";
  * const addr: XAD = { street: "123 Main St", city: "Boston", stateOrProvince: "MA" };
  * ```
  */
@@ -58,7 +58,7 @@ export interface XAD {
  *
  * @example
  * ```ts
- * import { parseXad, DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7-parser";
+ * import { parseXad, DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7";
  * const rep = { components: [
  *   { subcomponents: ["123 Main St"] },
  *   { subcomponents: ["Apt 4"] },

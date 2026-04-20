@@ -1,5 +1,5 @@
 /**
- * Input normalization stage for the `@cosyte/hl7-parser` parser pipeline.
+ * Input normalization stage for the `@cosyte/hl7` parser pipeline.
  * Normalizes mixed line endings (`\r\n`, `\n`, `\r`) to a single `\r` terminator
  * and — for `Buffer` input — decodes bytes into a string using MSH-18 charset
  * resolution with a UTF-8 fallback.
@@ -38,7 +38,7 @@ type EmitFn = (warning: Hl7ParseWarning) => void;
  *
  * @example
  * ```ts
- * import { normalize } from "@cosyte/hl7-parser";
+ * import { normalize } from "@cosyte/hl7";
  * const clean = normalize("MSH|^~\\&|APP\r\nPID|1\nEVN|A");
  * // clean === "MSH|^~\\&|APP\rPID|1\rEVN|A"
  * ```
@@ -59,7 +59,7 @@ export function normalize(input: string): string {
  *
  * @example
  * ```ts
- * import { normalizeBuffer } from "@cosyte/hl7-parser";
+ * import { normalizeBuffer } from "@cosyte/hl7";
  * const text = normalizeBuffer(
  *   Buffer.from("MSH|^~\\&|APP\rPID|1", "utf-8"),
  *   "UTF-8",

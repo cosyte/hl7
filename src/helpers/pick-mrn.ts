@@ -25,7 +25,7 @@ import type { CX } from "../model/types/cx.js";
  *
  * @example
  * ```ts
- * import { pickMrn } from "@cosyte/hl7-parser";
+ * import { pickMrn } from "@cosyte/hl7";
  * pickMrn([
  *   { idNumber: "X1" },
  *   { idNumber: "MRN001", identifierTypeCode: "MR" },

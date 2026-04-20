@@ -19,7 +19,7 @@
  *
  * @example
  * ```ts
- * import { KNOWN_SEGMENTS } from "@cosyte/hl7-parser";
+ * import { KNOWN_SEGMENTS } from "@cosyte/hl7";
  * console.log(KNOWN_SEGMENTS.has("PID")); // true
  * console.log(KNOWN_SEGMENTS.has("ZPI")); // false
  * ```

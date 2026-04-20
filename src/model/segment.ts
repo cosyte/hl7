@@ -18,7 +18,7 @@ import type { EncodingCharacters, RawField, RawSegment } from "../parser/types.j
  *
  * @example
  * ```ts
- * import { parseHL7 } from "@cosyte/hl7-parser";
+ * import { parseHL7 } from "@cosyte/hl7";
  * const msg = parseHL7(raw);
  * const pid = msg.segments("PID")[0];
  * if (pid !== undefined) console.log(pid.field(5).value);

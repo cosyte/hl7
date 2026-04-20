@@ -40,7 +40,7 @@ const DEFAULT_POSITION: Hl7Position = { segmentIndex: 0 };
  *
  * @example
  * ```ts
- * import type { TS } from "@cosyte/hl7-parser";
+ * import type { TS } from "@cosyte/hl7";
  * const ts: TS = { raw: "20250102", date: new Date("2025-01-02T00:00:00.000Z") };
  * const invalid: TS = { raw: "not a date", date: undefined };
  * ```
@@ -65,7 +65,7 @@ export interface TS {
  *
  * @example
  * ```ts
- * import { parseTs, DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7-parser";
+ * import { parseTs, DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7";
  * const rep = { components: [{ subcomponents: ["20250102153045"] }] };
  * const ts = parseTs(rep, DEFAULT_ENCODING_CHARACTERS);
  * console.log(ts.raw);  // "20250102153045"

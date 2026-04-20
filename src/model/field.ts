@@ -52,7 +52,7 @@ const DEFAULT_POSITION: Hl7Position = { segmentIndex: 0 };
  *
  * @example
  * ```ts
- * import { parseHL7 } from "@cosyte/hl7-parser";
+ * import { parseHL7 } from "@cosyte/hl7";
  * const msg = parseHL7(raw);
  * const pid5 = msg.segments("PID")[0]?.field(5);
  * console.log(pid5?.value);              // "Smith" — auto-unescaped

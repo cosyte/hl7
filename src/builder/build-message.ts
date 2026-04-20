@@ -1,5 +1,5 @@
 /**
- * `buildMessage` — top-level outbound factory for the `@cosyte/hl7-parser`
+ * `buildMessage` — top-level outbound factory for the `@cosyte/hl7`
  * package. Synthesizes a complete MSH `RawSegment` from `BuildMessageInit`
  * and returns a real `Hl7Message` (not a builder subtype). Callers chain
  * `.addSegment(...)` (Phase 3 mutation method, unchanged) to append PID,
@@ -54,7 +54,7 @@ import { formatHl7Timestamp } from "./format-timestamp.js";
  *
  * @example
  * ```ts
- * import { buildMessage } from "@cosyte/hl7-parser";
+ * import { buildMessage } from "@cosyte/hl7";
  * const msg = buildMessage({
  *   type: "ADT^A01",
  *   sendingApp: "CLINIC",
@@ -139,7 +139,7 @@ export interface BuildMessageInit {
  *
  * @example
  * ```ts
- * import { buildMessage, parseHL7 } from "@cosyte/hl7-parser";
+ * import { buildMessage, parseHL7 } from "@cosyte/hl7";
  * const msg = buildMessage({
  *   type: "ADT^A01",
  *   sendingApp: "CLINIC",

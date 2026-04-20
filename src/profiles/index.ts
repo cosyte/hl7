@@ -1,5 +1,5 @@
 /**
- * Public barrel for the `@cosyte/hl7-parser` profile subsystem. Assembles
+ * Public barrel for the `@cosyte/hl7` profile subsystem. Assembles
  * the `profiles` namespace object (5 built-ins) and re-exports the public
  * profile API: `defineProfile`, `setDefaultProfile`, `getDefaultProfile`,
  * plus the two type exports `DefineProfileOptions` and
@@ -27,7 +27,7 @@ import { meditech } from "./meditech.js";
  *
  * @example
  * ```ts
- * import { parseHL7, profiles } from "@cosyte/hl7-parser";
+ * import { parseHL7, profiles } from "@cosyte/hl7";
  * const msg = parseHL7(raw, profiles.epic);
  * console.log(msg.profile?.name); // "epic"
  * ```

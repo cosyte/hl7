@@ -25,7 +25,7 @@ import type { NextOfKin } from "./types.js";
  *
  * @example
  * ```ts
- * import { parseHL7 } from "@cosyte/hl7-parser";
+ * import { parseHL7 } from "@cosyte/hl7";
  * const msg = parseHL7(raw);
  * for (const nk of msg.nextOfKin()) {
  *   console.log(nk.name?.familyName, nk.relationship?.identifier);

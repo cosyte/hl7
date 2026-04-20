@@ -44,7 +44,7 @@ let _defaultProfile: Profile | undefined = undefined;
  *
  * @example
  * ```ts
- * import { setDefaultProfile, profiles, parseHL7 } from "@cosyte/hl7-parser";
+ * import { setDefaultProfile, profiles, parseHL7 } from "@cosyte/hl7";
  *
  * // Set once at app startup
  * setDefaultProfile(profiles.epic);
@@ -71,7 +71,7 @@ export function setDefaultProfile(profile: Profile | null): void {
  *
  * @example
  * ```ts
- * import { getDefaultProfile } from "@cosyte/hl7-parser";
+ * import { getDefaultProfile } from "@cosyte/hl7";
  * const p = getDefaultProfile();
  * if (p !== undefined) console.log("default profile:", p.name);
  * ```
