@@ -55,6 +55,26 @@ jobs:
       - name: Test (with coverage)
         run: pnpm test:coverage
 
+      - name: Examples (smoke)
+        if: matrix.node == '20'
+        run: pnpm examples
+
+      - name: Starter kit (install + test + build)
+        if: matrix.node == '20'
+        working-directory: examples/profile-starter-kit
+        run: |
+          pnpm install --no-frozen-lockfile
+          pnpm typecheck
+          pnpm lint
+          pnpm test
+          pnpm build
+
+      - name: Validate kit workflows (actionlint)
+        if: matrix.node == '20'
+        uses: reviewdog/action-actionlint@v1
+        with:
+          actionlint_flags: -color=never examples/profile-starter-kit/.github/workflows/ci.yml examples/profile-starter-kit/.github/workflows/publish.yml
+
       - name: Build
         run: pnpm build
 
