@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: milestone
-status: executing
-last_updated: "2026-04-21T01:33:02Z"
+status: "v2.1 MILESTONE COMPLETE 2026-04-20 — all 9 phases shipped (Phases 1-9). Package renamed to @cosyte/hl7 at 0.1.0 (Phase 9); 97/97 v1 REQ-IDs closed; 824 tests pass + 14 documented it.todo across 59 files; full pipeline green (pnpm install/typecheck/lint/test/build/examples), kit subtree install+test+build green, starter-kit ci.yml + publish.yml actionlint-clean, pnpm publish --dry-run produces clean 10-file/346.2kB tarball; coverage gate (per-dir branches ≥ 90% on parser/model/helpers/serialize/builder) enforced on every PR across Node 18/20/22 matrix. Phases 10-12 are v2.1-audit-follow-on tech-debt gap-closure phases (Phase 10: planning-doc resync — IN PROGRESS; Phase 11: retroactive VERIFICATION.md for Phases 01/08/09 — PLANNED; Phase 12: retroactive Nyquist VALIDATION.md for Phases 01/02/03/07/08/09 — PLANNED) and are tracked separately from the v1 milestone. Next: finish Phase 10 gap-closure plans (10-01/10-02/10-03/10-04) → /gsd-execute-phase 11 → /gsd-execute-phase 12."
+last_updated: "2026-04-20T21:00:00Z"
 progress:
-  total_phases: 12
-  completed_phases: 3
-  total_plans: 22
+  total_phases: 9
+  completed_phases: 9
+  total_plans: 46
   completed_plans: 46
   percent: 100
 ---
