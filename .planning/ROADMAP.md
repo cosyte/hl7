@@ -11,15 +11,15 @@ North star: **A developer can parse a real-world, vendor-quirky HL7 v2 message a
 
 ## Phases
 
-- [ ] **Phase 1: Project Foundation** — Scaffold the repo, build, lint, and TypeScript toolchain so any subsequent phase can iterate.
-- [ ] **Phase 2: Core Parser & Tolerance** — Tokenize HL7 input into segments/fields/components/subcomponents with a lenient default, warnings system, and strict-mode escalation.
-- [x] **Phase 3: Structural Model & Types** — Expose the parsed message as an immutable, dot-path-accessible model with typed composite types (XPN, XAD, TS/DTM, etc.). (completed 2026-04-18)
+- [x] **Phase 1: Project Foundation** — Scaffold the repo, build, lint, and TypeScript toolchain so any subsequent phase can iterate. *(completed 2026-04-18)*
+- [x] **Phase 2: Core Parser & Tolerance** — Tokenize HL7 input into segments/fields/components/subcomponents with a lenient default, warnings system, and strict-mode escalation. *(completed 2026-04-18, verified 2026-04-18)*
+- [x] **Phase 3: Structural Model & Types** — Expose the parsed message as an immutable, dot-path-accessible model with typed composite types (XPN, XAD, TS/DTM, etc.). *(completed 2026-04-18, verified 2026-04-18)*
 - [x] **Phase 4: Named Helpers** — Ship the one-line DX: `msg.meta`, `msg.patient`, `msg.visit`, `msg.observations()`, and friends. (completed 2026-04-19, verified 2026-04-19)
 - [x] **Phase 5: Serialization & Round-Trip** — `toString()`, `toJSON()`, `prettyPrint()`, and `buildMessage()` produce spec-clean HL7 and preserve semantics across parse → mutate → serialize → parse. (completed 2026-04-19, verified 2026-04-19)
 - [x] **Phase 6: Profile System & Built-ins** — `defineProfile()` API with merge/extend semantics plus 5 built-in vendor profiles (epic, cerner, meditech, athena, genericLab). *(completed 2026-04-19)*
 - [x] **Phase 7: Testing Hardening & Fixtures** — Canonical, edge-case, vendor-quirk, strict-mode, and profile-authoring test suites that verify ≥ 90% coverage on core modules. *(completed 2026-04-19)*
-- [ ] **Phase 8: Examples, Starter Kit & Documentation** — Three runnable examples, publishable profile starter kit, and the complete README + ancillary docs.
-- [ ] **Phase 9: Rename Package to @cosyte/hl7** — Rename the package from `@cosyte/hl7-parser` to `@cosyte/hl7` (full HL7 toolkit — parser, builder, mutator, serializer, helpers — not just a parser).
+- [x] **Phase 8: Examples, Starter Kit & Documentation** — Three runnable examples, publishable profile starter kit, and the complete README + ancillary docs. *(completed 2026-04-20)*
+- [x] **Phase 9: Rename Package to @cosyte/hl7** — Rename the package from `@cosyte/hl7-parser` to `@cosyte/hl7` (full HL7 toolkit — parser, builder, mutator, serializer, helpers — not just a parser). *(completed 2026-04-20)*
 - [ ] **Phase 10: Planning-Doc Resync** — Close v2.1 audit tech debt: flip 35 stale REQUIREMENTS.md checkboxes, refresh ROADMAP Progress table + Phase 1/2/7/8/9 checkboxes, refresh STATE.md current-position, flip PROJECT.md capabilities checklist, retire Phase 2 VERIFICATION.md TOL-08 deferred block.
 - [ ] **Phase 11: Retroactive Verification** — Produce the three missing VERIFICATION.md artifacts (Phases 01, 08, 09) by running `/gsd-verify-work` against each, ratifying the evidence already on disk.
 - [ ] **Phase 12: Retroactive Nyquist Validation** — Produce the six missing VALIDATION.md artifacts (Phases 01, 02, 03, 07, 08, 09) by running `/gsd-validate-phase` against each.
