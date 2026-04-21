@@ -110,37 +110,37 @@ All requirements are user-facing behaviors a developer consuming `@cosyte/hl7-pa
 
 ### Examples (EX)
 
-- [ ] **EX-01** — `examples/extract-patient-info.ts` runs end-to-end and demonstrates the named-helper access path.
-- [ ] **EX-02** — `examples/read-lab-results.ts` runs end-to-end and demonstrates iterating `msg.observations()` / `msg.orders()`.
-- [ ] **EX-03** — `examples/modify-and-resend.ts` runs end-to-end and demonstrates mutation + round-trip serialization.
+- [x] **EX-01** — `examples/extract-patient-info.ts` runs end-to-end and demonstrates the named-helper access path. _(Closed by Plan 08-01 — examples/extract-patient-info.ts runs end-to-end via `pnpm examples`; verified green in 09-04 pipeline.)_
+- [x] **EX-02** — `examples/read-lab-results.ts` runs end-to-end and demonstrates iterating `msg.observations()` / `msg.orders()`. _(Closed by Plan 08-01 — examples/read-lab-results.ts iterates msg.observations() / msg.orders().)_
+- [x] **EX-03** — `examples/modify-and-resend.ts` runs end-to-end and demonstrates mutation + round-trip serialization. _(Closed by Plan 08-01 — examples/modify-and-resend.ts mutates + round-trip serializes.)_
 
 ### Profile Starter Kit (KIT)
 
-- [ ] **KIT-01** — `examples/profile-starter-kit/` exists and contains every file listed in the spec's deliverable list.
-- [ ] **KIT-02** — Running `pnpm install && pnpm test` inside the starter kit succeeds against its sample fixture.
-- [ ] **KIT-03** — `pnpm build` inside the starter kit produces a `dist/` with correct entry points matching `package.json` exports.
-- [ ] **KIT-04** — `.github/workflows/ci.yml` and `publish.yml` are syntactically valid (verified by `actionlint` or equivalent).
-- [ ] **KIT-05** — Starter kit `package.json` has correct `peerDependencies` on `@cosyte/hl7-parser`, `publishConfig: { access: public }`, `files: [dist, ...]`, and working `build`/`test`/`lint` scripts.
-- [ ] **KIT-06** — `CUSTOMIZING.md` is present and walks through the rename → swap base profile → define Z-segments → write fixtures → publish flow.
-- [ ] **KIT-07** — Starter kit README uses `{{YOUR_ORG}}` / `{{PROFILE_NAME}}` placeholders consistently.
+- [x] **KIT-01** — `examples/profile-starter-kit/` exists and contains every file listed in the spec's deliverable list. _(Closed by Plan 08-02 — examples/profile-starter-kit/ subtree with all 15 files.)_
+- [x] **KIT-02** — Running `pnpm install && pnpm test` inside the starter kit succeeds against its sample fixture. _(Closed by Plan 08-02 — in-kit `pnpm install && pnpm test` green; 4/4 tests pass against ZAL sample fixture.)_
+- [x] **KIT-03** — `pnpm build` inside the starter kit produces a `dist/` with correct entry points matching `package.json` exports. _(Closed by Plan 08-02 — `pnpm build` produces dist/index.mjs + index.cjs + index.d.ts matching exports map.)_
+- [x] **KIT-04** — `.github/workflows/ci.yml` and `publish.yml` are syntactically valid (verified by `actionlint` or equivalent). _(Closed by Plan 08-02 — ci.yml + publish.yml actionlint-clean.)_
+- [x] **KIT-05** — Starter kit `package.json` has correct `peerDependencies` on `@cosyte/hl7-parser`, `publishConfig: { access: public }`, `files: [dist, ...]`, and working `build`/`test`/`lint` scripts. _(Closed by Plan 08-02 — manifest has peerDependencies.@cosyte/hl7 + publishConfig.access:public + files allow-list + no dependencies block + prepublishOnly chain.)_
+- [x] **KIT-06** — `CUSTOMIZING.md` is present and walks through the rename → swap base profile → define Z-segments → write fixtures → publish flow. _(Closed by Plan 08-02 — CUSTOMIZING.md 5-step walk-through with runnable Verify blocks.)_
+- [x] **KIT-07** — Starter kit README uses `{{YOUR_ORG}}` / `{{PROFILE_NAME}}` placeholders consistently. _(Closed by Plan 08-02 — `{{YOUR_ORG}}` / `{{PROFILE_NAME}}` / `MyProfile` placeholder triple used consistently; kit pipeline green with placeholders intact.)_
 
 ### Documentation (DOC)
 
-- [ ] **DOC-01** — README renders cleanly on GitHub and npm with the one-sentence value prop as the first line, followed by badges.
-- [ ] **DOC-02** — README contains a 30-second quickstart (install + parse + extract a patient name) in one copy-pasteable block.
-- [ ] **DOC-03** — README has a feature list (6–8 bullets) highlighting developer-centric wins.
-- [ ] **DOC-04** — README has an "HL7 in 90 seconds" core-concepts section (≤ 2 paragraphs).
-- [ ] **DOC-05** — README covers the three access patterns (helpers / paths / structural) with runnable examples.
-- [ ] **DOC-06** — README Cookbook section contains every recipe listed in the spec (patient demographics, lab results, admit location, modify+reserialize, allergies, "Write your first profile in 10 minutes", extending a profile, composing profiles, publishing a profile package, default profile, non-standard timestamps, stripping MLLP framing, batch-file note, detect message type, pretty-print).
-- [ ] **DOC-07** — README has a top-level "Profiles" section covering authoring, extending, merge semantics, inspection, publishing — not buried in API reference.
-- [ ] **DOC-08** — README "Real-World Tolerance" section explains the 4-tier deviation model with a compact table and a runnable warnings-iteration example.
-- [ ] **DOC-09** — README "Error Handling" section covers `Hl7ParseError`, `Hl7ParseWarning`, `ProfileDefinitionError` with examples.
-- [ ] **DOC-10** — README "Contributing" section points to CONTRIBUTING.md and invites vendor quirk fixtures, profile improvements, and standalone profile packages.
-- [ ] **DOC-11** — README ends with "Built by [Cosyte](https://cosyte.com)" and a license link.
-- [ ] **DOC-12** — Roadmap/stretch goals section documents: typed message overlays, schema-aware validation, streaming parser, JSON Schema/Zod output, batch-file support, type-safe custom-segment fields.
-- [ ] **DOC-13** — The "Publishing Your Profile" recipe links directly to `examples/profile-starter-kit/` and references `CUSTOMIZING.md`.
-- [ ] **DOC-14** — CHANGELOG.md exists in Keep-a-Changelog format with an `[Unreleased]` section.
-- [ ] **DOC-15** — LICENSE (MIT) exists at repo root.
+- [x] **DOC-01** — README renders cleanly on GitHub and npm with the one-sentence value prop as the first line, followed by badges. _(Closed by Plan 08-03 — README one-sentence value prop + badges at top.)_
+- [x] **DOC-02** — README contains a 30-second quickstart (install + parse + extract a patient name) in one copy-pasteable block. _(Closed by Plan 08-03 — 30-second copy-pasteable quickstart block.)_
+- [x] **DOC-03** — README has a feature list (6–8 bullets) highlighting developer-centric wins. _(Closed by Plan 08-03 — 6-8 feature bullets.)_
+- [x] **DOC-04** — README has an "HL7 in 90 seconds" core-concepts section (≤ 2 paragraphs). _(Closed by Plan 08-03 — "HL7 in 90 seconds" core-concepts section.)_
+- [x] **DOC-05** — README covers the three access patterns (helpers / paths / structural) with runnable examples. _(Closed by Plan 08-03 — three access patterns (helpers / paths / structural) with runnable examples.)_
+- [x] **DOC-06** — README Cookbook section contains every recipe listed in the spec (patient demographics, lab results, admit location, modify+reserialize, allergies, "Write your first profile in 10 minutes", extending a profile, composing profiles, publishing a profile package, default profile, non-standard timestamps, stripping MLLP framing, batch-file note, detect message type, pretty-print). _(Closed by Plan 08-03 — Cookbook section with every recipe from the spec.)_
+- [x] **DOC-07** — README has a top-level "Profiles" section covering authoring, extending, merge semantics, inspection, publishing — not buried in API reference. _(Closed by Plan 08-03 — top-level Profiles section covering authoring, extending, merging, publishing.)_
+- [x] **DOC-08** — README "Real-World Tolerance" section explains the 4-tier deviation model with a compact table and a runnable warnings-iteration example. _(Closed by Plan 08-03 — 4-tier Real-World Tolerance section with table + runnable warnings iteration.)_
+- [x] **DOC-09** — README "Error Handling" section covers `Hl7ParseError`, `Hl7ParseWarning`, `ProfileDefinitionError` with examples. _(Closed by Plan 08-03 — Error Handling section covering Hl7ParseError / Hl7ParseWarning / ProfileDefinitionError.)_
+- [x] **DOC-10** — README "Contributing" section points to CONTRIBUTING.md and invites vendor quirk fixtures, profile improvements, and standalone profile packages. _(Closed by Plan 08-03 — Contributing section with CONTRIBUTING.md pointer.)_
+- [x] **DOC-11** — README ends with "Built by [Cosyte](https://cosyte.com)" and a license link. _(Closed by Plan 08-03 — "Built by Cosyte" footer + license link.)_
+- [x] **DOC-12** — Roadmap/stretch goals section documents: typed message overlays, schema-aware validation, streaming parser, JSON Schema/Zod output, batch-file support, type-safe custom-segment fields. _(Closed by Plan 08-03 — Roadmap / stretch-goals section documents all 6 v2 deferrals.)_
+- [x] **DOC-13** — The "Publishing Your Profile" recipe links directly to `examples/profile-starter-kit/` and references `CUSTOMIZING.md`. _(Closed by Plan 08-03 — "Publishing Your Profile" recipe links to examples/profile-starter-kit/ + CUSTOMIZING.md.)_
+- [x] **DOC-14** — CHANGELOG.md exists in Keep-a-Changelog format with an `[Unreleased]` section. _(Closed by Plan 08-04 — CHANGELOG.md in Keep-a-Changelog format with [Unreleased] section.)_
+- [x] **DOC-15** — LICENSE (MIT) exists at repo root. _(Closed by Plan 08-04 — LICENSE MIT at repo root.)_
 
 ---
 
