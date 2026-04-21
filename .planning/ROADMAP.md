@@ -269,7 +269,7 @@ Within each phase, plans that touch disjoint modules may run in parallel; plans 
 | 7. Testing Hardening & Fixtures | 7/7 | Complete (evidence-only) | 2026-04-19 |
 | 8. Examples, Starter Kit & Documentation | 5/5 | Complete (evidence-only) | 2026-04-20 |
 | 9. Rename Package to @cosyte/hl7 | 4/4 | Complete (evidence-only) | 2026-04-20 |
-| 10. Planning-Doc Resync | 0/4 | In Progress (gap closure) | — |
+| 10. Planning-Doc Resync | 2/4 | In Progress (gap closure) | — |
 | 11. Retroactive Verification | 0/3 | Planned (gap closure) | — |
 | 12. Retroactive Nyquist Validation | 0/6 | Planned (gap closure) | — |
 
