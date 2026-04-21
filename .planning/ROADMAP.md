@@ -210,7 +210,11 @@ Plans:
   1. A developer opens `.planning/phases/01-project-foundation/VERIFICATION.md` and sees a PASS verdict against Phase 1's 4 success criteria.
   2. A developer opens `.planning/phases/08-examples-starter-kit-and-documentation/VERIFICATION.md` and sees a PASS verdict against Phase 8's 5 success criteria.
   3. A developer opens `.planning/phases/09-rename-package-to-cosyte-hl7/VERIFICATION.md` and sees a PASS verdict against Phase 9's 5 success criteria — grep sweep, pipeline, round-trip, docs consistency, publish.yml all attested.
-**Plans**: 3 plans (one per phase — run `/gsd-verify-work N`)
+**Plans**: 3 plans
+Plans:
+- [ ] 11-01-PLAN.md — Retroactive VERIFICATION.md for Phase 1 (Project Foundation) — 4/4 SCs + 6 SETUP REQs
+- [ ] 11-02-PLAN.md — Retroactive VERIFICATION.md for Phase 8 (Examples, Starter Kit & Documentation) — 5/5 SCs + 25 REQs (EX/KIT/DOC)
+- [ ] 11-03-PLAN.md — Retroactive VERIFICATION.md for Phase 9 (Rename to @cosyte/hl7) — 5/5 SCs, rename-only (0 new REQs), grep sweep + publish dry-run
 **UI hint**: no
 
 ### Phase 12: Retroactive Nyquist Validation
