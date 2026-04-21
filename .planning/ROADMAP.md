@@ -21,7 +21,7 @@ North star: **A developer can parse a real-world, vendor-quirky HL7 v2 message a
 - [x] **Phase 8: Examples, Starter Kit & Documentation** — Three runnable examples, publishable profile starter kit, and the complete README + ancillary docs. *(completed 2026-04-20)*
 - [x] **Phase 9: Rename Package to @cosyte/hl7** — Rename the package from `@cosyte/hl7-parser` to `@cosyte/hl7` (full HL7 toolkit — parser, builder, mutator, serializer, helpers — not just a parser). *(completed 2026-04-20)*
 - [x] **Phase 10: Planning-Doc Resync** — Close v2.1 audit tech debt: flip 35 stale REQUIREMENTS.md checkboxes, refresh ROADMAP Progress table + Phase 1/2/7/8/9 checkboxes, refresh STATE.md current-position, flip PROJECT.md capabilities checklist, retire Phase 2 VERIFICATION.md TOL-08 deferred block. *(completed 2026-04-21)*
-- [ ] **Phase 11: Retroactive Verification** — Produce the three missing VERIFICATION.md artifacts (Phases 01, 08, 09) by running `/gsd-verify-work` against each, ratifying the evidence already on disk.
+- [x] **Phase 11: Retroactive Verification** — Produce the three missing VERIFICATION.md artifacts (Phases 01, 08, 09) by running `/gsd-verify-work` against each, ratifying the evidence already on disk. **COMPLETE 2026-04-21** — 3/3 plans shipped; verifier passed; orchestrator landed prereq commit `e1c9ee4` (`style(v2.1-close): prettier sweep` — 47 files of pre-existing drift cleared so SC-1's `format:check` gate passes).
 - [ ] **Phase 12: Retroactive Nyquist Validation** — Produce the six missing VALIDATION.md artifacts (Phases 01, 02, 03, 07, 08, 09) by running `/gsd-validate-phase` against each.
 
 ---
@@ -212,9 +212,9 @@ Plans:
   3. A developer opens `.planning/phases/09-rename-package-to-cosyte-hl7/VERIFICATION.md` and sees a PASS verdict against Phase 9's 5 success criteria — grep sweep, pipeline, round-trip, docs consistency, publish.yml all attested.
 **Plans**: 3 plans
 Plans:
-- [ ] 11-01-PLAN.md — Retroactive VERIFICATION.md for Phase 1 (Project Foundation) — 4/4 SCs + 6 SETUP REQs
-- [ ] 11-02-PLAN.md — Retroactive VERIFICATION.md for Phase 8 (Examples, Starter Kit & Documentation) — 5/5 SCs + 25 REQs (EX/KIT/DOC)
-- [ ] 11-03-PLAN.md — Retroactive VERIFICATION.md for Phase 9 (Rename to @cosyte/hl7) — 5/5 SCs, rename-only (0 new REQs), grep sweep + publish dry-run
+- [x] 11-01-PLAN.md — Retroactive VERIFICATION.md for Phase 1 (Project Foundation) — 4/4 SCs + 6 SETUP REQs (commit `cea276d`)
+- [x] 11-02-PLAN.md — Retroactive VERIFICATION.md for Phase 8 (Examples, Starter Kit & Documentation) — 5/5 SCs + 25 REQs (EX/KIT/DOC) (commit `c8db612`)
+- [x] 11-03-PLAN.md — Retroactive VERIFICATION.md for Phase 9 (Rename to @cosyte/hl7) — 5/5 SCs, rename-only (0 new REQs), grep sweep + publish dry-run (commit `da2a686`)
 **UI hint**: no
 
 ### Phase 12: Retroactive Nyquist Validation
