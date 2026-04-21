@@ -2,7 +2,7 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: milestone
-status: "v2.1 MILESTONE COMPLETE 2026-04-20 — all 9 phases shipped (Phases 1-9). Package renamed to @cosyte/hl7 at 0.1.0 (Phase 9); 97/97 v1 REQ-IDs closed; 824 tests pass + 14 documented it.todo across 59 files; full pipeline green (pnpm install/typecheck/lint/test/build/examples), kit subtree install+test+build green, starter-kit ci.yml + publish.yml actionlint-clean, pnpm publish --dry-run produces clean 10-file/346.2kB tarball; coverage gate (per-dir branches ≥ 90% on parser/model/helpers/serialize/builder) enforced on every PR across Node 18/20/22 matrix. Phases 10-12 are v2.1-audit-follow-on tech-debt gap-closure phases (Phase 10: planning-doc resync — IN PROGRESS; Phase 11: retroactive VERIFICATION.md for Phases 01/08/09 — PLANNED; Phase 12: retroactive Nyquist VALIDATION.md for Phases 01/02/03/07/08/09 — PLANNED) and are tracked separately from the v1 milestone. Next: finish Phase 10 gap-closure plans (10-01/10-02/10-03/10-04) → /gsd-execute-phase 11 → /gsd-execute-phase 12."
+status: "v2.1 MILESTONE COMPLETE 2026-04-20 — all 9 phases shipped (Phases 1-9). Package renamed to @cosyte/hl7 at 0.1.0 (Phase 9); 97/97 v1 REQ-IDs closed; 824 tests pass + 14 documented it.todo across 59 files; full pipeline green (pnpm install/typecheck/lint/test/build/examples), kit subtree install+test+build green, starter-kit ci.yml + publish.yml actionlint-clean, pnpm publish --dry-run produces clean 10-file/346.2kB tarball; coverage gate (per-dir branches ≥ 90% on parser/model/helpers/serialize/builder) enforced on every PR across Node 18/20/22 matrix. Phases 10-12 are v2.1-audit-follow-on tech-debt gap-closure phases (Phase 10: planning-doc resync — COMPLETE 2026-04-21 (4/4 plans shipped, verification passed 14/14); Phase 11: retroactive VERIFICATION.md for Phases 01/08/09 — PLANNED; Phase 12: retroactive Nyquist VALIDATION.md for Phases 01/02/03/07/08/09 — PLANNED) and are tracked separately from the v1 milestone. Next: /gsd-execute-phase 11 → /gsd-execute-phase 12."
 last_updated: "2026-04-21T01:42:00Z"
 progress:
   total_phases: 9
@@ -22,12 +22,12 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 
 - **Name:** `@cosyte/hl7-parser`
 - **Core value:** A developer can parse a real-world, vendor-quirky HL7 v2 message and pull useful fields out of it in one line — without having read the HL7 spec.
-- **Current focus:** v2.1 MILESTONE COMPLETE (2026-04-20). All 9 phases shipped (Phases 1-9), 97/97 v1 REQ-IDs closed, package renamed to @cosyte/hl7 at 0.1.0, 824 tests pass + 14 it.todo, full pipeline green including pnpm publish --dry-run (10-file/346.2kB tarball). Gap-closure Phase 10 (planning-doc resync) IN PROGRESS; Phases 11 (retroactive VERIFICATION.md × 3) + 12 (retroactive Nyquist VALIDATION.md × 6) queued — both are v2.1-audit-follow-on tech-debt phases, not part of the v1 milestone span.
+- **Current focus:** v2.1 MILESTONE COMPLETE (2026-04-20). All 9 phases shipped (Phases 1-9), 97/97 v1 REQ-IDs closed, package renamed to @cosyte/hl7 at 0.1.0, 824 tests pass + 14 it.todo, full pipeline green including pnpm publish --dry-run (10-file/346.2kB tarball). Gap-closure Phase 10 (planning-doc resync) COMPLETE 2026-04-21 (4/4 plans, verification 14/14); Phases 11 (retroactive VERIFICATION.md × 3) + 12 (retroactive Nyquist VALIDATION.md × 6) queued — both are v2.1-audit-follow-on tech-debt phases, not part of the v1 milestone span.
 - **Workflow config:** standard granularity, yolo mode, parallelization enabled, plan-check + verifier + Nyquist validation on, auto-advance on.
 
 ## Current Position
 
-Phase: v2.1 MILESTONE COMPLETE — all 9 core-milestone phases shipped (Phases 1-9). Gap-closure Phase 10 (planning-doc resync) in progress; Phases 11-12 (retroactive VERIFICATION.md + Nyquist VALIDATION.md) planned.
+Phase: v2.1 MILESTONE COMPLETE — all 9 core-milestone phases shipped (Phases 1-9). Gap-closure Phase 10 (planning-doc resync) COMPLETE 2026-04-21; Phases 11-12 (retroactive VERIFICATION.md + Nyquist VALIDATION.md) planned.
 Next Step: Phase 10 complete (all 4 plans done: 10-01 REQUIREMENTS.md / 10-02 ROADMAP.md / 10-03 STATE+PROJECT / 10-04 Phase-2 VERIFICATION TOL-08 retirement). Next: `/gsd-execute-phase 11` → `/gsd-execute-phase 12` → `/gsd-complete-milestone v2.1`.
 
 - **Milestone:** v2.1 (v1 code ships under this label; paper-trail gaps closed in Phases 10-12 before milestone close)
