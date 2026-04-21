@@ -228,12 +228,12 @@ Plans:
   3. A developer re-running the milestone audit sees Nyquist coverage flip from `partial (3/9)` to `compliant (9/9)`.
 **Plans**: 6 plans
 Plans:
-- [ ] 12-01-PLAN.md — Retroactive VALIDATION.md for Phase 1 (Project Foundation) — 6 SETUP REQs, infrastructure-level validation
-- [ ] 12-02-PLAN.md — Retroactive VALIDATION.md for Phase 2 (Core Parser & Tolerance) — 19 REQs (9 PARSE + 10 TOL) across 7 plans
-- [ ] 12-03-PLAN.md — Retroactive VALIDATION.md for Phase 3 (Structural Model & Types) — 11 REQs (7 MODEL + 4 TYPES) + 10 composite parsers
-- [ ] 12-04-PLAN.md — Retroactive VALIDATION.md for Phase 7 (Testing Hardening & Fixtures) — 8 TEST REQs, thin-by-design meta-phase
-- [ ] 12-05-PLAN.md — Retroactive VALIDATION.md for Phase 8 (Examples, Starter Kit & Documentation) — 25 REQs (3 EX + 7 KIT + 15 DOC), thin-by-design docs phase
-- [ ] 12-06-PLAN.md — Retroactive VALIDATION.md for Phase 9 (Rename to @cosyte/hl7) — 0 new REQs, rename-only
+- [x] 12-01-PLAN.md — Retroactive VALIDATION.md for Phase 1 (Project Foundation) — 6 SETUP REQs, infrastructure-level validation (commit `84dfa9d`)
+- [x] 12-02-PLAN.md — Retroactive VALIDATION.md for Phase 2 (Core Parser & Tolerance) — 19 REQs (9 PARSE + 10 TOL) across 7 plans (commit `b394988`)
+- [x] 12-03-PLAN.md — Retroactive VALIDATION.md for Phase 3 (Structural Model & Types) — 11 REQs (7 MODEL + 4 TYPES) + 10 composite parsers (commit `3f1ad8e`)
+- [x] 12-04-PLAN.md — Retroactive VALIDATION.md for Phase 7 (Testing Hardening & Fixtures) — 8 TEST REQs, thin-by-design meta-phase (commit `57f03ad`)
+- [x] 12-05-PLAN.md — Retroactive VALIDATION.md for Phase 8 (Examples, Starter Kit & Documentation) — 25 REQs (3 EX + 7 KIT + 15 DOC), thin-by-design docs phase (commit `7f4de6e`)
+- [x] 12-06-PLAN.md — Retroactive VALIDATION.md for Phase 9 (Rename to @cosyte/hl7) — 0 new REQs, rename-only (commit `b383d05`)
 **UI hint**: no
 **Success Criteria** (what must be TRUE):
   1. A developer searching the repo for `@cosyte/hl7-parser` finds zero occurrences outside of CHANGELOG rename-history entries.
@@ -281,11 +281,11 @@ Within each phase, plans that touch disjoint modules may run in parallel; plans 
 | 8. Examples, Starter Kit & Documentation | 5/5 | Complete (evidence-only) | 2026-04-20 |
 | 9. Rename Package to @cosyte/hl7 | 4/4 | Complete (evidence-only) | 2026-04-20 |
 | 10. Planning-Doc Resync | 4/4 | Complete (gap closure) | 2026-04-21 |
-| 11. Retroactive Verification | 0/3 | Planned (gap closure) | — |
-| 12. Retroactive Nyquist Validation | 0/6 | Planned (gap closure) | — |
+| 11. Retroactive Verification | 3/3 | Complete (gap closure) | 2026-04-21 |
+| 12. Retroactive Nyquist Validation | 6/6 | Complete (gap closure) | 2026-04-21 |
 
 **v1 milestone:** 9/9 phases complete. **v2.1 gap-closure:** Phases 10-12 in progress (this phase = 10). The 9-complete figure scopes to the v1 milestone span; Phases 10-12 are v2.1-audit-follow-on tech-debt gap-closure phases (ROADMAP lists every phase for project-wide traceability; STATE.md's `total_phases: 9` frontmatter value reflects the same v1-scope rollup).
 
 ---
 
-*Last updated: 2026-04-21 (Phase 10 gap-closure Plan 10-04 — Phase 2 VERIFICATION.md TOL-08 deferral retired; Progress table Phase 10 row advanced to 4/4 Complete; Phase 10 checkbox flipped to [x].)*
+*Last updated: 2026-04-21 (Phase 12 gap-closure complete — 6/6 retroactive VALIDATION.md plans shipped for Phases 01/02/03/07/08/09; verifier passed 7/7 SCs (commit `063f004`); v2.1 milestone paper trail now at 9/9 VALIDATION.md on disk. Phase 11 row also advanced to 3/3 Complete to match gap-closure state.)*
