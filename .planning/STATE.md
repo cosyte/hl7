@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: milestone
 status: "v2.1 MILESTONE COMPLETE 2026-04-20 — all 9 phases shipped (Phases 1-9). Package renamed to @cosyte/hl7 at 0.1.0 (Phase 9); 97/97 v1 REQ-IDs closed; 824 tests pass + 14 documented it.todo across 59 files; full pipeline green (pnpm install/typecheck/lint/test/build/examples), kit subtree install+test+build green, starter-kit ci.yml + publish.yml actionlint-clean, pnpm publish --dry-run produces clean 10-file/346.2kB tarball; coverage gate (per-dir branches ≥ 90% on parser/model/helpers/serialize/builder) enforced on every PR across Node 18/20/22 matrix. Phases 10-12 are v2.1-audit-follow-on tech-debt gap-closure phases (Phase 10: planning-doc resync — IN PROGRESS; Phase 11: retroactive VERIFICATION.md for Phases 01/08/09 — PLANNED; Phase 12: retroactive Nyquist VALIDATION.md for Phases 01/02/03/07/08/09 — PLANNED) and are tracked separately from the v1 milestone. Next: finish Phase 10 gap-closure plans (10-01/10-02/10-03/10-04) → /gsd-execute-phase 11 → /gsd-execute-phase 12."
-last_updated: "2026-04-21T01:40:00Z"
+last_updated: "2026-04-21T01:42:00Z"
 progress:
   total_phases: 9
   completed_phases: 9
@@ -28,13 +28,13 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 ## Current Position
 
 Phase: v2.1 MILESTONE COMPLETE — all 9 core-milestone phases shipped (Phases 1-9). Gap-closure Phase 10 (planning-doc resync) in progress; Phases 11-12 (retroactive VERIFICATION.md + Nyquist VALIDATION.md) planned.
-Next Step: complete Phase 10 gap-closure Plan 10-04 (Phase-2 VERIFICATION TOL-08 retirement), then `/gsd-execute-phase 11` → `/gsd-execute-phase 12` → `/gsd-complete-milestone v2.1`. Plans 10-01 (REQUIREMENTS.md) / 10-02 (ROADMAP.md) / 10-03 (STATE+PROJECT) all complete 2026-04-21.
+Next Step: Phase 10 complete (all 4 plans done: 10-01 REQUIREMENTS.md / 10-02 ROADMAP.md / 10-03 STATE+PROJECT / 10-04 Phase-2 VERIFICATION TOL-08 retirement). Next: `/gsd-execute-phase 11` → `/gsd-execute-phase 12` → `/gsd-complete-milestone v2.1`.
 
 - **Milestone:** v2.1 (v1 code ships under this label; paper-trail gaps closed in Phases 10-12 before milestone close)
 - **Phase:** 9 (rename to @cosyte/hl7) — COMPLETE 2026-04-20. All 4 plans (09-01 identity files / 09-02 source-and-tests / 09-03 examples-and-starter-kit / 09-04 verification-and-publish-dry-run) done. Plan 09-04 SUMMARY confirms: grep for `@cosyte/hl7-parser` outside CHANGELOG breadcrumb = 0 matches; full pipeline green; pnpm publish --dry-run clean 10-file/346.2kB tarball under the new name.
 - **Plans (milestone total):** 46 complete — 4 Phase 1 + 7 Phase 2 (incl. 02-07 gap-closure) + 4 Phase 3 + 4 Phase 4 + 5 Phase 5 + 6 Phase 6 + 7 Phase 7 + 5 Phase 8 + 4 Phase 9.
 - **Status:** v2.1 core milestone COMPLETE; Phase 10 (planning-doc resync) IN PROGRESS; Phases 11 + 12 PLANNED (both v2.1-audit tech-debt follow-on).
-- **Progress:** 9/9 core-milestone phases complete; 6/9 with VERIFICATION.md on disk (Phases 2, 3, 4, 5, 6; Phase 2 via 02-VERIFICATION.md with TOL-08 deferred-now-satisfied note pending retirement in Plan 10-04); 3/9 missing VERIFICATION.md (Phases 01, 08, 09 — closed in Phase 11). 3/9 with VALIDATION.md (Phases 04, 05, 06); 6/9 missing VALIDATION.md (Phases 01, 02, 03, 07, 08, 09 — closed in Phase 12).
+- **Progress:** 9/9 core-milestone phases complete; 6/9 with VERIFICATION.md on disk (Phases 2–6; Phase 2 TOL-08 deferral retired 2026-04-20 by Plan 10-04 — 0 deferrals open); 3/9 missing VERIFICATION.md (Phases 01, 08, 09 — closed in Phase 11). 3/9 with VALIDATION.md (Phases 04, 05, 06); 6/9 missing VALIDATION.md (Phases 01, 02, 03, 07, 08, 09 — closed in Phase 12). Phase 10 gap-closure: all 4 plans complete 2026-04-21.
 
 ```
 [████████████████████] 100%   (9 / 9 core-milestone phases shipped; v2.1 audit tech-debt closure tracked in Phases 10-12)
@@ -86,6 +86,7 @@ Next Step: complete Phase 10 gap-closure Plan 10-04 (Phase-2 VERIFICATION TOL-08
 | 8 | 01 examples-starter-kit-ex-01-02-03 (Wave 1) | — (completed 2026-04-19) | 3 runnable example scripts + smoke-runner + 3 synthetic fixtures + README | 8 created |
 | 8 | 02 profile-starter-kit-subtree (Wave 1) | 7 min | 3 (Task 1 configs+source+fixture+LICENSE, Task 2 docs+workflows, Task 3 smoke-verify — zero code changes) + 3 deviations (Rule-3 devDep `file:../..` vs plan's `workspace:*`, Rule-2 README/CUSTOMIZING devDep replacement note, Rule-2 pnpm-lock.yaml in kit .gitignore) | 15 created (examples/profile-starter-kit/**: package.json + 4 toolchain configs + .prettierrc.json + .gitignore + src/index.ts + test/profile.test.ts + test/fixtures/sample.hl7 + 2 .github/workflows/*.yml + README.md + CUSTOMIZING.md + LICENSE), 0 modified |
 | 10 | 01 requirements-traceability-resync | 8 min | 4 (Task 1 PARSE+TOL checkboxes, Task 2 EX+KIT+DOC checkboxes, Task 3 35 Pending traceability rows, Task 4 footer timestamp) — zero deviations | 0 created, 1 modified (.planning/REQUIREMENTS.md — 42 checkbox flips + 35 Pending→Closed row flips + 1 footer) |
+| 10 | 04 phase-2-tol08-deferral-retirement | 12 min | 5 (Task 1 frontmatter, Task 2 Resolution Note, Task 3 body headers, Task 4 table rows x7+1 deviation, Task 5 Gaps+Verdict+footer) — 1 Rule-1 deviation (unescape key-link row ⚠️ glyph removed) | 0 created, 1 modified (.planning/phases/02-core-parser-and-tolerance/02-VERIFICATION.md — frontmatter retired_overrides: + Resolution Note rewrite + 9 table-row flips + Verdict rewrite + footer append) |
 
 ## Accumulated Context
 

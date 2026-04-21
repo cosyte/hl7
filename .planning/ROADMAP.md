@@ -20,7 +20,7 @@ North star: **A developer can parse a real-world, vendor-quirky HL7 v2 message a
 - [x] **Phase 7: Testing Hardening & Fixtures** — Canonical, edge-case, vendor-quirk, strict-mode, and profile-authoring test suites that verify ≥ 90% coverage on core modules. *(completed 2026-04-19)*
 - [x] **Phase 8: Examples, Starter Kit & Documentation** — Three runnable examples, publishable profile starter kit, and the complete README + ancillary docs. *(completed 2026-04-20)*
 - [x] **Phase 9: Rename Package to @cosyte/hl7** — Rename the package from `@cosyte/hl7-parser` to `@cosyte/hl7` (full HL7 toolkit — parser, builder, mutator, serializer, helpers — not just a parser). *(completed 2026-04-20)*
-- [ ] **Phase 10: Planning-Doc Resync** — Close v2.1 audit tech debt: flip 35 stale REQUIREMENTS.md checkboxes, refresh ROADMAP Progress table + Phase 1/2/7/8/9 checkboxes, refresh STATE.md current-position, flip PROJECT.md capabilities checklist, retire Phase 2 VERIFICATION.md TOL-08 deferred block.
+- [x] **Phase 10: Planning-Doc Resync** — Close v2.1 audit tech debt: flip 35 stale REQUIREMENTS.md checkboxes, refresh ROADMAP Progress table + Phase 1/2/7/8/9 checkboxes, refresh STATE.md current-position, flip PROJECT.md capabilities checklist, retire Phase 2 VERIFICATION.md TOL-08 deferred block. *(completed 2026-04-21)*
 - [ ] **Phase 11: Retroactive Verification** — Produce the three missing VERIFICATION.md artifacts (Phases 01, 08, 09) by running `/gsd-verify-work` against each, ratifying the evidence already on disk.
 - [ ] **Phase 12: Retroactive Nyquist Validation** — Produce the six missing VALIDATION.md artifacts (Phases 01, 02, 03, 07, 08, 09) by running `/gsd-validate-phase` against each.
 
@@ -269,7 +269,7 @@ Within each phase, plans that touch disjoint modules may run in parallel; plans 
 | 7. Testing Hardening & Fixtures | 7/7 | Complete (evidence-only) | 2026-04-19 |
 | 8. Examples, Starter Kit & Documentation | 5/5 | Complete (evidence-only) | 2026-04-20 |
 | 9. Rename Package to @cosyte/hl7 | 4/4 | Complete (evidence-only) | 2026-04-20 |
-| 10. Planning-Doc Resync | 3/4 | In Progress (gap closure) | — |
+| 10. Planning-Doc Resync | 4/4 | Complete (gap closure) | 2026-04-21 |
 | 11. Retroactive Verification | 0/3 | Planned (gap closure) | — |
 | 12. Retroactive Nyquist Validation | 0/6 | Planned (gap closure) | — |
 
@@ -277,4 +277,4 @@ Within each phase, plans that touch disjoint modules may run in parallel; plans 
 
 ---
 
-*Last updated: 2026-04-21 (Phase 10 gap-closure Plan 10-03 — STATE.md + PROJECT.md resynced to v2.1 post-rename complete; Progress table Phase 10 row advanced to 3/4.)*
+*Last updated: 2026-04-21 (Phase 10 gap-closure Plan 10-04 — Phase 2 VERIFICATION.md TOL-08 deferral retired; Progress table Phase 10 row advanced to 4/4 Complete; Phase 10 checkbox flipped to [x].)*
