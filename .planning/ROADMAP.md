@@ -226,7 +226,14 @@ Plans:
   1. A developer opens `.planning/phases/NN/VALIDATION.md` for each of Phases 01, 02, 03, 07, 08, 09 and sees a Nyquist compliance report with per-REQ-ID test-coverage classification.
   2. A developer reading the Phase 7 and Phase 8 VALIDATION.md files sees thin-by-design noted where applicable (meta-phase and docs-phase coverage surface is small).
   3. A developer re-running the milestone audit sees Nyquist coverage flip from `partial (3/9)` to `compliant (9/9)`.
-**Plans**: 6 plans (one per phase — run `/gsd-validate-phase N`)
+**Plans**: 6 plans
+Plans:
+- [ ] 12-01-PLAN.md — Retroactive VALIDATION.md for Phase 1 (Project Foundation) — 6 SETUP REQs, infrastructure-level validation
+- [ ] 12-02-PLAN.md — Retroactive VALIDATION.md for Phase 2 (Core Parser & Tolerance) — 19 REQs (9 PARSE + 10 TOL) across 7 plans
+- [ ] 12-03-PLAN.md — Retroactive VALIDATION.md for Phase 3 (Structural Model & Types) — 11 REQs (7 MODEL + 4 TYPES) + 10 composite parsers
+- [ ] 12-04-PLAN.md — Retroactive VALIDATION.md for Phase 7 (Testing Hardening & Fixtures) — 8 TEST REQs, thin-by-design meta-phase
+- [ ] 12-05-PLAN.md — Retroactive VALIDATION.md for Phase 8 (Examples, Starter Kit & Documentation) — 25 REQs (3 EX + 7 KIT + 15 DOC), thin-by-design docs phase
+- [ ] 12-06-PLAN.md — Retroactive VALIDATION.md for Phase 9 (Rename to @cosyte/hl7) — 0 new REQs, rename-only
 **UI hint**: no
 **Success Criteria** (what must be TRUE):
   1. A developer searching the repo for `@cosyte/hl7-parser` finds zero occurrences outside of CHANGELOG rename-history entries.
