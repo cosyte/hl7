@@ -174,24 +174,24 @@ Every v1 REQ-ID maps to exactly one phase in `ROADMAP.md`. 97/97 mapped.
 | SETUP-04 | Phase 1 — Project Foundation | Complete (01-04; enforced via lint for future exports) |
 | SETUP-05 | Phase 1 — Project Foundation | Complete (01-01) |
 | SETUP-06 | Phase 1 — Project Foundation | Complete (01-04) |
-| PARSE-01 | Phase 2 — Core Parser & Tolerance | Pending |
-| PARSE-02 | Phase 2 — Core Parser & Tolerance | Pending |
+| PARSE-01 | Phase 2 — Core Parser & Tolerance | Closed (Plan 02-06 — parseHL7 public entry + strict-mode) |
+| PARSE-02 | Phase 2 — Core Parser & Tolerance | Closed (Plan 02-03 — readDelimiters + tokenize custom-enc) |
 | PARSE-03 | Phase 2 — Core Parser & Tolerance | Complete (02-04) |
-| PARSE-04 | Phase 2 — Core Parser & Tolerance | Pending |
-| PARSE-05 | Phase 2 — Core Parser & Tolerance | Pending |
-| PARSE-06 | Phase 2 — Core Parser & Tolerance | Pending |
-| PARSE-07 | Phase 2 — Core Parser & Tolerance | Pending |
-| PARSE-08 | Phase 2 — Core Parser & Tolerance | Pending |
-| PARSE-09 | Phase 2 — Core Parser & Tolerance | Pending |
-| TOL-01 | Phase 2 — Core Parser & Tolerance | Pending |
-| TOL-02 | Phase 2 — Core Parser & Tolerance | Pending |
-| TOL-03 | Phase 2 — Core Parser & Tolerance | Pending |
-| TOL-04 | Phase 2 — Core Parser & Tolerance | Pending |
-| TOL-05 | Phase 2 — Core Parser & Tolerance | Pending |
-| TOL-06 | Phase 2 — Core Parser & Tolerance | Pending |
-| TOL-07 | Phase 2 — Core Parser & Tolerance | Pending |
-| TOL-08 | Phase 2 — Core Parser & Tolerance | Pending |
-| TOL-09 | Phase 2 — Core Parser & Tolerance | Pending |
+| PARSE-04 | Phase 2 — Core Parser & Tolerance | Closed (Plan 02-03 — splitSegments preserves order incl. Z-segments) |
+| PARSE-05 | Phase 2 — Core Parser & Tolerance | Closed (Plan 02-03 — tokenize reps/comps/subs) |
+| PARSE-06 | Phase 2 — Core Parser & Tolerance | Closed (Plan 02-03 — RawField.isNull flag) |
+| PARSE-07 | Phase 2 — Core Parser & Tolerance | Closed (Plan 02-02 — normalizeBuffer silent BOM strip) |
+| PARSE-08 | Phase 2 — Core Parser & Tolerance | Closed (Plan 02-02 — line-ending normalize to \r) |
+| PARSE-09 | Phase 2 — Core Parser & Tolerance | Closed (Plan 02-07 gap-closure — MSH-18 charset + options.charset override, commit 04a180b) |
+| TOL-01 | Phase 2 — Core Parser & Tolerance | Closed (Plan 02-06 — strict-mode escalation chokepoint) |
+| TOL-02 | Phase 2 — Core Parser & Tolerance | Closed (Plan 02-01 — 4 fatal codes in Hl7ParseError) |
+| TOL-03 | Phase 2 — Core Parser & Tolerance | Closed (Plan 02-01 — 13-code WARNING_CODES registry) |
+| TOL-04 | Phase 2 — Core Parser & Tolerance | Closed (Plan 02-01 — msg.warnings frozen readonly array) |
+| TOL-05 | Phase 2 — Core Parser & Tolerance | Closed (Plan 02-06 — onWarning invoked in emitter chokepoint) |
+| TOL-06 | Phase 2 — Core Parser & Tolerance | Closed (Plan 02-02 — stripMllp + MLLP_FRAMING_STRIPPED emit) |
+| TOL-07 | Phase 2 — Core Parser & Tolerance | Closed (Plan 02-03 — tokenize whitespace trim + warning) |
+| TOL-08 | Phase 2 — Core Parser & Tolerance | Closed (plumbing Plan 02-05; observable slice Phase 3 TYPES-04 + Phase 4 HELPERS-01 — see 02-VERIFICATION.md §TOL-08) |
+| TOL-09 | Phase 2 — Core Parser & Tolerance | Closed (Plan 02-05 — BUILTIN_DATE_FALLBACKS always-tried cascade) |
 | TOL-10 | Phase 2 — Core Parser & Tolerance | Complete (02-04) |
 | MODEL-01 | Phase 3 — Structural Model & Types | Complete (Plan 01) |
 | MODEL-02 | Phase 3 — Structural Model & Types | Complete (Plan 01) |
@@ -240,9 +240,9 @@ Every v1 REQ-ID maps to exactly one phase in `ROADMAP.md`. 97/97 mapped.
 | TEST-06 | Phase 7 — Testing Hardening & Fixtures | Closed (Plan 07-04 — test/parser-strict-mode-sweep.test.ts parameterized describe.each sweep) |
 | TEST-07 | Phase 7 — Testing Hardening & Fixtures | Closed (Plan 07-07 audit confirmed Phase 6 Plan 06-06 BIP-06 closure: per-vendor UNKNOWN_SEGMENT absent-with-profile × 5 + cross-profile `toBeLessThanOrEqual` sweep over all 5 vendors) |
 | TEST-08 | Phase 7 — Testing Hardening & Fixtures | Closed (Plan 07-07 — TEST-08-AUDIT.md maps all 8 cases to existing Phase 6 test files; 0 gaps) |
-| EX-01 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
-| EX-02 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
-| EX-03 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
+| EX-01 | Phase 8 — Examples, Starter Kit & Documentation | Closed (Plan 08-01 — examples/extract-patient-info.ts; pnpm examples green in 09-04 pipeline) |
+| EX-02 | Phase 8 — Examples, Starter Kit & Documentation | Closed (Plan 08-01 — examples/read-lab-results.ts observations+orders iteration) |
+| EX-03 | Phase 8 — Examples, Starter Kit & Documentation | Closed (Plan 08-01 — examples/modify-and-resend.ts mutation + round-trip) |
 | KIT-01 | Phase 8 — Examples, Starter Kit & Documentation | Closed (Plan 08-02 — examples/profile-starter-kit/ subtree with package.json + tsconfig.json + tsup.config.ts + vitest.config.ts + eslint.config.js + .prettierrc.json + sample src/index.ts + test/profile.test.ts + test/fixtures/sample.hl7) |
 | KIT-02 | Phase 8 — Examples, Starter Kit & Documentation | Closed (Plan 08-02 — `pnpm install --no-frozen-lockfile && pnpm test` green inside the kit; 4/4 assertions pass against ZAL sample fixture) |
 | KIT-03 | Phase 8 — Examples, Starter Kit & Documentation | Closed (Plan 08-02 — `pnpm build` produces dist/index.mjs + dist/index.cjs + dist/index.d.ts matching the exports map) |
@@ -250,21 +250,21 @@ Every v1 REQ-ID maps to exactly one phase in `ROADMAP.md`. 97/97 mapped.
 | KIT-05 | Phase 8 — Examples, Starter Kit & Documentation | Closed (Plan 08-02 — package.json has peerDependencies.@cosyte/hl7-parser + publishConfig.access:public + files:["dist","README.md","LICENSE","CUSTOMIZING.md"] + no top-level dependencies block + prepublishOnly chains typecheck→lint→test→build) |
 | KIT-06 | Phase 8 — Examples, Starter Kit & Documentation | Closed (Plan 08-02 — CUSTOMIZING.md walks through 5 numbered steps: rename → swap base profile → define Z-segments → write fixtures → publish; each step closes with a runnable Verify block) |
 | KIT-07 | Phase 8 — Examples, Starter Kit & Documentation | Closed (Plan 08-02 — `{{YOUR_ORG}}` + `{{PROFILE_NAME}}` + `MyProfile` placeholder triple appears consistently across package.json + src/ + test/ + README.md + LICENSE + CUSTOMIZING.md; kit's ci.yml runs green with placeholders intact — no rename required for verification) |
-| DOC-01 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
-| DOC-02 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
-| DOC-03 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
-| DOC-04 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
-| DOC-05 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
-| DOC-06 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
-| DOC-07 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
-| DOC-08 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
-| DOC-09 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
-| DOC-10 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
-| DOC-11 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
-| DOC-12 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
-| DOC-13 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
-| DOC-14 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
-| DOC-15 | Phase 8 — Examples, Starter Kit & Documentation | Pending |
+| DOC-01 | Phase 8 — Examples, Starter Kit & Documentation | Closed (Plan 08-03 — README value prop + badges) |
+| DOC-02 | Phase 8 — Examples, Starter Kit & Documentation | Closed (Plan 08-03 — 30-second quickstart block) |
+| DOC-03 | Phase 8 — Examples, Starter Kit & Documentation | Closed (Plan 08-03 — feature list 6-8 bullets) |
+| DOC-04 | Phase 8 — Examples, Starter Kit & Documentation | Closed (Plan 08-03 — HL7 in 90 seconds section) |
+| DOC-05 | Phase 8 — Examples, Starter Kit & Documentation | Closed (Plan 08-03 — three access patterns with examples) |
+| DOC-06 | Phase 8 — Examples, Starter Kit & Documentation | Closed (Plan 08-03 — Cookbook with every spec recipe) |
+| DOC-07 | Phase 8 — Examples, Starter Kit & Documentation | Closed (Plan 08-03 — top-level Profiles section) |
+| DOC-08 | Phase 8 — Examples, Starter Kit & Documentation | Closed (Plan 08-03 — 4-tier Real-World Tolerance table + example) |
+| DOC-09 | Phase 8 — Examples, Starter Kit & Documentation | Closed (Plan 08-03 — Error Handling section) |
+| DOC-10 | Phase 8 — Examples, Starter Kit & Documentation | Closed (Plan 08-03 — Contributing section) |
+| DOC-11 | Phase 8 — Examples, Starter Kit & Documentation | Closed (Plan 08-03 — "Built by Cosyte" footer + license link) |
+| DOC-12 | Phase 8 — Examples, Starter Kit & Documentation | Closed (Plan 08-03 — Roadmap / stretch-goals section with 6 v2 deferrals) |
+| DOC-13 | Phase 8 — Examples, Starter Kit & Documentation | Closed (Plan 08-03 — Publishing Your Profile recipe links to starter kit + CUSTOMIZING.md) |
+| DOC-14 | Phase 8 — Examples, Starter Kit & Documentation | Closed (Plan 08-04 — CHANGELOG.md Keep-a-Changelog + [Unreleased]) |
+| DOC-15 | Phase 8 — Examples, Starter Kit & Documentation | Closed (Plan 08-04 — LICENSE MIT at repo root) |
 
 **Coverage:** 97 / 97 v1 REQ-IDs mapped (no orphans, no duplicates).
 
