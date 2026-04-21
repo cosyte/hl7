@@ -2,9 +2,10 @@
 phase: 02-core-parser-and-tolerance
 verified: 2026-04-18T21:00:00Z
 overrides_recorded: 2026-04-18T20:45:00Z
+overrides_retired: 2026-04-20T21:00:00Z
 status: verified
-score: 19/19 must-haves verified (1 deferred via override, 0 gaps open)
-overrides_applied: 1
+score: 19/19 must-haves verified (0 deferrals open, 0 gaps open — TOL-08 deferral satisfied by Phase 3 TYPES-04 + Phase 4 HELPERS-01, retired 2026-04-20 by Plan 10-04)
+overrides_applied: 0
 re_verification:
   previous_status: gaps_found
   previous_score: 17/19
@@ -16,71 +17,21 @@ re_verification:
   closure_commits:
     - "32d7ebe (RED): test(02-07): add failing tests for MSH-18 charset wiring"
     - "04a180b (GREEN): feat(02-07): wire MSH-18 charset resolution into parseHL7"
-deferred:
+retired_overrides:
   - truth: "TOL-08 / Success Criterion #5 — `dateFormats: [...]` passed to `parseHL7` is honored end-to-end"
-    original_status: partial
-    override_decision: "Accept as plumbing-only for Phase 2. No code work planned for Phase 2. Observable-behaviour slice deferred to Phase 3 (typed composite TS/DTM call site) and Phase 4 (`msg.meta.timestamp` named helper)."
-    rationale: |
-      Three independent artifacts agree this is the correct resolution:
-
-      1. **CONTEXT.md `<domain>` line 22** explicitly scopes TOL-08 for Phase 2
-         as "`dateFormats: [...]` option with `TIMESTAMP_FALLBACK_FORMAT`
-         warning plumbing". The word "plumbing" is load-bearing: it means
-         the option is declared, discriminated, type-checked, and the
-         helper (`parseHl7Timestamp`) is fully implemented and unit-tested —
-         but there is no Phase-2-visible call site that exercises it
-         end-to-end through `parseHL7`. That is exactly the state the
-         verifier found: 10/10 for the plumbing layer, 0/1 for the
-         aspirational observable slice.
-
-      2. **D-08 (CONTEXT.md:54)** explicitly forbids exposing typed MSH-7
-         timestamps in Phase 2: "MSH metadata exposed in Phase 2 is limited
-         to `msg.encodingCharacters` + `msg.version`. All other MSH-derived
-         fields (`type`, `controlId`, `timestamp`, `sendingApp`, etc.) are
-         Phase 4's `msg.meta`." There is NO Phase-2-visible surface on
-         which `dateFormats` could produce a user-observable effect without
-         violating D-08. Wiring `parseHl7Timestamp` into an MSH-7 call site
-         now would either break the Phase 4 surface contract or require
-         shipping a throwaway stub that Phase 4 must immediately remove.
-
-      3. **ROADMAP SC-5** is written aspirationally ("A developer supplying
-         `dateFormats: [...]` sees non-HL7 timestamp formats accepted in
-         order with a `TIMESTAMP_FALLBACK_FORMAT` warning"). This is a
-         correct statement of the v1 contract — but it can only be
-         satisfied once a typed-accessor surface exists that calls
-         `parseHl7Timestamp`. The natural consumers are:
-           - **Phase 3 (MODEL-* / TYPES-04):** typed composite TS/DTM
-             parser — `msg.get('MSH.7')` returning a parsed `Date`.
-           - **Phase 4 (HELPERS-01):** `msg.meta.timestamp: Date | undefined`
-             — the documented user-facing surface for MSH-7.
-         Both phases own TOL-08's end-to-end observability by construction;
-         neither exists in Phase 2.
-
-      4. **Supporting helper is correct AND public.** `parseHl7Timestamp`,
-         `BUILTIN_DATE_FALLBACKS`, `ParseHl7TimestampOptions`, and the
-         `TIMESTAMP_FALLBACK_FORMAT` warning factory are all exported from
-         `src/index.ts` (confirmed by Plan 06 summary §"src/index.ts Barrel
-         Final Export List"). Phase 3 / Phase 4 consumers can call them
-         without any Phase 2 API reshape — this is the definition of
-         "plumbing complete". Unit tests for the cascade
-         (`test/parser-dates.test.ts`) pin every sub-behaviour required by
-         TOL-08 and TOL-09: user-format order-sensitivity, built-in
-         always-tried fallback, `TIMESTAMP_FALLBACK_FORMAT` emission.
-
-      5. **Zero cost to defer.** No user can reach TOL-08's observable
-         slice through Phase 2's public API even if we wired a call site
-         today, because D-08 forbids exposing MSH-7 to user code. Wiring
-         `parseHl7Timestamp` into an internal-only site would add code
-         with no user-facing effect (a non-test) — the opposite of what
-         TDD and the verifier are meant to reward.
-
-    traceability:
-      phase_3_target: "MODEL-* / TYPES-04 (TS/DTM typed composite) will call `parseHl7Timestamp(raw, { userFormats: opts.dateFormats, emit, position })` on every TS/DTM field access."
-      phase_4_target: "HELPERS-01 (`msg.meta.timestamp`) will call `parseHl7Timestamp` on MSH-7 with the parser's stored `dateFormats` option propagated via the parse context."
-      carry_forward: "The `ParseOptions.dateFormats` field is already declared, discriminated, and plumbed through `parseHL7`'s options object — Phase 3/4 consumers inherit it without an API change."
-
-    author: "gsd-planner (gap-closure invocation 2026-04-18)"
-    accepted_by: "user (explicit override rationale provided in gap-closure brief, 2026-04-18)"
+    original_deferral_date: 2026-04-18T20:45:00Z
+    satisfied_by:
+      - phase: 03-structural-model-and-types
+        req_id: TYPES-04
+        code_path: "src/model/types/ts.ts — parseTs delegates to parseHl7Timestamp; Field.asTs() is the typed composite access surface that exercises the cascade end-to-end"
+        verified_date: 2026-04-18T00:00:00Z
+      - phase: 04-named-helpers
+        req_id: HELPERS-01
+        code_path: "src/helpers/meta.ts — buildMeta populates msg.meta.timestamp: Date | undefined from MSH-7 through the composite layer"
+        verified_date: 2026-04-19T00:00:00Z
+    observable_date_slice: satisfied
+    warning_emission_slice: "deferred separately — msg.warnings cannot receive TIMESTAMP_FALLBACK_FORMAT from buildMeta lazily because msg.warnings is frozen at parseHL7 construction (Phase 2 D-07). Eager MSH-7 parsing during parseHL7 would lift meta-helper parsing into the parse pipeline — separate scope change tracked in STATE.md Open Questions. NOT part of TOL-08's observable-Date contract; documented carry-over for v2."
+    retired_by: "Phase 10 gap-closure Plan 10-04 (2026-04-20) — v2.1-MILESTONE-AUDIT.md tech-debt §8 closure."
 ---
 
 # Phase 2: Core Parser & Tolerance — Verification Report
