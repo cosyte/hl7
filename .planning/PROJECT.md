@@ -1,4 +1,4 @@
-# @cosyte/hl7-parser
+# @cosyte/hl7
 
 ## What This Is
 
@@ -20,17 +20,17 @@ See `REQUIREMENTS.md` for the full categorized list with REQ-IDs.
 
 **Top-level capabilities:**
 
-- [ ] Parse any well-formed HL7 v2.1–v2.8 message into a typed object model
-- [ ] Named helpers for common extractions (`msg.patient.mrn`, `msg.meta.type`, etc.)
-- [ ] Dot-path accessors (`msg.get('PID.5.1')`)
-- [ ] Structural access to every segment, field, component, subcomponent, repetition
-- [ ] Round-trip serialization (parse → modify → `toString()`) produces valid HL7
-- [ ] Lenient default parsing with a 4-tier deviation model (silent/warn/fatal/strict-only)
-- [ ] First-class `defineProfile()` API for vendor- and integration-specific quirks
-- [ ] 5 built-in vendor profiles (Epic, Cerner, Meditech, athenahealth, generic lab)
-- [ ] Profile starter kit (`examples/profile-starter-kit/`) that ships publishable as-is
-- [ ] Zero runtime dependencies; dual ESM + CJS build; strict TypeScript
-- [ ] Three runnable examples + comprehensive README with cookbook
+- [x] Parse any well-formed HL7 v2.1–v2.8 message into a typed object model _(PARSE-01..09, MODEL-01..07, TYPES-01..04; shipped Phase 2-3)_
+- [x] Named helpers for common extractions (`msg.patient.mrn`, `msg.meta.type`, etc.) _(HELPERS-01..07; shipped Phase 4)_
+- [x] Dot-path accessors (`msg.get('PID.5.1')`) _(MODEL-01/02/05; shipped Phase 3 Plan 01)_
+- [x] Structural access to every segment, field, component, subcomponent, repetition _(MODEL-03/04, TYPES-01..04; shipped Phase 3 Plans 01-03)_
+- [x] Round-trip serialization (parse → modify → `toString()`) produces valid HL7 _(SER-01..06; shipped Phase 5)_
+- [x] Lenient default parsing with a 4-tier deviation model (silent/warn/fatal/strict-only) _(TOL-01..09, PARSE-03 escapes; shipped Phase 2)_
+- [x] First-class `defineProfile()` API for vendor- and integration-specific quirks _(PROF-01..09; shipped Phase 6)_
+- [x] 5 built-in vendor profiles (Epic, Cerner, Meditech, athenahealth, generic lab) _(BIP-01..06; shipped Phase 6 Plan 05-06)_
+- [x] Profile starter kit (`examples/profile-starter-kit/`) that ships publishable as-is _(KIT-01..07; shipped Phase 8 Plan 02)_
+- [x] Zero runtime dependencies; dual ESM + CJS build; strict TypeScript _(SETUP-02/03/04/05/06; shipped Phase 1)_
+- [x] Three runnable examples + comprehensive README with cookbook _(EX-01..03, DOC-01..15; shipped Phase 8 Plans 01 + 03-04)_
 
 ### Out of Scope (v1)
 
@@ -57,7 +57,7 @@ See `REQUIREMENTS.md` for the full categorized list with REQ-IDs.
 - **Language:** TypeScript strict (`"strict": true`, `"noUncheckedIndexedAccess": true`). No `any`, no unjustified `as` casts.
 - **Target:** ES2022, dual package (ESM + CJS) via `tsup`. Node 18+.
 - **Runtime deps:** Zero. Node stdlib only. Dev deps (Vitest, TypeScript, linters) fine.
-- **Package manager:** pnpm. Package name: `@cosyte/hl7-parser`. License: MIT.
+- **Package manager:** pnpm. Package name: `@cosyte/hl7` (renamed from `@cosyte/hl7-parser` in Phase 9, 2026-04-20). License: MIT.
 - **Test coverage:** ≥ 90% line coverage on `src/parser/`, `src/model/`, `src/helpers/`.
 - **Performance expectation:** 50-segment message parses in < 5ms on a modern laptop (documented, not a CI gate).
 - **No console logging in library code.** Throw typed errors or return results.
@@ -94,4 +94,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-18 after initialization*
+*Last updated: 2026-04-20 (Phase 10 gap-closure Plan 10-03 Task 4 — capabilities checklist 11/11 flipped to `[x]` with REQ-ID traceability; package-name references updated post-Phase-9 rename to `@cosyte/hl7`.)*
