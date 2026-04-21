@@ -260,18 +260,20 @@ Within each phase, plans that touch disjoint modules may run in parallel; plans 
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Project Foundation | 4/4 | Complete (pending verify) | 2026-04-18 |
-| 2. Core Parser & Tolerance | 0/6 | Planned | — |
-| 3. Structural Model & Types | 4/4 | Complete (pending verify) | 2026-04-19 |
+| 1. Project Foundation | 4/4 | Complete (evidence-only) | 2026-04-18 |
+| 2. Core Parser & Tolerance | 7/7 | Complete (verified) | 2026-04-18 |
+| 3. Structural Model & Types | 4/4 | Complete (verified) | 2026-04-18 |
 | 4. Named Helpers | 4/4 | Complete (verified) | 2026-04-19 |
 | 5. Serialization & Round-Trip | 5/5 | Complete (verified) | 2026-04-19 |
 | 6. Profile System & Built-ins | 6/6 | Complete (verified) | 2026-04-19 |
-| 7. Testing Hardening & Fixtures | 5/7 | In Progress (Wave 2 complete — TEST-02 + TEST-03 + TEST-04 + TEST-05 + TEST-06 closed) | — |
-| 8. Examples, Starter Kit & Documentation | 0/0 | Not started | — |
-| 9. Rename Package to @cosyte/hl7 | 0/4 | Planned | — |
-| 10. Planning-Doc Resync | 1/4 | In Progress (Plan 10-01 complete — REQUIREMENTS.md fully synced: 42 checkbox flips + 35 Pending→Closed traceability rows) | — |
-| 11. Retroactive Verification | 0/0 | Planned (gap closure) | — |
-| 12. Retroactive Nyquist Validation | 0/0 | Planned (gap closure) | — |
+| 7. Testing Hardening & Fixtures | 7/7 | Complete (evidence-only) | 2026-04-19 |
+| 8. Examples, Starter Kit & Documentation | 5/5 | Complete (evidence-only) | 2026-04-20 |
+| 9. Rename Package to @cosyte/hl7 | 4/4 | Complete (evidence-only) | 2026-04-20 |
+| 10. Planning-Doc Resync | 0/4 | In Progress (gap closure) | — |
+| 11. Retroactive Verification | 0/3 | Planned (gap closure) | — |
+| 12. Retroactive Nyquist Validation | 0/6 | Planned (gap closure) | — |
+
+**v1 milestone:** 9/9 phases complete. **v2.1 gap-closure:** Phases 10-12 in progress (this phase = 10). The 9-complete figure scopes to the v1 milestone span; Phases 10-12 are v2.1-audit-follow-on tech-debt gap-closure phases (ROADMAP lists every phase for project-wide traceability; STATE.md's `total_phases: 9` frontmatter value reflects the same v1-scope rollup).
 
 ---
 
