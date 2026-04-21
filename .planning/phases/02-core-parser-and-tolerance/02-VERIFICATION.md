@@ -39,8 +39,8 @@ retired_overrides:
 **Phase Goal:** A developer calling `parseHL7(raw)` on any well-formed v2.1–v2.8 message — including vendor-quirky input — receives a structurally correct parse result with stable, positional warnings surfaced for every known deviation.
 
 **Verified:** 2026-04-18T21:00:00Z
-**Overrides Recorded:** 2026-04-18T20:45:00Z (TOL-08 deferred to Phase 3/4 — see frontmatter `deferred:` block and Resolution Note below)
-**Status:** verified (0 gaps open; PARSE-09 closed by Plan 07; TOL-08 deferred via override)
+**Overrides Recorded:** 2026-04-18T20:45:00Z (TOL-08 deferred to Phase 3/4 — RETIRED 2026-04-20 per frontmatter `retired_overrides:` block and Resolution Note §TOL-08 below)
+**Status:** verified (0 gaps open; 0 deferrals open; PARSE-09 closed by Plan 07; TOL-08 deferral satisfied by Phase 3 TYPES-04 + Phase 4 HELPERS-01, retired 2026-04-20 by Plan 10-04)
 **Re-verification:** Yes — post-gap-closure (Plan 07 landed). Previous: 17/19 @ gaps_found. Current: 19/19 @ verified.
 
 ## Verification Commands
