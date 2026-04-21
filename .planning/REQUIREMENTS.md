@@ -268,4 +268,4 @@ Every v1 REQ-ID maps to exactly one phase in `ROADMAP.md`. 97/97 mapped.
 
 **Coverage:** 97 / 97 v1 REQ-IDs mapped (no orphans, no duplicates).
 
-*Last updated: 2026-04-18 (traceability populated by roadmapper).*
+*Last updated: 2026-04-20 (v2.1 resync: all 97 REQ-IDs flipped from stale `[ ]` / "Pending" to `[x]` / "Closed" matching the v2.1-MILESTONE-AUDIT.md ground-truth — Phase 10 gap-closure Plan 10-01).*
