@@ -269,7 +269,7 @@ Within each phase, plans that touch disjoint modules may run in parallel; plans 
 | 7. Testing Hardening & Fixtures | 5/7 | In Progress (Wave 2 complete — TEST-02 + TEST-03 + TEST-04 + TEST-05 + TEST-06 closed) | — |
 | 8. Examples, Starter Kit & Documentation | 0/0 | Not started | — |
 | 9. Rename Package to @cosyte/hl7 | 0/4 | Planned | — |
-| 10. Planning-Doc Resync | 0/0 | Planned (gap closure) | — |
+| 10. Planning-Doc Resync | 1/4 | In Progress (Plan 10-01 complete — REQUIREMENTS.md fully synced: 42 checkbox flips + 35 Pending→Closed traceability rows) | — |
 | 11. Retroactive Verification | 0/0 | Planned (gap closure) | — |
 | 12. Retroactive Nyquist Validation | 0/0 | Planned (gap closure) | — |
 
