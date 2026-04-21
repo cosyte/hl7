@@ -168,32 +168,30 @@ None. All Phase 2 truths are verified programmatically through unit tests, type 
 
 ---
 
-## Resolution Note §TOL-08 — `dateFormats` Deferred to Phase 3/4
+## Resolution Note §TOL-08 — Deferral Satisfied by Phase 3/4 (Retired 2026-04-20)
 
-**Status:** Deferred via override recorded 2026-04-18T20:45:00Z (carried forward unchanged through this re-verification).
+**Status:** RETIRED 2026-04-20 via Phase 10 gap-closure Plan 10-04. Deferral satisfied by Phase 3 TYPES-04 (verified 2026-04-18) + Phase 4 HELPERS-01 (verified 2026-04-19). No action pending.
 
-**Decision:** Phase 2's TOL-08 responsibility is bounded to **plumbing** — helper implementation, `ParseOptions.dateFormats` declaration, discriminator recognition, barrel export. All four are complete and verified. The observable end-to-end slice (a developer passing `dateFormats: [...]` to `parseHL7` and getting a `TIMESTAMP_FALLBACK_FORMAT` warning from MSH-7) is deferred to **Phase 3** (typed composite TS/DTM via `msg.get('MSH.7')` / `msg.get('OBX.14')`) and **Phase 4** (`msg.meta.timestamp` named helper).
+**Historical summary:** On 2026-04-18 Phase 2's TOL-08 observable slice was explicitly deferred via user-approved override to Phase 3 (typed composite TS/DTM via `msg.get('MSH.7')` / `msg.get('OBX.14')`) and Phase 4 (`msg.meta.timestamp` named helper). The deferral was recorded in the frontmatter `deferred:` block and the previous version of this Resolution Note. Rationale at the time: CONTEXT.md line 22 scoped TOL-08 for Phase 2 as "plumbing"; D-08 (CONTEXT.md:54) locked the Phase 2 Hl7Message surface to `{segments, encodingCharacters, version, warnings, profile?}` — no Phase-2-visible surface on which `dateFormats` could produce a user-observable effect; the helper `parseHl7Timestamp` + `BUILTIN_DATE_FALLBACKS` + `ParseHl7TimestampOptions` + `TIMESTAMP_FALLBACK_FORMAT` warning factory were all shipped + unit-tested in isolation (Plan 02-05) and exported through `src/index.ts`. Full rationale preserved in git history at commits 7fc2318 (original verification) + the frontmatter `retired_overrides:` block of this file.
 
-**Why the deferral is correct (not a scope reduction):**
+**How the deferral was satisfied:**
 
-1. **CONTEXT.md is explicit.** Line 22 of `02-CONTEXT.md` lists TOL-08 under Phase 2's `<domain>` as "`dateFormats: [...]` option with `TIMESTAMP_FALLBACK_FORMAT` warning **plumbing** and built-in fallbacks". The word "plumbing" was chosen deliberately during discussion and distinguishes this item from the other REQ-IDs which list behaviour verbs ("parses", "strips", "throws").
+1. **Phase 3 TYPES-04** (verified 2026-04-18, Plan 03-03): shipped the TS/DTM typed composite at `src/model/types/ts.ts`. `parseTs` delegates to `parseHl7Timestamp({})` (empty options, silent) at the composite layer; `Field.asTs()` — wired via Plan 03-04 into `src/model/field.ts` — is the typed access surface that exercises the cascade end-to-end from user code. The composite layer stays stateless so `Field.asTs()` works identically whether the user supplied `dateFormats` or not. TS composite shape `{ raw: string; date: Date | undefined }` per D-14 — BOTH keys ALWAYS present. See Phase 3 03-VERIFICATION.md for 4/4 SC pass.
 
-2. **D-08 blocks Phase 2 from a user-observable call site.** D-08 (CONTEXT.md:54) locks the Phase 2 `Hl7Message` surface to `{ segments, encodingCharacters, version, warnings, profile? }`. There is no Phase 2-exposed field access, no typed composite parsing, no `msg.meta`. A Phase 2 call site for `parseHl7Timestamp` would have to be invisible to user code — at which point it is not "end-to-end" in any meaningful sense.
+2. **Phase 4 HELPERS-01** (verified 2026-04-19, Plan 04-02): shipped `msg.meta.timestamp: Date | undefined` at `src/helpers/meta.ts::buildMeta`. `buildMeta` is the documented user-facing path for MSH-7 specifically — the observable slice the original ROADMAP SC-5 targeted. Per REQUIREMENTS.md line 42: "HELPERS-01 — `msg.meta` exposes: `type`, `messageCode`, `triggerEvent`, `messageStructure`, `controlId`, `timestamp` (Date)… Phase 4 Plan 02 — buildMeta with D-03 always-present, D-18 flat Date." See Phase 4 04-VERIFICATION.md for 4/4 SC pass.
 
-3. **Natural consumers exist in Phase 3/4.** Phase 3 ships TYPES-04 (TS/DTM typed composite) which is the first Phase-visible surface that needs timestamp parsing; Phase 4 ships HELPERS-01 (`msg.meta.timestamp: Date | undefined`) which is the documented user-facing path for MSH-7 specifically. Both phases inherit `ParseOptions.dateFormats` via the parse context without any Phase 2 API reshape.
+**What IS satisfied (observable Date slice):** A developer supplying `dateFormats: [...]` to `parseHL7(raw, { dateFormats })`, then calling `msg.meta.timestamp` or `msg.get('MSH.7', HL7.TS).date`, receives a parsed `Date` value when a user-supplied format matches — matching the ROADMAP SC-5 user-facing contract.
 
-4. **The helper is correct and publicly exported.** `parseHl7Timestamp`, `BUILTIN_DATE_FALLBACKS`, `ParseHl7TimestampOptions` are all in `src/index.ts`'s barrel (confirmed in `02-06-SUMMARY.md`). `test/parser-dates.test.ts` pins every cascade behaviour: strict HL7 TS/DTM → user formats (order-sensitive, TOL-08) → built-in fallbacks (always tried, TOL-09) → `TIMESTAMP_FALLBACK_FORMAT` emission when non-HL7 matches.
+**What is NOT in TOL-08's scope (and remains a separately-tracked carry-over):** The `TIMESTAMP_FALLBACK_FORMAT` warning emission through `msg.warnings` when `buildMeta`'s lazy parse hits a non-HL7 MSH-7 format. This warning CAN'T land in `msg.warnings` from `buildMeta` because `msg.warnings` is frozen at `parseHL7` construction time (Phase 2 D-07). Surfacing the warning requires eager MSH-7 parsing during `parseHL7` — a separate scope change that lifts meta-helper parsing into the parse pipeline. This is documented as an Open Question in STATE.md and is explicitly NOT part of TOL-08's observable-Date contract per the original Plan 02-05 scope boundary (CONTEXT.md line 22 — "plumbing and built-in fallbacks"). Tracked for v2 or a dedicated follow-on plan.
 
-5. **Re-verification impact.** When Phase 3 lands TYPES-04 or Phase 4 lands HELPERS-01, SC-5 flips from DEFERRED → VERIFIED via a Phase 3/4 test case — no additional Phase 2 work required.
+**Retirement authority:** Phase 10 gap-closure Plan 10-04 (2026-04-20). v2.1-MILESTONE-AUDIT.md tech-debt §8 explicitly calls out: "Phase 2 TOL-08 'deferred' frontmatter never retired — observable slice did land in Phase 3/4; the Phase 2 VERIFICATION.md still carries the deferred block. Doc-trail clean-up only." This plan closes that gap.
 
-**Traceability for future phases:**
-
-| Phase | Target REQ-ID | Expected SC-5 observable slice |
-|-------|---------------|-------------------------------|
-| Phase 3 | TYPES-04 (TS/DTM typed composite) | `msg.get('MSH.7')` returns a parsed `Date` using `parseHl7Timestamp` with `options.dateFormats` propagated; emits `TIMESTAMP_FALLBACK_FORMAT` on non-HL7 match. |
-| Phase 4 | HELPERS-01 (`msg.meta`) | `msg.meta.timestamp: Date \| undefined` reads MSH-7 via the Phase 3 composite path; same `dateFormats` honouring by inheritance. |
-
-**Override authority:** User-provided rationale in gap-closure invocation (2026-04-18) cites all three independent artifacts (CONTEXT.md `<domain>` line 22, D-08, ROADMAP aspirational framing) and explicitly instructs "do NOT plan code work for this gap unless you disagree with the analysis". The gsd-planner does not disagree — all five rationale points above are independently verifiable against the committed planning artifacts.
+**Cross-references:**
+- `src/model/types/ts.ts` (Phase 3 TYPES-04 composite)
+- `src/model/field.ts` (Phase 3 Plan 04 `Field.asTs()` wiring)
+- `src/helpers/meta.ts` (Phase 4 HELPERS-01 `buildMeta`)
+- `.planning/phases/03-structural-model-and-types/03-VERIFICATION.md` (Phase 3 verified 4/4 SC)
+- `.planning/phases/04-named-helpers/04-VERIFICATION.md` (Phase 4 verified 4/4 SC)
 
 ---
 
