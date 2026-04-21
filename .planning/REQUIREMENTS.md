@@ -17,15 +17,15 @@ All requirements are user-facing behaviors a developer consuming `@cosyte/hl7-pa
 
 ### Core Parsing (PARSE)
 
-- [ ] **PARSE-01** — `parseHL7(raw)` parses any well-formed HL7 v2.1–v2.8 message and returns an `Hl7Message` object.
-- [ ] **PARSE-02** — Parser reads encoding characters from MSH-1 and MSH-2 rather than hardcoding `|^~\&`; custom delimiters in MSH are honored throughout the message.
+- [x] **PARSE-01** — `parseHL7(raw)` parses any well-formed HL7 v2.1–v2.8 message and returns an `Hl7Message` object. _(Closed by Plan 02-06 — public parseHL7 entry + strict-mode escalation.)_
+- [x] **PARSE-02** — Parser reads encoding characters from MSH-1 and MSH-2 rather than hardcoding `|^~\&`; custom delimiters in MSH are honored throughout the message. _(Closed by Plan 02-03 — readDelimiters MSH-1/MSH-2 reader + tokenize custom-enc path.)_
 - [x] **PARSE-03** — Parser handles all HL7 escape sequences (`\F\`, `\S\`, `\T\`, `\R\`, `\E\`, `\.br\`, `\X..\`, `\Z..\`); unescape on access, re-escape on serialize.
-- [ ] **PARSE-04** — Parser preserves segments in original order, including repeating segments and Z-segments.
-- [ ] **PARSE-05** — Parser correctly decomposes fields into repetitions (`~`), components (`^`), and subcomponents (`&`) as a nested structure.
-- [ ] **PARSE-06** — Parser distinguishes empty fields (`||`) from null fields (`""`) per HL7 spec semantics.
-- [ ] **PARSE-07** — Parser handles a UTF-8 BOM at the start of the input silently (Tier 1: no warning).
-- [ ] **PARSE-08** — Parser accepts `\r`, `\n`, `\r\n`, or mixed line endings and normalizes internally to `\r` (Tier 1: no warning).
-- [ ] **PARSE-09** — Parser accepts a `Buffer` input and respects MSH-18 character set when set (defaults to UTF-8); unknown charsets warn and fall back to UTF-8.
+- [x] **PARSE-04** — Parser preserves segments in original order, including repeating segments and Z-segments. _(Closed by Plan 02-03 — splitSegments preserves original order including Z-segments.)_
+- [x] **PARSE-05** — Parser correctly decomposes fields into repetitions (`~`), components (`^`), and subcomponents (`&`) as a nested structure. _(Closed by Plan 02-03 — tokenize decomposes reps/comps/subs.)_
+- [x] **PARSE-06** — Parser distinguishes empty fields (`||`) from null fields (`""`) per HL7 spec semantics. _(Closed by Plan 02-03 — RawField.isNull flag distinguishes `""` from empty.)_
+- [x] **PARSE-07** — Parser handles a UTF-8 BOM at the start of the input silently (Tier 1: no warning). _(Closed by Plan 02-02 — BOM stripped silently in normalizeBuffer.)_
+- [x] **PARSE-08** — Parser accepts `\r`, `\n`, `\r\n`, or mixed line endings and normalizes internally to `\r` (Tier 1: no warning). _(Closed by Plan 02-02 — line-ending normalize.)_
+- [x] **PARSE-09** — Parser accepts a `Buffer` input and respects MSH-18 character set when set (defaults to UTF-8); unknown charsets warn and fall back to UTF-8. _(Closed by Plan 02-07 gap-closure — MSH-18 charset auto-discovery + options.charset override; commit 04a180b.)_
 
 ### Model & Access (MODEL)
 
@@ -56,15 +56,15 @@ All requirements are user-facing behaviors a developer consuming `@cosyte/hl7-pa
 
 ### Real-World Tolerance (TOL)
 
-- [ ] **TOL-01** — Default parse mode is lenient; strict mode via `{ strict: true }` escalates every Tier 2 warning to a thrown `Hl7ParseError`.
-- [ ] **TOL-02** — Tier 3 fatal errors throw `Hl7ParseError` with stable codes even in lenient mode: `NO_MSH_SEGMENT`, `MSH_TOO_SHORT`, `INVALID_ENCODING_CHARACTERS`, `EMPTY_INPUT`. Each error includes `message`, `position`, `snippet`.
-- [ ] **TOL-03** — Parser emits Tier 2 warnings with stable codes and positional context (`segmentIndex`, `fieldIndex`, `componentIndex`, `repetitionIndex`) for all defined scenarios (MLLP framing, segment case, extra fields, unknown/unregistered segments, timestamp fallbacks, trimmed whitespace, duplicate required segments, encoding mismatches, missing required fields, out-of-order segments, unknown escape sequences, version mismatches, unknown charsets).
-- [ ] **TOL-04** — `msg.warnings` is always an array of `Hl7ParseWarning` objects (possibly empty) on a parsed message.
-- [ ] **TOL-05** — `onWarning` callback option is invoked for every warning as it is emitted.
-- [ ] **TOL-06** — `stripMllpFraming: true` (default) strips raw MLLP bytes (`0x0B`, `0x1C`, `0x0D`) and emits `MLLP_FRAMING_STRIPPED`.
-- [ ] **TOL-07** — `trimFields: true` (default) trims leading/trailing whitespace and emits `FIELD_WHITESPACE_TRIMMED` only when non-whitespace content existed around the value.
-- [ ] **TOL-08** — `dateFormats: [...]` option provides fallback formats; order-sensitive; emits `TIMESTAMP_FALLBACK_FORMAT` when a non-HL7 format succeeds.
-- [ ] **TOL-09** — Built-in timestamp fallbacks (ISO 8601, `YYYY-MM-DD`, `MM/DD/YYYY`, `MM/DD/YYYY HH:mm:ss`) are tried when the user-supplied list is empty or doesn't match.
+- [x] **TOL-01** — Default parse mode is lenient; strict mode via `{ strict: true }` escalates every Tier 2 warning to a thrown `Hl7ParseError`. _(Closed by Plan 02-06 — strict-mode escalation chokepoint in makeEmitter.)_
+- [x] **TOL-02** — Tier 3 fatal errors throw `Hl7ParseError` with stable codes even in lenient mode: `NO_MSH_SEGMENT`, `MSH_TOO_SHORT`, `INVALID_ENCODING_CHARACTERS`, `EMPTY_INPUT`. Each error includes `message`, `position`, `snippet`. _(Closed by Plan 02-01 — Hl7ParseError 4 fatal codes with position + snippet.)_
+- [x] **TOL-03** — Parser emits Tier 2 warnings with stable codes and positional context (`segmentIndex`, `fieldIndex`, `componentIndex`, `repetitionIndex`) for all defined scenarios (MLLP framing, segment case, extra fields, unknown/unregistered segments, timestamp fallbacks, trimmed whitespace, duplicate required segments, encoding mismatches, missing required fields, out-of-order segments, unknown escape sequences, version mismatches, unknown charsets). _(Closed by Plan 02-01 — 13-code WARNING_CODES registry with position-bearing factories.)_
+- [x] **TOL-04** — `msg.warnings` is always an array of `Hl7ParseWarning` objects (possibly empty) on a parsed message. _(Closed by Plan 02-01 — Hl7Message.warnings always readonly array, frozen on construction.)_
+- [x] **TOL-05** — `onWarning` callback option is invoked for every warning as it is emitted. _(Closed by Plan 02-06 — onWarning invoked inside makeEmitter chokepoint.)_
+- [x] **TOL-06** — `stripMllpFraming: true` (default) strips raw MLLP bytes (`0x0B`, `0x1C`, `0x0D`) and emits `MLLP_FRAMING_STRIPPED`. _(Closed by Plan 02-02 — stripMllp + MLLP_FRAMING_STRIPPED emit.)_
+- [x] **TOL-07** — `trimFields: true` (default) trims leading/trailing whitespace and emits `FIELD_WHITESPACE_TRIMMED` only when non-whitespace content existed around the value. _(Closed by Plan 02-03 — tokenize whitespace trim with non-whitespace-guard.)_
+- [x] **TOL-08** — `dateFormats: [...]` option provides fallback formats; order-sensitive; emits `TIMESTAMP_FALLBACK_FORMAT` when a non-HL7 format succeeds. _(Plumbing closed by Plan 02-05; observable slice closed by Phase 3 TYPES-04 (TS/DTM composite) + Phase 4 HELPERS-01 (`msg.meta.timestamp`). See `.planning/phases/02-core-parser-and-tolerance/02-VERIFICATION.md` Resolution Note §TOL-08.)_
+- [x] **TOL-09** — Built-in timestamp fallbacks (ISO 8601, `YYYY-MM-DD`, `MM/DD/YYYY`, `MM/DD/YYYY HH:mm:ss`) are tried when the user-supplied list is empty or doesn't match. _(Closed by Plan 02-05 — BUILTIN_DATE_FALLBACKS always-tried cascade.)_
 - [x] **TOL-10** — Unknown escape sequences are preserved verbatim in unescaped output and warn `UNKNOWN_ESCAPE_SEQUENCE`.
 
 ### Serialization & Round-Trip (SER)
