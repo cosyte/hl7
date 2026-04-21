@@ -121,6 +121,16 @@ None — no external service configuration required.
 - Plans 10-02, 10-03, 10-04 can proceed — they resync ROADMAP.md, STATE.md, and PROJECT.md respectively
 - No blockers
 
+## Self-Check: PASSED
+
+- FOUND: `.planning/phases/10-planning-doc-resync/10-01-SUMMARY.md`
+- FOUND: `.planning/REQUIREMENTS.md`
+- FOUND commit: `eceff89` (Task 1 — PARSE+TOL checkboxes)
+- FOUND commit: `49c7dcd` (Task 2 — EX+KIT+DOC checkboxes)
+- FOUND commit: `946f134` (Task 3 — 35 Pending traceability rows)
+- FOUND commit: `62dedc4` (Task 4 — footer timestamp)
+- FOUND commit: `648d2bf` (metadata — SUMMARY + STATE + ROADMAP)
+
 ---
 *Phase: 10-planning-doc-resync*
 *Completed: 2026-04-20*
