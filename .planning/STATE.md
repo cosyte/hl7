@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: milestone
-status: "Phase 8 Plan 05 COMPLETE 2026-04-20 (Wave 2 capstone — integration + publish wiring). Parent package.json bumped 0.0.0 -> 0.1.0 (CONTEXT D-20); added scripts.examples (wires Plan 08-01 scripts/run-examples.ts) + tsx ^4.0.0 devDep (resolves to 4.21.0); dependencies remains {} (zero runtime deps preserved). .github/workflows/ci.yml gained 3 matrix-gated steps (if: matrix.node == '20') after Test (with coverage): Examples (smoke) runs pnpm examples; Starter kit (install + test + build) runs the full kit pipeline from working-directory: examples/profile-starter-kit; Validate kit workflows (actionlint) uses reviewdog/action-actionlint@v1 on both kit workflows. NEW .github/workflows/publish.yml — workflow_dispatch-only (T-08-19 mitigated), permissions contents:read + id-token:write (T-08-21 provenance), NODE_AUTH_TOKEN scoped to single Publish to npm step's env (T-08-20), uses pnpm install --frozen-lockfile (parent has lockfile), pnpm publish --access public --no-git-checks. Peer-dep resolution: Path B chosen (no workspace wiring needed — Plan 08-02's file:../.. devDep resolves kit peer against parent tree directly); no pnpm-workspace.yaml, no .npmrc changes. End-to-end capstone pipeline green: pnpm install/typecheck/lint/test(824 pass 14 todo)/build(ESM 110KB + CJS 111KB + DTS 132KB)/examples (3x OK) all exit 0; kit pipeline green (install 902ms, 4/4 tests, build 488B+517B+900B); actionlint clean on all 4 workflow files; pnpm publish --dry-run confirms clean 10-file/346.2kB tarball (CHANGELOG + LICENSE + README + dist/* + package.json). 3 atomic commits: f08b1dc (Task 1 version+scripts.examples+tsx), f9f2f6b (Task 2 ci.yml 3 new steps), cfbac6f (Task 4 publish.yml). 1 deviation: Rule-3 Path B chosen over Path A because Plan 08-02's file:../.. preempted the workspace-vs-filter decision — simpler outcome. Next: /gsd-verify-work 8."
-last_updated: "2026-04-20T03:50:00Z"
+status: executing
+last_updated: "2026-04-21T01:19:18.257Z"
 progress:
-  total_phases: 8
+  total_phases: 12
   completed_phases: 3
-  total_plans: 5
-  completed_plans: 5
-  percent: 56
+  total_plans: 22
+  completed_plans: 46
+  percent: 100
 ---
 
 # @cosyte/hl7-parser — STATE
@@ -22,18 +22,19 @@ Project memory for session-to-session continuity. Updated at phase/plan boundari
 
 - **Name:** `@cosyte/hl7-parser`
 - **Core value:** A developer can parse a real-world, vendor-quirky HL7 v2 message and pull useful fields out of it in one line — without having read the HL7 spec.
-- **Current focus:** Phase 7 — Testing Hardening & Fixtures (EXECUTION COMPLETE 2026-04-19 — all 7 plans done + all 8 TEST-01..08 REQ-IDs closed). Next: /gsd-verify-work 7 then /gsd-validate-phase 7 (Nyquist) → /gsd-transition → Phase 8. Phase 6 VERIFIED 2026-04-19; Phase 6 Nyquist still pending. Phase 5 Nyquist still pending; Phase 4 Nyquist still pending; Phase 3 still pending /gsd-validate-phase 3; Phase 2 still pending /gsd-verify-work 2 + /gsd-validate-phase 2; Phase 1 still pending /gsd-verify-work 1 + /gsd-validate-phase 1.
+- **Current focus:** Phase 10 — planning-doc-resync
 - **Workflow config:** standard granularity, yolo mode, parallelization enabled, plan-check + verifier + Nyquist validation on, auto-advance on.
 
 ## Current Position
 
-Phase: 7 (Testing Hardening & Fixtures) — EXECUTION COMPLETE (all 7 plans done; pending /gsd-verify-work 7)
+Phase: 10 (planning-doc-resync) — EXECUTING
+Plan: 1 of 4
 Next Step: /gsd-verify-work 7
 
 - **Milestone:** v1
 - **Phase:** 7 — Testing Hardening & Fixtures (EXECUTION COMPLETE). Plan 07-01 complete 2026-04-19 (Wave 1 foundation: fixture migration + helper extraction + coverage baseline). Plan 07-02 complete 2026-04-20 (Wave 2: 7 canonical fixtures + canonical-messages.test.ts — TEST-02 closed). Plan 07-03 complete 2026-04-20 (Wave 2: 11 edge-case fixtures + parser-edge-cases.test.ts — TEST-03 closed). Plan 07-04 complete 2026-04-20 (Wave 2: 13 vendor-quirks fixtures + parser-strict-mode-sweep.test.ts — TEST-05 + TEST-06 closed). Plan 07-05 complete 2026-04-19 (Wave 2: 4 malformed fixtures + parser-malformed-sweep.test.ts — TEST-04 closed). Plan 07-07 complete 2026-04-19 (Wave 2 audit: TEST-08-AUDIT.md coverage matrix — all 8 cases COVERED by Phase 6 tests with 0 gaps; TEST-07 confirmed closed by Phase 6 BIP-06). Plan 07-06 complete 2026-04-19 (Wave 3 capstone: vitest branches 85→90 on 5 per-dir entries + CI Test (with coverage) step across Node 18/20/22 matrix — TEST-01 closed). All 8 Phase 7 REQ-IDs TEST-01..08 closed. Phase 6 COMPLETE + VERIFIED 2026-04-19. Phase 5 pending /gsd-validate-phase 5.
 - **Plans:** 7 plans (Phase 7) — 07-01 fixture migration + helpers + coverage baseline (Wave 1) DONE; 07-02 canonical-messages.test.ts + 7 new canonical fixtures (Wave 2) DONE; 07-03 parser-edge-cases.test.ts + 11 edge-case fixtures (Wave 2) DONE; 07-04 vendor-quirks fixtures + strict-mode sweep (Wave 2) DONE; 07-05 malformed fixtures + sweep (Wave 2) DONE; 07-07 TEST-08 audit + TEST-07 confirmation (Wave 2) DONE; 07-06 coverage gate + CI wiring (Wave 3) DONE. Phase 6 plans (all DONE): 01 defineProfile; 02 extends merge; 03 Segment.get + UNKNOWN_SEGMENT + D-22 hoist; 04 default-profile; 05 5 built-ins + fixtures; 06 barrel + fixture-parity tests.
-- **Status:** Phase 7 EXECUTION COMPLETE — 7/7 plans done; pending verifier + Nyquist
+- **Status:** Executing Phase 10
 - **Progress:** 3/8 phases verified (Phase 3, Phase 4, Phase 6); 4/4 Phase 1 + 6/6 Phase 2 + 4/4 Phase 3 + 4/4 Phase 4 + 5/5 Phase 5 + 6/6 Phase 6 + 7/7 Phase 7 plans complete
 
 ```
