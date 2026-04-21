@@ -15,8 +15,7 @@ import { defineProfile } from "../src/profiles/define.js";
 
 // Base MSH with a valid HL7 TS in MSH-7 (`20250101120000`). Dedicated D-21
 // tests below override MSH-7 to exercise non-HL7 formats.
-const BASE_MSH =
-  "MSH|^~\\&|SENDAPP|SENDFAC|RCVAPP|RCVFAC|20250101120000||ADT^A01|MSG001|P|2.5\r";
+const BASE_MSH = "MSH|^~\\&|SENDAPP|SENDFAC|RCVAPP|RCVFAC|20250101120000||ADT^A01|MSG001|P|2.5\r";
 
 describe("Segment.get(name) — happy paths (PROF-07)", () => {
   it("resolves a profile-declared field name to the correct Field", () => {
@@ -118,26 +117,21 @@ describe("UNKNOWN_SEGMENT emit site (PROF-06 / D-31)", () => {
   it("warning includes position.segmentIndex pointing at the unknown segment", () => {
     const raw = BASE_MSH + "PID|||MRN\rZZZ|foo\r";
     const msg = parseHL7(raw);
-    const unknown = msg.warnings.find(
-      (w) => w.code === WARNING_CODES.UNKNOWN_SEGMENT,
-    );
+    const unknown = msg.warnings.find((w) => w.code === WARNING_CODES.UNKNOWN_SEGMENT);
     expect(unknown?.position.segmentIndex).toBe(2); // 0=MSH, 1=PID, 2=ZZZ
   });
 
   it("emits one UNKNOWN_SEGMENT per unknown segment (multiple Zs)", () => {
     const raw = BASE_MSH + "PID|||MRN\rZZZ|a\rZYX|b\r";
     const msg = parseHL7(raw);
-    const unknowns = msg.warnings.filter(
-      (w) => w.code === WARNING_CODES.UNKNOWN_SEGMENT,
-    );
+    const unknowns = msg.warnings.filter((w) => w.code === WARNING_CODES.UNKNOWN_SEGMENT);
     expect(unknowns).toHaveLength(2);
   });
 });
 
 describe("D-21 merged dateFormats: options.dateFormats precedes profile.dateFormats", () => {
   it("option-only format makes MSH-7 in a non-HL7 format parse", () => {
-    const raw =
-      "MSH|^~\\&|APP|FAC|APP|FAC|01/15/2025||ADT^A01|MSG001|P|2.5\rPID\r";
+    const raw = "MSH|^~\\&|APP|FAC|APP|FAC|01/15/2025||ADT^A01|MSG001|P|2.5\rPID\r";
     const msg = parseHL7(raw, { dateFormats: ["MM/DD/YYYY"] });
     expect(msg.meta.timestamp).toBeInstanceOf(Date);
     expect(msg.meta.timestamp?.toISOString()).toBe("2025-01-15T00:00:00.000Z");
@@ -155,8 +149,7 @@ describe("D-21 merged dateFormats: options.dateFormats precedes profile.dateForm
       name: "test",
       dateFormats: ["MM/DD/YYYY"],
     });
-    const raw =
-      "MSH|^~\\&|APP|FAC|APP|FAC|01/15/2025||ADT^A01|MSG001|P|2.5\rPID\r";
+    const raw = "MSH|^~\\&|APP|FAC|APP|FAC|01/15/2025||ADT^A01|MSG001|P|2.5\rPID\r";
     const msg = parseHL7(raw, profile);
     expect(msg.meta.timestamp).toBeInstanceOf(Date);
     expect(msg.meta.timestamp?.toISOString()).toBe("2025-01-15T00:00:00.000Z");
@@ -170,8 +163,7 @@ describe("D-21 merged dateFormats: options.dateFormats precedes profile.dateForm
       name: "test",
       dateFormats: ["DD/MM/YYYY"],
     });
-    const raw =
-      "MSH|^~\\&|APP|FAC|APP|FAC|01/02/2025||ADT^A01|MSG001|P|2.5\rPID\r";
+    const raw = "MSH|^~\\&|APP|FAC|APP|FAC|01/02/2025||ADT^A01|MSG001|P|2.5\rPID\r";
     const msg = parseHL7(raw, {
       dateFormats: ["MM/DD/YYYY"],
       profile,
@@ -188,11 +180,7 @@ describe("D-21 merged dateFormats: options.dateFormats precedes profile.dateForm
       dateFormats: ["MM/DD/YYYY", "YYYY-MM-DD"],
       profile,
     });
-    expect(msg.dateFormats).toEqual([
-      "MM/DD/YYYY",
-      "YYYY-MM-DD",
-      "DD/MM/YYYY",
-    ]);
+    expect(msg.dateFormats).toEqual(["MM/DD/YYYY", "YYYY-MM-DD", "DD/MM/YYYY"]);
   });
 
   it("no options.dateFormats, no profile → msg.dateFormats is []", () => {

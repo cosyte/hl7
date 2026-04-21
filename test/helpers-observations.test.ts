@@ -22,9 +22,7 @@ const MSH = "MSH|^~\\&|APP|FAC|||20250102||ORU^R01|1|P|2.5\r";
 // Layout (15 fields including the segment name placeholder):
 //   OBX|<setId>|<valueType>|<identifier>||<value>|<units>|<refRange>|<abnormal>||||<status>|||<observedDateTime>
 function obx(valueType: string, value: string): string {
-  return (
-    `OBX|1|${valueType}|GLU^Glucose^LN||${value}|mg/dL|80-110||||F|||20250102153100\r`
-  );
+  return `OBX|1|${valueType}|GLU^Glucose^LN||${value}|mg/dL|80-110||||F|||20250102153100\r`;
 }
 
 describe("helpers/observations: msg.observations() — D-13 value-type dispatch", () => {

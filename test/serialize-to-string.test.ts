@@ -19,8 +19,7 @@ import { DEFAULT_ENCODING_CHARACTERS } from "../src/parser/delimiters.js";
 import type { RawField } from "../src/parser/types.js";
 import { emitField } from "../src/serialize/emit-field.js";
 
-const BASE_MSH =
-  "MSH|^~\\&|A|B|C|D|20260419|||MSG1|P|2.5\r";
+const BASE_MSH = "MSH|^~\\&|A|B|C|D|20260419|||MSG1|P|2.5\r";
 
 describe("emitMessage — D-06 MSH special-case emission", () => {
   it("MSH-1 emits enc.field immediately after 'MSH'", () => {
@@ -66,9 +65,7 @@ describe("emitMessage — D-05 segment terminator", () => {
 
   it("multi-segment message joins with \\r and trails with \\r", () => {
     const raw =
-      "MSH|^~\\&|A|B|C|D|20260419|||MSG1|P|2.5\r" +
-      "PID|1||MRN001||Doe^John\r" +
-      "PV1|1|I\r";
+      "MSH|^~\\&|A|B|C|D|20260419|||MSG1|P|2.5\r" + "PID|1||MRN001||Doe^John\r" + "PV1|1|I\r";
     const msg = parseHL7(raw);
     const out = msg.toString();
     // 3 segments, so 3 CRs (one after each).
@@ -81,9 +78,7 @@ describe("emitMessage — D-05 segment terminator", () => {
   });
 
   it("input parsed from LF normalises to CR", () => {
-    const rawLf =
-      "MSH|^~\\&|A|B|C|D|20260419|||MSG1|P|2.5\n" +
-      "PID|1||MRN001||Doe^John\n";
+    const rawLf = "MSH|^~\\&|A|B|C|D|20260419|||MSG1|P|2.5\n" + "PID|1||MRN001||Doe^John\n";
     const msg = parseHL7(rawLf);
     const out = msg.toString();
     expect(out.includes("\n")).toBe(false);
@@ -91,9 +86,7 @@ describe("emitMessage — D-05 segment terminator", () => {
   });
 
   it("input parsed from CRLF normalises to CR", () => {
-    const rawCrlf =
-      "MSH|^~\\&|A|B|C|D|20260419|||MSG1|P|2.5\r\n" +
-      "PID|1||MRN001||Doe^John\r\n";
+    const rawCrlf = "MSH|^~\\&|A|B|C|D|20260419|||MSG1|P|2.5\r\n" + "PID|1||MRN001||Doe^John\r\n";
     const msg = parseHL7(rawCrlf);
     const out = msg.toString();
     expect(out.includes("\n")).toBe(false);
@@ -110,14 +103,11 @@ describe("emitMessage — D-04 re-escape through emitField (SER-05)", () => {
     // that back to `Smith\F\Jones`. This is the inverse pair that makes SER-02
     // structural round-trip equivalence hold.
     const raw =
-      "MSH|^~\\&|A|B|C|D|20260419|||MSG1|P|2.5\r" +
-      "PID|1||MRN001||Smith\\F\\Jones^John\r";
+      "MSH|^~\\&|A|B|C|D|20260419|||MSG1|P|2.5\r" + "PID|1||MRN001||Smith\\F\\Jones^John\r";
     const original = parseHL7(raw);
     // Raw tree holds the DECODED subcomponent (pipe char, not \F\).
     const pid = original.rawSegments.find((s) => s.name === "PID");
-    expect(pid?.fields[5]?.repetitions[0]?.components[0]?.subcomponents[0]).toBe(
-      "Smith|Jones",
-    );
+    expect(pid?.fields[5]?.repetitions[0]?.components[0]?.subcomponents[0]).toBe("Smith|Jones");
     // Emit re-escapes the pipe back to \F\.
     const emitted = original.toString();
     expect(emitted).toContain("Smith\\F\\Jones");
@@ -132,9 +122,7 @@ describe("emitMessage — D-04 re-escape through emitField (SER-05)", () => {
     // parseHL7 never produces \n in the raw tree (tokenize is byte-faithful
     // and segment terminators are stripped), so we construct the message
     // via parse + setField to get literal \n into the raw subcomponent.
-    const raw =
-      "MSH|^~\\&|A|B|C|D|20260419|||MSG1|P|2.5\r" +
-      "OBX|1|TX|NOTE||placeholder||||F\r";
+    const raw = "MSH|^~\\&|A|B|C|D|20260419|||MSG1|P|2.5\r" + "OBX|1|TX|NOTE||placeholder||||F\r";
     const msg = parseHL7(raw);
     msg.setField("OBX.5", "line1\nline2");
     const out = msg.toString();
@@ -153,35 +141,25 @@ describe("emitMessage — D-04 re-escape through emitField (SER-05)", () => {
     ];
     for (const { delim, expectedEscape } of DELIM_CASES) {
       const rawField: RawField = {
-        repetitions: [
-          { components: [{ subcomponents: ["a" + delim + "b"] }] },
-        ],
+        repetitions: [{ components: [{ subcomponents: ["a" + delim + "b"] }] }],
         isNull: false,
       };
-      expect(emitField(rawField, DEFAULT_ENCODING_CHARACTERS)).toBe(
-        "a" + expectedEscape + "b",
-      );
+      expect(emitField(rawField, DEFAULT_ENCODING_CHARACTERS)).toBe("a" + expectedEscape + "b");
     }
   });
 });
 
 describe("emitMessage — D-02 isNull preservation", () => {
   it('explicit "" null field round-trips through emit', () => {
-    const raw =
-      'MSH|^~\\&|A|B|C|D|20260419|||MSG1|P|2.5\r' +
-      'PID|1|""|MRN001||Doe^John\r';
+    const raw = "MSH|^~\\&|A|B|C|D|20260419|||MSG1|P|2.5\r" + 'PID|1|""|MRN001||Doe^John\r';
     const msg = parseHL7(raw);
     const out = msg.toString();
     expect(out).toContain('PID|1|""|MRN001||Doe^John');
   });
 
   it("absent field vs null distinct on output", () => {
-    const rawAbsent =
-      "MSH|^~\\&|A|B|C|D|20260419|||MSG1|P|2.5\r" +
-      "PID|1||MRN001\r";
-    const rawNull =
-      'MSH|^~\\&|A|B|C|D|20260419|||MSG1|P|2.5\r' +
-      'PID|1|""|MRN001\r';
+    const rawAbsent = "MSH|^~\\&|A|B|C|D|20260419|||MSG1|P|2.5\r" + "PID|1||MRN001\r";
+    const rawNull = "MSH|^~\\&|A|B|C|D|20260419|||MSG1|P|2.5\r" + 'PID|1|""|MRN001\r';
     const outAbsent = parseHL7(rawAbsent).toString();
     const outNull = parseHL7(rawNull).toString();
     expect(outAbsent).toContain("PID|1||MRN001");
@@ -209,9 +187,7 @@ describe("emitMessage — D-07 purity", () => {
   });
 
   it("does not mutate msg", () => {
-    const msg = parseHL7(
-      "MSH|^~\\&|A|B|C|D|20260419|||MSG1|P|2.5\rPID|1||MRN001\r",
-    );
+    const msg = parseHL7("MSH|^~\\&|A|B|C|D|20260419|||MSG1|P|2.5\rPID|1||MRN001\r");
     const before = JSON.stringify(msg.rawSegments);
     msg.toString();
     const after = JSON.stringify(msg.rawSegments);
@@ -219,9 +195,7 @@ describe("emitMessage — D-07 purity", () => {
   });
 
   it("toString reflects mutation on repeat calls (no stale cache, D-30)", () => {
-    const msg = parseHL7(
-      "MSH|^~\\&|A|B|C|D|20260419|||MSG1|P|2.5\rPID|1||MRN001\r",
-    );
+    const msg = parseHL7("MSH|^~\\&|A|B|C|D|20260419|||MSG1|P|2.5\rPID|1||MRN001\r");
     const before = msg.toString();
     msg.setField("PID.3", "MRN999");
     const after = msg.toString();
@@ -249,8 +223,7 @@ describe("emitMessage — WR-01 zero-segment guard", () => {
 
 describe("emitMessage — D-08 no MLLP framing", () => {
   it("no MLLP bytes on output even when input was MLLP-framed", () => {
-    const raw =
-      "\x0BMSH|^~\\&|A|B|C|D|20260419|||MSG1|P|2.5\rPID|1||MRN001\r\x1C\r";
+    const raw = "\x0BMSH|^~\\&|A|B|C|D|20260419|||MSG1|P|2.5\rPID|1||MRN001\r\x1C\r";
     const msg = parseHL7(raw);
     const out = msg.toString();
     expect(out.includes("\x0B")).toBe(false);
@@ -268,8 +241,7 @@ describe("emitMessage — D-03 idempotency (byte-identical from second pass)", (
   });
 
   it("second pass is byte-identical to first — MLLP-framed input", () => {
-    const raw =
-      "\x0BMSH|^~\\&|A|B|C|D|20260419|||MSG1|P|2.5\rPID|1||MRN001\r\x1C\r";
+    const raw = "\x0BMSH|^~\\&|A|B|C|D|20260419|||MSG1|P|2.5\rPID|1||MRN001\r\x1C\r";
     const once = parseHL7(raw).toString();
     const twice = parseHL7(once).toString();
     expect(twice).toBe(once);
@@ -278,9 +250,7 @@ describe("emitMessage — D-03 idempotency (byte-identical from second pass)", (
 
 describe("emitMessage — W3 trailing segment-level empty fields preserved", () => {
   it("trailing empty fields at segment level preserved — PID with mid/trail empties", () => {
-    const raw =
-      "MSH|^~\\&|A|B|C|D|20260419|||MSG1|P|2.5\r" +
-      "PID|1|2|3||5||\r";
+    const raw = "MSH|^~\\&|A|B|C|D|20260419|||MSG1|P|2.5\r" + "PID|1|2|3||5||\r";
     const msg = parseHL7(raw);
     const out = msg.toString();
     expect(out).toContain("PID|1|2|3||5||\r");
@@ -288,8 +258,7 @@ describe("emitMessage — W3 trailing segment-level empty fields preserved", () 
   });
 
   it("trailing empty fields preserved on MSH-3..N", () => {
-    const raw =
-      "MSH|^~\\&|A|B|C|D|20260419|||MSG1|P|2.5|||\r";
+    const raw = "MSH|^~\\&|A|B|C|D|20260419|||MSG1|P|2.5|||\r";
     const msg = parseHL7(raw);
     const out = msg.toString();
     // output's first (only) segment should end with "2.5|||" before the \r.
@@ -301,9 +270,7 @@ describe("emitMessage — W3 trailing segment-level empty fields preserved", () 
     // PID raw has 11 `|` separators → 11 HL7 field positions (PID-1..PID-11),
     // the 7th is "present", 4 trailing empties follow. Including the fields[0]
     // placeholder, rawSegments.find('PID').fields.length === 12.
-    const raw =
-      "MSH|^~\\&|A|B|C|D|20260419|||MSG1|P|2.5\r" +
-      "PID|1||||||present||||\r";
+    const raw = "MSH|^~\\&|A|B|C|D|20260419|||MSG1|P|2.5\r" + "PID|1||||||present||||\r";
     const original = parseHL7(raw);
     const roundTripped = parseHL7(original.toString());
     const pidOriginal = original.rawSegments.find((s) => s.name === "PID");

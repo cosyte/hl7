@@ -29,19 +29,7 @@ import {
 } from "../src/index.js";
 
 // Type-only imports (named)
-import type {
-  XPN,
-  XAD,
-  CX,
-  CWE,
-  CE,
-  XTN,
-  PL,
-  TS,
-  NM,
-  HD,
-  DotPath,
-} from "../src/index.js";
+import type { XPN, XAD, CX, CWE, CE, XTN, PL, TS, NM, HD, DotPath } from "../src/index.js";
 
 describe("public exports: Phase 3 surface", () => {
   it("re-exports 10 composite parsers as values", () => {

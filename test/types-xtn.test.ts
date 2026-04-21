@@ -85,8 +85,20 @@ describe("model/types/xtn: parseXtn", () => {
     // 14-element input — only first 12 should populate the interface.
     const out = parseXtn(
       rep([
-        ["555"], ["PRN"], ["PH"], [""], [""], [""], [""], [""], [""], [""], [""], [""],
-        ["extra-13"], ["extra-14"],
+        ["555"],
+        ["PRN"],
+        ["PH"],
+        [""],
+        [""],
+        [""],
+        [""],
+        [""],
+        [""],
+        [""],
+        [""],
+        [""],
+        ["extra-13"],
+        ["extra-14"],
       ]),
       enc,
     );

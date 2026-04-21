@@ -83,11 +83,7 @@ function buildCommon(obx: Segment): ObservationBase {
  *
  * @internal
  */
-function dispatchValue(
-  valueType: string,
-  valueField: Field,
-  common: ObservationBase,
-): Observation {
+function dispatchValue(valueType: string, valueField: Field, common: ObservationBase): Observation {
   switch (valueType) {
     case "NM": {
       const nm = valueField.asNm();

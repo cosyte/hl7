@@ -14,7 +14,11 @@ function rep(components: string[][]): RawRepetition {
 describe("model/types/hd: parseHd", () => {
   it("populates all 3 components", () => {
     const out = parseHd(rep([["APP"], ["1.2.3"], ["UUID"]]), enc);
-    expect(out).toStrictEqual({ namespaceId: "APP", universalId: "1.2.3", universalIdType: "UUID" });
+    expect(out).toStrictEqual({
+      namespaceId: "APP",
+      universalId: "1.2.3",
+      universalIdType: "UUID",
+    });
   });
 
   it("returns only namespaceId when single component present", () => {

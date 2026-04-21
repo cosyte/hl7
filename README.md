@@ -25,8 +25,8 @@ import { parseHL7 } from "@cosyte/hl7";
 
 const msg = parseHL7(rawHL7);
 console.log(msg.patient?.fullName); // "John Q. Doe"
-console.log(msg.patient?.mrn);      // "MRN12345"
-console.log(msg.meta.timestamp);    // Date
+console.log(msg.patient?.mrn); // "MRN12345"
+console.log(msg.meta.timestamp); // Date
 ```
 
 That's the whole pitch: no config, no schema upload, no spec lookup. The parser accepts vendor-quirky input by default, strips MLLP framing if it's there, normalises casing, and tolerates the dozen-or-so deviations real HL7 traffic routinely carries. You reach for strict mode, dot-paths, or profiles when you want them — not before.
@@ -82,12 +82,12 @@ import { parseHL7 } from "@cosyte/hl7";
 
 const msg = parseHL7(raw);
 
-console.log(msg.patient?.mrn);            // "MRN12345"
-console.log(msg.patient?.fullName);       // "Jane Q. Smith"
-console.log(msg.patient?.dateOfBirth);    // Date
-console.log(msg.meta.type);               // "ADT^A01"
-console.log(msg.meta.timestamp);          // Date (MSH-7 parsed)
-console.log(msg.visit?.location);         // PL composite — pointOfCare/room/bed
+console.log(msg.patient?.mrn); // "MRN12345"
+console.log(msg.patient?.fullName); // "Jane Q. Smith"
+console.log(msg.patient?.dateOfBirth); // Date
+console.log(msg.meta.type); // "ADT^A01"
+console.log(msg.meta.timestamp); // Date (MSH-7 parsed)
+console.log(msg.visit?.location); // PL composite — pointOfCare/room/bed
 ```
 
 Use these for the 90% case. Helpers return `undefined` (not throws) when the underlying segment is absent, so optional-chaining stays idiomatic.
@@ -101,10 +101,10 @@ import { parseHL7 } from "@cosyte/hl7";
 
 const msg = parseHL7(raw);
 
-console.log(msg.get("PID.5.1"));      // family name  -> "Smith"
-console.log(msg.get("PID.5.2"));      // given name   -> "Jane"
-console.log(msg.get("OBX[2].5"));     // 2nd OBX, value field
-console.log(msg.getAll("NK1"));       // every next-of-kin segment
+console.log(msg.get("PID.5.1")); // family name  -> "Smith"
+console.log(msg.get("PID.5.2")); // given name   -> "Jane"
+console.log(msg.get("OBX[2].5")); // 2nd OBX, value field
+console.log(msg.getAll("NK1")); // every next-of-kin segment
 ```
 
 Reach for dot-paths when you want a specific field the helpers don't surface — or when you're scripting quick extractions without introducing typed imports.
@@ -119,12 +119,12 @@ import { parseHL7 } from "@cosyte/hl7";
 const msg = parseHL7(raw);
 
 for (const obx of msg.segments("OBX")) {
-  const id = obx.field(3).component(1).value;    // observation identifier
-  const val = obx.field(5).value;                // observed value
+  const id = obx.field(3).component(1).value; // observation identifier
+  const val = obx.field(5).value; // observed value
   console.log(`${id} = ${val}`);
 }
 
-console.log(msg.allSegments().length);           // total segments in the message
+console.log(msg.allSegments().length); // total segments in the message
 ```
 
 Every level (segment / field / repetition / component / subcomponent) is addressable and immutable — mutation happens through explicit methods (see the cookbook).
@@ -145,11 +145,11 @@ import { parseHL7 } from "@cosyte/hl7";
 const msg = parseHL7(raw);
 const p = msg.patient;
 
-console.log(p?.mrn);            // "MRN12345"
-console.log(p?.fullName);       // "Jane Q. Smith"
-console.log(p?.dateOfBirth);    // Date (PID-7 parsed)
-console.log(p?.sex);             // "F"
-console.log(p?.address?.city);   // XAD composite
+console.log(p?.mrn); // "MRN12345"
+console.log(p?.fullName); // "Jane Q. Smith"
+console.log(p?.dateOfBirth); // Date (PID-7 parsed)
+console.log(p?.sex); // "F"
+console.log(p?.address?.city); // XAD composite
 ```
 
 `msg.patient` is `undefined` when the message has no `PID` segment — use `?.` consistently. The `address` field is an `XAD` composite with `streetAddress`, `city`, `state`, `zip`, `country`.
@@ -181,9 +181,9 @@ import { parseHL7 } from "@cosyte/hl7";
 const msg = parseHL7(raw);
 const loc = msg.visit?.location;
 
-console.log(loc?.pointOfCare);   // "ICU"
-console.log(loc?.room);          // "101"
-console.log(loc?.bed);            // "A"
+console.log(loc?.pointOfCare); // "ICU"
+console.log(loc?.room); // "101"
+console.log(loc?.bed); // "A"
 console.log(loc?.facility?.namespaceId); // "MAIN"
 ```
 
@@ -198,11 +198,11 @@ import { parseHL7 } from "@cosyte/hl7";
 
 const msg = parseHL7(raw);
 
-console.log(msg.get("PV1.3.1"));                  // original ward
+console.log(msg.get("PV1.3.1")); // original ward
 msg.setField("PV1.3.1", "NEW-WARD");
-console.log(msg.get("PV1.3.1"));                  // "NEW-WARD"
+console.log(msg.get("PV1.3.1")); // "NEW-WARD"
 
-const outbound = msg.toString();                   // spec-clean HL7 wire format
+const outbound = msg.toString(); // spec-clean HL7 wire format
 ```
 
 `setField` takes the same dot-path syntax as `get`; `addSegment(name, fields)` and `removeSegment(...)` round out the mutation surface. The emitter always uses canonical delimiters (`|`, `^`, `~`, `\`, `&`) regardless of what the input used.
@@ -306,20 +306,15 @@ See [`examples/profile-starter-kit/CUSTOMIZING.md`](./examples/profile-starter-k
 `setDefaultProfile` registers a profile for every subsequent `parseHL7(...)` call in the current Node process. Convenient when every message in your pipeline comes from the same sender; explicit per-call passing is usually clearer.
 
 ```ts
-import {
-  parseHL7,
-  profiles,
-  setDefaultProfile,
-  getDefaultProfile,
-} from "@cosyte/hl7";
+import { parseHL7, profiles, setDefaultProfile, getDefaultProfile } from "@cosyte/hl7";
 
 setDefaultProfile(profiles.epic);
 console.log(getDefaultProfile()?.name); // "epic"
 
-const msg = parseHL7(raw);               // uses epic implicitly
+const msg = parseHL7(raw); // uses epic implicitly
 const bare = parseHL7(raw, { profile: null }); // opt out for this call
 
-setDefaultProfile(null);                  // reset
+setDefaultProfile(null); // reset
 ```
 
 The default is scoped to the current Node process — not shared across workers, not serialisable. Opt out for a specific parse with `{ profile: null }` in the options bag.
@@ -348,9 +343,7 @@ MLLP (Minimum Lower Layer Protocol) wraps HL7 messages in VT / FS / CR bytes for
 import { parseHL7, WARNING_CODES } from "@cosyte/hl7";
 
 const msg = parseHL7(mllpFramed);
-const framed = msg.warnings.some(
-  (w) => w.code === WARNING_CODES.MLLP_FRAMING_STRIPPED,
-);
+const framed = msg.warnings.some((w) => w.code === WARNING_CODES.MLLP_FRAMING_STRIPPED);
 console.log(framed); // true if input had VT/FS/CR framing
 
 // Disable preprocessing if your input is guaranteed framing-free:
@@ -372,9 +365,9 @@ import { parseHL7 } from "@cosyte/hl7";
 
 const msg = parseHL7(raw);
 
-console.log(msg.meta.type);             // "ADT^A01"
-console.log(msg.meta.messageCode);      // "ADT"
-console.log(msg.meta.triggerEvent);     // "A01"
+console.log(msg.meta.type); // "ADT^A01"
+console.log(msg.meta.messageCode); // "ADT"
+console.log(msg.meta.triggerEvent); // "A01"
 console.log(msg.meta.messageStructure); // "ADT_A01" (if present in MSH-9.3)
 
 if (msg.meta.messageCode === "ORU") {
@@ -480,10 +473,10 @@ const p = defineProfile({
   customSegments: { ZPR: { fields: { providerId: 1 } } },
 });
 
-console.log(p.name);                 // "my-epic"
-console.log(p.lineage);              // ["epic", "my-epic"]
+console.log(p.name); // "my-epic"
+console.log(p.lineage); // ["epic", "my-epic"]
 console.log(Object.keys(p.customSegments ?? {})); // ["ZDP", "ZRS", "ZPR"]
-console.log(p.describe?.());         // multi-line summary
+console.log(p.describe?.()); // multi-line summary
 ```
 
 ### Publishing a profile
@@ -510,12 +503,12 @@ Production HL7 traffic routinely violates the published spec — trailing whites
 
 Every deviation the parser encounters is classified into one of four tiers:
 
-| Tier | Behavior          | When                                | Example codes              |
-| ---- | ----------------- | ----------------------------------- | -------------------------- |
-| 0    | Silent            | Spec-compliant input                | —                          |
-| 1    | Auto-handled      | Trivial deviation, no warning       | Trailing whitespace tidy   |
-| 2    | Warning           | Recoverable deviation               | `MLLP_FRAMING_STRIPPED`    |
-| 3    | Fatal (always)    | Unrecoverable structural error      | `NO_MSH_SEGMENT`           |
+| Tier | Behavior       | When                           | Example codes            |
+| ---- | -------------- | ------------------------------ | ------------------------ |
+| 0    | Silent         | Spec-compliant input           | —                        |
+| 1    | Auto-handled   | Trivial deviation, no warning  | Trailing whitespace tidy |
+| 2    | Warning        | Recoverable deviation          | `MLLP_FRAMING_STRIPPED`  |
+| 3    | Fatal (always) | Unrecoverable structural error | `NO_MSH_SEGMENT`         |
 
 Tier-2 warnings are plain data attached to `msg.warnings`. Every warning carries a stable string `code`, a human-readable `message`, and a `position` with 1-indexed `segmentIndex`/`fieldIndex`/etc. so you can programmatically react to specific deviations:
 
@@ -551,9 +544,9 @@ try {
   parseHL7("");
 } catch (err) {
   if (err instanceof Hl7ParseError) {
-    console.log(err.code);     // "EMPTY_INPUT"
+    console.log(err.code); // "EMPTY_INPUT"
     console.log(err.position); // { segmentIndex: 0 }
-    console.log(err.snippet);  // "" (first 40 chars of input, for logging)
+    console.log(err.snippet); // "" (first 40 chars of input, for logging)
   }
 }
 
@@ -575,9 +568,12 @@ import type { Hl7ParseWarning, WarningCode } from "@cosyte/hl7";
 function label(w: Hl7ParseWarning): string {
   const c: WarningCode = w.code;
   switch (c) {
-    case "MLLP_FRAMING_STRIPPED": return "framed input";
-    case "UNKNOWN_SEGMENT":        return `unknown: ${w.message}`;
-    default:                       return c;
+    case "MLLP_FRAMING_STRIPPED":
+      return "framed input";
+    case "UNKNOWN_SEGMENT":
+      return `unknown: ${w.message}`;
+    default:
+      return c;
   }
 }
 ```
@@ -601,7 +597,7 @@ try {
 } catch (err) {
   if (err instanceof ProfileDefinitionError) {
     console.log(err.profileName); // "broken"
-    console.log(err.message);     // actionable diagnostic
+    console.log(err.message); // actionable diagnostic
   }
 }
 ```
@@ -651,4 +647,4 @@ MIT — see [LICENSE](./LICENSE).
 
 ---
 
-*Built by [Cosyte](https://cosyte.com).*
+_Built by [Cosyte](https://cosyte.com)._

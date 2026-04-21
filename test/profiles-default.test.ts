@@ -2,13 +2,9 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { parseHL7 } from "../src/index.js";
 import { defineProfile } from "../src/profiles/define.js";
-import {
-  getDefaultProfile,
-  setDefaultProfile,
-} from "../src/profiles/default.js";
+import { getDefaultProfile, setDefaultProfile } from "../src/profiles/default.js";
 
-const BASE_MSH =
-  "MSH|^~\\&|APP|FAC|APP|FAC|20250101120000||ADT^A01|MSG001|P|2.5\rPID|||MRN\r";
+const BASE_MSH = "MSH|^~\\&|APP|FAC|APP|FAC|20250101120000||ADT^A01|MSG001|P|2.5\rPID|||MRN\r";
 
 // CRITICAL: every test file that touches the default profile MUST clean up.
 afterEach(() => {
@@ -95,8 +91,7 @@ describe("D-20 effects equivalence: default profile === explicit profile", () =>
 
   it("dateFormats land equivalently via default vs explicit", () => {
     const p = defineProfile({ name: "test", dateFormats: ["MM/DD/YYYY"] });
-    const raw =
-      "MSH|^~\\&|APP|FAC|APP|FAC|01/15/2025||ADT^A01|MSG001|P|2.5\rPID\r";
+    const raw = "MSH|^~\\&|APP|FAC|APP|FAC|01/15/2025||ADT^A01|MSG001|P|2.5\rPID\r";
 
     setDefaultProfile(p);
     const viaDefault = parseHL7(raw);

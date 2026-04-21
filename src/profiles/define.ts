@@ -18,11 +18,7 @@
  * point. Single source of truth; no circular type imports.
  */
 
-import type {
-  CustomSegmentDefinition,
-  OnWarningCallback,
-  Profile,
-} from "../parser/types.js";
+import type { CustomSegmentDefinition, OnWarningCallback, Profile } from "../parser/types.js";
 
 import { buildDescribe } from "./describe.js";
 import {
@@ -133,10 +129,7 @@ export function defineProfile(opts: DefineProfileOptions): Profile {
   const dateFormats = mergeDateFormats(parents, selfDateFormats);
   const customSegments = mergeCustomSegments(parents, selfCustomSegments);
   const description = mergeScalar(parents, opts.description, "description");
-  const onWarning = composeOnWarning([
-    ...parents.map((p) => p.onWarning),
-    opts.onWarning,
-  ]);
+  const onWarning = composeOnWarning([...parents.map((p) => p.onWarning), opts.onWarning]);
 
   // Post-merge re-validation. `validateCustomSegments` catches the D-05
   // rogue-parent scenario (a hand-crafted Profile bypassing

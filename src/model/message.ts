@@ -143,7 +143,9 @@ export class Hl7Message {
   public readonly encodingCharacters: EncodingCharacters;
   public readonly version: string;
   public readonly warnings: readonly Hl7ParseWarning[];
-  public readonly profile: { readonly name: string; readonly lineage: readonly string[] } | undefined;
+  public readonly profile:
+    | { readonly name: string; readonly lineage: readonly string[] }
+    | undefined;
 
   /**
    * Merged `dateFormats` list — `options.dateFormats ++ profile.dateFormats`
@@ -589,8 +591,7 @@ export class Hl7Message {
 
     // MSH offset: HL7 MSH-3 lives at fields[2], MSH-12 at fields[11]. Non-MSH
     // segments keep straight 1-indexed access (fields[0] = name placeholder).
-    const rawFieldIndex =
-      parsed.segmentType === "MSH" ? parsed.fieldIndex - 1 : parsed.fieldIndex;
+    const rawFieldIndex = parsed.segmentType === "MSH" ? parsed.fieldIndex - 1 : parsed.fieldIndex;
 
     // Rebuild the affected path from leaf to root, keeping every Raw* shape
     // structurally immutable. The only readonly bypass is reassigning the
@@ -750,10 +751,8 @@ export class Hl7Message {
       );
     }
 
-    const all =
-      typeof occurrenceOrOptions === "object" && occurrenceOrOptions.all === true;
-    const targetOccurrence =
-      typeof occurrenceOrOptions === "number" ? occurrenceOrOptions : 0;
+    const all = typeof occurrenceOrOptions === "object" && occurrenceOrOptions.all === true;
+    const targetOccurrence = typeof occurrenceOrOptions === "number" ? occurrenceOrOptions : 0;
 
     const mut = toMutableArray(this.rawSegments);
     if (all) {

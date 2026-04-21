@@ -12,11 +12,7 @@
  */
 
 import { unescape } from "../../parser/escapes.js";
-import type {
-  EncodingCharacters,
-  Hl7Position,
-  RawRepetition,
-} from "../../parser/types.js";
+import type { EncodingCharacters, Hl7Position, RawRepetition } from "../../parser/types.js";
 
 /** @internal No-op emitter — composite parsers are silent (D-09). */
 const NOOP_EMITTER = (): void => {};

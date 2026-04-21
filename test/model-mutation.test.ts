@@ -98,13 +98,10 @@ describe("model/message: addSegment", () => {
     expect(() => msg.addSegment("Z1A", [])).not.toThrow();
   });
 
-  it.each(["lowercase", "AB", "ABCD", "123", ""])(
-    "rejects invalid segment name %s",
-    (bad) => {
-      const msg = parseHL7(FIXTURE);
-      expect(() => msg.addSegment(bad, [])).toThrow(TypeError);
-    },
-  );
+  it.each(["lowercase", "AB", "ABCD", "123", ""])("rejects invalid segment name %s", (bad) => {
+    const msg = parseHL7(FIXTURE);
+    expect(() => msg.addSegment(bad, [])).toThrow(TypeError);
+  });
 
   it("appends at the end (preserves document order)", () => {
     const msg = parseHL7(FIXTURE);

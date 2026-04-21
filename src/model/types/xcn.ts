@@ -12,11 +12,7 @@
  * Parser is silent (D-09 composite-parser silence).
  */
 
-import type {
-  EncodingCharacters,
-  RawComponent,
-  RawRepetition,
-} from "../../parser/types.js";
+import type { EncodingCharacters, RawComponent, RawRepetition } from "../../parser/types.js";
 
 import { readComponent } from "./_shared.js";
 import { parseHd, type HD } from "./hd.js";

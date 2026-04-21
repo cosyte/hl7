@@ -170,9 +170,9 @@ describe("emitSegment — MSH guard (D-06)", () => {
   const placeholder: RawField = { repetitions: [], isNull: false };
 
   it("throws an Error on MSH input", () => {
-    expect(() =>
-      emitSegment({ name: "MSH", fields: [placeholder] }, ENC),
-    ).toThrow(/MSH must be routed/);
+    expect(() => emitSegment({ name: "MSH", fields: [placeholder] }, ENC)).toThrow(
+      /MSH must be routed/,
+    );
     let caught: unknown;
     try {
       emitSegment({ name: "MSH", fields: [placeholder] }, ENC);
@@ -185,11 +185,7 @@ describe("emitSegment — MSH guard (D-06)", () => {
   it("guard fires before any field processing even when fields are populated", () => {
     const seg: RawSegment = {
       name: "MSH",
-      fields: [
-        placeholder,
-        field([rep(sub("^~\\&"))]),
-        field([rep(sub("SENDAPP"))]),
-      ],
+      fields: [placeholder, field([rep(sub("^~\\&"))]), field([rep(sub("SENDAPP"))])],
     };
     expect(() => emitSegment(seg, ENC)).toThrow(/MSH/);
   });

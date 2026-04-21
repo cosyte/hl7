@@ -151,8 +151,7 @@ describe("model/field: .asXxx() composite coercions", () => {
   it("coercions use the FIRST repetition only (rep[1] does not leak)", () => {
     // PID-5 with two repetitions: first is Smith^Jane, second is Jones^Bob.
     const msg = parseHL7(
-      "MSH|^~\\&|A|F|A|F|20250101||ADT^A01|1|P|2.5\r" +
-        "PID|||1||Smith^Jane~Jones^Bob",
+      "MSH|^~\\&|A|F|A|F|20250101||ADT^A01|1|P|2.5\r" + "PID|||1||Smith^Jane~Jones^Bob",
     );
     const xpn = msg.segments("PID")[0]?.field(5).asXpn();
     expect(xpn?.familyName).toBe("Smith");

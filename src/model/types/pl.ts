@@ -16,11 +16,7 @@
  * Zero runtime deps — pure function over the raw positional tree + `unescape`.
  */
 
-import type {
-  EncodingCharacters,
-  RawComponent,
-  RawRepetition,
-} from "../../parser/types.js";
+import type { EncodingCharacters, RawComponent, RawRepetition } from "../../parser/types.js";
 
 import { readComponent } from "./_shared.js";
 import { parseHd, type HD } from "./hd.js";
@@ -86,10 +82,7 @@ export interface PL {
  *
  * @internal
  */
-function parseFacility(
-  comp: RawComponent | undefined,
-  enc: EncodingCharacters,
-): HD | undefined {
+function parseFacility(comp: RawComponent | undefined, enc: EncodingCharacters): HD | undefined {
   if (comp === undefined) return undefined;
   if (comp.subcomponents.every((s) => s === "")) return undefined;
   const synthetic: RawRepetition = {

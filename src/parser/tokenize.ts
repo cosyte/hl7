@@ -228,9 +228,7 @@ function tokenizeRepetition(
   for (let cIdx = 0; cIdx < comps.length; cIdx++) {
     const c = comps[cIdx];
     if (c === undefined) continue;
-    components.push(
-      tokenizeComponent(c, enc, emit, { ...position, componentIndex: cIdx + 1 }),
-    );
+    components.push(tokenizeComponent(c, enc, emit, { ...position, componentIndex: cIdx + 1 }));
   }
   return { components };
 }

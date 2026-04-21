@@ -136,16 +136,8 @@ export type { SerializedMessage } from "./serialize/to-json.js";
 // values; built-ins are exposed under the `profiles` namespace object, not
 // as top-level named exports (`epic` is too generic a name for a top-level
 // export).
-export {
-  defineProfile,
-  setDefaultProfile,
-  getDefaultProfile,
-  profiles,
-} from "./profiles/index.js";
-export type {
-  DefineProfileOptions,
-  CustomSegmentDefinition,
-} from "./profiles/index.js";
+export { defineProfile, setDefaultProfile, getDefaultProfile, profiles } from "./profiles/index.js";
+export type { DefineProfileOptions, CustomSegmentDefinition } from "./profiles/index.js";
 
 // Plan 01 additive: SUPPORTED_DATE_TOKENS re-export so profile authors can
 // introspect valid date-format tokens without reaching into internals.

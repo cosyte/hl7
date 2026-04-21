@@ -25,12 +25,7 @@
  */
 
 import { reescape } from "../parser/escapes.js";
-import type {
-  EncodingCharacters,
-  RawField,
-  RawRepetition,
-  RawSegment,
-} from "../parser/types.js";
+import type { EncodingCharacters, RawField, RawRepetition, RawSegment } from "../parser/types.js";
 
 /**
  * Emit a single HL7 field as its spec-clean string fragment. Joins

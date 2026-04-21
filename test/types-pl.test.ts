@@ -18,10 +18,7 @@ describe("model/types/pl: parsePl", () => {
   });
 
   it("parses nested HD in component 4 (facility)", () => {
-    const out = parsePl(
-      rep([[""], [""], [""], ["APP", "1.2.3", "UUID"]]),
-      enc,
-    );
+    const out = parsePl(rep([[""], [""], [""], ["APP", "1.2.3", "UUID"]]), enc);
     expect(out.facility).toStrictEqual({
       namespaceId: "APP",
       universalId: "1.2.3",

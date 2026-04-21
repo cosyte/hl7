@@ -30,8 +30,7 @@ export function buildDescribe(p: Profile): string {
   if (p.customSegments !== undefined) {
     const keys = Object.keys(p.customSegments);
     lines.push(
-      `  customSegments: ${String(keys.length)}` +
-        (keys.length > 0 ? ` (${keys.join(", ")})` : ""),
+      `  customSegments: ${String(keys.length)}` + (keys.length > 0 ? ` (${keys.join(", ")})` : ""),
     );
   }
   if (p.dateFormats !== undefined && p.dateFormats.length > 0) {

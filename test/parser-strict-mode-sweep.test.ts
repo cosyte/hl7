@@ -33,11 +33,7 @@ import type { ParseOptions } from "../src/parser/types.js";
 
 import { fileToCode } from "./_helpers/fixture-code.js";
 
-const VQ_DIR = path.join(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "fixtures",
-  "vendor-quirks",
-);
+const VQ_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "fixtures", "vendor-quirks");
 
 const fixtures = readdirSync(VQ_DIR)
   .filter((f) => f.endsWith(".hl7"))

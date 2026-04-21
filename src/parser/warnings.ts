@@ -140,10 +140,7 @@ export function fieldWhitespaceTrimmed(
  * const w = unknownEscapeSequence({ segmentIndex: 2, fieldIndex: 3 }, "Z99");
  * ```
  */
-export function unknownEscapeSequence(
-  position: Hl7Position,
-  sequence: string,
-): Hl7ParseWarning {
+export function unknownEscapeSequence(position: Hl7Position, sequence: string): Hl7ParseWarning {
   return {
     code: WARNING_CODES.UNKNOWN_ESCAPE_SEQUENCE,
     message: `Unknown HL7 escape sequence \\${sequence}\\ preserved verbatim.`,
@@ -230,10 +227,7 @@ export function extraFields(
  * const w = unknownSegment({ segmentIndex: 7 }, "ZZZ");
  * ```
  */
-export function unknownSegment(
-  position: Hl7Position,
-  segmentName: string,
-): Hl7ParseWarning {
+export function unknownSegment(position: Hl7Position, segmentName: string): Hl7ParseWarning {
   return {
     code: WARNING_CODES.UNKNOWN_SEGMENT,
     message: `Unknown segment "${segmentName}" — not in HL7 spec and no profile claim.`,
@@ -276,10 +270,7 @@ export function duplicateRequiredSegment(
  * const w = encodingMismatch({ segmentIndex: 0 }, "MSH-2 declares ^~\\& but segment used !@#$");
  * ```
  */
-export function encodingMismatch(
-  position: Hl7Position,
-  detail: string,
-): Hl7ParseWarning {
+export function encodingMismatch(position: Hl7Position, detail: string): Hl7ParseWarning {
   return {
     code: WARNING_CODES.ENCODING_MISMATCH,
     message: `Encoding mismatch: ${detail}`,
@@ -321,10 +312,7 @@ export function missingRequiredField(
  * const w = outOfOrderSegment({ segmentIndex: 2 }, "EVN");
  * ```
  */
-export function outOfOrderSegment(
-  position: Hl7Position,
-  segmentName: string,
-): Hl7ParseWarning {
+export function outOfOrderSegment(position: Hl7Position, segmentName: string): Hl7ParseWarning {
   return {
     code: WARNING_CODES.OUT_OF_ORDER_SEGMENT,
     message: `Segment "${segmentName}" appears out of the order declared by the active profile.`,
@@ -366,10 +354,7 @@ export function versionMismatch(
  * const w = unknownCharset({ segmentIndex: 0, fieldIndex: 18 }, "ISO IR 999");
  * ```
  */
-export function unknownCharset(
-  position: Hl7Position,
-  requested: string,
-): Hl7ParseWarning {
+export function unknownCharset(position: Hl7Position, requested: string): Hl7ParseWarning {
   return {
     code: WARNING_CODES.UNKNOWN_CHARSET,
     message: `Unknown character set "${requested}"; falling back to UTF-8.`,

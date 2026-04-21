@@ -21,24 +21,19 @@ import { parseHL7, type SerializedMessage } from "../src/index.js";
 const CLEAN_FIXTURE =
   "MSH|^~\\&|SENDAPP|SENDFAC|RECVAPP|RECVFAC|20260419101500||ADT^A01|MSG001|P|2.5\r" +
   "EVN|A01|20260419101500\r" +
-  'PID|1||MRN001^^^HOSP^MR||Doe^John^A||19800101|M|||123 Main St^^Springfield^IL^62704\r' +
+  "PID|1||MRN001^^^HOSP^MR||Doe^John^A||19800101|M|||123 Main St^^Springfield^IL^62704\r" +
   "PV1|1|I|ICU^101^A||||ATT001^Smith^Jane\r";
 
 // Fixture with explicit HL7 null (`""`) on PID-2.
-const NULL_FIELD_FIXTURE =
-  "MSH|^~\\&|A|B|C|D|20260419|||ADT^A01|M1|P|2.5\r" +
-  'PID|1|""|MRN001\r';
+const NULL_FIELD_FIXTURE = "MSH|^~\\&|A|B|C|D|20260419|||ADT^A01|M1|P|2.5\r" + 'PID|1|""|MRN001\r';
 
 // Fixture with an absent (empty) field: `||` around position PID-2.
-const ABSENT_FIELD_FIXTURE =
-  "MSH|^~\\&|A|B|C|D|20260419|||ADT^A01|M1|P|2.5\r" +
-  "PID|1||MRN001\r";
+const ABSENT_FIELD_FIXTURE = "MSH|^~\\&|A|B|C|D|20260419|||ADT^A01|M1|P|2.5\r" + "PID|1||MRN001\r";
 
 // Fixture with embedded delimiters in subcomponent — raw tree holds DECODED
 // strings per the shared Phase 2 invariant (Plan 02).
 const ESCAPED_FIXTURE =
-  "MSH|^~\\&|A|B|C|D|20260419|||ADT^A01|M1|P|2.5\r" +
-  "PID|1||MRN001||Smith\\F\\Jones^John\r";
+  "MSH|^~\\&|A|B|C|D|20260419|||ADT^A01|M1|P|2.5\r" + "PID|1||MRN001||Smith\\F\\Jones^John\r";
 
 // MLLP-framed fixture — Phase 2 emits MLLP_FRAMING_STRIPPED warning by default.
 const MLLP_FRAMED = `\u000BMSH|^~\\&|A|B|C|D|20260419|||ADT^A01|M1|P|2.5\rPID|1||MRN001\r\u001C\u000D`;

@@ -94,12 +94,7 @@ export class Hl7ParseError extends Error {
    *
    * @internal
    */
-  public constructor(
-    code: FatalCode,
-    message: string,
-    position: Hl7Position,
-    snippet: string,
-  ) {
+  public constructor(code: FatalCode, message: string, position: Hl7Position, snippet: string) {
     super(message);
     this.name = "Hl7ParseError";
     this.code = code;

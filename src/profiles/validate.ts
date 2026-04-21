@@ -71,13 +71,7 @@ function levenshtein(a: string, b: string): number {
     const curr: number[] = [i];
     for (let j = 1; j <= b.length; j++) {
       const cost = a.charCodeAt(i - 1) === b.charCodeAt(j - 1) ? 0 : 1;
-      curr.push(
-        Math.min(
-          (prev[j] ?? 0) + 1,
-          (curr[j - 1] ?? 0) + 1,
-          (prev[j - 1] ?? 0) + cost,
-        ),
-      );
+      curr.push(Math.min((prev[j] ?? 0) + 1, (curr[j - 1] ?? 0) + 1, (prev[j - 1] ?? 0) + cost));
     }
     prev = curr;
   }
@@ -95,8 +89,7 @@ function levenshtein(a: string, b: string): number {
 export function validateProfileName(opts: DefineProfileOptions): void {
   if (opts === null || opts === undefined) {
     throw new ProfileDefinitionError(
-      "defineProfile: options is required and must be an object. " +
-        `Received: ${String(opts)}.`,
+      "defineProfile: options is required and must be an object. " + `Received: ${String(opts)}.`,
     );
   }
   if (typeof opts.name !== "string") {
@@ -195,10 +188,7 @@ export function validateCustomSegments(
  *
  * @internal
  */
-export function validateDateFormats(
-  formats: readonly string[],
-  profileName: string,
-): void {
+export function validateDateFormats(formats: readonly string[], profileName: string): void {
   for (let i = 0; i < formats.length; i++) {
     const f = formats[i] ?? "";
     if (!TOKEN_MATCH_RE.test(f)) {

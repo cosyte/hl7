@@ -90,10 +90,7 @@ export interface ParseHl7TimestampOptions {
  * console.log(b?.toISOString()); // "2025-01-02T00:00:00.000Z"
  * ```
  */
-export function parseHl7Timestamp(
-  raw: string,
-  opts: ParseHl7TimestampOptions,
-): Date | undefined {
+export function parseHl7Timestamp(raw: string, opts: ParseHl7TimestampOptions): Date | undefined {
   if (raw.length === 0) return undefined;
 
   // 1. HL7 TS/DTM — never warns (this is the spec-preferred format)
@@ -166,15 +163,7 @@ function parseHl7TsDtm(raw: string): Date | undefined {
     milliseconds = parseInt(padded, 10);
   }
 
-  if (
-    month < 0 ||
-    month > 11 ||
-    day < 1 ||
-    day > 31 ||
-    hour > 23 ||
-    minute > 59 ||
-    second > 59
-  ) {
+  if (month < 0 || month > 11 || day < 1 || day > 31 || hour > 23 || minute > 59 || second > 59) {
     return undefined;
   }
 
@@ -312,15 +301,7 @@ function matchTokenFormat(input: string, format: string): Date | undefined {
   const hour = got.HH ?? 0;
   const minute = got.mm ?? 0;
   const second = got.ss ?? 0;
-  if (
-    month < 0 ||
-    month > 11 ||
-    day < 1 ||
-    day > 31 ||
-    hour > 23 ||
-    minute > 59 ||
-    second > 59
-  ) {
+  if (month < 0 || month > 11 || day < 1 || day > 31 || hour > 23 || minute > 59 || second > 59) {
     return undefined;
   }
 

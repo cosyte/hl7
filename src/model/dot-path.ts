@@ -18,11 +18,7 @@
  */
 
 import { unescape } from "../parser/escapes.js";
-import type {
-  EncodingCharacters,
-  Hl7Position,
-  RawSegment,
-} from "../parser/types.js";
+import type { EncodingCharacters, Hl7Position, RawSegment } from "../parser/types.js";
 import type { Hl7ParseWarning } from "../parser/warnings.js";
 
 /**
@@ -228,8 +224,7 @@ export function resolvePath(
   // segments use a straight 1:1 mapping (PID.5 → fields[5]) because
   // `fields[0]` is the segment-name placeholder (D-02, D-05 in
   // 03-CONTEXT.md; verified by test/parser-tokenize.test.ts:29-36).
-  const rawFieldIndex =
-    parsed.segmentType === "MSH" ? parsed.fieldIndex - 1 : parsed.fieldIndex;
+  const rawFieldIndex = parsed.segmentType === "MSH" ? parsed.fieldIndex - 1 : parsed.fieldIndex;
   const field = seg.fields[rawFieldIndex];
   if (field === undefined) return undefined;
 

@@ -16,11 +16,7 @@
  * @internal
  */
 
-import type {
-  CustomSegmentDefinition,
-  OnWarningCallback,
-  Profile,
-} from "../parser/types.js";
+import type { CustomSegmentDefinition, OnWarningCallback, Profile } from "../parser/types.js";
 
 /**
  * Normalise the `extends` input to a readonly array. Accepts either a
@@ -44,10 +40,7 @@ export function normaliseParents(
  *
  * @internal
  */
-export function mergeLineage(
-  parents: readonly Profile[],
-  selfName: string,
-): readonly string[] {
+export function mergeLineage(parents: readonly Profile[], selfName: string): readonly string[] {
   const seen = new Set<string>();
   const out: string[] = [];
   for (const p of parents) {
@@ -115,9 +108,7 @@ export function mergeCustomSegments(
   // position collisions; parent position entries at non-colliding
   // positions survive.
   const acc = new Map<string, Map<number, string>>();
-  const layer = (
-    map: Readonly<Record<string, CustomSegmentDefinition>> | undefined,
-  ): void => {
+  const layer = (map: Readonly<Record<string, CustomSegmentDefinition>> | undefined): void => {
     if (map === undefined) return;
     for (const segName of Object.keys(map)) {
       const entry = map[segName];
@@ -187,9 +178,7 @@ export function mergeScalar<K extends keyof Profile>(
 export function composeOnWarning(
   handlers: readonly (OnWarningCallback | undefined)[],
 ): OnWarningCallback | undefined {
-  const concrete = handlers.filter(
-    (h): h is OnWarningCallback => h !== undefined,
-  );
+  const concrete = handlers.filter((h): h is OnWarningCallback => h !== undefined);
   if (concrete.length === 0) return undefined;
   return (w) => {
     for (const h of concrete) {

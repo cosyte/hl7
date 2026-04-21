@@ -67,11 +67,7 @@ export function normalize(input: string): string {
  * );
  * ```
  */
-export function normalizeBuffer(
-  input: Buffer,
-  charset: string | undefined,
-  emit: EmitFn,
-): string {
+export function normalizeBuffer(input: Buffer, charset: string | undefined, emit: EmitFn): string {
   const requested = charset ?? "utf-8";
   let decoder: InstanceType<typeof TextDecoder>;
   try {

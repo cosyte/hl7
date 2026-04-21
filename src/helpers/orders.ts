@@ -99,9 +99,9 @@ function finalizeOrder(
  */
 export function orders(msg: Hl7Message): readonly Order[] {
   const out: Order[] = [];
-  let pendingOrc: Segment | undefined;  // accumulates ORCs since last OBR
+  let pendingOrc: Segment | undefined; // accumulates ORCs since last OBR
   let currentObr: Segment | undefined;
-  let currentOrc: Segment | undefined;  // ORC attached to the open OBR group
+  let currentOrc: Segment | undefined; // ORC attached to the open OBR group
   let currentObservations: Observation[] = [];
 
   for (const seg of msg.allSegments()) {

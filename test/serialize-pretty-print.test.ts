@@ -41,14 +41,12 @@ const CANONICAL_ADT =
   "OBX|1|NM|GLUC^Glucose^LN||95|mg/dL^^UCUM\r";
 
 // MSH-only - D-26 edge case (emits header + 1 segment line).
-const MSH_ONLY =
-  "MSH|^~\\&|EPIC|MAIN|LIS|REF|20260419101500||ADT^A01|MSG00001|P|2.5\r";
+const MSH_ONLY = "MSH|^~\\&|EPIC|MAIN|LIS|REF|20260419101500||ADT^A01|MSG00001|P|2.5\r";
 
 // MSH with minimal MSH-9 (empty message-type) so meta.type is undefined for
 // the "header renders missing type as '-'" test. MSH-10 and MSH-7 are also
 // absent so we exercise all three `-` fallbacks on one message.
-const MSH_MINIMAL =
-  "MSH|^~\\&|A|B|C|D||||\r";
+const MSH_MINIMAL = "MSH|^~\\&|A|B|C|D||||\r";
 
 // Helper - construct an Hl7Message directly (no parse) when we need to
 // inject synthetic shapes (e.g. explicit null fields) that are easier to
@@ -87,10 +85,7 @@ function makeMshSegment(): RawSegment {
       {
         repetitions: [
           {
-            components: [
-              { subcomponents: ["ADT"] },
-              { subcomponents: ["A01"] },
-            ],
+            components: [{ subcomponents: ["ADT"] }, { subcomponents: ["A01"] }],
           },
         ],
         isNull: false,
@@ -159,9 +154,7 @@ describe("emitPrettyPrint - Block 1: D-25 header", () => {
   it("header uses exactly two spaces between each labeled field", () => {
     const out = parseHL7(CANONICAL_ADT).prettyPrint();
     const [firstLine] = out.split("\n");
-    expect(firstLine).toMatch(
-      /^HL7 .+  controlId=.+  timestamp=.+  \(\d+ segments\)$/u,
-    );
+    expect(firstLine).toMatch(/^HL7 .+  controlId=.+  timestamp=.+  \(\d+ segments\)$/u);
   });
 });
 
@@ -200,8 +193,7 @@ describe("emitPrettyPrint - Block 2: D-23 segment lines", () => {
 
   it("segment with no content fields is just the name (no trailing spaces)", () => {
     // Parse an MSH + NTE where the NTE has only a name-placeholder field.
-    const raw =
-      "MSH|^~\\&|A|B|C|D|20260419|||ADT^A01|M1|P|2.5\r" + "NTE\r";
+    const raw = "MSH|^~\\&|A|B|C|D|20260419|||ADT^A01|M1|P|2.5\r" + "NTE\r";
     const out = parseHL7(raw).prettyPrint();
     const nteLine = out.split("\n").find((l) => l.startsWith("NTE"));
     expect(nteLine).toBe("NTE");
@@ -209,9 +201,7 @@ describe("emitPrettyPrint - Block 2: D-23 segment lines", () => {
 
   it("empty fields are suppressed (no `[N]=` entries)", () => {
     // PID|1|||||Doe^John  - PID-1 + PID-6 present; PID-2..5 empty.
-    const raw =
-      "MSH|^~\\&|A|B|C|D|20260419|||ADT^A01|M1|P|2.5\r" +
-      "PID|1|||||Doe^John\r";
+    const raw = "MSH|^~\\&|A|B|C|D|20260419|||ADT^A01|M1|P|2.5\r" + "PID|1|||||Doe^John\r";
     const out = parseHL7(raw).prettyPrint();
     const pidLine = out.split("\n").find((l) => l.startsWith("PID"));
     expect(pidLine).toBe("PID  [1]=1  [6]=Doe^John");
@@ -247,9 +237,7 @@ describe("emitPrettyPrint - Block 2: D-23 segment lines", () => {
 
   it("field numbers are HL7 1-indexed for non-MSH segments", () => {
     // PID|1||MRN...  - PID-3 = MRN field, at HL7 index 3 (not 2).
-    const raw =
-      "MSH|^~\\&|A|B|C|D|20260419|||ADT^A01|M1|P|2.5\r" +
-      "PID|1||MRN001^^^HOSP^MR\r";
+    const raw = "MSH|^~\\&|A|B|C|D|20260419|||ADT^A01|M1|P|2.5\r" + "PID|1||MRN001^^^HOSP^MR\r";
     const out = parseHL7(raw).prettyPrint();
     const pidLine = out.split("\n").find((l) => l.startsWith("PID"));
     expect(pidLine).toContain("[3]=MRN001^^^HOSP^MR");
@@ -273,8 +261,7 @@ describe("emitPrettyPrint - Block 3: D-24 depth stops at field level", () => {
     // "MRN^^^HOSP&1.2.3&ISO^MR" - the `HOSP&1.2.3&ISO` subcomponent chain
     // must appear verbatim in the label.
     const raw =
-      "MSH|^~\\&|A|B|C|D|20260419|||ADT^A01|M1|P|2.5\r" +
-      "PID|1||MRN001^^^HOSP&1.2.3&ISO^MR\r";
+      "MSH|^~\\&|A|B|C|D|20260419|||ADT^A01|M1|P|2.5\r" + "PID|1||MRN001^^^HOSP&1.2.3&ISO^MR\r";
     const out = parseHL7(raw).prettyPrint();
     const pidLine = out.split("\n").find((l) => l.startsWith("PID"));
     expect(pidLine).toContain("[3]=MRN001^^^HOSP&1.2.3&ISO^MR");
@@ -289,8 +276,7 @@ describe("emitPrettyPrint - Block 4: W2 raw-escape rendering via emitField", () 
     // Phase 2 tokenize decodes `\F\` -> `|` in the raw tree; emitField
     // re-escapes back to `\F\` on emit.
     const raw =
-      "MSH|^~\\&|A|B|C|D|20260419|||ADT^A01|M1|P|2.5\r" +
-      "PID|1||MRN001||Smith\\F\\Jones^John\r";
+      "MSH|^~\\&|A|B|C|D|20260419|||ADT^A01|M1|P|2.5\r" + "PID|1||MRN001||Smith\\F\\Jones^John\r";
     const out = parseHL7(raw).prettyPrint();
     const pidLine = out.split("\n").find((l) => l.startsWith("PID"));
     expect(pidLine).toBeDefined();

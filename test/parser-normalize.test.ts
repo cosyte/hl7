@@ -38,9 +38,7 @@ describe("parser/normalize: Buffer path", () => {
 
   it("decodes a UTF-8 Buffer without a declared charset and emits no warnings", () => {
     const warnings: Hl7ParseWarning[] = [];
-    const out = normalizeBuffer(Buffer.from(validRaw, "utf-8"), undefined, (w) =>
-      warnings.push(w),
-    );
+    const out = normalizeBuffer(Buffer.from(validRaw, "utf-8"), undefined, (w) => warnings.push(w));
     expect(out).toBe(validRaw);
     expect(warnings).toHaveLength(0);
   });

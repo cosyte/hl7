@@ -213,9 +213,9 @@ describe("extends: post-merge re-validation (D-05 rogue-parent)", () => {
       lineage: ["rogue"],
       customSegments: { PID: { fields: { mrn: 3 } } },
     } as unknown as Profile;
-    expect(() =>
-      defineProfile({ name: "child", extends: rogueParent }),
-    ).toThrow(ProfileDefinitionError);
+    expect(() => defineProfile({ name: "child", extends: rogueParent })).toThrow(
+      ProfileDefinitionError,
+    );
   });
 
   // Note: the D-06 duplicate-name-different-position validator is

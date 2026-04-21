@@ -4,12 +4,7 @@ import { dirname, join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import {
-  parseHL7,
-  profiles,
-  WARNING_CODES,
-  defineProfile,
-} from "../src/index.js";
+import { parseHL7, profiles, WARNING_CODES, defineProfile } from "../src/index.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const loadFixture = (relPath: string): string =>
@@ -64,9 +59,7 @@ describe("profiles.epic — BIP-01 + BIP-06 fixture parity", () => {
 
   it("with profiles.epic: UNKNOWN_SEGMENT absent for declared ZDP/ZRS", () => {
     const withP = parseHL7(fixture, profiles.epic);
-    const zSegWarnings = withP.warnings.filter(
-      (w) => w.code === WARNING_CODES.UNKNOWN_SEGMENT,
-    );
+    const zSegWarnings = withP.warnings.filter((w) => w.code === WARNING_CODES.UNKNOWN_SEGMENT);
     expect(zSegWarnings).toHaveLength(0);
   });
 

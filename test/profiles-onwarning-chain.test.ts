@@ -27,8 +27,7 @@ import { defineProfile } from "../src/profiles/define.js";
 // can observe). ZZZ is neither in KNOWN_SEGMENTS nor claimed by a test
 // profile (which declares nothing in customSegments) so UNKNOWN_SEGMENT
 // fires once per parse.
-const WARN_MSH =
-  "MSH|^~\\&|APP|FAC|APP|FAC|20250101120000||ADT^A01|MSG001|P|2.5\rZZZ|foo\r";
+const WARN_MSH = "MSH|^~\\&|APP|FAC|APP|FAC|20250101120000||ADT^A01|MSG001|P|2.5\rZZZ|foo\r";
 
 describe("D-22: profile.onWarning fires BEFORE options.onWarning", () => {
   it("both handlers fire in profile-first order on a single emitted warning", () => {
@@ -42,17 +41,13 @@ describe("D-22: profile.onWarning fires BEFORE options.onWarning", () => {
       onWarning: (w) => callLog.push({ who: "options", code: w.code }),
     });
     // For each UNKNOWN_SEGMENT emission, profile must appear before options.
-    const unknown = callLog.filter(
-      (e) => e.code === WARNING_CODES.UNKNOWN_SEGMENT,
-    );
+    const unknown = callLog.filter((e) => e.code === WARNING_CODES.UNKNOWN_SEGMENT);
     expect(unknown.length).toBeGreaterThanOrEqual(2); // at least one per handler
     const profileIdx = callLog.findIndex(
-      (e) =>
-        e.who === "profile" && e.code === WARNING_CODES.UNKNOWN_SEGMENT,
+      (e) => e.who === "profile" && e.code === WARNING_CODES.UNKNOWN_SEGMENT,
     );
     const optionsIdx = callLog.findIndex(
-      (e) =>
-        e.who === "options" && e.code === WARNING_CODES.UNKNOWN_SEGMENT,
+      (e) => e.who === "options" && e.code === WARNING_CODES.UNKNOWN_SEGMENT,
     );
     expect(profileIdx).toBeLessThan(optionsIdx);
   });
@@ -148,8 +143,7 @@ describe("D-22: profile.onWarning fires BEFORE options.onWarning", () => {
 
   it("multiple warnings: per-warning ordering invariant holds", () => {
     // Two ZZZ segments → two UNKNOWN_SEGMENT emissions.
-    const raw =
-      "MSH|^~\\&|APP|FAC|APP|FAC|20250101120000||ADT^A01|MSG001|P|2.5\rZZZ|a\rZZZ|b\r";
+    const raw = "MSH|^~\\&|APP|FAC|APP|FAC|20250101120000||ADT^A01|MSG001|P|2.5\rZZZ|a\rZZZ|b\r";
     const sequence: string[] = [];
     const profile = defineProfile({
       name: "test",
@@ -181,10 +175,7 @@ describe("D-22: profile.onWarning fires BEFORE options.onWarning", () => {
     const FS = "\x1C";
     const CR = "\r";
     const framed =
-      VT +
-      "MSH|^~\\&|APP|FAC|APP|FAC|20250101120000||ADT^A01|MSG001|P|2.5\rPID|||MRN\r" +
-      FS +
-      CR;
+      VT + "MSH|^~\\&|APP|FAC|APP|FAC|20250101120000||ADT^A01|MSG001|P|2.5\rPID|||MRN\r" + FS + CR;
     const profileCodes: string[] = [];
     const optionsCodes: string[] = [];
     const profile = defineProfile({

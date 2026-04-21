@@ -75,17 +75,14 @@ const OPTIONS_ONLY_KEYS: readonly (keyof ParseOptions)[] = [
  *
  * @internal
  */
-function discriminateOptionsOrProfile(
-  arg: ParseOptions | Profile | undefined,
-): ParseOptions {
+function discriminateOptionsOrProfile(arg: ParseOptions | Profile | undefined): ParseOptions {
   if (arg === undefined) return {};
   // A Profile is REQUIRED to have `name: string` (parser/types.ts locked
   // interface). Any arg without a string `name` is therefore unambiguously
   // ParseOptions — including bare option bags like `{ onWarning }` or
   // `{ dateFormats }` whose keys overlap with Profile but whose shape
   // lacks the required `name` witness.
-  const hasStringName =
-    typeof (arg as { name?: unknown }).name === "string";
+  const hasStringName = typeof (arg as { name?: unknown }).name === "string";
   if (!hasStringName) {
     return arg as ParseOptions;
   }
@@ -363,12 +360,7 @@ export function parseHL7(
 
   // Step 2: EMPTY_INPUT fatal check at the top of the pipeline (D-03).
   if (text.length === 0) {
-    throw new Hl7ParseError(
-      FATAL_CODES.EMPTY_INPUT,
-      "Input is empty.",
-      { segmentIndex: 0 },
-      "",
-    );
+    throw new Hl7ParseError(FATAL_CODES.EMPTY_INPUT, "Input is empty.", { segmentIndex: 0 }, "");
   }
 
   // Step 3: Strip UTF-8 BOM silently (Tier-1; no warning).

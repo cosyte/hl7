@@ -47,17 +47,7 @@ describe("model/types/xcn: parseXcn", () => {
 
   it("parses assigningAuthority nested HD when component 9 has populated subcomponents", () => {
     const out = parseXcn(
-      rep([
-        ["12345"],
-        ["Smith"],
-        [""],
-        [""],
-        [""],
-        [""],
-        [""],
-        [""],
-        ["HOSP", "1.2.3", "ISO"],
-      ]),
+      rep([["12345"], ["Smith"], [""], [""], [""], [""], [""], [""], ["HOSP", "1.2.3", "ISO"]]),
       enc,
     );
     expect(out.assigningAuthority).toStrictEqual({
@@ -69,17 +59,7 @@ describe("model/types/xcn: parseXcn", () => {
 
   it("omits assigningAuthority when all HD subcomponents are empty strings", () => {
     const out = parseXcn(
-      rep([
-        ["12345"],
-        ["Smith"],
-        [""],
-        [""],
-        [""],
-        [""],
-        [""],
-        [""],
-        ["", "", ""],
-      ]),
+      rep([["12345"], ["Smith"], [""], [""], [""], [""], [""], [""], ["", "", ""]]),
       enc,
     );
     expect("assigningAuthority" in out).toBe(false);

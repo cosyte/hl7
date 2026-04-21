@@ -140,15 +140,13 @@ describe("parseHL7: Tier-2 warnings (lenient mode) + onWarning callback", () => 
   });
 
   it("emits FIELD_WHITESPACE_TRIMMED when trimFields is true (default)", () => {
-    const withSpaces =
-      "MSH|^~\\&|APP|FAC|APP|FAC|20250101||ADT^A01|1|P|2.5\rPID|  hi  |";
+    const withSpaces = "MSH|^~\\&|APP|FAC|APP|FAC|20250101||ADT^A01|1|P|2.5\rPID|  hi  |";
     const msg = parseHL7(withSpaces);
     expect(msg.warnings.some((w) => w.code === WARNING_CODES.FIELD_WHITESPACE_TRIMMED)).toBe(true);
   });
 
   it("suppresses FIELD_WHITESPACE_TRIMMED when trimFields is explicitly false", () => {
-    const withSpaces =
-      "MSH|^~\\&|APP|FAC|APP|FAC|20250101||ADT^A01|1|P|2.5\rPID|  hi  |";
+    const withSpaces = "MSH|^~\\&|APP|FAC|APP|FAC|20250101||ADT^A01|1|P|2.5\rPID|  hi  |";
     const msg = parseHL7(withSpaces, { trimFields: false } satisfies ParseOptions);
     expect(msg.warnings.some((w) => w.code === WARNING_CODES.FIELD_WHITESPACE_TRIMMED)).toBe(false);
   });
@@ -237,9 +235,7 @@ describe("parseHL7: argument discrimination (D-06)", () => {
 
 describe("parseHL7: PARSE-01 end-to-end — well-formed v2.x messages parse correctly", () => {
   it("parses v2.3 message", () => {
-    const msg = parseHL7(
-      "MSH|^~\\&|APP|FAC|APP|FAC|20250101||ADT^A01|1|P|2.3\rPID|||123",
-    );
+    const msg = parseHL7("MSH|^~\\&|APP|FAC|APP|FAC|20250101||ADT^A01|1|P|2.3\rPID|||123");
     expect(msg.version).toBe("2.3");
   });
 
@@ -290,7 +286,14 @@ describe("PARSE-09 — MSH-18 charset wiring", () => {
   const LATIN1_U_UMLAUT = "\u00DC";
 
   /** Walk the 1-indexed positional tree to pull PID-5's first subcomponent. */
-  const readPid5 = (msg: { rawSegments: readonly { name: string; fields: readonly { repetitions: readonly { components: readonly { subcomponents: readonly string[] }[] }[] }[] }[] }): string => {
+  const readPid5 = (msg: {
+    rawSegments: readonly {
+      name: string;
+      fields: readonly {
+        repetitions: readonly { components: readonly { subcomponents: readonly string[] }[] }[];
+      }[];
+    }[];
+  }): string => {
     const pid = msg.rawSegments[1];
     expect(pid?.name).toBe("PID");
     const field = pid?.fields[5];

@@ -17,11 +17,7 @@
  * Zero runtime deps — pure function over the raw positional tree + `unescape`.
  */
 
-import type {
-  EncodingCharacters,
-  RawComponent,
-  RawRepetition,
-} from "../../parser/types.js";
+import type { EncodingCharacters, RawComponent, RawRepetition } from "../../parser/types.js";
 
 import { readComponent } from "./_shared.js";
 import { parseHd, type HD } from "./hd.js";

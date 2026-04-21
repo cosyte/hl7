@@ -10,7 +10,8 @@ const MSH = "MSH|^~\\&|APP|FAC|||20250102||ORM^O01|1|P|2.5\r";
 const PID = "PID|||X\r";
 
 const TWO_ORDERS =
-  MSH + PID +
+  MSH +
+  PID +
   "ORC|NW\r" +
   "OBR|1|PLACER1|FILLER1|GLU^Glucose^LN||||||||||||XCN1^Doe^John\r" +
   "OBX|1|NM|GLU^Glucose^LN||120|mg/dL\r" +
@@ -67,10 +68,7 @@ describe("helpers/orders: msg.orders() — HELPERS-05", () => {
 
   it("OBX before any OBR is NOT attached to an order (D-12)", () => {
     const fx =
-      MSH + PID +
-      "OBX|1|NM|EARLY^Early^X||42\r" +
-      "OBR|1|P|F|SVC\r" +
-      "OBX|1|NM|IN^InOrder^X||7";
+      MSH + PID + "OBX|1|NM|EARLY^Early^X||42\r" + "OBR|1|P|F|SVC\r" + "OBX|1|NM|IN^InOrder^X||7";
     const msg = parseHL7(fx);
     const orders = msg.orders();
     expect(orders).toHaveLength(1);
@@ -90,7 +88,7 @@ describe("helpers/orders: msg.orders() — HELPERS-05", () => {
   it("trailing ORC without OBR is dropped", () => {
     const fx = MSH + PID + "OBR|1|P|F|SVC\r" + "OBX|1|NM|X||1\r" + "ORC|CA";
     const orders = parseHL7(fx).orders();
-    expect(orders).toHaveLength(1);  // No phantom order from trailing ORC.
+    expect(orders).toHaveLength(1); // No phantom order from trailing ORC.
     expect("orderControl" in (orders[0] ?? {})).toBe(false);
   });
 

@@ -86,7 +86,8 @@ export function parseXtn(rep: RawRepetition, enc: EncodingCharacters): XTN {
   if (telephoneNumber !== undefined) out.telephoneNumber = telephoneNumber;
 
   const telecommunicationUseCode = readComponent(rep, 1, enc);
-  if (telecommunicationUseCode !== undefined) out.telecommunicationUseCode = telecommunicationUseCode;
+  if (telecommunicationUseCode !== undefined)
+    out.telecommunicationUseCode = telecommunicationUseCode;
 
   const telecommunicationEquipmentType = readComponent(rep, 2, enc);
   if (telecommunicationEquipmentType !== undefined) {

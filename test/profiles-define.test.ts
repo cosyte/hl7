@@ -202,15 +202,13 @@ describe("defineProfile: D-08 date format validation", () => {
     // string contains "MM" as a literal substring and legitimately matches
     // the month token. Use a string with zero recognised tokens to exercise
     // the D-08 throw path (Rule-1 fix — plan test example was contradictory).
-    expect(() =>
-      defineProfile({ name: "bad", dateFormats: ["nope"] }),
-    ).toThrow(ProfileDefinitionError);
+    expect(() => defineProfile({ name: "bad", dateFormats: ["nope"] })).toThrow(
+      ProfileDefinitionError,
+    );
   });
 
   it("throws on empty format string", () => {
-    expect(() => defineProfile({ name: "bad", dateFormats: [""] })).toThrow(
-      ProfileDefinitionError,
-    );
+    expect(() => defineProfile({ name: "bad", dateFormats: [""] })).toThrow(ProfileDefinitionError);
   });
 
   it("accepts format containing only YYYY", () => {
@@ -241,9 +239,9 @@ describe("defineProfile: D-08 date format validation", () => {
 
 describe("defineProfile: name validation", () => {
   it("throws on missing name", () => {
-    expect(() =>
-      defineProfile({} as unknown as DefineProfileOptions),
-    ).toThrow(ProfileDefinitionError);
+    expect(() => defineProfile({} as unknown as DefineProfileOptions)).toThrow(
+      ProfileDefinitionError,
+    );
   });
 
   it("throws on empty name", () => {
@@ -251,27 +249,25 @@ describe("defineProfile: name validation", () => {
   });
 
   it("throws on whitespace-only name", () => {
-    expect(() => defineProfile({ name: "   " })).toThrow(
+    expect(() => defineProfile({ name: "   " })).toThrow(ProfileDefinitionError);
+  });
+
+  it("throws on null opts", () => {
+    expect(() => defineProfile(null as unknown as DefineProfileOptions)).toThrow(
       ProfileDefinitionError,
     );
   });
 
-  it("throws on null opts", () => {
-    expect(() =>
-      defineProfile(null as unknown as DefineProfileOptions),
-    ).toThrow(ProfileDefinitionError);
-  });
-
   it("throws on undefined opts", () => {
-    expect(() =>
-      defineProfile(undefined as unknown as DefineProfileOptions),
-    ).toThrow(ProfileDefinitionError);
+    expect(() => defineProfile(undefined as unknown as DefineProfileOptions)).toThrow(
+      ProfileDefinitionError,
+    );
   });
 
   it("throws on non-string name (null)", () => {
-    expect(() =>
-      defineProfile({ name: null as unknown as string }),
-    ).toThrow(ProfileDefinitionError);
+    expect(() => defineProfile({ name: null as unknown as string })).toThrow(
+      ProfileDefinitionError,
+    );
   });
 });
 

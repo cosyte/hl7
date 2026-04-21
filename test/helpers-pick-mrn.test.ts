@@ -10,9 +10,7 @@ describe("helpers/pick-mrn: pickMrn", () => {
   });
 
   it("returns the single MR-typed CX's idNumber", () => {
-    const identifiers: readonly CX[] = [
-      { idNumber: "MRN001", identifierTypeCode: "MR" },
-    ];
+    const identifiers: readonly CX[] = [{ idNumber: "MRN001", identifierTypeCode: "MR" }];
     expect(pickMrn(identifiers)).toBe("MRN001");
   });
 
@@ -33,9 +31,7 @@ describe("helpers/pick-mrn: pickMrn", () => {
   });
 
   it("is case-sensitive on 'MR' — lowercase 'mr' falls through to first idNumber (D-10)", () => {
-    const identifiers: readonly CX[] = [
-      { idNumber: "mrn001", identifierTypeCode: "mr" },
-    ];
+    const identifiers: readonly CX[] = [{ idNumber: "mrn001", identifierTypeCode: "mr" }];
     // lowercase 'mr' does NOT match; fallback is the first CX's idNumber.
     expect(pickMrn(identifiers)).toBe("mrn001");
   });
@@ -47,10 +43,7 @@ describe("helpers/pick-mrn: pickMrn", () => {
   });
 
   it("returns the first CX's idNumber when a second MR-typed entry lacks idNumber (defensive)", () => {
-    const identifiers: readonly CX[] = [
-      { idNumber: "X1" },
-      { identifierTypeCode: "MR" },
-    ];
+    const identifiers: readonly CX[] = [{ idNumber: "X1" }, { identifierTypeCode: "MR" }];
     // The MR-typed entry has no idNumber; MR loop skips, fallback to first.
     expect(pickMrn(identifiers)).toBe("X1");
   });
@@ -59,11 +52,7 @@ describe("helpers/pick-mrn: pickMrn", () => {
     expect(() => pickMrn([])).not.toThrow();
     expect(() => pickMrn([{}])).not.toThrow();
     expect(() => pickMrn([{ idNumber: "X" }])).not.toThrow();
-    expect(() =>
-      pickMrn([{ idNumber: "X", identifierTypeCode: "MR" }]),
-    ).not.toThrow();
-    expect(() =>
-      pickMrn([{ identifierTypeCode: "MR" }, { idNumber: "Y" }]),
-    ).not.toThrow();
+    expect(() => pickMrn([{ idNumber: "X", identifierTypeCode: "MR" }])).not.toThrow();
+    expect(() => pickMrn([{ identifierTypeCode: "MR" }, { idNumber: "Y" }])).not.toThrow();
   });
 });

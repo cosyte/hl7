@@ -80,7 +80,8 @@ describe("helpers/collections: insurance (HELPERS-06, IN1 + IN2/IN3 flags)", () 
     // IN1 fields: 1 setId, 2 planId CWE, 3 companyId CX, 4 companyName (flatten),
     // 8 groupNumber, 12 effective, 13 expiration, 16 insuredName XPN, 36 policyNumber.
     const fx =
-      MSH + PID +
+      MSH +
+      PID +
       "IN1|1|PLAN^CompanyPlan^X|CO123^^^HOSP|BlueCross||||GRP001" +
       "||||20250101|20261231|||VIC^Insured" +
       "||||||||||||||||||||POLICY123";
@@ -107,10 +108,7 @@ describe("helpers/collections: insurance (HELPERS-06, IN1 + IN2/IN3 flags)", () 
   });
 
   it("second IN1 gets its own hasIn2/hasIn3 independently", () => {
-    const fx =
-      MSH + PID +
-      "IN1|1|PLAN1\rIN2|1|SSN\r" +
-      "IN1|2|PLAN2";
+    const fx = MSH + PID + "IN1|1|PLAN1\rIN2|1|SSN\r" + "IN1|2|PLAN2";
     const ins = parseHL7(fx).insurance();
     expect(ins).toHaveLength(2);
     expect(ins[0]?.hasIn2).toBe(true);
@@ -126,7 +124,9 @@ describe("helpers/collections: universal HELPERS-07 never-throws sweep", () => {
   it("msg.meta never throws on minimal MSH", () => {
     expect(() => {
       const m = parseHL7(EMPTY_MSH_ONLY).meta;
-      void m.type; void m.timestamp; void m.sendingApp;
+      void m.type;
+      void m.timestamp;
+      void m.sendingApp;
     }).not.toThrow();
   });
 
@@ -138,7 +138,9 @@ describe("helpers/collections: universal HELPERS-07 never-throws sweep", () => {
   });
 
   it("msg.visit returns undefined on no PV1 without throwing", () => {
-    expect(() => { void parseHL7(EMPTY_MSH_ONLY).visit; }).not.toThrow();
+    expect(() => {
+      void parseHL7(EMPTY_MSH_ONLY).visit;
+    }).not.toThrow();
   });
 
   it("all 6 collection helpers return [] on empty input without throwing", () => {
@@ -155,14 +157,28 @@ describe("helpers/collections: universal HELPERS-07 never-throws sweep", () => {
 
   it("malformed segments do not crash any helper", () => {
     const fx =
-      MSH + "PID\r" + "PV1\r" + "NK1\r" + "AL1\r" + "DG1\r" + "IN1\r" + "IN2\r" +
-      "OBR\r" + "OBX\r" + "ORC";
+      MSH +
+      "PID\r" +
+      "PV1\r" +
+      "NK1\r" +
+      "AL1\r" +
+      "DG1\r" +
+      "IN1\r" +
+      "IN2\r" +
+      "OBR\r" +
+      "OBX\r" +
+      "ORC";
     expect(() => {
       const msg = parseHL7(fx);
-      void msg.meta; void msg.patient; void msg.visit;
-      void msg.observations(); void msg.orders();
-      void msg.nextOfKin(); void msg.allergies();
-      void msg.diagnoses(); void msg.insurance();
+      void msg.meta;
+      void msg.patient;
+      void msg.visit;
+      void msg.observations();
+      void msg.orders();
+      void msg.nextOfKin();
+      void msg.allergies();
+      void msg.diagnoses();
+      void msg.insurance();
     }).not.toThrow();
   });
 });
