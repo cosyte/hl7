@@ -269,7 +269,7 @@ Within each phase, plans that touch disjoint modules may run in parallel; plans 
 | 7. Testing Hardening & Fixtures | 7/7 | Complete (evidence-only) | 2026-04-19 |
 | 8. Examples, Starter Kit & Documentation | 5/5 | Complete (evidence-only) | 2026-04-20 |
 | 9. Rename Package to @cosyte/hl7 | 4/4 | Complete (evidence-only) | 2026-04-20 |
-| 10. Planning-Doc Resync | 2/4 | In Progress (gap closure) | — |
+| 10. Planning-Doc Resync | 3/4 | In Progress (gap closure) | — |
 | 11. Retroactive Verification | 0/3 | Planned (gap closure) | — |
 | 12. Retroactive Nyquist Validation | 0/6 | Planned (gap closure) | — |
 
@@ -277,4 +277,4 @@ Within each phase, plans that touch disjoint modules may run in parallel; plans 
 
 ---
 
-*Last updated: 2026-04-20 (Phase 10 gap-closure Plan 10-02 — ROADMAP resynced to v2.1 ground-truth: Phases 1/2/7/8/9 checkboxes flipped to `[x]` with completion dates; Phase 3 marker normalized to italicized `*(completed 2026-04-18, verified 2026-04-18)*`; Progress table rewritten with all 12 rows preserved + rollup-split caption separating v1-milestone 9/9 from v2.1 gap-closure Phases 10-12, matching STATE.md's `total_phases: 9` scope choice in Plan 10-03.)*
+*Last updated: 2026-04-21 (Phase 10 gap-closure Plan 10-03 — STATE.md + PROJECT.md resynced to v2.1 post-rename complete; Progress table Phase 10 row advanced to 3/4.)*
