@@ -164,7 +164,7 @@ None. All Phase 2 truths are verified programmatically through unit tests, type 
 **Zero gaps open.**
 
 - **PARSE-09 CLOSED** by Plan 07 (`02-PLAN-07-gap-closure-charset.md`). `parseHL7(Buffer, ...)` now wires MSH-18 auto-discovery AND a `ParseOptions.charset` override into the Buffer decode path via a two-pass decode. Precedence: `override > MSH-18 > UTF-8 default`, with `ENCODING_MISMATCH` emitted only when override AND declared disagree after alias normalization via the shared `mapHl7Charset`. 9 new end-to-end tests pass (132/132 suite total); all four pipeline gates green. Closure commits: `32d7ebe` (RED) → `04a180b` (GREEN), TDD order verified.
-- **TOL-08 DEFERRED** via override (unchanged from previous verification) — see frontmatter `deferred:` block and Resolution Note §TOL-08 below. Observable slice lands in Phase 3 (TYPES-04 TS/DTM typed composite) and Phase 4 (HELPERS-01 `msg.meta.timestamp`).
+- **TOL-08 CLOSED** — deferral satisfied 2026-04-19 by Phase 3 TYPES-04 (TS/DTM composite at `src/model/types/ts.ts`; wired via `Field.asTs()`) + Phase 4 HELPERS-01 (`msg.meta.timestamp` at `src/helpers/meta.ts::buildMeta`). Phase 2 frontmatter `deferred:` block retired 2026-04-20 via Plan 10-04 and replaced with structured `retired_overrides:` audit record; see Resolution Note §TOL-08 below for full closure narrative.
 
 ---
 
@@ -197,20 +197,21 @@ None. All Phase 2 truths are verified programmatically through unit tests, type 
 
 ## Verdict
 
-**Phase 2 status: verified — 19/19 must-haves closed (PARSE-09 gap closed by Plan 07; TOL-08 deferred via override).**
+**Phase 2 status: verified — 19/19 must-haves closed. 0 deferrals open; 0 gaps open.**
 
-- **4/5 success criteria VERIFIED end-to-end; SC-5 DEFERRED at observable slice** (plumbing complete, observable slice owned by Phase 3/4).
-- **19/19 REQ-IDs closed:** 18 fully end-to-end verified (PARSE-01..09, TOL-01..07, TOL-09, TOL-10); 1 plumbing-complete with observable slice deferred via override (TOL-08).
-- **All four pipeline gates pass cleanly**: typecheck=0, lint=0 warnings, **132/132 tests** (+9 PARSE-09 cases vs previous 123), build success (ESM 23.25 KB, CJS 23.90 KB, DTS 34.21 KB).
-- **No regressions:** every previously-passing test still green; pre-existing artefact sizes grew within expected O(10%) for ~60 lines of new source.
+- **5/5 success criteria VERIFIED end-to-end.** TOL-08 observable Date slice satisfied by Phase 3 TYPES-04 + Phase 4 HELPERS-01; plumbing-complete in Phase 2 Plan 02-05 as originally scoped (CONTEXT.md line 22).
+- **19/19 REQ-IDs closed end-to-end:** PARSE-01..09 (PARSE-09 via Plan 02-07 gap-closure), TOL-01..10 (TOL-08 observable slice closed by Phase 3/4 consumers; Plan 10-04 retired the deferral record 2026-04-20).
+- **All four pipeline gates pass cleanly**: typecheck=0, lint=0 warnings, **132/132 tests** (+9 PARSE-09 cases vs previous 123), build success (ESM 23.25 KB, CJS 23.90 KB, DTS 34.21 KB) at time of last verification. Current v2.1-milestone tally: 824 tests + 14 it.todo (per 09-04-SUMMARY).
+- **No regressions:** every previously-passing test still green; pre-existing artefact sizes grew within expected O(10%) for ~60 lines of new source at Plan 02-07 closure.
 - **Code quality remains high**: strict TS, no `any`, JSDoc + `@example` on every public export, no `console.*`, no TODOs, single-responsibility modules. The two new helpers (`extractMsh18FromTentativeDecode`, `resolveBufferCharset`) are `@internal`-tagged and carry comprehensive JSDoc including their Postel's-Law-motivated defensiveness and the four-branch precedence rule.
-- **Zero integration gaps open.** Residual observable-slice work is explicitly carried forward to Phase 3 (TYPES-04) and Phase 4 (HELPERS-01) via the deferred override's traceability table.
+- **Zero open items.** The TOL-08 deferral — the last outstanding Phase 2 carry-forward — was retired 2026-04-20 by Plan 10-04 with explicit Phase 3/4 closure evidence.
 
-Ready for Phase 2 → Phase 3 transition (`/gsd-transition`).
+Ready for v2.1 milestone close after Phases 10 (this phase) + 11 + 12 complete the retroactive paper-trail sweeps.
 
 ---
 
 *Verified initially: 2026-04-18T20:14:00Z*
 *Override recorded: 2026-04-18T20:45:00Z (TOL-08 deferred to Phase 3/4)*
 *Re-verified after Plan 07 gap closure: 2026-04-18T21:00:00Z (PARSE-09 promoted PARTIAL → VERIFIED)*
-*Verifier: Claude (gsd-verifier) — Override author: Claude (gsd-planner)*
+*Override retired: 2026-04-20T21:00:00Z (TOL-08 deferral satisfied by Phase 3 TYPES-04 + Phase 4 HELPERS-01; Phase 10 Plan 10-04 rewrote frontmatter + Resolution Note §TOL-08 + updated all per-table status cells)*
+*Verifier: Claude (gsd-verifier) — Override author: Claude (gsd-planner) — Retirement author: Claude (gsd-planner, Phase 10 gap closure)*
