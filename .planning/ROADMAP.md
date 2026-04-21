@@ -20,6 +20,9 @@ North star: **A developer can parse a real-world, vendor-quirky HL7 v2 message a
 - [x] **Phase 7: Testing Hardening & Fixtures** — Canonical, edge-case, vendor-quirk, strict-mode, and profile-authoring test suites that verify ≥ 90% coverage on core modules. *(completed 2026-04-19)*
 - [ ] **Phase 8: Examples, Starter Kit & Documentation** — Three runnable examples, publishable profile starter kit, and the complete README + ancillary docs.
 - [ ] **Phase 9: Rename Package to @cosyte/hl7** — Rename the package from `@cosyte/hl7-parser` to `@cosyte/hl7` (full HL7 toolkit — parser, builder, mutator, serializer, helpers — not just a parser).
+- [ ] **Phase 10: Planning-Doc Resync** — Close v2.1 audit tech debt: flip 35 stale REQUIREMENTS.md checkboxes, refresh ROADMAP Progress table + Phase 1/2/7/8/9 checkboxes, refresh STATE.md current-position, flip PROJECT.md capabilities checklist, retire Phase 2 VERIFICATION.md TOL-08 deferred block.
+- [ ] **Phase 11: Retroactive Verification** — Produce the three missing VERIFICATION.md artifacts (Phases 01, 08, 09) by running `/gsd-verify-work` against each, ratifying the evidence already on disk.
+- [ ] **Phase 12: Retroactive Nyquist Validation** — Produce the six missing VALIDATION.md artifacts (Phases 01, 02, 03, 07, 08, 09) by running `/gsd-validate-phase` against each.
 
 ---
 
@@ -178,6 +181,49 @@ Plans:
 **Goal**: Rename the published package from `@cosyte/hl7-parser` to `@cosyte/hl7` so the name reflects the actual surface area — a full HL7 v2 toolkit (parser, builder, mutator, serializer, and helpers), not just a parser. Every reference in source, configs, docs, examples, starter kit, and CI/publish workflows points at the new name; the first published tag under the new name installs and round-trips cleanly.
 **Depends on**: Phase 8
 **Requirements**: (none — rename-only phase; no new functional REQ-IDs)
+
+### Phase 10: Planning-Doc Resync
+**Goal**: Bring the v2.1 paper trail into sync with the code ground-truth so an outside reader of `.planning/` sees an accurate picture of what shipped. No functional requirements; closes audit tech-debt items 3–6 and 8.
+**Depends on**: Phase 9
+**Requirements**: (none — doc-trail only; no new functional REQ-IDs)
+**Gap Closure**: Closes v2.1-MILESTONE-AUDIT tech_debt:
+  - REQUIREMENTS.md traceability stale (17 PARSE/TOL + 18 EX/DOC checkboxes)
+  - ROADMAP.md Phase 1/2/7/8/9 checkboxes + Progress table stale
+  - STATE.md current-position stale (reflects Phase 7 pending)
+  - PROJECT.md top-level capabilities checklist stale (all 11 `[ ]`)
+  - Phase 2 VERIFICATION.md TOL-08 deferred block never retired
+**Success Criteria** (what must be TRUE):
+  1. A developer reading REQUIREMENTS.md sees every REQ-ID with `[x]` (or clear deferred marker) matching the v2.1 ground-truth — coverage count accurate, traceability table Status column reflects Closed for all 97 IDs.
+  2. A developer reading ROADMAP.md sees Phases 1/2/7/8/9 checked and the Progress table showing 9/9 complete with completion dates.
+  3. A developer opening STATE.md sees current position reflecting v2.1 post-rename state, not mid-Phase-7.
+  4. A developer opening PROJECT.md sees the capabilities checklist matching what actually ships (all v1 capabilities `[x]`).
+  5. A developer reading Phase 2's VERIFICATION.md sees the TOL-08 deferred block retired with a pointer to its Phase 3/4 closure.
+**Plans**: ~4 plans anticipated (REQUIREMENTS resync / ROADMAP + STATE / PROJECT / Phase-2 VERIFICATION patch)
+**UI hint**: no
+
+### Phase 11: Retroactive Verification
+**Goal**: Produce the three missing VERIFICATION.md artifacts (Phases 01, 08, 09) by running the standard verifier against each phase. Evidence already exists on disk (SUMMARYs + green pipeline + tarball dry-run); this phase ratifies it in the expected verifier-report shape.
+**Depends on**: Phase 10
+**Requirements**: (none — process/paper-trail only)
+**Gap Closure**: Closes v2.1-MILESTONE-AUDIT tech_debt item 1 (missing VERIFICATION.md for Phases 01, 08, 09).
+**Success Criteria** (what must be TRUE):
+  1. A developer opens `.planning/phases/01-project-foundation/VERIFICATION.md` and sees a PASS verdict against Phase 1's 4 success criteria.
+  2. A developer opens `.planning/phases/08-examples-starter-kit-and-documentation/VERIFICATION.md` and sees a PASS verdict against Phase 8's 5 success criteria.
+  3. A developer opens `.planning/phases/09-rename-package-to-cosyte-hl7/VERIFICATION.md` and sees a PASS verdict against Phase 9's 5 success criteria — grep sweep, pipeline, round-trip, docs consistency, publish.yml all attested.
+**Plans**: 3 plans (one per phase — run `/gsd-verify-work N`)
+**UI hint**: no
+
+### Phase 12: Retroactive Nyquist Validation
+**Goal**: Produce the six missing VALIDATION.md artifacts (Phases 01, 02, 03, 07, 08, 09) by running Nyquist validation against each phase. The `pnpm test:coverage` gate in CI (≥90% branches on parser/model/helpers/serialize/builder) is a stronger runtime invariant, but this phase supplies the per-phase formal audit the GSD workflow expects.
+**Depends on**: Phase 11
+**Requirements**: (none — process/paper-trail only)
+**Gap Closure**: Closes v2.1-MILESTONE-AUDIT tech_debt item 2 (missing VALIDATION.md for Phases 01, 02, 03, 07, 08, 09).
+**Success Criteria** (what must be TRUE):
+  1. A developer opens `.planning/phases/NN/VALIDATION.md` for each of Phases 01, 02, 03, 07, 08, 09 and sees a Nyquist compliance report with per-REQ-ID test-coverage classification.
+  2. A developer reading the Phase 7 and Phase 8 VALIDATION.md files sees thin-by-design noted where applicable (meta-phase and docs-phase coverage surface is small).
+  3. A developer re-running the milestone audit sees Nyquist coverage flip from `partial (3/9)` to `compliant (9/9)`.
+**Plans**: 6 plans (one per phase — run `/gsd-validate-phase N`)
+**UI hint**: no
 **Success Criteria** (what must be TRUE):
   1. A developer searching the repo for `@cosyte/hl7-parser` finds zero occurrences outside of CHANGELOG rename-history entries.
   2. A developer running `pnpm install && pnpm build && pnpm test && pnpm examples` against the renamed repo sees every command exit 0 with zero warnings.
@@ -223,6 +269,9 @@ Within each phase, plans that touch disjoint modules may run in parallel; plans 
 | 7. Testing Hardening & Fixtures | 5/7 | In Progress (Wave 2 complete — TEST-02 + TEST-03 + TEST-04 + TEST-05 + TEST-06 closed) | — |
 | 8. Examples, Starter Kit & Documentation | 0/0 | Not started | — |
 | 9. Rename Package to @cosyte/hl7 | 0/4 | Planned | — |
+| 10. Planning-Doc Resync | 0/0 | Planned (gap closure) | — |
+| 11. Retroactive Verification | 0/0 | Planned (gap closure) | — |
+| 12. Retroactive Nyquist Validation | 0/0 | Planned (gap closure) | — |
 
 ---
 
