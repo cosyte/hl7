@@ -202,11 +202,9 @@ describe("emitSegment / emitField — purity", () => {
     const rf: RawField = Object.freeze({
       repetitions: Object.freeze([
         Object.freeze({
-          components: Object.freeze([
-            Object.freeze({ subcomponents: Object.freeze(["A", "B"]) as readonly string[] }),
-          ]) as readonly { subcomponents: readonly string[] }[],
+          components: Object.freeze([Object.freeze({ subcomponents: Object.freeze(["A", "B"]) })]),
         }),
-      ]) as readonly RawRepetition[],
+      ]),
       isNull: false,
     });
     const snapshot = JSON.stringify(rf);

@@ -138,7 +138,7 @@ export function mergeCustomSegments(
     }
     out[segName] = Object.freeze({
       fields: Object.freeze(fields),
-    }) as CustomSegmentDefinition;
+    });
   }
   return Object.freeze(out);
 }

@@ -1,6 +1,6 @@
 {
   "name": "@cosyte/hl7",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "description": "Developer-focused HL7 v2 toolkit for Node.js and TypeScript — parser, builder, mutator, serializer, and one-line helpers.",
   "keywords": [
     "hl7",
@@ -25,9 +25,9 @@
   "author": "Cosyte <hello@cosyte.com> (https://cosyte.com)",
   "type": "module",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=22.0.0"
   },
-  "packageManager": "pnpm@9.0.0",
+  "packageManager": "pnpm@10.0.0",
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
@@ -50,8 +50,10 @@
     "access": "public",
     "provenance": true
   },
+  "prettier": "@cosyte/prettier-config",
   "scripts": {
     "build": "tsup",
+    "changeset": "changeset",
     "typecheck": "tsc --noEmit",
     "lint": "eslint \"src/**/*.ts\" \"test/**/*.ts\" --max-warnings=0",
     "lint:fix": "eslint \"src/**/*.ts\" \"test/**/*.ts\" --fix",
@@ -62,16 +64,18 @@
     "test:coverage": "vitest run --coverage",
     "clean": "rm -rf dist coverage",
     "examples": "tsx scripts/run-examples.ts",
+    "pack:docs": "bash scripts/build-docs-artifacts.sh",
+    "release": "changeset publish",
     "prepublishOnly": "pnpm clean && pnpm typecheck && pnpm lint && pnpm test && pnpm build"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.27.0",
+    "@cosyte/eslint-config": "^0.0.2",
+    "@cosyte/prettier-config": "^0.0.1",
+    "@cosyte/tsconfig": "^0.0.1",
     "@types/node": "^20.11.0",
-    "@typescript-eslint/eslint-plugin": "^7.0.0",
-    "@typescript-eslint/parser": "^7.0.0",
     "@vitest/coverage-v8": "^1.2.0",
-    "eslint": "^8.57.0",
-    "eslint-config-prettier": "^9.1.0",
-    "eslint-plugin-jsdoc": "^48.0.0",
+    "eslint": "^9.0.0",
     "prettier": "^3.2.0",
     "tsup": "^8.0.0",
     "tsx": "^4.0.0",

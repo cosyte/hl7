@@ -61,7 +61,7 @@ export function allergies(msg: Hl7Message): readonly Allergy[] {
     const onset = al1.field(6).asTs();
     if (onset.date !== undefined) entry.onsetDate = onset.date;
 
-    out.push(Object.freeze(entry) as Allergy);
+    out.push(Object.freeze(entry));
   }
-  return Object.freeze(out) as readonly Allergy[];
+  return Object.freeze(out);
 }

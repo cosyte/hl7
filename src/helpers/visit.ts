@@ -92,5 +92,5 @@ export function buildVisit(msg: Hl7Message): Visit | undefined {
   const discharge = pv1.field(45).asTs();
   if (discharge.date !== undefined) out.dischargeDateTime = discharge.date;
 
-  return Object.freeze(out) as Visit;
+  return Object.freeze(out);
 }

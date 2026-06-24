@@ -112,13 +112,7 @@ export function orders(msg: Hl7Message): readonly Order[] {
     if (seg.type === "OBR") {
       // Close previous group using THAT group's attached ORC.
       if (currentObr !== undefined) {
-        out.push(
-          finalizeOrder(
-            currentObr,
-            currentOrc,
-            Object.freeze(currentObservations.slice()) as readonly Observation[],
-          ),
-        );
+        out.push(finalizeOrder(currentObr, currentOrc, Object.freeze(currentObservations.slice())));
       }
       // Open new group; promote pendingOrc → currentOrc; reset pending.
       currentObr = seg;
@@ -135,14 +129,8 @@ export function orders(msg: Hl7Message): readonly Order[] {
   // Finalize the trailing order. A trailing ORC after the last OBR stays in
   // pendingOrc and is implicitly dropped (never promoted to currentOrc).
   if (currentObr !== undefined) {
-    out.push(
-      finalizeOrder(
-        currentObr,
-        currentOrc,
-        Object.freeze(currentObservations.slice()) as readonly Observation[],
-      ),
-    );
+    out.push(finalizeOrder(currentObr, currentOrc, Object.freeze(currentObservations.slice())));
   }
 
-  return Object.freeze(out) as readonly Order[];
+  return Object.freeze(out);
 }

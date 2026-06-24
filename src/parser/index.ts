@@ -84,7 +84,7 @@ function discriminateOptionsOrProfile(arg: ParseOptions | Profile | undefined): 
   // lacks the required `name` witness.
   const hasStringName = typeof (arg as { name?: unknown }).name === "string";
   if (!hasStringName) {
-    return arg as ParseOptions;
+    return arg;
   }
   // Arg has a string `name`. Check for TRULY options-only keys (keys that
   // cannot appear on a Profile) to decide whether the caller intended
@@ -95,7 +95,7 @@ function discriminateOptionsOrProfile(arg: ParseOptions | Profile | undefined): 
     Object.prototype.hasOwnProperty.call(arg, k),
   );
   if (hasOptionsOnlyKey) {
-    return arg as ParseOptions;
+    return arg;
   }
   return { profile: arg as Profile };
 }

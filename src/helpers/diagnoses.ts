@@ -57,7 +57,7 @@ export function diagnoses(msg: Hl7Message): readonly Diagnosis[] {
     const type = stringOrUndefined(dg1.field(6).value);
     if (type !== undefined) entry.type = type;
 
-    out.push(Object.freeze(entry) as Diagnosis);
+    out.push(Object.freeze(entry));
   }
-  return Object.freeze(out) as readonly Diagnosis[];
+  return Object.freeze(out);
 }

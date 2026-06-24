@@ -4,28 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+Versions and publishing are managed with [Changesets](https://github.com/changesets/changesets);
+this file is maintained by hand (Changesets handles the version bump and publish only).
 
 ## [Unreleased]
 
-### Added
-
-### Changed
-
-### Deprecated
-
-### Removed
-
-### Fixed
-
-### Security
-
-## [0.1.0] - 2026-04-19
-
-Initial public release of `@cosyte/hl7`. First tagged version with a
-complete v1 API surface, five built-in vendor profiles, and a publishable
-profile starter kit.
-
-Notes: Package renamed from `@cosyte/hl7-parser` to `@cosyte/hl7` before first publish. No consumers existed under the previous name.
+The first pre-alpha release (`0.0.1`) will ship the complete v1 API surface below. An earlier
+`0.1.0` tag was prepared but never published, so the package begins its public history at `0.0.x`,
+per the cosyte version ladder (`0.0.x` until first alpha).
 
 ### Added
 
@@ -101,29 +87,19 @@ Notes: Package renamed from `@cosyte/hl7-parser` to `@cosyte/hl7` before first p
   (MIT).
 - **Tooling** — strict TypeScript (`noUncheckedIndexedAccess`,
   `exactOptionalPropertyTypes`), dual ESM + CJS build via tsup, Vitest
-  test suite with ≥ 90% branch coverage on `src/parser/`, `src/model/`,
-  `src/helpers/`, `src/serialize/`, `src/builder/`, CI matrix across
-  Node 18 / 20 / 22.
+  with ≥ 90% per-directory branch coverage on `src/parser/`, `src/model/`,
+  `src/helpers/`, `src/serialize/`, `src/builder/`. Lint, format, and
+  TypeScript settings come from the shared `@cosyte/*` config packages
+  (ESLint 9 + `typescript-eslint`). CI across Node 22 / 24.
 
 ### Changed
 
-_Nothing yet — this is the initial release._
-
 ### Deprecated
-
-_Nothing yet._
 
 ### Removed
 
-_Nothing yet._
-
 ### Fixed
-
-_Nothing yet._
 
 ### Security
 
-_Nothing yet._
-
-[Unreleased]: https://github.com/cosyte/hl7/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/cosyte/hl7/releases/tag/v0.1.0
+[Unreleased]: https://github.com/cosyte/hl7/commits/main

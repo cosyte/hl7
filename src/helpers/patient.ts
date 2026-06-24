@@ -90,7 +90,7 @@ export function buildPatient(msg: Hl7Message): Patient | undefined {
     const cx = parseCx(rep, msg.encodingCharacters);
     if (Object.keys(cx).length > 0) identifiers.push(cx);
   }
-  const frozenIds = Object.freeze(identifiers) as readonly CX[];
+  const frozenIds = Object.freeze(identifiers);
   out.identifiers = frozenIds;
 
   const mrn = pickMrn(frozenIds);
@@ -129,7 +129,7 @@ export function buildPatient(msg: Hl7Message): Patient | undefined {
     const xtn = parseXtn(rep, msg.encodingCharacters);
     if (Object.keys(xtn).length > 0) phones.push(xtn);
   }
-  out.phoneNumbers = Object.freeze(phones) as readonly XTN[];
+  out.phoneNumbers = Object.freeze(phones);
 
   // ─── PID-10 race (CWE) ───────────────────────────────────────────────
   const race = pid.field(10).asCwe();

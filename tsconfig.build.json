@@ -1,5 +1,5 @@
 {
-  "extends": "./tsconfig.json",
+  "extends": "@cosyte/tsconfig/library.json",
   "compilerOptions": {
     "noEmit": false,
     "emitDeclarationOnly": true,

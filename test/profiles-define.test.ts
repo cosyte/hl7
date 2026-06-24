@@ -88,7 +88,7 @@ describe("defineProfile: D-05 customSegments validation", () => {
         name: "bad",
         customSegments: {
           PID: { fields: { mrn: 3 } },
-        } as unknown as Readonly<Record<string, CustomSegmentDefinition>>,
+        },
       }),
     ).toThrow(ProfileDefinitionError);
   });
@@ -99,7 +99,7 @@ describe("defineProfile: D-05 customSegments validation", () => {
         name: "bad",
         customSegments: {
           PID: { fields: { mrn: 3 } },
-        } as unknown as Readonly<Record<string, CustomSegmentDefinition>>,
+        },
       });
       expect.fail("should throw");
     } catch (err) {
@@ -118,7 +118,7 @@ describe("defineProfile: D-05 customSegments validation", () => {
         name: "bad",
         customSegments: {
           ZZZZ: { fields: { a: 1 } },
-        } as unknown as Readonly<Record<string, CustomSegmentDefinition>>,
+        },
       }),
     ).toThrow(ProfileDefinitionError);
   });

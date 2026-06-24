@@ -119,5 +119,5 @@ export function insurance(msg: Hl7Message): readonly Insurance[] {
     out.push(finalizeInsurance(currentIn1, currentHasIn2, currentHasIn3));
   }
 
-  return Object.freeze(out) as readonly Insurance[];
+  return Object.freeze(out);
 }

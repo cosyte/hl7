@@ -117,5 +117,5 @@ export function buildMeta(msg: Hl7Message): Meta {
   if (processingId !== undefined && processingId !== "") out.processingId = processingId;
 
   // D-01: freeze at boundary — callers see an immutable view.
-  return Object.freeze(out) as Meta;
+  return Object.freeze(out);
 }

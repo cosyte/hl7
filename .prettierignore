@@ -10,8 +10,5 @@ pnpm-lock.yaml
 package-lock.json
 yarn.lock
 
-# Planning docs (Markdown with embedded code fences that Prettier may re-wrap inconsistently)
-.planning/
-
 # Git / VCS internals
 .git/

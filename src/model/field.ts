@@ -16,13 +16,7 @@
 
 import { DEFAULT_ENCODING_CHARACTERS } from "../parser/delimiters.js";
 import { unescape } from "../parser/escapes.js";
-import type {
-  EncodingCharacters,
-  Hl7Position,
-  RawComponent,
-  RawField,
-  RawRepetition,
-} from "../parser/types.js";
+import type { EncodingCharacters, Hl7Position, RawField, RawRepetition } from "../parser/types.js";
 import type { Hl7ParseWarning } from "../parser/warnings.js";
 import { parseCe, type CE } from "./types/ce.js";
 import { parseCwe, type CWE } from "./types/cwe.js";
@@ -290,7 +284,7 @@ export class Field {
 }
 
 const EMPTY_RAW_FIELD: RawField = Object.freeze({
-  repetitions: Object.freeze([]) as readonly RawRepetition[],
+  repetitions: Object.freeze([]),
   isNull: false,
 });
 
@@ -303,5 +297,5 @@ const EMPTY_FIELD = new Field(EMPTY_RAW_FIELD, DEFAULT_ENCODING_CHARACTERS, DEFA
  * @internal
  */
 const EMPTY_REP: RawRepetition = Object.freeze({
-  components: Object.freeze([]) as readonly RawComponent[],
+  components: Object.freeze([]),
 });

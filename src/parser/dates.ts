@@ -142,7 +142,7 @@ function emitFallback(opts: ParseHl7TimestampOptions, matchedFormat: string): vo
  */
 function parseHl7TsDtm(raw: string): Date | undefined {
   const pattern =
-    /^(\d{4})(\d{2})?(\d{2})?(\d{2})?(\d{2})?(\d{2})?(?:\.(\d{1,4}))?(?:([+\-])(\d{2})(\d{2}))?$/u;
+    /^(\d{4})(\d{2})?(\d{2})?(\d{2})?(\d{2})?(\d{2})?(?:\.(\d{1,4}))?(?:([+-])(\d{2})(\d{2}))?$/u;
   const match = pattern.exec(raw);
   if (match === null) return undefined;
 
@@ -187,8 +187,7 @@ function parseHl7TsDtm(raw: string): Date | undefined {
  * @internal
  */
 function parseIso8601(raw: string): Date | undefined {
-  const isoPattern =
-    /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+\-]\d{2}:?\d{2})?)?$/u;
+  const isoPattern = /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?)?$/u;
   if (!isoPattern.test(raw)) return undefined;
   const candidate = new Date(raw);
   return isNaN(candidate.getTime()) ? undefined : candidate;

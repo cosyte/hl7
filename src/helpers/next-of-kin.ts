@@ -55,7 +55,7 @@ export function nextOfKin(msg: Hl7Message): readonly NextOfKin[] {
     const contactRole = nk1.field(7).asCwe();
     if (Object.keys(contactRole).length > 0) entry.contactRole = contactRole;
 
-    out.push(Object.freeze(entry) as NextOfKin);
+    out.push(Object.freeze(entry));
   }
-  return Object.freeze(out) as readonly NextOfKin[];
+  return Object.freeze(out);
 }

@@ -154,7 +154,7 @@ describe("emitPrettyPrint - Block 1: D-25 header", () => {
   it("header uses exactly two spaces between each labeled field", () => {
     const out = parseHL7(CANONICAL_ADT).prettyPrint();
     const [firstLine] = out.split("\n");
-    expect(firstLine).toMatch(/^HL7 .+  controlId=.+  timestamp=.+  \(\d+ segments\)$/u);
+    expect(firstLine).toMatch(/^HL7 .+ {2}controlId=.+ {2}timestamp=.+ {2}\(\d+ segments\)$/u);
   });
 });
 
@@ -181,14 +181,14 @@ describe("emitPrettyPrint - Block 2: D-23 segment lines", () => {
   it("segment name is followed by two spaces then the first label", () => {
     const out = parseHL7(CANONICAL_ADT).prettyPrint();
     const pidLine = out.split("\n").find((l) => l.startsWith("PID"));
-    expect(pidLine).toMatch(/^PID  \[\d+\]=/u);
+    expect(pidLine).toMatch(/^PID {2}\[\d+\]=/u);
   });
 
   it("labeled fields are separated by exactly two spaces", () => {
     const out = parseHL7(CANONICAL_ADT).prettyPrint();
     const pidLine = out.split("\n").find((l) => l.startsWith("PID"));
     // Any two consecutive labels should have "  " between them.
-    expect(pidLine).toMatch(/\]=.+  \[\d+\]=/u);
+    expect(pidLine).toMatch(/\]=.+ {2}\[\d+\]=/u);
   });
 
   it("segment with no content fields is just the name (no trailing spaces)", () => {
@@ -282,7 +282,7 @@ describe("emitPrettyPrint - Block 4: W2 raw-escape rendering via emitField", () 
     expect(pidLine).toBeDefined();
     // Extract the PID-5 label value - starts after `[5]=` and ends at two
     // consecutive spaces OR EOL.
-    const match = /\[5\]=([^\n]+?)(?:  \[|$)/u.exec(pidLine ?? "");
+    const match = /\[5\]=([^\n]+?)(?: {2}\[|$)/u.exec(pidLine ?? "");
     const pid5 = match?.[1] ?? "";
     expect(pid5).toContain("\\F\\");
     // The decoded `|` char MUST NOT appear in the emitted field value -

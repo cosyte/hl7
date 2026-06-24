@@ -91,7 +91,7 @@ function dispatchValue(valueType: string, valueField: Field, common: Observation
         ...common,
         valueType: "NM" as const,
         value: nm.value,
-      }) as Observation;
+      });
     }
     case "TS":
     case "DT": {
@@ -100,7 +100,7 @@ function dispatchValue(valueType: string, valueField: Field, common: Observation
         ...common,
         valueType,
         value: ts.date,
-      }) as Observation;
+      });
     }
     case "CWE": {
       const cwe = valueField.asCwe();
@@ -109,7 +109,7 @@ function dispatchValue(valueType: string, valueField: Field, common: Observation
         ...common,
         valueType: "CWE" as const,
         value,
-      }) as Observation;
+      });
     }
     case "CE": {
       const ce = valueField.asCe();
@@ -118,7 +118,7 @@ function dispatchValue(valueType: string, valueField: Field, common: Observation
         ...common,
         valueType: "CE" as const,
         value,
-      }) as Observation;
+      });
     }
     default: {
       const raw = valueField.value;
@@ -127,7 +127,7 @@ function dispatchValue(valueType: string, valueField: Field, common: Observation
         ...common,
         valueType,
         value,
-      }) as Observation;
+      });
     }
   }
 }
@@ -179,5 +179,5 @@ export function observations(msg: Hl7Message): readonly Observation[] {
   for (const obx of msg.segments("OBX")) {
     out.push(buildObservation(obx));
   }
-  return Object.freeze(out) as readonly Observation[];
+  return Object.freeze(out);
 }
