@@ -36,7 +36,7 @@
     "prepublishOnly": "pnpm typecheck && pnpm lint && pnpm test && pnpm build"
   },
   "peerDependencies": {
-    "@cosyte/hl7": ">=0.1.0"
+    "@cosyte/hl7": ">=0.0.0"
   },
   "peerDependenciesMeta": {
     "@cosyte/hl7": {
