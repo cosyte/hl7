@@ -88,8 +88,6 @@ export function parsePath(path: string): DotPath {
     throw new TypeError(`Invalid HL7 dot-path: "" (empty).`);
   }
 
-  let i = 0;
-
   // 1. Segment name — must be 3 chars matching [A-Z][A-Z0-9]{2}.
   if (path.length < 3) {
     throw new TypeError(`Invalid HL7 dot-path: "${path}" (segment name too short).`);
@@ -100,7 +98,7 @@ export function parsePath(path: string): DotPath {
       `Invalid HL7 dot-path: "${path}" (segment name must match [A-Z][A-Z0-9]{2}).`,
     );
   }
-  i = 3;
+  let i = 3;
 
   const out: MutableDotPath = {
     segmentType,

@@ -6,7 +6,6 @@ on:
   pull_request:
     branches: [main]
 
-# Cancel in-progress runs on new pushes to the same branch/PR.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -15,52 +14,25 @@ permissions:
   contents: read
 
 jobs:
-  verify:
-    name: verify (node-${{ matrix.node }})
+  # Universal gates from the shared pipeline (typecheck, lint, format, test, coverage, build, attw,
+  # dual ESM/CJS smoke, actionlint) on the standard Node matrix.
+  ci:
+    uses: cosyte/.github/.github/workflows/ci.yml@main
+
+  # hl7-specific extras: the examples smoke + the profile-starter-kit growth template.
+  extras:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        node: ["22", "24"]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          version: 10
-
-      - name: Setup Node.js ${{ matrix.node }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node }}
+          node-version: "22"
           cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Typecheck
-        run: pnpm typecheck
-
-      - name: Lint
-        run: pnpm lint
-
-      - name: Format check
-        run: pnpm format:check
-
-      - name: Test
-        run: pnpm test
-
-      - name: Test (with coverage)
-        run: pnpm test:coverage
-
+      - run: pnpm install --frozen-lockfile
       - name: Examples (smoke)
-        if: matrix.node == '22'
         run: pnpm examples
-
-      - name: Starter kit (install + test + build)
-        if: matrix.node == '22'
+      - name: Starter kit (install + typecheck + lint + test + build)
         working-directory: examples/profile-starter-kit
         run: |
           pnpm install --no-frozen-lockfile
@@ -68,20 +40,8 @@ jobs:
           pnpm lint
           pnpm test
           pnpm build
-
       - name: Validate kit workflows (actionlint)
-        if: matrix.node == '22'
-        uses: reviewdog/action-actionlint@v1
+        uses: reviewdog/action-actionlint@6fb7acc99f4a1008869fa8a0f09cfca740837d9d # v1
         with:
+          fail_on_error: true
           actionlint_flags: -color=never examples/profile-starter-kit/.github/workflows/ci.yml examples/profile-starter-kit/.github/workflows/publish.yml
-
-      - name: Build
-        run: pnpm build
-
-      - name: Verify dual-module build artifacts
-        run: |
-          test -f dist/index.mjs
-          test -f dist/index.cjs
-          test -f dist/index.d.ts
-          node -e "import('./dist/index.mjs').then(m => { if (typeof m.VERSION !== 'string') { console.error('ESM missing VERSION'); process.exit(1); } console.log('ESM OK:', m.VERSION); })"
-          node -e "const m = require('./dist/index.cjs'); if (typeof m.VERSION !== 'string') { console.error('CJS missing VERSION'); process.exit(1); } console.log('CJS OK:', m.VERSION);"

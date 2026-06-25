@@ -13,6 +13,19 @@ The first pre-alpha release (`0.0.1`) will ship the complete v1 API surface belo
 `0.1.0` tag was prepared but never published, so the package begins its public history at `0.0.x`,
 per the cosyte version ladder (`0.0.x` until first alpha).
 
+### Changed
+
+- Adopted the shared `@cosyte/*` toolchain standard: ES2023, ESLint 10 + type-checked
+  `typescript-eslint`, Vitest 4, `@types/node` 22, exact-pinned dev tools, the shared
+  `@cosyte/tsup-config` / `@cosyte/vitest-config`, and thin callers of the reusable `cosyte/.github`
+  CI/release workflows. No public API change.
+
+### Fixed
+
+- **Types resolution from CommonJS** — the `exports` map now points the `require` condition's types at
+  `dist/index.d.cts` (was `index.d.ts`), fixing a "masquerading as ESM" (`attw` FalseESM) issue for
+  CJS consumers.
+
 ### Added
 
 - **Parser** — `parseHL7(raw, optionsOrProfile?)` with a lenient default
