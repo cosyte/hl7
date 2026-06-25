@@ -5,35 +5,42 @@
   "license": "MIT",
   "type": "module",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=22.0.0"
   },
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.cjs"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
     },
     "./package.json": "./package.json"
   },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE",
-    "CUSTOMIZING.md"
-  ],
+  "files": ["dist", "README.md", "LICENSE", "CUSTOMIZING.md"],
   "sideEffects": false,
   "publishConfig": {
     "access": "public"
   },
+  "prettier": "@cosyte/prettier-config",
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit",
     "lint": "eslint \"src/**/*.ts\" \"test/**/*.ts\" --max-warnings=0",
+    "lint:fix": "eslint \"src/**/*.ts\" \"test/**/*.ts\" --fix",
+    "format": "prettier --write \"src/**/*.{ts,md}\" \"test/**/*.ts\" \"*.{json,md}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,md}\" \"test/**/*.ts\" \"*.{json,md}\"",
     "test": "vitest run",
-    "prepublishOnly": "pnpm typecheck && pnpm lint && pnpm test && pnpm build"
+    "test:watch": "vitest",
+    "attw": "attw --pack .",
+    "clean": "rm -rf dist coverage",
+    "prepublishOnly": "pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm attw"
   },
   "peerDependencies": {
     "@cosyte/hl7": ">=0.0.0"
@@ -44,14 +51,20 @@
     }
   },
   "devDependencies": {
+    "@arethetypeswrong/cli": "0.18.4",
+    "@cosyte/eslint-config": "^0.0.3",
     "@cosyte/hl7": "file:../..",
-    "@types/node": "^20.11.0",
-    "@typescript-eslint/eslint-plugin": "^7.0.0",
-    "@typescript-eslint/parser": "^7.0.0",
-    "eslint": "^8.57.0",
-    "eslint-config-prettier": "^9.1.0",
-    "tsup": "^8.0.0",
-    "typescript": "^5.3.0",
-    "vitest": "^1.2.0"
+    "@cosyte/prettier-config": "^0.0.2",
+    "@cosyte/tsconfig": "^0.0.2",
+    "@cosyte/tsup-config": "^0.0.1",
+    "@cosyte/vitest-config": "^0.0.1",
+    "@types/node": "^22.0.0",
+    "@vitest/coverage-v8": "4.1.4",
+    "eslint": "10.5.0",
+    "prettier": "3.8.3",
+    "tsup": "8.5.1",
+    "typescript": "5.9.3",
+    "vite": "7.3.6",
+    "vitest": "4.1.4"
   }
 }

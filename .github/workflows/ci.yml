@@ -21,9 +21,11 @@ jobs:
 
   # hl7-specific extras: the examples smoke (exercises real parse/build/serialize usage) + actionlint
   # on the profile-starter-kit's own workflow files.
-  # TODO(starter-kit): the profile-starter-kit template is stale (ESLint 8, Vitest 1, Node 18) and trips
-  # pnpm 10's build-script gate; re-enable its install/typecheck/lint/test/build here once it's
-  # modernized to the @cosyte/* standard.
+  # TODO(starter-kit): the kit is now on the @cosyte/* standard (verified locally — typecheck/lint/test/
+  # build/attw all green on pnpm 11). Re-enable its install/typecheck/lint/test/build here once the
+  # suite settles a pnpm build-approval policy: hl7's pinned pnpm@10.0.0 trips the esbuild build-script
+  # gate and lacks `allowBuilds` (a pnpm 11 feature). Fix = bump the suite to pnpm 11.x, or commit a kit
+  # lockfile + use --frozen-lockfile (which bypasses the gate).
   extras:
     runs-on: ubuntu-latest
     steps:

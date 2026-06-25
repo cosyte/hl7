@@ -1,17 +1,14 @@
-/**
- * Vitest config for the profile starter kit. No coverage gate —
- * the kit's test contract is green-or-red against the sample fixture.
- */
-import { defineConfig } from "vitest/config";
+import { cosyteVitest } from "@cosyte/vitest-config";
 
-export default defineConfig({
+/**
+ * Vitest config for the profile starter kit from the shared @cosyte/vitest-config standard.
+ * The kit's test contract is green-or-red against the sample fixture; coverage is available via
+ * `vitest run --coverage` but not gated here.
+ */
+export default cosyteVitest({
   test: {
     globals: false,
     environment: "node",
     include: ["test/**/*.test.ts", "src/**/*.test.ts"],
-    exclude: ["node_modules/**", "dist/**", "coverage/**"],
-    reporters: ["default"],
-    testTimeout: 10_000,
-    hookTimeout: 10_000,
   },
 });
