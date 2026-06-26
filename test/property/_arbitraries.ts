@@ -60,14 +60,12 @@ export function safeValue(): fc.Arbitrary<string> {
  */
 export function delimiterLadenValue(): fc.Arbitrary<string> {
   const alphabet = [...SAFE_CHARS.split(""), ...DELIMITER_CHARS];
-  return fc
-    .stringOf(fc.constantFrom(...alphabet), { minLength: 1, maxLength: 16 })
-    .filter(
-      (s) =>
-        // trim-stable: no leading/trailing ASCII whitespace (incl. the \n we
-        // may have inserted), and non-empty, and not the null token.
-        s.trim() === s && s.length > 0 && s !== '""',
-    );
+  return fc.stringOf(fc.constantFrom(...alphabet), { minLength: 1, maxLength: 16 }).filter(
+    (s) =>
+      // trim-stable: no leading/trailing ASCII whitespace (incl. the \n we
+      // may have inserted), and non-empty, and not the null token.
+      s.trim() === s && s.length > 0 && s !== '""',
+  );
 }
 
 /**
@@ -76,7 +74,10 @@ export function delimiterLadenValue(): fc.Arbitrary<string> {
  * gets heavy exercise.
  */
 export function leafValue(): fc.Arbitrary<string> {
-  return fc.oneof({ weight: 1, arbitrary: safeValue() }, { weight: 2, arbitrary: delimiterLadenValue() });
+  return fc.oneof(
+    { weight: 1, arbitrary: safeValue() },
+    { weight: 2, arbitrary: delimiterLadenValue() },
+  );
 }
 
 /**
@@ -160,21 +161,31 @@ export function specCleanMessageRaw(): fc.Arbitrary<string> {
         .filter((s) => s.length > 0),
       segments: fc.array(segmentSpec(), { minLength: 0, maxLength: 5 }),
     })
-    .map(({ type, sendingApp, sendingFacility, receivingApp, receivingFacility, controlId, segments }) => {
-      const msg = buildMessage({
+    .map(
+      ({
         type,
         sendingApp,
         sendingFacility,
         receivingApp,
         receivingFacility,
         controlId,
-        version: "2.5",
-      });
-      for (const seg of segments) {
-        msg.addSegment(seg.name, seg.fields);
-      }
-      return msg.toString();
-    });
+        segments,
+      }) => {
+        const msg = buildMessage({
+          type,
+          sendingApp,
+          sendingFacility,
+          receivingApp,
+          receivingFacility,
+          controlId,
+          version: "2.5",
+        });
+        for (const seg of segments) {
+          msg.addSegment(seg.name, seg.fields);
+        }
+        return msg.toString();
+      },
+    );
 }
 
 /**
