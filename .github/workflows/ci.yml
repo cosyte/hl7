@@ -19,13 +19,10 @@ jobs:
   ci:
     uses: cosyte/.github/.github/workflows/ci.yml@main
 
-  # hl7-specific extras: the examples smoke (exercises real parse/build/serialize usage) + actionlint
-  # on the profile-starter-kit's own workflow files.
-  # TODO(starter-kit): the kit is now on the @cosyte/* standard (verified locally — typecheck/lint/test/
-  # build/attw all green on pnpm 11). Re-enable its install/typecheck/lint/test/build here once the
-  # suite settles a pnpm build-approval policy: hl7's pinned pnpm@10.0.0 trips the esbuild build-script
-  # gate and lacks `allowBuilds` (a pnpm 11 feature). Fix = bump the suite to pnpm 11.x, or commit a kit
-  # lockfile + use --frozen-lockfile (which bypasses the gate).
+  # hl7-specific extras: the examples smoke (exercises real parse/build/serialize usage) + the
+  # profile-starter-kit growth template (install/typecheck/lint/test/build) + actionlint on the kit's
+  # workflows. pnpm 10 only WARNS on esbuild's build script, so the kit's --no-frozen-lockfile install
+  # completes here (the kit is a copy-and-customize template; it commits no lockfile).
   extras:
     runs-on: ubuntu-latest
     steps:
@@ -36,10 +33,18 @@ jobs:
           node-version: "22"
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Build (examples import the built package)
+      - name: Build (examples + kit import the built package)
         run: pnpm build
       - name: Examples (smoke)
         run: pnpm examples
+      - name: Starter kit (install + typecheck + lint + test + build)
+        working-directory: examples/profile-starter-kit
+        run: |
+          pnpm install --no-frozen-lockfile
+          pnpm typecheck
+          pnpm lint
+          pnpm test
+          pnpm build
       - name: Validate kit workflows (actionlint)
         uses: reviewdog/action-actionlint@6fb7acc99f4a1008869fa8a0f09cfca740837d9d # v1
         with:
