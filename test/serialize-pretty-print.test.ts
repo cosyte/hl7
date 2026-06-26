@@ -411,4 +411,27 @@ describe("emitPrettyPrint - Block 6: D-26 purity", () => {
     // At least one `[N]=` label must be present on the MSH line.
     expect(lines[1]).toMatch(/\[\d+\]=/u);
   });
+
+  it("skips an undefined field slot (sparse fields array) without a label", () => {
+    // A hand-built segment whose fields array has a hole at index 2 (PID-2).
+    // buildSegmentLine must `continue` past the undefined slot, so no `[2]=`
+    // label appears, but the populated PID-1 and PID-3 still render.
+    const base = parseHL7(MSH_ONLY);
+    const placeholder: RawField = { repetitions: [], isNull: false };
+    const pidFields: RawField[] = [placeholder];
+    pidFields[1] = { repetitions: [{ components: [{ subcomponents: ["1"] }] }], isNull: false };
+    pidFields[3] = { repetitions: [{ components: [{ subcomponents: ["MRN9"] }] }], isNull: false };
+    // index 2 (PID-2) is a hole -> undefined at runtime.
+    const pid: RawSegment = { name: "PID", fields: pidFields };
+    const msg = new Hl7Message({
+      segments: [...base.rawSegments, pid],
+      encodingCharacters: DEFAULT_ENCODING_CHARACTERS,
+      version: "2.5",
+      warnings: [],
+    });
+    const pidLine = msg.prettyPrint().split("\n").at(-1);
+    expect(pidLine).toContain("[1]=1");
+    expect(pidLine).toContain("[3]=MRN9");
+    expect(pidLine).not.toContain("[2]=");
+  });
 });

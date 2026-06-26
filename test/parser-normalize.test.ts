@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Buffer } from "node:buffer";
 
-import { normalize, normalizeBuffer } from "../src/parser/normalize.js";
+import { mapHl7Charset, normalize, normalizeBuffer } from "../src/parser/normalize.js";
 import { WARNING_CODES, type Hl7ParseWarning } from "../src/parser/warnings.js";
 
 describe("parser/normalize: string path", () => {
@@ -58,5 +58,54 @@ describe("parser/normalize: Buffer path", () => {
     expect(warnings[0]?.code).toBe(WARNING_CODES.UNKNOWN_CHARSET);
     expect(warnings[0]?.position.segmentIndex).toBe(0);
     expect(out).toBe(validRaw);
+  });
+
+  it("decodes Latin-1 bytes via the ISO-8859-1 alias and emits no warning", () => {
+    const warnings: Hl7ParseWarning[] = [];
+    // 0xE9 is "é" in ISO-8859-1 but an invalid lone byte in UTF-8 — decoding
+    // it as UTF-8 would corrupt the name, so the declared charset must win.
+    const latin1 = Buffer.from([
+      0x4d,
+      0x53,
+      0x48,
+      0x7c,
+      0x52,
+      0x65,
+      0x6e,
+      0xe9, // "MSH|Ren<é>"
+    ]);
+    const out = normalizeBuffer(latin1, "8859/1", (w) => warnings.push(w));
+    expect(warnings).toHaveLength(0);
+    expect(out).toBe("MSH|René");
+  });
+});
+
+describe("parser/normalize: mapHl7Charset alias table", () => {
+  it("maps the empty MSH-18 (charset unspecified) to utf-8", () => {
+    expect(mapHl7Charset("")).toBe("utf-8");
+  });
+
+  it.each([
+    ["UNICODE", "utf-8"],
+    ["UNICODE UTF-8", "utf-8"],
+    ["UTF-8", "utf-8"],
+    ["utf8", "utf-8"],
+    ["ASCII", "ascii"],
+    ["US-ASCII", "ascii"],
+    ["8859/1", "iso-8859-1"],
+    ["ISO-8859-1", "iso-8859-1"],
+    ["8859/15", "iso-8859-15"],
+    ["ISO-8859-15", "iso-8859-15"],
+  ])("maps HL7 alias %s -> %s", (alias, expected) => {
+    expect(mapHl7Charset(alias)).toBe(expected);
+  });
+
+  it("is case- and whitespace-insensitive on known aliases", () => {
+    expect(mapHl7Charset("  unicode utf-8  ")).toBe("utf-8");
+    expect(mapHl7Charset("iso-8859-1")).toBe("iso-8859-1");
+  });
+
+  it("passes an unknown label through uppercased and trimmed for the caller's try/catch", () => {
+    expect(mapHl7Charset("  windows-1252 ")).toBe("WINDOWS-1252");
   });
 });

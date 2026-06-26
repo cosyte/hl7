@@ -191,6 +191,32 @@ describe("emitSegment — MSH guard (D-06)", () => {
   });
 });
 
+describe("emitField / emitSegment — sparse-array robustness", () => {
+  // The parser never produces holes, but a synthetic tree built by hand (per
+  // the to-string.ts JSDoc, callers may construct `RawSegment`/`RawField`
+  // directly) can carry sparse arrays. The emitter must treat a hole as an
+  // empty value rather than crashing on `undefined`.
+  it("treats an undefined subcomponent (sparse array) as empty", () => {
+    const subcomponents: string[] = ["A"];
+    subcomponents[2] = "C"; // index 1 is now a hole -> undefined at runtime
+    const f: RawField = {
+      repetitions: [{ components: [{ subcomponents }] }],
+      isNull: false,
+    };
+    // Hole renders as "" between A and C -> "A&&C".
+    expect(emitField(f, ENC)).toBe("A&&C");
+  });
+
+  it("treats an undefined field slot (sparse fields array) as empty", () => {
+    const fields: RawField[] = [{ repetitions: [], isNull: false }];
+    fields[1] = field([rep(sub("first"))]);
+    fields[3] = field([rep(sub("third"))]); // index 2 is a hole -> undefined
+    const seg: RawSegment = { name: "PID", fields };
+    // Hole at field index 2 emits as an empty positional field.
+    expect(emitSegment(seg, ENC)).toBe("PID|first||third");
+  });
+});
+
 describe("emitSegment / emitField — purity", () => {
   const placeholder: RawField = { repetitions: [], isNull: false };
 

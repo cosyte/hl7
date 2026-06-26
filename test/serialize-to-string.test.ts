@@ -266,6 +266,26 @@ describe("emitMessage — W3 trailing segment-level empty fields preserved", () 
     expect(out.endsWith("2.5|||\r")).toBe(true);
   });
 
+  it("emits an empty positional field for an undefined MSH-tail slot (sparse fields)", () => {
+    // A hand-built MSH whose fields array has a hole at index 3 (MSH-4). The
+    // emitMshSegment tail loop must render the hole as an empty positional
+    // field, keeping MSH-3..N alignment, rather than crashing on undefined.
+    const placeholder: RawField = { repetitions: [], isNull: false };
+    const fields: RawField[] = [placeholder];
+    fields[1] = placeholder; // MSH-2 slot (content ignored; enc is source of truth)
+    fields[2] = { repetitions: [{ components: [{ subcomponents: ["SENDAPP"] }] }], isNull: false };
+    fields[4] = { repetitions: [{ components: [{ subcomponents: ["RECAPP"] }] }], isNull: false };
+    // index 3 (MSH-4) is a hole -> undefined at runtime.
+    const msg = new Hl7Message({
+      segments: [{ name: "MSH", fields }],
+      encodingCharacters: DEFAULT_ENCODING_CHARACTERS,
+      version: "2.5",
+      warnings: [],
+    });
+    // "MSH" + | + "^~\&" + | + MSH-3 + | + (empty MSH-4) + | + MSH-5
+    expect(msg.toString()).toBe("MSH|^~\\&|SENDAPP||RECAPP\r");
+  });
+
   it("segment with trailing empty fields — structural round-trip preserves field count", () => {
     // PID raw has 11 `|` separators → 11 HL7 field positions (PID-1..PID-11),
     // the 7th is "present", 4 trailing empties follow. Including the fields[0]

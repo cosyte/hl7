@@ -52,6 +52,23 @@ describe("parser/delimiters: readDelimiters (fatal paths)", () => {
     }
   });
 
+  it("throws INVALID_ENCODING_CHARACTERS when MSH-2 holds fewer than 4 code points", () => {
+    // An astral character (emoji) is two UTF-16 code units, so the 4-unit
+    // slice(4,8) decodes to only 3 Unicode code points — not a valid 4-char
+    // encoding set. Counting by code point (not code unit) is the correct
+    // behavior; this guards against a multi-byte char sneaking into MSH-2.
+    try {
+      readDelimiters("MSH|^~\u{1F600}|APP");
+      expect.fail("should throw");
+    } catch (err) {
+      expect(err).toBeInstanceOf(Hl7ParseError);
+      if (err instanceof Hl7ParseError) {
+        expect(err.code).toBe("INVALID_ENCODING_CHARACTERS");
+        expect(err.message).toMatch(/exactly 4 characters/);
+      }
+    }
+  });
+
   it("throws INVALID_ENCODING_CHARACTERS when MSH-2 has duplicate chars", () => {
     try {
       readDelimiters("MSH|^^^^|APP");
