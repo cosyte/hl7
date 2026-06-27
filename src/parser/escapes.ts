@@ -3,25 +3,43 @@
  * — expands reserved-delimiter escapes on parse (`unescape`) and re-escapes
  * them back when emitting spec-clean HL7 on serialize (`reescape`).
  *
- * The HL7 v2 spec reserves five delimiter characters (field, component,
- * repetition, escape, subcomponent) plus the optional newline shorthand
- * `\.br\`. Whenever a sender needs one of those characters to appear inside
- * user data, it must escape it using the active escape character (default
- * `\`). This module handles the round-trip for every known form and
- * preserves unknown sequences verbatim with an `UNKNOWN_ESCAPE_SEQUENCE`
- * warning (TOL-10 semantics).
+ * The HL7 v2 spec reserves the delimiter characters (field, component,
+ * repetition, escape, subcomponent, and the v2.7+ truncation char) plus the
+ * newline shorthand `\.br\`. Whenever a sender needs one of those characters
+ * to appear inside user data, it must escape it using the active escape
+ * character (default `\`).
  *
- * Known sequences (consumed by `expandSequence`):
+ * **Recognition vs decoding.** The HL7 spec defines four families of escape
+ * sequences. We **decode** sequences whose meaning is byte-exact (delimiter
+ * back-substitution, hex, newline, truncation char). We **recognize and
+ * preserve verbatim** sequences whose intent is presentational or sender-
+ * specific — decoding them would either lose information (formatting/charset)
+ * or invent a rendering policy the spec leaves to the consumer. Either way,
+ * a recognized standard sequence never emits `UNKNOWN_ESCAPE_SEQUENCE`;
+ * that warning is reserved for genuinely-unknown bodies (`\Z..\`, garbage).
+ *
+ * Decoded sequences (consumed by `expandSequence`):
  *   \F\    → enc.field         (field separator)
  *   \S\    → enc.component     (component separator)
  *   \T\    → enc.subcomponent  (subcomponent separator)
  *   \R\    → enc.repetition    (repetition separator)
  *   \E\    → enc.escape        (escape character itself)
+ *   \P\    → enc.truncation ?? "#"  (truncation char, HL7 v2.7+ §2.5.5.2)
  *   \.br\  → "\n"              (newline shorthand)
  *   \X..\  → hex decode (2 hex digits per byte; 0x00..0xFF code points)
- *   \Z..\  → vendor-specific; Phase 2 keeps an empty allow-list, so every
- *             \Z..\ currently warns and is preserved verbatim. Phase 6
- *             profiles may register vendor handlers.
+ *
+ * Recognized but preserved verbatim (no decoding, no warning):
+ *   \H\, \N\                          highlight start / normal text (§2.7.1)
+ *   \.sp\, \.in\, \.ti\, \.fi\,       formatting commands (§2.7.6, kept as
+ *   \.nf\, \.ce\                       semantic sentinels for a renderer)
+ *   \Cxxyy\, \Mxxyyzz\                single- / multi-byte charset switch
+ *                                       (§2.7.4 — sender-local byte sequences;
+ *                                       decoding requires charset context
+ *                                       this module does not have)
+ *
+ * Genuinely unknown (still warns + preserve verbatim):
+ *   \Z..\  → vendor-specific. Profiles may register vendor handlers later.
+ *   anything else (garbage, unterminated)
  */
 
 import type { EncodingCharacters, Hl7Position } from "./types.js";
@@ -82,6 +100,10 @@ export function unescape(
     const expanded = expandSequence(seq, enc);
     if (expanded !== null) {
       out += expanded;
+    } else if (isRecognizedPreservedEscape(seq)) {
+      // Standard sequence we deliberately do not decode (formatting / highlight
+      // / charset). Preserve verbatim so round-trip is exact; no warning.
+      out += esc + seq + esc;
     } else {
       emit(unknownEscapeSequence(position, seq));
       out += esc + seq + esc;
@@ -91,11 +113,54 @@ export function unescape(
   return out;
 }
 
+/** Spec default truncation char per HL7 v2.7+ §2.5.5.2. */
+const DEFAULT_TRUNCATION_CHAR = "#";
+
+/** Highlight and formatting escapes that we recognize-but-preserve. */
+const RECOGNIZED_PRESERVED_SET: ReadonlySet<string> = new Set([
+  "H", // begin highlighting (§2.7.1)
+  "N", // normal text — end highlighting (§2.7.1)
+  ".sp", // vertical skip (§2.7.6)
+  ".in", // indent
+  ".ti", // temporary indent
+  ".fi", // begin word wrap
+  ".nf", // end word wrap
+  ".ce", // center next line
+]);
+
+/**
+ * Returns true for a spec-defined escape body the parser recognizes but
+ * deliberately does not decode — recognizing it suppresses the
+ * `UNKNOWN_ESCAPE_SEQUENCE` warning while preserving the sequence verbatim
+ * so the serializer round-trips it byte-for-byte. Covers HL7 v2 §2.7.1
+ * highlight, §2.7.6 formatting commands, and §2.7.4 charset switches
+ * (`\Cxxyy\` single-byte, `\Mxxyyzz\` multi-byte; xx/yy/zz are hex digit
+ * pairs).
+ *
+ * @internal
+ */
+function isRecognizedPreservedEscape(seq: string): boolean {
+  if (RECOGNIZED_PRESERVED_SET.has(seq)) return true;
+  // \Cxxyy\ — single-byte char set switch (2 hex byte pairs = 4 hex digits).
+  if (seq.length === 5 && seq.charAt(0) === "C" && /^[0-9A-Fa-f]{4}$/u.test(seq.slice(1))) {
+    return true;
+  }
+  // \Mxxyyzz\ — multi-byte char set switch (2 or 3 hex byte pairs = 4 or 6 digits).
+  if (
+    seq.charAt(0) === "M" &&
+    (seq.length === 5 || seq.length === 7) &&
+    /^[0-9A-Fa-f]+$/u.test(seq.slice(1))
+  ) {
+    return true;
+  }
+  return false;
+}
+
 /**
  * Expand a known HL7 escape body (the characters between the two escape
- * delimiters). Returns `null` when the body is unknown, malformed, or a
- * vendor `\Z..\` sequence — the caller is responsible for preserving the
- * verbatim form and emitting a warning.
+ * delimiters) to its decoded value. Returns `null` for any body this
+ * function does not decode — `unescape` then routes the body through
+ * `isRecognizedPreservedEscape` to decide warn-or-preserve.
  *
  * @internal
  */
@@ -105,6 +170,9 @@ function expandSequence(seq: string, enc: EncodingCharacters): string | null {
   if (seq === "T") return enc.subcomponent;
   if (seq === "R") return enc.repetition;
   if (seq === "E") return enc.escape;
+  // \P\ — truncation character (HL7 v2.7+ §2.5.5.2). Decodes to enc.truncation
+  // when MSH-2 declared one (5-char form), otherwise the spec default `#`.
+  if (seq === "P") return enc.truncation ?? DEFAULT_TRUNCATION_CHAR;
   if (seq === ".br") return "\n";
   if (seq.startsWith("X")) {
     const hex = seq.slice(1);
@@ -144,6 +212,7 @@ function expandSequence(seq: string, enc: EncodingCharacters): string | null {
  */
 export function reescape(input: string, enc: EncodingCharacters): string {
   if (input.length === 0) return input;
+  const trunc = enc.truncation;
   let out = "";
   for (const ch of input) {
     if (ch === enc.escape) out += enc.escape + "E" + enc.escape;
@@ -151,6 +220,10 @@ export function reescape(input: string, enc: EncodingCharacters): string {
     else if (ch === enc.component) out += enc.escape + "S" + enc.escape;
     else if (ch === enc.subcomponent) out += enc.escape + "T" + enc.escape;
     else if (ch === enc.repetition) out += enc.escape + "R" + enc.escape;
+    // \P\ — only emitted when MSH-2 declared a truncation character (v2.7+);
+    // for pre-v2.7 encodings the character has no reserved meaning and
+    // round-trips as a literal.
+    else if (trunc !== undefined && ch === trunc) out += enc.escape + "P" + enc.escape;
     else if (ch === "\n") out += enc.escape + ".br" + enc.escape;
     else out += ch;
   }

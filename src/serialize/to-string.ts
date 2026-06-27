@@ -98,8 +98,11 @@ export function emitMessage(msg: Hl7Message): string {
  * @internal
  */
 function emitMshSegment(seg: RawSegment, enc: EncodingCharacters): string {
-  // MSH-2 literal chars (D-06 fixed order).
-  const msh2 = enc.component + enc.repetition + enc.escape + enc.subcomponent;
+  // MSH-2 literal chars (D-06 fixed order). When the parsed encoding carried
+  // a v2.7+ truncation char (5-char MSH-2), emit it in the 5th position so
+  // the wire form round-trips byte-exact.
+  const msh2 =
+    enc.component + enc.repetition + enc.escape + enc.subcomponent + (enc.truncation ?? "");
   // MSH-3..N: fields[2..N] via emitField, joined by enc.field.
   // W3: trailing empty fields preserved — do NOT pop trailing "" off tailParts.
   const tailParts: string[] = [];

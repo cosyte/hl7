@@ -160,21 +160,24 @@ export interface Profile {
 }
 
 /**
- * The five HL7 delimiter characters discovered from MSH-1 (field separator)
- * and MSH-2 (encoding characters). Defaults — used when a consumer constructs
- * an `Hl7Message` synthetically — are field `|`, component `^`, repetition
- * `~`, escape `\`, subcomponent `&`.
+ * The HL7 delimiter characters discovered from MSH-1 (field separator) and
+ * MSH-2 (encoding characters). The first four — component, repetition,
+ * escape, subcomponent — are mandatory across all HL7 v2 versions. The fifth,
+ * `truncation`, is the v2.7+ truncation character (default `#` per spec
+ * §2.5.5.2): only present when MSH-2 actually carries 5 encoding characters,
+ * so messages that pre-date v2.7 round-trip with a 4-char MSH-2 unchanged.
  *
  * @example
  * ```ts
  * import type { EncodingCharacters } from "@cosyte/hl7";
- * const enc: EncodingCharacters = {
+ * const v25: EncodingCharacters = {
  *   field: "|",
  *   component: "^",
  *   repetition: "~",
  *   escape: "\\",
  *   subcomponent: "&",
  * };
+ * const v27: EncodingCharacters = { ...v25, truncation: "#" };
  * ```
  */
 export interface EncodingCharacters {
@@ -183,6 +186,7 @@ export interface EncodingCharacters {
   readonly repetition: string;
   readonly escape: string;
   readonly subcomponent: string;
+  readonly truncation?: string;
 }
 
 /**

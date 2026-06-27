@@ -162,6 +162,106 @@ describe("TEST-03 edge-cases: Unicode names (UTF-8 preservation)", () => {
   });
 });
 
+describe("Roadmap Phase A: v2.7+ truncation char (5-char MSH-2)", () => {
+  it("MSH-2 of length 5 parses without fatal (was INVALID_ENCODING_CHARACTERS)", () => {
+    const msg = parseHL7(loadFixture("truncation-char-msh2"));
+    // Pre-fix: a v2.7 `^~\&#` 5-char MSH-2 was rejected with the
+    // INVALID_ENCODING_CHARACTERS Tier-3 fatal — a fail-unsafe rejection of
+    // spec-conformant input. After fix, parsing succeeds and the truncation
+    // character is surfaced.
+    expect(msg.encodingCharacters.field).toBe("|");
+    expect(msg.encodingCharacters.component).toBe("^");
+    expect(msg.encodingCharacters.repetition).toBe("~");
+    expect(msg.encodingCharacters.escape).toBe("\\");
+    expect(msg.encodingCharacters.subcomponent).toBe("&");
+    expect(msg.encodingCharacters.truncation).toBe("#");
+  });
+
+  it("\\P\\ escape decodes to the declared truncation character", () => {
+    const msg = parseHL7(loadFixture("truncation-char-msh2"));
+    const obx = msg.rawSegments.find((s) => s.name === "OBX");
+    const obx5 = obx?.fields[5]?.repetitions[0]?.components[0]?.subcomponents[0];
+    // Fixture authored OBX-5 as "truncated\P\at end" — \P\ must expand
+    // to the truncation character `#` (no UNKNOWN_ESCAPE_SEQUENCE warning).
+    expect(obx5).toBe("truncated#at end");
+    expect(msg.warnings.find((w) => w.code === "UNKNOWN_ESCAPE_SEQUENCE")).toBeUndefined();
+  });
+
+  it("a 4-char MSH-2 still parses unchanged (pre-v2.7 messages)", () => {
+    // Existing fixtures all use 4-char MSH-2; loading any of them must keep
+    // `encodingCharacters.truncation` undefined so the wire form round-trips.
+    const msg = parseHL7(loadFixture("lf-line-endings"));
+    expect(msg.encodingCharacters.truncation).toBeUndefined();
+  });
+
+  it("round-trips byte-exact through toString() — 5-char MSH-2 preserved", () => {
+    const original = loadFixture("truncation-char-msh2");
+    const msg = parseHL7(original);
+    const reemitted = msg.toString();
+    const reparsed = parseHL7(reemitted);
+    // The re-emitted form must carry the 5-char MSH-2 so the truncation
+    // char declaration survives the round-trip.
+    expect(reemitted.startsWith("MSH|^~\\&#|")).toBe(true);
+    expect(reparsed.encodingCharacters.truncation).toBe("#");
+    // And the \P\-decoded value remains identical after the round-trip.
+    const obx = reparsed.rawSegments.find((s) => s.name === "OBX");
+    const obx5 = obx?.fields[5]?.repetitions[0]?.components[0]?.subcomponents[0];
+    expect(obx5).toBe("truncated#at end");
+  });
+});
+
+describe("Roadmap Phase A: highlight + formatting + charset escapes recognized", () => {
+  it("\\H\\…\\N\\ is recognized — no UNKNOWN_ESCAPE_SEQUENCE warning emitted", () => {
+    const msg = parseHL7(loadFixture("escape-highlight"));
+    expect(msg.warnings.find((w) => w.code === "UNKNOWN_ESCAPE_SEQUENCE")).toBeUndefined();
+  });
+
+  it("\\H\\ / \\N\\ preserved verbatim in the decoded value for the renderer", () => {
+    const msg = parseHL7(loadFixture("escape-highlight"));
+    const obx = msg.rawSegments.find((s) => s.name === "OBX");
+    const obx5 = obx?.fields[5]?.repetitions[0]?.components[0]?.subcomponents[0];
+    // Preserve-verbatim policy: highlight markers stay in the string so a
+    // downstream renderer can decide what to do; the parser does not pick
+    // a presentational policy.
+    expect(obx5).toContain("\\H\\value\\N\\");
+  });
+
+  it("formatting + charset escapes are all recognized (no UNKNOWN_ESCAPE_SEQUENCE)", () => {
+    const msg = parseHL7(loadFixture("escape-formatting"));
+    expect(msg.warnings.find((w) => w.code === "UNKNOWN_ESCAPE_SEQUENCE")).toBeUndefined();
+  });
+
+  it("formatting commands preserved verbatim in OBX-5", () => {
+    const msg = parseHL7(loadFixture("escape-formatting"));
+    const obx1 = msg.rawSegments.find((s) => s.name === "OBX");
+    const obx1v = obx1?.fields[5]?.repetitions[0]?.components[0]?.subcomponents[0];
+    expect(obx1v).toContain("\\.in\\");
+    expect(obx1v).toContain("\\.sp\\");
+    expect(obx1v).toContain("\\.ce\\");
+    expect(obx1v).toContain("\\.fi\\");
+    expect(obx1v).toContain("\\.nf\\");
+  });
+
+  it("charset switches (\\Cxxyy\\ / \\Mxxyyzz\\) preserved verbatim", () => {
+    const msg = parseHL7(loadFixture("escape-formatting"));
+    const obxes = msg.rawSegments.filter((s) => s.name === "OBX");
+    const obx2v = obxes[1]?.fields[5]?.repetitions[0]?.components[0]?.subcomponents[0];
+    expect(obx2v).toContain("\\C2842\\");
+    expect(obx2v).toContain("\\M824041\\");
+  });
+
+  it("round-trips byte-exact through toString() — preserved escapes survive", () => {
+    const original = loadFixture("escape-formatting");
+    const msg = parseHL7(original);
+    const reparsed = parseHL7(msg.toString());
+    const obx1 = reparsed.rawSegments.find((s) => s.name === "OBX");
+    const obx1v = obx1?.fields[5]?.repetitions[0]?.components[0]?.subcomponents[0];
+    // Both formatting and charset switches survive intact across re-emission.
+    expect(obx1v).toContain("\\.in\\");
+    expect(obx1v).toContain("\\.nf\\");
+  });
+});
+
 describe("TEST-03 edge-cases: missing optional segments (HELPERS-03)", () => {
   it("ADT^A01 without PV1 yields msg.visit === undefined", () => {
     const msg = parseHL7(loadFixture("missing-optional-segments"));
