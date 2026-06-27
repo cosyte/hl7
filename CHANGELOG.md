@@ -19,6 +19,17 @@ per the cosyte version ladder (`0.0.x` until first alpha).
   `typescript-eslint`, Vitest 4, `@types/node` 22, exact-pinned dev tools, the shared
   `@cosyte/tsup-config` / `@cosyte/vitest-config`, and thin callers of the reusable `cosyte/.github`
   CI/release workflows. No public API change.
+- **Test bar** — added executable PHI-safety property tests
+  (`test/property/phi-safety.property.test.ts`). Locks two invariants: warning messages never echo
+  field VALUES (only positional context + bounded metadata), and `Hl7ParseError.snippet` length
+  stays ≤ 41 chars (40 + ellipsis) for adversarially-large inputs. Snippet **content** may carry
+  PHI by design (see `parser/errors.ts:70-72` — the documented consumer-redaction boundary); the
+  bound is what we lock in. Does **not** use `@cosyte/test-utils`' `assertNoSecretLeak` — that's
+  for `Secret<T>` wrappers (the pathways credentials pattern) and is the wrong shape for parser-
+  side PHI surfaces.
+- **Coverage policy** — `vitest.config.ts` now records a D10 expiry for the global `branches:85`
+  relaxation, naming the two events that lift the floor back to 90 (`src/profiles/**` reaches 90,
+  or the profile system is replaced) and the re-evaluation cadence (every hl7 phase boundary).
 
 ### Fixed
 
