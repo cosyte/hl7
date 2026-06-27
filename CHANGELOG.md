@@ -33,6 +33,34 @@ per the cosyte version ladder (`0.0.x` until first alpha).
 
 ### Fixed
 
+- **Conformance — v2.7+ truncation char no longer rejects spec-conformant input** (roadmap Phase A,
+  P0 correctness). `readDelimiters` previously hard-coded MSH-2 length to 4 and threw the Tier-3
+  fatal `INVALID_ENCODING_CHARACTERS` on a 5-char MSH-2, so a spec-valid v2.7+ message carrying the
+  truncation character (`^~\&#` and friends) was rejected outright — a fail-unsafe rejection of
+  valid input. The parser now accepts both shapes: 4-char (v2.1–v2.6) and 5-char (v2.7+, spec
+  §2.5.5.2 — the 5th char is the truncation character, default `#`). The `EncodingCharacters` type
+  gains a new optional `truncation?: string` field that is set ONLY when MSH-2 actually declared
+  one, so messages that predate v2.7 round-trip with a 4-char MSH-2 unchanged. The serializer +
+  builder emit the 5th char back when present; pre-v2.7 messages are unaffected.
+- **Conformance — standard escape sequences no longer warn as `UNKNOWN_ESCAPE_SEQUENCE`** (roadmap
+  Phase A). Six spec-defined escape families are now recognized:
+  - `\P\` — truncation character. **Decoded** to `enc.truncation ?? "#"` (spec §2.5.5.2). On
+    serialize, the truncation character is re-escaped back to `\P\` ONLY when MSH-2 declared one,
+    so pre-v2.7 messages round-trip the character literally.
+  - `\H\` / `\N\` — highlight on / off (spec §2.7.1). **Recognized but preserved verbatim** — the
+    parser does not pick a presentational policy; the markers stay in the decoded string for a
+    downstream renderer to consume.
+  - `\.sp\`, `\.in\`, `\.ti\`, `\.fi\`, `\.nf\`, `\.ce\` — formatting commands (spec §2.7.6).
+    Recognized and preserved verbatim, same rationale as highlight.
+  - `\Cxxyy\` (single-byte) and `\Mxxyyzz\` (multi-byte, 4 or 6 hex) — character-set switches
+    (spec §2.7.4). Recognized and preserved verbatim because byte-accurate decoding requires
+    charset state this module does not own.
+
+  No public surface is removed or renamed; the `WARNING_CODES` registry is unchanged
+  (snapshot test asserts additions-only). `\Z..\` (vendor-specific) and genuinely-malformed bodies
+  still warn + preserve as before. New fixtures in `test/fixtures/edge-cases/` (`truncation-char-msh2.hl7`,
+  `escape-highlight.hl7`, `escape-formatting.hl7`) lock the behavior, including byte-exact
+  round-trip through `toString()`.
 - **Types resolution from CommonJS** — the `exports` map now points the `require` condition's types at
   `dist/index.d.cts` (was `index.d.ts`), fixing a "masquerading as ESM" (`attw` FalseESM) issue for
   CJS consumers.

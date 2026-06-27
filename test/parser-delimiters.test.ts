@@ -16,7 +16,10 @@ describe("parser/delimiters: readDelimiters (happy path)", () => {
   });
 
   it("reads custom encoding characters from a non-standard MSH", () => {
-    const enc = readDelimiters("MSH#$%*@|APP|FAC|APP|FAC|20250101||ADT^A01|1|P|2.5");
+    // MSH-1 = "#" is reused as the field separator throughout the segment;
+    // the parser bounds MSH-2 by the NEXT field separator (not a hard-coded
+    // slice), so a real custom-delimiter sender must be internally consistent.
+    const enc = readDelimiters("MSH#$%*@#APP#FAC#APP#FAC#20250101##ADT^A01#1#P#2.5");
     expect(enc).toEqual({
       field: "#",
       component: "$",
@@ -24,6 +27,29 @@ describe("parser/delimiters: readDelimiters (happy path)", () => {
       escape: "*",
       subcomponent: "@",
     });
+  });
+
+  it("reads a 5-char MSH-2 (v2.7+ truncation char) without fataling", () => {
+    const enc = readDelimiters("MSH|^~\\&#|APP|FAC|APP|FAC|20260101||ADT^A01|1|P|2.7");
+    expect(enc).toEqual({
+      field: "|",
+      component: "^",
+      repetition: "~",
+      escape: "\\",
+      subcomponent: "&",
+      truncation: "#",
+    });
+  });
+
+  it("accepts a custom 5-char MSH-2 with a non-default truncation char", () => {
+    // Sender declares `@` as the truncation character.
+    const enc = readDelimiters("MSH|^~\\&@|APP|FAC|APP|FAC|20260101||ADT^A01|1|P|2.7");
+    expect(enc.truncation).toBe("@");
+  });
+
+  it("omits truncation when MSH-2 has 4 chars (back-compat)", () => {
+    const enc = readDelimiters("MSH|^~\\&|APP|FAC|APP|FAC|20250101||ADT^A01|1|P|2.5");
+    expect(enc).not.toHaveProperty("truncation");
   });
 });
 
@@ -64,7 +90,22 @@ describe("parser/delimiters: readDelimiters (fatal paths)", () => {
       expect(err).toBeInstanceOf(Hl7ParseError);
       if (err instanceof Hl7ParseError) {
         expect(err.code).toBe("INVALID_ENCODING_CHARACTERS");
-        expect(err.message).toMatch(/exactly 4 characters/);
+        expect(err.message).toMatch(/4 \(v2\.1–v2\.6\) or 5 \(v2\.7\+/u);
+      }
+    }
+  });
+
+  it("throws INVALID_ENCODING_CHARACTERS when a 5-char MSH-2 has duplicates", () => {
+    // The same distinctness rule applies to the v2.7+ 5-char form — the
+    // truncation char must not collide with any of the other four.
+    try {
+      readDelimiters("MSH|^~\\&^|APP");
+      expect.fail("should throw");
+    } catch (err) {
+      expect(err).toBeInstanceOf(Hl7ParseError);
+      if (err instanceof Hl7ParseError) {
+        expect(err.code).toBe("INVALID_ENCODING_CHARACTERS");
+        expect(err.message).toMatch(/5 distinct characters/u);
       }
     }
   });

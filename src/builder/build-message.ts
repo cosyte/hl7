@@ -219,7 +219,9 @@ export function buildMessage(init: BuildMessageInit): Hl7Message {
   // '""')` after construction.
   const mshFields: RawField[] = [
     scalarField(enc.field), // fields[0]
-    scalarField(enc.component + enc.repetition + enc.escape + enc.subcomponent), // fields[1] MSH-2
+    scalarField(
+      enc.component + enc.repetition + enc.escape + enc.subcomponent + (enc.truncation ?? ""),
+    ), // fields[1] MSH-2 (5th char only when truncation is set, v2.7+)
     scalarField(init.sendingApp ?? ""), // MSH-3
     scalarField(init.sendingFacility ?? ""), // MSH-4
     scalarField(init.receivingApp ?? ""), // MSH-5
