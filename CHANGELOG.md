@@ -61,6 +61,7 @@ per the cosyte version ladder (`0.0.x` until first alpha).
   still warn + preserve as before. New fixtures in `test/fixtures/edge-cases/` (`truncation-char-msh2.hl7`,
   `escape-highlight.hl7`, `escape-formatting.hl7`) lock the behavior, including byte-exact
   round-trip through `toString()`.
+
 - **Types resolution from CommonJS** — the `exports` map now points the `require` condition's types at
   `dist/index.d.cts` (was `index.d.ts`), fixing a "masquerading as ESM" (`attw` FalseESM) issue for
   CJS consumers.
