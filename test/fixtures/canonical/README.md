@@ -1,8 +1,9 @@
 # canonical fixtures
 
 Spec-clean HL7 v2 fixtures covering the 7 message types enumerated in TEST-02
-plus 2 dedicated structural cases (Z-segments and nested-subcomponents). The
-third structural case from TEST-02 — repeating fields — is provided by
+plus 2 dedicated structural cases (Z-segments and nested-subcomponents) and a
+dedicated SN structured-numeric case (`oru-r01-sn-results.hl7`). The third
+structural case from TEST-02 — repeating fields — is provided by
 `oru-r01.hl7` (PID-3 has two repetitions: MRN ~ SSN; OBR + 3 OBX
 observations).
 
@@ -22,6 +23,7 @@ All fixtures use:
 | adt-a04.hl7                 | ADT^A04      | `msg.patient.mrn` non-undefined                                                                                    |
 | adt-a08.hl7                 | ADT^A08      | `msg.patient.mrn` non-undefined                                                                                    |
 | oru-r01.hl7                 | ORU^R01      | `msg.observations().length > 0` + first obs `.valueType` populated; doubles as TEST-02 repeating-field structural case |
+| oru-r01-sn-results.hl7      | ORU^R01      | three `SN` OBX rows — comparator (`>^90`), range (`^100^-^200`), ratio (`^1^:^128`) survive parse + byte round-trip   |
 | orm-o01.hl7                 | ORM^O01      | `msg.orders().length > 0`                                                                                          |
 | siu-s12.hl7                 | SIU^S12      | parse + round-trip only (no helper for scheduling)                                                                 |
 | mdm-t02.hl7                 | MDM^T02      | parse + round-trip only (no helper for documents)                                                                  |

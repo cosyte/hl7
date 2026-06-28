@@ -19,5 +19,6 @@ export type { XTN } from "./xtn.js";
 export type { PL } from "./pl.js";
 export type { TS } from "./ts.js";
 export type { NM } from "./nm.js";
+export type { SN } from "./sn.js";
 export type { HD } from "./hd.js";
 export type { XCN } from "./xcn.js";

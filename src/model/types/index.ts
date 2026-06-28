@@ -26,6 +26,8 @@ export type { TS } from "./ts.js";
 export { parseTs } from "./ts.js";
 export type { NM } from "./nm.js";
 export { parseNm } from "./nm.js";
+export type { SN } from "./sn.js";
+export { parseSn } from "./sn.js";
 export type { HD } from "./hd.js";
 export { parseHd } from "./hd.js";
 export type { XCN } from "./xcn.js";

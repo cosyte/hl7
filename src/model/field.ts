@@ -24,6 +24,7 @@ import { parseCx, type CX } from "./types/cx.js";
 import { parseHd, type HD } from "./types/hd.js";
 import { parseNm, type NM } from "./types/nm.js";
 import { parsePl, type PL } from "./types/pl.js";
+import { parseSn, type SN } from "./types/sn.js";
 import { parseTs, type TS } from "./types/ts.js";
 import { parseXad, type XAD } from "./types/xad.js";
 import { parseXcn, type XCN } from "./types/xcn.js";
@@ -250,6 +251,24 @@ export class Field {
    */
   public asNm(): NM {
     return parseNm(this.repetitions[0] ?? EMPTY_REP, this.enc);
+  }
+
+  /**
+   * Coerce this field's first repetition to a typed `SN` (Structured Numeric),
+   * or `undefined` when the field carries no usable structured-numeric content.
+   * Use for an OBX-5 whose OBX-2 value type is `SN` (a comparator like `>90`,
+   * a range like `100-200`, or a ratio like `1:128`). `num1`/`num2` are
+   * `number | undefined` (never `NaN`); the comparator is surfaced only when
+   * SN.1 is a recognized operator.
+   *
+   * @example
+   * ```ts
+   * const sn = msg.segments("OBX")[0]?.field(5)?.asSn();
+   * console.log(sn?.comparator, sn?.num1); // ">" 90
+   * ```
+   */
+  public asSn(): SN | undefined {
+    return parseSn(this.repetitions[0] ?? EMPTY_REP, this.enc);
   }
 
   /**

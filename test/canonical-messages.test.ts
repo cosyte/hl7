@@ -27,6 +27,7 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
+import type { SN } from "../src/model/types/sn.js";
 import { parseHL7 } from "../src/index.js";
 
 import { assertStructuralRoundTrip } from "./_helpers/structural-equivalence.js";
@@ -96,6 +97,32 @@ describe("TEST-02 canonical: ORU^R01 (oru-r01.hl7) — doubles as repeating-fiel
     const obs = msg.observations();
     expect(obs.length).toBeGreaterThanOrEqual(3);
     expect(obs[0]?.valueType).toBe("NM");
+  });
+});
+
+describe("TEST-02 canonical: ORU^R01 SN results (oru-r01-sn-results.hl7) — comparator/range/ratio", () => {
+  const fixture = loadFixture("oru-r01-sn-results");
+  it("parses successfully", () => {
+    expect(() => parseHL7(fixture)).not.toThrow();
+  });
+  it("structural round-trip per SER-02 — the comparator survives on the wire", () => {
+    assertStructuralRoundTrip(fixture);
+  });
+  it("D-20 helper probe — SN comparator/range/ratio are typed, not flattened", () => {
+    const obs = parseHL7(fixture).observations();
+    expect(obs).toHaveLength(3);
+    expect(obs[0]?.valueType).toBe("SN");
+    const sn0 = obs[0]?.value as SN | undefined;
+    expect(sn0?.comparator).toBe(">");
+    expect(sn0?.num1).toBe(90);
+    const sn1 = obs[1]?.value as SN | undefined;
+    expect(sn1?.num1).toBe(100);
+    expect(sn1?.separatorOrSuffix).toBe("-");
+    expect(sn1?.num2).toBe(200);
+    const sn2 = obs[2]?.value as SN | undefined;
+    expect(sn2?.num1).toBe(1);
+    expect(sn2?.separatorOrSuffix).toBe(":");
+    expect(sn2?.num2).toBe(128);
   });
 });
 
