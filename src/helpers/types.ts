@@ -18,6 +18,7 @@ import type { CE } from "../model/types/ce.js";
 import type { CWE } from "../model/types/cwe.js";
 import type { CX } from "../model/types/cx.js";
 import type { PL } from "../model/types/pl.js";
+import type { SN } from "../model/types/sn.js";
 import type { XAD } from "../model/types/xad.js";
 import type { XCN } from "../model/types/xcn.js";
 import type { XPN } from "../model/types/xpn.js";
@@ -179,6 +180,16 @@ export interface ObservationBase {
   readonly identifier: CWE;
   /** OBX-6 units. */
   readonly units?: CWE;
+  /**
+   * `true` iff OBX-6's coding system (CWE.3, "name of coding system") is
+   * exactly `UCUM` (HL7 Table 0396) — i.e. the unit is declared UCUM and is
+   * safe to interpret as a computable unit. `false` means a unit IS present
+   * but is NOT declared UCUM (e.g. a local code or free text) and is surfaced
+   * as-is, never coerced. OMITTED when OBX-6 is absent. This is a *claim* check
+   * only — the library does not validate UCUM grammar or check the alternate
+   * coding system (CWE.6).
+   */
+  readonly unitsAreUcum?: boolean;
   /** OBX-7 reference range (e.g. "80-110"). */
   readonly referenceRange?: string;
   /** OBX-8 abnormal flags (e.g. "H", "HH", "L", "LL"). */
@@ -193,13 +204,14 @@ export interface ObservationBase {
  * One OBX segment as a typed Observation. `value` is discriminated by
  * `valueType` (OBX-2) per D-13:
  * - `"NM"` → `number | undefined`
+ * - `"SN"` → `SN | undefined` (structured numeric: comparator / range / ratio)
  * - `"TS" | "DT"` → `Date | undefined` (flat per D-18)
  * - `"CWE" | "CE"` → `CWE | CE | undefined` (full composite per D-14)
  * - other (`"ST"`, `"TX"`, `"FT"`, `"ID"`, `"IS"`, `"NA"`, unknown) →
  *   `string | undefined` (auto-unescaped, D-23)
  *
  * D-22: `value` is `undefined` when OBX-5 is empty OR malformed for its
- * declared type (never throws, never Invalid Date).
+ * declared type (never throws, never Invalid Date, never `NaN`).
  *
  * @example
  * ```ts
@@ -219,6 +231,7 @@ export interface ObservationBase {
 export type Observation = ObservationBase &
   (
     | { readonly valueType: "NM"; readonly value: number | undefined }
+    | { readonly valueType: "SN"; readonly value: SN | undefined }
     | { readonly valueType: "TS" | "DT"; readonly value: Date | undefined }
     | { readonly valueType: "CWE" | "CE"; readonly value: CWE | CE | undefined }
     | { readonly valueType: string; readonly value: string | undefined }

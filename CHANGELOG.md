@@ -62,6 +62,19 @@ per the cosyte version ladder (`0.0.x` until first alpha).
   `escape-highlight.hl7`, `escape-formatting.hl7`) lock the behavior, including byte-exact
   round-trip through `toString()`.
 
+- **Conformance — SN (Structured Numeric) results no longer silently drop the comparator/range**
+  (roadmap Phase B, P0 safety). An `OBX-2 = SN` value (e.g. `<^10`, `>^90`, `^100^-^200`, `^1^:^128`)
+  previously fell through the plain-string branch, where `<^10` collapsed to the bare string `"<"` —
+  a misread clinical result with a documented patient-harm path (a "less-than 10" result reading as
+  the operator alone). `msg.observations()` now dispatches `SN` to a typed `SN` value
+  (`comparator` / `num1` / `separatorOrSuffix` / `num2`). Fail-safe by construction: `num1`/`num2` are
+  strict-`Number()` parsed (`undefined`, **never `NaN`**), and the comparator is surfaced ONLY when
+  SN.1 is a recognized operator (`>` `<` `>=` `<=` `=` `<>`) — a non-operator in the comparator slot
+  is never passed off as a real relation. The comparator is preserved byte-for-byte across a
+  serialize → parse round-trip. New canonical fixture `test/fixtures/canonical/oru-r01-sn-results.hl7`
+  and property tests (`test/property/sn.property.test.ts`) lock the invariant over thousands of
+  generated values.
+
 - **Types resolution from CommonJS** — the `exports` map now points the `require` condition's types at
   `dist/index.d.cts` (was `index.d.ts`), fixing a "masquerading as ESM" (`attw` FalseESM) issue for
   CJS consumers.
@@ -91,9 +104,20 @@ per the cosyte version ladder (`0.0.x` until first alpha).
   Safe-access semantics (`undefined` / `[]` for missing paths, never
   throws).
 - **Composite types** — parsed instances and exported TypeScript
-  interfaces for XPN, XAD, CX, CWE, CE, XTN, PL, TS/DTM, NM, HD, and XCN
-  (11 types). Also available under the `HL7` namespace:
+  interfaces for XPN, XAD, CX, CWE, CE, XTN, PL, TS/DTM, NM, SN, HD, and XCN
+  (12 types). Also available under the `HL7` namespace:
   `import { HL7 } from "@cosyte/hl7"; type T = HL7.XPN`.
+- **`SN` composite + `Field.asSn()`** (roadmap Phase B) — `parseSn` /
+  `SN` / `HL7.SN` export the Structured Numeric datatype (comparator,
+  num1, separator/suffix, num2), and `field.asSn()` coerces an OBX-5 to it.
+  `msg.observations()` returns `{ valueType: "SN", value: SN | undefined }`
+  for `OBX-2 = SN`.
+- **`observation.unitsAreUcum`** (roadmap Phase B) — a boolean claim-check
+  flag, `true` iff OBX-6's coding system (CWE.3) is exactly `UCUM`
+  (HL7 Table 0396). `false` when a unit is present but not declared UCUM
+  (surfaced as-is, never coerced); omitted entirely when OBX-6 is absent.
+  This is a claim check only — the library does not validate UCUM grammar
+  or convert units.
 - **Named helpers** — one-line extraction for the most common HL7
   fields: `msg.meta`, `msg.patient`, `msg.visit`, `msg.observations()`,
   `msg.orders()`, `msg.nextOfKin()`, `msg.allergies()`, `msg.diagnoses()`,

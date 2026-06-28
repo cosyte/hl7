@@ -86,6 +86,8 @@ export type { TS } from "./model/types/ts.js";
 export { parseTs } from "./model/types/ts.js";
 export type { NM } from "./model/types/nm.js";
 export { parseNm } from "./model/types/nm.js";
+export type { SN } from "./model/types/sn.js";
+export { parseSn } from "./model/types/sn.js";
 export type { HD } from "./model/types/hd.js";
 export { parseHd } from "./model/types/hd.js";
 

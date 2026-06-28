@@ -10,6 +10,7 @@ import { describe, expect, it } from "vitest";
 
 import type { CE } from "../src/model/types/ce.js";
 import type { CWE } from "../src/model/types/cwe.js";
+import type { SN } from "../src/model/types/sn.js";
 import { parseHL7 } from "../src/parser/index.js";
 
 const MSH = "MSH|^~\\&|APP|FAC|||20250102||ORU^R01|1|P|2.5\r";
@@ -193,6 +194,72 @@ describe("helpers/observations: collection contract (D-05 + D-06 + HELPERS-07)",
     expect(obs[0]?.value).toBe(120);
     expect(obs[1]?.valueType).toBe("ST");
     expect(obs[1]?.value).toBe("Hello");
+  });
+});
+
+describe("helpers/observations: SN structured-numeric (Phase B, D-13)", () => {
+  it("SN comparator+value is typed, not flattened to the bare comparator string", () => {
+    const msg = parseHL7(MSH + obx("SN", "<^10"));
+    const o = msg.observations()[0];
+    expect(o?.valueType).toBe("SN");
+    // The bug this phase fixes: `<^10` must NOT collapse to the string "<".
+    expect(typeof o?.value).toBe("object");
+    if (o?.valueType === "SN") {
+      const v = o.value as SN | undefined;
+      expect(v?.comparator).toBe("<");
+      expect(v?.num1).toBe(10);
+    } else {
+      throw new Error("Expected SN branch");
+    }
+  });
+
+  it("SN range is typed (num1/separator/num2)", () => {
+    const msg = parseHL7(MSH + obx("SN", "^100^-^200"));
+    const o = msg.observations()[0];
+    if (o?.valueType === "SN") {
+      const v = o.value as SN | undefined;
+      expect(v?.num1).toBe(100);
+      expect(v?.separatorOrSuffix).toBe("-");
+      expect(v?.num2).toBe(200);
+    } else {
+      throw new Error("Expected SN branch");
+    }
+  });
+
+  it("malformed SN → value undefined (never a wrong number)", () => {
+    const msg = parseHL7(MSH + obx("SN", "garbage"));
+    const o = msg.observations()[0];
+    expect(o?.valueType).toBe("SN");
+    expect(o?.value).toBeUndefined();
+  });
+
+  it("the inner SN value object is frozen (D-01 deep immutability)", () => {
+    const msg = parseHL7(MSH + obx("SN", ">^90"));
+    const o = msg.observations()[0];
+    expect(Object.isFrozen(o?.value)).toBe(true);
+  });
+});
+
+describe("helpers/observations: OBX-6 UCUM flag (Phase B)", () => {
+  it("unitsAreUcum is true when OBX-6 CWE.3 == UCUM", () => {
+    const fx = MSH + "OBX|1|NM|GLU^Glucose^LN||120|mg/dL^^UCUM|80-110||||F\r";
+    const o = parseHL7(fx).observations()[0];
+    expect(o?.units?.identifier).toBe("mg/dL");
+    expect(o?.unitsAreUcum).toBe(true);
+  });
+
+  it("unitsAreUcum is false when a unit is present but not declared UCUM (surfaced as-is)", () => {
+    // The default obx() fixture sends `mg/dL` with no coding system.
+    const o = parseHL7(MSH + obx("NM", "120")).observations()[0];
+    expect(o?.units?.identifier).toBe("mg/dL");
+    expect(o?.unitsAreUcum).toBe(false);
+  });
+
+  it("unitsAreUcum is OMITTED entirely when OBX-6 is absent", () => {
+    const fx = MSH + "OBX|1|NM|GLU^Glucose^LN||120||80-110||||F\r";
+    const o = parseHL7(fx).observations()[0];
+    expect("units" in (o ?? {})).toBe(false);
+    expect("unitsAreUcum" in (o ?? {})).toBe(false);
   });
 });
 

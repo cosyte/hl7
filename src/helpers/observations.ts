@@ -14,6 +14,7 @@
  *   - D-11: document order (matches the segment iteration order).
  *   - D-13: discriminated union on `valueType`:
  *       - `"NM"`            → `number | undefined`  (via `Field.asNm()`)
+ *       - `"SN"`            → `SN | undefined`       (via `Field.asSn()`, structured numeric)
  *       - `"TS" | "DT"`     → `Date | undefined`    (via `Field.asTs()`, flat per D-18)
  *       - `"CWE" | "CE"`    → composite | undefined (via `Field.asCwe/asCe`)
  *       - other (`ST`/`TX`/`FT`/`ID`/`IS`/unknown) → `string | undefined`
@@ -60,7 +61,13 @@ function buildCommon(obx: Segment): ObservationBase {
   if (setId !== undefined) base.setId = setId;
 
   const units = cweOrUndefined(obx.field(6));
-  if (units !== undefined) base.units = units;
+  if (units !== undefined) {
+    base.units = units;
+    // OBX-6 CWE.3 == "UCUM" (HL7 Table 0396): the unit is declared UCUM.
+    // Present-but-not-UCUM units surface `false` (never coerced); the flag is
+    // omitted entirely when OBX-6 is absent.
+    base.unitsAreUcum = units.nameOfCodingSystem === "UCUM";
+  }
 
   const referenceRange = stringOrUndefined(obx.field(7).value);
   if (referenceRange !== undefined) base.referenceRange = referenceRange;
@@ -91,6 +98,18 @@ function dispatchValue(valueType: string, valueField: Field, common: Observation
         ...common,
         valueType: "NM" as const,
         value: nm.value,
+      });
+    }
+    case "SN": {
+      // Structured numeric: preserve the comparator/range/ratio as typed data
+      // instead of letting `<10` collapse to the bare string "<" (D-13). The
+      // inner SN object is frozen too so the whole Observation is deeply
+      // immutable at the boundary (D-01).
+      const sn = valueField.asSn();
+      return Object.freeze({
+        ...common,
+        valueType: "SN" as const,
+        value: sn === undefined ? undefined : Object.freeze(sn),
       });
     }
     case "TS":
