@@ -121,8 +121,23 @@ per the cosyte version ladder (`0.0.x` until first alpha).
 - **Named helpers** — one-line extraction for the most common HL7
   fields: `msg.meta`, `msg.patient`, `msg.visit`, `msg.observations()`,
   `msg.orders()`, `msg.nextOfKin()`, `msg.allergies()`, `msg.diagnoses()`,
-  `msg.insurance()`. All helpers return `undefined` / empty arrays for
-  missing optional data — they never throw.
+  `msg.insurance()`, `msg.medications()`. All helpers return `undefined` /
+  empty arrays for missing optional data — they never throw.
+- **`msg.medications()`** (roadmap Phase D, P0 safety) — projects every
+  RXO / RXE / RXD / RXA segment into a typed `Medication` across the four
+  pharmacy contexts (`order` / `encoded` / `dispense` / `administration`),
+  grouping the RXR (route, Table 0162 + site Table 0163) and RXC
+  (component) segments that follow each parent positionally — the same
+  state-machine `orders()` uses for OBR → OBX. The give code carries its
+  own coding-system provenance (`giveCode.nameOfCodingSystem`); the give
+  **amount** (how much) and the give **strength** (concentration, RXE-25/26)
+  are surfaced as **separate fields and are never reconciled** — a strength
+  a coded drug (e.g. an NDC) implies never validates or overwrites the
+  explicit RXE-25 strength, so a disagreement is preserved for the caller.
+  Numerics are strict-`asNm()` parsed (absent/blank → key omitted, never
+  `NaN`); output is frozen; not memoized. Never throws (HELPERS-07). New
+  public types: `Medication`, `MedicationContext`, `MedicationAmount`,
+  `MedicationStrength`, `MedicationRoute`, `MedicationComponent`.
 - **Mutation** — `setField`, `addSegment`, `removeSegment` on
   `Hl7Message`. Direct field mutation on unwrapped objects has no effect
   (immutability by default).

@@ -23,6 +23,7 @@ import type { Hl7ParseWarning } from "../parser/warnings.js";
 import { allergies as walkAllergies } from "../helpers/allergies.js";
 import { diagnoses as walkDiagnoses } from "../helpers/diagnoses.js";
 import { insurance as walkInsurance } from "../helpers/insurance.js";
+import { medications as walkMedications } from "../helpers/medications.js";
 import { buildMeta } from "../helpers/meta.js";
 import { nextOfKin as walkNextOfKin } from "../helpers/next-of-kin.js";
 import { observations as walkObservations } from "../helpers/observations.js";
@@ -32,6 +33,7 @@ import type {
   Allergy,
   Diagnosis,
   Insurance,
+  Medication,
   Meta,
   NextOfKin,
   Observation,
@@ -414,6 +416,25 @@ export class Hl7Message {
    */
   public orders(): readonly Order[] {
     return walkOrders(this);
+  }
+
+  /**
+   * Every RXO/RXE/RXD/RXA as a typed `Medication`, with RXR (route) and RXC
+   * (component) segments grouped positionally under their parent (Phase D,
+   * P0 safety). D-05: returns `[]` when no RX* parent present. D-06: not
+   * memoized. The give *amount* and give *strength* are surfaced separately
+   * and never reconciled (Phase D §4).
+   *
+   * @example
+   * ```ts
+   * for (const med of msg.medications()) {
+   *   console.log(med.context, med.giveCode?.identifier, med.giveCode?.nameOfCodingSystem);
+   *   console.log(med.amount?.minimum, med.strength?.value);
+   * }
+   * ```
+   */
+  public medications(): readonly Medication[] {
+    return walkMedications(this);
   }
 
   /**
