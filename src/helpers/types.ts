@@ -349,6 +349,173 @@ export interface Diagnosis {
 }
 
 /**
+ * Which pharmacy/treatment segment a `Medication` was extracted from — the
+ * clinical "phase" of the medication. Each value maps 1:1 to one RX* parent
+ * segment (Phase D, Ch. 4A):
+ * - `"order"` — **RXO** (Pharmacy/Treatment Order): the originally *requested*
+ *   give code/amount/dosage-form, before pharmacy encoding.
+ * - `"encoded"` — **RXE** (Encoded Order): the pharmacy-encoded give
+ *   code/amount, plus the give *strength* (RXE-25/26) — the only context that
+ *   carries a separate strength.
+ * - `"dispense"` — **RXD** (Dispense): what was actually dispensed.
+ * - `"administration"` — **RXA** (Administration): what was actually given to
+ *   the patient.
+ *
+ * The context is preserved verbatim and never collapsed: an RDE order that
+ * carries both an RXO request and an RXE encoded line surfaces as TWO
+ * `Medication` entries with distinct contexts — the helper never reconciles
+ * one against the other.
+ */
+export type MedicationContext = "order" | "encoded" | "dispense" | "administration";
+
+/**
+ * The give / dispense / administered amount of a `Medication` (Phase D).
+ * Carries the HL7 min/max amount pair and its units.
+ *
+ * - For an **order** (RXO-2/3) or **encoded** order (RXE-3/4) the amount is a
+ *   genuine min..max range — both keys may be present.
+ * - For a **dispense** (RXD-4) or **administration** (RXA-6) there is a SINGLE
+ *   amount; it is surfaced as `minimum` with `maximum` OMITTED. This is a
+ *   single value, not a range — do not read the absent `maximum` as "no upper
+ *   bound on a range".
+ *
+ * `minimum`/`maximum` are strict-`Number()` parsed (`undefined`, never `NaN`).
+ * `units` is the give/dispense/administered units CWE (RXO-4 / RXE-5 / RXD-5 /
+ * RXA-7); check `units.nameOfCodingSystem === "UCUM"` for computable units.
+ *
+ * @example
+ * ```ts
+ * import type { MedicationAmount } from "@cosyte/hl7";
+ * const amount: MedicationAmount = { minimum: 250, units: { identifier: "mg", nameOfCodingSystem: "UCUM" } };
+ * ```
+ */
+export interface MedicationAmount {
+  /** RXO-2 / RXE-3 minimum, or the single dispense (RXD-4) / administered (RXA-6) amount. */
+  readonly minimum?: number;
+  /** RXO-3 / RXE-4 maximum. OMITTED for single-amount (dispense/administration) contexts. */
+  readonly maximum?: number;
+  /** RXO-4 / RXE-5 / RXD-5 / RXA-7 give/dispense/administered units. */
+  readonly units?: CWE;
+}
+
+/**
+ * The give *strength* of an **encoded** `Medication` (RXE-25 value + RXE-26
+ * units) — Phase D. Strength is the concentration of active ingredient (e.g.
+ * "250 mg"), distinct from the give *amount* (how much is administered, e.g.
+ * "2 tablets"). Only the `"encoded"` (RXE) context carries strength.
+ *
+ * **Fail-safe (Phase D §4):** strength is surfaced exactly as the explicit
+ * RXE-25/26 fields declare it, and is NEVER reconciled against any strength
+ * *implied* by the give code (e.g. an NDC that encodes "250 mg"). A consumer
+ * that sees both an explicit strength here and a coded drug in `giveCode` must
+ * treat a disagreement as a real signal — the library does not silently pick a
+ * winner. `value` is strict-`Number()` parsed (`undefined`, never `NaN`).
+ *
+ * @example
+ * ```ts
+ * import type { MedicationStrength } from "@cosyte/hl7";
+ * const strength: MedicationStrength = { value: 250, units: { identifier: "mg", nameOfCodingSystem: "UCUM" } };
+ * ```
+ */
+export interface MedicationStrength {
+  /** RXE-25 give strength numeric value (strict-parsed; never `NaN`). */
+  readonly value?: number;
+  /** RXE-26 give strength units. */
+  readonly units?: CWE;
+}
+
+/**
+ * One RXR (Pharmacy/Treatment Route) grouped under its parent RX* segment
+ * (Phase D). `route` is HL7 Table 0162 (CWE); `site` is Table 0163 (CWE).
+ * Provenance travels on the CWE (`route.nameOfCodingSystem`) — a "PO" route is
+ * only safe to act on when you know the system it was coded against.
+ *
+ * @example
+ * ```ts
+ * import type { MedicationRoute } from "@cosyte/hl7";
+ * const r: MedicationRoute = { route: { identifier: "PO", text: "Oral" } };
+ * ```
+ */
+export interface MedicationRoute {
+  /** RXR-1 route of administration (HL7 Table 0162). */
+  readonly route?: CWE;
+  /** RXR-2 administration site (HL7 Table 0163). */
+  readonly site?: CWE;
+}
+
+/**
+ * One RXC (Pharmacy/Treatment Component Order) grouped under its parent RX*
+ * segment (Phase D) — a component of a compound/IV. Surfaced STRUCTURALLY
+ * (the component list as authored), NOT pharmacologically resolved.
+ *
+ * @example
+ * ```ts
+ * import type { MedicationComponent } from "@cosyte/hl7";
+ * const c: MedicationComponent = { type: "B", code: { identifier: "D5W", text: "Dextrose 5%" }, amount: 1000 };
+ * ```
+ */
+export interface MedicationComponent {
+  /** RXC-1 component type (e.g. "B"=base, "A"=additive — HL7 Table 0166). */
+  readonly type?: string;
+  /** RXC-2 component code. */
+  readonly code?: CWE;
+  /** RXC-3 component amount (strict-parsed; never `NaN`). */
+  readonly amount?: number;
+  /** RXC-4 component units. */
+  readonly units?: CWE;
+}
+
+/**
+ * A medication extracted from one RXO/RXE/RXD/RXA segment (Phase D, P0
+ * safety), with its RXR (route) and RXC (component) children grouped
+ * positionally. `context` records which RX* segment this came from (give
+ * vs dispense vs administered).
+ *
+ * **Safety contract.** A wrong drug, strength, or route can harm a real
+ * patient, so this view is deliberately conservative:
+ * - `giveCode` carries its own coding-system provenance via the CWE
+ *   (`giveCode.nameOfCodingSystem` — e.g. `RXN` RxNorm, `NDC`). The helper
+ *   surfaces the *claim*; it never validates or looks the code up.
+ * - `amount` (how much) and `strength` (concentration) are SEPARATE fields and
+ *   are never reconciled — including against any strength a coded drug implies
+ *   (Phase D §4). A disagreement is preserved for the consumer to see.
+ * - Malformed RX* segments never throw — absent fields are omitted keys.
+ *
+ * `routes` and `components` are ALWAYS present (possibly empty). Deferred (not
+ * v1): sig/frequency interpretation, TQ1 timing normalization, dose-range or
+ * interaction checking, pharmacologic resolution of compounds.
+ *
+ * @example
+ * ```ts
+ * import type { Medication } from "@cosyte/hl7";
+ * const med: Medication = {
+ *   context: "encoded",
+ *   giveCode: { identifier: "1049630", text: "Acetaminophen 325 MG", nameOfCodingSystem: "RXN" },
+ *   amount: { minimum: 2, units: { identifier: "TAB" } },
+ *   strength: { value: 325, units: { identifier: "mg", nameOfCodingSystem: "UCUM" } },
+ *   routes: [{ route: { identifier: "PO", text: "Oral" } }],
+ *   components: [],
+ * };
+ * ```
+ */
+export interface Medication {
+  /** Which RX* segment this medication came from (give/dispense/administered). */
+  readonly context: MedicationContext;
+  /** RXO-1 / RXE-2 / RXD-2 / RXA-5 give/dispense/administered drug code, with provenance. */
+  readonly giveCode?: CWE;
+  /** Give/dispense/administered amount (+ units). See {@link MedicationAmount}. */
+  readonly amount?: MedicationAmount;
+  /** RXE-25/26 give strength — ENCODED context only; never reconciled with `giveCode`. */
+  readonly strength?: MedicationStrength;
+  /** RXO-5 requested dosage form (order context). */
+  readonly dosageForm?: CWE;
+  /** RXR children grouped under this RX* (Table 0162 route). Always present (possibly empty). */
+  readonly routes: readonly MedicationRoute[];
+  /** RXC children grouped under this RX* (compound components). Always present (possibly empty). */
+  readonly components: readonly MedicationComponent[];
+}
+
+/**
  * IN1-derived insurance entry (HELPERS-06) with positional IN2/IN3 presence
  * flags (D-05 extension). `hasIn2` / `hasIn3` are ALWAYS present booleans;
  * callers who need the full IN2/IN3 surface can walk `msg.segments("IN2")`.
