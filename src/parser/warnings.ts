@@ -37,6 +37,7 @@ export const WARNING_CODES = {
   OUT_OF_ORDER_SEGMENT: "OUT_OF_ORDER_SEGMENT",
   VERSION_MISMATCH: "VERSION_MISMATCH",
   UNKNOWN_CHARSET: "UNKNOWN_CHARSET",
+  ACK_NO_CORRELATION_ID: "ACK_NO_CORRELATION_ID",
 } as const;
 
 /**
@@ -358,6 +359,31 @@ export function unknownCharset(position: Hl7Position, requested: string): Hl7Par
   return {
     code: WARNING_CODES.UNKNOWN_CHARSET,
     message: `Unknown character set "${requested}"; falling back to UTF-8.`,
+    position,
+  };
+}
+
+/**
+ * Build an `ACK_NO_CORRELATION_ID` warning. Emitted by `buildAck` (Phase C),
+ * not by the parser: the inbound message carried no MSH-10 message control ID,
+ * so the generated ACK leaves MSA-2 empty and, when a positive accept was
+ * requested, downgrades it to an error code rather than fabricating an
+ * unverifiable `AA`/`CA`. The `position` references the inbound MSH segment.
+ * The message NEVER echoes a PHI value — only the structural fact.
+ *
+ * @example
+ * ```ts
+ * import { buildAck, WARNING_CODES } from "@cosyte/hl7";
+ * const ack = buildAck(inbound, { code: "AA" }); // inbound has no MSH-10
+ * ack.warnings.some((w) => w.code === WARNING_CODES.ACK_NO_CORRELATION_ID); // true
+ * ```
+ */
+export function ackNoCorrelationId(position: Hl7Position): Hl7ParseWarning {
+  return {
+    code: WARNING_CODES.ACK_NO_CORRELATION_ID,
+    message:
+      "Inbound message has no MSH-10 control ID; ACK MSA-2 left empty and any " +
+      "positive accept downgraded to an error code (no fabricated AA/CA).",
     position,
   };
 }

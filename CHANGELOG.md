@@ -86,14 +86,14 @@ per the cosyte version ladder (`0.0.x` until first alpha).
   `{ strict: true }` mode that escalates every Tier-2 deviation to a thrown
   `Hl7ParseError`. Accepts `string` or `Buffer` input; honours MSH-18
   character set with a user `charset` override option.
-- **Warning system** — 13 stable Tier-2 warning codes with positional
+- **Warning system** — 14 stable Tier-2 warning codes with positional
   context (`segmentIndex`, `fieldIndex`, `repetitionIndex`, `componentIndex`,
   `subcomponentIndex`): `MLLP_FRAMING_STRIPPED`, `FIELD_WHITESPACE_TRIMMED`,
   `UNKNOWN_ESCAPE_SEQUENCE`, `TIMESTAMP_FALLBACK_FORMAT`, `SEGMENT_CASE`,
   `EXTRA_FIELDS`, `UNKNOWN_SEGMENT`, `DUPLICATE_REQUIRED_SEGMENT`,
   `ENCODING_MISMATCH`, `MISSING_REQUIRED_FIELD`, `OUT_OF_ORDER_SEGMENT`,
-  `VERSION_MISMATCH`, `UNKNOWN_CHARSET`. Exposed via `msg.warnings` and the
-  `onWarning` callback.
+  `VERSION_MISMATCH`, `UNKNOWN_CHARSET`, `ACK_NO_CORRELATION_ID`. Exposed via
+  `msg.warnings` and the `onWarning` callback.
 - **Fatal errors** — 4 Tier-3 fatal codes always thrown as `Hl7ParseError`
   (even in lenient mode): `NO_MSH_SEGMENT`, `MSH_TOO_SHORT`,
   `INVALID_ENCODING_CHARACTERS`, `EMPTY_INPUT`. Each error carries
@@ -133,6 +133,23 @@ per the cosyte version ladder (`0.0.x` until first alpha).
 - **Message builder** — `buildMessage({...}).addSegment(...).toString()`
   constructs valid outbound HL7 from scratch, with helpers for control
   IDs and HL7 timestamps.
+- **ACK generation + interpretation** (roadmap Phase C) — `buildAck(inbound,
+{ code, error?, mode? })` produces a spec-clean `MSH`+`MSA`[+`ERR`…]
+  acknowledgment: sender/receiver swapped (full multi-component HDs
+  preserved), MSH-9 = `ACK^<trigger>^ACK`, MSA-2 echoes the inbound MSH-10,
+  and each `ERR` carries an ERL location (ERR-2), a Table 0357 condition code
+  as a CWE (ERR-3), and a Table 0516 severity (ERR-4) — **codes and locations
+  only, never echoed PHI**. `buildAck` is mechanical (emits the disposition it
+  is told) with one safety override: an inbound with no MSH-10 cannot be
+  correlated, so a requested positive `AA`/`CA` is downgraded to `AE`/`CE`,
+  MSA-2 is left empty, and an `ACK_NO_CORRELATION_ID` warning rides on the
+  returned message — it never fabricates an unverifiable positive ACK.
+  `interpretAck(msg)` is the read-side: a typed `Acknowledgment` view whose
+  `accepted`/`error`/`rejected` flags are derived fail-safe from MSA-1 (all
+  three `false` on an absent or unrecognized code). `detectAckMode(inbound)`
+  exposes the spec-exact original-vs-enhanced detection (MSH-15/16). Control
+  vocabulary (Tables 0008/0357/0516/0155) ships as frozen read-only enums
+  (`ACK_CODES`, `ERR_CONDITION_CODES`, `ERR_SEVERITIES`, `ACK_CONDITIONS`).
 - **Profile system** — `defineProfile()` API with `extends` composition
   (single parent or array), merge semantics (scalars overwrite, arrays
   concat+dedupe, `customSegments` deep-merge per key, `onWarning` chains),

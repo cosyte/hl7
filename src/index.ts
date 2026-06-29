@@ -133,6 +133,25 @@ export { buildMessage } from "./builder/build-message.js";
 export type { BuildMessageInit } from "./builder/build-message.js";
 export type { SerializedMessage } from "./serialize/to-json.js";
 
+// Phase C: ACK / response generation. `buildAck` is the single upstream ACK
+// *content* primitive (`@cosyte/mllp`'s ack-from-hl7 adapts over it);
+// `interpretAck` is the read-side; `detectAckMode` exposes the spec-exact
+// original-vs-enhanced detection. Control vocabulary (Tables 0008/0357/0516/
+// 0155) ships as frozen read-only enums.
+export { buildAck, detectAckMode } from "./builder/build-ack.js";
+export type { AckErrorDetail, BuildAckOptions } from "./builder/build-ack.js";
+export { interpretAck } from "./helpers/acknowledgment.js";
+export type { Acknowledgment, AckErrorEntry } from "./helpers/acknowledgment.js";
+export {
+  ACK_CODES,
+  ACK_CONDITIONS,
+  ERR_CONDITION_CODES,
+  ERR_CONDITION_CODE_SYSTEM,
+  ERR_SEVERITIES,
+} from "./builder/ack-tables.js";
+export type { AckCode, AckCondition, AckMode, ErrSeverity } from "./builder/ack-tables.js";
+export { ackNoCorrelationId } from "./parser/warnings.js";
+
 // Phase 6: profile system + built-in vendor profiles.
 // D-26: defineProfile / setDefaultProfile / getDefaultProfile are top-level
 // values; built-ins are exposed under the `profiles` namespace object, not

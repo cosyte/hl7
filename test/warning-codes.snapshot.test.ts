@@ -31,6 +31,7 @@ describe("public API: WARNING_CODES surface is stable", () => {
   it("the sorted set of Tier-2 warning codes matches the locked snapshot", () => {
     expect(sortedWarningCodes()).toMatchInlineSnapshot(`
       [
+        "ACK_NO_CORRELATION_ID",
         "DUPLICATE_REQUIRED_SEGMENT",
         "ENCODING_MISMATCH",
         "EXTRA_FIELDS",
@@ -52,8 +53,8 @@ describe("public API: WARNING_CODES surface is stable", () => {
     for (const [k, v] of Object.entries(WARNING_CODES)) expect(k).toBe(v);
   });
 
-  it("there are exactly 13 Tier-2 warning codes", () => {
-    expect(Object.keys(WARNING_CODES)).toHaveLength(13);
+  it("there are exactly 14 Tier-2 warning codes", () => {
+    expect(Object.keys(WARNING_CODES)).toHaveLength(14);
   });
 });
 
