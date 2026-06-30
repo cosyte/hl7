@@ -6,14 +6,17 @@
  *
  * CE is the older, simpler sibling of CWE — 6 components, no version ids,
  * no originalText. Still common in OBX.3 and similar observation-identifier
- * slots on older messages.
+ * slots on older messages. CE was deprecated at HL7 v2.5 and withdrawn at
+ * v2.6 in favor of CWE; the two are read uniformly here — reading a
+ * CWE-shaped value through `asCe()` preserves components 7+ on
+ * `extraComponents` rather than dropping them, so neither accessor is lossy.
  *
  * Zero runtime deps — pure function over the raw positional tree + `unescape`.
  */
 
 import type { EncodingCharacters, RawRepetition } from "../../parser/types.js";
 
-import { readComponent } from "./_shared.js";
+import { readComponent, readExtraComponents } from "./_shared.js";
 
 /**
  * HL7 v2 Coded Element (CE) — coded element per HL7 Chapter 2. All 6
@@ -28,6 +31,10 @@ import { readComponent } from "./_shared.js";
  * 5. alternateText
  * 6. nameOfAlternateCodingSystem
  *
+ * Components 7+ (present when a CWE-shaped value is read through the CE
+ * accessor — e.g. version ids, originalText) are surfaced verbatim on
+ * `extraComponents` rather than dropped.
+ *
  * @example
  * ```ts
  * import type { CE } from "@cosyte/hl7";
@@ -41,6 +48,14 @@ export interface CE {
   readonly alternateIdentifier?: string;
   readonly alternateText?: string;
   readonly nameOfAlternateCodingSystem?: string;
+  /**
+   * Components beyond the modeled 6 (HL7 component 7 onward), preserved
+   * verbatim and in order. Non-empty only when a CWE-shaped value is read
+   * through the CE accessor; OMITTED otherwise. An absent interior component
+   * is preserved as `""` so `extraComponents[i]` maps to HL7 component
+   * `7 + i`.
+   */
+  readonly extraComponents?: readonly string[];
 }
 
 /**
@@ -83,6 +98,9 @@ export function parseCe(rep: RawRepetition, enc: EncodingCharacters): CE {
   if (nameOfAlternateCodingSystem !== undefined) {
     out.nameOfAlternateCodingSystem = nameOfAlternateCodingSystem;
   }
+
+  const extraComponents = readExtraComponents(rep, 6, enc);
+  if (extraComponents !== undefined) out.extraComponents = extraComponents;
 
   return out;
 }
