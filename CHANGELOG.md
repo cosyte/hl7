@@ -152,8 +152,8 @@ per the cosyte version ladder (`0.0.x` until first alpha).
 - **Named helpers** — one-line extraction for the most common HL7
   fields: `msg.meta`, `msg.patient`, `msg.visit`, `msg.observations()`,
   `msg.orders()`, `msg.nextOfKin()`, `msg.allergies()`, `msg.diagnoses()`,
-  `msg.insurance()`, `msg.medications()`. All helpers return `undefined` /
-  empty arrays for missing optional data — they never throw.
+  `msg.insurance()`, `msg.medications()`, `msg.immunizations()`. All helpers
+  return `undefined` / empty arrays for missing optional data — they never throw.
 - **`msg.medications()`** (roadmap Phase D, P0 safety) — projects every
   RXO / RXE / RXD / RXA segment into a typed `Medication` across the four
   pharmacy contexts (`order` / `encoded` / `dispense` / `administration`),
@@ -169,6 +169,23 @@ per the cosyte version ladder (`0.0.x` until first alpha).
   `NaN`); output is frozen; not memoized. Never throws (HELPERS-07). New
   public types: `Medication`, `MedicationContext`, `MedicationAmount`,
   `MedicationStrength`, `MedicationRoute`, `MedicationComponent`.
+- **`msg.immunizations()`** (roadmap Phase E, P0 safety) — projects every
+  RXA segment of a VXU^V04 into a typed `Immunization`, grouping the RXR
+  (route, Table 0162 + site Table 0163) and OBX (VFC eligibility / funding
+  source) segments that follow each RXA positionally, and carrying
+  `orderControl` from the preceding ORC of the `ORC`→`RXA`→`[RXR]`→`[{OBX}]`
+  order group — the same state machine `orders()` uses for OBR → OBX. The
+  action code (RXA-21, `A`/`D`/`U`) is surfaced **verbatim and never
+  defaulted** — a mis-key corrupts an IIS add/delete/update dedup; the
+  `recordOrigin` (administered vs historical) is derived **only** from the
+  well-known NIP001 RXA-9.1 codes (`00`; `01`-`08`) and omitted otherwise —
+  never guessed, with the raw RXA-9 claim always preserved on
+  `informationSource`. The vaccine code carries its own provenance
+  (`vaccineCode.nameOfCodingSystem`, CVX, + any CVX/NDC alternate);
+  `doseAmount` is strict-`asNm()` parsed (the IIS unknown-dose sentinel `999`
+  surfaced as the number `999`, never coerced). Output is frozen; not
+  memoized. Never throws (HELPERS-07). New public types: `Immunization`,
+  `ImmunizationRecordOrigin`.
 - **Mutation** — `setField`, `addSegment`, `removeSegment` on
   `Hl7Message`. Direct field mutation on unwrapped objects has no effect
   (immutability by default).

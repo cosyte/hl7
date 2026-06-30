@@ -107,6 +107,8 @@ export * as HL7 from "./model/types/namespace.js";
 export type {
   Allergy,
   Diagnosis,
+  Immunization,
+  ImmunizationRecordOrigin,
   Insurance,
   Medication,
   MedicationAmount,

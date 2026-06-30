@@ -554,3 +554,109 @@ export interface Insurance {
   /** `true` iff an IN3 segment follows this IN1 before the next IN1. */
   readonly hasIn3: boolean;
 }
+
+/**
+ * Whether an `Immunization` records a dose that was **administered** by the
+ * reporting system or is **historical** information sourced from elsewhere —
+ * derived conservatively from RXA-9.1 against HL7 Table NIP001 (Immunization
+ * Information Source, CDC v2.5.1 Immunization Messaging IG):
+ * - `"administered"` — RXA-9.1 is exactly `"00"` (New immunization record).
+ * - `"historical"` — RXA-9.1 is `"01".."08"` (any "Historical information …"
+ *   source).
+ *
+ * **Fail-safe:** this is OMITTED (never guessed) when RXA-9 is absent or carries
+ * a code outside the NIP001 administered/historical set. The raw RXA-9 claim is
+ * always preserved verbatim on `Immunization.informationSource`, so a consumer
+ * can inspect the original code even when `recordOrigin` is undefined. The
+ * distinction matters because an IIS de-duplicates a *historical* report
+ * differently from a dose it believes was *administered* — guessing corrupts
+ * the registry.
+ */
+export type ImmunizationRecordOrigin = "administered" | "historical";
+
+/**
+ * A vaccine dose extracted from one RXA (Pharmacy/Treatment Administration)
+ * segment of a VXU^V04 immunization message (Phase E, P0 safety), with its RXR
+ * (route/site) and OBX (e.g. VFC eligibility / funding source) children grouped
+ * positionally under the RXA, and `orderControl` from the preceding ORC of the
+ * VXU order group (`ORC`→`RXA`→`[RXR]`→`[{OBX}]`).
+ *
+ * **Safety contract.** A wrong vaccine, dose, or mis-keyed action code can harm
+ * a patient or corrupt an IIS (Immunization Information System) registry, so
+ * this view is deliberately conservative:
+ * - `vaccineCode` carries its own coding-system provenance via the CWE
+ *   (`vaccineCode.nameOfCodingSystem` — `CVX` HL7 Table 0292; live IIS feeds
+ *   frequently *dual-code* RXA-5 with an alternate CVX/NDC in CWE.4-6, surfaced
+ *   as `vaccineCode.alternateIdentifier`/`alternateText`/`nameOfAlternateCodingSystem`).
+ *   The helper reports the *claim*; it never validates or looks the code up.
+ * - `actionCode` (RXA-21, `A`/`D`/`U`) is surfaced **verbatim** and never
+ *   defaulted — mis-keying it corrupts a registry's add/delete/update dedup.
+ * - `doseAmount` is strict-`Number()` parsed; the IIS "unknown dose" sentinel
+ *   `999` is surfaced **as the number `999`**, never specially coerced.
+ * - `recordOrigin` (administered vs historical) is derived only from the
+ *   well-known NIP001 RXA-9.1 codes and OMITTED otherwise — see
+ *   {@link ImmunizationRecordOrigin}.
+ * - Malformed RXA segments never throw — absent fields are omitted keys.
+ *
+ * `routes` and `observations` are ALWAYS present (possibly empty). Deferred (not
+ * v1): IIS-specific state profile constraints; CVX/MVX validity checks; the 2nd+
+ * repetition of the repeating RXA-15/16/17 lot/expiry/manufacturer fields (only
+ * the first repetition is surfaced).
+ *
+ * @example
+ * ```ts
+ * import type { Immunization } from "@cosyte/hl7";
+ * const imm: Immunization = {
+ *   vaccineCode: { identifier: "115", text: "Tdap", nameOfCodingSystem: "CVX" },
+ *   doseAmount: 0.5,
+ *   doseUnits: { identifier: "mL", nameOfCodingSystem: "UCUM" },
+ *   doseUnitsAreUcum: true,
+ *   recordOrigin: "administered",
+ *   manufacturer: { identifier: "PMC", text: "Sanofi Pasteur", nameOfCodingSystem: "MVX" },
+ *   completionStatus: "CP",
+ *   actionCode: "A",
+ *   routes: [{ route: { identifier: "IM", text: "Intramuscular" } }],
+ *   observations: [],
+ * };
+ * ```
+ */
+export interface Immunization {
+  /** ORC-1 order control when an ORC precedes this RXA in the VXU order group. */
+  readonly orderControl?: string;
+  /** RXA-5 administered vaccine code (CVX, HL7 Table 0292) with provenance + any alternate coding. */
+  readonly vaccineCode?: CWE;
+  /** RXA-6 administered dose amount (strict-parsed; never `NaN`). `999` = IIS "unknown", surfaced as-is. */
+  readonly doseAmount?: number;
+  /** RXA-7 administered dose units (UCUM). */
+  readonly doseUnits?: CWE;
+  /**
+   * `true` iff RXA-7's coding system (CWE.3) is exactly `UCUM` (HL7 Table 0396)
+   * — i.e. the dose unit is declared UCUM and safe to interpret as computable.
+   * `false` means a unit IS present but is NOT declared UCUM (surfaced as-is,
+   * never coerced). OMITTED when RXA-7 is absent. A *claim* check only — UCUM
+   * grammar is not validated here.
+   */
+  readonly doseUnitsAreUcum?: boolean;
+  /** RXA-9 immunization information source (HL7 Table NIP001), preserved verbatim. */
+  readonly informationSource?: CWE;
+  /** Derived administered-vs-historical classification from RXA-9.1. See {@link ImmunizationRecordOrigin}. */
+  readonly recordOrigin?: ImmunizationRecordOrigin;
+  /** RXA-3 date/time start of administration (D-18 flat `Date`). */
+  readonly administeredDateTime?: Date;
+  /** RXA-15 substance lot number (first repetition). */
+  readonly lotNumber?: string;
+  /** RXA-16 substance expiration date (first repetition; D-18 flat `Date`). */
+  readonly expirationDate?: Date;
+  /** RXA-17 substance manufacturer (MVX, HL7 Table 0227; first repetition). */
+  readonly manufacturer?: CWE;
+  /** RXA-18 substance/treatment refusal reason (first repetition). */
+  readonly refusalReason?: CWE;
+  /** RXA-20 completion status (`CP`=complete, `RE`=refused, `NA`=not administered, `PA`=partially administered). */
+  readonly completionStatus?: string;
+  /** RXA-21 action code (`A`=add, `D`=delete, `U`=update) — preserved verbatim, NEVER defaulted. */
+  readonly actionCode?: string;
+  /** RXR children grouped under this RXA (Table 0162 route / Table 0163 site). Always present (possibly empty). */
+  readonly routes: readonly MedicationRoute[];
+  /** OBX children grouped under this RXA (VFC eligibility, funding source, …). Always present (possibly empty). */
+  readonly observations: readonly Observation[];
+}

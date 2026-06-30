@@ -22,6 +22,7 @@ import type {
 import type { Hl7ParseWarning } from "../parser/warnings.js";
 import { allergies as walkAllergies } from "../helpers/allergies.js";
 import { diagnoses as walkDiagnoses } from "../helpers/diagnoses.js";
+import { immunizations as walkImmunizations } from "../helpers/immunizations.js";
 import { insurance as walkInsurance } from "../helpers/insurance.js";
 import { medications as walkMedications } from "../helpers/medications.js";
 import { buildMeta } from "../helpers/meta.js";
@@ -32,6 +33,7 @@ import { buildPatient } from "../helpers/patient.js";
 import type {
   Allergy,
   Diagnosis,
+  Immunization,
   Insurance,
   Medication,
   Meta,
@@ -435,6 +437,27 @@ export class Hl7Message {
    */
   public medications(): readonly Medication[] {
     return walkMedications(this);
+  }
+
+  /**
+   * Every RXA of a VXU^V04 as a typed `Immunization`, with RXR (route/site)
+   * and OBX children grouped positionally under the RXA and `orderControl`
+   * from the preceding ORC of the VXU order group (Phase E, P0 safety). D-05:
+   * returns `[]` when no RXA present. D-06: not memoized. The vaccine code
+   * carries its own provenance; the action code (RXA-21) is surfaced verbatim
+   * and `recordOrigin` (administered vs historical) is derived only from the
+   * well-known NIP001 RXA-9.1 codes — never guessed.
+   *
+   * @example
+   * ```ts
+   * for (const imm of msg.immunizations()) {
+   *   console.log(imm.vaccineCode?.identifier, imm.doseAmount, imm.recordOrigin);
+   *   console.log(imm.actionCode, imm.completionStatus);
+   * }
+   * ```
+   */
+  public immunizations(): readonly Immunization[] {
+    return walkImmunizations(this);
   }
 
   /**
