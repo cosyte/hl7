@@ -222,7 +222,7 @@ for (const al of msg.allergies()) {
 }
 ```
 
-Fields are parsed into their spec-typed shapes (`code` is a `CWE` composite, `onsetDate` is a `Date`). The same helper family exists for next-of-kin (`msg.nextOfKin()`), diagnoses (`msg.diagnoses()`), and insurance (`msg.insurance()`).
+Fields are parsed into their spec-typed shapes (`code` is a `CWE` composite, `onsetDate` is a `Date`). The same helper family exists for next-of-kin (`msg.nextOfKin()`), diagnoses (`msg.diagnoses()`), insurance (`msg.insurance()`), medications (`msg.medications()`), and immunizations (`msg.immunizations()`).
 
 ### Write your first profile in 10 minutes
 

@@ -12,6 +12,8 @@
 export type {
   Allergy,
   Diagnosis,
+  Immunization,
+  ImmunizationRecordOrigin,
   Insurance,
   Meta,
   NextOfKin,
@@ -26,6 +28,7 @@ export { buildPatient } from "./patient.js";
 export { buildVisit } from "./visit.js";
 export { observations, buildObservation } from "./observations.js";
 export { orders } from "./orders.js";
+export { immunizations } from "./immunizations.js";
 export { nextOfKin } from "./next-of-kin.js";
 export { allergies } from "./allergies.js";
 export { diagnoses } from "./diagnoses.js";
