@@ -173,3 +173,19 @@ export { SUPPORTED_DATE_TOKENS } from "./parser/dates.js";
 // Plan 03 additive: KNOWN_SEGMENTS re-export so advanced consumers can
 // inspect the UNKNOWN_SEGMENT detection set (read-only).
 export { KNOWN_SEGMENTS } from "./parser/known-segments.js";
+
+// Phase F: coding-system provenance (HL7 Table 0396, read-only). A frozen
+// acronym→name map plus accessors that answer "what system does this code
+// CLAIM?" over CWE/CE — alias-normalized, never validated, unknown surfaced
+// verbatim with `known:false`. No lookup, no network, no bundled codeset.
+export {
+  KNOWN_CODING_SYSTEMS,
+  codingSystem,
+  codingSystemOf,
+  alternateCodingSystemOf,
+} from "./model/coding-system.js";
+export type {
+  KnownCodingSystem,
+  CodingSystemInfo,
+  CodedSystemFields,
+} from "./model/coding-system.js";

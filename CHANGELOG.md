@@ -98,6 +98,20 @@ per the cosyte version ladder (`0.0.x` until first alpha).
 
 ### Added
 
+- **Coding-system provenance** (roadmap Phase F, P1) — `codingSystem(id)`,
+  `codingSystemOf(coded)`, and `alternateCodingSystemOf(coded)` answer "what
+  system does this code CLAIM?" off a `CWE` / `CE` (CWE.3 / CE.3 primary,
+  CWE.6 / CE.6 alternate). Alias-normalized + case-insensitive
+  (`LOINC` → `LN`, `SNOMED` → `SCT`, `RxNorm` → `RXN`) with the original
+  spelling preserved verbatim in `claimed`; an unregistered / local id is
+  surfaced verbatim with `known: false` (never dropped, never guessed); a
+  no-claim input returns `undefined`. The recognized subset is the frozen,
+  read-only `KNOWN_CODING_SYSTEMS`: `LN`, `SCT`, `I10`, `I10P`, `RXN`, `NDC`,
+  `CVX`, `MVX`, `UCUM`. **Provenance only** — no validation, lookup, network,
+  or bundled codeset. `I10` reports the registered Table 0396 claim `ICD-10`
+  (the WHO base), NOT a guessed `ICD-10-CM` (see
+  `docs-content/spec-notes-coding-system.md`). New public types
+  `KnownCodingSystem`, `CodingSystemInfo`, `CodedSystemFields`.
 - **Parser** — `parseHL7(raw, optionsOrProfile?)` with a lenient default
   parser that handles vendor-quirky HL7 v2.1–v2.8 input, and a
   `{ strict: true }` mode that escalates every Tier-2 deviation to a thrown
