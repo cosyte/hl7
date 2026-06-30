@@ -1,3 +1,9 @@
+---
+id: spec-notes-version-matrix
+title: Spec notes — version-sensitivity matrix (Phase H)
+sidebar_label: Version-sensitivity (v2.1–v2.8)
+---
+
 # Spec notes — version-sensitivity matrix (Phase H)
 
 `@cosyte/hl7` parses HL7 v2 messages **structurally across v2.1–v2.8**. It does

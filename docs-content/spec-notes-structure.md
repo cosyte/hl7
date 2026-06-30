@@ -1,3 +1,9 @@
+---
+id: spec-notes-structure
+title: Spec notes — message-type & structure awareness (Phase G)
+sidebar_label: Message-type & structure awareness
+---
+
 # Spec notes — message-type & structure awareness (Phase G)
 
 `@cosyte/hl7` ships a conservative **misroute / truncation safety net**: for the

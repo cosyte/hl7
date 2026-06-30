@@ -1,3 +1,9 @@
+---
+id: spec-notes-coding-system
+title: Spec notes — coding-system provenance (Phase F)
+sidebar_label: Coding-system provenance
+---
+
 # Spec notes — coding-system provenance (Phase F)
 
 `@cosyte/hl7` surfaces the coding-system a code **claims** (CWE.3 / CE.3, "Name
@@ -60,5 +66,6 @@ carry.
 ## References
 
 - **HL7 Table 0396 (Coding System)** —
-  <https://terminology.hl7.org/CodeSystem-v2-0396.html>; HL7 Vocab registry —
-  <https://www.hl7.org/special/committees/vocab/table_0396/index.cfm>
+  [terminology.hl7.org/CodeSystem-v2-0396.html](https://terminology.hl7.org/CodeSystem-v2-0396.html);
+  HL7 Vocab registry —
+  [www.hl7.org/special/committees/vocab/table_0396/index.cfm](https://www.hl7.org/special/committees/vocab/table_0396/index.cfm)
