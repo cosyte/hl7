@@ -7,14 +7,17 @@
  * Note: full HL7 v2.6+ CWE has 22 components. v1 of this library ships the 9
  * core components — identifier, text, coding-system trio + version ids, and
  * originalText — which cover the common HL7 v2.5 use cases. v2 may restore
- * the full shape.
+ * the full shape. Components 10+ that a newer (v2.7+) sender supplies — the
+ * second-alternate triplet and the coding-system / value-set OIDs — are NOT
+ * dropped: they are preserved verbatim on `extraComponents` so the typed view
+ * is lossless across versions.
  *
  * Zero runtime deps — pure function over the raw positional tree + `unescape`.
  */
 
 import type { EncodingCharacters, RawRepetition } from "../../parser/types.js";
 
-import { readComponent } from "./_shared.js";
+import { readComponent, readExtraComponents } from "./_shared.js";
 
 /**
  * HL7 v2 Coded with Exceptions (CWE) — coded element per HL7 Chapter 2. All
@@ -32,6 +35,9 @@ import { readComponent } from "./_shared.js";
  * 8. alternateCodingSystemVersionId
  * 9. originalText
  *
+ * Components 10+ (present only on v2.7+ senders) are surfaced verbatim, in
+ * order, on `extraComponents` — never silently truncated.
+ *
  * @example
  * ```ts
  * import type { CWE } from "@cosyte/hl7";
@@ -48,6 +54,15 @@ export interface CWE {
   readonly codingSystemVersionId?: string;
   readonly alternateCodingSystemVersionId?: string;
   readonly originalText?: string;
+  /**
+   * Components beyond the modeled 9 (HL7 component 10 onward), preserved
+   * verbatim and in order for forward-compatibility with v2.7+ senders that
+   * carry the second-alternate triplet or coding-system / value-set OIDs.
+   * OMITTED when the element has no components past the 9th. An absent interior
+   * component is preserved as `""` so `extraComponents[i]` maps to HL7
+   * component `10 + i`.
+   */
+  readonly extraComponents?: readonly string[];
 }
 
 /**
@@ -101,6 +116,9 @@ export function parseCwe(rep: RawRepetition, enc: EncodingCharacters): CWE {
 
   const originalText = readComponent(rep, 8, enc);
   if (originalText !== undefined) out.originalText = originalText;
+
+  const extraComponents = readExtraComponents(rep, 9, enc);
+  if (extraComponents !== undefined) out.extraComponents = extraComponents;
 
   return out;
 }

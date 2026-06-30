@@ -98,6 +98,26 @@ per the cosyte version ladder (`0.0.x` until first alpha).
 
 ### Added
 
+- **Version-sensitivity hardening** (roadmap Phase H, P1) — the coded-element
+  composites are now robust to **append-only component growth** across HL7
+  v2.1–v2.8, with **no silent truncation**. `CWE` and `CE` gained an optional
+  `extraComponents: readonly string[]` that preserves any components beyond the
+  modeled set verbatim and in order: **CWE component 10+** (the v2.7
+  second-alternate triplet + coding-system / value-set OIDs) and **CE component
+  7+**. An absent interior component is held as `""` so `extraComponents[i]`
+  maps back to its HL7 component number; trailing empties are stripped and the
+  key is omitted when there is nothing past the modeled set. This also unifies
+  **CE↔CWE** reading — because each accessor preserves the other's extra
+  components, reading a CWE-shaped value through `asCe()` is no longer lossy (CE
+  was deprecated at v2.5, withdrawn at v2.6 in favor of CWE). Parsing a coded
+  element with an arbitrary number of trailing components **never throws**
+  (forward-compatibility with future versions). The CWE coding-system version
+  ids (CWE.7/CWE.8) were already surfaced. Added a `version-growth` property
+  test (no-loss / no-throw / CE↔CWE uniformity) and the supported-version matrix
+  in `docs-content/spec-notes-version-matrix.md` (incl. the **TS→DTM**
+  supersession and the **MSH-21** Conformance Statement ID → Message Profile
+  Identifier rename at v2.5). Additive only — `extraComponents` is a new optional
+  field; no rename, no removal, no new warning code.
 - **Message-type & structure awareness** (roadmap Phase G, P1) — a conservative
   **misroute / truncation safety net**. `msg.structure` reports, for the common
   message types, whether the core segment groups the HL7 v2.5.1 abstract syntax

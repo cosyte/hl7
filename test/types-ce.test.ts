@@ -51,4 +51,30 @@ describe("model/types/ce: parseCe", () => {
     expect(out.nameOfCodingSystem).toBe("LN");
     expect("text" in out).toBe(false);
   });
+
+  it("omits extraComponents on a pure 6-component CE", () => {
+    const out = parseCe(rep([["GLU"], ["Glucose"], ["LN"]]), enc);
+    expect("extraComponents" in out).toBe(false);
+  });
+
+  it("preserves CWE components 7+ when a CWE-shaped value is read through asCe (CE↔CWE uniformity)", () => {
+    // The same 9-component CWE, read as a CE: components 7–9 are not dropped.
+    const out = parseCe(
+      rep([
+        ["GLU"],
+        ["Glucose"],
+        ["LN"],
+        ["GLUC-SER"],
+        ["Glucose Serum"],
+        ["L"],
+        ["v1"], // 7: coding-system version id
+        ["vA"], // 8: alternate coding-system version id
+        ["Note"], // 9: original text
+      ]),
+      enc,
+    );
+    expect(out.identifier).toBe("GLU");
+    expect(out.nameOfAlternateCodingSystem).toBe("L");
+    expect(out.extraComponents).toEqual(["v1", "vA", "Note"]);
+  });
 });
