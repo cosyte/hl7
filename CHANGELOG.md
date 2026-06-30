@@ -13,6 +13,19 @@ The first pre-alpha release (`0.0.1`) will ship the complete v1 API surface belo
 `0.1.0` tag was prepared but never published, so the package begins its public history at `0.0.x`,
 per the cosyte version ladder (`0.0.x` until first alpha).
 
+### Documentation
+
+- **Adopted the documentation IA spine in `docs-content/`** (umbrella DOCS-D5; reference
+  exemplar for the suite). The three `spec-notes-*.md` files (coding-system provenance,
+  message-type & structure awareness, version-sensitivity matrix) are now grouped under a
+  canonical **Core Concepts** category on `docs.cosyte.com` — they previously existed in
+  `docs-content/` but were not referenced from `sidebars.json` and so were unreachable from
+  any rendered route. Each now carries minimal frontmatter (`id` / `title` /
+  `sidebar_label`) so the sidebar text stays concise; the prose is unchanged. Also
+  converted the two CommonMark autolinks in `spec-notes-coding-system.md`
+  (`<https://…>`) to Docusaurus-MDX-safe `[text](url)` form — autolinks parse as JSX in
+  MDX 3, which silently broke the link rendering. Doc-only — no runtime/API change.
+
 ### Security
 
 - **Dev-dependency advisory remediation (no runtime impact — `@cosyte/hl7`
