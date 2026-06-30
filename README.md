@@ -377,6 +377,27 @@ if (msg.meta.messageCode === "ORU") {
 
 Matching on `messageCode` + `triggerEvent` is more robust than string-equals on `type`, because some senders populate MSH-9.3 (`type` includes it) and some don't.
 
+### Spot a truncated or misrouted message
+
+For the common message types, `msg.structure` reports whether the core segment groups the HL7 spec marks **Required** for that trigger event are actually present. It's a **misroute / truncation safety net**, not a conformance validator — an `ORU^R01` that arrives with no `OBR`/`OBX` result group is almost always truncated or sent to the wrong feed.
+
+```ts
+import { parseHL7, WARNING_CODES } from "@cosyte/hl7";
+
+const msg = parseHL7(raw); // ORU^R01 with only MSH + PID
+
+console.log(msg.structure.recognized); // true
+console.log(msg.structure.missingGroups); // ["result"]  (no OBR/OBX)
+
+// The same finding also surfaces as an additive Tier-2 warning, so a
+// channel can route on it without inspecting `structure`:
+if (msg.warnings.some((w) => w.code === WARNING_CODES.MISSING_EXPECTED_GROUP)) {
+  // quarantine / alert: the message is missing an expected segment group
+}
+```
+
+The check is **conservative by construction**: it only models groups that are genuinely Required (so a conformant-but-sparse message never warns), it keys on the **trigger event** (not the message family), and a type it doesn't recognize yields `recognized: false` and emits nothing. It never throws and never rewrites the message — `strict` mode may promote the warning to an error per the usual model. Recognized types: ADT (A01/A02/A03/A04/A05/A08/A11/A13), ORU^R01, ORM^O01, OML^O21, OMG^O19, OMP^O09, OMI^O23, SIU (S12–S26), MDM (T02/T06), DFT^P03, VXU^V04, and ACK. See [`docs-content/spec-notes-structure.md`](docs-content/spec-notes-structure.md) for the per-type Required-segment sourcing.
+
 ### Pretty-print for logs
 
 `msg.prettyPrint()` returns a multi-line, labeled view of the positional tree — useful for dev-time debugging and log snapshots.

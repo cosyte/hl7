@@ -23,7 +23,8 @@ import { emitIfFramed, stripMllp } from "./mllp.js";
 import { mapHl7Charset, normalize, normalizeBuffer } from "./normalize.js";
 import { snippet as segmentSnippet, splitSegments } from "./segments.js";
 import { tokenize } from "./tokenize.js";
-import { encodingMismatch, unknownSegment } from "./warnings.js";
+import { analyzeMessageStructure } from "./message-structure.js";
+import { encodingMismatch, missingExpectedGroup, unknownSegment } from "./warnings.js";
 import type { Hl7ParseWarning } from "./warnings.js";
 import type {
   CustomSegmentDefinition,
@@ -308,6 +309,30 @@ function extractVersion(msh: RawSegment | undefined): string {
 }
 
 /**
+ * Read MSH-9.1 (message code) and MSH-9.2 (trigger event) from the first
+ * tokenized segment for the Phase G structure safety net. MSH-9 is
+ * `fields[8]` under the unified 1-indexed convention (`fields[0]` is the
+ * name/separator placeholder). Returns empty strings when the first segment is
+ * absent, not an MSH, or the components have no content — every intermediate
+ * index guard is explicit under `noUncheckedIndexedAccess`.
+ *
+ * @internal
+ */
+function extractMessageType(msh: RawSegment | undefined): {
+  readonly messageCode: string;
+  readonly triggerEvent: string;
+} {
+  if (msh === undefined || msh.name !== "MSH") return { messageCode: "", triggerEvent: "" };
+  const typeField = msh.fields[8];
+  if (typeField === undefined) return { messageCode: "", triggerEvent: "" };
+  const firstRep = typeField.repetitions[0];
+  if (firstRep === undefined) return { messageCode: "", triggerEvent: "" };
+  const messageCode = firstRep.components[0]?.subcomponents[0] ?? "";
+  const triggerEvent = firstRep.components[1]?.subcomponents[0] ?? "";
+  return { messageCode, triggerEvent };
+}
+
+/**
  * Parse a raw HL7 v2 message (string or `Buffer`) into an `Hl7Message`.
  * The parser is lenient by default: recoverable deviations from the HL7
  * spec are reported via `msg.warnings` and (optionally)
@@ -467,6 +492,36 @@ export function parseHL7(
       Object.prototype.hasOwnProperty.call(profileCustomSegments, rawSeg.name);
     if (!isKnown && !isProfileClaimed) {
       emit(unknownSegment({ segmentIndex: segIdx }, rawSeg.name));
+    }
+  }
+
+  // Step 11.6 (Phase G): structural-conformance safety net. For the common
+  // message types the registry recognizes, warn ADDITIVELY when an expected
+  // Required segment group is entirely absent (e.g. ORU^R01 with no OBR/OBX) —
+  // the signature of a truncated or misrouted feed. Warning-only (Tier-2);
+  // lenient parse never throws, `strict` may promote via the emitter. The
+  // warning carries only structural facts (type, group, anchor names) — never
+  // a field value, so no PHI is exposed. Conservative by construction: an
+  // unrecognized type yields no expected groups and emits nothing.
+  const { messageCode, triggerEvent } = extractMessageType(rawSegments[0]);
+  if (messageCode !== "") {
+    const presentSegmentNames = new Set<string>();
+    for (const seg of rawSegments) {
+      if (seg !== undefined) presentSegmentNames.add(seg.name);
+    }
+    const structure = analyzeMessageStructure(messageCode, triggerEvent, presentSegmentNames);
+    const messageType = triggerEvent !== "" ? `${messageCode}^${triggerEvent}` : messageCode;
+    for (const group of structure.expectedGroups) {
+      if (!group.present) {
+        emit(
+          missingExpectedGroup(
+            { segmentIndex: 0, fieldIndex: 9 },
+            messageType,
+            group.name,
+            group.anchorSegments,
+          ),
+        );
+      }
     }
   }
 

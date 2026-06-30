@@ -24,6 +24,7 @@ export type {
   Visit,
 } from "./types.js";
 export { buildMeta } from "./meta.js";
+export { buildStructure } from "./structure.js";
 export { buildPatient } from "./patient.js";
 export { buildVisit } from "./visit.js";
 export { observations, buildObservation } from "./observations.js";

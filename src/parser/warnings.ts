@@ -34,6 +34,7 @@ export const WARNING_CODES = {
   DUPLICATE_REQUIRED_SEGMENT: "DUPLICATE_REQUIRED_SEGMENT",
   ENCODING_MISMATCH: "ENCODING_MISMATCH",
   MISSING_REQUIRED_FIELD: "MISSING_REQUIRED_FIELD",
+  MISSING_EXPECTED_GROUP: "MISSING_EXPECTED_GROUP",
   OUT_OF_ORDER_SEGMENT: "OUT_OF_ORDER_SEGMENT",
   VERSION_MISMATCH: "VERSION_MISMATCH",
   UNKNOWN_CHARSET: "UNKNOWN_CHARSET",
@@ -298,6 +299,42 @@ export function missingRequiredField(
   return {
     code: WARNING_CODES.MISSING_REQUIRED_FIELD,
     message: `Required field ${segmentName}-${String(fieldIndex)} is missing or empty.`,
+    position,
+  };
+}
+
+/**
+ * Build a `MISSING_EXPECTED_GROUP` warning (roadmap Phase G). Emitted once per
+ * absent Required segment group when the message's (MSH-9.1, MSH-9.2) type is
+ * one the structure safety net recognizes and an expected group is entirely
+ * missing — e.g. an `ORU^R01` carrying no `OBR`/`OBX` result group, the
+ * signature of a truncated or misrouted feed. Tier-2 and additive: lenient
+ * parse never throws on it, `strict` mode may promote it. The message carries
+ * only the structural fact (message type, group name, anchor segment names) —
+ * NEVER a field value, so no PHI is exposed. `position` references MSH-9.
+ *
+ * @example
+ * ```ts
+ * import { missingExpectedGroup } from "@cosyte/hl7";
+ * const w = missingExpectedGroup(
+ *   { segmentIndex: 0, fieldIndex: 9 },
+ *   "ORU^R01",
+ *   "result",
+ *   ["OBR", "OBX"],
+ * );
+ * ```
+ */
+export function missingExpectedGroup(
+  position: Hl7Position,
+  messageType: string,
+  groupName: string,
+  anchorSegments: readonly string[],
+): Hl7ParseWarning {
+  return {
+    code: WARNING_CODES.MISSING_EXPECTED_GROUP,
+    message:
+      `Message type "${messageType}" is missing its expected "${groupName}" segment group ` +
+      `(no ${anchorSegments.join("/")}); message may be truncated or misrouted.`,
     position,
   };
 }

@@ -98,6 +98,26 @@ per the cosyte version ladder (`0.0.x` until first alpha).
 
 ### Added
 
+- **Message-type & structure awareness** (roadmap Phase G, P1) — a conservative
+  **misroute / truncation safety net**. `msg.structure` reports, for the common
+  message types, whether the core segment groups the HL7 v2.5.1 abstract syntax
+  marks **Required** for that trigger event are present; the parser also emits a
+  single additive Tier-2 `MISSING_EXPECTED_GROUP` warning per absent group (e.g.
+  an `ORU^R01` with no `OBR`/`OBX` result group). Keys on the **trigger event**,
+  not the message family, and models **Required anchors only** (EVN in ADT, PID
+  in ORU/SIU, OBR in OML/OMG/OMI, RXA in VXU are deliberately excluded) so a
+  conformant-but-sparse message never warns — every well-formed canonical
+  fixture emits zero structural warnings. Recognized types: ADT
+  (A01/A02/A03/A04/A05/A08/A11/A13), ORU^R01, ORM^O01, OML^O21, OMG^O19,
+  OMP^O09, OMI^O23, SIU (S12–S26), MDM (T02/T06), DFT^P03, VXU^V04, ACK; an
+  unrecognized type yields `recognized: false` and emits nothing. Warning-only
+  (Tier-2) — lenient parse never throws, `strict` may promote; the message
+  carries only structural facts (type, group, anchor names), never a field
+  value (no PHI). New public surface: `Hl7Message.structure`, the
+  `missingExpectedGroup` warning factory, the `MISSING_EXPECTED_GROUP` code, the
+  read-only `MESSAGE_STRUCTURE_DEFINITIONS` registry, `analyzeMessageStructure`,
+  and types `MessageStructure`, `StructureGroup`, `ExpectedSegmentGroup`,
+  `MessageStructureDefinition` (see `docs-content/spec-notes-structure.md`).
 - **Coding-system provenance** (roadmap Phase F, P1) — `codingSystem(id)`,
   `codingSystemOf(coded)`, and `alternateCodingSystemOf(coded)` answer "what
   system does this code CLAIM?" off a `CWE` / `CE` (CWE.3 / CE.3 primary,
