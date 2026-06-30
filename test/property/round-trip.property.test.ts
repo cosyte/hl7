@@ -18,7 +18,7 @@
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
 
-import { parseHL7 } from "../../src/index.js";
+import { WARNING_CODES, parseHL7 } from "../../src/index.js";
 
 import { specCleanMessageRaw } from "./_arbitraries.js";
 
@@ -53,17 +53,21 @@ describe("property: round-trip (serialize → parse) structural equality", () =>
     );
   });
 
-  it("spec-clean generation never produces parser warnings (the generator is honest)", () => {
+  it("spec-clean generation never produces BYTE-changing parser warnings (the generator is honest)", () => {
     // This guards the GENERATOR, not the parser: if a spec-clean message ever
-    // warns, the round-trip invariant above could be masking a lossy transform
-    // (whitespace trim, unknown escape) rather than proving fidelity.
+    // warns a BYTE-changing warning, the round-trip invariant above could be
+    // masking a lossy transform (whitespace trim, unknown escape) rather than
+    // proving fidelity. MISSING_EXPECTED_GROUP (Phase G) is excluded: the
+    // generator builds recognized message types with arbitrary segments and so
+    // legitimately omits Required groups, but that warning is purely structural
+    // advice — it changes no bytes and is orthogonal to round-trip fidelity.
     fc.assert(
       fc.property(specCleanMessageRaw(), (raw) => {
         const msg = parseHL7(raw);
-        // Allow only structural-housekeeping warnings that do not change bytes.
-        // UNKNOWN_SEGMENT cannot fire here (we only emit known segments); the
-        // generator should yield zero warnings.
-        expect(msg.warnings.map((w) => w.code)).toEqual([]);
+        const byteChanging = msg.warnings
+          .map((w) => w.code)
+          .filter((c) => c !== WARNING_CODES.MISSING_EXPECTED_GROUP);
+        expect(byteChanging).toEqual([]);
       }),
       RUN_CONFIG,
     );

@@ -14,7 +14,7 @@ import {
 } from "../src/index.js";
 
 const VALID_MSG =
-  "MSH|^~\\&|APP|FAC|APP|FAC|20250101||ADT^A01|1|P|2.5\rPID|||123\rEVN|A01|20250101";
+  "MSH|^~\\&|APP|FAC|APP|FAC|20250101||ADT^A01|1|P|2.5\rPID|||123\rEVN|A01|20250101\rPV1||I";
 
 describe("parseHL7: happy paths", () => {
   it("parses a well-formed v2.5 message and exposes encodingCharacters + version + segments + warnings", () => {
@@ -22,7 +22,7 @@ describe("parseHL7: happy paths", () => {
     expect(msg).toBeInstanceOf(Hl7Message);
     expect(msg.encodingCharacters).toEqual(DEFAULT_ENCODING_CHARACTERS);
     expect(msg.version).toBe("2.5");
-    expect(msg.rawSegments).toHaveLength(3);
+    expect(msg.rawSegments).toHaveLength(4);
     expect(msg.warnings).toHaveLength(0);
     expect(msg.profile).toBeUndefined();
   });

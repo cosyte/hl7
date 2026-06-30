@@ -36,6 +36,7 @@ export {
   duplicateRequiredSegment,
   encodingMismatch,
   missingRequiredField,
+  missingExpectedGroup,
   outOfOrderSegment,
   versionMismatch,
   unknownCharset,
@@ -191,3 +192,19 @@ export type {
   CodingSystemInfo,
   CodedSystemFields,
 } from "./model/coding-system.js";
+
+// Phase G: message-type & structure awareness — a conservative misroute/
+// truncation safety net. `Hl7Message.structure` surfaces the read-side
+// summary; the parser emits an additive `MISSING_EXPECTED_GROUP` warning when
+// a recognized type lacks an expected Required segment group. The expected-
+// group registry + the pure analyzer are exposed read-only for introspection.
+export {
+  MESSAGE_STRUCTURE_DEFINITIONS,
+  analyzeMessageStructure,
+} from "./parser/message-structure.js";
+export type {
+  ExpectedSegmentGroup,
+  MessageStructureDefinition,
+  StructureGroup,
+  MessageStructure,
+} from "./parser/message-structure.js";

@@ -30,6 +30,7 @@ import {
 
 // Type-only imports (named)
 import type { XPN, XAD, CX, CWE, CE, XTN, PL, TS, NM, HD, DotPath } from "../src/index.js";
+import type { MessageStructure, StructureGroup } from "../src/index.js";
 
 describe("public exports: Phase 3 surface", () => {
   it("re-exports 10 composite parsers as values", () => {
@@ -95,5 +96,23 @@ describe("public exports: Phase 3 surface", () => {
     expect(hd.namespaceId).toBe("APP");
     expect(dp.segmentType).toBe("PID");
     expect(xpn2.familyName).toBe("Jones");
+  });
+});
+
+describe("public exports: Phase G structure surface", () => {
+  it("re-exports the structure analyzer + registry + warning factory as values", async () => {
+    const mod = await import("../src/index.js");
+    expect(typeof mod.analyzeMessageStructure).toBe("function");
+    expect(Array.isArray(mod.MESSAGE_STRUCTURE_DEFINITIONS)).toBe(true);
+    expect(typeof mod.missingExpectedGroup).toBe("function");
+    expect(mod.WARNING_CODES.MISSING_EXPECTED_GROUP).toBe("MISSING_EXPECTED_GROUP");
+  });
+
+  it("structure types resolve (compile-time check via usage)", async () => {
+    const { analyzeMessageStructure } = await import("../src/index.js");
+    const s: MessageStructure = analyzeMessageStructure("ORU", "R01", new Set(["MSH"]));
+    const g: StructureGroup | undefined = s.expectedGroups[0];
+    expect(s.recognized).toBe(true);
+    expect(g?.present).toBe(false);
   });
 });

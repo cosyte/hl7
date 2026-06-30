@@ -30,6 +30,7 @@ import { nextOfKin as walkNextOfKin } from "../helpers/next-of-kin.js";
 import { observations as walkObservations } from "../helpers/observations.js";
 import { orders as walkOrders } from "../helpers/orders.js";
 import { buildPatient } from "../helpers/patient.js";
+import { buildStructure } from "../helpers/structure.js";
 import type {
   Allergy,
   Diagnosis,
@@ -43,6 +44,7 @@ import type {
   Patient,
   Visit,
 } from "../helpers/types.js";
+import type { MessageStructure } from "../parser/message-structure.js";
 import { buildVisit } from "../helpers/visit.js";
 import { emitPrettyPrint } from "../serialize/pretty-print.js";
 import { emitJson, type SerializedMessage } from "../serialize/to-json.js";
@@ -191,6 +193,14 @@ export class Hl7Message {
    * @internal
    */
   private _meta: Meta | undefined;
+
+  /**
+   * Lazily built `MessageStructure` view (Phase G). Dropped wholesale by
+   * `invalidateCaches`. Always defined — `analyzeMessageStructure` returns an
+   * `recognized: false` summary for unmodelled types rather than absence.
+   * @internal
+   */
+  private _structure: MessageStructure | undefined;
 
   /**
    * Lazily built `Patient | undefined` view (Phase 4 D-02 memoization). Uses
@@ -350,6 +360,25 @@ export class Hl7Message {
    */
   public get meta(): Meta {
     return (this._meta ??= buildMeta(this));
+  }
+
+  /**
+   * Structural-conformance summary for the common message types (roadmap
+   * Phase G) — a misroute/truncation safety net, NOT a conformance validator.
+   * Reports, per the message's recognized (MSH-9.1, MSH-9.2) type, which
+   * Required segment groups are present and which are entirely absent
+   * (`missingGroups` — the same set the parser flags as
+   * `MISSING_EXPECTED_GROUP` warnings). For an unmodelled type, `recognized`
+   * is `false` and `missingGroups` is empty. D-02: memoized.
+   *
+   * @example
+   * ```ts
+   * console.log(msg.structure.recognized);    // true for ORU^R01, ADT^A01, …
+   * console.log(msg.structure.missingGroups); // e.g. ["result"] if no OBR/OBX
+   * ```
+   */
+  public get structure(): MessageStructure {
+    return (this._structure ??= buildStructure(this));
   }
 
   /**
@@ -838,6 +867,7 @@ export class Hl7Message {
     this._segmentsByType = undefined;
     this._allSegments = undefined;
     this._meta = undefined;
+    this._structure = undefined;
     this._patient = undefined;
     this._visit = undefined;
   }
