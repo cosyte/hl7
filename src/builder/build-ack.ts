@@ -22,7 +22,7 @@ import type { RawField, RawSegment } from "../parser/types.js";
 import { ackNoCorrelationId } from "../parser/warnings.js";
 
 import {
-  ACK_CODES,
+  downgradePositiveAck,
   ERR_CONDITION_CODES,
   ERR_CONDITION_CODE_SYSTEM,
   ERR_SEVERITIES,
@@ -128,8 +128,15 @@ export function detectAckMode(inbound: Hl7Message): AckMode {
  *   `ACK` (with the inbound trigger event echoed as `ACK^<trigger>^ACK` when
  *   present); MSH-10 is a freshly generated control id; MSH-11 (processing id)
  *   and MSH-12 (version) echo the inbound values.
- * - **MSA** — MSA-1 = `code`; **MSA-2 echoes the inbound MSH-10** (the
- *   correlation id).
+ * - **MSA** — MSA-1 = `code`; **MSA-2 echoes the full inbound MSH-10 field**
+ *   (the raw field structure is carried over whole — a vendor-quirk id like
+ *   `ID^X` is never truncated to its first component). The echo is the
+ *   field's *canonical re-serialization*, not its original bytes: the ACK
+ *   emits with the default encoding characters (a custom-delimiter sender is
+ *   re-delimited spec-cleanly), hex escapes decode (`\X41\` → `A`),
+ *   preserved formatting/vendor escapes re-emit as escaped literal text, and
+ *   trailing insignificant empties canonicalize (D-02). Plain and
+ *   delimiter-bearing ids — the overwhelmingly common case — echo byte-exact.
  * - **ERR** — one segment per supplied {@link AckErrorDetail}: ERR-2 location
  *   (when given), ERR-3 the Table 0357 condition code as a CWE
  *   (`code^text^HL70357`), ERR-4 the Table 0516 severity.
@@ -167,26 +174,35 @@ export function buildAck(inbound: Hl7Message, options: BuildAckOptions): Hl7Mess
   const enc = DEFAULT_ENCODING_CHARACTERS;
   const meta = inbound.meta;
 
-  // Correlation: MSA-2 echoes inbound MSH-10. Absent → fail-safe path.
-  const correlationId = meta.controlId;
-  const hasCorrelation = correlationId !== undefined && correlationId !== "";
+  // Swap the addressing HDs by ALIASING the inbound RAW field objects (not
+  // the component-1-only `meta` scalars), so multi-component HDs like
+  // `APP^DNS^ISO` survive into the reply intact rather than being truncated.
+  // Sharing by reference is safe because every Hl7Message mutation method
+  // (setField et al.) is copy-on-write leaf-to-root — neither message can
+  // corrupt the other through the shared subtree.
+  const msh = inbound.segments("MSH")[0];
+  const inboundMsh = (n: number): RawField => msh?.field(n).raw ?? absentField();
+
+  // Correlation: MSA-2 echoes the inbound RAW MSH-10 field **verbatim** —
+  // not the component-1-only `meta.controlId` scalar. A vendor-quirk control
+  // id carrying an unescaped delimiter (`ID^X`) must survive into MSA-2
+  // byte-for-byte, or a sender correlating on the raw MSH-10 bytes will
+  // never match the ACK (HL7 v2 §2.9.2.2: a mismatch is a correlation
+  // failure). Absent/empty → fail-safe path.
+  const rawControlId = inboundMsh(10);
+  const hasCorrelation = rawFieldHasContent(rawControlId);
 
   // Resolve the emitted disposition, applying the no-correlation fail-safe.
-  let emittedCode: string = options.code;
-  if (!hasCorrelation && isPositiveAck(options.code)) {
-    emittedCode = options.code === ACK_CODES.CA ? ACK_CODES.CE : ACK_CODES.AE;
-  }
+  const emittedCode: string = hasCorrelation
+    ? options.code
+    : isPositiveAck(options.code)
+      ? downgradePositiveAck(options.code)
+      : options.code;
 
   // ── MSH ────────────────────────────────────────────────────────────────
   const ackType = meta.triggerEvent !== undefined ? `ACK^${meta.triggerEvent}^ACK` : "ACK";
   const version = meta.version ?? "2.5";
   const processingId = meta.processingId ?? "P";
-
-  // Swap the addressing HDs by copying the inbound RAW fields (not the
-  // component-1-only `meta` scalars), so multi-component HDs like
-  // `APP^DNS^ISO` survive into the reply intact rather than being truncated.
-  const msh = inbound.segments("MSH")[0];
-  const inboundMsh = (n: number): RawField => msh?.field(n).raw ?? absentField();
 
   const mshFields: RawField[] = [
     scalarField(enc.field),
@@ -208,13 +224,14 @@ export function buildAck(inbound: Hl7Message, options: BuildAckOptions): Hl7Mess
   const segments: RawSegment[] = [{ name: "MSH", fields: mshFields }];
 
   // ── MSA ────────────────────────────────────────────────────────────────
-  // MSA-1 = disposition, MSA-2 = correlation id (empty under the fail-safe).
+  // MSA-1 = disposition, MSA-2 = the raw inbound MSH-10 field copied
+  // verbatim (empty under the fail-safe).
   segments.push({
     name: "MSA",
     fields: [
       absentField(),
       scalarField(emittedCode),
-      scalarField(hasCorrelation ? correlationId : ""),
+      hasCorrelation ? rawControlId : absentField(),
     ],
   });
 
@@ -303,6 +320,19 @@ function scalarField(value: string): RawField {
 /** Absent field (no content, not null). @internal */
 function absentField(): RawField {
   return { repetitions: [], isNull: false };
+}
+
+/**
+ * True iff the raw field carries any content at all — at least one non-empty
+ * subcomponent in any component of any repetition. Drives the correlation
+ * check on the raw MSH-10: a quirky `^X` still correlates (the verbatim echo
+ * preserves it), while a genuinely empty/absent field triggers the fail-safe.
+ * @internal
+ */
+function rawFieldHasContent(field: RawField): boolean {
+  return field.repetitions.some((rep) =>
+    rep.components.some((comp) => comp.subcomponents.some((sub) => sub !== "")),
+  );
 }
 
 /**

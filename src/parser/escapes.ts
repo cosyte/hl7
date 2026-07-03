@@ -225,6 +225,12 @@ export function reescape(input: string, enc: EncodingCharacters): string {
     // round-trips as a literal.
     else if (trunc !== undefined && ch === trunc) out += enc.escape + "P" + enc.escape;
     else if (ch === "\n") out += enc.escape + ".br" + enc.escape;
+    // A literal CR in decoded content (reachable via a spec-legal \X0D\ hex
+    // escape on parse) is the HL7 segment separator — emitting it raw would
+    // CORRUPT the wire framing (a phantom segment split mid-field, silently).
+    // Re-emit it as its hex escape so the round-trip is stable and the
+    // emitted message always stays structurally intact.
+    else if (ch === "\r") out += enc.escape + "X0D" + enc.escape;
     else out += ch;
   }
   return out;

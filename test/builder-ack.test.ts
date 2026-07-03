@@ -19,7 +19,13 @@
 
 import { describe, expect, it } from "vitest";
 
-import { buildAck, detectAckMode, interpretAck, parseHL7 } from "../src/index.js";
+import {
+  buildAck,
+  detectAckMode,
+  downgradePositiveAck,
+  interpretAck,
+  parseHL7,
+} from "../src/index.js";
 
 /** A minimal, well-formed inbound ADT^A01 with a correlatable MSH-10. */
 const INBOUND = "MSH|^~\\&|SENDAPP|SENDFAC|RECVAPP|RECVFAC|20260101120000||ADT^A01|MSG00001|P|2.5";
@@ -373,5 +379,150 @@ describe("interpretAck — read-side", () => {
     const view = interpretAck(parseHL7(ack.toString()));
     expect(view.accepted).toBe(true);
     expect(view.controlId).toBe("MSG00001");
+  });
+});
+
+describe("buildAck — verbatim MSA-2 echo (vendor-quirk control ids)", () => {
+  /** Inbound whose MSH-10 carries an unescaped component delimiter — a real vendor quirk. */
+  const INBOUND_QUIRKY_CARET =
+    "MSH|^~\\&|SENDAPP|SENDFAC|RECVAPP|RECVFAC|20260101120000||ADT^A01|ID^X|P|2.5";
+
+  it("echoes a delimiter-bearing MSH-10 into MSA-2 byte-for-byte (never truncates to component 1)", () => {
+    const ack = buildAck(parseHL7(INBOUND_QUIRKY_CARET), { code: "AA" });
+    const msaLine = ack
+      .toString()
+      .split("\r")
+      .find((l) => l.startsWith("MSA"));
+    expect(msaLine).toBe("MSA|AA|ID^X");
+    expect(ack.warnings).toEqual([]);
+  });
+
+  it("echoes a subcomponent-delimiter id (A&B) verbatim", () => {
+    const inbound = parseHL7(
+      "MSH|^~\\&|SENDAPP|SENDFAC|RECVAPP|RECVFAC|20260101120000||ADT^A01|A&B|P|2.5",
+    );
+    const ack = buildAck(inbound, { code: "AA" });
+    const msaLine = ack
+      .toString()
+      .split("\r")
+      .find((l) => l.startsWith("MSA"));
+    expect(msaLine).toBe("MSA|AA|A&B");
+  });
+
+  it("echoes an escape-sequence id (A\\F\\B) verbatim without double-escaping", () => {
+    const inbound = parseHL7(
+      "MSH|^~\\&|SENDAPP|SENDFAC|RECVAPP|RECVFAC|20260101120000||ADT^A01|A\\F\\B|P|2.5",
+    );
+    const ack = buildAck(inbound, { code: "AA" });
+    const msaLine = ack
+      .toString()
+      .split("\r")
+      .find((l) => l.startsWith("MSA"));
+    expect(msaLine).toBe("MSA|AA|A\\F\\B");
+  });
+
+  it("a leading-delimiter id (^X) still correlates — no downgrade, verbatim echo", () => {
+    const inbound = parseHL7(
+      "MSH|^~\\&|SENDAPP|SENDFAC|RECVAPP|RECVFAC|20260101120000||ADT^A01|^X|P|2.5",
+    );
+    const ack = buildAck(inbound, { code: "AA" });
+    expect(ack.get("MSA.1")).toBe("AA"); // NOT downgraded — the field has content
+    const msaLine = ack
+      .toString()
+      .split("\r")
+      .find((l) => l.startsWith("MSA"));
+    expect(msaLine).toBe("MSA|AA|^X");
+    expect(ack.warnings).toEqual([]);
+  });
+
+  it("interpretAck surfaces a delimiter-bearing MSA-2 verbatim (read-side symmetry)", () => {
+    const ack = buildAck(parseHL7(INBOUND_QUIRKY_CARET), { code: "AA" });
+    const view = interpretAck(parseHL7(ack.toString()));
+    expect(view.controlId).toBe("ID^X");
+    expect(view.accepted).toBe(true);
+  });
+
+  it("Field.text exposes verbatim wire text where .value truncates to component 1", () => {
+    const inbound = parseHL7(INBOUND_QUIRKY_CARET);
+    const msh10 = inbound.segments("MSH")[0]?.field(10);
+    expect(msh10?.value).toBe("ID");
+    expect(msh10?.text).toBe("ID^X");
+  });
+});
+
+describe("downgradePositiveAck — the single upstream downgrade primitive", () => {
+  it("downgrades AA→AE and CA→CE; every other code passes through", () => {
+    expect(downgradePositiveAck("AA")).toBe("AE");
+    expect(downgradePositiveAck("CA")).toBe("CE");
+    expect(downgradePositiveAck("AE")).toBe("AE");
+    expect(downgradePositiveAck("AR")).toBe("AR");
+    expect(downgradePositiveAck("CE")).toBe("CE");
+    expect(downgradePositiveAck("CR")).toBe("CR");
+  });
+});
+
+describe("buildAck — escape canonicalization limits (documented, pinned)", () => {
+  const inboundWith = (controlId: string): string =>
+    `MSH|^~\\&|SENDAPP|SENDFAC|RECVAPP|RECVFAC|20260101120000||ADT^A01|${controlId}|P|2.5`;
+
+  it("a hex-escaped CR in MSH-10 (\\X0D\\) NEVER corrupts the ACK's segment framing", () => {
+    const ack = buildAck(parseHL7(inboundWith("A\\X0D\\B")), { code: "AA" });
+    const wire = ack.toString();
+    // Exactly MSH + MSA — no phantom segment split by a raw CR.
+    const lines = wire.split("\r").filter((l) => l !== "");
+    expect(lines).toHaveLength(2);
+    expect(lines[1]).toBe("MSA|AA|A\\X0D\\B");
+    // Round-trip stays structurally intact and re-parses as an ACK.
+    const round = parseHL7(wire);
+    expect(round.segments("MSA")).toHaveLength(1);
+    expect(round.meta.messageCode).toBe("ACK");
+  });
+
+  it("hex escapes canonicalize on echo (\\X41\\ decodes to A) — documented, not silent structure loss", () => {
+    const ack = buildAck(parseHL7(inboundWith("A\\X41\\B")), { code: "AA" });
+    const msaLine = ack
+      .toString()
+      .split("\r")
+      .find((l) => l.startsWith("MSA"));
+    expect(msaLine).toBe("MSA|AA|AAB");
+  });
+
+  it("preserved escapes (\\H\\) re-emit as escaped literal text — lossless at the text level", () => {
+    const ack = buildAck(parseHL7(inboundWith("A\\H\\B")), { code: "AA" });
+    const msaLine = ack
+      .toString()
+      .split("\r")
+      .find((l) => l.startsWith("MSA"));
+    expect(msaLine).toBe("MSA|AA|A\\E\\H\\E\\B");
+    // A conformant reader decodes that back to the same literal text the
+    // decoded tree holds — the text round-trips even though the escape's
+    // original byte form does not.
+    const round = parseHL7(ack.toString());
+    expect(round.segments("MSA")[0]?.field(2).value).toBe("A\\H\\B");
+  });
+
+  it("a custom-delimiter inbound is re-delimited spec-cleanly (ACK emits default encoding chars)", () => {
+    // Sender declares $ as the component separator; ^ is plain data for them.
+    const inbound = parseHL7(
+      "MSH|$~\\&|SENDAPP|SENDFAC|RECVAPP|RECVFAC|20260101120000||ADT$A01|ID$X|P|2.5",
+    );
+    const ack = buildAck(inbound, { code: "AA" });
+    const msaLine = ack
+      .toString()
+      .split("\r")
+      .find((l) => l.startsWith("MSA"));
+    // The two-component structure survives; the ACK speaks default delimiters.
+    expect(msaLine).toBe("MSA|AA|ID^X");
+    expect(parseHL7(ack.toString()).warnings).toEqual([]);
+  });
+});
+
+describe("interpretAck — explicit-null MSA-2 (foreign ACK)", () => {
+  it('surfaces an explicit HL7 null MSA-2 as the literal two-character `""` (whole-field contract)', () => {
+    const view = interpretAck(
+      parseHL7('MSH|^~\\&|A|B|C|D|20260101120000||ACK^A01^ACK|X1|P|2.5\rMSA|AA|""'),
+    );
+    expect(view.controlId).toBe('""');
+    expect(view.accepted).toBe(true);
   });
 });
