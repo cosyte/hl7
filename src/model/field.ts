@@ -16,6 +16,7 @@
 
 import { DEFAULT_ENCODING_CHARACTERS } from "../parser/delimiters.js";
 import { unescape } from "../parser/escapes.js";
+import { emitField } from "../serialize/emit-field.js";
 import type { EncodingCharacters, Hl7Position, RawField, RawRepetition } from "../parser/types.js";
 import type { Hl7ParseWarning } from "../parser/warnings.js";
 import { parseCe, type CE } from "./types/ce.js";
@@ -103,6 +104,43 @@ export class Field {
     const sub = comp.subcomponents[0];
     if (sub === undefined) return "";
     return unescape(sub, this.enc, NOOP_EMITTER, this.position);
+  }
+
+  /**
+   * The field's **canonical wire text** — the full field re-serialized with
+   * the active delimiters and re-escaped content (repetitions, components,
+   * and subcomponents included). Contrast with {@link value}, which
+   * unescapes and returns only the first subcomponent of the first component
+   * of the first repetition.
+   *
+   * Use this when a field must be compared or echoed as a whole — e.g.
+   * correlating an ACK's MSA-2 against the inbound MSH-10, where a
+   * vendor-quirk control id containing an unescaped delimiter (`ID^X`) must
+   * not be truncated to its first component.
+   *
+   * **Canonical, not byte-verbatim.** The parse pipeline stores *decoded*
+   * content, so re-serialization canonicalizes escape sequences: hex escapes
+   * decode (`A\X41\B` → `AAB`), and recognize-but-preserve sequences
+   * (`\H\`, `\N\`, formatting/charset/vendor escapes) re-emit as escaped
+   * literal text (`\E\H\E\`) — lossless at the text level, but not the
+   * original escape bytes. Plain and delimiter-bearing content round-trips
+   * byte-exact. Trailing insignificant empties are canonicalized (D-02).
+   *
+   * **MSH-1/MSH-2 caveat.** Like {@link value}, calling this on MSH-1 or
+   * MSH-2 (the delimiter-definition fields) re-escapes the encoding
+   * characters themselves and produces garbage — those two fields are only
+   * meaningful through `Hl7Message.encodingCharacters`.
+   *
+   * @example
+   * ```ts
+   * import { parseHL7 } from "@cosyte/hl7";
+   * const msg = parseHL7("MSH|^~\\&|A|B|C|D|20260101||ADT^A01|ID^X|P|2.5\r");
+   * msg.segments("MSH")[0]?.field(10).value; // "ID"   (first component only)
+   * msg.segments("MSH")[0]?.field(10).text;  // "ID^X" (verbatim wire text)
+   * ```
+   */
+  public get text(): string {
+    return emitField(this.raw, this.enc);
   }
 
   /**

@@ -54,7 +54,14 @@ export interface AckErrorEntry {
 export interface Acknowledgment {
   /** MSA-1 acknowledgment code (HL7 Table 0008), verbatim. Omitted when absent. */
   readonly code?: string;
-  /** MSA-2 message control id (the correlated inbound MSH-10). Omitted when absent. */
+  /**
+   * MSA-2 message control id (the correlated inbound MSH-10), surfaced as the
+   * field's **canonical wire text** (`Field.text`) — the whole field,
+   * delimiters included, never truncated to the first component. Note this is
+   * the *re-escaped* form: a properly-escaped id arrives as its wire bytes
+   * (`ID\S\X`), and an HL7 explicit-null MSA-2 surfaces as the literal
+   * two-character `""`. Omitted when absent/empty.
+   */
   readonly controlId?: string;
   /** True iff MSA-1 is a positive accept (`AA`/`CA`). */
   readonly accepted: boolean;
@@ -86,7 +93,11 @@ export function interpretAck(msg: Hl7Message): Acknowledgment {
   if (msa !== undefined) {
     const codeValue = msa.field(1).value;
     if (codeValue !== "") code = codeValue;
-    const controlIdValue = msa.field(2).value;
+    // MSA-2 is surfaced as the field's VERBATIM wire text (`Field.text`), not
+    // the component-1-only `.value` — the correlation id must compare
+    // byte-for-byte against the raw MSH-10 the sender transmitted, even when
+    // a vendor-quirk id carries an unescaped delimiter (`ID^X`).
+    const controlIdValue = msa.field(2).text;
     if (controlIdValue !== "") controlId = controlIdValue;
   }
 

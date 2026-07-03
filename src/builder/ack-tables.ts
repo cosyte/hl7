@@ -65,6 +65,31 @@ export function isPositiveAck(code: string | undefined): boolean {
 }
 
 /**
+ * Downgrade a positive acknowledgment code to its matching error code —
+ * `AA` → `AE` (original mode), `CA` → `CE` (enhanced mode). Every other code
+ * passes through unchanged.
+ *
+ * This is the **single upstream source of truth** for the fail-safe downgrade
+ * pair: `buildAck` applies it when the inbound carries no MSH-10 correlation
+ * id, and `@cosyte/mllp`'s `ack-from-hl7` adapter applies it when the inbound
+ * cannot be parsed at all — neither ever fabricates an unverifiable positive
+ * acknowledgment, and neither carries its own copy of the mapping.
+ *
+ * @example
+ * ```ts
+ * import { downgradePositiveAck } from "@cosyte/hl7";
+ * downgradePositiveAck("AA"); // "AE"
+ * downgradePositiveAck("CA"); // "CE"
+ * downgradePositiveAck("AR"); // "AR" (unchanged)
+ * ```
+ */
+export function downgradePositiveAck(code: AckCode): AckCode {
+  if (code === ACK_CODES.AA) return ACK_CODES.AE;
+  if (code === ACK_CODES.CA) return ACK_CODES.CE;
+  return code;
+}
+
+/**
  * True iff `code` is an error acknowledgment (`AE`/`CE`). Unknown/absent → false.
  *
  * @example

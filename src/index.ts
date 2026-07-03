@@ -154,9 +154,11 @@ export type { Acknowledgment, AckErrorEntry } from "./helpers/acknowledgment.js"
 export {
   ACK_CODES,
   ACK_CONDITIONS,
+  downgradePositiveAck,
   ERR_CONDITION_CODES,
   ERR_CONDITION_CODE_SYSTEM,
   ERR_SEVERITIES,
+  isPositiveAck,
 } from "./builder/ack-tables.js";
 export type { AckCode, AckCondition, AckMode, ErrSeverity } from "./builder/ack-tables.js";
 export { ackNoCorrelationId } from "./parser/warnings.js";

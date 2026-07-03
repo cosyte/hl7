@@ -13,6 +13,46 @@ The first pre-alpha release (`0.0.1`) will ship the complete v1 API surface belo
 `0.1.0` tag was prepared but never published, so the package begins its public history at `0.0.x`,
 per the cosyte version ladder (`0.0.x` until first alpha).
 
+### Fixed
+
+- **`buildAck` now echoes the full inbound MSH-10 field into MSA-2** — the raw
+  field structure is carried over whole (delimiters and repetitions included)
+  instead of the component-1-only `meta.controlId` scalar. A vendor-quirk
+  control id carrying an unescaped delimiter (`ID^X`) was previously truncated
+  to `ID` silently, under a confident positive ACK — a sender correlating on
+  the raw MSH-10 bytes (as `@cosyte/mllp`'s client does) would never match the
+  ACK and resend indefinitely (HL7 v2 §2.9.2.2: an MSA-2 mismatch is a
+  correlation failure). The no-correlation fail-safe now keys on the raw field
+  carrying any content, so a leading-delimiter id (`^X`) correlates instead of
+  being spuriously downgraded. **Known canonicalization limits** (the echo is
+  the field's canonical re-serialization, not its original bytes): the ACK
+  emits with default encoding characters (custom-delimiter senders are
+  re-delimited spec-cleanly); hex escapes decode (`\X41\` → `A`); preserved
+  formatting/vendor escapes (`\H\`, `\Z..\`) re-emit as escaped literal
+  text; trailing insignificant empties canonicalize (D-02). Plain and
+  delimiter-bearing ids — the overwhelmingly common case — echo byte-exact.
+- **`reescape` now emits a literal CR in decoded content as its `\X0D\` hex
+  escape** instead of passing it through raw. A spec-legal `\X0D\` in any
+  inbound field decoded to a bare CR — the HL7 segment separator — and
+  re-serializing it corrupted the emitted message's framing (a phantom
+  segment split mid-field, silently). Reachable through `buildAck`'s MSA-2
+  echo among every other emit path; now structurally safe and round-trip
+  stable.
+- **`interpretAck` surfaces MSA-2 whole** (read-side symmetry) —
+  `Acknowledgment.controlId` is now the field's canonical wire text
+  (`Field.text`), not its first component.
+
+### Added
+
+- **`Field.text`** — the field's canonical wire text (full repetitions/
+  components/subcomponents re-serialized with the active delimiters), the
+  whole-field counterpart to the component-1-only `Field.value`.
+- **`downgradePositiveAck(code)`** — the single upstream source of truth for
+  the fail-safe downgrade pair (`AA`→`AE`, `CA`→`CE`; everything else passes
+  through), now exported so `@cosyte/mllp`'s `ack-from-hl7` adapter reuses it
+  instead of carrying a divergent copy. **`isPositiveAck`** is exported
+  alongside it.
+
 ### Documentation
 
 - **Adopted the documentation IA spine in `docs-content/`** (umbrella DOCS-D5; reference
