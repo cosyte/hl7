@@ -8,6 +8,7 @@
       "items": [
         "spec-notes-coding-system",
         "spec-notes-structure",
+        "spec-notes-identity",
         "spec-notes-version-matrix"
       ]
     }

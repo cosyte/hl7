@@ -22,6 +22,8 @@ import type {
 import type { Hl7ParseWarning } from "../parser/warnings.js";
 import { allergies as walkAllergies } from "../helpers/allergies.js";
 import { diagnoses as walkDiagnoses } from "../helpers/diagnoses.js";
+import type { IdentityEvent } from "../helpers/identity.js";
+import { identityEvents as walkIdentityEvents } from "../helpers/identity.js";
 import { immunizations as walkImmunizations } from "../helpers/immunizations.js";
 import { insurance as walkInsurance } from "../helpers/insurance.js";
 import { medications as walkMedications } from "../helpers/medications.js";
@@ -447,6 +449,28 @@ export class Hl7Message {
    */
   public orders(): readonly Order[] {
     return walkOrders(this);
+  }
+
+  /**
+   * Every recognized ADT patient-identity event (merge / move / link /
+   * unlink / person add/update — roadmap Phase K), with the MRG-sourced
+   * `prior` and PID/PV1-sourced `surviving` parties labelled by role and the
+   * spec-constant `direction: "MRG_TO_PID"` on merge/move events. Returns
+   * `[]` when the trigger event is not in the identity family. D-06: not
+   * memoized. Never throws; incomplete merge pairs surface a
+   * `MERGE_MISSING_PRIOR_OR_SURVIVOR` warning on the event.
+   *
+   * @example
+   * ```ts
+   * for (const ev of msg.identityEvents()) {
+   *   if (ev.kind === "merge" && ev.prior && ev.surviving) {
+   *     // retire ev.prior.identifiers in favour of ev.surviving.identifiers
+   *   }
+   * }
+   * ```
+   */
+  public identityEvents(): readonly IdentityEvent[] {
+    return walkIdentityEvents(this);
   }
 
   /**

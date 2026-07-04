@@ -23,6 +23,8 @@ export type {
   Patient,
   Visit,
 } from "./types.js";
+export type { IdentityEvent, IdentityEventKind, IdentityParty, IdentityRole } from "./identity.js";
+export { identityEvents } from "./identity.js";
 export { buildMeta } from "./meta.js";
 export { buildStructure } from "./structure.js";
 export { buildPatient } from "./patient.js";

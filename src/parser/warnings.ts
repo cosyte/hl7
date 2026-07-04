@@ -39,6 +39,7 @@ export const WARNING_CODES = {
   VERSION_MISMATCH: "VERSION_MISMATCH",
   UNKNOWN_CHARSET: "UNKNOWN_CHARSET",
   ACK_NO_CORRELATION_ID: "ACK_NO_CORRELATION_ID",
+  MERGE_MISSING_PRIOR_OR_SURVIVOR: "MERGE_MISSING_PRIOR_OR_SURVIVOR",
 } as const;
 
 /**
@@ -421,6 +422,49 @@ export function ackNoCorrelationId(position: Hl7Position): Hl7ParseWarning {
     message:
       "Inbound message has no MSH-10 control ID; ACK MSA-2 left empty and any " +
       "positive accept downgraded to an error code (no fabricated AA/CA).",
+    position,
+  };
+}
+
+/**
+ * Build a `MERGE_MISSING_PRIOR_OR_SURVIVOR` warning (roadmap Phase K). Emitted
+ * by `identityEvents()` (a read-side helper — it attaches to the returned
+ * `IdentityEvent.warnings`, never to `Hl7Message.warnings`) when a merge/move
+ * trigger event (A18/A34/A35/A36/A39/A40/A41/A42/A43/A44) is missing one side
+ * of the spec-mandated MRG (prior) → PID (surviving) pair — or when that side
+ * carries no usable identity field: no MRG segment in the patient group, no
+ * PID for an orphaned MRG, or a PID/MRG whose identifier, account, and visit
+ * fields are all empty or version-gated (a v2.7+ MRG whose only content was
+ * the withdrawn MRG-4 must not read as "nothing to retire"). The helper
+ * surfaces whatever IS present and never
+ * guesses the merge direction — this warning is the signal that the pair is
+ * incomplete.
+ *
+ * The message carries only the structural facts (trigger event code + which
+ * role is missing) — NEVER an identifier, name, or any other field value, so
+ * no PHI is exposed (HL7 v2 Ch. 3: the PID carries surviving and the MRG
+ * carries non-surviving identity information).
+ *
+ * @example
+ * ```ts
+ * import { mergeMissingPriorOrSurvivor } from "@cosyte/hl7";
+ * const w = mergeMissingPriorOrSurvivor({ segmentIndex: 1 }, "A40", "prior");
+ * ```
+ */
+export function mergeMissingPriorOrSurvivor(
+  position: Hl7Position,
+  eventType: string,
+  missing: "prior" | "survivor",
+): Hl7ParseWarning {
+  const detail =
+    missing === "prior"
+      ? "no MRG segment carries a usable prior (non-surviving) identifier"
+      : "no PID segment carries a usable surviving identifier";
+  return {
+    code: WARNING_CODES.MERGE_MISSING_PRIOR_OR_SURVIVOR,
+    message:
+      `Identity event "${eventType}" is missing its ${missing} role: ${detail}. ` +
+      "Surfacing what is present; the MRG->PID merge direction is not guessed.",
     position,
   };
 }
