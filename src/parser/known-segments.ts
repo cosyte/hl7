@@ -34,6 +34,7 @@ export const KNOWN_SEGMENTS: ReadonlySet<string> = new Set<string>([
   // Patient identifiers + demographics + visit
   "PID",
   "PD1",
+  "MRG",
   "PV1",
   "PV2",
   "PDA",

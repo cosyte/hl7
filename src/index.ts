@@ -131,6 +131,17 @@ export type {
 // that calls it (D-07/D-08/D-10 default; Phase 6 hook-point).
 export { pickMrn } from "./helpers/pick-mrn.js";
 
+// Roadmap Phase K: patient-identity / merge events. Runtime behavior lives on
+// `Hl7Message.identityEvents()`; the typed views + the event-scoped warning
+// factory are the named exports.
+export type {
+  IdentityEvent,
+  IdentityEventKind,
+  IdentityParty,
+  IdentityRole,
+} from "./helpers/identity.js";
+export { mergeMissingPriorOrSurvivor } from "./parser/warnings.js";
+
 // Phase 5: outbound construction + serialization types.
 // D-09: `buildMessage` is a top-level named export, symmetric with `parseHL7`.
 // D-21: `SerializedMessage` is a top-level type export (not under the HL7

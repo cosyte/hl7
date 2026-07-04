@@ -44,6 +44,28 @@ per the cosyte version ladder (`0.0.x` until first alpha).
 
 ### Added
 
+- **`identityEvents()` — patient-identity / merge events (roadmap Phase K, P0
+  safety).** `msg.identityEvents()` recognizes the ADT identity-management
+  trigger family — merges (A18/A34/A35/A36/A39/A40/A41/A42), moves (A43/A44),
+  link/unlink (A24/A37), person add/update (A28/A31) — and surfaces every
+  party **labelled by role with segment provenance**: the `surviving` party is
+  only ever sourced from PID/PV1, the `prior` (non-surviving) party only ever
+  from MRG, and the merge direction is the spec constant `MRG_TO_PID` (HL7 v2
+  Ch. 3, A18: PID carries the surviving information, MRG the non-surviving) —
+  never inferred from content. Repeating PID+MRG groups yield one event each.
+  Fail-safe: an incomplete MRG→PID pair (no MRG, an orphaned MRG — which is
+  never dropped — or a PID with no surviving identifier) surfaces what is
+  present plus a new event-scoped Tier-2
+  **`MERGE_MISSING_PRIOR_OR_SURVIVOR`** warning carrying structural facts
+  only (never an identifier or name — no PHI). The MRG field map is
+  **version-scoped**: the backward-compat single-ID fields (MRG-4 / PID-2,
+  withdrawn as of v2.7) are not read when MSH-12 declares v2.7+. Applying the
+  merge (re-pointing data) stays the consumer's job. New public surface:
+  `Hl7Message.identityEvents()`, types `IdentityEvent` / `IdentityParty` /
+  `IdentityEventKind` / `IdentityRole`, the `mergeMissingPriorOrSurvivor`
+  factory, and the `MERGE_MISSING_PRIOR_OR_SURVIVOR` code. Additive only.
+- **`MRG` is now a known segment** — parsing a merge message no longer emits
+  a spurious `UNKNOWN_SEGMENT` warning for MRG.
 - **`Field.text`** — the field's canonical wire text (full repetitions/
   components/subcomponents re-serialized with the active delimiters), the
   whole-field counterpart to the component-1-only `Field.value`.

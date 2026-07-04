@@ -37,7 +37,7 @@ That's the whole pitch: no config, no schema upload, no spec lookup. The parser 
 
 - **One-line extraction** — `msg.patient.mrn`, `msg.meta.timestamp`, `msg.observations()`, and friends. No segment or field numbers to memorise.
 - **Three access patterns** — named helpers, dot-paths (`msg.get("PID.5.1")`), or structural traversal (`msg.segments("OBX")[0].field(3)`). Pick the level of ceremony you need.
-- **Real-world tolerance, four-tier** — lenient default parses vendor-quirky messages; 13 stable warning codes flag what was tolerated; strict mode escalates every deviation for CI validators; only 4 truly-structural failures are fatal.
+- **Real-world tolerance, four-tier** — lenient default parses vendor-quirky messages; 16 stable warning codes flag what was tolerated; strict mode escalates every deviation for CI validators; only 4 truly-structural failures are fatal.
 - **First-class profile system** — `defineProfile()` API, 5 built-in vendor profiles (Epic, Cerner, Meditech, athenahealth, generic lab), plus a [publishable starter kit](./examples/profile-starter-kit/) you copy-and-ship.
 - **Round-trip safe** — `parse -> modify -> toString()` emits spec-clean HL7 regardless of input quirks (Postel's Law: liberal parser, conservative emitter).
 - **Strict TypeScript, zero runtime deps** — ES2022, `noUncheckedIndexedAccess`, dual ESM + CJS, Node 18+. Every public export has JSDoc + `@example` that feeds your editor's IntelliSense.
@@ -223,6 +223,27 @@ for (const al of msg.allergies()) {
 ```
 
 Fields are parsed into their spec-typed shapes (`code` is a `CWE` composite, `onsetDate` is a `Date`). The same helper family exists for next-of-kin (`msg.nextOfKin()`), diagnoses (`msg.diagnoses()`), insurance (`msg.insurance()`), medications (`msg.medications()`), and immunizations (`msg.immunizations()`).
+
+### Patient merges and identity events
+
+`msg.identityEvents()` recognizes the ADT identity-management trigger events — merges (A18/A34/A35/A36/A39/A40/A41/A42), moves (A43/A44), link/unlink (A24/A37), and person add/update (A28/A31) — and surfaces every party **labelled by role**. On a merge, the MRG segment carries the _prior_ (non-surviving) identifiers and the PID carries the _surviving_ ones; the direction is the spec constant `MRG_TO_PID` and is never inferred from content.
+
+```ts
+import { parseHL7 } from "@cosyte/hl7";
+
+const msg = parseHL7(rawA40);
+
+for (const ev of msg.identityEvents()) {
+  if (ev.kind === "merge" && ev.prior && ev.surviving && ev.warnings.length === 0) {
+    // retire ev.prior.identifiers in favour of ev.surviving.identifiers
+    console.log(ev.prior.identifiers[0]?.idNumber, "->", ev.surviving.identifiers[0]?.idNumber);
+  } else if (ev.warnings.length > 0) {
+    // incomplete MRG->PID pair (MERGE_MISSING_PRIOR_OR_SURVIVOR) — route for review
+  }
+}
+```
+
+A mis-applied merge conflates two patients or orphans data under a retired MRN, so the helper is deliberately conservative: an incomplete pair (no MRG, an orphaned MRG, or a PID with no surviving identifier) surfaces whatever _is_ present plus a `MERGE_MISSING_PRIOR_OR_SURVIVOR` warning on the event — the MRG is never dropped, and the direction is never guessed. The MRG field map is version-scoped: the backward-compat single-ID fields (PID-2 / MRG-4, withdrawn as of HL7 v2.7) are not read when MSH-12 declares v2.7+. Note that `@cosyte/hl7` _surfaces_ the merge — actually re-pointing stored data to the survivor is your integration engine's job.
 
 ### Write your first profile in 10 minutes
 
@@ -542,7 +563,7 @@ for (const w of msg.warnings) {
 }
 ```
 
-The full list of Tier-2 codes (13 entries — `MLLP_FRAMING_STRIPPED`, `FIELD_WHITESPACE_TRIMMED`, `UNKNOWN_ESCAPE_SEQUENCE`, `TIMESTAMP_FALLBACK_FORMAT`, `SEGMENT_CASE`, `EXTRA_FIELDS`, `UNKNOWN_SEGMENT`, `DUPLICATE_REQUIRED_SEGMENT`, `ENCODING_MISMATCH`, `MISSING_REQUIRED_FIELD`, `OUT_OF_ORDER_SEGMENT`, `VERSION_MISMATCH`, `UNKNOWN_CHARSET`) lives in [`src/parser/warnings.ts`](./src/parser/warnings.ts). Narrow on `w.code === WARNING_CODES.UNKNOWN_SEGMENT` (and friends) for typo-free comparisons.
+The full list of Tier-2 codes (16 entries — `MLLP_FRAMING_STRIPPED`, `FIELD_WHITESPACE_TRIMMED`, `UNKNOWN_ESCAPE_SEQUENCE`, `TIMESTAMP_FALLBACK_FORMAT`, `SEGMENT_CASE`, `EXTRA_FIELDS`, `UNKNOWN_SEGMENT`, `DUPLICATE_REQUIRED_SEGMENT`, `ENCODING_MISMATCH`, `MISSING_REQUIRED_FIELD`, `MISSING_EXPECTED_GROUP`, `OUT_OF_ORDER_SEGMENT`, `VERSION_MISMATCH`, `UNKNOWN_CHARSET`, `ACK_NO_CORRELATION_ID`, `MERGE_MISSING_PRIOR_OR_SURVIVOR`) lives in [`src/parser/warnings.ts`](./src/parser/warnings.ts). Narrow on `w.code === WARNING_CODES.UNKNOWN_SEGMENT` (and friends) for typo-free comparisons.
 
 Need zero tolerance instead? `parseHL7(raw, { strict: true })` escalates every Tier-2 deviation to a thrown `Hl7ParseError`. Use strict in CI validators; leave it off for production ingestion.
 
