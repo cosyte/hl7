@@ -38,6 +38,7 @@ export const WARNING_CODES = {
   OUT_OF_ORDER_SEGMENT: "OUT_OF_ORDER_SEGMENT",
   VERSION_MISMATCH: "VERSION_MISMATCH",
   UNKNOWN_CHARSET: "UNKNOWN_CHARSET",
+  UNSUPPORTED_CHARSET: "UNSUPPORTED_CHARSET",
   ACK_NO_CORRELATION_ID: "ACK_NO_CORRELATION_ID",
   MERGE_MISSING_PRIOR_OR_SURVIVOR: "MERGE_MISSING_PRIOR_OR_SURVIVOR",
   BATCH_COUNT_MISMATCH: "BATCH_COUNT_MISMATCH",
@@ -385,9 +386,13 @@ export function versionMismatch(
 }
 
 /**
- * Build an `UNKNOWN_CHARSET` warning. Emitted when MSH-18 declares a
- * character set that `TextDecoder` does not support on the current Node
- * runtime; the parser falls back to UTF-8 and flags the decision.
+ * Build an `UNKNOWN_CHARSET` warning. Emitted when MSH-18 (or an
+ * `options.charset` override) declares a value that is **not a recognized HL7
+ * Table-0211 character set**. The parser never guesses an encoding: it reads the
+ * raw bytes as `latin1` (a 1:1 byte mapping) so single-byte content stays
+ * recoverable, rather than corrupting it with replacement characters. The
+ * message carries the charset code only — never a decoded field value — so no
+ * PHI is exposed.
  *
  * @example
  * ```ts
@@ -398,7 +403,37 @@ export function versionMismatch(
 export function unknownCharset(position: Hl7Position, requested: string): Hl7ParseWarning {
   return {
     code: WARNING_CODES.UNKNOWN_CHARSET,
-    message: `Unknown character set "${requested}"; falling back to UTF-8.`,
+    message: `Unrecognized character set "${requested}"; not decoded, bytes read as latin1.`,
+    position,
+  };
+}
+
+/**
+ * Build an `UNSUPPORTED_CHARSET` warning. Emitted when a **recognized**
+ * Table-0211 character set is not decoded into text — either because this parser
+ * does not decode it (the multibyte / ISO-2022-switched East-Asian sets — JIS,
+ * GB 18030, KS X 1001, CNS 11643, BIG-5 — and the wide Unicode transforms
+ * UTF-16 / UTF-32), or because a strict decode of a decodable set **failed** (a
+ * byte invalid / undefined for the declared set, or an ICU build lacking the
+ * label). In every case the raw bytes are read as `latin1`, never guessed at, so
+ * the parser does not emit replacement-char-corrupted text. Single-byte content
+ * stays byte-recoverable; multibyte content is best-effort (a content byte can
+ * coincide with a structural delimiter — see the parser's known-limitations).
+ * The switch escapes (`\Cxxyy\` / `\Mxxyyzz\`) are recognized and preserved by
+ * the escape layer; full stateful decoding is a documented non-goal. The message
+ * carries the charset code only — never a decoded field value — so no PHI is
+ * exposed.
+ *
+ * @example
+ * ```ts
+ * import { unsupportedCharset } from "@cosyte/hl7";
+ * const w = unsupportedCharset({ segmentIndex: 0, fieldIndex: 18 }, "ISO IR87");
+ * ```
+ */
+export function unsupportedCharset(position: Hl7Position, code: string): Hl7ParseWarning {
+  return {
+    code: WARNING_CODES.UNSUPPORTED_CHARSET,
+    message: `Character set "${code}" was not decoded; bytes read as latin1.`,
     position,
   };
 }

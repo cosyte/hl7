@@ -12,6 +12,7 @@
         "spec-notes-batch",
         "spec-notes-datetime-precision",
         "spec-notes-timing",
+        "spec-notes-charset",
         "spec-notes-version-matrix"
       ]
     }

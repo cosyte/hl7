@@ -78,6 +78,35 @@ hasTimezone, offsetMinutes }`) instead of the old `{ raw, date }`. HL7 v2
 
 ### Added
 
+- **Character-set / encoding decode — MSH-18 / Table 0211 (roadmap Phase O,
+  P1).** `parseHL7` now resolves a `Buffer` input's declared character set from
+  **MSH-18** and decodes the byte stream to text **before** tokenization, through
+  a frozen HL7 **Table-0211 registry** (`resolveCharset` / `canonicalCharset`,
+  exported). MSH-18 is honoured as a **repeating** field — the **first**
+  occurrence is the message default, a blank field is 7-bit **ASCII**. Decodes
+  **`8859/1`** via Node's true `latin1` (byte-exact; Node's WHATWG
+  `TextDecoder("iso-8859-1")` is windows-1252 and remaps the C1 range, so it is
+  not used), ASCII / **UTF-8** (`UNICODE UTF-8` / `UNICODE`), and the faithfully
+  decoded **ISO-8859** sets (`8859/2`–`8859/8`, `10`, `13`–`16`); `8859/9` and
+  `8859/11` are **recognized but preserved verbatim** because Node's ICU aliases
+  them to windows-1254/874 (which remap the C1 range — no faithful decoder). The
+  multibyte / ISO-2022 East-Asian sets (`ISO IR14/87/159`, GB 18030, KS X 1001,
+  CNS 11643, BIG-5) and UTF-16/32 are likewise **recognized and preserved
+  verbatim** (full stateful decode is a documented non-goal). The §2.7.4 charset-switch escapes (`\Cxxyy\` / `\Mxxyyzz\`) are
+  recognized by the escape layer and preserved. **Fail-safe (never guess, never
+  silently corrupt):** decoding is **strict** (`fatal: true`) except byte-exact
+  `8859/1`, so a byte invalid/undefined for the declared set does **not** become a
+  silent `U+FFFD` — the bytes are read as a `latin1` 1:1 mapping and a warning
+  fires: new **`UNSUPPORTED_CHARSET`** for a recognized set that was not decoded
+  (never-decoded, or a strict-decode failure), existing `UNKNOWN_CHARSET` for a
+  value not in Table 0211. Recoverability is exact for single-byte content;
+  multibyte content is best-effort (a code-unit byte can coincide with a structural
+  delimiter — documented). **Behaviour change (pre-alpha):** `UNKNOWN_CHARSET` now
+  reads bytes as `latin1` instead of falling back to UTF-8. Both warnings carry the
+  charset code only — never a field value — so no PHI is exposed. New public warning
+  code `UNSUPPORTED_CHARSET` (`WARNING_CODES` 18 → 19). See
+  `docs-content/spec-notes-charset.md`.
+
 - **Order / medication timing — `order.timings` + `med.timings` (roadmap
   Phase M).** `orders()` and `medications()` now surface the timing **structure**
   of an order/medication as a typed `OrderTiming[]`, read from the `TQ1` segment

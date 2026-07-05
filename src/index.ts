@@ -40,8 +40,14 @@ export {
   outOfOrderSegment,
   versionMismatch,
   unknownCharset,
+  unsupportedCharset,
 } from "./parser/warnings.js";
 export type { WarningCode, Hl7ParseWarning } from "./parser/warnings.js";
+
+// Phase O additive: the frozen HL7 Table-0211 charset registry, so advanced
+// consumers can inspect how an MSH-18 code is treated (decoded vs preserved).
+export { resolveCharset, canonicalCharset } from "./parser/charset.js";
+export type { CharsetResolution, CharsetTreatment } from "./parser/charset.js";
 export { DEFAULT_ENCODING_CHARACTERS } from "./parser/delimiters.js";
 export type {
   Hl7Position,

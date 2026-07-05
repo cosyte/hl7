@@ -48,6 +48,7 @@ describe("public API: WARNING_CODES surface is stable", () => {
         "UNKNOWN_CHARSET",
         "UNKNOWN_ESCAPE_SEQUENCE",
         "UNKNOWN_SEGMENT",
+        "UNSUPPORTED_CHARSET",
         "VERSION_MISMATCH",
       ]
     `);
@@ -57,8 +58,8 @@ describe("public API: WARNING_CODES surface is stable", () => {
     for (const [k, v] of Object.entries(WARNING_CODES)) expect(k).toBe(v);
   });
 
-  it("there are exactly 18 Tier-2 warning codes", () => {
-    expect(Object.keys(WARNING_CODES)).toHaveLength(18);
+  it("there are exactly 19 Tier-2 warning codes", () => {
+    expect(Object.keys(WARNING_CODES)).toHaveLength(19);
   });
 });
 
