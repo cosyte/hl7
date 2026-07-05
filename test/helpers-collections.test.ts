@@ -49,8 +49,15 @@ describe("helpers/collections: allergies (HELPERS-06, AL1)", () => {
     expect(a[0]?.code?.text).toBe("Penicillin");
     expect(a[0]?.severity).toBe("SV");
     expect(a[0]?.reaction).toBe("Hives");
-    expect(a[0]?.onsetDate).toBeInstanceOf(Date);
-    expect(a[0]?.onsetDate?.toISOString()).toBe("2025-01-01T00:00:00.000Z");
+    expect(a[0]?.onsetDate?.valid).toBe(true);
+    expect(a[0]?.onsetDate).toMatchObject({
+      raw: "20250101",
+      precision: "day",
+      year: 2025,
+      month: 1,
+      day: 1,
+      hasTimezone: false,
+    });
   });
 });
 
@@ -66,7 +73,7 @@ describe("helpers/collections: diagnoses (HELPERS-06, DG1)", () => {
     expect(d[0]?.code?.identifier).toBe("E11.9");
     expect(d[0]?.code?.text).toBe("Type 2 diabetes");
     expect(d[0]?.description).toBe("Diabetes description");
-    expect(d[0]?.dateTime).toBeInstanceOf(Date);
+    expect(d[0]?.dateTime).toMatchObject({ raw: "20250102", precision: "day", valid: true });
     expect(d[0]?.type).toBe("W");
   });
 });
@@ -91,8 +98,8 @@ describe("helpers/collections: insurance (HELPERS-06, IN1 + IN2/IN3 flags)", () 
     expect(ins[0]?.companyId?.idNumber).toBe("CO123");
     expect(ins[0]?.companyName).toBe("BlueCross");
     expect(ins[0]?.groupNumber).toBe("GRP001");
-    expect(ins[0]?.effectiveDate).toBeInstanceOf(Date);
-    expect(ins[0]?.expirationDate).toBeInstanceOf(Date);
+    expect(ins[0]?.effectiveDate).toMatchObject({ raw: "20250101", precision: "day" });
+    expect(ins[0]?.expirationDate).toMatchObject({ raw: "20261231", precision: "day" });
     expect(ins[0]?.insuredName?.familyName).toBe("VIC");
     expect(ins[0]?.policyNumber).toBe("POLICY123");
     expect(ins[0]?.hasIn2).toBe(false);

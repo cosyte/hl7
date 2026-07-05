@@ -6,8 +6,8 @@
  *
  * Design decisions enforced here:
  *   - D-04 nullable: returns `undefined` when no PV1 segment is present.
- *   - D-18 flat Date: admit/discharge timestamps are `Date | undefined`,
- *     never `{ raw, date }`.
+ *   - Phase N: admit/discharge timestamps are the fidelity `TS` (precision +
+ *     timezone preserved), not an eager `Date`.
  *   - D-24 option (a): attendingDoctor/referringDoctor use the Plan 01
  *     `Field.asXcn()` coercion (composite, not flat string).
  *   - D-01 freeze at boundary: the returned Visit is frozen.
@@ -40,8 +40,7 @@ function nonEmptyXcn(xcn: XCN): XCN | undefined {
  * `invalidateCaches()`.
  *
  * Doctors (attendingDoctor/referringDoctor) are XCN composites per D-24
- * option (a). admitDateTime/dischargeDateTime are flat `Date | undefined`
- * per D-18.
+ * option (a). admitDateTime/dischargeDateTime are the fidelity `TS` (Phase N).
  *
  * @example
  * ```ts
@@ -49,7 +48,7 @@ function nonEmptyXcn(xcn: XCN): XCN | undefined {
  * const msg = parseHL7(raw);
  * console.log(msg.visit?.patientClass);                 // "I"
  * console.log(msg.visit?.location?.pointOfCare);        // "ICU"
- * console.log(msg.visit?.admitDateTime?.toISOString()); // flat Date per D-18
+ * console.log(msg.visit?.admitDateTime?.raw); // fidelity TS (Phase N)
  * console.log(msg.visit?.attendingDoctor?.familyName);  // XCN via D-24(a)
  * ```
  *
@@ -84,13 +83,13 @@ export function buildVisit(msg: Hl7Message): Visit | undefined {
   const visitNumber = pv1.field(19).value;
   if (visitNumber !== "") out.visitNumber = visitNumber;
 
-  // PV1-44: admitDateTime (flat Date per D-18)
+  // PV1-44: admitDateTime (fidelity TS, Phase N)
   const admit = pv1.field(44).asTs();
-  if (admit.date !== undefined) out.admitDateTime = admit.date;
+  if (admit.valid) out.admitDateTime = admit;
 
-  // PV1-45: dischargeDateTime (flat Date per D-18)
+  // PV1-45: dischargeDateTime (fidelity TS, Phase N)
   const discharge = pv1.field(45).asTs();
-  if (discharge.date !== undefined) out.dischargeDateTime = discharge.date;
+  if (discharge.valid) out.dischargeDateTime = discharge;
 
   return Object.freeze(out);
 }

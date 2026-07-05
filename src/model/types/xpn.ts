@@ -28,7 +28,7 @@ import { readComponent } from "./_shared.js";
  * 9. nameContext (flattened to string in v1 — CWE nesting is out of scope)
  * 10. nameValidityRange
  * 11. nameAssemblyOrder (F=family first, G=given first)
- * 12. effectiveDate (raw HL7 TS string — caller may parse via parseHl7Timestamp)
+ * 12. effectiveDate (raw HL7 TS string — caller may parse via parseDtm)
  * 13. expirationDate
  * 14. professionalSuffix
  *

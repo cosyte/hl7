@@ -11,7 +11,7 @@
  * - D-24: resolution depth stops at field level — composite values render as
  *   their raw HL7 string (e.g. `Smith^John^Q`).
  * - D-25: first line is a metadata header
- *   `HL7 <type>  controlId=<id>  timestamp=<iso>  (<N> segments)`.
+ *   `HL7 <type>  controlId=<id>  timestamp=<raw-hl7>  (<N> segments)`.
  * - D-26: pure — never warns or throws.
  *
  * @internal
@@ -50,7 +50,7 @@ export function emitPrettyPrint(msg: Hl7Message): string {
 
 /**
  * D-25 header:
- *   `HL7 <type>  controlId=<id>  timestamp=<iso>  (<N> segments)`
+ *   `HL7 <type>  controlId=<id>  timestamp=<raw-hl7>  (<N> segments)`
  * Missing meta fields render as `-`. Segment count is always a number.
  * Separator between header fields is TWO spaces.
  * @internal
@@ -59,7 +59,10 @@ function buildHeaderLine(msg: Hl7Message): string {
   const meta = msg.meta;
   const type = meta.type ?? "-";
   const controlId = meta.controlId ?? "-";
-  const timestamp = meta.timestamp?.toISOString() ?? "-";
+  // Phase N: render the raw HL7 timestamp verbatim (precision + zone preserved)
+  // rather than coercing to a UTC ISO instant, which would misstate a day-only
+  // or offset-less value.
+  const timestamp = meta.timestamp?.raw ?? "-";
   const segCount = msg.rawSegments.length;
   return (
     "HL7 " +

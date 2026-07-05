@@ -23,6 +23,7 @@ import {
   buildAck,
   detectAckMode,
   downgradePositiveAck,
+  dtmToDate,
   interpretAck,
   parseHL7,
 } from "../src/index.js";
@@ -82,8 +83,12 @@ describe("buildAck — MSH construction", () => {
     const ack = buildAck(parseHL7(INBOUND), { code: "AA" });
     expect(ack.meta.controlId).toMatch(/^[0-9]{17}[A-Za-z0-9]{6}$/);
     expect(ack.meta.controlId).not.toBe("MSG00001");
-    const ts = ack.meta.timestamp?.getTime() ?? 0;
-    expect(Date.now() - ts).toBeLessThan(5000);
+    // buildAck emits MSH-7 as UTC second-precision (no offset); read it back
+    // by explicitly assuming UTC — the value it was written in.
+    const ts = ack.meta.timestamp;
+    const instant =
+      ts === undefined ? 0 : (dtmToDate(ts, { assumeOffsetMinutes: 0 })?.getTime() ?? 0);
+    expect(Date.now() - instant).toBeLessThan(5000);
   });
 
   it("echoes inbound processingId and version", () => {

@@ -26,7 +26,7 @@ import { parseHL7 } from "@cosyte/hl7";
 const msg = parseHL7(rawHL7);
 console.log(msg.patient?.fullName); // "John Q. Doe"
 console.log(msg.patient?.mrn); // "MRN12345"
-console.log(msg.meta.timestamp); // Date
+console.log(msg.meta.timestamp?.raw); // "20260419101500" (fidelity TS — precision + zone preserved)
 ```
 
 That's the whole pitch: no config, no schema upload, no spec lookup. The parser accepts vendor-quirky input by default, strips MLLP framing if it's there, normalises casing, and tolerates the dozen-or-so deviations real HL7 traffic routinely carries. You reach for strict mode, dot-paths, or profiles when you want them — not before.
@@ -84,9 +84,9 @@ const msg = parseHL7(raw);
 
 console.log(msg.patient?.mrn); // "MRN12345"
 console.log(msg.patient?.fullName); // "Jane Q. Smith"
-console.log(msg.patient?.dateOfBirth); // Date
+console.log(msg.patient?.dateOfBirth?.precision); // "day" — a birth date is not a full instant
 console.log(msg.meta.type); // "ADT^A01"
-console.log(msg.meta.timestamp); // Date (MSH-7 parsed)
+console.log(msg.meta.timestamp?.raw); // "20250102153045" (MSH-7 — fidelity TS)
 console.log(msg.visit?.location); // PL composite — pointOfCare/room/bed
 ```
 
@@ -147,12 +147,12 @@ const p = msg.patient;
 
 console.log(p?.mrn); // "MRN12345"
 console.log(p?.fullName); // "Jane Q. Smith"
-console.log(p?.dateOfBirth); // Date (PID-7 parsed)
+console.log(p?.dateOfBirth?.raw); // "19800115" (PID-7 — fidelity TS at day precision)
 console.log(p?.sex); // "F"
 console.log(p?.address?.city); // XAD composite
 ```
 
-`msg.patient` is `undefined` when the message has no `PID` segment — use `?.` consistently. The `address` field is an `XAD` composite with `streetAddress`, `city`, `state`, `zip`, `country`.
+`msg.patient` is `undefined` when the message has no `PID` segment — use `?.` consistently. The `address` field is an `XAD` composite with `streetAddress`, `city`, `state`, `zip`, `country`. `dateOfBirth` (and every datetime) is a **fidelity `TS`** — see [Datetime precision & timezone fidelity](#datetime-precision--timezone-fidelity).
 
 ### Lab results
 
@@ -169,7 +169,7 @@ for (const obs of msg.observations()) {
 }
 ```
 
-Observations are discriminated by `valueType` (`"NM"` -> number, `"TS"`/`"DT"` -> Date, `"CWE"`/`"CE"` -> composite, everything else -> string). Use `msg.orders()` instead when you need OBR -> OBX grouping for lab order processing.
+Observations are discriminated by `valueType` (`"NM"` -> number, `"TS"`/`"DT"` -> fidelity `TS`, `"CWE"`/`"CE"` -> composite, everything else -> string). Use `msg.orders()` instead when you need OBR -> OBX grouping for lab order processing.
 
 ### Admit location
 
@@ -222,7 +222,7 @@ for (const al of msg.allergies()) {
 }
 ```
 
-Fields are parsed into their spec-typed shapes (`code` is a `CWE` composite, `onsetDate` is a `Date`). The same helper family exists for next-of-kin (`msg.nextOfKin()`), diagnoses (`msg.diagnoses()`), insurance (`msg.insurance()`), medications (`msg.medications()`), and immunizations (`msg.immunizations()`).
+Fields are parsed into their spec-typed shapes (`code` is a `CWE` composite, `onsetDate` is a fidelity `TS`). The same helper family exists for next-of-kin (`msg.nextOfKin()`), diagnoses (`msg.diagnoses()`), insurance (`msg.insurance()`), medications (`msg.medications()`), and immunizations (`msg.immunizations()`).
 
 ### Patient merges and identity events
 
@@ -340,9 +340,41 @@ setDefaultProfile(null); // reset
 
 The default is scoped to the current Node process — not shared across workers, not serialisable. Opt out for a specific parse with `{ profile: null }` in the options bag.
 
-### Non-standard timestamps
+### Datetime precision & timezone fidelity
 
-HL7's canonical `YYYYMMDDHHmmss` format parses with zero warnings. Everything else — vendor-quirky `MM/DD/YYYY`, ISO `YYYY-MM-DD`, legacy `YYYYMMDD HHmm` — parses via the `dateFormats` option, which tries each format in order.
+Every HL7 datetime (TS/DTM) is surfaced as a **fidelity `TS`** — the raw string plus its typed parts,
+with the stated **precision** and **timezone** preserved. It is deliberately **not** an eager JS `Date`:
+a day-only birth date coerced to a UTC-midnight instant reads as the _previous day_ in a negative-offset
+zone. The parser preserves what the sender wrote and lets you decide how to localize.
+
+```ts
+import { parseHL7, dtmToDate } from "@cosyte/hl7";
+
+const dob = parseHL7(raw).patient?.dateOfBirth;
+console.log(dob?.raw); // "19880705"
+console.log(dob?.precision); // "day" — never zero-filled to a full timestamp
+console.log(dob?.year, dob?.month, dob?.day); // 1988 7 5  (month is 1-based, spec-native)
+console.log(dob?.hasTimezone); // false — a missing offset is FLAGGED, never assumed to be UTC
+
+// An absolute instant is opt-in and honest — it refuses to guess a zone:
+console.log(dtmToDate(dob!)); // undefined (no offset, no assumption)
+console.log(dtmToDate(dob!, { assumeOffsetMinutes: 0 })); // 1988-07-05T00:00:00.000Z (you chose UTC)
+
+// A value that carries its own offset resolves exactly:
+const ts = parseHL7(raw).meta.timestamp; // e.g. "20250102153045-0500"
+console.log(ts?.offsetMinutes); // -300
+console.log(dtmToDate(ts!)?.toISOString()); // "2025-01-02T20:30:45.000Z"
+```
+
+hl7 preserves precision + timezone **fidelity**; it does **not** localize, convert, or do arithmetic on
+timestamps — a consumer needing an absolute instant applies the sender's zone via `assumeOffsetMinutes`.
+Use `parseDtm` / `formatDtm` / `dtmToDate` directly on a raw string when you're outside the message model.
+
+#### Non-standard timestamp formats
+
+HL7's canonical `YYYYMMDDHHmmss` parses with zero warnings. Everything else — vendor-quirky
+`MM/DD/YYYY`, ISO `YYYY-MM-DD`, legacy `YYYYMMDD HHmm` — parses via the `dateFormats` option, which
+tries each format in order and populates the same fidelity `TS`.
 
 ```ts
 import { parseHL7 } from "@cosyte/hl7";
@@ -351,7 +383,7 @@ const msg = parseHL7(raw, {
   dateFormats: ["MM/DD/YYYY HH:mm:ss", "MM/DD/YYYY", "YYYY-MM-DD"],
 });
 
-console.log(msg.meta.timestamp); // Date (parsed via first matching format)
+console.log(msg.meta.timestamp?.matchedFormat); // e.g. "MM/DD/YYYY" (which fallback won)
 ```
 
 When a fallback format wins, the parser emits a `TIMESTAMP_FALLBACK_FORMAT` warning with the matched format on `msg.warnings`. Built-in vendor profiles (`profiles.epic`, `profiles.genericLab`, etc.) already carry the date formats common to that vendor — reach for a profile instead of hand-listing formats when one fits.

@@ -70,7 +70,7 @@ describe("profiles.epic — BIP-01 + BIP-06 fixture parity", () => {
 
   it("MSH-7 (01/15/2025 14:30:00) resolves via profile dateFormats", () => {
     const withP = parseHL7(fixture, profiles.epic);
-    expect(withP.meta.timestamp).toBeInstanceOf(Date);
+    expect(withP.meta.timestamp?.valid).toBe(true);
   });
 
   it("ZDP fields resolve by declared name", () => {
@@ -97,8 +97,8 @@ describe("profiles.cerner — BIP-02 + BIP-06 fixture parity", () => {
 
   it("MSH-7 ISO-8601 resolves", () => {
     const withP = parseHL7(fixture, profiles.cerner);
-    expect(withP.meta.timestamp).toBeInstanceOf(Date);
-    expect(withP.meta.timestamp?.toISOString()).toContain("2025-01-15");
+    expect(withP.meta.timestamp?.valid).toBe(true);
+    expect(withP.meta.timestamp).toMatchObject({ year: 2025, month: 1, day: 15 });
   });
 
   it("profile attribution", () => {
@@ -154,7 +154,7 @@ describe("profiles.athena — BIP-04 + BIP-06 fixture parity", () => {
 
   it("MSH-7 MM/DD/YYYY resolves", () => {
     const withP = parseHL7(fixture, profiles.athena);
-    expect(withP.meta.timestamp).toBeInstanceOf(Date);
+    expect(withP.meta.timestamp?.valid).toBe(true);
   });
 
   it("ZCA careTeamRole + providerId accessible by name", () => {
@@ -197,7 +197,7 @@ describe("profiles.genericLab — BIP-05 + BIP-06 fixture parity", () => {
 
   it("MSH-7 YYYYMMDD HHmm space-separated format resolves", () => {
     const withP = parseHL7(fixture, profiles.genericLab);
-    expect(withP.meta.timestamp).toBeInstanceOf(Date);
+    expect(withP.meta.timestamp?.valid).toBe(true);
   });
 });
 

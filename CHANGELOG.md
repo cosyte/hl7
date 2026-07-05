@@ -13,6 +13,40 @@ The first pre-alpha release (`0.0.1`) will ship the complete v1 API surface belo
 `0.1.0` tag was prepared but never published, so the package begins its public history at `0.0.x`,
 per the cosyte version ladder (`0.0.x` until first alpha).
 
+### Changed
+
+- **Datetime precision + timezone fidelity — the TS/DTM composite (roadmap
+  Phase N). Breaking (pre-alpha).** `field.asTs()` and every helper datetime now
+  return the fidelity `TS` (`DtmParts`: `{ raw, valid, precision, year, month
+(1–12, spec-native), day, hour, minute, second, fractionalSeconds (verbatim),
+hasTimezone, offsetMinutes }`) instead of the old `{ raw, date }`. HL7 v2
+  Ch. 2A DTM sets a value's **precision** by how many characters are populated,
+  and a missing offset defaults to the **sender's** local zone — not UTC. The
+  prior code zero-filled truncations (`|1970|` → `1970-01-01T00:00:00Z`) and
+  coerced an offset-less value to UTC, which silently shifted a day-only birth
+  date `|19880705|` to the previous calendar day in any negative-offset zone
+  [S-DTM-IMPL]. Now precision is preserved (no zero-fill), a missing offset is
+  **flagged** (`hasTimezone: false`) and never resolved, and no eager `Date` is
+  built. An absolute instant is materialized **only on explicit request** via
+  `dtmToDate(ts, { assumeOffsetMinutes? })`, which returns `undefined` for an
+  offset-less value rather than guessing UTC. Applies to `meta.timestamp`,
+  `patient.dateOfBirth`, `visit.admit/dischargeDateTime`,
+  `observations.observedDateTime` + `TS`/`DT` observation values,
+  `allergies.onsetDate`, `diagnoses.dateTime`, `insurance.effective/expirationDate`,
+  and `immunizations.administered/expirationDate` — each `Date → TS`. Fidelity
+  only: no localization, timezone conversion, or arithmetic; `HHMM=0000` is never
+  rolled to the previous day. New public exports: `parseDtm`, `formatDtm`,
+  `dtmToDate`, and types `DtmParts` / `DtmPrecision` / `DtmToDateOptions`. **No
+  warning-code change** (a missing timezone is the structural `hasTimezone: false`
+  flag, not a warning). See `docs-content/spec-notes-datetime-precision.md`.
+
+### Removed
+
+- **`parseHl7Timestamp` (and its `ParseHl7TimestampOptions` type) — removed
+  (Phase N, breaking).** The Date-returning, UTC-assuming timestamp helper is
+  replaced by the fidelity `parseDtm` + explicit `dtmToDate`, with
+  `parseDtmCascade` covering the MSH-7 user-format fallback path.
+
 ### Fixed
 
 - **`buildAck` now echoes the full inbound MSH-10 field into MSA-2** — the raw

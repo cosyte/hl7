@@ -10,6 +10,7 @@
         "spec-notes-structure",
         "spec-notes-identity",
         "spec-notes-batch",
+        "spec-notes-datetime-precision",
         "spec-notes-version-matrix"
       ]
     }

@@ -41,7 +41,7 @@ describe("model/field: .asXxx() composite coercions", () => {
     const msg = parseHL7(FIXTURE);
     const ts = msg.segments("MSH")[0]?.field(7).asTs();
     expect(ts?.raw).toBe("20250102153045");
-    expect(ts?.date?.toISOString()).toBe("2025-01-02T15:30:45.000Z");
+    expect(ts).toMatchObject({ valid: true, precision: "second", year: 2025, hasTimezone: false });
   });
 
   it(".asCx on PID-3 with nested HD", () => {
@@ -134,7 +134,7 @@ describe("model/field: .asXxx() composite coercions", () => {
     expect(pid.field(5).asXtn()).toStrictEqual({});
     expect(pid.field(5).asPl()).toStrictEqual({});
     expect(pid.field(5).asHd()).toStrictEqual({});
-    expect(pid.field(5).asTs()).toStrictEqual({ raw: "", date: undefined });
+    expect(pid.field(5).asTs()).toStrictEqual({ raw: "", valid: false, hasTimezone: false });
     expect(pid.field(5).asNm()).toStrictEqual({ raw: "", value: undefined });
   });
 

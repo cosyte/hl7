@@ -20,10 +20,11 @@ const msg = parseHL7(raw);
 
 console.log("Patient MRN:", msg.patient.mrn);
 console.log("Full name:", msg.patient.fullName);
-console.log("DOB:", msg.patient.dateOfBirth);
+// Datetimes are a fidelity TS — precision + timezone preserved, no eager Date.
+console.log("DOB:", msg.patient.dateOfBirth?.raw, `(precision: ${msg.patient.dateOfBirth?.precision})`);
 console.log("Sex:", msg.patient.sex);
 console.log("Message type:", msg.meta.type);
-console.log("Message timestamp:", msg.meta.timestamp);
+console.log("Message timestamp:", msg.meta.timestamp?.raw);
 console.log(
   "-> extracted 6 fields via msg.patient + msg.meta (zero HL7-path knowledge required)",
 );

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildMessage, parseHL7 } from "../src/index.js";
+import { buildMessage, dtmToDate, parseHL7 } from "../src/index.js";
 import type { BuildMessageInit } from "../src/index.js";
 import { DEFAULT_ENCODING_CHARACTERS } from "../src/parser/delimiters.js";
 
@@ -23,12 +23,14 @@ describe("buildMessage (SER-06)", () => {
     it("auto-generates timestamp when omitted (D-13)", () => {
       const msg = buildMessage({ type: "ADT^A01" });
       const round = parseHL7(msg.toString());
-      expect(round.meta.timestamp).toBeInstanceOf(Date);
-      // Should be within the last 5 seconds — a generous guard against slow
-      // CI machines.
+      expect(round.meta.timestamp?.valid).toBe(true);
+      // buildMessage emits UTC second-precision (no offset); read it back by
+      // explicitly assuming UTC. Within the last 5s — generous for slow CI.
       const now = Date.now();
-      const ts = round.meta.timestamp?.getTime() ?? 0;
-      expect(now - ts).toBeLessThan(5000);
+      const ts = round.meta.timestamp;
+      const instant =
+        ts === undefined ? 0 : (dtmToDate(ts, { assumeOffsetMinutes: 0 })?.getTime() ?? 0);
+      expect(now - instant).toBeLessThan(5000);
     });
 
     it("defaults version to '2.5' when omitted", () => {
@@ -66,9 +68,14 @@ describe("buildMessage (SER-06)", () => {
         type: "ADT^A01",
         timestamp: new Date("2026-04-19T10:15:00Z"),
       });
-      // MSH-7 should round-trip to the exact UTC Date.
+      // MSH-7 should round-trip to the exact UTC instant (emitted offset-less,
+      // read back by explicitly assuming UTC — the zone the builder wrote).
       const round = parseHL7(msg.toString());
-      expect(round.meta.timestamp?.toISOString()).toBe("2026-04-19T10:15:00.000Z");
+      const ts = round.meta.timestamp;
+      expect(ts?.raw).toBe("20260419101500");
+      expect(
+        ts === undefined ? undefined : dtmToDate(ts, { assumeOffsetMinutes: 0 })?.toISOString(),
+      ).toBe("2026-04-19T10:15:00.000Z");
       // Also assert the wire format has "20260419101500" literal.
       expect(msg.toString()).toContain("20260419101500");
     });

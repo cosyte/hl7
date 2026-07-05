@@ -71,7 +71,15 @@ describe("public exports: Phase 3 surface", () => {
   it("type-only imports resolve (compile-time check via usage)", () => {
     const xpn: XPN = { familyName: "Smith" };
     const xad: XAD = { street: "1 Main" };
-    const ts: TS = { raw: "20250101", date: new Date(Date.UTC(2025, 0, 1)) };
+    const ts: TS = {
+      raw: "20250101",
+      valid: true,
+      precision: "day",
+      year: 2025,
+      month: 1,
+      day: 1,
+      hasTimezone: false,
+    };
     const nm: NM = { raw: "120", value: 120 };
     const cx: CX = { idNumber: "1" };
     const cwe: CWE = { identifier: "X" };
