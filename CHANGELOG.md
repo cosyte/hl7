@@ -78,6 +78,34 @@ hasTimezone, offsetMinutes }`) instead of the old `{ raw, date }`. HL7 v2
 
 ### Added
 
+- **NTE narrative grouping — notes attached to their parent by position (roadmap
+  Phase P, P1).** NTE (Notes and Comments) segments are now grouped to their
+  parent **by position** and surfaced on the relevant helper output. An NTE
+  inherits its meaning entirely from the segment it immediately follows (HL7 v2
+  Ch. 2 — no link field), so attachment is positional: in an ORU
+  (`{ [ORC] OBR [{NTE}] [{ [OBX] [{NTE}] }] }`, Ch. 7) a note after `OBX` lands on
+  **that result** (`observation.notes`), a note after `OBR`/`ORC` on the **order**
+  (`order.notes` — ORC notes first, then OBR), and a note after `PID` on the
+  **patient** (`msg.patient.notes`). A note with **no recognized preceding
+  parent** — after `MSH`, or after an unsupported segment like `PV1`/`AL1` — is
+  surfaced at **message level** via the new **`msg.notes()`**. **Fail-safe —
+  never mis-attached, never dropped:** the parent is the _nearest preceding
+  non-NTE segment_ (consecutive NTEs chain; any intervening non-parent segment
+  resets the target). Order-level notes mirror the `orders()` state machine —
+  notes after an `ORC` are buffered and flushed onto the OBR that opens the
+  order, so **several `ORC`s before one `OBR` all contribute** in document order,
+  not just the last. A note whose recognized parent has **no surfaced
+  projection** — a **later `PID`** in a multi-patient ORU (patient view is the
+  first PID), or a **trailing/dangling `ORC`** whose order never opens — is
+  routed to `msg.notes()` rather than vanishing. Each non-empty **NTE-3 (Comment,
+  FT, repeating)** repetition is one note line, with the **full** repetition text
+  reassembled + HL7-unescaped, so a non-conformant raw `^`/`&` (which tokenizes
+  NTE-3 into components) is preserved, not silently truncated. New optional
+  `notes?: readonly string[]` on `Observation`, `Order`, and `Patient` (omitted
+  when empty, frozen when present). **Additive only — no rename, no removal, no
+  new warning code.** Deferred: NTE-2 (source of comment) / NTE-4 (comment type)
+  interpretation, FT formatting-command rendering, and first-class
+  `patient.notes` on a 2nd+ `PID`'s group. See `docs-content/spec-notes-nte.md`.
 - **Character-set / encoding decode — MSH-18 / Table 0211 (roadmap Phase O,
   P1).** `parseHL7` now resolves a `Buffer` input's declared character set from
   **MSH-18** and decodes the byte stream to text **before** tokenization, through

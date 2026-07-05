@@ -30,6 +30,7 @@ import type { Hl7Message } from "../model/message.js";
 import type { Segment } from "../model/segment.js";
 import type { CE } from "../model/types/ce.js";
 import type { CWE } from "../model/types/cwe.js";
+import { groupNotes } from "./notes.js";
 import type { Observation, ObservationBase } from "./types.js";
 
 /** Normalize HL7 empty-string to `undefined` for the helper layer (D-22). @internal */
@@ -169,8 +170,13 @@ function dispatchValue(valueType: string, valueField: Field, common: Observation
  * }
  * ```
  */
-export function buildObservation(obx: Segment): Observation {
-  const common = buildCommon(obx);
+export function buildObservation(obx: Segment, notes?: readonly string[]): Observation {
+  const base = buildCommon(obx);
+  // Phase P: attach positionally-grouped NTE note lines when present. The
+  // `notes` array is already frozen by `groupNotes`; omit the key when empty so
+  // the shape stays `exactOptionalPropertyTypes`-clean.
+  const common: ObservationBase =
+    notes !== undefined && notes.length > 0 ? { ...base, notes } : base;
   const valueType = obx.field(2).value;
   const valueField = obx.field(5);
   return dispatchValue(valueType, valueField, common);
@@ -194,9 +200,10 @@ export function buildObservation(obx: Segment): Observation {
  * @internal
  */
 export function observations(msg: Hl7Message): readonly Observation[] {
+  const noteIndex = groupNotes(msg);
   const out: Observation[] = [];
   for (const obx of msg.segments("OBX")) {
-    out.push(buildObservation(obx));
+    out.push(buildObservation(obx, noteIndex.byParent.get(obx)));
   }
   return Object.freeze(out);
 }

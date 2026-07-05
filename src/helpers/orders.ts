@@ -33,6 +33,7 @@ import type { Segment } from "../model/segment.js";
 import type { CWE } from "../model/types/cwe.js";
 import type { XCN } from "../model/types/xcn.js";
 
+import { groupNotes, type NoteGrouping } from "./notes.js";
 import { buildObservation } from "./observations.js";
 import { buildLegacyTiming, buildTq1Timing } from "./timing.js";
 import type { Observation, Order, OrderTiming } from "./types.js";
@@ -69,12 +70,20 @@ function finalizeOrder(
   attachedOrc: Segment | undefined,
   observations: readonly Observation[],
   tq1Segs: readonly Segment[],
+  noteIndex: NoteGrouping,
 ): Order {
   type Mutable<T> = { -readonly [K in keyof T]?: T[K] };
   const out: Mutable<Order> = {
     observations,
     timings: buildTimings(tq1Segs, attachedOrc),
   };
+
+  // Phase P: every order-level note (ORC-region + OBR-region) is keyed on the
+  // OBR in document order by `groupNotes` — the ORC region is flushed onto the
+  // OBR when the order opens, so this is a single already-ordered lookup. The
+  // array is already frozen by `groupNotes`.
+  const orderNotes = noteIndex.byParent.get(obr);
+  if (orderNotes !== undefined && orderNotes.length > 0) out.notes = orderNotes;
 
   const placer = stringOrUndefined(obr.field(2).value);
   if (placer !== undefined) out.placerOrderNumber = placer;
@@ -124,6 +133,7 @@ function finalizeOrder(
  * @internal
  */
 export function orders(msg: Hl7Message): readonly Order[] {
+  const noteIndex = groupNotes(msg); // Phase P: positional NTE grouping (by Segment ref)
   const out: Order[] = [];
   let pendingOrc: Segment | undefined; // accumulates ORCs since last OBR
   let pendingTq1: Segment[] = []; // TQ1 seen before the next OBR opens (Phase M)
@@ -158,6 +168,7 @@ export function orders(msg: Hl7Message): readonly Order[] {
             currentOrc,
             Object.freeze(currentObservations.slice()),
             currentTq1,
+            noteIndex,
           ),
         );
       }
@@ -172,7 +183,7 @@ export function orders(msg: Hl7Message): readonly Order[] {
       continue;
     }
     if (seg.type === "OBX" && currentObr !== undefined) {
-      currentObservations.push(buildObservation(seg));
+      currentObservations.push(buildObservation(seg, noteIndex.byParent.get(seg)));
     }
   }
 
@@ -180,7 +191,13 @@ export function orders(msg: Hl7Message): readonly Order[] {
   // pending and is implicitly dropped (never promoted) — parity with ORC.
   if (currentObr !== undefined) {
     out.push(
-      finalizeOrder(currentObr, currentOrc, Object.freeze(currentObservations.slice()), currentTq1),
+      finalizeOrder(
+        currentObr,
+        currentOrc,
+        Object.freeze(currentObservations.slice()),
+        currentTq1,
+        noteIndex,
+      ),
     );
   }
 

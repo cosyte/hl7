@@ -29,6 +29,7 @@ import { insurance as walkInsurance } from "../helpers/insurance.js";
 import { medications as walkMedications } from "../helpers/medications.js";
 import { buildMeta } from "../helpers/meta.js";
 import { nextOfKin as walkNextOfKin } from "../helpers/next-of-kin.js";
+import { notes as walkNotes } from "../helpers/notes.js";
 import { observations as walkObservations } from "../helpers/observations.js";
 import { orders as walkOrders } from "../helpers/orders.js";
 import { buildPatient } from "../helpers/patient.js";
@@ -452,6 +453,23 @@ export class Hl7Message {
    */
   public orders(): readonly Order[] {
     return walkOrders(this);
+  }
+
+  /**
+   * Message-level NTE notes (Phase P) — every NTE segment with no recognized
+   * preceding parent (not immediately following a `PID`, `ORC`, `OBR`, or
+   * `OBX`), surfaced verbatim in document order so nothing is dropped. Notes
+   * that DO attach to a specific patient / order / result are exposed on those
+   * helper outputs (`msg.patient?.notes`, `order.notes`, `observation.notes`) —
+   * not here. D-05: returns `[]` when there are none. D-06: NOT memoized.
+   *
+   * @example
+   * ```ts
+   * for (const note of msg.notes()) console.log(note); // message-level narrative
+   * ```
+   */
+  public notes(): readonly string[] {
+    return walkNotes(this);
   }
 
   /**
