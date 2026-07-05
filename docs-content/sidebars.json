@@ -9,6 +9,7 @@
         "spec-notes-coding-system",
         "spec-notes-structure",
         "spec-notes-identity",
+        "spec-notes-batch",
         "spec-notes-version-matrix"
       ]
     }

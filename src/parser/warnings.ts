@@ -40,6 +40,8 @@ export const WARNING_CODES = {
   UNKNOWN_CHARSET: "UNKNOWN_CHARSET",
   ACK_NO_CORRELATION_ID: "ACK_NO_CORRELATION_ID",
   MERGE_MISSING_PRIOR_OR_SURVIVOR: "MERGE_MISSING_PRIOR_OR_SURVIVOR",
+  BATCH_COUNT_MISMATCH: "BATCH_COUNT_MISMATCH",
+  BATCH_MISSING_TRAILER: "BATCH_MISSING_TRAILER",
 } as const;
 
 /**
@@ -465,6 +467,78 @@ export function mergeMissingPriorOrSurvivor(
     message:
       `Identity event "${eventType}" is missing its ${missing} role: ${detail}. ` +
       "Surfacing what is present; the MRG->PID merge direction is not guessed.",
+    position,
+  };
+}
+
+/**
+ * Build a `BATCH_COUNT_MISMATCH` warning (roadmap Phase L). Emitted by
+ * `splitBatch()` — attached to the returned `BatchSplitResult.warnings`, never
+ * to `Hl7Message.warnings` — when a declared envelope count does not equal the
+ * count actually split out: a **BTS-1** batch message count that differs from
+ * the messages found in that batch, or an **FTS-1** file batch count that
+ * differs from the batches found in the file (HL7 v2 Ch. 2 §2.10.3; BTS-1 / FTS-1
+ * per the BTS / FTS segment definitions in §2.15).
+ * The splitter **never drops the tail** to make the numbers agree — the
+ * mismatch is surfaced and every message is still returned; the caller decides
+ * whether to reject.
+ *
+ * The message carries only the declared-vs-actual **integers** and the unit
+ * (`message` for BTS-1, `batch` for FTS-1) — NEVER a field value, facility
+ * identifier, or any other content, so no PHI is exposed. `position` references
+ * the trailer segment (`BTS`/`FTS`) that declared the count.
+ *
+ * @example
+ * ```ts
+ * import { batchCountMismatch } from "@cosyte/hl7";
+ * const w = batchCountMismatch({ segmentIndex: 4 }, "message", 3, 2);
+ * ```
+ */
+export function batchCountMismatch(
+  position: Hl7Position,
+  unit: "message" | "batch",
+  declared: number,
+  actual: number,
+): Hl7ParseWarning {
+  return {
+    code: WARNING_CODES.BATCH_COUNT_MISMATCH,
+    message:
+      `Batch envelope declares ${String(declared)} ${unit}(s) but ${String(actual)} ` +
+      `were found; the count mismatch is surfaced and nothing was dropped.`,
+    position,
+  };
+}
+
+/**
+ * Build a `BATCH_MISSING_TRAILER` warning (roadmap Phase L). Emitted by
+ * `splitBatch()` — attached to `BatchSplitResult.warnings` — when an envelope
+ * header opens a scope that is never closed: a **BHS** batch header with no
+ * matching **BTS** trailer, or an **FHS** file header with no matching **FTS**
+ * trailer (HL7 v2 Ch. 2 §2.10.3 — each envelope segment is optional, but a
+ * profile such as an IIS file-submission spec may mandate the full frame).
+ * `splitBatch` **does not enforce** such a rule — it splits, warns, and leaves
+ * the accept/reject decision to the caller; the parse never throws for this.
+ *
+ * The message carries only the header/trailer segment names — NEVER a field
+ * value, so no PHI is exposed. `position` references the unmatched header
+ * segment (`FHS`/`BHS`).
+ *
+ * @example
+ * ```ts
+ * import { batchMissingTrailer } from "@cosyte/hl7";
+ * const w = batchMissingTrailer({ segmentIndex: 0 }, "BHS", "BTS");
+ * ```
+ */
+export function batchMissingTrailer(
+  position: Hl7Position,
+  header: "FHS" | "BHS",
+  expectedTrailer: "FTS" | "BTS",
+): Hl7ParseWarning {
+  return {
+    code: WARNING_CODES.BATCH_MISSING_TRAILER,
+    message:
+      `Batch envelope header "${header}" has no matching "${expectedTrailer}" trailer; ` +
+      "splitBatch surfaces this but does not reject — a profile that mandates the full envelope may.",
     position,
   };
 }
