@@ -131,9 +131,9 @@ function finalizeImmunization(
     if (oc !== undefined) out.orderControl = oc;
   }
 
-  // RXA-3 administered date/time (D-18 flat Date).
+  // RXA-3 administered date/time (fidelity TS, Phase N).
   const administered = rxa.field(3).asTs();
-  if (administered.date !== undefined) out.administeredDateTime = administered.date;
+  if (administered.valid) out.administeredDateTime = administered;
 
   // RXA-5 vaccine code (CVX) with provenance + alternate coding.
   const vaccineCode = cweOrUndefined(rxa.field(5));
@@ -160,9 +160,9 @@ function finalizeImmunization(
   const lotNumber = stringOrUndefined(rxa.field(15).value);
   if (lotNumber !== undefined) out.lotNumber = lotNumber;
 
-  // RXA-16 substance expiration date (first repetition; D-18 flat Date).
+  // RXA-16 substance expiration date (first repetition; fidelity TS, Phase N).
   const expiration = rxa.field(16).asTs();
-  if (expiration.date !== undefined) out.expirationDate = expiration.date;
+  if (expiration.valid) out.expirationDate = expiration;
 
   // RXA-17 manufacturer (MVX, first repetition).
   const manufacturer = cweOrUndefined(rxa.field(17));

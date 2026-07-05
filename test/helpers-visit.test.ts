@@ -84,15 +84,21 @@ describe("helpers/visit: msg.visit (HELPERS-03)", () => {
     expect(parseHL7(FULL).visit?.visitNumber).toBe("VISIT001");
   });
 
-  it("exposes PV1-44 admitDateTime as a flat Date (D-18)", () => {
+  it("exposes PV1-44 admitDateTime as the fidelity TS (Phase N)", () => {
     const v = parseHL7(FULL).visit;
-    expect(v?.admitDateTime).toBeInstanceOf(Date);
-    expect(v?.admitDateTime?.toISOString()).toBe("2025-01-02T15:30:45.000Z");
+    expect(v?.admitDateTime).toMatchObject({
+      raw: "20250102153045",
+      precision: "second",
+      year: 2025,
+      month: 1,
+      day: 2,
+      hasTimezone: false,
+    });
   });
 
-  it("exposes PV1-45 dischargeDateTime as a flat Date", () => {
+  it("exposes PV1-45 dischargeDateTime as the fidelity TS", () => {
     const v = parseHL7(FULL).visit;
-    expect(v?.dischargeDateTime?.toISOString()).toBe("2025-01-03T12:00:00.000Z");
+    expect(v?.dischargeDateTime).toMatchObject({ raw: "20250103120000", precision: "second" });
   });
 
   it("omits absent fields (exactOptionalPropertyTypes)", () => {

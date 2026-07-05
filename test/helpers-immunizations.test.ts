@@ -72,14 +72,19 @@ describe("helpers/immunizations: administered dose (RXA field map)", () => {
     expect(imm?.recordOrigin).toBe("administered");
   });
 
-  it("RXA-3 administered date/time as a flat Date (D-18)", () => {
-    expect(imm?.administeredDateTime?.getFullYear()).toBe(2026);
-    expect(imm?.administeredDateTime?.getMonth()).toBe(5); // June (0-indexed)
+  it("RXA-3 administered date/time as the fidelity TS (Phase N, spec-native month)", () => {
+    expect(imm?.administeredDateTime).toMatchObject({
+      raw: "20260615103000",
+      precision: "second",
+      year: 2026,
+      month: 6, // June — 1-based, spec-native (not JS 0-indexed)
+      day: 15,
+    });
   });
 
   it("RXA-15/16 lot number + expiration date", () => {
     expect(imm?.lotNumber).toBe("LOT-TEST-001");
-    expect(imm?.expirationDate?.getFullYear()).toBe(2027);
+    expect(imm?.expirationDate).toMatchObject({ raw: "20271231", precision: "day", year: 2027 });
   });
 
   it("RXA-17 MVX manufacturer with provenance", () => {

@@ -19,6 +19,7 @@ import type { CWE } from "../model/types/cwe.js";
 import type { CX } from "../model/types/cx.js";
 import type { PL } from "../model/types/pl.js";
 import type { SN } from "../model/types/sn.js";
+import type { TS } from "../model/types/ts.js";
 import type { XAD } from "../model/types/xad.js";
 import type { XCN } from "../model/types/xcn.js";
 import type { XPN } from "../model/types/xpn.js";
@@ -28,8 +29,8 @@ import type { XTN } from "../model/types/xtn.js";
  * MSH-derived message metadata (HELPERS-01). D-03: always defined on
  * `Hl7Message.meta` (MSH absence throws `NO_MSH_SEGMENT` at parse time);
  * individual fields are optional because vendor-quirky messages routinely
- * omit pieces of MSH. D-18: `timestamp` is a flat `Date | undefined`, not
- * a `{ raw, date }` composite.
+ * omit pieces of MSH. Phase N: `timestamp` is the fidelity `TS` (precision +
+ * timezone preserved), not an eager UTC-assuming `Date`.
  *
  * @example
  * ```ts
@@ -41,7 +42,7 @@ import type { XTN } from "../model/types/xtn.js";
  *   controlId: "MSG001",
  *   version: "2.5",
  * };
- * console.log(meta.timestamp?.toISOString());
+ * console.log(meta.timestamp?.raw, meta.timestamp?.precision);
  * ```
  */
 export interface Meta {
@@ -55,8 +56,8 @@ export interface Meta {
   readonly messageStructure?: string;
   /** MSH-10 message control ID — unique per message per sender. */
   readonly controlId?: string;
-  /** MSH-7 message date/time as a flat `Date` (D-18). */
-  readonly timestamp?: Date;
+  /** MSH-7 message date/time as the fidelity `TS` (Phase N). */
+  readonly timestamp?: TS;
   /** MSH-12 HL7 version string (e.g. "2.5", "2.5.1"). */
   readonly version?: string;
   /** MSH-3.1 sending application namespace id. */
@@ -90,7 +91,7 @@ export interface Meta {
  *   fullName: "Jane Smith",
  *   phoneNumbers: [],
  * };
- * console.log(p.dateOfBirth?.toISOString());
+ * console.log(p.dateOfBirth?.raw, p.dateOfBirth?.precision);
  * ```
  */
 export interface Patient {
@@ -108,8 +109,12 @@ export interface Patient {
   readonly middleName?: string;
   /** Composed Western-order name "Given Middle Family, Suffix" (D-17). */
   readonly fullName?: string;
-  /** PID-7 date of birth as flat `Date` (D-18). */
-  readonly dateOfBirth?: Date;
+  /**
+   * PID-7 date of birth as the fidelity `TS` (Phase N). A day-only DOB keeps
+   * `precision: "day"` — never coerced to a UTC-midnight instant that would
+   * read as the previous day in a negative-offset zone.
+   */
+  readonly dateOfBirth?: TS;
   /** PID-8 administrative sex code. */
   readonly sex?: string;
   /** PID-11 home address parsed as XAD. */
@@ -127,8 +132,8 @@ export interface Patient {
 /**
  * PV1-derived visit view (HELPERS-03). `msg.visit` is `undefined` when no PV1
  * segment exists; this interface describes the shape when present. D-24a:
- * doctor fields use XCN (not flat strings). D-18: date/time fields are flat
- * `Date | undefined`.
+ * doctor fields use XCN (not flat strings). Phase N: date/time fields are the
+ * fidelity `TS` (precision + timezone preserved).
  *
  * @example
  * ```ts
@@ -139,7 +144,7 @@ export interface Patient {
  *   visitNumber: "VISIT001",
  * };
  * console.log(v.attendingDoctor?.familyName);
- * console.log(v.admitDateTime?.toISOString());
+ * console.log(v.admitDateTime?.raw);
  * ```
  */
 export interface Visit {
@@ -147,10 +152,10 @@ export interface Visit {
   readonly patientClass?: string;
   /** PV1-3 assigned patient location (ward / room / bed) as PL. */
   readonly location?: PL;
-  /** PV1-44 admit date/time (D-18 flat). */
-  readonly admitDateTime?: Date;
-  /** PV1-45 discharge date/time (D-18 flat). */
-  readonly dischargeDateTime?: Date;
+  /** PV1-44 admit date/time as the fidelity `TS` (Phase N). */
+  readonly admitDateTime?: TS;
+  /** PV1-45 discharge date/time as the fidelity `TS` (Phase N). */
+  readonly dischargeDateTime?: TS;
   /** PV1-7 attending doctor (D-24a XCN). */
   readonly attendingDoctor?: XCN;
   /** PV1-8 referring doctor (D-24a XCN). */
@@ -196,8 +201,8 @@ export interface ObservationBase {
   readonly abnormalFlags?: string;
   /** OBX-11 observation result status (e.g. "F"=final, "P"=preliminary). */
   readonly status?: string;
-  /** OBX-14 date/time of observation (D-18 flat). */
-  readonly observedDateTime?: Date;
+  /** OBX-14 date/time of observation as the fidelity `TS` (Phase N). */
+  readonly observedDateTime?: TS;
 }
 
 /**
@@ -205,13 +210,14 @@ export interface ObservationBase {
  * `valueType` (OBX-2) per D-13:
  * - `"NM"` → `number | undefined`
  * - `"SN"` → `SN | undefined` (structured numeric: comparator / range / ratio)
- * - `"TS" | "DT"` → `Date | undefined` (flat per D-18)
+ * - `"TS" | "DT"` → `TS | undefined` (fidelity parts per Phase N)
  * - `"CWE" | "CE"` → `CWE | CE | undefined` (full composite per D-14)
  * - other (`"ST"`, `"TX"`, `"FT"`, `"ID"`, `"IS"`, `"NA"`, unknown) →
  *   `string | undefined` (auto-unescaped, D-23)
  *
  * D-22: `value` is `undefined` when OBX-5 is empty OR malformed for its
- * declared type (never throws, never Invalid Date, never `NaN`).
+ * declared type (never throws, never `NaN`). A `TS`/`DT` value is always the
+ * `TS` structure; check its `.valid` flag rather than expecting a `Date`.
  *
  * @example
  * ```ts
@@ -232,7 +238,7 @@ export type Observation = ObservationBase &
   (
     | { readonly valueType: "NM"; readonly value: number | undefined }
     | { readonly valueType: "SN"; readonly value: SN | undefined }
-    | { readonly valueType: "TS" | "DT"; readonly value: Date | undefined }
+    | { readonly valueType: "TS" | "DT"; readonly value: TS | undefined }
     | { readonly valueType: "CWE" | "CE"; readonly value: CWE | CE | undefined }
     | { readonly valueType: string; readonly value: string | undefined }
   );
@@ -298,7 +304,7 @@ export interface NextOfKin {
 }
 
 /**
- * AL1-derived allergy entry (HELPERS-06). D-18: `onsetDate` is flat.
+ * AL1-derived allergy entry (HELPERS-06). Phase N: `onsetDate` is the fidelity `TS`.
  *
  * @example
  * ```ts
@@ -320,12 +326,12 @@ export interface Allergy {
   readonly severity?: string;
   /** AL1-5 allergy reaction description (first value). */
   readonly reaction?: string;
-  /** AL1-6 onset date (D-18 flat). */
-  readonly onsetDate?: Date;
+  /** AL1-6 onset date as the fidelity `TS` (Phase N). */
+  readonly onsetDate?: TS;
 }
 
 /**
- * DG1-derived diagnosis entry (HELPERS-06). D-18: `dateTime` is flat.
+ * DG1-derived diagnosis entry (HELPERS-06). Phase N: `dateTime` is the fidelity `TS`.
  *
  * @example
  * ```ts
@@ -342,8 +348,8 @@ export interface Diagnosis {
   readonly code?: CWE;
   /** DG1-4 diagnosis description. */
   readonly description?: string;
-  /** DG1-5 diagnosis date/time (D-18 flat). */
-  readonly dateTime?: Date;
+  /** DG1-5 diagnosis date/time as the fidelity `TS` (Phase N). */
+  readonly dateTime?: TS;
   /** DG1-6 diagnosis type (A=admitting, W=working, F=final). */
   readonly type?: string;
 }
@@ -545,10 +551,10 @@ export interface Insurance {
   readonly groupNumber?: string;
   /** IN1-16 insured's name. */
   readonly insuredName?: XPN;
-  /** IN1-12 plan effective date (D-18 flat). */
-  readonly effectiveDate?: Date;
-  /** IN1-13 plan expiration date (D-18 flat). */
-  readonly expirationDate?: Date;
+  /** IN1-12 plan effective date as the fidelity `TS` (Phase N). */
+  readonly effectiveDate?: TS;
+  /** IN1-13 plan expiration date as the fidelity `TS` (Phase N). */
+  readonly expirationDate?: TS;
   /** `true` iff an IN2 segment follows this IN1 before the next IN1. */
   readonly hasIn2: boolean;
   /** `true` iff an IN3 segment follows this IN1 before the next IN1. */
@@ -641,12 +647,12 @@ export interface Immunization {
   readonly informationSource?: CWE;
   /** Derived administered-vs-historical classification from RXA-9.1. See {@link ImmunizationRecordOrigin}. */
   readonly recordOrigin?: ImmunizationRecordOrigin;
-  /** RXA-3 date/time start of administration (D-18 flat `Date`). */
-  readonly administeredDateTime?: Date;
+  /** RXA-3 date/time start of administration as the fidelity `TS` (Phase N). */
+  readonly administeredDateTime?: TS;
   /** RXA-15 substance lot number (first repetition). */
   readonly lotNumber?: string;
-  /** RXA-16 substance expiration date (first repetition; D-18 flat `Date`). */
-  readonly expirationDate?: Date;
+  /** RXA-16 substance expiration date (first repetition) as the fidelity `TS` (Phase N). */
+  readonly expirationDate?: TS;
   /** RXA-17 substance manufacturer (MVX, HL7 Table 0227; first repetition). */
   readonly manufacturer?: CWE;
   /** RXA-18 substance/treatment refusal reason (first repetition). */

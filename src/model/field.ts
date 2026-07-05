@@ -264,13 +264,15 @@ export class Field {
   }
 
   /**
-   * Coerce this field's first repetition to a typed `TS` (Time Stamp).
-   * `{ raw, date }` — `date` is `undefined` on unparseable input (no throw).
+   * Coerce this field's first repetition to a typed `TS` (Time Stamp) — the
+   * fidelity `DtmParts` (raw + parts + precision + timezone). `valid` is
+   * `false` on unparseable input (no throw). Build an absolute instant only on
+   * explicit request via `dtmToDate(ts)`.
    *
    * @example
    * ```ts
    * const ts = msg.segments("MSH")[0]?.field(7)?.asTs();
-   * console.log(ts?.raw, ts?.date?.toISOString());
+   * console.log(ts?.raw, ts?.precision, ts?.hasTimezone);
    * ```
    */
   public asTs(): TS {

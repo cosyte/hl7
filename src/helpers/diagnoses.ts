@@ -6,13 +6,13 @@
  *   - D-01: `Object.freeze` applied to each entry and to the outer array.
  *   - D-05: returns `[]` when no DG1 present.
  *   - D-06: NOT memoized — each call re-walks `msg.segments("DG1")`.
- *   - D-18: `dateTime` is a flat `Date | undefined`, not a `{ raw, date }` composite.
+ *   - Phase N: `dateTime` is the fidelity `TS` (precision + timezone preserved).
  *   - D-22: never throws — empty / malformed fields surface as omitted keys.
  *
  * Lean v1 field set (callers wanting more can drop to `msg.segments("DG1")`):
  *   - `code`        ← DG1-3 (CWE)
  *   - `description` ← DG1-4 (ST)
- *   - `dateTime`    ← DG1-5 (TS/DT → flat Date, D-18)
+ *   - `dateTime`    ← DG1-5 (TS/DT → fidelity `TS`, Phase N)
  *   - `type`        ← DG1-6 (IS — "A"=admit, "W"=working, "F"=final)
  */
 
@@ -52,7 +52,7 @@ export function diagnoses(msg: Hl7Message): readonly Diagnosis[] {
     if (description !== undefined) entry.description = description;
 
     const dt = dg1.field(5).asTs();
-    if (dt.date !== undefined) entry.dateTime = dt.date;
+    if (dt.valid) entry.dateTime = dt;
 
     const type = stringOrUndefined(dg1.field(6).value);
     if (type !== undefined) entry.type = type;

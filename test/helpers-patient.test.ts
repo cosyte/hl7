@@ -106,10 +106,17 @@ describe("helpers/patient: msg.patient (HELPERS-02)", () => {
     expect("fullName" in (p ?? {})).toBe(false);
   });
 
-  it("exposes flat Date for dateOfBirth (D-18)", () => {
+  it("exposes the fidelity TS for dateOfBirth at day precision (Phase N)", () => {
     const p = parseHL7(FULL).patient;
-    expect(p?.dateOfBirth).toBeInstanceOf(Date);
-    expect(p?.dateOfBirth?.toISOString()).toBe("1980-01-15T00:00:00.000Z");
+    expect(p?.dateOfBirth).toMatchObject({
+      raw: "19800115",
+      valid: true,
+      precision: "day",
+      year: 1980,
+      month: 1,
+      day: 15,
+      hasTimezone: false,
+    });
   });
 
   it("omits dateOfBirth when PID-7 is absent", () => {

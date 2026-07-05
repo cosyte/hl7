@@ -12,7 +12,8 @@
  * - D-09: `identifiers` is a frozen `readonly CX[]` — always present.
  * - D-17: `fullName` is Western order "Given Middle Family, Suffix", omitted
  *   parts cleanly joined, absent when no usable parts.
- * - D-18: `dateOfBirth` is a flat `Date | undefined`, never `{ raw, date }`.
+ * - Phase N: `dateOfBirth` is the fidelity `TS` (day-only DOB keeps `precision:
+ *   "day"`, never a UTC-midnight instant that shifts the day).
  * - D-19: flat `familyName` / `givenName` / `middleName` convenience fields
  *   mirror XPN, with `middleName` mapped from `XPN.secondName`.
  * - D-20: `phoneNumbers` concatenates PID-13 then PID-14 repetitions.
@@ -69,7 +70,7 @@ function composeFullName(name: XPN): string | undefined {
  * const msg = parseHL7(raw);
  * console.log(msg.patient?.mrn);                        // first CX-5="MR" idNumber
  * console.log(msg.patient?.fullName);                   // "Jane Q Smith, Jr"
- * console.log(msg.patient?.dateOfBirth?.toISOString()); // flat Date per D-18
+ * console.log(msg.patient?.dateOfBirth?.raw); // fidelity TS (Phase N) — e.g. "19800115"
  * for (const phone of msg.patient?.phoneNumbers ?? []) {
  *   console.log(phone.telephoneNumber);
  * }
@@ -107,9 +108,9 @@ export function buildPatient(msg: Hl7Message): Patient | undefined {
   const fullName = composeFullName(name);
   if (fullName !== undefined) out.fullName = fullName;
 
-  // ─── PID-7 date of birth (D-18 flat Date) ─────────────────────────────
+  // ─── PID-7 date of birth (Phase N fidelity TS) ────────────────────────
   const dob = pid.field(7).asTs();
-  if (dob.date !== undefined) out.dateOfBirth = dob.date;
+  if (dob.valid) out.dateOfBirth = dob;
 
   // ─── PID-8 administrative sex (flat string) ───────────────────────────
   const sex = pid.field(8).value;

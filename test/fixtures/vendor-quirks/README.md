@@ -69,10 +69,10 @@ wired into the parser pipeline** as of the close of Phase 6:
   `parseHL7`. There is no anchored "expected version" in the lenient
   default path.
 - `TIMESTAMP_FALLBACK_FORMAT` — `timestampFallbackFormat()` is emitted
-  only by `parseHl7Timestamp` when an `emit` + `position` is supplied.
-  The composite `.asTs()` call sites in `src/model/types/ts.ts` use
-  `NOOP_EMITTER` (by design, per Phase 3 D-10). The meta builder in
-  `src/helpers/meta.ts` calls `parseHl7Timestamp` without `emit`, so the
+  only by `parseDtmCascade` when an `emit` + `position` is supplied.
+  The composite `.asTs()` call site in `src/model/types/ts.ts` uses
+  `parseDtm` (strict, no fallback, silent per Phase 3 D-10). The meta builder in
+  `src/helpers/meta.ts` calls `parseDtmCascade` without `emit`, so the
   warning cannot reach `msg.warnings` through `msg.meta` access either.
 
 These are **latent Tier-2 codes** — reserved in the enum and locked by the

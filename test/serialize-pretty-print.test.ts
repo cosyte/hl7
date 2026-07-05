@@ -131,12 +131,12 @@ describe("emitPrettyPrint - Block 1: D-25 header", () => {
     expect(firstLine).toContain("controlId=-");
   });
 
-  it("header contains timestamp=<ISO> when present", () => {
+  it("header contains the raw HL7 timestamp when present (Phase N — no UTC coercion)", () => {
     const out = parseHL7(CANONICAL_ADT).prettyPrint();
     const [firstLine] = out.split("\n");
-    // MSH-7 = "20260419101500" -> UTC Date -> ISO string.
-    const expectedIso = new Date(Date.UTC(2026, 3, 19, 10, 15, 0)).toISOString();
-    expect(firstLine).toContain(`timestamp=${expectedIso}`);
+    // Phase N: the header renders MSH-7 verbatim, preserving precision + zone,
+    // rather than coercing an offset-less value to a UTC ISO instant.
+    expect(firstLine).toContain("timestamp=20260419101500");
   });
 
   it("header renders missing timestamp as '-'", () => {

@@ -47,12 +47,13 @@ describe("formatHl7Timestamp (D-13)", () => {
     expect(() => formatHl7Timestamp(new Date())).not.toThrow();
   });
 
-  it("parseHl7Timestamp inverse round-trip (seconds precision)", async () => {
-    const { parseHl7Timestamp } = await import("../src/parser/dates.js");
+  it("parseDtm inverse round-trip (seconds precision, explicit UTC)", async () => {
+    const { parseDtm, dtmToDate } = await import("../src/parser/dates.js");
     const original = new Date("2026-04-19T10:15:30Z");
     const formatted = formatHl7Timestamp(original);
-    const reparsed = parseHl7Timestamp(formatted, {});
-    // parseHl7Timestamp returns Date | undefined.
+    // formatHl7Timestamp emits UTC second-precision with no offset; reading it
+    // back to the same instant requires explicitly assuming UTC.
+    const reparsed = dtmToDate(parseDtm(formatted), { assumeOffsetMinutes: 0 });
     expect(reparsed?.toISOString()).toBe(original.toISOString());
   });
 });

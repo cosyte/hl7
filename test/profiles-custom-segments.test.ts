@@ -133,8 +133,13 @@ describe("D-21 merged dateFormats: options.dateFormats precedes profile.dateForm
   it("option-only format makes MSH-7 in a non-HL7 format parse", () => {
     const raw = "MSH|^~\\&|APP|FAC|APP|FAC|01/15/2025||ADT^A01|MSG001|P|2.5\rPID\r";
     const msg = parseHL7(raw, { dateFormats: ["MM/DD/YYYY"] });
-    expect(msg.meta.timestamp).toBeInstanceOf(Date);
-    expect(msg.meta.timestamp?.toISOString()).toBe("2025-01-15T00:00:00.000Z");
+    expect(msg.meta.timestamp).toMatchObject({
+      valid: true,
+      year: 2025,
+      month: 1,
+      day: 15,
+      matchedFormat: "MM/DD/YYYY",
+    });
     // Note: buildMeta runs on-demand via the .meta getter and `msg.warnings`
     // is frozen at Hl7Message construction (Phase 2 D-07). Wiring MSH-7
     // timestamp parse into the parse pipeline to surface
@@ -151,8 +156,7 @@ describe("D-21 merged dateFormats: options.dateFormats precedes profile.dateForm
     });
     const raw = "MSH|^~\\&|APP|FAC|APP|FAC|01/15/2025||ADT^A01|MSG001|P|2.5\rPID\r";
     const msg = parseHL7(raw, profile);
-    expect(msg.meta.timestamp).toBeInstanceOf(Date);
-    expect(msg.meta.timestamp?.toISOString()).toBe("2025-01-15T00:00:00.000Z");
+    expect(msg.meta.timestamp).toMatchObject({ valid: true, year: 2025, month: 1, day: 15 });
   });
 
   it("options.dateFormats present AND profile.dateFormats present — OPTIONS tried first (D-21)", () => {
@@ -168,7 +172,8 @@ describe("D-21 merged dateFormats: options.dateFormats precedes profile.dateForm
       dateFormats: ["MM/DD/YYYY"],
       profile,
     });
-    expect(msg.meta.timestamp?.toISOString()).toBe("2025-01-02T00:00:00.000Z");
+    // Options "MM/DD/YYYY" → Jan 2 wins over profile "DD/MM/YYYY" → Feb 1.
+    expect(msg.meta.timestamp).toMatchObject({ valid: true, year: 2025, month: 1, day: 2 });
   });
 
   it("msg.dateFormats exposes the merged list (D-21 observable)", () => {

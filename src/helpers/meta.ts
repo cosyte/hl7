@@ -8,13 +8,14 @@
  * D-01 freeze at boundary. D-02 memoization is handled by the caller
  * (`Hl7Message.meta` getter). D-03 Meta is always defined — MSH absence
  * throws `NO_MSH_SEGMENT` at parse time, so the MSH guard here is purely for
- * TS narrowing. D-18 timestamp is a flat `Date | undefined`, never a
- * `{ raw, date }` composite. D-21 silent. D-22 never throws. D-23 string
- * fields are auto-unescaped by routing through `msg.get()` / `field.value`.
+ * TS narrowing. Phase N: `timestamp` is the fidelity `TS` (precision +
+ * timezone preserved), never an eager UTC-assuming `Date`. D-21 silent. D-22
+ * never throws. D-23 string fields are auto-unescaped by routing through
+ * `msg.get()` / `field.value`.
  */
 
 import type { Hl7Message } from "../model/message.js";
-import { parseHl7Timestamp } from "../parser/dates.js";
+import { parseDtmCascade } from "../parser/dates.js";
 
 import type { Meta } from "./types.js";
 
@@ -31,7 +32,7 @@ import type { Meta } from "./types.js";
  * const msg = parseHL7(raw);
  * console.log(msg.meta.type);                     // "ADT^A01^ADT_A01"
  * console.log(msg.meta.controlId);                // "MSG001"
- * console.log(msg.meta.timestamp?.toISOString()); // flat Date per D-18
+ * console.log(msg.meta.timestamp?.raw); // fidelity TS (Phase N)
  * ```
  *
  * @internal
@@ -77,20 +78,20 @@ export function buildMeta(msg: Hl7Message): Meta {
   const controlId = msg.get("MSH.10");
   if (controlId !== undefined && controlId !== "") out.controlId = controlId;
 
-  // ─── MSH-7 timestamp (D-18 flat Date + D-21 merged dateFormats) ────────
-  // Call parseHl7Timestamp DIRECTLY (not via .asTs() which hard-codes `{}`)
-  // so Phase 6 D-21 `options.dateFormats ++ profile.dateFormats` is honoured
-  // for MSH-7. .asTs() stays unchanged for composite callers (Phase 3 D-10
-  // "zero duplicate date logic"); meta.ts is the non-composite caller that
-  // benefits from the merged cascade.
+  // ─── MSH-7 timestamp (Phase N fidelity TS + D-21 merged dateFormats) ───
+  // Call parseDtmCascade DIRECTLY (not via .asTs() which hard-codes the strict
+  // HL7 shape) so Phase 6 D-21 `options.dateFormats ++ profile.dateFormats` is
+  // honoured for MSH-7. .asTs() stays strict for composite callers (Phase 3
+  // D-10 "zero duplicate date logic"); meta.ts is the non-composite caller that
+  // benefits from the lenient cascade. Phase N: `timestamp` is the fidelity
+  // TS (precision + timezone preserved), never an eager UTC-assuming Date.
   if (msh !== undefined) {
     const tsField = msh.field(7);
     const tsRaw = tsField.value;
     if (tsRaw !== "") {
-      const parsed = parseHl7Timestamp(tsRaw, { userFormats: msg.dateFormats });
-      if (parsed !== undefined && !Number.isNaN(parsed.getTime())) {
-        out.timestamp = parsed;
-      }
+      const parsed = parseDtmCascade(tsRaw, { userFormats: msg.dateFormats });
+      // `parseDtmCascade` already returns a frozen `DtmParts`.
+      if (parsed.valid) out.timestamp = parsed;
     }
   }
 

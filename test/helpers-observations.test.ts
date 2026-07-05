@@ -41,20 +41,26 @@ describe("helpers/observations: msg.observations() — D-13 value-type dispatch"
     expect(o?.value).toBeUndefined();
   });
 
-  it("TS → value is a flat Date (D-18)", () => {
+  it("TS → value is the fidelity TS (Phase N)", () => {
     const msg = parseHL7(MSH + obx("TS", "20250115120000"));
     const o = msg.observations()[0];
     expect(o?.valueType).toBe("TS");
-    expect(o?.value).toBeInstanceOf(Date);
-    expect((o?.value as Date).toISOString()).toBe("2025-01-15T12:00:00.000Z");
+    expect(o?.value).toMatchObject({
+      raw: "20250115120000",
+      valid: true,
+      precision: "second",
+      year: 2025,
+      month: 1,
+      day: 15,
+      hour: 12,
+    });
   });
 
-  it("DT → value is a flat Date", () => {
+  it("DT → value is the fidelity TS at day precision", () => {
     const msg = parseHL7(MSH + obx("DT", "20250115"));
     const o = msg.observations()[0];
     expect(o?.valueType).toBe("DT");
-    expect(o?.value).toBeInstanceOf(Date);
-    expect((o?.value as Date).toISOString()).toBe("2025-01-15T00:00:00.000Z");
+    expect(o?.value).toMatchObject({ raw: "20250115", precision: "day", hasTimezone: false });
   });
 
   it("TS unparseable → value undefined", () => {
@@ -138,7 +144,7 @@ describe("helpers/observations: shape + common fields (D-15)", () => {
     expect(o?.units?.identifier).toBe("mg/dL");
     expect(o?.referenceRange).toBe("80-110");
     expect(o?.status).toBe("F");
-    expect(o?.observedDateTime).toBeInstanceOf(Date);
+    expect(o?.observedDateTime?.valid).toBe(true);
   });
 
   it("identifier is always present (D-15 locked — even for an empty OBX-3)", () => {

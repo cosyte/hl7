@@ -108,7 +108,7 @@ export interface Hl7MessageInit {
   /**
    * Merged `dateFormats` list — `options.dateFormats ++ profile.dateFormats`
    * deduped first-occurrence per D-21. Consumed by `msg.meta.timestamp` and
-   * any future helper that calls `parseHl7Timestamp` directly. Absent when
+   * any future helper that calls `parseDtmCascade` directly. Absent when
    * neither `options.dateFormats` nor `profile.dateFormats` was supplied.
    */
   readonly dateFormats?: readonly string[];
@@ -356,7 +356,7 @@ export class Hl7Message {
    * @example
    * ```ts
    * console.log(msg.meta.type);                     // "ADT^A01"
-   * console.log(msg.meta.timestamp?.toISOString()); // flat Date (D-18)
+   * console.log(msg.meta.timestamp?.raw);           // fidelity TS (Phase N)
    * console.log(msg.meta.controlId);                // "MSG001"
    * ```
    */
@@ -392,7 +392,7 @@ export class Hl7Message {
    * ```ts
    * console.log(msg.patient?.mrn);
    * console.log(msg.patient?.fullName);
-   * console.log(msg.patient?.dateOfBirth?.toISOString());
+   * console.log(msg.patient?.dateOfBirth?.raw); // fidelity TS — e.g. "19800115"
    * ```
    */
   public get patient(): Patient | undefined {
@@ -409,7 +409,7 @@ export class Hl7Message {
    * @example
    * ```ts
    * console.log(msg.visit?.patientClass);                 // "I"
-   * console.log(msg.visit?.admitDateTime?.toISOString());
+   * console.log(msg.visit?.admitDateTime?.raw); // fidelity TS
    * console.log(msg.visit?.attendingDoctor?.familyName);
    * ```
    */

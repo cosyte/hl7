@@ -97,9 +97,8 @@ describe("D-20 effects equivalence: default profile === explicit profile", () =>
     const viaDefault = parseHL7(raw);
     const viaExplicit = parseHL7(raw, p);
 
-    expect(viaDefault.meta.timestamp?.toISOString()).toBe(
-      viaExplicit.meta.timestamp?.toISOString(),
-    );
+    expect(viaDefault.meta.timestamp?.raw).toBe(viaExplicit.meta.timestamp?.raw);
+    expect(viaDefault.meta.timestamp).toMatchObject({ valid: true });
   });
 
   it("profile lineage lands equivalently", () => {

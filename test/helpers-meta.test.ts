@@ -28,10 +28,20 @@ describe("helpers/meta: msg.meta (HELPERS-01)", () => {
     expect(msg.meta.controlId).toBe("MSG001");
   });
 
-  it("reads MSH-7 timestamp as a flat JS Date (D-18)", () => {
+  it("reads MSH-7 timestamp as the fidelity TS (Phase N — no eager UTC)", () => {
     const msg = parseHL7(FULL);
-    expect(msg.meta.timestamp).toBeInstanceOf(Date);
-    expect(msg.meta.timestamp?.toISOString()).toBe("2025-01-02T15:30:45.000Z");
+    expect(msg.meta.timestamp).toMatchObject({
+      raw: "20250102153045",
+      valid: true,
+      precision: "second",
+      year: 2025,
+      month: 1,
+      day: 2,
+      hour: 15,
+      minute: 30,
+      second: 45,
+      hasTimezone: false,
+    });
   });
 
   it("reads MSH-12 version", () => {
@@ -73,9 +83,14 @@ describe("helpers/meta: msg.meta (HELPERS-01)", () => {
     expect("messageStructure" in msg.meta).toBe(false);
   });
 
-  it("parses date-only MSH-7 to midnight UTC (D-18)", () => {
+  it("preserves a date-only MSH-7 at day precision (no zero-fill to midnight)", () => {
     const msg = parseHL7(MIN_MSH);
-    expect(msg.meta.timestamp?.toISOString()).toBe("2025-01-02T00:00:00.000Z");
+    expect(msg.meta.timestamp).toMatchObject({
+      raw: "20250102",
+      precision: "day",
+      hasTimezone: false,
+    });
+    expect(msg.meta.timestamp?.hour).toBeUndefined();
   });
 
   it("omits timestamp when MSH-7 is unparseable (D-22)", () => {

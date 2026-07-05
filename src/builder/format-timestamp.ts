@@ -1,7 +1,8 @@
 /**
  * `formatHl7Timestamp` — format a JS `Date` to HL7 TS `YYYYMMDDHHmmss`
- * (UTC, second precision). Inverse of `src/parser/dates.ts::parseHl7Timestamp`
- * for the HL7 TS branch.
+ * (UTC, second precision). The outbound (builder) counterpart to the inbound
+ * `src/parser/dates.ts::parseDtm`; this side intentionally emits full
+ * second-precision UTC for newly-constructed messages.
  *
  * Implementation lives in Phase 5 Plan 05 (build-message).
  *
@@ -14,7 +15,7 @@
 
 /**
  * Format a JS `Date` to HL7 TS `YYYYMMDDHHmmss` (UTC, second precision,
- * always 14 chars). Inverse of `parseHl7Timestamp` for the HL7 TS branch.
+ * always 14 chars). The builder counterpart to the parser's `parseDtm`.
  * D-13: sub-second precision is NOT emitted (acceptable asymmetry — most
  * outbound use cases don't need ms, and HL7 TS `.SSSS` is optional).
  *

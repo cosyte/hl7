@@ -54,8 +54,8 @@ export type {
   RawRepetition,
   RawComponent,
 } from "./parser/types.js";
-export { BUILTIN_DATE_FALLBACKS, parseHl7Timestamp } from "./parser/dates.js";
-export type { ParseHl7TimestampOptions } from "./parser/dates.js";
+export { BUILTIN_DATE_FALLBACKS, parseDtm, formatDtm, dtmToDate } from "./parser/dates.js";
+export type { DtmParts, DtmPrecision, DtmToDateOptions } from "./parser/dates.js";
 export { unescape, reescape } from "./parser/escapes.js";
 
 // Phase 3 structural model — read-path foundation.

@@ -10,7 +10,7 @@
  *   - D-01: `Object.freeze` applied to each entry and to the outer array.
  *   - D-05: returns `[]` when no IN1 present.
  *   - D-06: NOT memoized — each call re-walks `msg.allSegments()`.
- *   - D-18: `effectiveDate` / `expirationDate` are flat `Date | undefined`.
+ *   - Phase N: `effectiveDate` / `expirationDate` are the fidelity `TS`.
  *   - D-22: never throws — empty / malformed fields surface as omitted keys.
  *
  * Lean v1 field set (callers wanting more can drop to `msg.segments("IN1")`):
@@ -18,8 +18,8 @@
  *   - `companyId`      ← IN1-3  (CX — first repetition)
  *   - `companyName`    ← IN1-4  (XON first component flattened to string)
  *   - `groupNumber`    ← IN1-8  (string)
- *   - `effectiveDate`  ← IN1-12 (TS/DT → flat Date, D-18)
- *   - `expirationDate` ← IN1-13 (TS/DT → flat Date, D-18)
+ *   - `effectiveDate`  ← IN1-12 (TS/DT → fidelity `TS`, Phase N)
+ *   - `expirationDate` ← IN1-13 (TS/DT → fidelity `TS`, Phase N)
  *   - `insuredName`    ← IN1-16 (XPN)
  *   - `policyNumber`   ← IN1-36 (string)
  *   - `hasIn2`/`hasIn3` ← positional IN2/IN3 presence booleans
@@ -56,10 +56,10 @@ function finalizeInsurance(in1: Segment, hasIn2: boolean, hasIn3: boolean): Insu
   if (groupNumber !== undefined) entry.groupNumber = groupNumber;
 
   const effective = in1.field(12).asTs();
-  if (effective.date !== undefined) entry.effectiveDate = effective.date;
+  if (effective.valid) entry.effectiveDate = effective;
 
   const expiration = in1.field(13).asTs();
-  if (expiration.date !== undefined) entry.expirationDate = expiration.date;
+  if (expiration.valid) entry.expirationDate = expiration;
 
   const insuredName = in1.field(16).asXpn();
   if (Object.keys(insuredName).length > 0) entry.insuredName = insuredName;

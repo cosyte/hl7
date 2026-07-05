@@ -6,7 +6,7 @@
  *   - D-01: `Object.freeze` applied to each entry and to the outer array.
  *   - D-05: returns `[]` when no AL1 present.
  *   - D-06: NOT memoized — each call re-walks `msg.segments("AL1")`.
- *   - D-18: `onsetDate` is a flat `Date | undefined`, not a `{ raw, date }` composite.
+ *   - Phase N: `onsetDate` is the fidelity `TS` (precision + timezone preserved).
  *   - D-22: never throws — empty / malformed fields surface as omitted keys.
  *
  * Lean v1 field set (callers wanting more can drop to `msg.segments("AL1")`):
@@ -14,7 +14,7 @@
  *   - `code`      ← AL1-3 (CWE)
  *   - `severity`  ← AL1-4 (IS — "SV"/"MO"/"MI")
  *   - `reaction`  ← AL1-5 (string / CWE first value)
- *   - `onsetDate` ← AL1-6 (TS/DT → flat Date, D-18)
+ *   - `onsetDate` ← AL1-6 (TS/DT → fidelity `TS`, Phase N)
  */
 
 import type { Hl7Message } from "../model/message.js";
@@ -34,7 +34,7 @@ function stringOrUndefined(v: string): string | undefined {
  * import { parseHL7 } from "@cosyte/hl7";
  * const msg = parseHL7(raw);
  * for (const al of msg.allergies()) {
- *   console.log(al.code?.identifier, al.severity, al.onsetDate?.toISOString());
+ *   console.log(al.code?.identifier, al.severity, al.onsetDate?.raw);
  * }
  * ```
  *
@@ -59,7 +59,7 @@ export function allergies(msg: Hl7Message): readonly Allergy[] {
     if (reaction !== undefined) entry.reaction = reaction;
 
     const onset = al1.field(6).asTs();
-    if (onset.date !== undefined) entry.onsetDate = onset.date;
+    if (onset.valid) entry.onsetDate = onset;
 
     out.push(Object.freeze(entry));
   }

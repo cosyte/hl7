@@ -15,12 +15,12 @@
  *   - D-13: discriminated union on `valueType`:
  *       - `"NM"`            → `number | undefined`  (via `Field.asNm()`)
  *       - `"SN"`            → `SN | undefined`       (via `Field.asSn()`, structured numeric)
- *       - `"TS" | "DT"`     → `Date | undefined`    (via `Field.asTs()`, flat per D-18)
+ *       - `"TS" | "DT"`     → `TS | undefined`      (via `Field.asTs()`, fidelity per Phase N)
  *       - `"CWE" | "CE"`    → composite | undefined (via `Field.asCwe/asCe`)
  *       - other (`ST`/`TX`/`FT`/`ID`/`IS`/unknown) → `string | undefined`
  *   - D-15: common-field shape (setId, identifier, units, referenceRange,
  *     abnormalFlags, status, observedDateTime).
- *   - D-18: flat `Date | undefined` at the helper layer.
+ *   - Phase N: datetime values are the fidelity `TS`, not a flat `Date`.
  *   - D-22: never throws — empty or malformed input surfaces as `undefined`.
  *   - D-01: each Observation and the outer array are frozen at the boundary.
  */
@@ -78,8 +78,8 @@ function buildCommon(obx: Segment): ObservationBase {
   const status = stringOrUndefined(obx.field(11).value);
   if (status !== undefined) base.status = status;
 
-  const observedDateTime = obx.field(14).asTs().date;
-  if (observedDateTime !== undefined) base.observedDateTime = observedDateTime;
+  const observedDateTime = obx.field(14).asTs();
+  if (observedDateTime.valid) base.observedDateTime = observedDateTime;
 
   return base as ObservationBase;
 }
@@ -118,7 +118,7 @@ function dispatchValue(valueType: string, valueField: Field, common: Observation
       return Object.freeze({
         ...common,
         valueType,
-        value: ts.date,
+        value: ts.valid ? ts : undefined,
       });
     }
     case "CWE": {
@@ -187,7 +187,7 @@ export function buildObservation(obx: Segment): Observation {
  * const msg = parseHL7(raw);
  * for (const obs of msg.observations()) {
  *   if (obs.valueType === "NM") console.log(obs.value); // number | undefined
- *   else if (obs.valueType === "TS") console.log(obs.value?.toISOString());
+ *   else if (obs.valueType === "TS") console.log(obs.value?.raw, obs.value?.precision);
  * }
  * ```
  *
