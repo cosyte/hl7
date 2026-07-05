@@ -38,6 +38,7 @@ import type { Field } from "../model/field.js";
 import type { Hl7Message } from "../model/message.js";
 import type { Segment } from "../model/segment.js";
 import type { CWE } from "../model/types/cwe.js";
+import { buildLegacyTiming, buildTq1Timing } from "./timing.js";
 import type {
   Medication,
   MedicationAmount,
@@ -45,6 +46,7 @@ import type {
   MedicationContext,
   MedicationRoute,
   MedicationStrength,
+  OrderTiming,
 } from "./types.js";
 
 /** The four RX* parent segment types that each open a `Medication`. @internal */
@@ -180,15 +182,52 @@ function buildComponent(rxc: Segment): MedicationComponent {
   return Object.freeze(out);
 }
 
+/**
+ * Build the frozen `timings` list for a medication group (Phase M). Every TQ1
+ * segment grouped under the RX* parent yields one `OrderTiming`
+ * (`source: "TQ1"`). When the group carries no TQ1, the **legacy embedded TQ**
+ * is read from RXE-1 (an encoded RXE order) or, failing that, from the preceding
+ * ORC's ORC-7 (any pharmacy order — e.g. a pre-v2.5 RXO whose timing lives in
+ * ORC-7 with no OBR to surface it via `orders()`). Reading the legacy source
+ * only when no TQ1 is present means the same timing is never double-counted; the
+ * ORC-7 fallback means a legacy-only timing is never dropped. `orc` is the ORC
+ * that opened this group (already consumed for only the first RX* of the group,
+ * so an `ORC RXO RXE` group never double-surfaces the ORC-7 timing).
+ * @internal
+ */
+function buildMedTimings(
+  tq1Segs: readonly Segment[],
+  parent: Segment,
+  context: MedicationContext,
+  orc: Segment | undefined,
+): readonly OrderTiming[] {
+  if (tq1Segs.length > 0) {
+    return Object.freeze(tq1Segs.map((seg) => buildTq1Timing(seg)));
+  }
+  if (context === "encoded") {
+    const legacy = buildLegacyTiming(parent.field(1)); // RXE-1 Quantity/Timing
+    if (legacy !== undefined) return Object.freeze([legacy]);
+  }
+  if (orc !== undefined) {
+    const legacy = buildLegacyTiming(orc.field(7)); // ORC-7 Quantity/Timing
+    if (legacy !== undefined) return Object.freeze([legacy]);
+  }
+  return Object.freeze([]);
+}
+
 /** Freeze a Medication and its grouped child arrays at the boundary (D-01). @internal */
 function finalize(
   med: Medication,
+  parent: Segment,
+  orc: Segment | undefined,
   routes: readonly MedicationRoute[],
   components: readonly MedicationComponent[],
+  tq1Segs: readonly Segment[],
 ): Medication {
   const out = med as { -readonly [K in keyof Medication]: Medication[K] };
   out.routes = Object.freeze(routes.slice());
   out.components = Object.freeze(components.slice());
+  out.timings = buildMedTimings(tq1Segs, parent, med.context, orc);
   return Object.freeze(out);
 }
 
@@ -222,23 +261,54 @@ export function medications(msg: Hl7Message): readonly Medication[] {
   const out: Medication[] = [];
 
   let current: Medication | undefined;
+  let currentParent: Segment | undefined;
+  let currentOrc: Segment | undefined; // ORC that opened the current group (ORC-7 legacy source)
+  let pendingOrc: Segment | undefined; // ORC seen before the next RX* parent opens
   let routes: MedicationRoute[] = [];
   let components: MedicationComponent[] = [];
+  let pendingTq1: Segment[] = []; // TQ1 seen before the next RX* parent opens (Phase M)
+  let currentTq1: Segment[] = []; // TQ1 grouped under the open RX* parent (Phase M)
+  let awaitingParent = false; // an ORC has begun a group still awaiting its RX* parent (Phase M)
 
   const closeCurrent = (): void => {
-    if (current !== undefined) {
-      out.push(finalize(current, routes, components));
+    if (current !== undefined && currentParent !== undefined) {
+      out.push(finalize(current, currentParent, currentOrc, routes, components, currentTq1));
     }
   };
 
   for (const seg of msg.allSegments()) {
     const context = PARENT_CONTEXT[seg.type];
     if (context !== undefined) {
-      // Close the previous medication group, then open a new one.
+      // Close the previous medication group, then open a new one — promoting
+      // any TQ1 seen since the last parent (the order group places TQ1 ahead
+      // of the RXE it modifies). The preceding ORC (its ORC-7 legacy timing) is
+      // consumed by only this first RX*: `pendingOrc` is cleared so a sibling
+      // RX* in the same ORC group never double-surfaces the ORC-7 timing.
       closeCurrent();
       current = buildFromParent(seg, context);
+      currentParent = seg;
+      currentOrc = pendingOrc;
+      pendingOrc = undefined;
       routes = [];
       components = [];
+      currentTq1 = pendingTq1;
+      pendingTq1 = [];
+      awaitingParent = false;
+      continue;
+    }
+    if (seg.type === "ORC") {
+      // A new ORC starts a new order group: any following TQ1 (before that
+      // group's RX* parent) belongs to the NEXT medication, and its ORC-7
+      // carries the legacy timing for that group.
+      pendingOrc = seg;
+      awaitingParent = true;
+      continue;
+    }
+    if (seg.type === "TQ1") {
+      // A TQ1 attaches to the open medication only when no newer ORC has begun a
+      // group; otherwise it modifies the next RX* parent.
+      if (current !== undefined && !awaitingParent) currentTq1.push(seg);
+      else pendingTq1.push(seg);
       continue;
     }
     if (current === undefined) continue; // RXR/RXC before any RX* parent — dropped.

@@ -224,6 +224,27 @@ for (const al of msg.allergies()) {
 
 Fields are parsed into their spec-typed shapes (`code` is a `CWE` composite, `onsetDate` is a fidelity `TS`). The same helper family exists for next-of-kin (`msg.nextOfKin()`), diagnoses (`msg.diagnoses()`), insurance (`msg.insurance()`), medications (`msg.medications()`), and immunizations (`msg.immunizations()`).
 
+### Order & medication timing
+
+Every `Order` (from `msg.orders()`) and `Medication` (from `msg.medications()`) carries a `timings` array — the `TQ1` segment (HL7 v2.5+) or the legacy embedded TQ in `ORC-7` / `RXE-1` (pre-v2.5).
+
+```ts
+import { parseHL7 } from "@cosyte/hl7";
+
+const med = parseHL7(raw).medications()[0];
+
+for (const t of med?.timings ?? []) {
+  console.log(t.source); // "TQ1" or "legacy"
+  console.log(t.repeatPattern?.code); // "Q6H" — VERBATIM, never resolved to a schedule
+  console.log(t.repeatPattern?.kind); // "parametric" (provenance only)
+  console.log(t.repeatPattern?.interval); // { count: 6, unit: "H" } — the load-bearing integer
+  console.log(t.totalOccurrences); // 24 — from TQ1-14 (not TQ1-11)
+  console.log(t.startDateTime?.raw, t.startDateTime?.precision);
+}
+```
+
+The repeat pattern (Table 0335) is surfaced **verbatim** — hl7 never normalizes a sig, resolves `Q6H` to clock times, or maps it to a different frequency (reading `Q6H` as "daily", or losing a `BID`, changes the administered dose count). The `kind` flag (`parametric`/`named`/`unknown`) is provenance only and never drives a schedule; a parametric `Q<n><unit>` template's integer is never dropped. See `docs-content/spec-notes-timing.md` for the field map and non-goals.
+
 ### Patient merges and identity events
 
 `msg.identityEvents()` recognizes the ADT identity-management trigger events — merges (A18/A34/A35/A36/A39/A40/A41/A42), moves (A43/A44), link/unlink (A24/A37), and person add/update (A28/A31) — and surfaces every party **labelled by role**. On a merge, the MRG segment carries the _prior_ (non-surviving) identifiers and the PID carries the _surviving_ ones; the direction is the spec constant `MRG_TO_PID` and is never inferred from content.

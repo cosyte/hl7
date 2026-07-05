@@ -437,13 +437,16 @@ export class Hl7Message {
   }
 
   /**
-   * Every OBR as an Order with its OBX children grouped positionally (D-12).
-   * D-05: returns `[]` when no OBR present. D-06: not memoized.
+   * Every OBR as an Order with its OBX children grouped positionally (D-12) and
+   * its TQ1 / legacy embedded-TQ (ORC-7) `timings` (Phase M — the repeat pattern
+   * surfaced verbatim, never resolved to a schedule). D-05: returns `[]` when no
+   * OBR present. D-06: not memoized.
    *
    * @example
    * ```ts
    * for (const order of msg.orders()) {
    *   console.log(order.placerOrderNumber, order.observations.length);
+   *   for (const t of order.timings) console.log(t.repeatPattern?.code); // e.g. "Q6H" — verbatim
    * }
    * ```
    */
@@ -480,11 +483,15 @@ export class Hl7Message {
    * memoized. The give *amount* and give *strength* are surfaced separately
    * and never reconciled (Phase D §4).
    *
+   * Each medication also carries its TQ1 / legacy embedded-TQ (RXE-1) `timings`
+   * (Phase M — repeat pattern verbatim, never resolved to a schedule).
+   *
    * @example
    * ```ts
    * for (const med of msg.medications()) {
    *   console.log(med.context, med.giveCode?.identifier, med.giveCode?.nameOfCodingSystem);
    *   console.log(med.amount?.minimum, med.strength?.value);
+   *   for (const t of med.timings) console.log(t.repeatPattern?.code, t.totalOccurrences);
    * }
    * ```
    */

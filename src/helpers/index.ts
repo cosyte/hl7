@@ -20,7 +20,11 @@ export type {
   Observation,
   ObservationBase,
   Order,
+  OrderTiming,
   Patient,
+  RepeatPattern,
+  RepeatPatternKind,
+  TimingQuantity,
   Visit,
 } from "./types.js";
 export type { IdentityEvent, IdentityEventKind, IdentityParty, IdentityRole } from "./identity.js";
