@@ -78,6 +78,37 @@ hasTimezone, offsetMinutes }`) instead of the old `{ raw, date }`. HL7 v2
 
 ### Added
 
+- **Order / medication timing — `order.timings` + `med.timings` (roadmap
+  Phase M).** `orders()` and `medications()` now surface the timing **structure**
+  of an order/medication as a typed `OrderTiming[]`, read from the `TQ1` segment
+  (HL7 v2.5+, Ch. 4 §4.5.4) or the **legacy embedded TQ** data type in `ORC-7` /
+  `RXE-1` (pre-v2.5, Ch. 2A §2.A.81, detail withdrawn as of v2.7). Modelled:
+  TQ1-2 quantity (CQ), **TQ1-3 repeat pattern (RPT, Table 0335)**, TQ1-4 explicit
+  time, TQ1-6 service duration, TQ1-7/-8 start/end (DTM → the Phase N fidelity
+  `TS`), TQ1-9 priority (CWE), and **TQ1-14 total occurrences (NM) — not TQ1-11**
+  (the Text Instruction). The repeat pattern is surfaced **verbatim**
+  (`repeatPattern.code`) — never normalized, resolved to clock times, or mapped
+  to a different frequency (reading `Q6H` as "daily", or losing a `BID`, changes
+  the administered dose count). A provenance-only `kind`
+  (`parametric`/`named`/`unknown`) never drives a schedule; a `parametric`
+  `Q<integer><unit>` template surfaces its **load-bearing integer** on
+  `repeatPattern.interval`, never dropped. `TQ1` vs the legacy embedded TQ is
+  chosen **by presence** (`source: "TQ1" | "legacy"`) — the legacy field is read
+  only when no `TQ1` accompanies the group, so the same timing is never
+  double-counted and a legacy-only timing is never dropped (the legacy source is
+  `ORC-7` for an order, `RXE-1` or the preceding `ORC`'s `ORC-7` for a
+  medication). Timings group positionally — a `TQ1` may sit either side of the
+  order detail, an intervening `ORC` re-scopes a following `TQ1` to the next
+  order, and multiple `TQ1` segments each surface (a tapering schedule). New
+  public types `OrderTiming`, `RepeatPattern`,
+  `RepeatPatternKind`, `TimingQuantity`; `Order` / `Medication` gain an
+  always-present `timings` array. **Additive only** — no rename, no removal, **no
+  new warning code**. hl7 surfaces the timing structure only; it does not compute
+  schedules, resolve "institution-specified times", or interpret sig. Non-goals:
+  `TQ2` beyond segment recognition, schedule computation, 2nd+ repetitions of
+  repeating timing fields. Never throws (HELPERS-07). See
+  `docs-content/spec-notes-timing.md`.
+
 - **`splitBatch()` — batch / file envelope splitting (roadmap Phase L).**
   Demarcates the individual `MSH`-led messages inside an HL7 v2 batch/file
   stream (`[FHS] { [BHS] { MSH… } [BTS] } [FTS]`, HL7 v2 Ch. 2 §2.10.3) and

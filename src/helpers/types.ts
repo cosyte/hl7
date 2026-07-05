@@ -244,9 +244,135 @@ export type Observation = ObservationBase &
   );
 
 /**
+ * How an order/medication `RepeatPattern` code (HL7 Table 0335) is classified —
+ * **provenance only, never used to resolve a schedule** (Phase M). The `code`
+ * is always authoritative and surfaced verbatim; this flag only tells a
+ * consumer *what kind* of pattern it is looking at so it can decide whether a
+ * load-bearing integer is present.
+ *
+ * - `"parametric"` — a `Q<integer><unit>` template (`Q6H`, `Q30M`, `Q2D`,
+ *   `Q1W`, `Q3J5`) whose **integer is load-bearing**: `Q6H` (every 6 hours) is
+ *   a different dose count from `Q8H`. The parsed integer + unit ride on
+ *   {@link RepeatPattern.interval}.
+ * - `"named"` — a recognized fixed Table-0335 mnemonic scheduled at
+ *   institution-specified times (`BID`, `TID`, `QID`, `QOD`, `QHS`, `QAM`,
+ *   `QPM`, `QSHIFT`, `PRN`, `AC`, `PC`, `HS`, `C`). No numeric interval.
+ * - `"unknown"` — anything else (a local code, free text, an unrecognized
+ *   mnemonic). Surfaced **verbatim**, never mapped to a frequency.
+ */
+export type RepeatPatternKind = "parametric" | "named" | "unknown";
+
+/**
+ * An order/medication timing **repeat pattern** (HL7 Table 0335) — the
+ * frequency/SIG field (TQ1-3, or the legacy embedded TQ interval RI.1), Phase M.
+ *
+ * **Safety contract.** `code` is the **decoded field value** (HL7 escapes are
+ * unescaped as with every field read) and is **never resolved to clock times,
+ * normalized, or mapped to a different frequency** — reading `Q6H` as "daily"
+ * or silently dropping a `BID` changes the administered dose count, a
+ * transcription-class harm. `kind`/`interval` are convenience provenance ONLY;
+ * `code` is the authoritative value.
+ *
+ * @example
+ * ```ts
+ * import type { RepeatPattern } from "@cosyte/hl7";
+ * const q6h: RepeatPattern = { code: "Q6H", kind: "parametric", interval: { count: 6, unit: "H" } };
+ * const bid: RepeatPattern = { code: "BID", kind: "named" };
+ * ```
+ */
+export interface RepeatPattern {
+  /** The Table-0335 repeat-pattern code exactly as authored (e.g. `"Q6H"`, `"BID"`). Never normalized. */
+  readonly code: string;
+  /** Provenance classification of `code` — never used to resolve a schedule. See {@link RepeatPatternKind}. */
+  readonly kind: RepeatPatternKind;
+  /**
+   * For a `"parametric"` `Q<integer><unit>` template only: the load-bearing
+   * integer and its unit letter (`S`/`M`/`H`/`D`/`W`/`L`, or `J` for
+   * day-of-week). OMITTED for `"named"`/`"unknown"` patterns. Informational —
+   * `code` remains authoritative.
+   */
+  readonly interval?: { readonly count: number; readonly unit: string };
+}
+
+/**
+ * A composite-quantity (CQ) value on an order/medication timing — the TQ1-2
+ * service quantity, Phase M. `value` is strict-`Number()` parsed (`undefined`,
+ * never `NaN`); `units` carries any CQ.2 units. Both keys OMITTED when absent.
+ *
+ * @example
+ * ```ts
+ * import type { TimingQuantity } from "@cosyte/hl7";
+ * const q: TimingQuantity = { value: 1, units: { identifier: "tablet" } };
+ * ```
+ */
+export interface TimingQuantity {
+  /** CQ.1 quantity numeric value (strict-parsed; never `NaN`). */
+  readonly value?: number;
+  /** CQ.2 units. */
+  readonly units?: CWE;
+}
+
+/**
+ * The order/medication **timing** structure — one TQ1 segment (v2.5+) or the
+ * legacy embedded TQ in ORC-7 / RXE-1 (pre-v2.5), Phase M. Attached to
+ * {@link Order.timings} and {@link Medication.timings}.
+ *
+ * **Safety contract.** hl7 surfaces the timing **structure**; it does **not**
+ * compute administration schedules, resolve "institution-specified times" to
+ * clock times, or interpret sig. The load-bearing {@link repeatPattern} and
+ * {@link totalOccurrences} are preserved verbatim (see {@link RepeatPattern});
+ * `startDateTime`/`endDateTime` keep the Phase N `TS` precision + timezone
+ * fidelity. A malformed timing never throws — absent pieces are omitted keys.
+ *
+ * @example
+ * ```ts
+ * import type { OrderTiming } from "@cosyte/hl7";
+ * const t: OrderTiming = {
+ *   source: "TQ1",
+ *   quantity: { value: 1 },
+ *   repeatPattern: { code: "Q6H", kind: "parametric", interval: { count: 6, unit: "H" } },
+ *   totalOccurrences: 20,
+ * };
+ * ```
+ */
+export interface OrderTiming {
+  /**
+   * Which structure this timing was read from: the dedicated **TQ1** segment
+   * (v2.5+) or the **legacy** embedded TQ data type in ORC-7 (orders) / RXE-1
+   * (encoded medications, pre-v2.5). The library treats the presence of a TQ1
+   * segment as the v2.5+ signal — the legacy embedded TQ is surfaced only when
+   * no TQ1 accompanies the order, so the same timing is never double-counted
+   * and a legacy-only timing is never dropped.
+   */
+  readonly source: "TQ1" | "legacy";
+  /** TQ1-2 / legacy TQ.1 service quantity (CQ). */
+  readonly quantity?: TimingQuantity;
+  /** TQ1-3 / legacy TQ.2 interval RI.1 repeat pattern (Table 0335) — verbatim. See {@link RepeatPattern}. */
+  readonly repeatPattern?: RepeatPattern;
+  /** TQ1-4 / legacy TQ.2 interval RI.2 explicit time(s) — surfaced verbatim (first repetition/value). */
+  readonly explicitTime?: string;
+  /** TQ1-6 / legacy TQ.3 service duration — surfaced verbatim. */
+  readonly serviceDuration?: string;
+  /** TQ1-7 / legacy TQ.4 start date/time as the fidelity `TS` (Phase N). */
+  readonly startDateTime?: TS;
+  /** TQ1-8 / legacy TQ.5 end date/time as the fidelity `TS` (Phase N). */
+  readonly endDateTime?: TS;
+  /** TQ1-9 priority (CWE) / legacy TQ.6 priority (surfaced as a CWE `{ identifier }`). */
+  readonly priority?: CWE;
+  /**
+   * TQ1-14 / legacy TQ.12 total occurrences (NM) — how many times the service
+   * is to be performed (strict-parsed; never `NaN`). **TQ1-14, not TQ1-11**
+   * (TQ1-11 is Text Instruction). Load-bearing: losing it drops the total
+   * administered count.
+   */
+  readonly totalOccurrences?: number;
+}
+
+/**
  * OBR-derived order (HELPERS-05, D-16) with positionally-grouped OBX children
  * (D-12). `observations` is ALWAYS present — empty when no OBX follows this
- * OBR before the next OBR or end-of-message.
+ * OBR before the next OBR or end-of-message. Phase M adds `timings` — ALWAYS
+ * present, empty when the order carries no TQ1 / legacy embedded TQ.
  *
  * @example
  * ```ts
@@ -257,6 +383,7 @@ export type Observation = ObservationBase &
  *   universalServiceId: { identifier: "GLU", text: "Glucose" },
  *   orderStatus: "F",
  *   observations: [],
+ *   timings: [],
  * };
  * ```
  */
@@ -275,6 +402,12 @@ export interface Order {
   readonly orderedBy?: XCN;
   /** OBX children grouped under this OBR (D-12 positional grouping). Always present. */
   readonly observations: readonly Observation[];
+  /**
+   * TQ1 / legacy embedded-TQ timing(s) grouped under this order (Phase M).
+   * Always present — empty when the order carries no timing. See
+   * {@link OrderTiming}.
+   */
+  readonly timings: readonly OrderTiming[];
 }
 
 /**
@@ -487,9 +620,11 @@ export interface MedicationComponent {
  *   (Phase D §4). A disagreement is preserved for the consumer to see.
  * - Malformed RX* segments never throw — absent fields are omitted keys.
  *
- * `routes` and `components` are ALWAYS present (possibly empty). Deferred (not
- * v1): sig/frequency interpretation, TQ1 timing normalization, dose-range or
- * interaction checking, pharmacologic resolution of compounds.
+ * `routes` and `components` are ALWAYS present (possibly empty). Phase M adds
+ * `timings` — ALWAYS present, empty when no TQ1 / legacy embedded TQ (RXE-1)
+ * accompanies the medication; the repeat pattern is surfaced **verbatim, never
+ * normalized to a schedule**. Deferred (not v1): sig/frequency *interpretation*,
+ * dose-range or interaction checking, pharmacologic resolution of compounds.
  *
  * @example
  * ```ts
@@ -501,6 +636,7 @@ export interface MedicationComponent {
  *   strength: { value: 325, units: { identifier: "mg", nameOfCodingSystem: "UCUM" } },
  *   routes: [{ route: { identifier: "PO", text: "Oral" } }],
  *   components: [],
+ *   timings: [{ source: "TQ1", repeatPattern: { code: "Q6H", kind: "parametric", interval: { count: 6, unit: "H" } } }],
  * };
  * ```
  */
@@ -519,6 +655,12 @@ export interface Medication {
   readonly routes: readonly MedicationRoute[];
   /** RXC children grouped under this RX* (compound components). Always present (possibly empty). */
   readonly components: readonly MedicationComponent[];
+  /**
+   * TQ1 / legacy embedded-TQ (RXE-1) timing(s) grouped under this medication
+   * (Phase M). Always present — empty when the medication carries no timing.
+   * See {@link OrderTiming}.
+   */
+  readonly timings: readonly OrderTiming[];
 }
 
 /**

@@ -122,7 +122,11 @@ export type {
   Observation,
   ObservationBase,
   Order,
+  OrderTiming,
   Patient,
+  RepeatPattern,
+  RepeatPatternKind,
+  TimingQuantity,
   Visit,
 } from "./helpers/types.js";
 

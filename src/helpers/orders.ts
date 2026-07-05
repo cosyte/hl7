@@ -34,11 +34,33 @@ import type { CWE } from "../model/types/cwe.js";
 import type { XCN } from "../model/types/xcn.js";
 
 import { buildObservation } from "./observations.js";
-import type { Observation, Order } from "./types.js";
+import { buildLegacyTiming, buildTq1Timing } from "./timing.js";
+import type { Observation, Order, OrderTiming } from "./types.js";
 
 /** Normalize HL7 empty-string to `undefined` for the helper layer (D-22). @internal */
 function stringOrUndefined(v: string): string | undefined {
   return v === "" ? undefined : v;
+}
+
+/**
+ * Build the frozen `timings` list for an order group (Phase M). Every TQ1
+ * segment grouped under the OBR yields one `OrderTiming` (`source: "TQ1"`).
+ * The legacy embedded TQ in the attached ORC's ORC-7 is read **only when the
+ * group carries no TQ1** — so the same timing is never double-counted and a
+ * legacy-only (pre-v2.5) timing is never dropped. @internal
+ */
+function buildTimings(
+  tq1Segs: readonly Segment[],
+  attachedOrc: Segment | undefined,
+): readonly OrderTiming[] {
+  if (tq1Segs.length > 0) {
+    return Object.freeze(tq1Segs.map((seg) => buildTq1Timing(seg)));
+  }
+  if (attachedOrc !== undefined) {
+    const legacy = buildLegacyTiming(attachedOrc.field(7)); // ORC-7 Quantity/Timing
+    if (legacy !== undefined) return Object.freeze([legacy]);
+  }
+  return Object.freeze([]);
 }
 
 /** Build a frozen `Order` from the accumulated OBR / attached ORC / observations. @internal */
@@ -46,9 +68,13 @@ function finalizeOrder(
   obr: Segment,
   attachedOrc: Segment | undefined,
   observations: readonly Observation[],
+  tq1Segs: readonly Segment[],
 ): Order {
   type Mutable<T> = { -readonly [K in keyof T]?: T[K] };
-  const out: Mutable<Order> = { observations };
+  const out: Mutable<Order> = {
+    observations,
+    timings: buildTimings(tq1Segs, attachedOrc),
+  };
 
   const placer = stringOrUndefined(obr.field(2).value);
   if (placer !== undefined) out.placerOrderNumber = placer;
@@ -100,24 +126,48 @@ function finalizeOrder(
 export function orders(msg: Hl7Message): readonly Order[] {
   const out: Order[] = [];
   let pendingOrc: Segment | undefined; // accumulates ORCs since last OBR
+  let pendingTq1: Segment[] = []; // TQ1 seen before the next OBR opens (Phase M)
+  let awaitingObr = false; // an ORC has opened a new group still awaiting its OBR (Phase M)
   let currentObr: Segment | undefined;
   let currentOrc: Segment | undefined; // ORC attached to the open OBR group
   let currentObservations: Observation[] = [];
+  let currentTq1: Segment[] = []; // TQ1 grouped under the open OBR (Phase M)
 
   for (const seg of msg.allSegments()) {
     if (seg.type === "ORC") {
       pendingOrc = seg;
+      // A new ORC starts a new order group: any following TQ1 (before that
+      // group's OBR) belongs to the NEXT order, never the still-open prior one.
+      awaitingObr = true;
+      continue;
+    }
+    if (seg.type === "TQ1") {
+      // A TQ1 attaches to the open OBR only when no newer ORC has begun a group;
+      // otherwise it modifies the next OBR (a TQ1 can sit either side of the OBR,
+      // and an intervening ORC re-scopes it to the following order).
+      if (currentObr !== undefined && !awaitingObr) currentTq1.push(seg);
+      else pendingTq1.push(seg);
       continue;
     }
     if (seg.type === "OBR") {
-      // Close previous group using THAT group's attached ORC.
+      // Close previous group using THAT group's attached ORC + TQ1.
       if (currentObr !== undefined) {
-        out.push(finalizeOrder(currentObr, currentOrc, Object.freeze(currentObservations.slice())));
+        out.push(
+          finalizeOrder(
+            currentObr,
+            currentOrc,
+            Object.freeze(currentObservations.slice()),
+            currentTq1,
+          ),
+        );
       }
-      // Open new group; promote pendingOrc → currentOrc; reset pending.
+      // Open new group; promote pendingOrc / pendingTq1; reset pending.
       currentObr = seg;
       currentOrc = pendingOrc;
+      currentTq1 = pendingTq1;
       pendingOrc = undefined;
+      pendingTq1 = [];
+      awaitingObr = false;
       currentObservations = [];
       continue;
     }
@@ -126,10 +176,12 @@ export function orders(msg: Hl7Message): readonly Order[] {
     }
   }
 
-  // Finalize the trailing order. A trailing ORC after the last OBR stays in
-  // pendingOrc and is implicitly dropped (never promoted to currentOrc).
+  // Finalize the trailing order. A trailing ORC / TQ1 after the last OBR stays
+  // pending and is implicitly dropped (never promoted) — parity with ORC.
   if (currentObr !== undefined) {
-    out.push(finalizeOrder(currentObr, currentOrc, Object.freeze(currentObservations.slice())));
+    out.push(
+      finalizeOrder(currentObr, currentOrc, Object.freeze(currentObservations.slice()), currentTq1),
+    );
   }
 
   return Object.freeze(out);
