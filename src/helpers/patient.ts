@@ -28,6 +28,7 @@ import type { XPN } from "../model/types/xpn.js";
 import type { XTN } from "../model/types/xtn.js";
 import { parseXtn } from "../model/types/xtn.js";
 
+import { groupNotes } from "./notes.js";
 import { pickMrn } from "./pick-mrn.js";
 import type { Patient } from "./types.js";
 
@@ -143,6 +144,15 @@ export function buildPatient(msg: Hl7Message): Patient | undefined {
   // ─── PID-15 primary language (CE) ────────────────────────────────────
   const language = pid.field(15).asCe();
   if (Object.keys(language).length > 0) out.language = language;
+
+  // ─── Phase P: NTE notes positionally attached to this PID ─────────────
+  // Notes immediately following the (first) PID segment attach to the patient.
+  // A second PID's group notes ride on that PID segment but are not surfaced
+  // here (the patient view is the first PID — a documented single-patient model).
+  // The array is already frozen by `groupNotes`; a later PID's notes are routed
+  // to `msg.notes()` there, never mis-attached to this first-PID patient view.
+  const patientNotes = groupNotes(msg).byParent.get(pid);
+  if (patientNotes !== undefined && patientNotes.length > 0) out.notes = patientNotes;
 
   // D-01 freeze at boundary.
   return Object.freeze(out) as Patient;

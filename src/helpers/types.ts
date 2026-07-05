@@ -127,6 +127,13 @@ export interface Patient {
   readonly ethnicity?: CWE;
   /** PID-15 primary language. */
   readonly language?: CE;
+  /**
+   * NTE note lines positionally attached to the (first) PID (Phase P) — notes
+   * immediately following the patient's PID segment, HL7-unescaped, in
+   * document order. OMITTED when the patient carries no notes. High-PHI-risk
+   * clinical narrative.
+   */
+  readonly notes?: readonly string[];
 }
 
 /**
@@ -203,6 +210,13 @@ export interface ObservationBase {
   readonly status?: string;
   /** OBX-14 date/time of observation as the fidelity `TS` (Phase N). */
   readonly observedDateTime?: TS;
+  /**
+   * NTE note lines positionally attached to this OBX (Phase P) — each
+   * non-empty NTE-3 (Comment, FT) repetition of every NTE immediately
+   * following this observation, HL7-unescaped, in document order. OMITTED when
+   * the observation carries no notes. High-PHI-risk clinical narrative.
+   */
+  readonly notes?: readonly string[];
 }
 
 /**
@@ -408,6 +422,16 @@ export interface Order {
    * {@link OrderTiming}.
    */
   readonly timings: readonly OrderTiming[];
+  /**
+   * NTE note lines positionally attached to this order (Phase P) — the
+   * ORC-region notes (before the OBR) followed by the OBR-region notes, in
+   * document order. Several ORCs before one OBR all contribute here; nothing is
+   * dropped. OMITTED when the order carries no notes. A note on a trailing or
+   * dangling ORC that never opens an order is surfaced at message level
+   * (`msg.notes()`), not here — still never dropped. High-PHI-risk clinical
+   * narrative.
+   */
+  readonly notes?: readonly string[];
 }
 
 /**
