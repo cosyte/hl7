@@ -44,6 +44,39 @@ per the cosyte version ladder (`0.0.x` until first alpha).
 
 ### Added
 
+- **`splitBatch()` — batch / file envelope splitting (roadmap Phase L).**
+  Demarcates the individual `MSH`-led messages inside an HL7 v2 batch/file
+  stream (`[FHS] { [BHS] { MSH… } [BTS] } [FTS]`, HL7 v2 Ch. 2 §2.10.3) and
+  hands each one back parsed — either `{ ok: true, message }` or, for a message
+  that trips a Tier-3 fatal, `{ ok: false, error }`. A **malformed message
+  mid-batch is isolated**, never suppressing its siblings; a **bare single
+  message** (no envelope) passes straight through. Declared counts are
+  reconciled — **BTS-1** (batch message count) against the messages in the
+  batch, **FTS-1** (file batch count) against the batches in the file — and a
+  mismatch surfaces the new Tier-2 `BATCH_COUNT_MISMATCH` warning **without ever
+  dropping the tail**; an absent (`[0..1]`) or non-numeric count tolerantly
+  disables reconciliation. A `BHS`/`FHS` header with no matching `BTS`/`FTS`
+  raises the new `BATCH_MISSING_TRAILER` warning (`splitBatch` warns, never
+  rejects — enforcing a mandatory envelope is the caller's call). Batch-level
+  warnings live on the returned `BatchSplitResult.warnings` (never on
+  `Hl7Message.warnings`) and carry **counts / segment names / positions only —
+  no PHI**. A `Buffer` stream round-trips through `latin1` so each message's own
+  MSH-18 charset resolution runs on its original bytes. Kept a **separate
+  surface** from `parseHL7` (which rejects non-`MSH`-first input by design).
+  New public exports: `splitBatch`, the `batchCountMismatch` /
+  `batchMissingTrailer` factories, and types `Batch` / `BatchSplitResult` /
+  `BatchMessageEntry` / `BatchEnvelopeSegment` / `BatchEnvelopeName`. **Two
+  additive Tier-2 warning codes** (`BATCH_COUNT_MISMATCH`,
+  `BATCH_MISSING_TRAILER`) — the stable warning-code contract grows 16 → 18.
+  `batches` holds each message run delimited by a `BHS` and/or a `BTS` (a run
+  with neither is still yielded in `messages`, wrapped in no batch); FTS-1
+  reconciles **per-file** so concatenated files raise no false mismatch. Split-only: no
+  batch ACK generation, no envelope enforcement, BTS-3 totals surfaced but not
+  reconciled, no transport de-framing (that is `@cosyte/mllp`). Two structural
+  limits are documented: reserved envelope names are matched by name (a body
+  literally containing `FHS`/`BHS`/`BTS`/`FTS` is mis-split, its tail surfaced
+  as a `NO_MSH_SEGMENT` failure — never silently dropped), and one file envelope
+  per stream is the modelled case. See `docs-content/spec-notes-batch.md`.
 - **`identityEvents()` — patient-identity / merge events (roadmap Phase K, P0
   safety).** `msg.identityEvents()` recognizes the ADT identity-management
   trigger family — merges (A18/A34/A35/A36/A39/A40/A41/A42), moves (A43/A44),

@@ -221,3 +221,20 @@ export type {
   StructureGroup,
   MessageStructure,
 } from "./parser/message-structure.js";
+
+// Roadmap Phase L: batch / file envelope splitting. `splitBatch` is a
+// top-level utility (symmetric with `parseHL7`) that demarcates the individual
+// MSH-led messages inside an `[FHS]{[BHS]{MSH…}[BTS]}[FTS]` stream, parses each
+// via parseHL7 (ok / typed-failure entries — a malformed message is isolated,
+// never suppresses siblings), and reconciles the declared BTS-1/FTS-1 counts.
+// The two additive Tier-2 warnings live on the returned result, never on
+// Hl7Message.warnings.
+export { splitBatch } from "./parser/batch.js";
+export type {
+  Batch,
+  BatchEnvelopeName,
+  BatchEnvelopeSegment,
+  BatchMessageEntry,
+  BatchSplitResult,
+} from "./parser/batch.js";
+export { batchCountMismatch, batchMissingTrailer } from "./parser/warnings.js";
