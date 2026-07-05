@@ -20,7 +20,8 @@ import { DEFAULT_ENCODING_CHARACTERS, readDelimiters } from "./delimiters.js";
 import { FATAL_CODES, Hl7ParseError } from "./errors.js";
 import { KNOWN_SEGMENTS } from "./known-segments.js";
 import { emitIfFramed, stripMllp } from "./mllp.js";
-import { mapHl7Charset, normalize, normalizeBuffer } from "./normalize.js";
+import { canonicalCharset } from "./charset.js";
+import { normalize, normalizeBuffer } from "./normalize.js";
 import { snippet as segmentSnippet, splitSegments } from "./segments.js";
 import { tokenize } from "./tokenize.js";
 import { analyzeMessageStructure } from "./message-structure.js";
@@ -207,9 +208,15 @@ function buildSnippet(input: string, _position: Hl7Position): string {
  * charset token would become a garbage string that falls through to
  * UTF-8).
  *
- * Returns the trimmed MSH-18 token, or `undefined` on any failure (no
- * segment boundary, segment not `MSH`, `parts[17]` missing or empty). The
- * caller falls back to UTF-8 on `undefined`.
+ * MSH-18 is a **repeating** field (HL7 v2 Ch. 2): the **first** occurrence is
+ * the message's default encoding; later occurrences are alternates activated
+ * mid-message by the charset-switch escapes. Only the first repetition governs
+ * the whole-buffer decode, so this returns it — split on the message's own
+ * repetition separator (MSH-2 char 2, default `~`).
+ *
+ * Returns the trimmed first MSH-18 repetition, or `undefined` on any failure
+ * (no segment boundary, segment not `MSH`, `parts[17]` missing or empty). The
+ * caller applies the ASCII default on `undefined`.
  *
  * @internal
  */
@@ -223,10 +230,14 @@ function extractMsh18FromTentativeDecode(tentativeText: string): string | undefi
   if (fieldSep === "") return undefined;
   const parts = firstSegment.split(fieldSep);
   // Per the unified 1-indexed convention: parts[0] = "MSH", parts[1] =
-  // encoding characters (MSH-2), ..., parts[17] = MSH-18.
+  // encoding characters (MSH-2 = `^~\&`), ..., parts[17] = MSH-18.
   const raw = parts[17];
   if (raw === undefined) return undefined;
-  const trimmed = raw.trim();
+  // Repetition separator = MSH-2 character 2 (0-indexed 1); default `~` when
+  // MSH-2 is short/malformed. Take the first repetition = the message default.
+  const repSep = (parts[1] ?? "").charAt(1) || "~";
+  const firstRep = raw.split(repSep)[0] ?? raw;
+  const trimmed = firstRep.trim();
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
@@ -236,12 +247,14 @@ function extractMsh18FromTentativeDecode(tentativeText: string): string | undefi
  * rule (design decision (c)):
  *
  *   1. If `options.charset` is supplied AND MSH-18 is declared, emit
- *      `ENCODING_MISMATCH` when they disagree after alias normalization;
+ *      `ENCODING_MISMATCH` when they disagree after canonicalization;
  *      always honour the override.
  *   2. Else if `options.charset` is supplied, use it.
- *   3. Else if MSH-18 is declared, use it (triggers `UNKNOWN_CHARSET`
- *      fallback inside `normalizeBuffer` when the label is unsupported).
- *   4. Else fall through to `normalizeBuffer`'s UTF-8 default.
+ *   3. Else if MSH-18 is declared, use it (a recognized-but-undecoded set
+ *      trips `UNSUPPORTED_CHARSET`, an unrecognized label `UNKNOWN_CHARSET`,
+ *      both preserving bytes verbatim inside `normalizeBuffer`).
+ *   4. Else fall through to `normalizeBuffer`'s ASCII default (decoded as its
+ *      UTF-8 superset), which emits nothing.
  *
  * Two-pass mechanics: MSH-1 through MSH-18 are always 7-bit ASCII in real
  * HL7 traffic, so a tentative UTF-8 decode reliably surfaces MSH-18 even
@@ -264,8 +277,8 @@ function resolveBufferCharset(
   const declared = extractMsh18FromTentativeDecode(tentative);
 
   if (override !== undefined && declared !== undefined) {
-    const overrideNorm = mapHl7Charset(override);
-    const declaredNorm = mapHl7Charset(declared);
+    const overrideNorm = canonicalCharset(override);
+    const declaredNorm = canonicalCharset(declared);
     if (overrideNorm !== declaredNorm) {
       emit(
         encodingMismatch(

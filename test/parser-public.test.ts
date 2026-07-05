@@ -337,14 +337,14 @@ describe("PARSE-09 — MSH-18 charset wiring", () => {
 
   it("4. does NOT emit ENCODING_MISMATCH when options.charset and MSH-18 are alias synonyms", () => {
     // MSH-18 uses the legacy HL7 "UNICODE UTF-8" form; override uses "UTF-8".
-    // Both normalize to "utf-8" via mapHl7Charset.
+    // Both canonicalize to "UTF-8" via resolveCharset, so no mismatch fires.
     const raw = buildMessage("UNICODE UTF-8", "Smith", "\r");
     const buf = Buffer.from(raw, "utf-8");
     const msg = parseHL7(buf, { charset: "UTF-8" });
     expect(msg.warnings.some((w) => w.code === WARNING_CODES.ENCODING_MISMATCH)).toBe(false);
   });
 
-  it("5. emits UNKNOWN_CHARSET on unknown MSH-18 label with no override (UTF-8 fallback)", () => {
+  it("5. emits UNKNOWN_CHARSET on unknown MSH-18 label with no override (bytes preserved verbatim)", () => {
     const raw = buildMessage("INVALID-CHARSET-XYZ", "Smith", "\r");
     const buf = Buffer.from(raw, "utf-8");
     const msg = parseHL7(buf);
