@@ -199,7 +199,9 @@ function tokenizeField(
   if (trimFields) {
     const trimmed = raw.trim();
     if (trimmed.length > 0 && trimmed !== raw) {
-      emit(fieldWhitespaceTrimmed(position, raw, trimmed));
+      const trimStart = raw.length - raw.trimStart().length;
+      const trimEnd = raw.length - raw.trimEnd().length;
+      emit(fieldWhitespaceTrimmed(position, trimStart, trimEnd));
       value = trimmed;
     }
   }

@@ -49,6 +49,24 @@ hasTimezone, offsetMinutes }`) instead of the old `{ raw, date }`. HL7 v2
 
 ### Fixed
 
+- **PHI leak in the warning surface — `fieldWhitespaceTrimmed` and `unknownEscapeSequence` no
+  longer embed field-body content (HL7-TOKENIZE-PHI).** Both builders previously interpolated
+  slices of the field VALUE directly into `Hl7ParseWarning.message`
+  (`fieldWhitespaceTrimmed`'s before/after strings; `unknownEscapeSequence`'s raw escape body, and
+  on an unterminated escape the **entire rest of the field**), so a clinical NTE-3/OBX-5 free-text
+  value (PHI) carrying a stray `\` or surrounding whitespace could surface a payload fragment in
+  `Hl7Message.warnings` — a leak, since every other warning builder is structural-facts-only.
+  `fieldWhitespaceTrimmed`'s signature changed to take leading/trailing **counts** instead of the
+  original/trimmed strings; `unknownEscapeSequence` now reports only the escape body's **length**
+  plus, when the body's first character is a recognized HL7 escape-identifier letter (`F S T R E
+X C M Z H N` or a `.`-prefixed formatting escape — structural HL7 grammar, not PHI), that single
+  letter — never the body text. A new `unterminatedEscapeSequence` factory (still
+  `UNKNOWN_ESCAPE_SEQUENCE`) covers the unterminated-escape case with no content and no
+  tail-length. **No change to parse tolerance or round-trip fidelity** — the escape sequence and
+  the whitespace are still preserved verbatim in the parsed/emitted output; only the WARNING
+  message lost the body. The `FIELD_WHITESPACE_TRIMMED` / `UNKNOWN_ESCAPE_SEQUENCE` codes are
+  unchanged and stable (see `test/warning-codes.snapshot.test.ts`) — this is a message-format fix,
+  not a breaking change to the code registry.
 - **`buildAck` now echoes the full inbound MSH-10 field into MSA-2** — the raw
   field structure is carried over whole (delimiters and repetitions included)
   instead of the component-1-only `meta.controlId` scalar. A vendor-quirk

@@ -43,7 +43,11 @@
  */
 
 import type { EncodingCharacters, Hl7Position } from "./types.js";
-import { unknownEscapeSequence, type Hl7ParseWarning } from "./warnings.js";
+import {
+  unknownEscapeSequence,
+  unterminatedEscapeSequence,
+  type Hl7ParseWarning,
+} from "./warnings.js";
 
 /**
  * Expand HL7 escape sequences (`\F\`, `\S\`, `\T\`, `\R\`, `\E\`, `\.br\`,
@@ -92,7 +96,10 @@ export function unescape(
     const close = input.indexOf(esc, i + 1);
     if (close === -1) {
       // Unterminated escape — preserve the rest verbatim, warn once, stop.
-      emit(unknownEscapeSequence(position, input.slice(i)));
+      // The warning carries NEITHER the tail content NOR its length (the
+      // remainder is arbitrary field text, potentially PHI) — only the fact
+      // and position.
+      emit(unterminatedEscapeSequence(position));
       out += input.slice(i);
       break;
     }

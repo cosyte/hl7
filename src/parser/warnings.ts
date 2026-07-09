@@ -111,45 +111,121 @@ export function mllpFramingStripped(position: Hl7Position): Hl7ParseWarning {
 /**
  * Build a `FIELD_WHITESPACE_TRIMMED` warning. Emitted when the parser trims
  * leading or trailing whitespace from a field value (the `trimFields`
- * option, on by default).
+ * option, on by default). The message carries only the leading/trailing
+ * character **counts** — NEVER the field value itself (before or after
+ * trimming) — so no PHI is exposed; the trimmed value is still preserved
+ * verbatim in the parsed output.
  *
  * @example
  * ```ts
  * import { fieldWhitespaceTrimmed } from "@cosyte/hl7";
- * const w = fieldWhitespaceTrimmed(
- *   { segmentIndex: 1, fieldIndex: 5 },
- *   "  SMITH ",
- *   "SMITH",
- * );
+ * const w = fieldWhitespaceTrimmed({ segmentIndex: 1, fieldIndex: 5 }, 2, 1);
  * ```
  */
 export function fieldWhitespaceTrimmed(
   position: Hl7Position,
-  original: string,
-  trimmed: string,
+  leadingCount: number,
+  trailingCount: number,
 ): Hl7ParseWarning {
+  const parts: string[] = [];
+  if (leadingCount > 0) parts.push(`${String(leadingCount)} leading`);
+  if (trailingCount > 0) parts.push(`${String(trailingCount)} trailing`);
+  const summary = parts.length > 0 ? parts.join(" + ") : "0";
   return {
     code: WARNING_CODES.FIELD_WHITESPACE_TRIMMED,
-    message: `Field had leading/trailing whitespace trimmed: "${original}" -> "${trimmed}".`,
+    message: `Field had ${summary} whitespace character(s) trimmed.`,
     position,
   };
 }
 
 /**
- * Build an `UNKNOWN_ESCAPE_SEQUENCE` warning. Emitted when the tokenizer
- * encounters an escape sequence (e.g. `\Z99\`) that is not in the standard
- * HL7 set and not claimed by a loaded profile's vendor allow-list.
+ * The standard HL7 v2 escape-identifier letters/prefixes (§2.7): the
+ * single-character escapes (`F S T R E X C M Z H N`) and the `.`-prefixed
+ * formatting escapes. These are structural HL7 grammar, not sender content —
+ * safe to name in a warning message even when the escape body as a whole is
+ * unrecognized (e.g. a malformed `\Cxx\` or a vendor `\Z...\`).
+ *
+ * @internal
+ */
+const KNOWN_ESCAPE_TYPE_LETTERS: ReadonlySet<string> = new Set([
+  "F",
+  "S",
+  "T",
+  "R",
+  "E",
+  "X",
+  "C",
+  "M",
+  "Z",
+  "H",
+  "N",
+]);
+
+/**
+ * Identify the structural "type" of an escape-sequence body for PHI-safe
+ * warning reporting: the leading character when it is one of the standard
+ * HL7 escape-identifier letters (`F S T R E X C M Z H N`) or a `.`-prefixed
+ * formatting escape, `null` otherwise. A `null` result means the body is not
+ * recognizable HL7 escape grammar at all (i.e. it is untrusted field text
+ * that happened to follow a stray escape character) and must not be named in
+ * a warning.
+ *
+ * @internal
+ */
+export function classifyEscapeType(body: string): string | null {
+  if (body.startsWith(".")) return ".";
+  const first = body.charAt(0);
+  return KNOWN_ESCAPE_TYPE_LETTERS.has(first) ? first : null;
+}
+
+/**
+ * Build an `UNKNOWN_ESCAPE_SEQUENCE` warning for a **terminated** escape
+ * sequence (`\..\`) whose body is not a recognized HL7 escape. The message
+ * NEVER embeds the escape body — only its length and, when the body's first
+ * character is a recognized HL7 escape-identifier letter (structural HL7
+ * grammar, not PHI — e.g. `Z` for a vendor escape, `.` for a formatting
+ * escape), that single letter. A body that doesn't start with a known escape
+ * letter is untrusted field text and names no character at all. The sequence
+ * itself is still preserved verbatim in the parsed output — only the WARNING
+ * message is PHI-safe.
  *
  * @example
  * ```ts
  * import { unknownEscapeSequence } from "@cosyte/hl7";
  * const w = unknownEscapeSequence({ segmentIndex: 2, fieldIndex: 3 }, "Z99");
+ * // message: `Unknown HL7 escape sequence of type "Z" (3 chars) preserved verbatim.`
  * ```
  */
-export function unknownEscapeSequence(position: Hl7Position, sequence: string): Hl7ParseWarning {
+export function unknownEscapeSequence(position: Hl7Position, body: string): Hl7ParseWarning {
+  const type = classifyEscapeType(body);
+  const typeClause = type !== null ? ` of type "${type}"` : "";
   return {
     code: WARNING_CODES.UNKNOWN_ESCAPE_SEQUENCE,
-    message: `Unknown HL7 escape sequence \\${sequence}\\ preserved verbatim.`,
+    message: `Unknown HL7 escape sequence${typeClause} (${String(body.length)} chars) preserved verbatim.`,
+    position,
+  };
+}
+
+/**
+ * Build an `UNKNOWN_ESCAPE_SEQUENCE` warning for an **unterminated** escape
+ * (an escape character with no closing partner before end-of-input). The
+ * "body" in this case is the entire remainder of the field, so the message
+ * carries NEITHER the body NOR its length (the length of a truncated tail is
+ * itself derivable field-shape information) — just the fact that an
+ * unterminated escape was found, and the position. The remainder is still
+ * preserved verbatim in the parsed output.
+ *
+ * @example
+ * ```ts
+ * import { unterminatedEscapeSequence } from "@cosyte/hl7";
+ * const w = unterminatedEscapeSequence({ segmentIndex: 2, fieldIndex: 3 });
+ * // message: `Unterminated HL7 escape sequence preserved verbatim.`
+ * ```
+ */
+export function unterminatedEscapeSequence(position: Hl7Position): Hl7ParseWarning {
+  return {
+    code: WARNING_CODES.UNKNOWN_ESCAPE_SEQUENCE,
+    message: "Unterminated HL7 escape sequence preserved verbatim.",
     position,
   };
 }
