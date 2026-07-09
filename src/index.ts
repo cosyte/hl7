@@ -29,6 +29,7 @@ export {
   mllpFramingStripped,
   fieldWhitespaceTrimmed,
   unknownEscapeSequence,
+  unterminatedEscapeSequence,
   timestampFallbackFormat,
   segmentCase,
   extraFields,

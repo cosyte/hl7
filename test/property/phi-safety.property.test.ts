@@ -86,6 +86,27 @@ function quirkyMessageWithMarkers(markers: readonly string[]): string {
   return segments.join("\r");
 }
 
+/**
+ * Build a quirky HL7 message where each marker is embedded with surrounding
+ * whitespace (to trigger FIELD_WHITESPACE_TRIMMED) and, separately, behind a
+ * stray/unknown escape character (to trigger UNKNOWN_ESCAPE_SEQUENCE) — the
+ * two leak vectors this fix targets. Markers appear ONLY as field VALUES.
+ */
+function quirkyMessageWithEscapesAndWhitespace(markers: readonly string[]): string {
+  const [m0 = "M0", m1 = "M1", m2 = "M2"] = markers;
+
+  const segments = [
+    "MSH|^~\\&|SENDAPP|SENDFAC|RECVAPP|RECVFAC|20250101||ADT^A01|CTRL1|P|2.5",
+    // Leading/trailing whitespace around a marker -> FIELD_WHITESPACE_TRIMMED.
+    `NTE|1||  ${m0}  `,
+    // Marker behind an unknown vendor escape -> UNKNOWN_ESCAPE_SEQUENCE.
+    `NTE|2||free text \\Z${m1}\\ more text`,
+    // Marker after a stray, unterminated escape char (no closing partner).
+    `OBX|1|ST|TEST||free text \\${m2}`,
+  ];
+  return segments.join("\r");
+}
+
 describe("property: PHI safety in warning paths", () => {
   it("warnings never echo fixed synthetic PHI markers (sanity)", () => {
     const raw = quirkyMessageWithMarkers(PHI_MARKERS);
@@ -133,6 +154,47 @@ describe("property: PHI safety in warning paths", () => {
             expect(
               w.message.includes(token),
               `warning ${w.code} leaked field VALUE ${JSON.stringify(token)}: ${w.message}`,
+            ).toBe(false);
+          }
+        }
+      }),
+      RUN_CONFIG,
+    );
+  });
+
+  it("property: escape-char and whitespace-shaped field VALUES never appear in warnings", () => {
+    // This is the exact property that would have caught HL7-TOKENIZE-PHI:
+    // markers embedded behind a stray/unknown escape character (\Z..\ and an
+    // unterminated \..) and surrounded by leading/trailing whitespace, run
+    // through the real tokenizer + escape layer.
+    const markerChar = fc.constantFrom(..."ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-".split(""));
+    const tokenArb = fc
+      .stringOf(markerChar, { minLength: 6, maxLength: 24 })
+      .filter((s) => s.length >= 6);
+
+    fc.assert(
+      fc.property(fc.array(tokenArb, { minLength: 2, maxLength: 3 }), (tokens) => {
+        const raw = quirkyMessageWithEscapesAndWhitespace(tokens);
+        let parsed: ReturnType<typeof parseHL7>;
+        try {
+          parsed = parseHL7(raw);
+        } catch (err) {
+          expect(err).toBeInstanceOf(Hl7ParseError);
+          return;
+        }
+        for (const w of parsed.warnings) {
+          for (const token of tokens) {
+            expect(
+              w.message.includes(token),
+              `warning ${w.code} leaked field VALUE ${JSON.stringify(token)}: ${w.message}`,
+            ).toBe(false);
+            // Also guard the lowercase form, since markers are uppercase and
+            // a case-insensitive substring match would be a stronger leak
+            // signal to catch — but message text itself is expected to be
+            // lowercase English, so this only trips on an actual echo.
+            expect(
+              w.message.toLowerCase().includes(token.toLowerCase()),
+              `warning ${w.code} leaked (case-insensitive) field VALUE ${JSON.stringify(token)}: ${w.message}`,
             ).toBe(false);
           }
         }

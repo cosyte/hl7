@@ -64,6 +64,32 @@ describe("parser/escapes: unescape", () => {
     expect(warnings[0]?.code).toBe(WARNING_CODES.UNKNOWN_ESCAPE_SEQUENCE);
   });
 
+  it("\\Zsecret\\ round-trips the PHI verbatim but the warning names only type Z + length, never 'secret'", () => {
+    const { emit, warnings } = collect();
+    const out = unescape("before\\Zsecret\\after", enc, emit, pos);
+    // Round-trip fidelity: the escape body is preserved verbatim in the OUTPUT.
+    expect(out).toBe("before\\Zsecret\\after");
+    expect(warnings).toHaveLength(1);
+    const w = warnings[0];
+    expect(w?.code).toBe(WARNING_CODES.UNKNOWN_ESCAPE_SEQUENCE);
+    expect(w?.message).toMatch(/type "Z"/);
+    expect(w?.message).toMatch(/7 chars/);
+    expect(w?.message.toLowerCase()).not.toContain("secret");
+  });
+
+  it("\\patientname (unterminated, non-escape-letter first char) warns 'unterminated' with NO field chars", () => {
+    const { emit, warnings } = collect();
+    const out = unescape("\\patientname", enc, emit, pos);
+    // Round-trip fidelity: the entire tail is preserved verbatim in the OUTPUT.
+    expect(out).toBe("\\patientname");
+    expect(warnings).toHaveLength(1);
+    const w = warnings[0];
+    expect(w?.code).toBe(WARNING_CODES.UNKNOWN_ESCAPE_SEQUENCE);
+    expect(w?.message).toMatch(/[Uu]nterminated/);
+    expect(w?.message.toLowerCase()).not.toContain("patientname");
+    expect(w?.message.toLowerCase()).not.toContain("patient");
+  });
+
   it("rejects invalid hex (non-hex chars) and preserves verbatim", () => {
     const { emit, warnings } = collect();
     expect(unescape("a\\Xzz\\b", enc, emit, pos)).toBe("a\\Xzz\\b");

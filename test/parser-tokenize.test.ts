@@ -116,6 +116,21 @@ describe("parser/tokenize: whitespace trim (TOL-07)", () => {
     expect(tree[1]?.fields[1]?.repetitions[0]?.components[0]?.subcomponents[0]).toBe("hi");
   });
 
+  it("FIELD_WHITESPACE_TRIMMED message reports counts only — never the PHI field value", () => {
+    const { emit, warnings } = collect();
+    // "  SECRETPATIENTNAME " — 2 leading spaces, 1 trailing.
+    const tree = tokenize(["MSH|^~\\&", "PID|  SECRETPATIENTNAME "], defaultEnc, emit, true);
+    expect(warnings).toHaveLength(1);
+    const w = warnings[0];
+    expect(w?.message).toMatch(/2 leading/);
+    expect(w?.message).toMatch(/1 trailing/);
+    expect(w?.message.toLowerCase()).not.toContain("secretpatientname");
+    // Round-trip fidelity: the trimmed VALUE is still preserved verbatim.
+    expect(tree[1]?.fields[1]?.repetitions[0]?.components[0]?.subcomponents[0]).toBe(
+      "SECRETPATIENTNAME",
+    );
+  });
+
   it("does NOT emit FIELD_WHITESPACE_TRIMMED when trimFields=false", () => {
     const { emit, warnings } = collect();
     const tree = tokenize(["MSH|^~\\&", "PID|  hi  "], defaultEnc, emit, false);
