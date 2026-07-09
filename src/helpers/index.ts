@@ -11,6 +11,10 @@
 
 export type {
   Allergy,
+  Appointment,
+  AppointmentResource,
+  Charge,
+  ClinicalDocument,
   Diagnosis,
   Immunization,
   ImmunizationRecordOrigin,
@@ -35,6 +39,9 @@ export { buildPatient } from "./patient.js";
 export { buildVisit } from "./visit.js";
 export { observations, buildObservation } from "./observations.js";
 export { orders } from "./orders.js";
+export { appointments } from "./appointments.js";
+export { documents } from "./documents.js";
+export { charges } from "./charges.js";
 export { notes } from "./notes.js";
 export { immunizations } from "./immunizations.js";
 export { nextOfKin } from "./next-of-kin.js";

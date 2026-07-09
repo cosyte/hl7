@@ -8,10 +8,10 @@
  *   - oru-r01 — observation results (also doubles as TEST-02 repeating-field
  *     structural case via PID-3 ~-separated reps and 3 OBX rows)
  *   - orm-o01 — order message
- *   - siu-s12 — scheduling notification (parse + round-trip only;
- *     no scheduling helper in v1)
- *   - mdm-t02 — document notification (parse + round-trip only;
- *     no document helper in v1)
+ *   - siu-s12 — scheduling notification (parse + round-trip + Phase Q
+ *     appointments() probe)
+ *   - mdm-t02 — document notification (parse + round-trip + Phase Q
+ *     documents() probe)
  *   - z-segments — ADT^A01 + ZXX/ZYY ad-hoc Z-segments
  *   - nested-subcomponents — PID-5 with `&`-delimited subcomponents
  *
@@ -139,7 +139,7 @@ describe("TEST-02 canonical: ORM^O01 (orm-o01.hl7)", () => {
   });
 });
 
-describe("TEST-02 canonical: SIU^S12 (siu-s12.hl7) — parse + round-trip only (no scheduling helper in v1)", () => {
+describe("TEST-02 canonical: SIU^S12 (siu-s12.hl7)", () => {
   const fixture = loadFixture("siu-s12");
   it("parses successfully", () => {
     expect(() => parseHL7(fixture)).not.toThrow();
@@ -147,15 +147,21 @@ describe("TEST-02 canonical: SIU^S12 (siu-s12.hl7) — parse + round-trip only (
   it("structural round-trip per SER-02", () => {
     assertStructuralRoundTrip(fixture);
   });
+  it("D-20 helper probe (Phase Q) — one appointment surfaces from the SCH", () => {
+    expect(parseHL7(fixture).appointments()).toHaveLength(1);
+  });
 });
 
-describe("TEST-02 canonical: MDM^T02 (mdm-t02.hl7) — parse + round-trip only (no document helper in v1)", () => {
+describe("TEST-02 canonical: MDM^T02 (mdm-t02.hl7)", () => {
   const fixture = loadFixture("mdm-t02");
   it("parses successfully", () => {
     expect(() => parseHL7(fixture)).not.toThrow();
   });
   it("structural round-trip per SER-02", () => {
     assertStructuralRoundTrip(fixture);
+  });
+  it("D-20 helper probe (Phase Q) — one document surfaces from the TXA", () => {
+    expect(parseHL7(fixture).documents()).toHaveLength(1);
   });
 });
 

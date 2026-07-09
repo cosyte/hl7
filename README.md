@@ -224,6 +224,36 @@ for (const al of msg.allergies()) {
 
 Fields are parsed into their spec-typed shapes (`code` is a `CWE` composite, `onsetDate` is a fidelity `TS`). The same helper family exists for next-of-kin (`msg.nextOfKin()`), diagnoses (`msg.diagnoses()`), insurance (`msg.insurance()`), medications (`msg.medications()`), and immunizations (`msg.immunizations()`).
 
+### Scheduling, documents & charges (SIU · MDM · DFT)
+
+Three breadth helpers cover the scheduling, medical-record, and financial message families:
+
+```ts
+import { parseHL7 } from "@cosyte/hl7";
+
+// SIU — appointments(): SCH id/status/timing + AIS/AIG/AIL/AIP resources
+for (const appt of parseHL7(raw).appointments()) {
+  console.log(appt.fillerAppointmentId, appt.fillerStatusCode?.identifier); // status verbatim
+  const provider = appt.resources.find((r) => r.kind === "personnel");
+  console.log(provider?.person?.familyName);
+}
+
+// MDM — documents(): completion (TXA-17) and availability (TXA-19) are DISTINCT
+for (const doc of parseHL7(raw).documents()) {
+  console.log(doc.completionStatus, doc.availabilityStatus); // e.g. "IP" (in progress) + "AV" (available)
+  // never conflated — a document can be AVAILABLE before it is AUTHENTICATED;
+  // reading a preliminary document as final is the harm this split prevents.
+}
+
+// DFT — charges(): FT1 billing fields, amounts kept as canonical wire text (no money-as-float)
+for (const charge of parseHL7(raw).charges()) {
+  console.log(charge.transactionType, charge.transactionCode?.identifier);
+  console.log(charge.amountExtended); // e.g. "150.00^USD" — a string, never a number
+}
+```
+
+These are **breadth** helpers — they surface the common trigger events' core fields, not a scheduling-workflow state machine, signature verification, or a claims/pricing engine (see the roadmap's known-limitations).
+
 ### Order & medication timing
 
 Every `Order` (from `msg.orders()`) and `Medication` (from `msg.medications()`) carries a `timings` array — the `TQ1` segment (HL7 v2.5+) or the legacy embedded TQ in `ORC-7` / `RXE-1` (pre-v2.5).
