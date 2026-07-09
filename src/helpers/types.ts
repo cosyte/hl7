@@ -832,3 +832,139 @@ export interface Immunization {
   /** OBX children grouped under this RXA (VFC eligibility, funding source, …). Always present (possibly empty). */
   readonly observations: readonly Observation[];
 }
+
+/**
+ * One appointment resource grouped under a `SCH` (Phase Q) — an AIS (service),
+ * AIG (general resource), AIL (location), or AIP (personnel / provider) segment.
+ * The resource identifier lives at position 3 of every AI* segment; for the
+ * personnel resource (AIP) it is additionally surfaced as a typed `person`
+ * (XCN), while the coded `code` (first component verbatim) is always available.
+ *
+ * @example
+ * ```ts
+ * import type { AppointmentResource } from "@cosyte/hl7";
+ * const r: AppointmentResource = { kind: "location", code: { identifier: "OR-1" } };
+ * ```
+ */
+export interface AppointmentResource {
+  /** Which AI* segment sourced this resource: AIS→service, AIG→general, AIL→location, AIP→personnel. */
+  readonly kind: "service" | "general" | "location" | "personnel";
+  /**
+   * The AI*-3 resource identifier surfaced as a coded element — `code.identifier`
+   * is the resource id (first component, verbatim). AIS-3 / AIG-3 are coded
+   * elements, so `code.text` / `code.nameOfCodingSystem` are meaningful there;
+   * AIL-3 is a **PL** (location) rather than a coded element, so only
+   * `code.identifier` (the location id, PL.1) is meaningful and the other CWE
+   * fields are positional provenance, not a coding system. Provenance-only.
+   */
+  readonly code?: CWE;
+  /** AIP-3 personnel resource as a typed `XCN` (personnel resources only) — the appointment provider. */
+  readonly person?: XCN;
+}
+
+/**
+ * SCH-derived appointment entry (Phase Q — SIU scheduling breadth). Surfaces the
+ * appointment identifiers, filler status (SCH-25, Table 0278), SCH-11 start/end
+ * timing, and the AI* resource groups. NOT a scheduling-workflow state machine.
+ *
+ * @example
+ * ```ts
+ * import type { Appointment } from "@cosyte/hl7";
+ * const appt: Appointment = {
+ *   fillerAppointmentId: "A1001",
+ *   fillerStatusCode: { identifier: "Booked" },
+ *   resources: [],
+ * };
+ * ```
+ */
+export interface Appointment {
+  /** SCH-1 placer appointment ID (EI first component, verbatim). */
+  readonly placerAppointmentId?: string;
+  /** SCH-2 filler appointment ID (EI first component, verbatim). */
+  readonly fillerAppointmentId?: string;
+  /** SCH-25 filler status code (HL7 Table 0278) — the appointment status, verbatim/provenance-only. */
+  readonly fillerStatusCode?: CWE;
+  /** Appointment start date/time — SCH-11 TQ.4 (fidelity `TS`, Phase N). */
+  readonly startDateTime?: TS;
+  /** Appointment end date/time — SCH-11 TQ.5 (fidelity `TS`, Phase N). */
+  readonly endDateTime?: TS;
+  /** AIS/AIG/AIL/AIP resources grouped under this SCH. Always present (possibly empty). */
+  readonly resources: readonly AppointmentResource[];
+}
+
+/**
+ * TXA-derived clinical-document entry (Phase Q — MDM document breadth). The
+ * load-bearing safety property: **completion status (TXA-17) and availability
+ * status (TXA-19) are DISTINCT fields and are never conflated** — a document can
+ * be *available* before it is *authenticated*, and reading a preliminary
+ * document as final is the clinical harm. Both are verbatim / provenance-only.
+ *
+ * @example
+ * ```ts
+ * import type { ClinicalDocument } from "@cosyte/hl7";
+ * const doc: ClinicalDocument = {
+ *   documentType: "DS",
+ *   completionStatus: "IP", // in progress — NOT yet authenticated
+ *   availabilityStatus: "AV", // available — a different axis
+ *   observations: [],
+ * };
+ * ```
+ */
+export interface ClinicalDocument {
+  /** TXA-2 document type (HL7 Table 0270), verbatim. */
+  readonly documentType?: string;
+  /**
+   * TXA-17 document **completion** status (HL7 Table 0271 — e.g. `DO` documented,
+   * `IP` in progress, `AU` authenticated, `LA` legally authenticated, `IN`
+   * incomplete). Surfaced DISTINCT from {@link availabilityStatus}; verbatim,
+   * never validated, never merged.
+   */
+  readonly completionStatus?: string;
+  /**
+   * TXA-19 document **availability** status (HL7 Table 0273 — `AV` available,
+   * `CA` cancelled, `OB` obsolete, `UN` unavailable). Surfaced DISTINCT from
+   * {@link completionStatus}; verbatim, never validated, never merged.
+   */
+  readonly availabilityStatus?: string;
+  /** TXA-4 activity date/time (fidelity `TS`, Phase N). */
+  readonly activityDateTime?: TS;
+  /** TXA-12 unique document number (EI first component, verbatim). */
+  readonly uniqueDocumentNumber?: string;
+  /** TXA-13 parent document number (EI first component) — addendum / replacement link. */
+  readonly parentDocumentNumber?: string;
+  /** OBX narrative body grouped under this TXA. Always present (possibly empty). */
+  readonly observations: readonly Observation[];
+}
+
+/**
+ * FT1-derived charge entry (Phase Q — DFT financial breadth). Billing-critical
+ * fields surfaced with **no billing logic and no money-as-float** — the
+ * extended/unit amounts are the verbatim CP wire text, never parsed to a number.
+ *
+ * @example
+ * ```ts
+ * import type { Charge } from "@cosyte/hl7";
+ * const c: Charge = {
+ *   transactionType: "CG",
+ *   transactionCode: { identifier: "80053", text: "Metabolic panel" },
+ *   amountExtended: "150.00^USD",
+ *   diagnoses: [{ identifier: "E11.9" }],
+ * };
+ * ```
+ */
+export interface Charge {
+  /** FT1-4 transaction date (fidelity `TS`, Phase N). */
+  readonly transactionDate?: TS;
+  /** FT1-6 transaction type (HL7 Table 0017 — `CG` charge, `CD` credit, `PY` payment, `AJ` adjustment). Verbatim. */
+  readonly transactionType?: string;
+  /** FT1-7 transaction code — the institution charge/procedure code (CWE, provenance-only, never validated). */
+  readonly transactionCode?: CWE;
+  /** FT1-10 transaction quantity (NM; strict-parsed, never `NaN`). */
+  readonly quantity?: number;
+  /** FT1-11 transaction amount, extended (CP) — canonical wire text (e.g. `150.00^USD`, byte-exact for a plain amount); never parsed to a number. */
+  readonly amountExtended?: string;
+  /** FT1-12 transaction amount, unit (CP) — canonical wire text; never parsed to a number. */
+  readonly amountUnit?: string;
+  /** FT1-19 diagnosis code(s) linked to this charge (CE, repeating) — billing diagnosis linkage. Always present (possibly empty). */
+  readonly diagnoses: readonly CWE[];
+}

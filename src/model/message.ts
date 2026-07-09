@@ -21,7 +21,10 @@ import type {
 } from "../parser/types.js";
 import type { Hl7ParseWarning } from "../parser/warnings.js";
 import { allergies as walkAllergies } from "../helpers/allergies.js";
+import { appointments as walkAppointments } from "../helpers/appointments.js";
+import { charges as walkCharges } from "../helpers/charges.js";
 import { diagnoses as walkDiagnoses } from "../helpers/diagnoses.js";
+import { documents as walkDocuments } from "../helpers/documents.js";
 import type { IdentityEvent } from "../helpers/identity.js";
 import { identityEvents as walkIdentityEvents } from "../helpers/identity.js";
 import { immunizations as walkImmunizations } from "../helpers/immunizations.js";
@@ -36,6 +39,9 @@ import { buildPatient } from "../helpers/patient.js";
 import { buildStructure } from "../helpers/structure.js";
 import type {
   Allergy,
+  Appointment,
+  Charge,
+  ClinicalDocument,
   Diagnosis,
   Immunization,
   Insurance,
@@ -590,6 +596,68 @@ export class Hl7Message {
    */
   public insurance(): readonly Insurance[] {
     return walkInsurance(this);
+  }
+
+  /**
+   * Every SCH of an SIU message as a typed `Appointment` (roadmap Phase Q), with
+   * the AIS/AIG/AIL/AIP resource segments that follow it grouped positionally
+   * under that SCH. Surfaces the placer/filler appointment ids, SCH-25 filler
+   * status (Table 0278), SCH-11 start/end timing, and the resource groups
+   * (service / general / location / personnel). D-05: returns `[]` when no SCH
+   * is present. D-06: not memoized. Never throws (HELPERS-07). Not a
+   * scheduling-workflow state machine — see the package known-limitations.
+   *
+   * @example
+   * ```ts
+   * for (const appt of msg.appointments()) {
+   *   console.log(appt.fillerAppointmentId, appt.fillerStatusCode?.identifier);
+   *   for (const r of appt.resources) console.log(r.kind, r.code?.identifier);
+   * }
+   * ```
+   */
+  public appointments(): readonly Appointment[] {
+    return walkAppointments(this);
+  }
+
+  /**
+   * Every TXA of an MDM message as a typed `ClinicalDocument` (roadmap Phase Q),
+   * with the OBX narrative body grouped positionally under that TXA. The
+   * completion status (TXA-17) and availability status (TXA-19) are surfaced as
+   * **distinct** fields and never conflated — a document can be available before
+   * it is authenticated, and reading a preliminary document as final is the
+   * harm. D-05: returns `[]` when no TXA is present. D-06: not memoized. Never
+   * throws (HELPERS-07).
+   *
+   * @example
+   * ```ts
+   * for (const doc of msg.documents()) {
+   *   console.log(doc.documentType, doc.completionStatus, doc.availabilityStatus);
+   *   for (const obx of doc.observations) console.log(obx.value); // narrative body
+   * }
+   * ```
+   */
+  public documents(): readonly ClinicalDocument[] {
+    return walkDocuments(this);
+  }
+
+  /**
+   * Every FT1 of a DFT message as a typed `Charge` (roadmap Phase Q), one per
+   * FT1 in document order. Surfaces billing-critical fields (FT1-6 transaction
+   * type, FT1-7 code, FT1-11/12 extended/unit amount, FT1-19 diagnosis linkage)
+   * with **no billing logic and no money-as-float** — amounts are the verbatim
+   * CP wire text. D-05: returns `[]` when no FT1 is present. D-06: not memoized.
+   * Never throws (HELPERS-07).
+   *
+   * @example
+   * ```ts
+   * for (const charge of msg.charges()) {
+   *   console.log(charge.transactionType, charge.transactionCode?.identifier);
+   *   console.log(charge.amountExtended); // verbatim, never a number
+   * }
+   * ```
+   */
+  public charges(): readonly Charge[] {
+    return walkCharges(this);
   }
 
   /**

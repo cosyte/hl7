@@ -96,6 +96,37 @@ X C M Z H N` or a `.`-prefixed formatting escape — structural HL7 grammar, not
 
 ### Added
 
+- **Scheduling / document / charge breadth helpers — `appointments()`,
+  `documents()`, `charges()` (roadmap Phase Q, P2).** Three new message-family
+  helpers on `Hl7Message`, each mirroring the existing extractor pattern (typed,
+  frozen, never-throws, not memoized):
+  - **`appointments()`** over **SIU** (S12/S13/S14/S15/S26) — projects each
+    **SCH** into a typed `Appointment`: placer/filler appointment ids (SCH-1/2),
+    **SCH-25 filler status** (Table 0278, verbatim), **SCH-11** start/end timing
+    (TQ.4/TQ.5, fidelity `TS`), and the **AIS/AIG/AIL/AIP** resource groups that
+    follow it — surfaced as `AppointmentResource`s tagged `service` / `general` /
+    `location` / `personnel` (the personnel/provider resource also carries a
+    typed `XCN`).
+  - **`documents()`** over **MDM** (T02/T04/T06) — projects each **TXA** into a
+    typed `ClinicalDocument` with the OBX narrative body grouped positionally
+    under it. **Completion status (TXA-17, Table 0271) and availability status
+    (TXA-19, Table 0273) are surfaced as DISTINCT fields and NEVER conflated** — a
+    document can be _available_ before it is _authenticated_, and reading a
+    preliminary document as final is the clinical harm this split prevents. Both
+    are verbatim / provenance-only.
+  - **`charges()`** over **DFT** (P03) — projects each **FT1** into a typed
+    `Charge`: FT1-6 transaction type (Table 0017), FT1-7 transaction code (the
+    institution charge code, CWE), FT1-11/12 extended/unit amounts, and the
+    repeating FT1-19 diagnosis linkage. **No billing logic and no
+    money-as-float** — amounts are surfaced as their **canonical CP wire text**
+    (e.g. `"150.00^USD"`), never parsed to a `number`.
+
+  New public types: `Appointment`, `AppointmentResource`, `ClinicalDocument`,
+  `Charge`. Breadth helpers only — not a scheduling-workflow state machine,
+  signature verification, or a claims/pricing engine (roadmap §9
+  known-limitations). Never throws on malformed input (HELPERS-07); missing
+  fields → omitted keys.
+
 - **NTE narrative grouping — notes attached to their parent by position (roadmap
   Phase P, P1).** NTE (Notes and Comments) segments are now grouped to their
   parent **by position** and surfaced on the relevant helper output. An NTE
