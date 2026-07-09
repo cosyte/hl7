@@ -14,7 +14,8 @@
         "spec-notes-timing",
         "spec-notes-charset",
         "spec-notes-nte",
-        "spec-notes-version-matrix"
+        "spec-notes-version-matrix",
+        "spec-notes-differential"
       ]
     }
   ]
