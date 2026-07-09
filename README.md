@@ -39,7 +39,7 @@ That's the whole pitch: no config, no schema upload, no spec lookup. The parser 
 - **Three access patterns** — named helpers, dot-paths (`msg.get("PID.5.1")`), or structural traversal (`msg.segments("OBX")[0].field(3)`). Pick the level of ceremony you need.
 - **Real-world tolerance, four-tier** — lenient default parses vendor-quirky messages; 18 stable warning codes flag what was tolerated; strict mode escalates every deviation for CI validators; only 4 truly-structural failures are fatal.
 - **First-class profile system** — `defineProfile()` API, 5 built-in vendor profiles (Epic, Cerner, Meditech, athenahealth, generic lab), plus a [publishable starter kit](./examples/profile-starter-kit/) you copy-and-ship.
-- **Round-trip safe** — `parse -> modify -> toString()` emits spec-clean HL7 regardless of input quirks (Postel's Law: liberal parser, conservative emitter).
+- **Round-trip safe, byte-verbatim escapes** — `parse -> modify -> toString()` emits spec-clean HL7 regardless of input quirks (Postel's Law: liberal parser, conservative emitter), and a parsed field's escape sequences (`\H\`, `\X41\`, charset/vendor escapes) re-emit **byte-for-byte** — see [Escapes & round-trip](./docs-content/spec-notes-escapes.md).
 - **Strict TypeScript, zero runtime deps** — ES2022, `noUncheckedIndexedAccess`, dual ESM + CJS, Node 18+. Every public export has JSDoc + `@example` that feeds your editor's IntelliSense.
 - **Warnings carry stable codes + positional context** — react programmatically by `w.code`, with `segmentIndex`/`fieldIndex`/etc. attached.
 - **Dogfooded in production** — used internally on healthcare-integration projects; the credibility bar matches the company's.

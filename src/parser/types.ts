@@ -201,7 +201,32 @@ export interface EncodingCharacters {
  * ```
  */
 export interface RawComponent {
+  /**
+   * The component's subcomponents, **HL7-decoded** — the tokenizer expands
+   * escape sequences on parse so consumers read literal values (`Smith|Jones`,
+   * not `Smith\F\Jones`). This is the value surface every reader uses
+   * (`Field.value`, the composite parsers, dot-path, `toJSON`).
+   */
   readonly subcomponents: readonly string[];
+  /**
+   * Escape-fidelity overlay, positionally aligned with {@link subcomponents}:
+   * for each index, the subcomponent's **original wire bytes** to emit
+   * verbatim instead of re-escaping the decoded form. An entry is present
+   * (non-`undefined`) only when a subcomponent carried an escape whose decoded
+   * form does not re-escape back to the exact wire bytes — i.e. a recognize-
+   * and-preserve escape (`\H\`, `\Z..\`, charset/formatting) or a hex escape
+   * (`\X41\`, or non-canonical hex casing). Delimiter escapes (`\F\`→`|`) round-
+   * trip through `reescape` unchanged and get no overlay. The whole field is
+   * absent when no subcomponent needs it (the overwhelming common case), so a
+   * plain message's raw tree is byte-for-byte the shape it was before this
+   * overlay existed.
+   *
+   * Consumed only by the serializer ({@link "src/serialize/emit-field.ts"});
+   * never read by the value/coercion surface, so it changes no decoded value.
+   *
+   * @internal
+   */
+  readonly rawSubcomponents?: readonly (string | undefined)[];
 }
 
 /**

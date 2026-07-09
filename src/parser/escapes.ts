@@ -200,11 +200,33 @@ function expandSequence(seq: string, enc: EncodingCharacters): string | null {
 }
 
 /**
- * Re-escape the five HL7 delimiter characters and the newline shorthand back
- * into their `\X\` forms so the serializer can emit spec-clean HL7. This is
- * the inverse of `unescape` for every delimiter-bearing character; round-trip
- * cleanliness (`unescape(reescape(x, enc), enc, emit, pos) === x`) is a
- * documented property covered by tests.
+ * Re-escape reserved characters back into their `\X\` forms so the serializer
+ * can emit spec-clean HL7. This is the inverse of `unescape` for every
+ * delimiter-bearing character; round-trip cleanliness
+ * (`unescape(reescape(x, enc), enc, emit, pos) === x`) is a documented
+ * property covered by tests.
+ *
+ * The characters re-escaped:
+ *   enc.escape        → \E\
+ *   enc.field         → \F\
+ *   enc.component     → \S\
+ *   enc.subcomponent  → \T\
+ *   enc.repetition    → \R\
+ *   enc.truncation    → \P\   (only when MSH-2 declared one, v2.7+)
+ *   "\n" (LF)         → \.br\
+ *   "\r" (CR)         → \X0D\  (a decoded CR is the HL7 segment separator;
+ *                               emitting it raw would corrupt wire framing, so
+ *                               it re-encodes to its hex escape — see below)
+ *
+ * **Lossy by construction for the non-delimiter escape families.** `reescape`
+ * only knows about the reserved characters above — it cannot reconstruct a
+ * recognize-and-preserve escape (`\H\`, formatting, charset, `\Z..\`) or the
+ * original bytes of a hex escape (`\X41\` decoded to `A`; casing of `\X0d\`),
+ * because those decode to ordinary characters that carry no "I was an escape"
+ * marker. Byte-verbatim emit for those families is the serializer's job via
+ * the `RawComponent.rawSubcomponents` overlay (see {@link escapeFidelityRaw});
+ * `reescape` is the fallback for content that has no overlay (constructed
+ * values, `Field`-level re-escapes).
  *
  * Iteration uses `for..of`, which walks Unicode code points (not UTF-16 code
  * units), so user-supplied content containing non-BMP characters round-trips
@@ -241,4 +263,36 @@ export function reescape(input: string, enc: EncodingCharacters): string {
     else out += ch;
   }
   return out;
+}
+
+/**
+ * Decide the **escape-fidelity overlay** entry for one subcomponent: the
+ * original wire bytes (`rawSub`) to emit verbatim, or `undefined` when the
+ * decoded form already re-escapes back to those exact bytes.
+ *
+ * The rule is a single equality check — `reescape(decoded) === rawSub` — which
+ * captures every family correctly by construction:
+ * - **Delimiter escapes** (`\F\`→`|`, `\E\`→`\`, `\.br\`→`\n`, `\X0D\`→CR) all
+ *   re-escape back to their exact wire bytes, so they get **no overlay** and
+ *   ride the `reescape` fast path — no per-subcomponent memory cost.
+ * - **Recognize-and-preserve escapes** (`\H\`, `\N\`, formatting, charset,
+ *   `\Z..\`) decode to a literal backslash-bearing string that `reescape`
+ *   would double-escape (`\H\` → `\E\H\E\`), so `reescape(decoded) !== rawSub`
+ *   and the overlay pins the original bytes.
+ * - **Hex escapes** (`\X41\`→`A`, non-canonical casing `\X0d\`) decode away
+ *   their `\X..\` shape, so the overlay preserves the sender's exact bytes
+ *   (value/casing) rather than canonicalizing.
+ *
+ * Called once per escape-bearing subcomponent during tokenization; the
+ * `rawSub.includes(enc.escape)` guard in the caller skips it entirely for the
+ * common no-escape subcomponent, so this never runs on plain content.
+ *
+ * @internal
+ */
+export function escapeFidelityRaw(
+  rawSub: string,
+  decoded: string,
+  enc: EncodingCharacters,
+): string | undefined {
+  return reescape(decoded, enc) === rawSub ? undefined : rawSub;
 }

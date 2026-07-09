@@ -74,6 +74,61 @@ describe("property: round-trip (serialize → parse) structural equality", () =>
   });
 });
 
+describe("property: HL7-ESC full-alphabet byte-verbatim fidelity", () => {
+  // Escape tokens spanning EVERY family the parser recognizes. Emitting a
+  // parsed field must reproduce these bytes verbatim — delimiter escapes via
+  // reescape, preserve/hex escapes via the rawSubcomponents overlay.
+  const escapeToken = fc.constantFrom(
+    "\\F\\",
+    "\\S\\",
+    "\\T\\",
+    "\\R\\",
+    "\\E\\",
+    "\\.br\\",
+    "\\X41\\",
+    "\\X0d\\",
+    "\\X0D\\",
+    "\\X48656C6C6F\\",
+    "\\H\\",
+    "\\N\\",
+    "\\.in\\",
+    "\\.sp\\",
+    "\\.ce\\",
+    "\\C2842\\",
+    "\\M824041\\",
+    "\\Z99\\",
+    "\\Zvendor\\",
+  );
+  // Plain runs use an alphabet with NO reserved delimiter/escape chars — and
+  // no whitespace (the default `trimFields` would strip a leading/trailing
+  // space, which is orthogonal to escape fidelity) — so the generated OBX-5
+  // stays a single spec-clean subcomponent whose only escapes are the tokens
+  // above.
+  const plainRun = fc.stringOf(fc.constantFrom(..."abcXYZ0189".split("")), { maxLength: 6 });
+  const escapedContent = fc
+    .array(fc.tuple(plainRun, escapeToken), { minLength: 1, maxLength: 8 })
+    .map((pairs) => pairs.map(([p, e]) => p + e).join(""));
+
+  it("parse→emit reproduces the escape alphabet byte-verbatim in OBX-5", () => {
+    fc.assert(
+      fc.property(escapedContent, (content) => {
+        const raw =
+          "MSH|^~\\&|LAB|MAIN|EHR|REF|20260101100000||ORU^R01|MSG1|P|2.5\r" +
+          `OBX|1|TX|CODE^Text^L||${content}||||||F`;
+        const emittedObx = parseHL7(raw)
+          .toString()
+          .split("\r")
+          .find((l) => l.startsWith("OBX"));
+        expect(emittedObx).toBe(`OBX|1|TX|CODE^Text^L||${content}||||||F`);
+        // And the whole message is a fixpoint from the second pass.
+        const once = parseHL7(raw).toString();
+        expect(parseHL7(once).toString()).toBe(once);
+      }),
+      RUN_CONFIG,
+    );
+  });
+});
+
 describe("property: round-trip escape-sequence fidelity", () => {
   it("decoded delimiter/newline values re-escape and re-decode to the same string", () => {
     // Targeted: a single NTE field whose value is delimiter-laden. Asserts the

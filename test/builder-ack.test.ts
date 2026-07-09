@@ -466,7 +466,7 @@ describe("downgradePositiveAck — the single upstream downgrade primitive", () 
   });
 });
 
-describe("buildAck — escape canonicalization limits (documented, pinned)", () => {
+describe("buildAck — escape-fidelity MSA-2 echo (HL7-ESC, byte-verbatim)", () => {
   const inboundWith = (controlId: string): string =>
     `MSH|^~\\&|SENDAPP|SENDFAC|RECVAPP|RECVFAC|20260101120000||ADT^A01|${controlId}|P|2.5`;
 
@@ -483,27 +483,37 @@ describe("buildAck — escape canonicalization limits (documented, pinned)", () 
     expect(round.meta.messageCode).toBe("ACK");
   });
 
-  it("hex escapes canonicalize on echo (\\X41\\ decodes to A) — documented, not silent structure loss", () => {
+  it("hex escapes echo BYTE-VERBATIM (\\X41\\ stays \\X41\\, not decoded to A)", () => {
     const ack = buildAck(parseHL7(inboundWith("A\\X41\\B")), { code: "AA" });
     const msaLine = ack
       .toString()
       .split("\r")
       .find((l) => l.startsWith("MSA"));
-    expect(msaLine).toBe("MSA|AA|AAB");
+    // HL7-ESC: the escape-fidelity overlay preserves the sender's exact wire
+    // bytes so a byte-level correlation on MSH-10 matches MSA-2.
+    expect(msaLine).toBe("MSA|AA|A\\X41\\B");
   });
 
-  it("preserved escapes (\\H\\) re-emit as escaped literal text — lossless at the text level", () => {
+  it("non-canonical hex casing (\\X0d\\) is preserved verbatim on echo", () => {
+    const ack = buildAck(parseHL7(inboundWith("A\\X0d\\B")), { code: "AA" });
+    const msaLine = ack
+      .toString()
+      .split("\r")
+      .find((l) => l.startsWith("MSA"));
+    // Lowercase hex must NOT be normalized to \X0D\ — the sender's bytes win.
+    expect(msaLine).toBe("MSA|AA|A\\X0d\\B");
+  });
+
+  it("preserved escapes (\\H\\) echo BYTE-VERBATIM (no \\E\\ double-escaping)", () => {
     const ack = buildAck(parseHL7(inboundWith("A\\H\\B")), { code: "AA" });
     const msaLine = ack
       .toString()
       .split("\r")
       .find((l) => l.startsWith("MSA"));
-    expect(msaLine).toBe("MSA|AA|A\\E\\H\\E\\B");
-    // A conformant reader decodes that back to the same literal text the
-    // decoded tree holds — the text round-trips even though the escape's
-    // original byte form does not.
+    expect(msaLine).toBe("MSA|AA|A\\H\\B");
+    // Re-parsing the ACK recovers the identical MSH-10 field text.
     const round = parseHL7(ack.toString());
-    expect(round.segments("MSA")[0]?.field(2).value).toBe("A\\H\\B");
+    expect(round.segments("MSA")[0]?.field(2).text).toBe("A\\H\\B");
   });
 
   it("a custom-delimiter inbound is re-delimited spec-cleanly (ACK emits default encoding chars)", () => {
@@ -519,6 +529,46 @@ describe("buildAck — escape canonicalization limits (documented, pinned)", () 
     // The two-component structure survives; the ACK speaks default delimiters.
     expect(msaLine).toBe("MSA|AA|ID^X");
     expect(parseHL7(ack.toString()).warnings).toEqual([]);
+  });
+
+  // Regression (HL7-ESC refuter): the fidelity overlay carries the inbound's
+  // raw bytes in the SENDER's alphabet. Echoing them verbatim under the ACK's
+  // DEFAULT alphabet corrupted MSA-2 for a custom-delimiter sender whose escape
+  // bytes collide with a default delimiter — breaking §2.9.2.2 correlation. The
+  // overlay must be bypassed (decoded value re-escaped) when encodings differ.
+  it("custom escape char whose escaped id collides with the DEFAULT component sep stays correlatable", () => {
+    // Sender MSH-2 `@~^&`: component=@, repetition=~, escape=^, subcomponent=&.
+    // MSH-10 `ID^H^Q` = literal `ID`, a `^H^` highlight escape, `Q` → decoded "ID^H^Q".
+    const inbound = parseHL7("MSH|@~^&|SEND|FAC|RECV|RFAC|20260101120000||ADT@A01|ID^H^Q|P|2.5");
+    expect(inbound.get("MSH.10")).toBe("ID^H^Q");
+    const ack = buildAck(inbound, { code: "AA" });
+    // The ACK re-parses to the SAME decoded control id — no phantom-component
+    // truncation (pre-fix this was "ID").
+    expect(parseHL7(ack.toString()).get("MSA.2")).toBe("ID^H^Q");
+    expect(ack.get("MSA.1")).toBe("AA"); // still a positive ACK, correlation held
+  });
+
+  it("custom subcomponent sep — a literal & in the id survives correlation under default delimiters", () => {
+    // Sender MSH-2 `^~\\@`: subcomponent=@, escape=\\, so `&` is plain data and
+    // `\\H\\` is a highlight escape → decoded "ID\\H\\a&b".
+    const inbound = parseHL7(
+      "MSH|^~\\@|SEND|FAC|RECV|RFAC|20260101120000||ADT^A01|ID\\H\\a&b|P|2.5",
+    );
+    expect(inbound.get("MSH.10")).toBe("ID\\H\\a&b");
+    const ack = buildAck(inbound, { code: "AA" });
+    // Re-parses back to the identical decoded id (pre-fix `&` split it to "ID\\H\\a").
+    expect(parseHL7(ack.toString()).get("MSA.2")).toBe("ID\\H\\a&b");
+  });
+
+  it("default-delimiter sender STILL gets the byte-exact overlay echo (fix is scoped)", () => {
+    const inbound = parseHL7(
+      "MSH|^~\\&|SEND|FAC|RECV|RFAC|20260101120000||ADT^A01|ID\\X41\\Q\\H\\z|P|2.5",
+    );
+    const msaLine = buildAck(inbound, { code: "AA" })
+      .toString()
+      .split("\r")
+      .find((l) => l.startsWith("MSA"));
+    expect(msaLine).toBe("MSA|AA|ID\\X41\\Q\\H\\z"); // byte-verbatim preserved
   });
 });
 

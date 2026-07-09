@@ -49,6 +49,30 @@ hasTimezone, offsetMinutes }`) instead of the old `{ raw, date }`. HL7 v2
 
 ### Fixed
 
+- **Escape-sequence emit is now byte-verbatim across the full alphabet
+  (HL7-ESC).** The decoded tree conflated recognize-and-preserve escapes (`\H\`,
+  `\N\`, `\.sp\`/formatting, `\Cxxyy\`/`\Mxxyyzz\` charset switches, vendor
+  `\Z..\`) and hex escapes (`\X41\`) with literal backslashes, so serialize
+  **double-escaped** the former (`\H\` → `\E\H\E\`) and **decoded** the latter
+  (`\X41\` → `A`, and non-canonical hex casing `\X0d\` → `\X0D\`). Emitted output
+  was spec-clean and lossless-as-text but **not byte-verbatim** — a byte-level
+  MSA-2/MSH-10 correlation (HL7 v2 §2.9.2.2) could fail. The tokenizer now
+  records each affected subcomponent's **original wire bytes** in an internal
+  `RawComponent.rawSubcomponents` overlay and the serializer emits from it
+  verbatim, so `parseHL7(x).toString()` and `Field.text` reproduce the sender's
+  exact escape bytes. `buildAck`'s MSA-2 echo is byte-exact for a
+  default-delimiter sender; a **custom-delimiter** sender is re-delimited
+  spec-cleanly (the overlay is bypassed when the ACK's encoding differs from the
+  inbound's — the sender's raw bytes would otherwise corrupt MSA-2's structure
+  under default delimiters — and the decoded id re-parses back correlation-correct
+  per §2.9.2.2). **The `\X..\` policy is
+  decode-on-read, re-encode-on-emit** (the decoded value surface is unchanged;
+  the wire bytes — value and casing — are preserved). Delimiter/newline escapes
+  are unaffected (they already round-trip through `reescape`); a decoded CR still
+  re-emits as `\X0D\` to protect wire framing. **No public-surface break** —
+  `Field.value` and every composite/`toJSON` read the same decoded values as
+  before; the overlay is `@internal` and absent from escape-free messages. See
+  `docs-content/spec-notes-escapes.md`.
 - **PHI leak in the warning surface — `fieldWhitespaceTrimmed` and `unknownEscapeSequence` no
   longer embed field-body content (HL7-TOKENIZE-PHI).** Both builders previously interpolated
   slices of the field VALUE directly into `Hl7ParseWarning.message`
@@ -76,13 +100,12 @@ X C M Z H N` or a `.`-prefixed formatting escape — structural HL7 grammar, not
   ACK and resend indefinitely (HL7 v2 §2.9.2.2: an MSA-2 mismatch is a
   correlation failure). The no-correlation fail-safe now keys on the raw field
   carrying any content, so a leading-delimiter id (`^X`) correlates instead of
-  being spuriously downgraded. **Known canonicalization limits** (the echo is
-  the field's canonical re-serialization, not its original bytes): the ACK
-  emits with default encoding characters (custom-delimiter senders are
-  re-delimited spec-cleanly); hex escapes decode (`\X41\` → `A`); preserved
-  formatting/vendor escapes (`\H\`, `\Z..\`) re-emit as escaped literal
-  text; trailing insignificant empties canonicalize (D-02). Plain and
-  delimiter-bearing ids — the overwhelmingly common case — echo byte-exact.
+  being spuriously downgraded. The echo is now **byte-verbatim** across the full
+  escape alphabet (see the escape-fidelity entry below) — the earlier
+  canonicalization limits (hex escapes decoding to their byte, preserved escapes
+  re-emitting as escaped literal text) are resolved. The only remaining
+  transform is structural: the ACK emits with default encoding characters and
+  trailing insignificant empties canonicalize (D-02).
 - **`reescape` now emits a literal CR in decoded content as its `\X0D\` hex
   escape** instead of passing it through raw. A spec-legal `\X0D\` in any
   inbound field decoded to a bare CR — the HL7 segment separator — and

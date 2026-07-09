@@ -18,7 +18,7 @@
 
 import { Hl7Message } from "../model/message.js";
 import { DEFAULT_ENCODING_CHARACTERS } from "../parser/delimiters.js";
-import type { RawField, RawSegment } from "../parser/types.js";
+import type { EncodingCharacters, RawField, RawSegment } from "../parser/types.js";
 import { ackNoCorrelationId } from "../parser/warnings.js";
 
 import {
@@ -130,13 +130,18 @@ export function detectAckMode(inbound: Hl7Message): AckMode {
  *   and MSH-12 (version) echo the inbound values.
  * - **MSA** — MSA-1 = `code`; **MSA-2 echoes the full inbound MSH-10 field**
  *   (the raw field structure is carried over whole — a vendor-quirk id like
- *   `ID^X` is never truncated to its first component). The echo is the
- *   field's *canonical re-serialization*, not its original bytes: the ACK
- *   emits with the default encoding characters (a custom-delimiter sender is
- *   re-delimited spec-cleanly), hex escapes decode (`\X41\` → `A`),
- *   preserved formatting/vendor escapes re-emit as escaped literal text, and
- *   trailing insignificant empties canonicalize (D-02). Plain and
- *   delimiter-bearing ids — the overwhelmingly common case — echo byte-exact.
+ *   `ID^X` is never truncated to its first component). The echo carries the
+ *   inbound field's escape-fidelity overlay (HL7-ESC), so an id bearing a hex
+ *   escape (`ID\X41\Q`) or a preserved escape (`\H\`) echoes **byte-verbatim**,
+ *   not canonicalized — exactly the bytes the sender put on the wire, which is
+ *   what MSA-2 correlation compares. The only structural transform is
+ *   trailing-empty canonicalization (D-02). (A sender that used *custom*
+ *   encoding characters is **re-delimited spec-cleanly**: the overlay carries
+ *   the sender's raw bytes in the sender's alphabet, so echoing them verbatim
+ *   under the ACK's default alphabet would corrupt the field's structure and
+ *   break correlation — the overlay is therefore bypassed and the decoded id is
+ *   re-escaped under default, which re-parses back to the same control id.
+ *   Default-delimiter senders, the norm, keep the byte-exact overlay echo.)
  * - **ERR** — one segment per supplied {@link AckErrorDetail}: ERR-2 location
  *   (when given), ERR-3 the Table 0357 condition code as a CWE
  *   (`code^text^HL70357`), ERR-4 the Table 0516 severity.
@@ -189,7 +194,19 @@ export function buildAck(inbound: Hl7Message, options: BuildAckOptions): Hl7Mess
   // byte-for-byte, or a sender correlating on the raw MSH-10 bytes will
   // never match the ACK (HL7 v2 §2.9.2.2: a mismatch is a correlation
   // failure). Absent/empty → fail-safe path.
-  const rawControlId = inboundMsh(10);
+  //
+  // Escape-fidelity overlay caveat (HL7-ESC): the overlay carries the inbound
+  // MSH-10's original wire bytes in the SENDER's delimiter alphabet. This ACK
+  // emits with DEFAULT encoding characters, so emitting those bytes verbatim is
+  // only correct when the inbound used the default alphabet too — otherwise a
+  // raw byte that is a delimiter/escape under DEFAULT (but was plain data or a
+  // different escape for the sender) would re-parse into a corrupted, truncated
+  // MSA-2 and BREAK correlation. So for a custom-delimiter sender we drop the
+  // overlay and re-escape the DECODED value under default (spec-clean, and it
+  // re-parses back to the same decoded control id — correlation-correct). A
+  // default-delimiter sender (the norm) keeps the overlay and echoes byte-exact.
+  const sameEnc = encodingsEqual(inbound.encodingCharacters, enc);
+  const rawControlId = sameEnc ? inboundMsh(10) : stripEscapeOverlay(inboundMsh(10));
   const hasCorrelation = rawFieldHasContent(rawControlId);
 
   // Resolve the emitted disposition, applying the no-correlation fail-safe.
@@ -320,6 +337,46 @@ function scalarField(value: string): RawField {
 /** Absent field (no content, not null). @internal */
 function absentField(): RawField {
   return { repetitions: [], isNull: false };
+}
+
+/**
+ * True iff two encoding-character sets are identical across every delimiter
+ * (and the optional v2.7+ truncation char). Used to decide whether the inbound
+ * MSH-10's escape-fidelity overlay — captured in the sender's alphabet — is safe
+ * to echo verbatim under the ACK's DEFAULT alphabet.
+ * @internal
+ */
+function encodingsEqual(a: EncodingCharacters, b: EncodingCharacters): boolean {
+  return (
+    a.field === b.field &&
+    a.component === b.component &&
+    a.repetition === b.repetition &&
+    a.escape === b.escape &&
+    a.subcomponent === b.subcomponent &&
+    a.truncation === b.truncation
+  );
+}
+
+/**
+ * Return a copy of `field` with the HL7-ESC `rawSubcomponents` overlay dropped
+ * from every component, so `emitField` re-escapes the DECODED value instead of
+ * emitting the sender's raw wire bytes verbatim. Used when the ACK's encoding
+ * differs from the inbound's — see the correlation caveat in {@link buildAck}.
+ * Returns the field unchanged when it carries no overlay (the common case), so
+ * a default-delimiter inbound is untouched.
+ * @internal
+ */
+function stripEscapeOverlay(field: RawField): RawField {
+  const hasOverlay = field.repetitions.some((rep) =>
+    rep.components.some((comp) => comp.rawSubcomponents !== undefined),
+  );
+  if (!hasOverlay) return field;
+  return {
+    repetitions: field.repetitions.map((rep) => ({
+      components: rep.components.map((comp) => ({ subcomponents: comp.subcomponents })),
+    })),
+    isNull: field.isNull,
+  };
 }
 
 /**
