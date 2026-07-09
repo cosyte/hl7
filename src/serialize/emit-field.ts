@@ -7,9 +7,14 @@
  * Decisions honored:
  * - D-02: trailing empty components and subcomponents are stripped;
  *   `RawField.isNull === true` is preserved as the two-character literal `""`.
- * - D-04: every subcomponent string passes through `reescape(sub, enc)` —
- *   the 5 active delimiters + `\n` (via `\.br\`) are re-escaped; hex `\X..\`,
- *   `\Z..\`, and already-decoded text pass through as plain characters.
+ * - D-04: a subcomponent with no fidelity overlay passes through
+ *   `reescape(sub, enc)` — the 5 active delimiters + `\n` (via `\.br\`) + a
+ *   decoded CR (via `\X0D\`) are re-escaped; other already-decoded text passes
+ *   through as plain characters. A subcomponent whose parse recorded original
+ *   wire bytes in `RawComponent.rawSubcomponents` (HL7-ESC — a recognize-and-
+ *   preserve escape like `\H\`/`\Z..\`, or a hex escape like `\X41\`) is
+ *   emitted from that overlay **verbatim**, so those families round-trip
+ *   byte-for-byte instead of canonicalizing.
  * - D-06 guard: `emitSegment` throws when called with an MSH segment —
  *   MSH must be routed through `to-string.ts`'s special-case path, which
  *   inlines MSH-1 and MSH-2 instead of running them through `emitField`
@@ -57,9 +62,16 @@ export function emitField(field: RawField, enc: EncodingCharacters): string {
 function emitRepetition(rep: RawRepetition, enc: EncodingCharacters): string {
   const compStrings: string[] = [];
   for (const comp of rep.components) {
+    const overlay = comp.rawSubcomponents;
     const subStrings: string[] = [];
-    for (const sub of comp.subcomponents) {
-      subStrings.push(reescape(sub ?? "", enc));
+    for (let i = 0; i < comp.subcomponents.length; i++) {
+      // Escape-fidelity overlay (HL7-ESC): when the tokenizer recorded the
+      // subcomponent's original wire bytes (a preserve-or-hex escape whose
+      // decoded form does not re-escape byte-verbatim), emit them verbatim —
+      // otherwise re-escape the decoded value. Delimiter escapes have no
+      // overlay and take the reescape path, exactly as before.
+      const raw = overlay?.[i];
+      subStrings.push(raw ?? reescape(comp.subcomponents[i] ?? "", enc));
     }
     // D-02 trailing-empty strip at subcomponent level.
     while (subStrings.length > 0 && subStrings[subStrings.length - 1] === "") {

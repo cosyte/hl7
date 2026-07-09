@@ -118,13 +118,17 @@ export class Field {
    * vendor-quirk control id containing an unescaped delimiter (`ID^X`) must
    * not be truncated to its first component.
    *
-   * **Canonical, not byte-verbatim.** The parse pipeline stores *decoded*
-   * content, so re-serialization canonicalizes escape sequences: hex escapes
-   * decode (`A\X41\B` → `AAB`), and recognize-but-preserve sequences
-   * (`\H\`, `\N\`, formatting/charset/vendor escapes) re-emit as escaped
-   * literal text (`\E\H\E\`) — lossless at the text level, but not the
-   * original escape bytes. Plain and delimiter-bearing content round-trips
-   * byte-exact. Trailing insignificant empties are canonicalized (D-02).
+   * **Byte-verbatim for parsed content (HL7-ESC).** The parse pipeline stores
+   * *decoded* content, but also records the original wire bytes of any escape
+   * whose decode is not byte-faithful (`RawComponent.rawSubcomponents`), so
+   * re-serialization preserves the sender's exact escape bytes: hex escapes
+   * stay hex (`A\X41\B`, casing intact), and recognize-and-preserve sequences
+   * (`\H\`, `\N\`, formatting/charset/vendor escapes) re-emit **verbatim**
+   * rather than as escaped literal text. Delimiter/newline escapes and plain
+   * content round-trip byte-exact via the re-escape path. The only remaining
+   * canonicalization is structural: trailing insignificant empties are
+   * stripped (D-02), and a field built by hand (not parsed) re-escapes its
+   * decoded value since it has no overlay.
    *
    * **MSH-1/MSH-2 caveat.** Like {@link value}, calling this on MSH-1 or
    * MSH-2 (the delimiter-definition fields) re-escapes the encoding
