@@ -323,9 +323,47 @@ X C M Z H N` or a `.`-prefixed formatting escape — structural HL7 grammar, not
   bound is what we lock in. Does **not** use `@cosyte/test-utils`' `assertNoSecretLeak` — that's
   for `Secret<T>` wrappers (the pathways credentials pattern) and is the wrong shape for parser-
   side PHI surfaces.
-- **Coverage policy** — `vitest.config.ts` now records a D10 expiry for the global `branches:85`
-  relaxation, naming the two events that lift the floor back to 90 (`src/profiles/**` reaches 90,
-  or the profile system is replaced) and the re-evaluation cadence (every hl7 phase boundary).
+- **Coverage policy — `src/profiles/**`coverage hole closed, global`branches`floor restored to
+90 (roadmap Phase J, supersedes/absorbs the`H-PHI` coverage-policy entry above).** The D10
+transient relaxation is now RESOLVED: targeted tests
+(`test/profiles-merge-validate-coverage.test.ts`) closed the `mergeCustomSegments`/inheritance
+branches in `profiles/merge.ts`and the validator branches in`profiles/validate.ts`+`profiles/describe.ts`that were unreachable via the public`defineProfile()`API alone.`src/profiles/\*\*`now carries its own`>= 90`per-directory coverage gate
+(lines/branches/functions/statements) in`vitest.config.ts`, and the global `branches` floor is
+back to the canonical 90 — no remaining relaxation. One line
+(`validate.ts`'s `validateUniqueFieldNames`throw branch) stays intentionally uncovered and is
+documented as provably unreachable by any legally-typed`Record<string, number>`(proven: no
+real JS object — literal,`Map`, `Proxy`, or otherwise — can hold two same-named enumerable own
+  keys), matching the module's own defense-in-depth JSDoc.
+- **Reference test bar — fuzz target, PHI-exec surfaces, and a differential harness (roadmap Phase
+  J, "finish the reference test bar").** Three additions, no behavior change:
+  - `test/property/fuzz.property.test.ts` — a dedicated high-run-count (1000 runs/property, fixed
+    seed) fuzz harness on top of the existing `lenient.property.test.ts` invariant
+    ("`parseHL7` either returns an `Hl7Message` or throws an `Hl7ParseError` with one of the 4
+    `FATAL_CODES`, never anything else"). Adds two generator families the existing suite didn't
+    cover: delimiter-mutation (inject/duplicate/drop the five HL7 delimiters + `\r`) of REAL
+    canonical-corpus messages, and truncations of those same messages at every cut point. Also
+    snapshots `FATAL_CODES`/`WARNING_CODES` registry membership and asserts a "survivor
+    round-trip" property (anything that parses can be `toString()`'d and re-parsed without
+    throwing).
+  - `test/property/phi-safety-surfaces.property.test.ts` — extends
+    `phi-safety.property.test.ts` (which covers the WARNING surface) to the FATAL error-message
+    surface: over PHI-shaped field values that trigger each reachable fatal code, asserts
+    `Hl7ParseError.message` carries only structural/positional facts, never an echoed field value.
+    Separately asserts the documented `errors.ts` snippet contract (bounded length, not
+    value-absence — snippets MAY carry PHI by design, redaction is a consumer responsibility) holds
+    for BOTH the direct-fatal snippet path and the strict-mode-escalation snippet path
+    (`index.ts::buildSnippet`, a distinct call site). Also documents, with a round-trip test, that
+    `toString()`/`toJSON()`/`prettyPrint()` legitimately contain field values (content surfaces,
+    not diagnostic/log surfaces) so they're never mistaken for a leak path.
+  - `test/differential/differential.test.ts` — an oracle-gated differential harness comparing
+    `@cosyte/hl7` against the external **python-hl7** parser (BSD license, PyPI package `hl7`) over
+    the full canonical corpus (27 fixtures): segment count + per-segment field-text parity. Skips
+    gracefully (`it.skip`) when no Python + `hl7` package is available, so `verify.sh`/CI stay green
+    without Python. One real, honest divergence was found and documented: `@cosyte/hl7`'s D-02
+    trailing-empty-component canonicalization (`Field.text` strips trailing empty
+    components/subcomponents; python-hl7's `str()` preserves them verbatim) — see
+    `docs-content/spec-notes-differential.md` for the full writeup, licensing bound, and other
+    plausible-but-unobserved divergence classes.
 
 ### Fixed
 

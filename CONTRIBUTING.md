@@ -50,9 +50,30 @@ Useful extras:
 - `pnpm test:watch` — re-runs tests on file change
 - `pnpm test:coverage` — produces a coverage report (≥ 90% branches
   on `src/parser/`, `src/model/`, `src/helpers/`, `src/serialize/`,
-  `src/builder/`)
+  `src/builder/`, `src/profiles/`)
 - `pnpm format` / `pnpm format:check` — Prettier on source + tests
 - `pnpm examples` — smoke-runs the three examples under `examples/*.ts`
+
+### Fuzz + differential testing
+
+`test/property/fuzz.property.test.ts` runs a high-run-count `fast-check` fuzz harness (arbitrary
+bytes, delimiter-mutated canonical messages, truncations) against the "never throw except a
+4-fatal `Hl7ParseError`" invariant. It runs as part of the normal `pnpm test`/`pnpm test:coverage`
+— no extra setup.
+
+`test/differential/differential.test.ts` compares `@cosyte/hl7`'s parse of the canonical corpus
+against an external oracle, [python-hl7](https://github.com/johnpaulett/python-hl7) (BSD license).
+It's **oracle-gated**: with no oracle available it skips gracefully and the rest of the suite stays
+green. To run it for real:
+
+```bash
+python3 -m venv .difftools
+.difftools/bin/pip install hl7
+pnpm test test/differential/differential.test.ts
+```
+
+See [`docs-content/spec-notes-differential.md`](./docs-content/spec-notes-differential.md) for what
+gets compared and the known/justified divergences already documented.
 
 ## Adding a vendor-quirk fixture
 
