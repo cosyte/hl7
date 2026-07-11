@@ -23,9 +23,9 @@ describe("model/types/xpn: parseXpn", () => {
     expect(out).toStrictEqual({ familyName: "Smith", givenName: "Jane", secondName: "Q" });
   });
 
-  it("auto-unescapes \\F\\ inside a component", () => {
+  it("returns a component verbatim (no double-decode of \\F\\)", () => {
     const out = parseXpn(rep([["Smith\\F\\Jr"]]), enc);
-    expect(out.familyName).toBe("Smith|Jr");
+    expect(out.familyName).toBe("Smith\\F\\Jr");
   });
 
   it("omits absent components (exactOptionalPropertyTypes)", () => {

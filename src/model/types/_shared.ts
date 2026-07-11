@@ -1,29 +1,23 @@
 /**
  * Internal helpers shared across the 10 composite parsers (XPN, XAD, CX, CWE,
- * CE, XTN, PL, TS, NM, HD). Centralizes the "read subcomponent with
- * auto-unescape, return undefined on absent" pattern so composites stay
- * short and every composite handles missing/empty components identically.
+ * CE, XTN, PL, TS, NM, HD). Centralizes the "read subcomponent, return undefined
+ * on absent" pattern so composites stay short and every composite handles
+ * missing/empty components identically.
+ *
+ * Subcomponents are returned VERBATIM: the tokenizer (parser-02) already
+ * unescaped each one on parse, so the stored value is decoded — a second
+ * `unescape` here would double-decode a value whose own bytes look like an
+ * escape (HL7-VALUE-REDECODE). The `enc` params are retained for signature
+ * uniformity across the composite read path.
  *
  * Not part of the public API — never re-exported from `src/index.ts`.
  */
 
-import { unescape } from "../../parser/escapes.js";
-import type {
-  EncodingCharacters,
-  Hl7Position,
-  RawComponent,
-  RawRepetition,
-} from "../../parser/types.js";
-
-/** @internal No-op emitter — composite parsers are silent (D-09). */
-const NOOP_EMITTER = (): void => {};
-
-/** @internal Best-effort position for unescape calls from composite parsers. */
-const DEFAULT_POSITION: Hl7Position = { segmentIndex: 0 };
+import type { EncodingCharacters, RawComponent, RawRepetition } from "../../parser/types.js";
 
 /**
- * Read `subcomponents[index]` from a component, auto-unescape it, and return
- * the result. Returns `undefined` when:
+ * Read `subcomponents[index]` from a component and return it (already decoded
+ * by the tokenizer — see the module header). Returns `undefined` when:
  * - `component` is `undefined` (missing component).
  * - `index` is out of range.
  * - the subcomponent is the empty string `""`.
@@ -38,17 +32,23 @@ const DEFAULT_POSITION: Hl7Position = { segmentIndex: 0 };
 export function readSubcomponent(
   component: RawComponent | undefined,
   index: number,
-  enc: EncodingCharacters,
+  _enc: EncodingCharacters,
 ): string | undefined {
   if (component === undefined) return undefined;
   const sub = component.subcomponents[index];
   if (sub === undefined || sub === "") return undefined;
-  return unescape(sub, enc, NOOP_EMITTER, DEFAULT_POSITION);
+  // The tokenizer already unescaped every subcomponent on parse (parser-02), so
+  // the stored value is decoded — return it directly. A second unescape would
+  // double-decode a value whose own bytes look like an escape (wire `\E\F\E\` →
+  // decoded `\F\`, which a second pass would wrongly turn into `|`). Emit
+  // fidelity is handled separately by the raw overlay (HL7-ESC). `_enc` is
+  // retained for signature uniformity across the composite read helpers.
+  return sub;
 }
 
 /**
- * Read the first subcomponent of `components[index]`, auto-unescape, and
- * return the result. Shorthand for
+ * Read the first subcomponent of `components[index]` and return it (already
+ * decoded by the tokenizer). Shorthand for
  * `readSubcomponent(rep.components[index], 0, enc)`. Most composite fields
  * are single-subcomponent values — this helper keeps composite parsers
  * declarative.
@@ -68,7 +68,7 @@ export function readComponent(
  * composite parser does NOT model — so a coded element that grew across HL7
  * versions (e.g. the v2.7 CWE second-alternate triplet + coding-system OIDs at
  * components 10–22) is never silently truncated. Each entry is the
- * first-subcomponent value (auto-unescaped), positionally aligned: an absent
+ * first-subcomponent value (already decoded), positionally aligned: an absent
  * interior component is preserved as `""` so a caller can map an index back to
  * its HL7 component number (`fromIndex + i`).
  *

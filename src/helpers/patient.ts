@@ -18,7 +18,7 @@
  *   mirror XPN, with `middleName` mapped from `XPN.secondName`.
  * - D-20: `phoneNumbers` concatenates PID-13 then PID-14 repetitions.
  * - D-22: never throws — absent / malformed fields surface as omitted keys.
- * - D-23: string reads auto-unescape via `Field.value` / composite parsers.
+ * - D-23: string reads are decoded via `Field.value` / composite parsers (once at parse).
  */
 
 import type { Hl7Message } from "../model/message.js";

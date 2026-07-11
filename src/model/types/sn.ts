@@ -77,7 +77,7 @@ function numericOrUndefined(raw: string | undefined): number | undefined {
  * Parse an HL7 v2 SN repetition into a structured `SN`, or `undefined` when the
  * field carries no usable structured-numeric content (empty, or so malformed
  * that no comparator, number, or separator can be recovered). Components are
- * auto-unescaped; `num1`/`num2` use strict `Number()` parsing.
+ * returned verbatim (already decoded by the tokenizer); `num1`/`num2` use strict `Number()` parsing.
  *
  * Fail-safe: a non-operator value in the comparator slot (SN.1) is dropped
  * rather than surfaced as a relation, and a non-numeric SN.2/SN.4 becomes

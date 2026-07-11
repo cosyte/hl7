@@ -62,7 +62,8 @@ export interface XTN {
 
 /**
  * Parse an HL7 v2 XTN repetition into a structured `XTN` object. Components
- * are auto-unescaped via `unescape()`. Absent / empty components are OMITTED
+ * are returned verbatim (already decoded once by the tokenizer — never re-unescaped,
+ * HL7-VALUE-REDECODE). Absent / empty components are OMITTED
  * from the result (exactOptionalPropertyTypes semantics). Components past
  * position 12 are silently ignored in v1.
  *

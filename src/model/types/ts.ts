@@ -14,15 +14,8 @@
  */
 
 import { parseDtm } from "../../parser/dates.js";
-import { unescape } from "../../parser/escapes.js";
 import type { DtmParts } from "../../parser/dates.js";
-import type { EncodingCharacters, Hl7Position, RawRepetition } from "../../parser/types.js";
-
-/** @internal No-op emitter — composite parsers are silent (D-09). */
-const NOOP_EMITTER = (): void => {};
-
-/** @internal Best-effort position for unescape calls from the TS composite. */
-const DEFAULT_POSITION: Hl7Position = { segmentIndex: 0 };
+import type { EncodingCharacters, RawRepetition } from "../../parser/types.js";
 
 /**
  * HL7 v2 Time Stamp (TS) / Date Time (DTM) composite — the raw HL7 string plus
@@ -67,10 +60,13 @@ export type TS = DtmParts;
  * console.log(dtmToDate(ts)?.toISOString()); // "2025-01-02T20:30:45.000Z"
  * ```
  */
-export function parseTs(rep: RawRepetition, enc: EncodingCharacters): TS {
+export function parseTs(rep: RawRepetition, _enc: EncodingCharacters): TS {
   const comp = rep.components[0];
-  const sub = comp?.subcomponents[0] ?? "";
-  const raw = sub === "" ? "" : unescape(sub, enc, NOOP_EMITTER, DEFAULT_POSITION);
+  // The tokenizer already unescaped every subcomponent on parse (parser-02), so
+  // the stored value is decoded — use it directly, never a second unescape (that
+  // would double-decode a value whose bytes look like an escape). `_enc` is kept
+  // for composite-parser signature uniformity.
+  const raw = comp?.subcomponents[0] ?? "";
   // `parseDtm` already returns a frozen `DtmParts`.
   return parseDtm(raw);
 }

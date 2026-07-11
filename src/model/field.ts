@@ -1,7 +1,7 @@
 /**
  * `Field` — wrapper over a `RawField` exposing HL7 null/empty discrimination
  * (`isNull`), the raw repetitions tree, and a convenience `value` getter that
- * auto-unescapes the first subcomponent of the first component of the first
+ * reads the first subcomponent of the first component of the first
  * repetition. Constructed internally by `Segment.field(n)`; user code never
  * calls `new Field(...)` directly.
  *
@@ -15,10 +15,8 @@
  */
 
 import { DEFAULT_ENCODING_CHARACTERS } from "../parser/delimiters.js";
-import { unescape } from "../parser/escapes.js";
 import { emitField } from "../serialize/emit-field.js";
 import type { EncodingCharacters, Hl7Position, RawField, RawRepetition } from "../parser/types.js";
-import type { Hl7ParseWarning } from "../parser/warnings.js";
 import { parseCe, type CE } from "./types/ce.js";
 import { parseCwe, type CWE } from "./types/cwe.js";
 import { parseCx, type CX } from "./types/cx.js";
@@ -32,17 +30,12 @@ import { parseXcn, type XCN } from "./types/xcn.js";
 import { parseXpn, type XPN } from "./types/xpn.js";
 import { parseXtn, type XTN } from "./types/xtn.js";
 
-/** Phase 3 leaf reads emit no warnings — the Field.value getter passes this no-op emitter to unescape. @internal */
-const NOOP_EMITTER = (_w: Hl7ParseWarning): void => {
-  /* intentionally empty */
-};
-
 /** Default position used by the shared empty-Field sentinel. @internal */
 const DEFAULT_POSITION: Hl7Position = { segmentIndex: 0 };
 
 /**
  * Wrapper over a `RawField` exposing HL7 null/empty discrimination
- * (`isNull`), the repetitions tree, and an auto-unescaped `value` getter.
+ * (`isNull`), the repetitions tree, and a decoded `value` getter.
  * `seg.field(3) === seg.field(3)` — Field instances are referentially stable
  * per segment position (D-12).
  *
@@ -51,7 +44,7 @@ const DEFAULT_POSITION: Hl7Position = { segmentIndex: 0 };
  * import { parseHL7 } from "@cosyte/hl7";
  * const msg = parseHL7(raw);
  * const pid5 = msg.segments("PID")[0]?.field(5);
- * console.log(pid5?.value);              // "Smith" — auto-unescaped
+ * console.log(pid5?.value);              // "Smith" — decoded at parse
  * console.log(pid5?.isNull);             // false — HL7 explicit null is "", absent is not
  * console.log(pid5?.repetitions.length); // 1
  * ```
@@ -86,14 +79,16 @@ export class Field {
   }
 
   /**
-   * First-repetition, first-component, first-subcomponent value as an
-   * HL7-unescaped string. Returns `""` when the field is empty or HL7 null.
-   * Equivalent to `msg.get('SEG.N')` for a top-level field access.
+   * First-repetition, first-component, first-subcomponent value as a decoded
+   * string — unescaped ONCE by the tokenizer on parse, returned verbatim here
+   * (never re-unescaped, HL7-VALUE-REDECODE). Returns `""` when the field is
+   * empty or HL7 null. Equivalent to `msg.get('SEG.N')` for a top-level access.
    *
    * @example
    * ```ts
    * const pid5 = msg.segments("PID")[0]?.field(5);
-   * console.log(pid5?.value); // "Smith|Jr" (with \F\ auto-expanded)
+   * // wire "Smith\F\Jr" was decoded at parse → the field separator escape:
+   * console.log(pid5?.value); // "Smith|Jr"
    * ```
    */
   public get value(): string {
@@ -103,15 +98,20 @@ export class Field {
     if (comp === undefined) return "";
     const sub = comp.subcomponents[0];
     if (sub === undefined) return "";
-    return unescape(sub, this.enc, NOOP_EMITTER, this.position);
+    // The tokenizer already unescaped every subcomponent on parse (parser-02),
+    // so the stored value is decoded — return it directly. Re-unescaping here
+    // would double-decode a value whose own bytes look like an escape (a wire
+    // `\E\F\E\` decodes to `\F\`, which a second pass would wrongly turn into
+    // `|`). Emit fidelity is handled separately by the raw overlay (HL7-ESC).
+    return sub;
   }
 
   /**
    * The field's **canonical wire text** — the full field re-serialized with
    * the active delimiters and re-escaped content (repetitions, components,
    * and subcomponents included). Contrast with {@link value}, which
-   * unescapes and returns only the first subcomponent of the first component
-   * of the first repetition.
+   * returns only the first subcomponent of the first component of the first
+   * repetition (decoded once at parse — never re-unescaped).
    *
    * Use this when a field must be compared or echoed as a whole — e.g.
    * correlating an ACK's MSA-2 against the inbound MSH-10, where a

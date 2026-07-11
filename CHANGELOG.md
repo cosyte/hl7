@@ -13,6 +13,19 @@ The first pre-alpha release (`0.0.1`) will ship the complete v1 API surface belo
 `0.1.0` tag was prepared but never published, so the package begins its public history at `0.0.x`,
 per the cosyte version ladder (`0.0.x` until first alpha).
 
+### Fixed
+
+- **Value reads no longer double-decode (HL7-VALUE-REDECODE). Behavior change on a rare, spec-legal
+  input (pre-alpha).** The tokenizer already unescapes every subcomponent once on parse, but
+  `Field.value`, the dot-path `get()`/`resolvePath`, and the composite coercions (`asXpn`/`asCwe`/`asCx`/…
+  via the shared `readSubcomponent`, plus `asNm`/`asTs`) ran a **second** `unescape` over the
+  already-decoded value. A value whose own decoded bytes look like an escape was therefore decoded
+  twice: a wire `\E\F\E\` decodes once to the literal `\F\`, which the second pass wrongly turned into
+  the field separator `|`. Readers now return the once-decoded subcomponent verbatim
+  (`field(5).value` of `A\E\F\E\B` is `A\F\B`, not `A|B`); the common single-escape case is unchanged
+  (`\F\` → `|`), and emit stays byte-verbatim (the HL7-ESC raw overlay is a separate, untouched path).
+  Found by the HL7-ESC conformance-refuter; pinned by `test/value-redecode.test.ts`.
+
 ### Changed
 
 - **Datetime precision + timezone fidelity — the TS/DTM composite (roadmap

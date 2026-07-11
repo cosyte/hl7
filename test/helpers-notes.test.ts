@@ -178,9 +178,16 @@ describe("helpers/notes: positional NTE grouping (Phase P)", () => {
       expect(msg.notes()).toEqual([]);
     });
 
-    it("HL7-unescapes note text like every other free-text read", () => {
+    it("decodes note text once, like every other free-text read", () => {
       const raw = MSH + PID + "NTE|1||a\\T\\b and \\F\\ pipe";
       expect(parseHL7(raw).patient?.notes).toEqual(["a&b and | pipe"]);
+    });
+
+    it("does not double-decode a note whose decoded bytes look like an escape (HL7-VALUE-REDECODE)", () => {
+      // Wire `a\E\F\E\b` decodes ONCE (tokenizer) to the literal `a\F\b`; the old
+      // reader re-unescaped that `\F\` into `|`, corrupting the note to `a|b`.
+      const raw = MSH + PID + "NTE|1||a\\E\\F\\E\\b";
+      expect(parseHL7(raw).patient?.notes).toEqual(["a\\F\\b"]);
     });
 
     it("preserves the FULL note when a non-conformant raw caret tokenizes NTE-3 into components", () => {

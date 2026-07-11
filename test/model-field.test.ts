@@ -39,13 +39,13 @@ describe("model/field: Field wrapper", () => {
     expect(f.value).toBe("Smith");
   });
 
-  it("value auto-unescapes \\F\\ at the leaf", () => {
+  it("value returns the already-decoded leaf verbatim (no double-decode)", () => {
     const raw: RawField = {
       repetitions: [{ components: [{ subcomponents: ["Smith\\F\\Jr"] }] }],
       isNull: false,
     };
     const f = new Field(raw, DEFAULT_ENCODING_CHARACTERS, { segmentIndex: 0 });
-    expect(f.value).toBe("Smith|Jr");
+    expect(f.value).toBe("Smith\\F\\Jr");
   });
 
   it("value returns '' for an empty field (no repetitions)", () => {

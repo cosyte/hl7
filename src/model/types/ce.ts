@@ -60,7 +60,8 @@ export interface CE {
 
 /**
  * Parse an HL7 v2 CE repetition into a structured `CE` object. Components
- * are auto-unescaped via `unescape()`. Absent / empty components are OMITTED
+ * are returned verbatim (already decoded once by the tokenizer — never re-unescaped,
+ * HL7-VALUE-REDECODE). Absent / empty components are OMITTED
  * from the result (exactOptionalPropertyTypes semantics).
  *
  * @example

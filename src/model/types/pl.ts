@@ -94,7 +94,8 @@ function parseFacility(comp: RawComponent | undefined, enc: EncodingCharacters):
 
 /**
  * Parse an HL7 v2 PL repetition into a structured `PL` object. Components
- * are auto-unescaped via `unescape()`. Absent / empty components are OMITTED
+ * are returned verbatim (already decoded once by the tokenizer — never re-unescaped,
+ * HL7-VALUE-REDECODE). Absent / empty components are OMITTED
  * from the result (exactOptionalPropertyTypes semantics). Component 4
  * (`facility`) is parsed as a nested `HD`; see component table in the `PL`
  * interface JSDoc for the v1 simplifications.

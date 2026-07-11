@@ -41,9 +41,9 @@ describe("model/types/nm: parseNm", () => {
     expect(parseNm(rep("  3.14  "), enc).value).toBe(3.14);
   });
 
-  it("auto-unescapes the raw before numeric parse", () => {
-    // "12.0\F\5" unescapes to "12.0|5"; Number("12.0|5") === NaN → undefined
-    expect(parseNm(rep("12.0\\F\\5"), enc)).toStrictEqual({ raw: "12.0|5", value: undefined });
+  it("returns the stored raw verbatim (no double-decode) before numeric parse", () => {
+    // subcomponents are already decoded — the stored "12.0\F\5" is returned verbatim; Number(it) === NaN → undefined
+    expect(parseNm(rep("12.0\\F\\5"), enc)).toStrictEqual({ raw: "12.0\\F\\5", value: undefined });
   });
 
   it("handles empty repetition (no components)", () => {

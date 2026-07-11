@@ -53,7 +53,8 @@ export interface XAD {
 
 /**
  * Parse an HL7 v2 XAD repetition into a structured `XAD` object. Components
- * are auto-unescaped via `unescape()`. Absent / empty components are OMITTED
+ * are returned verbatim (already decoded once by the tokenizer — never re-unescaped,
+ * HL7-VALUE-REDECODE). Absent / empty components are OMITTED
  * from the result (exactOptionalPropertyTypes semantics).
  *
  * @example

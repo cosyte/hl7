@@ -69,9 +69,9 @@ describe("model/types/xtn: parseXtn", () => {
     });
   });
 
-  it("auto-unescapes subcomponent content", () => {
+  it("returns subcomponent content verbatim (no double-decode)", () => {
     const out = parseXtn(rep([["\\F\\555-1234"]]), enc);
-    expect(out.telephoneNumber).toBe("|555-1234");
+    expect(out.telephoneNumber).toBe("\\F\\555-1234");
   });
 
   it("omits empty-string components (exactOptionalPropertyTypes)", () => {
