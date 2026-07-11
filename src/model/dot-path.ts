@@ -2,7 +2,7 @@
  * Dot-path tokenizer and resolver for the `@cosyte/hl7` structural
  * model. Parses strings like `PID.5.1`, `OBX[2].5`, `PID.3[0].1` into a
  * discriminated-token descriptor, then resolves that descriptor against a
- * `readonly RawSegment[]` tree to produce the auto-unescaped leaf string (or
+ * `readonly RawSegment[]` tree to produce the decoded leaf string (or
  * `undefined` on missing path). Zero runtime deps — a hand-rolled linear scan
  * (analog: `src/parser/dates.ts::matchTokenFormat`).
  *
@@ -14,12 +14,12 @@
  *   stored at `fields[0]` / `fields[1]` by Phase 2 tokenize.ts (D-05).
  * - Missing subcomponent on a single-sub component returns the component
  *   string (depth-collapse, D-04).
- * - Every leaf read passes through `unescape()` with a no-op emitter (D-03).
+ * - Leaf reads return the subcomponent verbatim: the tokenizer (parser-02)
+ *   already unescaped it once on parse, so the stored value is decoded and a
+ *   second `unescape` here would double-decode it (HL7-VALUE-REDECODE).
  */
 
-import { unescape } from "../parser/escapes.js";
-import type { EncodingCharacters, Hl7Position, RawSegment } from "../parser/types.js";
-import type { Hl7ParseWarning } from "../parser/warnings.js";
+import type { EncodingCharacters, RawSegment } from "../parser/types.js";
 
 /**
  * Parsed representation of a dot-path string. Produced by `parsePath`,
@@ -63,11 +63,6 @@ interface MutableDotPath {
 
 /** Segment-name shape — `[A-Z][A-Z0-9]{2}` (D-19 symmetry with addSegment). Matches standard HL7 v2 segment names (PID, PV1, OBX, NK1, DG1, IN1…) and Z-segment customs (ZPI, ZX1…). @internal */
 const SEGMENT_NAME_RE = /^[A-Z][A-Z0-9]{2}$/u;
-
-/** Phase 3 auto-unescape pass uses a no-op emitter — no warnings surface on reads. @internal */
-const NOOP_EMITTER = (_w: Hl7ParseWarning): void => {
-  /* intentionally empty */
-};
 
 /**
  * Parse an HL7 dot-path string into a `DotPath` descriptor. Accepts shapes
@@ -185,7 +180,7 @@ export function parsePath(path: string): DotPath {
 }
 
 /**
- * Resolve a dot-path string against a raw segment tree to its auto-unescaped
+ * Resolve a dot-path string against a raw segment tree to its decoded
  * leaf value. Returns `undefined` whenever the path does not resolve (missing
  * segment, out-of-range field/component/subcomponent/repetition), and never
  * throws on a missing value. Throws `TypeError` only when `path` itself is
@@ -203,7 +198,7 @@ export function parsePath(path: string): DotPath {
 export function resolvePath(
   path: string,
   segments: readonly RawSegment[],
-  enc: EncodingCharacters,
+  _enc: EncodingCharacters,
 ): string | undefined {
   const parsed = parsePath(path);
 
@@ -213,7 +208,7 @@ export function resolvePath(
   const found = findSegment(segments, parsed.segmentType, parsed.segmentIndex);
   if (found === undefined) return undefined;
 
-  const { seg, absoluteIndex } = found;
+  const { seg } = found;
 
   // MSH indexing is offset by -1 relative to the internal `fields[]` array:
   // Phase 2 tokenize placed the field-separator char at `fields[0]` and the
@@ -237,14 +232,13 @@ export function resolvePath(
   const subIndex = (parsed.subcomponentIndex ?? 1) - 1;
   const sub = comp.subcomponents[subIndex];
 
-  // Best-effort position for the unescape emitter — segment index is the
-  // only reliably known absolute index. The emitter is a no-op anyway;
-  // position is kept for forward-compatibility if Phase 7 ever enables
-  // warning surfacing on reads.
-  const position: Hl7Position = buildPosition(absoluteIndex, parsed);
-
   if (sub !== undefined) {
-    return unescape(sub, enc, NOOP_EMITTER, position);
+    // The tokenizer already unescaped every subcomponent on parse (parser-02),
+    // so the stored value is decoded — return it directly. A second unescape
+    // would double-decode a value whose own bytes look like an escape (wire
+    // `\E\F\E\` → decoded `\F\`, which a second pass would wrongly turn into
+    // `|`). Emit fidelity is handled separately by the raw overlay (HL7-ESC).
+    return sub;
   }
 
   // D-04 depth-collapse: when the caller asked for subcomponent 1 and
@@ -257,9 +251,7 @@ export function resolvePath(
 
 /**
  * Locate the `occurrence`-th segment of `segmentType` in document order.
- * Returns the matched `RawSegment` along with its absolute index in the
- * `segments[]` array (used by the `unescape` position argument for
- * forward-compatible warning surfacing).
+ * Returns the matched `RawSegment`.
  *
  * @internal
  */
@@ -267,39 +259,16 @@ function findSegment(
   segments: readonly RawSegment[],
   segmentType: string,
   occurrence: number,
-): { readonly seg: RawSegment; readonly absoluteIndex: number } | undefined {
+): { readonly seg: RawSegment } | undefined {
   let seen = 0;
-  for (let i = 0; i < segments.length; i++) {
-    const s = segments[i];
+  for (const s of segments) {
     if (s === undefined) continue;
     if (s.name === segmentType) {
-      if (seen === occurrence) return { seg: s, absoluteIndex: i };
+      if (seen === occurrence) return { seg: s };
       seen++;
     }
   }
   return undefined;
-}
-
-/**
- * Build an `Hl7Position` for the `unescape` emitter. Follows the
- * `exactOptionalPropertyTypes` discipline — optional keys are omitted when
- * their source is absent, never set to `undefined` explicitly.
- *
- * @internal
- */
-function buildPosition(segmentIndex: number, parsed: DotPath): Hl7Position {
-  const pos: {
-    segmentIndex: number;
-    fieldIndex?: number;
-    repetitionIndex?: number;
-    componentIndex?: number;
-    subcomponentIndex?: number;
-  } = { segmentIndex };
-  if (parsed.fieldIndex !== 0) pos.fieldIndex = parsed.fieldIndex;
-  if (parsed.repetitionIndex !== undefined) pos.repetitionIndex = parsed.repetitionIndex;
-  if (parsed.componentIndex !== undefined) pos.componentIndex = parsed.componentIndex;
-  if (parsed.subcomponentIndex !== undefined) pos.subcomponentIndex = parsed.subcomponentIndex;
-  return pos;
 }
 
 /**

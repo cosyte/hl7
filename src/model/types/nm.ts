@@ -11,14 +11,7 @@
  * `Number`.
  */
 
-import { unescape } from "../../parser/escapes.js";
-import type { EncodingCharacters, Hl7Position, RawRepetition } from "../../parser/types.js";
-
-/** @internal No-op emitter — composite parsers are silent (D-09). */
-const NOOP_EMITTER = (): void => {};
-
-/** @internal Best-effort position for unescape calls from the NM composite. */
-const DEFAULT_POSITION: Hl7Position = { segmentIndex: 0 };
+import type { EncodingCharacters, RawRepetition } from "../../parser/types.js";
 
 /**
  * HL7 v2 Numeric (NM) composite. Carries both the raw HL7 numeric string
@@ -58,10 +51,13 @@ export interface NM {
  * console.log(nm.value); // 120.5
  * ```
  */
-export function parseNm(rep: RawRepetition, enc: EncodingCharacters): NM {
+export function parseNm(rep: RawRepetition, _enc: EncodingCharacters): NM {
   const comp = rep.components[0];
-  const sub = comp?.subcomponents[0] ?? "";
-  const raw = sub === "" ? "" : unescape(sub, enc, NOOP_EMITTER, DEFAULT_POSITION);
+  // The tokenizer already unescaped every subcomponent on parse (parser-02), so
+  // the stored value is decoded — use it directly, never a second unescape (that
+  // would double-decode a value whose bytes look like an escape). `_enc` is kept
+  // for composite-parser signature uniformity.
+  const raw = comp?.subcomponents[0] ?? "";
   if (raw === "") return { raw, value: undefined };
   const n = Number(raw);
   const value = Number.isNaN(n) ? undefined : n;

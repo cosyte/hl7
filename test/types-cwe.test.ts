@@ -49,9 +49,9 @@ describe("model/types/cwe: parseCwe", () => {
     expect(parseCwe({ components: [] }, enc)).toStrictEqual({});
   });
 
-  it("auto-unescapes text", () => {
+  it("returns component text verbatim (no double-decode)", () => {
     const out = parseCwe(rep([["GLU"], ["Glu\\F\\cose"]]), enc);
-    expect(out.text).toBe("Glu|cose");
+    expect(out.text).toBe("Glu\\F\\cose");
   });
 
   it("omits absent components", () => {

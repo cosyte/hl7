@@ -227,7 +227,7 @@ export interface ObservationBase {
  * - `"TS" | "DT"` → `TS | undefined` (fidelity parts per Phase N)
  * - `"CWE" | "CE"` → `CWE | CE | undefined` (full composite per D-14)
  * - other (`"ST"`, `"TX"`, `"FT"`, `"ID"`, `"IS"`, `"NA"`, unknown) →
- *   `string | undefined` (auto-unescaped, D-23)
+ *   `string | undefined` (decoded, D-23)
  *
  * D-22: `value` is `undefined` when OBX-5 is empty OR malformed for its
  * declared type (never throws, never `NaN`). A `TS`/`DT` value is always the

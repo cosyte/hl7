@@ -75,9 +75,9 @@ describe("model/types/xcn: parseXcn", () => {
     expect(out.familyName).toBe("Smith");
   });
 
-  it("auto-unescapes component values (A\\F\\B → A|B via readComponent)", () => {
+  it("returns component values verbatim (A\\F\\B stays A\\F\\B — no double-decode)", () => {
     const out = parseXcn(rep([["A\\F\\B"]]), enc);
-    expect(out.idNumber).toBe("A|B");
+    expect(out.idNumber).toBe("A\\F\\B");
   });
 
   it("populates all 13 v1 components when present", () => {

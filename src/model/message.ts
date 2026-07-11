@@ -259,7 +259,8 @@ export class Hl7Message {
 
   /**
    * Resolve a dot-path (e.g. `PID.5.1`, `OBX[2].5`, `PID.3[0].1`) to its
-   * auto-unescaped leaf string. Returns `undefined` when the path doesn't
+   * decoded leaf string (unescaped once at parse — never re-unescaped on read,
+   * HL7-VALUE-REDECODE). Returns `undefined` when the path doesn't
    * resolve — never throws on missing path (MODEL-05). Throws `TypeError`
    * on malformed path syntax (e.g. `"pid.5"`, empty string).
    *

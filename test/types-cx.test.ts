@@ -70,9 +70,9 @@ describe("model/types/cx: parseCx", () => {
     expect(parseCx({ components: [] }, enc)).toStrictEqual({});
   });
 
-  it("auto-unescapes idNumber", () => {
+  it("returns idNumber verbatim (no double-decode)", () => {
     const out = parseCx(rep([["123\\F\\456"]]), enc);
-    expect(out.idNumber).toBe("123|456");
+    expect(out.idNumber).toBe("123\\F\\456");
   });
 
   it("populates partial assigningAuthority (only namespaceId)", () => {

@@ -36,7 +36,8 @@ export interface HD {
 
 /**
  * Parse an HL7 v2 HD repetition into a structured `HD` object. Components
- * are auto-unescaped via `unescape()`. Absent / empty components are OMITTED
+ * are returned verbatim (already decoded once by the tokenizer — never re-unescaped,
+ * HL7-VALUE-REDECODE). Absent / empty components are OMITTED
  * from the result (exactOptionalPropertyTypes semantics).
  *
  * @example

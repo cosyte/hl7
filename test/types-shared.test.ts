@@ -17,9 +17,9 @@ describe("model/types/_shared: readSubcomponent", () => {
     expect(readSubcomponent(comp, 0, enc)).toBe("Smith");
   });
 
-  it("auto-unescapes at the leaf (\\F\\ → field separator)", () => {
+  it("returns the stored subcomponent verbatim (\\F\\ is not re-decoded)", () => {
     const comp: RawComponent = { subcomponents: ["Smith\\F\\Jr"] };
-    expect(readSubcomponent(comp, 0, enc)).toBe("Smith|Jr");
+    expect(readSubcomponent(comp, 0, enc)).toBe("Smith\\F\\Jr");
   });
 
   it("returns undefined for out-of-range index", () => {
@@ -77,9 +77,9 @@ describe("model/types/_shared: readExtraComponents", () => {
     expect(out).toEqual(["X"]);
   });
 
-  it("auto-unescapes extra components", () => {
+  it("returns extra components verbatim (no double-decode)", () => {
     const out = readExtraComponents(rep([["A"], ["X\\F\\Y"]]), 1, enc);
-    expect(out).toEqual(["X|Y"]);
+    expect(out).toEqual(["X\\F\\Y"]);
   });
 
   it("returns a frozen array", () => {

@@ -51,8 +51,6 @@
 
 import type { Hl7Message } from "../model/message.js";
 import type { Segment } from "../model/segment.js";
-import { unescape } from "../parser/escapes.js";
-import type { Hl7ParseWarning } from "../parser/warnings.js";
 
 /**
  * Sentinel target for notes seen in the ORC→OBR region: they belong to the
@@ -60,11 +58,6 @@ import type { Hl7ParseWarning } from "../parser/warnings.js";
  * (mirroring `orders()` ORC promotion). @internal
  */
 const ORDER_SINK = Symbol("order-sink");
-
-/** Note reads emit no warnings — the note text is payload, never echoed. @internal */
-const NOOP_EMITTER = (_w: Hl7ParseWarning): void => {
-  /* intentionally empty */
-};
 
 /**
  * Positional grouping of every NTE segment's note lines. `byParent` maps a
@@ -80,15 +73,17 @@ export interface NoteGrouping {
 
 /**
  * Extract the note lines from one NTE segment: each non-empty NTE-3 (Comment,
- * FT) repetition as one line, HL7-unescaped, in order. An NTE carrying no NTE-3
+ * FT) repetition as one line, decoded, in order. An NTE carrying no NTE-3
  * text yields `[]`.
  *
  * The FULL repetition text is reassembled — a lenient parser tokenizes a
  * non-conformant raw `^`/`&` in the FT narrative into components/subcomponents,
  * so reading only the first would silently truncate the note. Each leaf is
- * unescaped, then components/subcomponents are rejoined with the literal
- * delimiters so both the conformant (`\S\`-escaped) and quirky (raw-caret) forms
- * round-trip to the same readable text.
+ * already decoded by the tokenizer (parser-02) — it is used verbatim, NOT
+ * re-unescaped (a second decode would double-decode a value whose bytes look
+ * like an escape, HL7-VALUE-REDECODE) — and components/subcomponents are
+ * rejoined with the literal delimiters so both the conformant (`\S\`-escaped)
+ * and quirky (raw-caret) forms read to the same text.
  *
  * @example
  * ```ts
@@ -102,13 +97,12 @@ export interface NoteGrouping {
 export function extractNoteLines(nte: Segment): string[] {
   const field = nte.field(3);
   const enc = field.enc;
-  const pos = field.position;
   const lines: string[] = [];
   for (const rep of field.repetitions) {
+    // Subcomponents are already decoded by the tokenizer — join them verbatim,
+    // never a second `unescape` (HL7-VALUE-REDECODE).
     const text = rep.components
-      .map((c) =>
-        c.subcomponents.map((s) => unescape(s, enc, NOOP_EMITTER, pos)).join(enc.subcomponent),
-      )
+      .map((c) => c.subcomponents.join(enc.subcomponent))
       .join(enc.component);
     if (text !== "") lines.push(text);
   }

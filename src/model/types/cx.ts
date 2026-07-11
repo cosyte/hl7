@@ -93,7 +93,8 @@ function parseAssigningAuthority(
 
 /**
  * Parse an HL7 v2 CX repetition into a structured `CX` object. Components
- * are auto-unescaped via `unescape()`. Absent / empty components are OMITTED
+ * are returned verbatim (already decoded once by the tokenizer — never re-unescaped,
+ * HL7-VALUE-REDECODE). Absent / empty components are OMITTED
  * from the result (exactOptionalPropertyTypes semantics). Component 4
  * (`assigningAuthority`) is parsed as a nested `HD`; see component table in
  * the `CX` interface JSDoc for the v1 simplifications on components 6/9/10.

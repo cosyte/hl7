@@ -63,9 +63,9 @@ describe("model/types/xad: parseXad", () => {
     expect(parseXad({ components: [] }, enc)).toStrictEqual({});
   });
 
-  it("auto-unescapes street", () => {
+  it("returns street verbatim (no double-decode)", () => {
     const out = parseXad(rep([["123 Main St\\F\\Suite 5"]]), enc);
-    expect(out.street).toBe("123 Main St|Suite 5");
+    expect(out.street).toBe("123 Main St\\F\\Suite 5");
   });
 
   it("omits absent components (exactOptionalPropertyTypes)", () => {

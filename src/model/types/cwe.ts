@@ -67,7 +67,8 @@ export interface CWE {
 
 /**
  * Parse an HL7 v2 CWE repetition into a structured `CWE` object. Components
- * are auto-unescaped via `unescape()`. Absent / empty components are OMITTED
+ * are returned verbatim (already decoded once by the tokenizer — never re-unescaped,
+ * HL7-VALUE-REDECODE). Absent / empty components are OMITTED
  * from the result (exactOptionalPropertyTypes semantics).
  *
  * @example

@@ -30,9 +30,9 @@ describe("model/types/hd: parseHd", () => {
     expect(parseHd({ components: [] }, enc)).toStrictEqual({});
   });
 
-  it("auto-unescapes namespaceId", () => {
+  it("returns namespaceId verbatim (no double-decode)", () => {
     const out = parseHd(rep([["APP\\F\\X"]]), enc);
-    expect(out.namespaceId).toBe("APP|X");
+    expect(out.namespaceId).toBe("APP\\F\\X");
   });
 
   it("omits absent components", () => {

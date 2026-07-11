@@ -10,7 +10,7 @@
  * throws `NO_MSH_SEGMENT` at parse time, so the MSH guard here is purely for
  * TS narrowing. Phase N: `timestamp` is the fidelity `TS` (precision +
  * timezone preserved), never an eager UTC-assuming `Date`. D-21 silent. D-22
- * never throws. D-23 string fields are auto-unescaped by routing through
+ * never throws. D-23 string fields are decoded (unescaped once at parse) by routing through
  * `msg.get()` / `field.value`.
  */
 

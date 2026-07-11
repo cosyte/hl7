@@ -94,9 +94,9 @@ describe("model/types/ts: parseTs (Phase N fidelity)", () => {
     expect(ts.hasTimezone).toBe(false);
   });
 
-  it("unescapes the raw string before parsing", () => {
+  it("returns the stored raw verbatim (no double-decode) before parsing", () => {
     const ts = parseTs(rep("202501\\F\\02"), enc);
-    expect(ts.raw).toBe("202501|02"); // unescaped
+    expect(ts.raw).toBe("202501\\F\\02"); // verbatim (already decoded on parse)
     expect(ts.valid).toBe(false); // shape no longer valid
   });
 

@@ -73,9 +73,9 @@ describe("model/types/pl: parsePl", () => {
     expect(parsePl({ components: [] }, enc)).toStrictEqual({});
   });
 
-  it("auto-unescapes subcomponent content", () => {
+  it("returns subcomponent content verbatim (no double-decode)", () => {
     const out = parsePl(rep([["ICU\\F\\A"]]), enc);
-    expect(out.pointOfCare).toBe("ICU|A");
+    expect(out.pointOfCare).toBe("ICU\\F\\A");
   });
 
   it("partial HD with only namespaceId populates facility correctly", () => {
