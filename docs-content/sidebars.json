@@ -6,6 +6,7 @@
       "label": "Core Concepts",
       "collapsed": false,
       "items": [
+        "spec-notes-primer",
         "spec-notes-coding-system",
         "spec-notes-structure",
         "spec-notes-identity",
