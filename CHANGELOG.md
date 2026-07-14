@@ -328,6 +328,20 @@ X C M Z H N` or a `.`-prefixed formatting escape — structural HL7 grammar, not
   (`<https://…>`) to Docusaurus-MDX-safe `[text](url)` form — autolinks parse as JSX in
   MDX 3, which silently broke the link rendering. Doc-only — no runtime/API change.
 
+- **Added a standard-reference primer (`spec-notes-primer.md`), first under Core Concepts.**
+  The other `spec-notes-*` pages are implementation notes (what the parser does about one
+  spec area); the primer is the spec-grounded companion they elaborate — the v2.x encoding
+  model (MSH-1/MSH-2 delimiter bootstrap, the fixed `CR` terminator, the
+  field→component→subcomponent hierarchy where only fields repeat), the three field
+  population states (populated / not-populated / **null** `|""|`), the abstract message
+  grammar (`[ ]` / `{ }` / `[{ }]`, base `OPT` vs. v2.7+ conformance `Usage` codes, and the
+  required-different-name-separator rule that makes a flat segment stream reconstructable),
+  the **three**-component `MSH-9`, the acknowledgement model (`MSH-15`/`MSH-16`; `CA/CR/CE`
+  vs. `AA/AE/AR`), and the `CX`/`XPN`/`XAD`/`HD` composite layouts with their version deltas.
+  Cross-links the phase notes for areas they already cover rather than duplicating them, and
+  records its provenance (primary Chapter 2 / 2.A text, adversarially fact-checked; the
+  official HL7 spec is the text of record). Doc-only — no runtime/API change.
+
 ### Security
 
 - **Dev-dependency advisory remediation (no runtime impact — `@cosyte/hl7`
