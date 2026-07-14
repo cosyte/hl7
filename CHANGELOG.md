@@ -15,6 +15,20 @@ per the cosyte version ladder (`0.0.x` until first alpha).
 
 ### Fixed
 
+- **The `VERSION` export now tracks `package.json`, and the missing `version` script is restored
+  (VERSION-SYNC).** Two latent release bugs, both of which would have bitten at the first publish.
+  (1) `VERSION` was hardcoded `"0.0.0"` in `src/index.ts` while `changeset version` bumps only
+  `package.json`, so a published `0.0.1` would have shipped an export reading `"0.0.0"` — every
+  consumer asserting on or logging `VERSION` told the wrong version of the parser they were running.
+  New `scripts/sync-version.mjs` rewrites the constant from `package.json` (idempotent; exits
+  non-zero if the declaration is renamed rather than silently no-op'ing). (2) **No `version` script
+  existed at all** — the shared `cosyte/.github` release workflow drives Changesets with
+  `version: pnpm run version`, which would have failed with `ERR_PNPM_NO_SCRIPT`, so the "Version
+  Packages" PR could never have been opened. `test/sanity.test.ts` now compares `VERSION` against
+  `package.json` rather than asserting its shape against a regex — the old test would have stayed
+  green through exactly this drift. Ported from `@cosyte/mllp` (MLLP-10); `hl7` is the canonical
+  form the siblings mirror. No version bumped, nothing published — still `0.0.0`.
+
 - **Value reads no longer double-decode (HL7-VALUE-REDECODE). Behavior change on a rare, spec-legal
   input (pre-alpha).** The tokenizer already unescapes every subcomponent once on parse, but
   `Field.value`, the dot-path `get()`/`resolvePath`, and the composite coercions (`asXpn`/`asCwe`/`asCx`/…
