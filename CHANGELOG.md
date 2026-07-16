@@ -34,6 +34,14 @@ per the cosyte version ladder (`0.0.x` until first alpha).
 
 ### Fixed
 
+- **The Release workflow can actually start.** `.github/workflows/release.yml` calls the shared
+  `cosyte/.github` pipeline, which requests `contents`/`id-token`/`pull-requests: write`, but declared
+  no `permissions:` of its own — so it inherited the repo default of `contents: read`. A called
+  workflow may only downgrade the caller's `GITHUB_TOKEN`, never escalate it, so GitHub rejected the
+  workflow at startup (~1s, no jobs, no logs). Every Release run from June 2026 until now failed this
+  way, unnoticed, because a `startup_failure` produces no logs to read. The caller job now declares
+  the three scopes explicitly. CI-only — no runtime or API change.
+
 - **The `VERSION` export now tracks `package.json`, and the missing `version` script is restored
   (VERSION-SYNC).** Two latent release bugs, both of which would have bitten at the first publish.
   (1) `VERSION` was hardcoded `"0.0.0"` in `src/index.ts` while `changeset version` bumps only
