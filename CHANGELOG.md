@@ -25,6 +25,13 @@ per the cosyte version ladder (`0.0.x` until first alpha).
   Bumps the `@cosyte/vitest-config` devDependency `^0.0.1 → ^0.0.2`. Documentation + test-tooling
   only — no runtime/API change; the published artifact is unchanged.
 
+### Changed
+
+- **Dropped the "Dogfooded in production" claim from the README feature list.** The bullet asserted
+  the package was "used internally on healthcare-integration projects"; no engagement has run it, so
+  the claim was not accurate and has been removed ahead of the first public release. `README.md`
+  ships inside the published tarball, so this is a user-visible docs change. No runtime/API change.
+
 ### Fixed
 
 - **The `VERSION` export now tracks `package.json`, and the missing `version` script is restored
