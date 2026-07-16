@@ -42,7 +42,6 @@ That's the whole pitch: no config, no schema upload, no spec lookup. The parser 
 - **Round-trip safe, byte-verbatim escapes** — `parse -> modify -> toString()` emits spec-clean HL7 regardless of input quirks (Postel's Law: liberal parser, conservative emitter), and a parsed field's escape sequences (`\H\`, `\X41\`, charset/vendor escapes) re-emit **byte-for-byte** — see [Escapes & round-trip](./docs-content/spec-notes-escapes.md).
 - **Strict TypeScript, zero runtime deps** — ES2022, `noUncheckedIndexedAccess`, dual ESM + CJS, Node 18+. Every public export has JSDoc + `@example` that feeds your editor's IntelliSense.
 - **Warnings carry stable codes + positional context** — react programmatically by `w.code`, with `segmentIndex`/`fieldIndex`/etc. attached.
-- **Dogfooded in production** — used internally on healthcare-integration projects; the credibility bar matches the company's.
 
 ---
 
