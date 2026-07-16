@@ -3,6 +3,16 @@
     "intro",
     {
       "type": "category",
+      "label": "Installation",
+      "items": ["installation"]
+    },
+    {
+      "type": "category",
+      "label": "Quickstart",
+      "items": ["quickstart"]
+    },
+    {
+      "type": "category",
       "label": "Core Concepts",
       "collapsed": false,
       "items": [
@@ -19,6 +29,16 @@
         "spec-notes-version-matrix",
         "spec-notes-differential"
       ]
+    },
+    {
+      "type": "category",
+      "label": "Guides",
+      "items": ["guides-overview"]
+    },
+    {
+      "type": "category",
+      "label": "Troubleshooting",
+      "items": ["troubleshooting"]
     }
   ]
 }
