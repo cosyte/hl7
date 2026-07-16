@@ -13,6 +13,18 @@ The first pre-alpha release (`0.0.1`) will ship the complete v1 API surface belo
 `0.1.0` tag was prepared but never published, so the package begins its public history at `0.0.x`,
 per the cosyte version ladder (`0.0.x` until first alpha).
 
+### Added
+
+- **Full documentation Diátaxis spine + doc/code-agreement gate (DOCS-CONTENT-P1).** `docs-content/`
+  gains **Installation**, **Quickstart**, **Guides**, and **Troubleshooting** (with Known
+  Limitations) categories on top of the existing Overview + Core Concepts, authored from the real API
+  against synthetic messages — the template of record every other cosyte parser's docs copy. A new
+  `test/docs-content.test.ts` runs `@cosyte/vitest-config@^0.0.2`'s `docSnippetSuite()` over the
+  pages, so every ` ```ts runnable ` snippet is compiled, executed against the built package, and its
+  inline `// =>` assertions checked — a documented example can never silently drift from the code.
+  Bumps the `@cosyte/vitest-config` devDependency `^0.0.1 → ^0.0.2`. Documentation + test-tooling
+  only — no runtime/API change; the published artifact is unchanged.
+
 ### Fixed
 
 - **The `VERSION` export now tracks `package.json`, and the missing `version` script is restored
