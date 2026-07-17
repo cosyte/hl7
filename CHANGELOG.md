@@ -15,6 +15,12 @@ per the cosyte version ladder (`0.0.x` until first alpha).
 
 ### Added
 
+- **Trademark notice (`TRADEMARKS.md`).** This package names third-party systems to describe what it
+  interoperates with; the notice records that cosyte is not affiliated with, endorsed by, or
+  sponsored by any of them, that every reference is descriptive, and that the built-in profiles are
+  authored from public sources only. Added to `files` so it ships inside the published tarball, not
+  just on GitHub. Documentation only — no runtime or API change.
+
 - **Full documentation Diátaxis spine + doc/code-agreement gate (DOCS-CONTENT-P1).** `docs-content/`
   gains **Installation**, **Quickstart**, **Guides**, and **Troubleshooting** (with Known
   Limitations) categories on top of the existing Overview + Core Concepts, authored from the real API
