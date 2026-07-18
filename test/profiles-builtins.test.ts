@@ -11,12 +11,13 @@ const loadFixture = (relPath: string): string =>
   readFileSync(join(__dirname, "fixtures/vendor-shapes", relPath), "utf-8");
 
 describe("Public surface (D-26 barrel export shape)", () => {
-  it("profiles exposes all 5 built-ins", () => {
+  it("profiles exposes all 6 built-ins", () => {
     expect(profiles.epic.name).toBe("epic");
     expect(profiles.cerner.name).toBe("cerner");
     expect(profiles.meditech.name).toBe("meditech");
     expect(profiles.athena.name).toBe("athena");
     expect(profiles.genericLab.name).toBe("genericLab");
+    expect(profiles.visage.name).toBe("visage");
   });
 
   it("each built-in's lineage is [name]", () => {
@@ -35,6 +36,7 @@ describe("Public surface (D-26 barrel export shape)", () => {
     expect(Object.isFrozen(profiles.meditech)).toBe(true);
     expect(Object.isFrozen(profiles.athena)).toBe(true);
     expect(Object.isFrozen(profiles.genericLab)).toBe(true);
+    expect(Object.isFrozen(profiles.visage)).toBe(true);
   });
 
   it("profiles namespace itself is frozen", () => {
@@ -201,6 +203,38 @@ describe("profiles.genericLab — BIP-05 + BIP-06 fixture parity", () => {
   });
 });
 
+describe("profiles.visage — BIP-07 fixture parity (Visage 7 imaging/PACS ZDS)", () => {
+  const fixture = loadFixture("visage/orm-o01.hl7");
+
+  it("without profile: UNKNOWN_SEGMENT present for ZDS", () => {
+    const without = parseHL7(fixture);
+    expect(without.warnings.map((w) => w.code)).toContain(WARNING_CODES.UNKNOWN_SEGMENT);
+  });
+
+  it("with profiles.visage: UNKNOWN_SEGMENT absent for declared ZDS", () => {
+    const withP = parseHL7(fixture, profiles.visage);
+    const zSegWarnings = withP.warnings.filter((w) => w.code === WARNING_CODES.UNKNOWN_SEGMENT);
+    expect(zSegWarnings).toHaveLength(0);
+  });
+
+  it("profile attribution: msg.profile.name === 'visage'", () => {
+    const withP = parseHL7(fixture, profiles.visage);
+    expect(withP.profile?.name).toBe("visage");
+  });
+
+  it("ZDS studyInstanceUid (DICOM Study Instance UID) accessible by name", () => {
+    const withP = parseHL7(fixture, profiles.visage);
+    const zds = withP.allSegments().find((s) => s.type === "ZDS");
+    expect(zds?.get("studyInstanceUid")?.value).toBe("1.2.826.0.1.3680043.10.99999.20250326.1");
+  });
+
+  it("MSH-7 HL7-native YYYYMMDDHHMMSS resolves (profile declares no date override)", () => {
+    const withP = parseHL7(fixture, profiles.visage);
+    expect(withP.meta.timestamp?.valid).toBe(true);
+    expect(withP.meta.timestamp).toMatchObject({ year: 2025, month: 3, day: 26 });
+  });
+});
+
 describe("Cross-profile warning-reduction summary (D-28 secondary smoke)", () => {
   it("each built-in's total warning count <= lenient-mode count (belt-and-suspenders)", () => {
     const cases = [
@@ -209,6 +243,7 @@ describe("Cross-profile warning-reduction summary (D-28 secondary smoke)", () =>
       ["meditech/adt-a04.hl7", profiles.meditech],
       ["athena/adt-a01.hl7", profiles.athena],
       ["genericLab/oru-r01.hl7", profiles.genericLab],
+      ["visage/orm-o01.hl7", profiles.visage],
     ] as const;
     for (const [fp, p] of cases) {
       const fixture = loadFixture(fp);
@@ -227,6 +262,7 @@ describe("PROF-09 round-trip remains profile-agnostic for built-ins", () => {
       ["meditech/adt-a04.hl7", profiles.meditech],
       ["athena/adt-a01.hl7", profiles.athena],
       ["genericLab/oru-r01.hl7", profiles.genericLab],
+      ["visage/orm-o01.hl7", profiles.visage],
     ] as const;
     for (const [fp, p] of cases) {
       const fixture = loadFixture(fp);

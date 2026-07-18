@@ -1,6 +1,6 @@
 /**
  * Public barrel for the `@cosyte/hl7` profile subsystem. Assembles
- * the `profiles` namespace object (5 built-ins) and re-exports the public
+ * the `profiles` namespace object (6 built-ins) and re-exports the public
  * profile API: `defineProfile`, `setDefaultProfile`, `getDefaultProfile`,
  * plus the two type exports `DefineProfileOptions` and
  * `CustomSegmentDefinition`.
@@ -19,11 +19,12 @@ import { cerner } from "./cerner.js";
 import { epic } from "./epic.js";
 import { genericLab } from "./genericLab.js";
 import { meditech } from "./meditech.js";
+import { visage } from "./visage.js";
 
 /**
- * Namespace object exposing the 5 shipped built-in vendor profiles (epic,
- * cerner, meditech, athena, genericLab). Each is authored via the public
- * `defineProfile()` API (BIP-01..05).
+ * Namespace object exposing the 6 shipped built-in vendor profiles (epic,
+ * cerner, meditech, athena, genericLab, visage). Each is authored via the
+ * public `defineProfile()` API (BIP-01..07).
  *
  * @example
  * ```ts
@@ -38,10 +39,12 @@ export const profiles = Object.freeze({
   epic,
   genericLab,
   meditech,
+  visage,
 }) as {
   readonly athena: typeof athena;
   readonly cerner: typeof cerner;
   readonly epic: typeof epic;
   readonly genericLab: typeof genericLab;
   readonly meditech: typeof meditech;
+  readonly visage: typeof visage;
 };
