@@ -15,6 +15,18 @@ per the cosyte version ladder (`0.0.x` until first alpha).
 
 ### Added
 
+- **`profiles.visage` — sixth built-in vendor profile (Visage 7 imaging/PACS).** Declares the `ZDS`
+  Z-segment that RIS/PACS order feeds use to carry the DICOM **Study Instance UID** (field 1, first
+  component), the IHE Radiology bridge that correlates an HL7 order to its DICOM study — so an
+  imaging ORM parses without an `UNKNOWN_SEGMENT` warning and `zds.get("studyInstanceUid")` resolves
+  by name. Grounded in the **publicly published** [Visage 7 HL7 Interface Specification](https://www.visageimaging.com/downloads/Visage7/Visage7_HL7InterfaceSpecification.pdf)
+  (V23.00, Jun 2026, Visage Imaging GmbH) — its §4.4 ORM^O01 example and ZDS segment table — not an
+  invented quirk (ADR 0018: public specs unblock quirk-corpus work; a _specific undocumented_ vendor
+  deviation still waits on a private feed). Vendor dates in that spec are HL7-native, so the profile
+  declares no custom date formats. Ships with a synthetic `vendor-shapes/visage/orm-o01.hl7` fixture
+  (PHI-scanned) and a `test/fixtures/vendor-shapes/README.md` recording per-fixture provenance.
+  Additive: no change to existing profiles, warning codes, or the parse/serialize surface.
+
 - **PHI commit-scanner (`scripts/phi-scan.ts`, `pnpm phi-scan`).** A zero-dependency, HL7 v2
   shape-aware scanner that refuses fixtures — and a conservative text pass over `src/` — carrying
   real-looking PHI, so a real patient message can never be committed by accident. It parses each
