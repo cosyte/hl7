@@ -15,6 +15,24 @@ per the cosyte version ladder (`0.0.x` until first alpha).
 
 ### Added
 
+- **PHI commit-scanner (`scripts/phi-scan.ts`, `pnpm phi-scan`).** A zero-dependency, HL7 v2
+  shape-aware scanner that refuses fixtures — and a conservative text pass over `src/` — carrying
+  real-looking PHI, so a real patient message can never be committed by accident. It parses each
+  message's delimiters (`MSH-1` / `MSH-2`) and inspects only the fields that actually carry each
+  category: patient / person names (PID-5/-6/-9, NK1-2, GT1-3, IN1-16, MRG-7 as XPN; PV1-7/-8/-9/-17,
+  ORC-12, OBR-16, AIP-3, TXA-9, ROL-4 as XCN, reading the family/given from the correct components),
+  dates of birth (PID-7 / NK1-16), SSNs (PID-19, CX identifier-type `SS`, dashed patterns anywhere),
+  MRN / account numbers (PID-3 / -18), addresses (PID-11 / NK1-4 / GT1-5 / IN1-19), phones
+  (PID-13/-14 / NK1 / GT1 without the `555` fake-exchange convention), non-test emails, and a
+  site-defined `Z…`-segment name backstop — deliberately NOT a naive `Family^Given` text regex, which
+  would trip on coded values like `CBC^Complete Blood Count^LN` (false confidence). Synthetic
+  fixtures are positively declared in `scripts/phi-allow-list.txt` (HL7 v2 is byte-strict at the
+  front, so an inline `# synthetic: true` header is impossible — same model as `@cosyte/dicom` /
+  `@cosyte/x12`); a whole-file bypass requires `--allow-fixture` **and** an audit entry in
+  `phi-scan-overrides.md`. All `git` calls use `execFileSync` array-args (never shell-form). Runs at
+  pre-commit (`simple-git-hooks --staged`) and in CI (`run-phi-scan: true`); `scripts/verify.sh` now
+  reports `phi-scan ✓`. Dev-tooling only — no change to the published package surface or warning codes.
+
 - **Trademark notice (`TRADEMARKS.md`).** This package names third-party systems to describe what it
   interoperates with; the notice records that cosyte is not affiliated with, endorsed by, or
   sponsored by any of them, that every reference is descriptive, and that the built-in profiles are

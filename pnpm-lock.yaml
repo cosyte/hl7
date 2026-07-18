@@ -48,6 +48,9 @@ importers:
       prettier:
         specifier: 3.8.3
         version: 3.8.3
+      simple-git-hooks:
+        specifier: 2.13.0
+        version: 2.13.0
       tsup:
         specifier: 8.5.1
         version: 8.5.1(postcss@8.5.10)(tsx@4.21.0)(typescript@5.9.3)
@@ -1496,6 +1499,10 @@ packages:
   signal-exit@4.1.0:
     resolution: {integrity: sha512-bzyZ1e88w9O1iNJbKnOlvYTrWPDl46O1bG0D3XInv+9tkPrxrN8jUUTiFlDkkmKWgn1M6CfIA13SuGqOa9Korw==}
     engines: {node: '>=14'}
+
+  simple-git-hooks@2.13.0:
+    resolution: {integrity: sha512-N+goiLxlkHJlyaYEglFypzVNMaNplPAk5syu0+OPp/Bk6dwVoXF6FfOw2vO0Dp+JHsBaI+w6cm8TnFl2Hw6tDA==}
+    hasBin: true
 
   skin-tone@2.0.0:
     resolution: {integrity: sha512-kUMbT1oBJCpgrnKoSr0o6wPtvRWT9W9UKvGLwfJYO2WuahZRHOpEyL1ckyMGgMWh0UdpmaoFqKKD29WTomNEGA==}
@@ -3188,6 +3195,8 @@ snapshots:
   siginfo@2.0.0: {}
 
   signal-exit@4.1.0: {}
+
+  simple-git-hooks@2.13.0: {}
 
   skin-tone@2.0.0:
     dependencies:
