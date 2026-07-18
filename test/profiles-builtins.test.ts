@@ -118,27 +118,48 @@ describe("profiles.cerner — BIP-02 + BIP-06 fixture parity", () => {
 });
 
 describe("profiles.meditech — BIP-03 + BIP-06 fixture parity", () => {
-  const fixture = loadFixture("meditech/adt-a04.hl7");
+  // Re-grounded (HL7-I, ADR 0018) to the public MEDITECH Ancillary Charges
+  // (LAB/PHA/ITS/IDM) v2.1 spec: a DFT^P03 charge message carrying the
+  // spec-documented ZF1/ZF2 Z-segments, with the minute-precision
+  // (YYYYMMDDHHMM) timestamps both public MEDITECH specs confirm.
+  const fixture = loadFixture("meditech/dft-p03.hl7");
 
-  it("without profile: UNKNOWN_SEGMENT present for ZVI", () => {
+  it("without profile: UNKNOWN_SEGMENT present for ZF1/ZF2", () => {
     const without = parseHL7(fixture);
-    // Meditech MSH-7 '202501151430' is 12 digits — HL7 strict-TS accepts it
+    // MEDITECH MSH-7 '202501151430' is 12 digits — HL7 strict-TS accepts it
     // (YYYYMMDDHHmm is a valid partial), so NO TIMESTAMP_FALLBACK warning
-    // in the without-profile case. But UNKNOWN_SEGMENT IS expected for ZVI.
+    // in the without-profile case. But UNKNOWN_SEGMENT IS expected for ZF1/ZF2.
     expect(without.warnings.map((w) => w.code)).toContain(WARNING_CODES.UNKNOWN_SEGMENT);
   });
 
-  it("with profiles.meditech: UNKNOWN_SEGMENT absent for ZVI", () => {
+  it("with profiles.meditech: UNKNOWN_SEGMENT absent for ZF1/ZF2", () => {
     const withP = parseHL7(fixture, profiles.meditech);
     const zSegWarnings = withP.warnings.filter((w) => w.code === WARNING_CODES.UNKNOWN_SEGMENT);
     expect(zSegWarnings).toHaveLength(0);
   });
 
-  it("ZVI visitReason accessible by name", () => {
+  it("ZF1 copay fields accessible by declared name (Ancillary Charges §ZF1)", () => {
     const withP = parseHL7(fixture, profiles.meditech);
-    const zvi = withP.allSegments().find((s) => s.type === "ZVI");
-    expect(zvi?.get("visitReason")?.value).toBe("CHEST_PAIN");
-    expect(zvi?.get("admitSource")?.value).toBe("AMBULANCE");
+    const zf1 = withP.allSegments().find((s) => s.type === "ZF1");
+    expect(zf1?.get("providerEncounter")?.value).toBe("55501");
+    expect(zf1?.get("misServiceGroup")?.value).toBe("MEDIMAGING");
+    expect(zf1?.get("visitCopay")?.value).toBe("2500");
+    expect(zf1?.get("copayMaximum")?.value).toBe("5000");
+  });
+
+  it("ZF2 encounter-procedure fields accessible by declared name (Ancillary Charges §ZF2)", () => {
+    const withP = parseHL7(fixture, profiles.meditech);
+    const zf2 = withP.allSegments().find((s) => s.type === "ZF2");
+    expect(zf2?.get("setId")?.value).toBe("1");
+    expect(zf2?.get("encounterProcedure")?.value).toBe("XRCHEST");
+    expect(zf2?.get("encounterProcedureCharge")?.value).toBe("8500");
+    expect(zf2?.get("prvProcedureAmountDue")?.value).toBe("6000");
+  });
+
+  it("MSH-7 minute-precision YYYYMMDDHHMM resolves", () => {
+    const withP = parseHL7(fixture, profiles.meditech);
+    expect(withP.meta.timestamp?.valid).toBe(true);
+    expect(withP.meta.timestamp).toMatchObject({ year: 2025, month: 1, day: 15 });
   });
 });
 
@@ -317,7 +338,7 @@ describe("Cross-profile warning-reduction summary (D-28 secondary smoke)", () =>
     const cases = [
       ["epic/adt-a01.hl7", profiles.epic],
       ["cerner/oru-r01.hl7", profiles.cerner],
-      ["meditech/adt-a04.hl7", profiles.meditech],
+      ["meditech/dft-p03.hl7", profiles.meditech],
       ["athena/adt-a01.hl7", profiles.athena],
       ["genericLab/oru-r01.hl7", profiles.genericLab],
       ["visage/orm-o01.hl7", profiles.visage],
@@ -338,7 +359,7 @@ describe("PROF-09 round-trip remains profile-agnostic for built-ins", () => {
     const cases = [
       ["epic/adt-a01.hl7", profiles.epic],
       ["cerner/oru-r01.hl7", profiles.cerner],
-      ["meditech/adt-a04.hl7", profiles.meditech],
+      ["meditech/dft-p03.hl7", profiles.meditech],
       ["athena/adt-a01.hl7", profiles.athena],
       ["genericLab/oru-r01.hl7", profiles.genericLab],
       ["visage/orm-o01.hl7", profiles.visage],
