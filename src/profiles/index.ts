@@ -19,12 +19,13 @@ import { cerner } from "./cerner.js";
 import { epic } from "./epic.js";
 import { genericLab } from "./genericLab.js";
 import { meditech } from "./meditech.js";
+import { philips } from "./philips.js";
 import { visage } from "./visage.js";
 
 /**
- * Namespace object exposing the 6 shipped built-in vendor profiles (epic,
- * cerner, meditech, athena, genericLab, visage). Each is authored via the
- * public `defineProfile()` API (BIP-01..07).
+ * Namespace object exposing the 7 shipped built-in vendor profiles (epic,
+ * cerner, meditech, athena, genericLab, visage, philips). Each is authored
+ * via the public `defineProfile()` API (BIP-01..08).
  *
  * @example
  * ```ts
@@ -39,6 +40,7 @@ export const profiles = Object.freeze({
   epic,
   genericLab,
   meditech,
+  philips,
   visage,
 }) as {
   readonly athena: typeof athena;
@@ -46,5 +48,6 @@ export const profiles = Object.freeze({
   readonly epic: typeof epic;
   readonly genericLab: typeof genericLab;
   readonly meditech: typeof meditech;
+  readonly philips: typeof philips;
   readonly visage: typeof visage;
 };

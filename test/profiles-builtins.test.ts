@@ -18,6 +18,7 @@ describe("Public surface (D-26 barrel export shape)", () => {
     expect(profiles.athena.name).toBe("athena");
     expect(profiles.genericLab.name).toBe("genericLab");
     expect(profiles.visage.name).toBe("visage");
+    expect(profiles.philips.name).toBe("philips");
   });
 
   it("each built-in's lineage is [name]", () => {
@@ -37,6 +38,7 @@ describe("Public surface (D-26 barrel export shape)", () => {
     expect(Object.isFrozen(profiles.athena)).toBe(true);
     expect(Object.isFrozen(profiles.genericLab)).toBe(true);
     expect(Object.isFrozen(profiles.visage)).toBe(true);
+    expect(Object.isFrozen(profiles.philips)).toBe(true);
   });
 
   it("profiles namespace itself is frozen", () => {
@@ -235,6 +237,81 @@ describe("profiles.visage — BIP-07 fixture parity (Visage 7 imaging/PACS ZDS)"
   });
 });
 
+describe("profiles.philips — BIP-08 fixture parity (Vue PACS IS Link Z-segments)", () => {
+  const orm = loadFixture("philips/orm-o01.hl7");
+  const adt = loadFixture("philips/adt-a08.hl7");
+
+  it("without profile: UNKNOWN_SEGMENT present for the Vue PACS Z-segments", () => {
+    expect(parseHL7(orm).warnings.map((w) => w.code)).toContain(WARNING_CODES.UNKNOWN_SEGMENT);
+    expect(parseHL7(adt).warnings.map((w) => w.code)).toContain(WARNING_CODES.UNKNOWN_SEGMENT);
+  });
+
+  it("with profiles.philips: UNKNOWN_SEGMENT absent for all declared Z-segments", () => {
+    for (const fixture of [orm, adt]) {
+      const withP = parseHL7(fixture, profiles.philips);
+      const zSegWarnings = withP.warnings.filter((w) => w.code === WARNING_CODES.UNKNOWN_SEGMENT);
+      expect(zSegWarnings).toHaveLength(0);
+    }
+  });
+
+  it("profile attribution: msg.profile.name === 'philips'", () => {
+    expect(parseHL7(orm, profiles.philips).profile?.name).toBe("philips");
+  });
+
+  it("ZDS studyInstanceUid (DICOM Study Instance UID, §5.11) accessible by name", () => {
+    const zds = parseHL7(orm, profiles.philips)
+      .allSegments()
+      .find((s) => s.type === "ZDS");
+    // ZDS-1 is an RP composite (Reference Pointer ^ Application ID ^ Type ^ Subtype);
+    // component 1 is the DICOM Study Instance UID, surfaced by `.value`.
+    const uid = zds?.get("studyInstanceUid");
+    expect(uid?.value).toBe("1.2.826.0.1.3680043.10.99999.20250326.7");
+    // Raw-tree access (Field has no `.component()` wrapper): comp 3 = Type, comp 4 = Subtype.
+    expect(uid?.repetitions[0]?.components[2]?.subcomponents[0]).toBe("Application");
+    expect(uid?.repetitions[0]?.components[3]?.subcomponents[0]).toBe("DICOM");
+  });
+
+  it("ZLK linking ids (§5.12) resolve by name", () => {
+    const zlk = parseHL7(orm, profiles.philips)
+      .allSegments()
+      .find((s) => s.type === "ZLK");
+    expect(zlk?.get("externalWorkitemId")?.value).toBe("WL-0001");
+    expect(zlk?.get("orderLinkId")?.value).toBe("OG-0001");
+  });
+
+  it("ZAO order-filler fields (§5.13) resolve at their gapped positions", () => {
+    const zao = parseHL7(orm, profiles.philips)
+      .allSegments()
+      .find((s) => s.type === "ZAO");
+    expect(zao?.get("modality")?.value).toBe("CT");
+    expect(zao?.get("bodyPart")?.value).toBe("HEAD");
+    expect(zao?.get("resultTransferStatus")?.value).toBe("DV");
+    // spec has no field 7: device is field 8, section field 9
+    expect(zao?.get("device")?.value).toBe("SCANNER01");
+    expect(zao?.get("section")?.value).toBe("NEURO");
+    expect(zao?.get("technicianId")?.value).toBe("TECH123");
+    expect(zao?.get("radiologistId")?.value).toBe("RAD456");
+    expect(zao?.get("acquisitionStatus")?.value).toBe("CM");
+  });
+
+  it("ZEB/ZAP/ZAV patient/visit-filler fields (§§5.14–5.16) resolve by name", () => {
+    const msg = parseHL7(adt, profiles.philips);
+    const seg = (t: string): ReturnType<typeof msg.allSegments>[number] | undefined =>
+      msg.allSegments().find((s) => s.type === t);
+    expect(seg("ZEB")?.get("encryptedPatientInfo")?.value).toBeDefined();
+    // ZAP has no field 2: patientCustomString1 is field 3
+    expect(seg("ZAP")?.get("patientCustomString1")?.value).toBe("VIP");
+    expect(seg("ZAP")?.get("patientCustomString2")?.value).toBe("NEEDS-CONTRAST");
+    expect(seg("ZAV")?.get("visitAdditionalDetails")?.value).toBeDefined();
+  });
+
+  it("MSH-7 HL7-native YYYYMMDDHHMMSS resolves (profile declares no date override)", () => {
+    const withP = parseHL7(orm, profiles.philips);
+    expect(withP.meta.timestamp?.valid).toBe(true);
+    expect(withP.meta.timestamp).toMatchObject({ year: 2025, month: 3, day: 26 });
+  });
+});
+
 describe("Cross-profile warning-reduction summary (D-28 secondary smoke)", () => {
   it("each built-in's total warning count <= lenient-mode count (belt-and-suspenders)", () => {
     const cases = [
@@ -244,6 +321,8 @@ describe("Cross-profile warning-reduction summary (D-28 secondary smoke)", () =>
       ["athena/adt-a01.hl7", profiles.athena],
       ["genericLab/oru-r01.hl7", profiles.genericLab],
       ["visage/orm-o01.hl7", profiles.visage],
+      ["philips/orm-o01.hl7", profiles.philips],
+      ["philips/adt-a08.hl7", profiles.philips],
     ] as const;
     for (const [fp, p] of cases) {
       const fixture = loadFixture(fp);
@@ -263,6 +342,8 @@ describe("PROF-09 round-trip remains profile-agnostic for built-ins", () => {
       ["athena/adt-a01.hl7", profiles.athena],
       ["genericLab/oru-r01.hl7", profiles.genericLab],
       ["visage/orm-o01.hl7", profiles.visage],
+      ["philips/orm-o01.hl7", profiles.philips],
+      ["philips/adt-a08.hl7", profiles.philips],
     ] as const;
     for (const [fp, p] of cases) {
       const fixture = loadFixture(fp);

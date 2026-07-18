@@ -52,6 +52,13 @@ NAME 太郎
 NAME 李
 NAME 明
 
+# --- Non-name literals in synthetic Z-segment fields (site-defined segment
+#     backstop). These are fixed spec keywords, not person names:
+#     the ZDS-1 RP composite's "Type of Data"/"Subtype" components carry the
+#     literals "Application"/"DICOM" per the Philips Vue PACS 12.2.8 spec §5.11. ---
+NAME APPLICATION
+NAME DICOM
+
 # --- Synthetic given / middle names (XPN comp2-3 / XCN comp3-4) ---
 NAME JOHN
 NAME JANE
