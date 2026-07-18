@@ -242,7 +242,7 @@ describe("phi-scan: free-text shape checks (OBX-5 / NTE)", () => {
       ),
     );
     expect(r.code).toBe(1);
-    expect(r.stderr).toMatch(/realhospital\.org/);
+    expect(r.stderr).toMatch(/email with non-test domain/);
   });
 });
 
