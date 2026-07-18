@@ -15,6 +15,24 @@ per the cosyte version ladder (`0.0.x` until first alpha).
 
 ### Added
 
+- **`profiles.philips` — seventh built-in vendor profile (Philips Vue PACS "IS Link" imaging).**
+  Declares the six Vue PACS custom Z-segments, one per filler role: `ZDS` (DICOM **Study Instance
+  UID**, an RP composite whose first component is the UID), `ZLK` (linked studies / linked orders),
+  `ZAO` (order additional details — modality, body part, result-transfer + acquisition status,
+  technician and radiologist name/id, and the vendor's custom string/number/date slots), `ZEB`
+  (encrypted patient-info blob), `ZAP` (patient additional details), and `ZAV` (visit additional
+  details) — so a Vue PACS ORM/ADT feed parses without `UNKNOWN_SEGMENT` warnings and each field
+  resolves by name (e.g. `zao.get("acquisitionStatus")`). Field positions are transcribed **verbatim**
+  from the spec, including two of its own gaps (`ZAO` has no field 7; `ZAP` has no field 2). Grounded
+  in the **publicly published** [Vue PACS 12.2.8 HL7 Interface Specifications](https://www.documents.philips.com/assets/Conformance%20Statements/20240409/8941f89d89aa4983aab7b14d00db578c.pdf)
+  (Philips, doc HA1669 Rev A, §§5.11–5.16) — not an invented quirk (ADR 0018). Vendor `TS` timestamps
+  are HL7-native, so the profile declares no custom date formats. Naming the `ZEB` field is precisely
+  how a consumer learns that segment is PHI-bearing and must not be logged; the profile only _names_
+  fields — it never decodes, decrypts, or rewrites them. Ships two synthetic, PHI-scanned fixtures
+  (`vendor-shapes/philips/orm-o01.hl7` order-filler; `vendor-shapes/philips/adt-a08.hl7`
+  patient/visit-filler) with documented provenance. Additive: no change to existing profiles, warning
+  codes, or the parse/serialize surface.
+
 - **`profiles.visage` — sixth built-in vendor profile (Visage 7 imaging/PACS).** Declares the `ZDS`
   Z-segment that RIS/PACS order feeds use to carry the DICOM **Study Instance UID** (field 1, first
   component), the IHE Radiology bridge that correlates an HL7 order to its DICOM study — so an

@@ -38,7 +38,7 @@ That's the whole pitch: no config, no schema upload, no spec lookup. The parser 
 - **One-line extraction** — `msg.patient.mrn`, `msg.meta.timestamp`, `msg.observations()`, and friends. No segment or field numbers to memorise.
 - **Three access patterns** — named helpers, dot-paths (`msg.get("PID.5.1")`), or structural traversal (`msg.segments("OBX")[0].field(3)`). Pick the level of ceremony you need.
 - **Real-world tolerance, four-tier** — lenient default parses vendor-quirky messages; 18 stable warning codes flag what was tolerated; strict mode escalates every deviation for CI validators; only 4 truly-structural failures are fatal.
-- **First-class profile system** — `defineProfile()` API, 6 built-in vendor profiles (Epic, Cerner, Meditech, athenahealth, generic lab, Visage 7 imaging/PACS), plus a [publishable starter kit](./examples/profile-starter-kit/) you copy-and-ship.
+- **First-class profile system** — `defineProfile()` API, 7 built-in vendor profiles (Epic, Cerner, Meditech, athenahealth, generic lab, Visage 7 imaging/PACS, Philips Vue PACS), plus a [publishable starter kit](./examples/profile-starter-kit/) you copy-and-ship.
 - **Round-trip safe, byte-verbatim escapes** — `parse -> modify -> toString()` emits spec-clean HL7 regardless of input quirks (Postel's Law: liberal parser, conservative emitter), and a parsed field's escape sequences (`\H\`, `\X41\`, charset/vendor escapes) re-emit **byte-for-byte** — see [Escapes & round-trip](./docs-content/spec-notes-escapes.md).
 - **Strict TypeScript, zero runtime deps** — ES2022, `noUncheckedIndexedAccess`, dual ESM + CJS, Node 18+. Every public export has JSDoc + `@example` that feeds your editor's IntelliSense.
 - **Warnings carry stable codes + positional context** — react programmatically by `w.code`, with `segmentIndex`/`fieldIndex`/etc. attached.
@@ -631,7 +631,7 @@ The [profile starter kit](./examples/profile-starter-kit/) is a complete publish
 
 ### Built-in profiles
 
-Six profiles ship in the box, reachable via the `profiles` namespace:
+Seven profiles ship in the box, reachable via the `profiles` namespace:
 
 - `profiles.epic` — Epic Bridges Interconnect. Adds `MM/DD/YYYY HH:mm:ss` and `MM/DD/YYYY` date formats; declares `ZDP` (department context) and `ZRS` (result status) Z-segments.
 - `profiles.cerner` — Cerner Millennium outbound. Handles Cerner-idiomatic date formats and common Z-segments from Millennium ADT feeds.
@@ -639,6 +639,7 @@ Six profiles ship in the box, reachable via the `profiles` namespace:
 - `profiles.athena` — athenahealth. Ambulatory-oriented, ISO-leaning date formats.
 - `profiles.genericLab` — Generic reference-lab (LabCorp / Quest-style). Adds `YYYYMMDD HHmm` (ASTM-era) and `YYYY-MM-DD` (ISO date-only); declares `ZLB` (lab overrides) and `ZNT` (lab note) Z-segments.
 - `profiles.visage` — Visage 7 imaging/PACS RIS feeds. Declares the `ZDS` Z-segment that carries the DICOM **Study Instance UID** (field 1) so an HL7 order correlates to its DICOM study — the IHE Radiology RIS/PACS bridge segment. Grounded in the public [Visage 7 HL7 Interface Specification](https://www.visageimaging.com/downloads/Visage7/Visage7_HL7InterfaceSpecification.pdf) (V23.00, Jun 2026). Dates are HL7-native, so it adds no date formats.
+- `profiles.philips` — Philips Vue PACS ("IS Link") imaging feeds. Declares six Vue PACS Z-segments, one per filler role: `ZDS` (DICOM Study Instance UID), `ZLK` (linked studies/orders), `ZAO` (order additional details — modality, body part, transfer/acquisition status, technician + radiologist), `ZEB` (encrypted patient info), `ZAP` (patient additional details), and `ZAV` (visit additional details). Grounded in the public [Vue PACS 12.2.8 HL7 Interface Specifications](https://www.documents.philips.com/assets/Conformance%20Statements/20240409/8941f89d89aa4983aab7b14d00db578c.pdf) (Philips, doc HA1669 Rev A, §§5.11–5.16). Dates are HL7-native, so it adds no date formats.
 
 Use a built-in directly (`parseHL7(raw, profiles.epic)`) or as a base for your own (`defineProfile({ extends: profiles.epic, ... })`).
 
@@ -789,7 +790,7 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for dev setup, how to file an issue, an
 
 ## Trademarks
 
-Epic, Cerner, MEDITECH, athenahealth, LabCorp, Quest Diagnostics, and Visage (Visage Imaging) are trademarks of their respective owners. cosyte is not affiliated with, endorsed by, or
+Epic, Cerner, MEDITECH, athenahealth, LabCorp, Quest Diagnostics, Visage (Visage Imaging), and Philips (Vue PACS) are trademarks of their respective owners. cosyte is not affiliated with, endorsed by, or
 sponsored by any of them — the names identify the systems whose real-world message quirks the built-in profiles accommodate. See [TRADEMARKS.md](./TRADEMARKS.md).
 
 ## License

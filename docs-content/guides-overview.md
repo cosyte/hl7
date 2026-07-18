@@ -7,7 +7,7 @@ sidebar_position: 1
 # Guides
 
 Task-oriented recipes against the real API. Each stands alone — jump to the one that matches what
-you're doing. For the *why* behind the behavior, follow the links into [Core
+you're doing. For the _why_ behind the behavior, follow the links into [Core
 Concepts](./spec-notes-primer).
 
 ## Read lab results
@@ -59,8 +59,9 @@ const msg = parseHL7(raw, profiles.epic);
 msg.patient.mrn; // => "MRN12345"
 ```
 
-Built-ins ship for Epic, Cerner, Meditech, Athena, and a generic lab — each authored through the
-same public `defineProfile()` API you'd use yourself. Start from the **profile starter kit** in the
+Built-ins ship for Epic, Cerner, Meditech, Athena, a generic lab, and the Visage 7 and Philips Vue
+PACS imaging systems — each authored through the same public `defineProfile()` API you'd use
+yourself. Start from the **profile starter kit** in the
 package's `examples/` to publish your own as a standalone package.
 
 ## Build an ACK
@@ -103,7 +104,7 @@ msg.get("PID.3"); // => "MRN12345"
 ```
 
 `msg.toString()` then emits spec-clean HL7 — correct delimiters, escaping, and an auto-generated MSH
-control id. Field array elements are raw field *values*: any delimiter character inside one (e.g. a
+control id. Field array elements are raw field _values_: any delimiter character inside one (e.g. a
 `^` in a name) is escaped as data, so pass pre-structured composites when you need components.
 
 ## Next

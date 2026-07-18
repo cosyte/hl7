@@ -44,8 +44,8 @@ import { parseHL7, profiles } from "@cosyte/hl7";
 const msg = parseHL7(raw, profiles.epic);
 ```
 
-Built-ins ship for Epic, Cerner, Meditech, Athena, and a generic lab — each authored through the
-same public `defineProfile()` API you'd use yourself.
+Built-ins ship for Epic, Cerner, Meditech, Athena, a generic lab, and the Visage 7 and Philips Vue
+PACS imaging systems — each authored through the same public `defineProfile()` API you'd use yourself.
 
 ## Next
 

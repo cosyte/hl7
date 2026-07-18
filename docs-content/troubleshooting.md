@@ -55,7 +55,7 @@ import { parseHL7 } from "@cosyte/hl7";
 parseHL7("");
 ```
 
-Catch `Hl7ParseError` and read its `code` to distinguish them. Everything *else* is a warning.
+Catch `Hl7ParseError` and read its `code` to distinguish them. Everything _else_ is a warning.
 
 ## "Non-ASCII text comes out garbled"
 
@@ -83,11 +83,12 @@ for (const entry of result.messages) {
 Design around these — they're deliberate scope choices, not bugs:
 
 - **Vendor profiles are structural and evidence-grounded.** Built-ins ship for Epic, Cerner,
-  Meditech, Athena, and a generic lab. A vendor "quirk" is encoded **only** when a real,
-  de-identified document grounds it — never invented — so broader per-vendor coverage expands as real
-  feeds arrive rather than shipping speculative rules.
+  Meditech, Athena, a generic lab, and the Visage 7 and Philips Vue PACS imaging systems. A vendor
+  "quirk" is encoded **only** when a real document grounds it — a publicly published vendor interface
+  spec (as with Visage 7 and Philips Vue PACS) or a real de-identified feed — never invented, so
+  broader per-vendor coverage expands as grounded sources arrive rather than shipping speculative rules.
 - **No terminology validation, no network, no bundled codesets.** `codingSystem()` reports what a
-  code *claims* (HL7 Table 0396) — it does not validate a value against LOINC, SNOMED CT, RxNorm, or
+  code _claims_ (HL7 Table 0396) — it does not validate a value against LOINC, SNOMED CT, RxNorm, or
   any external system, and nothing here makes a network call.
 - **One ACK acknowledges one message.** Batch-level ACK reconciliation is out of scope; for MLLP
   transport framing and ACK correlation over the wire, use the sibling package
@@ -95,7 +96,7 @@ Design around these — they're deliberate scope choices, not bugs:
 - **Datetimes are fidelity values, not eager `Date`s.** `TS` fields preserve the raw string and a
   `precision` so timezone and precision are never silently lost; convert to a `Date` explicitly when
   you need one.
-- **Error `snippet`s may carry field content (PHI) by design.** Warning *messages* never echo a
+- **Error `snippet`s may carry field content (PHI) by design.** Warning _messages_ never echo a
   field's value — only positional context — but a fatal `Hl7ParseError.snippet` may include the
   offending bytes. That's the documented consumer-redaction boundary: redact `snippet` at your
   logging edge.
