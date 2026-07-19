@@ -21,15 +21,16 @@ proprietary documentation.
 
 ## Names referenced
 
-| Name                       | Where it appears                                                                                                                                                                                   |
-| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Epic                       | `profiles.epic` — a built-in profile name                                                                                                                                                          |
-| Cerner                     | `profiles.cerner` — a built-in profile name                                                                                                                                                        |
-| MEDITECH                   | `profiles.meditech` — a built-in profile name                                                                                                                                                      |
-| athenahealth               | `profiles.athena` — a built-in profile name                                                                                                                                                        |
-| LabCorp, Quest Diagnostics | Named in the README only, to characterise `profiles.genericLab`. Neither is used as an export name.                                                                                                |
-| Visage, Visage Imaging     | `profiles.visage` — a built-in profile name; the ZDS quirk it accommodates is grounded in the publicly published Visage 7 HL7 Interface Specification.                                             |
-| Philips, Vue PACS          | `profiles.philips` — a built-in profile name; the Z-segment quirks it accommodates are grounded in the publicly published Philips Vue PACS 12.2.8 HL7 Interface Specifications (doc HA1669 Rev A). |
+| Name                       | Where it appears                                                                                                                                                                                                                          |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Epic                       | `profiles.epic` — a built-in profile name                                                                                                                                                                                                 |
+| Cerner                     | `profiles.cerner` — a built-in profile name                                                                                                                                                                                               |
+| MEDITECH                   | `profiles.meditech` — a built-in profile name                                                                                                                                                                                             |
+| athenahealth               | `profiles.athena` — a built-in profile name                                                                                                                                                                                               |
+| LabCorp, Quest Diagnostics | Named in the README only, to characterise `profiles.genericLab`. Neither is used as an export name.                                                                                                                                       |
+| Visage, Visage Imaging     | `profiles.visage` — a built-in profile name; the ZDS quirk it accommodates is grounded in the publicly published Visage 7 HL7 Interface Specification.                                                                                    |
+| Philips, Vue PACS          | `profiles.philips` — a built-in profile name; the Z-segment quirks it accommodates are grounded in the publicly published Philips Vue PACS 12.2.8 HL7 Interface Specifications (doc HA1669 Rev A).                                        |
+| VA, VistA                  | `profiles.va` — a built-in profile name; the ZDS quirk it accommodates is grounded in the publicly published VA Radiology/Nuclear Medicine 5.0 HL7 Interface Specification (v3.6, June 2024), a U.S. Department of Veterans Affairs work. |
 
 All product names, logos, and brands are the property of their respective owners. Use of a name here
 does not imply any affiliation with, or endorsement by, its owner. If you own one of these marks and

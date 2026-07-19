@@ -11,7 +11,7 @@ const loadFixture = (relPath: string): string =>
   readFileSync(join(__dirname, "fixtures/vendor-shapes", relPath), "utf-8");
 
 describe("Public surface (D-26 barrel export shape)", () => {
-  it("profiles exposes all 6 built-ins", () => {
+  it("profiles exposes all 8 built-ins", () => {
     expect(profiles.epic.name).toBe("epic");
     expect(profiles.cerner.name).toBe("cerner");
     expect(profiles.meditech.name).toBe("meditech");
@@ -19,6 +19,7 @@ describe("Public surface (D-26 barrel export shape)", () => {
     expect(profiles.genericLab.name).toBe("genericLab");
     expect(profiles.visage.name).toBe("visage");
     expect(profiles.philips.name).toBe("philips");
+    expect(profiles.va.name).toBe("va");
   });
 
   it("each built-in's lineage is [name]", () => {
@@ -39,6 +40,7 @@ describe("Public surface (D-26 barrel export shape)", () => {
     expect(Object.isFrozen(profiles.genericLab)).toBe(true);
     expect(Object.isFrozen(profiles.visage)).toBe(true);
     expect(Object.isFrozen(profiles.philips)).toBe(true);
+    expect(Object.isFrozen(profiles.va)).toBe(true);
   });
 
   it("profiles namespace itself is frozen", () => {
@@ -333,6 +335,42 @@ describe("profiles.philips — BIP-08 fixture parity (Vue PACS IS Link Z-segment
   });
 });
 
+describe("profiles.va — BIP-09 fixture parity (VA VistA Radiology/NucMed ZDS on ORU)", () => {
+  const fixture = loadFixture("va/oru-r01.hl7");
+
+  it("without profile: UNKNOWN_SEGMENT present for ZDS", () => {
+    const without = parseHL7(fixture);
+    expect(without.warnings.map((w) => w.code)).toContain(WARNING_CODES.UNKNOWN_SEGMENT);
+  });
+
+  it("with profiles.va: UNKNOWN_SEGMENT absent for declared ZDS", () => {
+    const withP = parseHL7(fixture, profiles.va);
+    const zSegWarnings = withP.warnings.filter((w) => w.code === WARNING_CODES.UNKNOWN_SEGMENT);
+    expect(zSegWarnings).toHaveLength(0);
+  });
+
+  it("profile attribution: msg.profile.name === 'va'", () => {
+    const withP = parseHL7(fixture, profiles.va);
+    expect(withP.profile?.name).toBe("va");
+  });
+
+  it("ZDS studyInstanceUid (DICOM Study Instance UID) resolves on an ORU result", () => {
+    // The VA Radiology/NucMed v3.6 spec documents "ZDS Segment Fields in ORU
+    // and ORM"; this fixture exercises the ORU (result) shape the imaging-
+    // vendor profiles' ORM fixtures do not cover. ZDS-1.1 (RP "Pointer") is
+    // the Study Instance UID, surfaced by `.value`.
+    const withP = parseHL7(fixture, profiles.va);
+    const zds = withP.allSegments().find((s) => s.type === "ZDS");
+    expect(zds?.get("studyInstanceUid")?.value).toBe("1.2.826.0.1.3680043.10.99999.20250326.9");
+  });
+
+  it("MSH-7 HL7-native YYYYMMDDHHMMSS (v2.4) resolves (profile declares no date override)", () => {
+    const withP = parseHL7(fixture, profiles.va);
+    expect(withP.meta.timestamp?.valid).toBe(true);
+    expect(withP.meta.timestamp).toMatchObject({ year: 2025, month: 3, day: 26 });
+  });
+});
+
 describe("Cross-profile warning-reduction summary (D-28 secondary smoke)", () => {
   it("each built-in's total warning count <= lenient-mode count (belt-and-suspenders)", () => {
     const cases = [
@@ -344,6 +382,7 @@ describe("Cross-profile warning-reduction summary (D-28 secondary smoke)", () =>
       ["visage/orm-o01.hl7", profiles.visage],
       ["philips/orm-o01.hl7", profiles.philips],
       ["philips/adt-a08.hl7", profiles.philips],
+      ["va/oru-r01.hl7", profiles.va],
     ] as const;
     for (const [fp, p] of cases) {
       const fixture = loadFixture(fp);
@@ -365,6 +404,7 @@ describe("PROF-09 round-trip remains profile-agnostic for built-ins", () => {
       ["visage/orm-o01.hl7", profiles.visage],
       ["philips/orm-o01.hl7", profiles.philips],
       ["philips/adt-a08.hl7", profiles.philips],
+      ["va/oru-r01.hl7", profiles.va],
     ] as const;
     for (const [fp, p] of cases) {
       const fixture = loadFixture(fp);

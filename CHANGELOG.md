@@ -15,6 +15,22 @@ per the cosyte version ladder (`0.0.x` until first alpha).
 
 ### Added
 
+- **`profiles.va` — eighth built-in vendor profile (VA VistA Radiology/Nuclear Medicine imaging).**
+  Declares the `ZDS` Z-segment that carries the DICOM **Study Instance UID** (field 1, `RP` composite —
+  the UID sits in the first component, ZDS-1.1 "Pointer") so a VistA radiology feed parses without an
+  `UNKNOWN_SEGMENT` warning and `zds.get("studyInstanceUid")` resolves by name. `ZDS` is the **IHE
+  Radiology** RIS↔PACS bridge segment — the same cross-vendor extension `profiles.visage` and
+  `profiles.philips` declare, **not** a VA-proprietary quirk; the value this profile adds is a distinct
+  **named federal source** and coverage of the shape the VA spec documents that the imaging-vendor
+  specs do not: `ZDS` on **ORU** (result) messages (VistA sends `ZDS` in both ORM and ORU). Grounded in
+  the **publicly published** [Radiology/Nuclear Medicine 5.0 HL7 Interface Specification](https://www.va.gov/vdl/documents/clinical/radiology_nuclear_med/ra5_0hl7is.pdf)
+  (Version 3.6, Patch RA\*5.0\*203, June 2024, U.S. Department of Veterans Affairs), which documents
+  "ZDS Segment Fields in ORU and ORM" — not an invented quirk (ADR 0018). The spec's messaging is
+  HL7-native v2.4, so the profile declares no custom date formats. Ships one synthetic, PHI-scanned
+  `vendor-shapes/va/oru-r01.hl7` (ORU^R01 + ZDS) fixture whose Study Instance UID uses the Medical
+  Connections free UID root, not the reserved DICOM arc. Additive: no change to existing profiles,
+  warning codes, or the parse/serialize surface.
+
 - **`profiles.philips` — seventh built-in vendor profile (Philips Vue PACS "IS Link" imaging).**
   Declares the six Vue PACS custom Z-segments, one per filler role: `ZDS` (DICOM **Study Instance
   UID**, an RP composite whose first component is the UID), `ZLK` (linked studies / linked orders),

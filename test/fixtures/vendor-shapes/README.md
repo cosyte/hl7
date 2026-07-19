@@ -28,6 +28,7 @@ available specs, not only private feeds).
 | `visage/orm-o01.hl7` | `profiles.visage` | **Public** — [Visage 7 HL7 Interface Specification](https://www.visageimaging.com/downloads/Visage7/Visage7_HL7InterfaceSpecification.pdf) (V23.00, Jun 2026, Visage Imaging GmbH): §4.4 ORM^O01 example + the ZDS segment table ("Study Instance UID … contained in the first component of the first field of the ZDS Segment"). The `ZDS` DICOM Study Instance UID is the IHE Radiology RIS↔PACS bridge segment. |
 | `philips/orm-o01.hl7` | `profiles.philips` | **Public** — [Vue PACS 12.2.8 HL7 Interface Specifications](https://www.documents.philips.com/assets/Conformance%20Statements/20240409/8941f89d89aa4983aab7b14d00db578c.pdf) (Philips, doc HA1669 Rev A): §5.11 `ZDS` (Study Instance UID, RP composite), §5.12 `ZLK` (linked studies/orders), §5.13 `ZAO` (order additional details — field positions transcribed verbatim incl. the spec's missing field 7). Order-filler side. |
 | `philips/adt-a08.hl7` | `profiles.philips` | **Public** — same spec, patient/visit-filler side: §5.14 `ZEB` (encrypted patient info), §5.15 `ZAP` (patient additional details — incl. the spec's missing field 2), §5.16 `ZAV` (visit additional details). |
+| `va/oru-r01.hl7` | `profiles.va` | **Public** — [Radiology/Nuclear Medicine 5.0 HL7 Interface Specification](https://www.va.gov/vdl/documents/clinical/radiology_nuclear_med/ra5_0hl7is.pdf) (Version 3.6, Patch RA\*5.0\*203, June 2024, U.S. Department of Veterans Affairs; HL7 **v2.4**): the spec documents "ZDS Segment Fields in ORU and ORM" with `ZDS-1` = Study Instance UID (`RP`; UID in comp 1 = ZDS-1.1 "Pointer"). This fixture exercises the **ORU^R01** (result) shape the `visage`/`philips` ORM fixtures do not cover. `ZDS` is the IHE Radiology RIS↔PACS bridge — the same cross-vendor extension as `visage`/`philips`, grounded here in a distinct federal spec. |
 
 `epic`, `cerner`, `athena`, and `genericLab` still carry Z-segment field maps
 that are **community-sourced** priors (honest uncertainty #2 in the hl7
@@ -37,9 +38,17 @@ interface specification (HL7-I, ADR 0018): its community-sourced `ZVI` "visit
 info" prior — which had no citable public source — was replaced with the DFT
 `ZF1`/`ZF2` charge segments that MEDITECH documents verbatim in the Ancillary
 Charges spec, and its minute-precision date format is now spec-confirmed.
-`visage` and `philips` are the vendor-shape fixtures grounded in a **publicly
-published, downloadable vendor interface specification** (ADR 0018) — `visage`
-first, `philips` second, then the `meditech` re-grounding.
+`visage`, `philips`, and `va` are the vendor-shape fixtures grounded in a
+**publicly published, downloadable vendor/agency interface specification**
+(ADR 0018) — `visage` first, `philips` second, the `meditech` re-grounding
+third, and `va` (a **federal** VistA Radiology/Nuclear Medicine spec) fourth.
+The `va` ZDS is the **same IHE Radiology cross-vendor bridge segment** as
+`visage`/`philips` — not a VA-proprietary quirk — so `profiles.va`'s value is a
+distinct named federal source plus the ORU (result) message shape the imaging-
+vendor ORM fixtures do not cover; its synthetic Study Instance UID reuses the
+Medical Connections free UID root (`1.2.826.0.1.3680043`), not the reserved
+DICOM `1.2.840.10008` arc (a real Study Instance UID is a HIPAA Safe-Harbor
+identifier and must be de-identified before it leaves the box).
 
 The `philips` fixtures carry base64 blobs in the `ZAO`/`ZAP`/`ZAV` "additional
 details" fields and the `ZEB` "encrypted patient info" field. Every one is
