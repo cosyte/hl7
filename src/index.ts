@@ -65,6 +65,17 @@ export { BUILTIN_DATE_FALLBACKS, parseDtm, formatDtm, dtmToDate } from "./parser
 export type { DtmParts, DtmPrecision, DtmToDateOptions } from "./parser/dates.js";
 export { unescape, reescape } from "./parser/escapes.js";
 
+// Phase R: formatted-text rendering + first-class text codec. `renderText`
+// turns §2.7 escape/formatting-bearing content into a normalized display model
+// (never fabricating — unrenderable escapes are preserved + flagged); the
+// `decodeText`/`encodeText` codec is the ergonomic decode + encode-safe (no
+// delimiter injection) pair. All three are also bundled under the `text`
+// namespace object. This is a read/encode LAYER — raw parse output is unchanged.
+export { renderText } from "./text/render.js";
+export type { RenderedText, TextRun, RenderTextOptions } from "./text/render.js";
+export { decodeText, encodeText } from "./text/codec.js";
+export * as text from "./text/index.js";
+
 // Phase 3 structural model — read-path foundation.
 export { Segment } from "./model/segment.js";
 export { Field } from "./model/field.js";
