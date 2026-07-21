@@ -100,8 +100,8 @@ Design around these — they're deliberate scope choices, not bugs:
   field's value — only positional context — but a fatal `Hl7ParseError.snippet` may include the
   offending bytes. That's the documented consumer-redaction boundary: redact `snippet` at your
   logging edge.
-- **Pre-alpha (`0.0.x`), unpublished.** The 19 warning codes are a stable contract, but the broader
-  surface may still evolve before a 1.0.
+- **Pre-alpha (`0.0.x`), published on npm at `0.0.1`.** The 19 warning codes are a stable contract,
+  but the broader surface may still evolve before a 1.0.
 
 ## Still stuck?
 
