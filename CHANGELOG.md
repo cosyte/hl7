@@ -15,6 +15,30 @@ per the cosyte version ladder (`0.0.x` until first alpha).
 
 ### Added
 
+- **FHIR-bridge readiness — a versioned IR-stability contract + coverage proof (HL7-V, Phase V — fifth
+  of the v2.4 capability arc).** Documents and **versions** the mapping-source IR that
+  `@cosyte/transform` builds against, and proves — firsthand against the HL7 **v2-to-FHIR** IG
+  (v1.0.0, FHIR R4) — that hl7 surfaces the source paths the IG references. **No v2→FHIR mapping is
+  added to hl7** — hl7 constructs no FHIR resource, ships no ConceptMap, translates no terminology;
+  that stays in `@cosyte/transform`. This is documentation + a coverage test over **existing** surface;
+  no new runtime API.
+  - **IR Contract v1.0.0** (`docs-content/spec-notes-fhir-bridge.md`) pins the stable mapping surface —
+    dot-path source addressing (`msg.get`/`resolvePath`/`parsePath`, `segment.field[.component]`
+    one-to-one with the IG), the twelve typed composites (`Field.asXpn`/`asCx`/`asCwe`/… — the
+    datatype-map inputs), code-system provenance, `parseDtm` datetime precision + timezone, the text
+    codec (`decodeText`/`renderText`/`Field.render`), and message metadata — with a **semver
+    deprecation posture** so `transform` can build once without forcing later hl7 churn.
+  - **Coverage proof** (`test/fhir-bridge-coverage.test.ts`) grounds against the IG's vendored raw
+    segment-map CSVs + its public sample corpus (provenance in
+    `test/fixtures/fhir-bridge/PROVENANCE.md`). Invariants: every IG-referenced field-level source path
+    is **addressable** (no hl7-side gap); every path the public sample **populates** resolves through
+    the IR (**63/63** exercised paths surfaced); the datatype-map shapes (XPN, CX with assigning
+    authority, CWE provenance, DTM precision+tz, rendered narrative) surface from the sample; and the
+    package exports carry **no** FHIR-typed symbol (scope-boundary guard).
+  - **Gaps recorded honestly.** The IG's public sample corpus is, verified firsthand, **one** v2
+    message (`MDM^T02`) — not the multi-family `samples/` the roadmap assumed. **233 of 296**
+    IG-referenced field paths are un-exercised by that single sample: a **corpus-coverage** gap (the
+    thin sample set), **not** a hl7 reachability gap (hl7 addresses all 296 generically).
 - **Conformance-profile tooling — `validateAgainstProfile` (HL7-U, Phase U — fourth of the v2.4
   capability arc).** hl7 could parse and author messages and flag missing spec-Required segment
   groups (`msg.structure`), but could not answer "does this feed meet _our_ interface spec?"
