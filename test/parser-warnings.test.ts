@@ -21,9 +21,9 @@ import {
 } from "../src/parser/warnings.js";
 
 describe("parser/warnings: registry + factories", () => {
-  it("WARNING_CODES has exactly 19 entries with matching key/value strings", () => {
+  it("WARNING_CODES has exactly 20 entries with matching key/value strings", () => {
     const entries = Object.entries(WARNING_CODES);
-    expect(entries).toHaveLength(19);
+    expect(entries).toHaveLength(20);
     for (const [k, v] of entries) expect(k).toBe(v);
   });
 

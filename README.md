@@ -481,6 +481,29 @@ for (const w of warnings) {
 
 A **bare single message** (no envelope) passes straight through as a one-message result. `splitBatch` is a splitter, not an enforcer: it warns on a missing trailer but leaves accept/reject to you (a profile such as IIS may mandate the full frame), does not generate batch ACKs, and does not de-batch across transport framing (that is [`@cosyte/mllp`](https://github.com/cosyte/mllp)). The second argument is forwarded to `parseHL7` per message (profile, `strict`, `charset`). See the [batch spec notes](./docs-content/spec-notes-batch.md) for the full traceability + known limitations.
 
+### Streaming large files (`parseStream`)
+
+`splitBatch` needs the whole file in memory. For a feed or file too large to buffer — or a live source — `parseStream()` parses **incrementally**: it consumes a chunked source (a Node `Readable`, an async-iterable, or an iterable of `string`/`Buffer` chunks) and **yields one message per `MSH` boundary as it completes**, holding only **O(one message)** of state. A message split across chunk boundaries (mid-segment, mid-field, even mid-`MSH|^~\&`) is reassembled — feeding the same bytes in 1-byte chunks or one big chunk yields identical messages.
+
+```ts
+import { createReadStream } from "node:fs";
+import { parseStream, WARNING_CODES } from "@cosyte/hl7";
+
+for await (const entry of parseStream(createReadStream("elr-feed.hl7"))) {
+  if (entry.ok) {
+    handle(entry.message); // released before the next is read — bounded memory
+  } else {
+    quarantine(entry.raw, entry.error.code); // isolated; the tail still streams
+  }
+  // Stream-level (not per-message) diagnostics — never PHI:
+  for (const w of entry.streamWarnings) {
+    // UNTERMINATED_STREAM_MESSAGE — the final message had no terminator (truncated feed?)
+  }
+}
+```
+
+Each message is parsed by `parseHL7` (no second grammar; the same second argument is forwarded per message), so a streamed message is byte-for-byte what `splitBatch` would produce for the same bytes. A malformed message mid-stream is an isolated typed failure entry — it **never suppresses** later messages — and an unterminated final message is still yielded in full, flagged (never thrown). Batch-envelope segments (`FHS`/`BHS`/`BTS`/`FTS`) act as boundaries and are never yielded, so the yielded count equals the `MSH` count; envelope **count reconciliation** stays `splitBatch`'s job. Transport framing (MLLP) is out of scope — this consumes an already-de-framed stream; the wire is [`@cosyte/mllp`](https://github.com/cosyte/mllp)'s. See the [streaming spec notes](./docs-content/spec-notes-stream.md).
+
 ### Detect message type
 
 `msg.meta` exposes MSH-9 pre-decomposed into its three components — use them instead of parsing the raw string.

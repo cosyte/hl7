@@ -292,3 +292,16 @@ export type {
   BatchSplitResult,
 } from "./parser/batch.js";
 export { batchCountMismatch, batchMissingTrailer } from "./parser/warnings.js";
+
+// Roadmap Phase S: streaming / incremental parse. `parseStream` consumes a
+// chunked byte/string source (a Node `Readable`, an async-iterable, or an
+// iterable of chunks) and yields one message per MSH-delimited boundary with
+// O(one-message) memory — reassembling messages split across chunk boundaries,
+// isolating a malformed message (typed failure entry) without dropping the tail,
+// and reusing `parseHL7` for each message (no second grammar). Batch-envelope
+// segments are boundaries, never yielded, so yielded count == MSH count. The
+// additive `UNTERMINATED_STREAM_MESSAGE` warning surfaces a truncated final
+// message on the entry's `streamWarnings` (never on `Hl7Message.warnings`).
+export { parseStream } from "./parser/stream.js";
+export type { Hl7StreamSource, StreamMessageEntry } from "./parser/stream.js";
+export { unterminatedStreamMessage } from "./parser/warnings.js";

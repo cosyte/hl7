@@ -43,6 +43,7 @@ export const WARNING_CODES = {
   MERGE_MISSING_PRIOR_OR_SURVIVOR: "MERGE_MISSING_PRIOR_OR_SURVIVOR",
   BATCH_COUNT_MISMATCH: "BATCH_COUNT_MISMATCH",
   BATCH_MISSING_TRAILER: "BATCH_MISSING_TRAILER",
+  UNTERMINATED_STREAM_MESSAGE: "UNTERMINATED_STREAM_MESSAGE",
 } as const;
 
 /**
@@ -650,6 +651,36 @@ export function batchMissingTrailer(
     message:
       `Batch envelope header "${header}" has no matching "${expectedTrailer}" trailer; ` +
       "splitBatch surfaces this but does not reject — a profile that mandates the full envelope may.",
+    position,
+  };
+}
+
+/**
+ * Build an `UNTERMINATED_STREAM_MESSAGE` warning (roadmap Phase S). Emitted by
+ * `parseStream()` — attached to a {@link StreamMessageEntry}'s `streamWarnings`,
+ * NOT to `Hl7Message.warnings` — when the **final** message in a stream ends
+ * without a segment terminator (its last segment ran to end-of-stream with no
+ * trailing `\r`/`\r\n`/`\n`). The message is still parsed and yielded **in
+ * full**; this is the fail-safe signal that the tail may have been truncated
+ * mid-message (a cut-off feed), never a reason to drop it and never a throw.
+ * Only the last message can be unterminated — every earlier message is closed by
+ * the terminator that precedes the next `MSH`/envelope boundary.
+ *
+ * The message carries only the structural fact — NEVER a field value — so no PHI
+ * is exposed. `position` references the message's `MSH` segment index.
+ *
+ * @example
+ * ```ts
+ * import { unterminatedStreamMessage } from "@cosyte/hl7";
+ * const w = unterminatedStreamMessage({ segmentIndex: 6 });
+ * ```
+ */
+export function unterminatedStreamMessage(position: Hl7Position): Hl7ParseWarning {
+  return {
+    code: WARNING_CODES.UNTERMINATED_STREAM_MESSAGE,
+    message:
+      "The final message in the stream ended without a segment terminator; it is still yielded " +
+      "in full. If the source terminates every segment, this may indicate a truncated feed.",
     position,
   };
 }
