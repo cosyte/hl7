@@ -21,6 +21,7 @@
         "spec-notes-structure",
         "spec-notes-identity",
         "spec-notes-batch",
+        "spec-notes-stream",
         "spec-notes-datetime-precision",
         "spec-notes-timing",
         "spec-notes-charset",

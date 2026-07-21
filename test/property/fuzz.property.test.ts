@@ -169,6 +169,7 @@ describe("fuzz: FATAL_CODES / WARNING_CODES registries stay pinned", () => {
         "MERGE_MISSING_PRIOR_OR_SURVIVOR",
         "BATCH_COUNT_MISMATCH",
         "BATCH_MISSING_TRAILER",
+        "UNTERMINATED_STREAM_MESSAGE",
       ].sort(),
     );
   });
