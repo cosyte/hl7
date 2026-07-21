@@ -546,6 +546,38 @@ if (msg.warnings.some((w) => w.code === WARNING_CODES.MISSING_EXPECTED_GROUP)) {
 
 The check is **conservative by construction**: it only models groups that are genuinely Required (so a conformant-but-sparse message never warns), it keys on the **trigger event** (not the message family), and a type it doesn't recognize yields `recognized: false` and emits nothing. It never throws and never rewrites the message — `strict` mode may promote the warning to an error per the usual model. Recognized types: ADT (A01/A02/A03/A04/A05/A08/A11/A13), ORU^R01, ORM^O01, OML^O21, OMG^O19, OMP^O09, OMI^O23, SIU (S12–S26), MDM (T02/T06), DFT^P03, VXU^V04, and ACK. See [`docs-content/spec-notes-structure.md`](docs-content/spec-notes-structure.md) for the per-type Required-segment sourcing.
 
+### Validate against your own conformance profile (`validateAgainstProfile`)
+
+`msg.structure` checks the handful of groups the base spec marks Required. When you have a **specific interface spec** — "our ADT feed requires PID-3, sex must be M/F/U, no Z-segments" — bring it as a declarative **conformance profile** and `validateAgainstProfile(msg, profile)` returns typed findings. **You author the profile and every value set; hl7 ships none** — no bundled vendor/IHE profile, no code set, no network call.
+
+```ts
+import { parseHL7, validateAgainstProfile, type ConformanceProfile } from "@cosyte/hl7";
+
+// A profile YOU author — an example, NOT an attestation of conformance.
+const profile: ConformanceProfile = {
+  name: "our-adt-intake",
+  segments: [
+    {
+      segment: "PID",
+      usage: "R",
+      fields: [
+        { field: 3, name: "Patient Identifiers", usage: "R", cardinality: { min: 1, max: 1 } },
+        { field: 8, name: "Administrative Sex", usage: "RE", valueSet: ["M", "F", "U"] },
+      ],
+    },
+    { segment: "ZZZ", usage: "X" }, // no local Z-segments permitted
+  ],
+};
+
+const { findings } = validateAgainstProfile(parseHL7(raw), profile);
+for (const f of findings) console.log(f.severity, f.code, f.message);
+// e.g. "error PROFILE_VALUE_NOT_IN_SET  PID-8 component 1 value is not in the profile value set (3 permitted codes)."
+```
+
+The engine holds four invariants: it **never throws** (a malformed profile yields `PROFILE_MALFORMED` findings, not an exception — use `defineConformanceProfile` for a fail-fast authoring gate that _does_ throw); a **valid message yields zero findings**; **no finding carries PHI** — each names the structural locus (segment / field / component / repetition) and the rule, never the offending value; and validation is **read-only**. Usage codes are the HL7 six (`R`/`RE`/`C`/`CE`/`O`/`X`); `C`/`CE` presence is not evaluated (no predicate language — a documented boundary). Distinct from the parse-profile system (`defineProfile`/`profiles`), which shapes _how a message is parsed_.
+
+> **"No findings" is not an attestation.** An empty result means _nothing this profile checked was violated_ — never "this message is conformant." The profile only covers what you declared, and hl7 makes no conformance certification. See [`docs-content/spec-notes-conformance.md`](docs-content/spec-notes-conformance.md).
+
 ### Pretty-print for logs
 
 `msg.prettyPrint()` returns a multi-line, labeled view of the positional tree — useful for dev-time debugging and log snapshots.

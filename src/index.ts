@@ -293,6 +293,36 @@ export type {
 } from "./parser/batch.js";
 export { batchCountMismatch, batchMissingTrailer } from "./parser/warnings.js";
 
+// Roadmap Phase U: conformance-profile TOOLING. `validateAgainstProfile` runs a
+// USER-AUTHORED declarative conformance profile (usage R/RE/C/CE/O/X,
+// cardinality, length, and a CONSUMER-SUPPLIED value set) against a parsed
+// message and returns typed findings — never throwing, valid⇒zero findings, and
+// with NO PHI in findings (locus + rule, never the offending value). hl7 ships
+// NO vendor/IHE/regulatory profile and NO code set, makes NO network call, and
+// "no findings" is explicitly NOT a conformance attestation. Distinct from the
+// PARSE-profile system (`defineProfile`/`profiles`): this validates a message
+// against a conformance spec; that shapes how a message is parsed.
+// `defineConformanceProfile` is the optional fail-fast authoring gate (throws
+// `ProfileDefinitionError` on a malformed profile); the engine itself tolerates
+// a raw profile and never throws. Also bundled under the `conformance` namespace.
+export { validateAgainstProfile } from "./conformance/validate-against-profile.js";
+export { defineConformanceProfile } from "./conformance/profile-shape.js";
+export {
+  FINDING_CODES,
+  USAGE_CODES,
+  type Cardinality,
+  type ConformanceFinding,
+  type ConformanceProfile,
+  type ConformanceResult,
+  type FieldRule,
+  type FindingCode,
+  type FindingLocus,
+  type FindingSeverity,
+  type SegmentRule,
+  type UsageCode,
+} from "./conformance/types.js";
+export * as conformance from "./conformance/index.js";
+
 // Roadmap Phase S: streaming / incremental parse. `parseStream` consumes a
 // chunked byte/string source (a Node `Readable`, an async-iterable, or an
 // iterable of chunks) and yields one message per MSH-delimited boundary with
