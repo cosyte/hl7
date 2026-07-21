@@ -252,6 +252,15 @@ kind, value)`** sets one at a field or `field[rep]` dot-path. Component values a
 
 ### Changed
 
+- **Corrected stale "not yet published to npm / unpublished" language in the docs site
+  (README-ORG-SWEEP).** `@cosyte/hl7` is now published on npm at `0.0.1` and public, so the
+  `docs-content/installation.md` Status blockquote ("not yet published… the shape it will take at
+  first publish; consume it from source or a workspace link") and the `docs-content/troubleshooting.md`
+  "Pre-alpha (`0.0.x`), unpublished" note were factually wrong. Both now state the package is published
+  on npm at `0.0.1` and public, still pre-alpha on the `0.0.x`-until-first-alpha ladder, with the
+  `npm install @cosyte/hl7` command described as live rather than aspirational. Docs-site content only
+  (not in the published tarball); no runtime or public-API change.
+
 - **`profiles.meditech` re-grounded to a public MEDITECH spec (HL7-I, ADR 0018).** The profile's
   Z-segment map previously declared a `ZVI` "visit info" segment (`visitReason`/`admitSource`) that
   was a **community-sourced prior with no citable public source**. No public MEDITECH spec documents

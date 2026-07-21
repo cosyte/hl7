@@ -10,8 +10,8 @@ sidebar_position: 1
 builds with per-condition type declarations, so it works from either module system without
 configuration.
 
-> **Status:** pre-alpha (`0.0.x`), not yet published to npm. The command below is the shape it will
-> take at first publish; until then, consume it from source or a workspace link.
+> **Status:** published on npm at `0.0.1` and public — still pre-alpha on the
+> `0.0.x`-until-first-alpha ladder. The `npm install` command below is live, not aspirational.
 
 ## Prerequisites
 
