@@ -179,6 +179,34 @@ export { buildMessage } from "./builder/build-message.js";
 export type { BuildMessageInit } from "./builder/build-message.js";
 export type { SerializedMessage } from "./serialize/to-json.js";
 
+// Phase T: typed emit symmetry — the conservative-emit mirror of the read
+// helpers. `encodeComposite` (and the per-type `encodeXpn`/`encodeCx`/… it
+// dispatches to) turn a typed composite into a spec-clean field using the
+// HL7-R encode-safe path (no delimiter injection); the same encoding powers
+// `Hl7Message.setComposite(path, kind, value)`. `buildAdt`/`buildOru` author
+// spec-clean, zero-warning, structurally-complete ADT / ORU^R01 messages from
+// typed inputs — never fabricating a value the caller did not supply.
+export {
+  encodeComposite,
+  encodeCompositeReps,
+  encodeXpn,
+  encodeXad,
+  encodeCx,
+  encodeCwe,
+  encodeCe,
+  encodeXtn,
+  encodePl,
+  encodeHd,
+  encodeTs,
+  encodeNm,
+  encodeXcn,
+} from "./builder/encode-composite.js";
+export type { CompositeKind, CompositeValueByKind } from "./builder/encode-composite.js";
+export { buildAdt } from "./builder/build-adt.js";
+export type { AdtEvent, AdtPatient, AdtVisit, BuildAdtInit } from "./builder/build-adt.js";
+export { buildOru } from "./builder/build-oru.js";
+export type { BuildOruInit, OruObservation, OruOrder, OruPatient } from "./builder/build-oru.js";
+
 // Phase C: ACK / response generation. `buildAck` is the single upstream ACK
 // *content* primitive (`@cosyte/mllp`'s ack-from-hl7 adapts over it);
 // `interpretAck` is the read-side; `detectAckMode` exposes the spec-exact

@@ -58,6 +58,11 @@ import { buildVisit } from "../helpers/visit.js";
 import { emitPrettyPrint } from "../serialize/pretty-print.js";
 import { emitJson, type SerializedMessage } from "../serialize/to-json.js";
 import { emitMessage } from "../serialize/to-string.js";
+import {
+  encodeComposite,
+  type CompositeKind,
+  type CompositeValueByKind,
+} from "../builder/encode-composite.js";
 
 /**
  * HL7 segment-name shape: 3 characters, first an uppercase ASCII letter,
@@ -844,6 +849,114 @@ export class Hl7Message {
     // warned by D-16 that the tree is mutable via the mutation API.
     (this as { -readonly [K in keyof this]: this[K] }).rawSegments = mutSegments;
 
+    this.invalidateCaches();
+    return this;
+  }
+
+  /**
+   * Set a **typed composite** at a field (or field-repetition) dot-path —
+   * roadmap Phase T, the conservative-emit mirror of the typed read accessors
+   * (`asXpn`/`asCx`/…). The caller passes a structured value (an XPN name, a CX
+   * identifier, a TS timestamp, …) by its {@link CompositeKind}, and the setter
+   * encodes it into a spec-clean field using the HL7-R encode-safe path: any
+   * delimiter embedded in a component value is **escaped, never injected**, so
+   * a `familyName` of `"Smith^Jr"` re-parses to exactly that string rather than
+   * forging a component boundary. No hand-assembly of `^`/`&`/`~`.
+   *
+   * The path must resolve to a **field** (`"PID.5"`) or a specific
+   * **repetition** of a field (`"PID.11[1]"`). A component/subcomponent-level
+   * path (`"PID.5.1"`) is rejected with `TypeError` — a composite occupies a
+   * whole field, not a single component. Like {@link setField}, the target
+   * segment must already exist (`addSegment` first); the repetition defaults to
+   * index 0 and other repetitions of the field are preserved.
+   *
+   * Never fabricates: an omitted optional composite field encodes to an
+   * empty/absent component, never a defaulted value; an all-empty composite
+   * clears the field. Segment/helper caches are invalidated on success; the
+   * frozen `warnings` array is untouched.
+   *
+   * @example
+   * ```ts
+   * const msg = buildMessage({ type: "ADT^A01" }).addSegment("PID", [""]);
+   * msg.setComposite("PID.5", "XPN", { familyName: "Smith", givenName: "Ann" });
+   * msg.setComposite("PID.3", "CX", { idNumber: "MRN001", identifierTypeCode: "MR" });
+   * msg.setComposite("PID.7", "TS", "19880705");
+   * msg.get("PID.5.1"); // "Smith"
+   * ```
+   */
+  public setComposite<K extends CompositeKind>(
+    path: string,
+    kind: K,
+    value: CompositeValueByKind[K],
+  ): this {
+    // parsePath throws TypeError on malformed path syntax.
+    const parsed = parsePath(path);
+
+    if (parsed.componentIndex !== undefined || parsed.subcomponentIndex !== undefined) {
+      throw new TypeError(
+        `setComposite: path "${path}" targets a component/subcomponent, but a typed ` +
+          `composite occupies a whole field. Use a field path (e.g. "PID.5") or a ` +
+          `field-repetition path (e.g. "PID.11[1]").`,
+      );
+    }
+
+    // Locate the target segment by type + 0-indexed occurrence (same rule as
+    // setField — the segment must already exist).
+    let seen = 0;
+    let segIdx = -1;
+    for (let i = 0; i < this.rawSegments.length; i++) {
+      const s = this.rawSegments[i];
+      if (s === undefined) continue;
+      if (s.name === parsed.segmentType) {
+        if (seen === parsed.segmentIndex) {
+          segIdx = i;
+          break;
+        }
+        seen++;
+      }
+    }
+    if (segIdx === -1) {
+      throw new TypeError(
+        `setComposite: segment "${parsed.segmentType}" (occurrence ${String(parsed.segmentIndex)}) not found. ` +
+          `Add it first with addSegment("${parsed.segmentType}", [...]).`,
+      );
+    }
+
+    // Encode the typed value into a spec-clean field. The single repetition it
+    // produces (or none, for an all-empty composite) is placed at repIdx.
+    const encoded = encodeComposite(kind, value);
+    const encodedRep: RawRepetition = encoded.repetitions[0] ?? { components: [] };
+
+    const rawFieldIndex = parsed.segmentType === "MSH" ? parsed.fieldIndex - 1 : parsed.fieldIndex;
+
+    const mutSegments = toMutableArray(this.rawSegments);
+    const seg = mutSegments[segIdx];
+    if (seg === undefined) {
+      throw new Error("setComposite: internal invariant — segment disappeared after lookup.");
+    }
+
+    const mutFields = toMutableArray(seg.fields);
+    while (mutFields.length <= rawFieldIndex) {
+      mutFields.push({ repetitions: [], isNull: false });
+    }
+    const field = mutFields[rawFieldIndex];
+    if (field === undefined) {
+      throw new Error("setComposite: internal invariant — field missing after growth.");
+    }
+
+    const mutReps = toMutableArray(field.repetitions);
+    const repIdx = parsed.repetitionIndex ?? 0;
+    while (mutReps.length <= repIdx) {
+      mutReps.push({ components: [] });
+    }
+    mutReps[repIdx] = encodedRep;
+
+    const newField: RawField = { repetitions: mutReps, isNull: false };
+    mutFields[rawFieldIndex] = newField;
+    const newSeg: RawSegment = { name: seg.name, fields: mutFields };
+    mutSegments[segIdx] = newSeg;
+
+    (this as { -readonly [K2 in keyof this]: this[K2] }).rawSegments = mutSegments;
     this.invalidateCaches();
     return this;
   }

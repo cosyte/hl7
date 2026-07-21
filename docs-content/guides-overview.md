@@ -107,6 +107,41 @@ msg.get("PID.3"); // => "MRN12345"
 control id. Field array elements are raw field _values_: any delimiter character inside one (e.g. a
 `^` in a name) is escaped as data, so pass pre-structured composites when you need components.
 
+## Author a message from typed objects
+
+`buildAdt` and `buildOru` are the typed, high-level counterparts of the read helpers (`msg.patient`,
+`msg.observations`): pass structured values — an `XPN` name, `CX` identifiers, a `TS` timestamp — and
+the builder assembles the required segments (MSH + EVN + PID + PV1 for ADT; MSH + PID + OBR + OBX for
+ORU) with correct `^`/`&`/`~` structure. No hand-assembly of delimiters, and any delimiter embedded in
+a value is **escaped, never injected**. The result is spec-clean and re-parses with **zero warnings**.
+
+```ts runnable
+import { buildAdt, parseHL7 } from "@cosyte/hl7";
+
+const msg = buildAdt("A01", {
+  sendingApp: "CLINIC",
+  receivingApp: "LAB",
+  patient: {
+    identifiers: { idNumber: "MRN12345", identifierTypeCode: "MR" },
+    name: { familyName: "Test", givenName: "Ann" }, // a "^" here would be escaped, not injected
+    birthDateTime: "19880705",
+    administrativeSex: "F",
+  },
+  visit: { patientClass: "I" },
+});
+
+const round = parseHL7(msg.toString());
+round.patient?.mrn; // => "MRN12345"
+round.patient?.familyName; // => "Test"
+round.warnings.length; // => 0
+```
+
+Builders **never fabricate**: only values you supply are emitted, an omitted optional field stays
+absent, and a required-but-absent input (`patient`, or at least one ORU observation) is a typed
+`TypeError` — never a guessed value. For a lower-level typed set on an existing message, use
+`msg.setComposite(path, kind, value)` (e.g. `msg.setComposite("PID.5", "XPN", { familyName: "Doe" })`),
+or `encodeComposite(kind, value)` to build a field directly.
+
 ## Next
 
 - [Troubleshooting](./troubleshooting) — warnings vs. errors, strict mode, charset, and batches.
