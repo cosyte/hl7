@@ -17,12 +17,13 @@ import { cosyteVitest } from "@cosyte/vitest-config";
  * remaining relaxation.
  */
 export default cosyteVitest({
-  coverageDirs: ["parser", "model", "helpers", "serialize", "builder", "profiles"],
+  coverageDirs: ["parser", "model", "helpers", "serialize", "builder", "profiles", "text"],
   coverageThresholds: {
     branches: 90,
     "src/parser/**": { lines: 90, branches: 90, functions: 90, statements: 90 },
     "src/serialize/**": { lines: 90, branches: 90, functions: 90, statements: 90 },
     "src/profiles/**": { lines: 90, branches: 90, functions: 90, statements: 90 },
+    "src/text/**": { lines: 90, branches: 90, functions: 90, statements: 90 },
   },
   test: {
     globals: false,

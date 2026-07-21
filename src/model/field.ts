@@ -16,6 +16,7 @@
 
 import { DEFAULT_ENCODING_CHARACTERS } from "../parser/delimiters.js";
 import { emitField } from "../serialize/emit-field.js";
+import { renderText, type RenderedText, type RenderTextOptions } from "../text/render.js";
 import type { EncodingCharacters, Hl7Position, RawField, RawRepetition } from "../parser/types.js";
 import { parseCe, type CE } from "./types/ce.js";
 import { parseCwe, type CWE } from "./types/cwe.js";
@@ -145,6 +146,28 @@ export class Field {
    */
   public get text(): string {
     return emitField(this.raw, this.enc);
+  }
+
+  /**
+   * Render this field's formatted text (HL7 v2 §2.7 highlight + formatting
+   * escapes) into a normalized {@link RenderedText} display model — plain text
+   * plus highlight-aware runs. A **read projection** over the field's
+   * byte-verbatim wire {@link text}: it never mutates the raw value, and it
+   * never fabricates (an unrenderable escape is preserved + flagged). Use this
+   * to surface a clinical narrative (an NTE / OBX-5 note) to a human without
+   * the raw `\.br\` / `\H\` sentinels.
+   *
+   * @param opts - see {@link RenderTextOptions} (e.g. a custom line-break string).
+   * @returns the normalized display model.
+   *
+   * @example
+   * ```ts
+   * const note = msg.segments("OBX")[0]?.field(5);
+   * note?.render().text; // "Specimen received.\nGross exam normal."
+   * ```
+   */
+  public render(opts?: RenderTextOptions): RenderedText {
+    return renderText(this.text, this.enc, opts);
   }
 
   /**

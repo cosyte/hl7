@@ -25,6 +25,7 @@
         "spec-notes-timing",
         "spec-notes-charset",
         "spec-notes-escapes",
+        "spec-notes-text-rendering",
         "spec-notes-nte",
         "spec-notes-version-matrix",
         "spec-notes-differential"

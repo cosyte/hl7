@@ -15,6 +15,35 @@ per the cosyte version ladder (`0.0.x` until first alpha).
 
 ### Added
 
+- **Formatted-text rendering + a first-class text codec (HL7-R, Phase R — first of the v2.4
+  capability arc).** Completes Phase A's explicit defer: the lenient parser preserves the
+  presentational escapes (`\H\`/`\N\` highlight, the `\.sp\`/`\.in\`/… formatting commands, charset
+  switches, vendor `\Z..\`) as un-rendered sentinels; a note surfaced to a human with those raw
+  sentinels in it is **misread**. Two additions close that, as an opt-in **layer** over the unchanged
+  raw extraction (Postel's Law — existing parse output is byte-for-byte identical):
+  - **`renderText(input, enc?, opts?)`** turns HL7 v2 §2.7 escape/formatting-bearing content into a
+    normalized **display model** — a plain-text `text` (formatting commands → whitespace/line breaks
+    per a conservative, documented normalization; highlight boundaries dropped) plus highlight-aware
+    `runs` (`{ text, highlighted }[]`). It **never fabricates**: a charset switch, a vendor `\Z..\`,
+    or a malformed/unterminated escape is preserved as its literal characters and flagged in
+    `unrenderedSequences`, never dropped or replaced with a guessed glyph. Grounded firsthand on the
+    HL7 v2 Ch. 2 §2.7 escape spec (delimiter §2.7.1, charset §2.7.2/3, hex §2.7.5/6, formatting
+    commands §2.7.6/7 [FT], local `\Z..\` §2.7.7/8, truncation §2.5.5.2 — confirmed against the
+    v2.5.1 and v2.8.2 chapter text). **`Field.render(opts?)`** is the one-call form on a parsed field.
+  - a first-class **text codec** — `decodeText` / `encodeText`, also bundled as the `text` namespace
+    (`text.decode` / `text.encode` / `text.render`). The load-bearing invariant is **encode-safety**:
+    `encodeText` escapes every reserved character (the escape char first, then the
+    field/component/subcomponent/repetition separators, the truncation char, and framing-critical
+    CR/LF) so an arbitrary string round-trips (`decodeText(encodeText(s)) === s`) and re-parses to
+    exactly itself with **no delimiter injection** — a value can never break framing or forge a
+    component boundary. This is the safe-encode primitive Phase T (typed emit) will build on.
+
+    New public exports: `renderText`, `decodeText`, `encodeText`, the `text` namespace,
+    `Field.render()`, and the `RenderedText` / `TextRun` / `RenderTextOptions` types. Ships four
+    synthetic, PHI-scanned `fixtures/text/*.hl7` fixtures (formatting note, highlight, hex+delimiters,
+    inject-on-encode) plus a property layer (encode-safety over arbitrary strings; `renderText` is
+    total; a formatting sentinel never survives into the plain-text render). No new warning codes.
+
 - **`profiles.va` — eighth built-in vendor profile (VA VistA Radiology/Nuclear Medicine imaging).**
   Declares the `ZDS` Z-segment that carries the DICOM **Study Instance UID** (field 1, `RP` composite —
   the UID sits in the first component, ZDS-1.1 "Pointer") so a VistA radiology feed parses without an
