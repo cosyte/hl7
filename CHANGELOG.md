@@ -15,6 +15,35 @@ per the cosyte version ladder (`0.0.x` until first alpha).
 
 ### Added
 
+- **Conformance-profile tooling — `validateAgainstProfile` (HL7-U, Phase U — fourth of the v2.4
+  capability arc).** hl7 could parse and author messages and flag missing spec-Required segment
+  groups (`msg.structure`), but could not answer "does this feed meet _our_ interface spec?"
+  `validateAgainstProfile(message, profile)` runs a **consumer-authored declarative conformance
+  profile** and returns **typed findings**.
+  - **BYO profile + value sets — the deliberate scope boundary.** The profile schema is a bounded
+    subset of the HL7 v2 Message-Profile / NIST-IGAMT model: per-segment/field usage
+    (`R`/`RE`/`C`/`CE`/`O`/`X`), cardinality, length, and value-set binding against a
+    **consumer-supplied** code list. hl7 ships **no** vendor/IHE/regulatory profile, **no** bundled
+    code set (no LOINC/SNOMED/ICD/RxNorm lookup), and makes **no** network call — the sanctioned
+    functionality-plane replacement for the retired vendor-corpus arc.
+  - **Four invariants.** The engine **never throws** — a malformed profile yields `PROFILE_MALFORMED`
+    findings, not an exception (never a silent pass); the optional `defineConformanceProfile` is a
+    fail-fast authoring gate that _does_ throw `ProfileDefinitionError`. A **valid message yields zero
+    findings**. **No finding carries PHI** — each names the structural locus (segment / field /
+    component / repetition / occurrence) and the rule, never the offending value. Validation is
+    **read-only**. `C`/`CE` presence is not evaluated (no conditional-predicate language — a
+    documented boundary), keeping valid⇒zero-findings airtight. Property-tested for never-throws,
+    read-only, and well-formed PHI-safe findings across message × profile pairs.
+  - **"No findings" is explicitly NOT a conformance attestation** — it means no _declared_ rule was
+    violated, nothing about undeclared parts of the message and no conformance certification.
+  - New public exports: `validateAgainstProfile`, `defineConformanceProfile`, the `conformance`
+    namespace, `FINDING_CODES`, `USAGE_CODES`, and the `ConformanceProfile` / `SegmentRule` /
+    `FieldRule` / `Cardinality` / `UsageCode` / `ConformanceFinding` / `FindingLocus` / `FindingCode`
+    / `FindingSeverity` / `ConformanceResult` types. Six additive finding codes:
+    `PROFILE_REQUIRED_ABSENT`, `PROFILE_NOT_PERMITTED`, `PROFILE_CARDINALITY`, `PROFILE_LENGTH`,
+    `PROFILE_VALUE_NOT_IN_SET`, `PROFILE_MALFORMED`. Additive — no change to existing output. Distinct
+    from the parse-profile system (`defineProfile`/`profiles`). See
+    `docs-content/spec-notes-conformance.md`.
 - **Streaming / incremental parse — `parseStream` (HL7-S, Phase S — third of the v2.4 capability
   arc).** hl7 could only parse a message (`parseHL7`) or a whole in-memory batch (`splitBatch`) — a
   large ELR/IIS/lab file or a live feed had to be fully buffered first. `parseStream(source, opts?)`
