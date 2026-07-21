@@ -29,6 +29,7 @@
         "spec-notes-escapes",
         "spec-notes-text-rendering",
         "spec-notes-nte",
+        "spec-notes-fhir-bridge",
         "spec-notes-version-matrix",
         "spec-notes-differential"
       ]

@@ -1,0 +1,12 @@
+MSH|^~\&|HIE|REDDING HOSPITAL|||20230814022400||MDM^T02^MDM_T02|10819306|P|2.5.1
+EVN||20230814022400
+PID|||MRN0003223^^^REDDING HOSPITAL&1.1.1.1&GUID^MR||JOHN^DOE^TEST^JR.^^^D||19800115|M|||123 Main St^^BOULDER^CO^12345-2144^US^P^^BOULDER||(617)555-1212^P^H^^^617^5551212|||||ACCT1055989^^^^HAR
+PV1||I|F1N^F151^F151-01^FTH^^^^^HILLS 1 North Oncolog||||1123456771^SMITH^JANE^K^^^^^NPI^^^^NPI||||||||||||VISIT123456|||||||||||||||||||||||||20230729081300
+ORC|RE|ORD777999^SndFac^1.2.3.4.5^ISO|432344432^FillerFac^8.7.6.5.4^ISO|GORD874299^SndFac^1.2.3.4.5^ISO|CM||||20230814011500+0000|||5742200012^WELBY^ROBERT^^^^^^&372526&L^L^^^NPI|||||Good Health Hospital^L||||||||||||I|
+TQ1|1|1
+OBR|1||432344432^FillerFac^8.7.6.5.4^ISO|11502-2^^LN^^Laboratory Report|||20130408141909.0+0000|20130411154157.0+0000||||||||5742200012^WELBY^ROBERT^^^^^^&372526&L^L^^^NPI|||||||||F|
+TXA|1|PN|TX|20230820174913|1780850958^JOHNSON^JANE^^^^^^&372526&L^L^^^NPI|20230820174913||20230820191149|5742200012^WELBY^ROBERT^^^^^^&372526&L^L^^^NPI|1123456771^SMITH^JANE^K^^^^^&372526&L^L^^^NPI||3738931392^REDDING HOSPITAL&1.1.1.1&GUID||||PN_Welby_20230820174913.RTF|AU|R|AV||||5742200445^SMITH^SUE^^^^^^&372526&L^L^^^NPI||Discharge Summary|
+OBX|1|TX|85202^Transcription Authentication Interface Message Text|1|Transcription Authentication Interface Message Text||||||F
+OBX|2|FT|1055860039^Critical Values - Text||Critical Values Entered On:  08/22/2023 2:11 EDT \.br\ Performed On:  08/22/2023 2:11 EDT by WELBY, ROBERT A \.br\ \.br\ \.br\ \.br\ \.br\Called Critical Value Reported \.br\Critical Value Reported Lab :   Yes \.br\WELBY, ROBERT A - 08/22/2023 2:11 EDT \.br\Critical Lab Values \.br\Red List Hematology Grid \.br\  Heparin Test (AntiXa)        \.br\Lab Values :    1.27            \.br\  WELBY, ROBERT A - 08/22/2023 2:11 EDT     \.br\\.br\Result Received :   08/22/2023 02:11 EDT \.br\Received From :   K Smith (Lab) \.br\Red List Result Read Back :   K Jones (ED) \.br\Provider Notified :   No \.br\Reason not notified :   Protocol utilized \.br\WELBY, ROBERT A - 08/22/2023 2:11 EDT||||||F|||20230822021111||
+OBX|3|ST|&GDT^Critical Values-String||Table formatting from the original result was not included.||||||F
+OBX|4|ED|1111.2^PHQ-9 Depression Screen PDF^L^44249-1^PHQ-9 quick depression assessment panel [Reported.PHQ]^LN||CareCoordination^AP^PDF^Base64^<Base64 encoded>||||||F
