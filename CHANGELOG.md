@@ -15,6 +15,38 @@ per the cosyte version ladder (`0.0.x` until first alpha).
 
 ### Added
 
+- **Typed emit symmetry — composite setters + `buildAdt` / `buildOru` (HL7-T, Phase T — second of the
+  v2.4 capability arc).** hl7 could read a message into typed objects but could only _write_ one
+  through stringly-typed field arrays (`buildMessage(...).addSegment("PID", ["", "", "MRN"])`, the
+  consumer hand-encoding `^`/`&`/`~`). Phase T makes hl7 an **authoring** library — the
+  conservative-emit mirror of the read helpers — built on Phase R's encode-safe codec:
+  - **`encodeComposite(kind, value)`** (and the per-type `encodeXpn`/`encodeXad`/`encodeCx`/`encodeCwe`/
+    `encodeCe`/`encodeXtn`/`encodePl`/`encodeHd`/`encodeTs`/`encodeNm`/`encodeXcn`, plus
+    `encodeCompositeReps` for repeating fields) turn a typed composite — an XPN name, a CX identifier
+    (nested-HD aware), a TS timestamp — into a spec-clean `RawField`. **`Hl7Message.setComposite(path,
+kind, value)`** sets one at a field or `field[rep]` dot-path. Component values are stored
+    **decoded** and the serializer re-escapes on emit, so an embedded delimiter (`"Smith^Jr"`) is
+    **escaped, never injected** — it re-parses to the exact string, never forging a component boundary.
+    The **emit ∘ parse identity** holds on every modelled field (interior empties preserved, trailing
+    trimmed); property-tested across all composites over the delimiter-laden alphabet.
+  - **`buildAdt(event, init)`** and **`buildOru(init)`** assemble a full message (MSH + EVN + PID + PV1
+    for ADT; MSH + PID + OBR + OBX for ORU) from typed inputs, generating the control id / timestamp /
+    encoding characters correctly. The emitted message is **spec-clean, zero-warning, and
+    structurally complete** — it re-parses with `warnings: []` and `msg.structure.missingGroups` empty
+    (verified against the parser's own structure net across `A01`/`A02`/`A03`/`A04`/`A08`).
+  - **Never fabricate.** A builder emits only values the caller supplied; an omitted optional field is
+    an empty/absent field, never a defaulted clinical value. A required-but-absent structural input —
+    `patient`, an empty ADT `event`, or an ORU with no observation — is a typed `TypeError`, not a
+    guessed value. Complements the shipped `buildAck` (Phase C); the low-level `buildMessage` remains
+    for the long tail. Emit is spec-clean **base standard**, not a vendor dialect.
+
+    New public exports: `buildAdt`, `buildOru`, `encodeComposite`, `encodeCompositeReps`, the eleven
+    per-type `encodeXxx` functions, `Hl7Message.setComposite`, and the `CompositeKind` /
+    `CompositeValueByKind` / `BuildAdtInit` / `AdtPatient` / `AdtVisit` / `AdtEvent` / `BuildOruInit` /
+    `OruPatient` / `OruOrder` / `OruObservation` types. Ships two synthetic, PHI-scanned goldens
+    (`fixtures/build/adt-a01.golden.hl7`, `oru-r01.golden.hl7`) plus a property layer (emit ∘ parse
+    identity + no-injection). Additive: no change to parse output or existing emit. Depends on Phase R.
+
 - **Formatted-text rendering + a first-class text codec (HL7-R, Phase R — first of the v2.4
   capability arc).** Completes Phase A's explicit defer: the lenient parser preserves the
   presentational escapes (`\H\`/`\N\` highlight, the `\.sp\`/`\.in\`/… formatting commands, charset
