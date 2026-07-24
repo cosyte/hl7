@@ -1,17 +1,17 @@
 /**
- * CE — HL7 v2 Coded Element composite. 6-component coded-element shape
+ * CE: HL7 v2 Coded Element composite. 6-component coded-element shape
  * parsed from a `RawRepetition` on demand by `Field.asCe()` (wired in Plan
- * 04). Fields are OMITTED when absent (exactOptionalPropertyTypes) — NEVER
+ * 04). Fields are OMITTED when absent (exactOptionalPropertyTypes): NEVER
  * set to `undefined`.
  *
- * CE is the older, simpler sibling of CWE — 6 components, no version ids,
+ * CE is the older, simpler sibling of CWE: 6 components, no version ids,
  * no originalText. Still common in OBX.3 and similar observation-identifier
  * slots on older messages. CE was deprecated at HL7 v2.5 and withdrawn at
- * v2.6 in favor of CWE; the two are read uniformly here — reading a
+ * v2.6 in favor of CWE; the two are read uniformly here: reading a
  * CWE-shaped value through `asCe()` preserves components 7+ on
  * `extraComponents` rather than dropping them, so neither accessor is lossy.
  *
- * Zero runtime deps — pure function over the raw positional tree + `unescape`.
+ * Zero runtime deps: pure function over the raw positional tree + `unescape`.
  */
 
 import type { EncodingCharacters, RawRepetition } from "../../parser/types.js";
@@ -19,7 +19,7 @@ import type { EncodingCharacters, RawRepetition } from "../../parser/types.js";
 import { readComponent, readExtraComponents } from "./_shared.js";
 
 /**
- * HL7 v2 Coded Element (CE) — coded element per HL7 Chapter 2. All 6
+ * HL7 v2 Coded Element (CE): coded element per HL7 Chapter 2. All 6
  * components are optional. Fields are OMITTED when the underlying component
  * is absent (exactOptionalPropertyTypes).
  *
@@ -32,7 +32,7 @@ import { readComponent, readExtraComponents } from "./_shared.js";
  * 6. nameOfAlternateCodingSystem
  *
  * Components 7+ (present when a CWE-shaped value is read through the CE
- * accessor — e.g. version ids, originalText) are surfaced verbatim on
+ * accessor: e.g. version ids, originalText) are surfaced verbatim on
  * `extraComponents` rather than dropped.
  *
  * @example
@@ -60,7 +60,7 @@ export interface CE {
 
 /**
  * Parse an HL7 v2 CE repetition into a structured `CE` object. Components
- * are returned verbatim (already decoded once by the tokenizer — never re-unescaped,
+ * are returned verbatim (already decoded once by the tokenizer: never re-unescaped,
  * HL7-VALUE-REDECODE). Absent / empty components are OMITTED
  * from the result (exactOptionalPropertyTypes semantics).
  *

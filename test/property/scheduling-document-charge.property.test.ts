@@ -3,15 +3,15 @@
  *
  * The load-bearing claims, over thousands of generated SCH / TXA / FT1 segments:
  *   1. `appointments()` / `documents()` / `charges()` NEVER throw on arbitrary
- *      segment content (malformed / empty / adversarial fields) — HELPERS-07.
+ *      segment content (malformed / empty / adversarial fields): HELPERS-07.
  *   2. **MDM completion (TXA-17) and availability (TXA-19) are never conflated.**
  *      For any two distinct status tokens, the completion value lands on
- *      `completionStatus` and the availability value on `availabilityStatus` —
+ *      `completionStatus` and the availability value on `availabilityStatus`,
  *      never swapped, never merged, never one masking the other. Reading a
  *      preliminary document as final is the harm this guards.
  *   3. SCH-25 filler status is surfaced verbatim (provenance-only).
  *   4. FT1 extended/unit amounts are ALWAYS strings (never coerced to a number)
- *      and preserve their exact wire text — no money-as-float.
+ *      and preserve their exact wire text: no money-as-float.
  */
 
 import { describe, expect, it } from "vitest";
@@ -85,7 +85,7 @@ describe("property: TXA-17 completion and TXA-19 availability are never conflate
       fc.property(idArb, idArb, (completion, availability) => {
         const raw = `${MSH}${PID}${seg("TXA", { 1: "1", 17: completion, 19: availability }, 19)}\r`;
         const doc = parseHL7(raw).documents()[0];
-        // Each value is surfaced on exactly its own field — the completion token
+        // Each value is surfaced on exactly its own field: the completion token
         // never leaks into availability and vice-versa.
         expect(doc?.completionStatus).toBe(completion);
         expect(doc?.availabilityStatus).toBe(availability);

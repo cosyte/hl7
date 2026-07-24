@@ -3,12 +3,12 @@
  * model. Parses strings like `PID.5.1`, `OBX[2].5`, `PID.3[0].1` into a
  * discriminated-token descriptor, then resolves that descriptor against a
  * `readonly RawSegment[]` tree to produce the decoded leaf string (or
- * `undefined` on missing path). Zero runtime deps — a hand-rolled linear scan
+ * `undefined` on missing path). Zero runtime deps: a hand-rolled linear scan
  * (analog: `src/parser/dates.ts::matchTokenFormat`).
  *
  * Indexing conventions (locked in Phase 3 CONTEXT.md):
- * - `[N]` is ALWAYS 0-indexed — applies to segment repeats AND field repeats (D-01).
- * - Dot-numbers are ALWAYS 1-indexed — matches HL7 spec and Phase 2's 1-indexed
+ * - `[N]` is ALWAYS 0-indexed: applies to segment repeats AND field repeats (D-01).
+ * - Dot-numbers are ALWAYS 1-indexed: matches HL7 spec and Phase 2's 1-indexed
  *   `RawSegment.fields` (D-02). `PID.5` → `fields[5]`.
  * - MSH.1 / MSH.2 are the separator char and encoding-chars string, both
  *   stored at `fields[0]` / `fields[1]` by Phase 2 tokenize.ts (D-05).
@@ -61,7 +61,7 @@ interface MutableDotPath {
   subcomponentIndex?: number;
 }
 
-/** Segment-name shape — `[A-Z][A-Z0-9]{2}` (D-19 symmetry with addSegment). Matches standard HL7 v2 segment names (PID, PV1, OBX, NK1, DG1, IN1…) and Z-segment customs (ZPI, ZX1…). @internal */
+/** Segment-name shape: `[A-Z][A-Z0-9]{2}` (D-19 symmetry with addSegment). Matches standard HL7 v2 segment names (PID, PV1, OBX, NK1, DG1, IN1…) and Z-segment customs (ZPI, ZX1…). @internal */
 const SEGMENT_NAME_RE = /^[A-Z][A-Z0-9]{2}$/u;
 
 /**
@@ -83,7 +83,7 @@ export function parsePath(path: string): DotPath {
     throw new TypeError(`Invalid HL7 dot-path: "" (empty).`);
   }
 
-  // 1. Segment name — must be 3 chars matching [A-Z][A-Z0-9]{2}.
+  // 1. Segment name: must be 3 chars matching [A-Z][A-Z0-9]{2}.
   if (path.length < 3) {
     throw new TypeError(`Invalid HL7 dot-path: "${path}" (segment name too short).`);
   }
@@ -108,11 +108,11 @@ export function parsePath(path: string): DotPath {
     i = next;
   }
 
-  // If the path ends here, the caller only asked for a segment — the
+  // If the path ends here, the caller only asked for a segment: the
   // resolver can't produce a string value from a segment-only DotPath,
   // but we accept the shape so callers can probe structure.
   if (i === path.length) {
-    // fieldIndex defaults to 0 — sentinel meaning "no field component".
+    // fieldIndex defaults to 0: sentinel meaning "no field component".
     return freezeDotPath(out);
   }
 
@@ -172,7 +172,7 @@ export function parsePath(path: string): DotPath {
   // 6. Any trailing content → malformed (e.g. `PID.5.1.1.1`, `PID.5xyz`).
   if (i !== path.length) {
     throw new TypeError(
-      `Invalid HL7 dot-path: "${path}" (trailing content at position ${String(i)} — too deep or malformed).`,
+      `Invalid HL7 dot-path: "${path}" (trailing content at position ${String(i)}: too deep or malformed).`,
     );
   }
 
@@ -184,7 +184,7 @@ export function parsePath(path: string): DotPath {
  * leaf value. Returns `undefined` whenever the path does not resolve (missing
  * segment, out-of-range field/component/subcomponent/repetition), and never
  * throws on a missing value. Throws `TypeError` only when `path` itself is
- * malformed — callers relying on "never throws" should pre-validate or wrap
+ * malformed: callers relying on "never throws" should pre-validate or wrap
  * in try/catch.
  *
  * @example
@@ -234,7 +234,7 @@ export function resolvePath(
 
   if (sub !== undefined) {
     // The tokenizer already unescaped every subcomponent on parse (parser-02),
-    // so the stored value is decoded — return it directly. A second unescape
+    // so the stored value is decoded: return it directly. A second unescape
     // would double-decode a value whose own bytes look like an escape (wire
     // `\E\F\E\` → decoded `\F\`, which a second pass would wrongly turn into
     // `|`). Emit fidelity is handled separately by the raw overlay (HL7-ESC).
@@ -326,7 +326,7 @@ function readBracket(path: string, start: number): { value: number; next: number
 
 /**
  * Return a `DotPath` from a mutable builder, honoring
- * `exactOptionalPropertyTypes` — optional keys are only present on the
+ * `exactOptionalPropertyTypes`: optional keys are only present on the
  * returned object when their builder value is defined.
  *
  * @internal

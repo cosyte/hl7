@@ -122,13 +122,13 @@ describe("parser/escapes: unescape", () => {
   it("\\P\\ decodes to the spec default # when no truncation char is declared", () => {
     // Spec §2.5.5.2 default truncation character is `#`. If a sender uses
     // \P\ without declaring one on MSH-2, fall back to the spec default
-    // rather than warn — recognized standard sequence, deterministic decode.
+    // rather than warn: recognized standard sequence, deterministic decode.
     const { emit, warnings } = collect();
     expect(unescape("a\\P\\b", enc, emit, pos)).toBe("a#b");
     expect(warnings).toHaveLength(0);
   });
 
-  it("highlight \\H\\ and \\N\\ are recognized — preserved verbatim, no warning", () => {
+  it("highlight \\H\\ and \\N\\ are recognized: preserved verbatim, no warning", () => {
     const { emit, warnings } = collect();
     expect(unescape("Critical \\H\\value\\N\\ here", enc, emit, pos)).toBe(
       "Critical \\H\\value\\N\\ here",
@@ -137,7 +137,7 @@ describe("parser/escapes: unescape", () => {
   });
 
   it.each([".sp", ".in", ".ti", ".fi", ".nf", ".ce"])(
-    "formatting escape \\%s\\ is recognized — preserved verbatim, no warning",
+    "formatting escape \\%s\\ is recognized: preserved verbatim, no warning",
     (seq) => {
       const { emit, warnings } = collect();
       const input = `before\\${seq}\\after`;
@@ -146,13 +146,13 @@ describe("parser/escapes: unescape", () => {
     },
   );
 
-  it("charset switch \\Cxxyy\\ is recognized — preserved verbatim, no warning", () => {
+  it("charset switch \\Cxxyy\\ is recognized: preserved verbatim, no warning", () => {
     const { emit, warnings } = collect();
     expect(unescape("text\\C2842\\more", enc, emit, pos)).toBe("text\\C2842\\more");
     expect(warnings).toHaveLength(0);
   });
 
-  it("charset switch \\Mxxyyzz\\ (multi-byte) is recognized — verbatim, no warning", () => {
+  it("charset switch \\Mxxyyzz\\ (multi-byte) is recognized: verbatim, no warning", () => {
     const { emit, warnings } = collect();
     // 4-hex and 6-hex multi-byte forms must both be recognized.
     expect(unescape("a\\M2842\\b", enc, emit, pos)).toBe("a\\M2842\\b");
@@ -161,7 +161,7 @@ describe("parser/escapes: unescape", () => {
   });
 
   it("malformed charset escape (odd-length / non-hex) still warns", () => {
-    // \C12\ — only 2 hex digits (single-byte charset switches are 4). Not a
+    // \C12\: only 2 hex digits (single-byte charset switches are 4). Not a
     // recognized form; must still surface UNKNOWN_ESCAPE_SEQUENCE so senders
     // notice malformed declarations rather than getting silent acceptance.
     const { emit, warnings } = collect();
@@ -208,7 +208,7 @@ describe("parser/escapes: reescape", () => {
   });
 
   it("does NOT escape the spec-default # when no truncation char is declared", () => {
-    // Pre-v2.7 encodings have no reserved meaning for `#` — round-trip as
+    // Pre-v2.7 encodings have no reserved meaning for `#`: round-trip as
     // a literal rather than synthesizing a \P\ the sender never authored.
     expect(reescape("a#b", enc)).toBe("a#b");
   });

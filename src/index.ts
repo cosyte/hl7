@@ -67,22 +67,22 @@ export { unescape, reescape } from "./parser/escapes.js";
 
 // Phase R: formatted-text rendering + first-class text codec. `renderText`
 // turns §2.7 escape/formatting-bearing content into a normalized display model
-// (never fabricating — unrenderable escapes are preserved + flagged); the
+// (never fabricating: unrenderable escapes are preserved + flagged); the
 // `decodeText`/`encodeText` codec is the ergonomic decode + encode-safe (no
 // delimiter injection) pair. All three are also bundled under the `text`
-// namespace object. This is a read/encode LAYER — raw parse output is unchanged.
+// namespace object. This is a read/encode LAYER: raw parse output is unchanged.
 export { renderText } from "./text/render.js";
 export type { RenderedText, TextRun, RenderTextOptions } from "./text/render.js";
 export { decodeText, encodeText } from "./text/codec.js";
 export * as text from "./text/index.js";
 
-// Phase 3 structural model — read-path foundation.
+// Phase 3 structural model: read-path foundation.
 export { Segment } from "./model/segment.js";
 export { Field } from "./model/field.js";
 export { parsePath, resolvePath } from "./model/dot-path.js";
 export type { DotPath } from "./model/dot-path.js";
 
-// Phase 3 typed composites — named exports for the 10 v1 composites
+// Phase 3 typed composites: named exports for the 10 v1 composites
 // (XPN, XAD, CX, CWE, CE, XTN, PL, TS, NM, HD) alongside their parser
 // functions. D-13: these are ALSO re-exported under the `HL7` namespace
 // below so `import { HL7 } from "@cosyte/hl7"; type T = HL7.XPN`
@@ -110,16 +110,16 @@ export { parseSn } from "./model/types/sn.js";
 export type { HD } from "./model/types/hd.js";
 export { parseHd } from "./model/types/hd.js";
 
-// Phase 4: XCN composite (11th v1 composite — D-24 option (a)). Used by
+// Phase 4: XCN composite (11th v1 composite: D-24 option (a)). Used by
 // helpers for `visit.attendingDoctor` / `visit.referringDoctor` (PV1-7/8)
 // and `order.orderedBy` (OBR-16). Structurally XPN + ID prefix + nested HD.
 export type { XCN } from "./model/types/xcn.js";
 export { parseXcn } from "./model/types/xcn.js";
 
-// Phase 3 HL7 namespace re-export (D-13) — `HL7.XPN`, `HL7.XAD`, ..., `HL7.XCN`.
+// Phase 3 HL7 namespace re-export (D-13): `HL7.XPN`, `HL7.XAD`, ..., `HL7.XCN`.
 export * as HL7 from "./model/types/namespace.js";
 
-// Phase 4 named helpers — type-only exports. Runtime behavior lives on
+// Phase 4 named helpers: type-only exports. Runtime behavior lives on
 // `Hl7Message` instance getters (`.meta`, `.patient`, `.visit`) and
 // collection methods (`.observations()`, `.orders()`, `.nextOfKin()`,
 // `.allergies()`, `.diagnoses()`, `.insurance()`). HELPERS-01..07.
@@ -171,21 +171,21 @@ export { mergeMissingPriorOrSurvivor } from "./parser/warnings.js";
 // Phase 5: outbound construction + serialization types.
 // D-09: `buildMessage` is a top-level named export, symmetric with `parseHL7`.
 // D-21: `SerializedMessage` is a top-level type export (not under the HL7
-// namespace — that namespace is composite-type territory).
+// namespace: that namespace is composite-type territory).
 // The three emit methods (`toString`, `toJSON`, `prettyPrint`) land as
-// instance methods on the already-exported `Hl7Message` class — no new
+// instance methods on the already-exported `Hl7Message` class: no new
 // named exports needed for them.
 export { buildMessage } from "./builder/build-message.js";
 export type { BuildMessageInit } from "./builder/build-message.js";
 export type { SerializedMessage } from "./serialize/to-json.js";
 
-// Phase T: typed emit symmetry — the conservative-emit mirror of the read
+// Phase T: typed emit symmetry: the conservative-emit mirror of the read
 // helpers. `encodeComposite` (and the per-type `encodeXpn`/`encodeCx`/… it
 // dispatches to) turn a typed composite into a spec-clean field using the
 // HL7-R encode-safe path (no delimiter injection); the same encoding powers
 // `Hl7Message.setComposite(path, kind, value)`. `buildAdt`/`buildOru` author
 // spec-clean, zero-warning, structurally-complete ADT / ORU^R01 messages from
-// typed inputs — never fabricating a value the caller did not supply.
+// typed inputs: never fabricating a value the caller did not supply.
 export {
   encodeComposite,
   encodeCompositeReps,
@@ -246,7 +246,7 @@ export { KNOWN_SEGMENTS } from "./parser/known-segments.js";
 
 // Phase F: coding-system provenance (HL7 Table 0396, read-only). A frozen
 // acronym→name map plus accessors that answer "what system does this code
-// CLAIM?" over CWE/CE — alias-normalized, never validated, unknown surfaced
+// CLAIM?" over CWE/CE: alias-normalized, never validated, unknown surfaced
 // verbatim with `known:false`. No lookup, no network, no bundled codeset.
 export {
   KNOWN_CODING_SYSTEMS,
@@ -260,7 +260,7 @@ export type {
   CodedSystemFields,
 } from "./model/coding-system.js";
 
-// Phase G: message-type & structure awareness — a conservative misroute/
+// Phase G: message-type & structure awareness: a conservative misroute/
 // truncation safety net. `Hl7Message.structure` surfaces the read-side
 // summary; the parser emits an additive `MISSING_EXPECTED_GROUP` warning when
 // a recognized type lacks an expected Required segment group. The expected-
@@ -279,7 +279,7 @@ export type {
 // Roadmap Phase L: batch / file envelope splitting. `splitBatch` is a
 // top-level utility (symmetric with `parseHL7`) that demarcates the individual
 // MSH-led messages inside an `[FHS]{[BHS]{MSH…}[BTS]}[FTS]` stream, parses each
-// via parseHL7 (ok / typed-failure entries — a malformed message is isolated,
+// via parseHL7 (ok / typed-failure entries: a malformed message is isolated,
 // never suppresses siblings), and reconciles the declared BTS-1/FTS-1 counts.
 // The two additive Tier-2 warnings live on the returned result, never on
 // Hl7Message.warnings.
@@ -296,7 +296,7 @@ export { batchCountMismatch, batchMissingTrailer } from "./parser/warnings.js";
 // Roadmap Phase U: conformance-profile TOOLING. `validateAgainstProfile` runs a
 // USER-AUTHORED declarative conformance profile (usage R/RE/C/CE/O/X,
 // cardinality, length, and a CONSUMER-SUPPLIED value set) against a parsed
-// message and returns typed findings — never throwing, valid⇒zero findings, and
+// message and returns typed findings: never throwing, valid⇒zero findings, and
 // with NO PHI in findings (locus + rule, never the offending value). hl7 ships
 // NO vendor/IHE/regulatory profile and NO code set, makes NO network call, and
 // "no findings" is explicitly NOT a conformance attestation. Distinct from the
@@ -326,7 +326,7 @@ export * as conformance from "./conformance/index.js";
 // Roadmap Phase S: streaming / incremental parse. `parseStream` consumes a
 // chunked byte/string source (a Node `Readable`, an async-iterable, or an
 // iterable of chunks) and yields one message per MSH-delimited boundary with
-// O(one-message) memory — reassembling messages split across chunk boundaries,
+// O(one-message) memory: reassembling messages split across chunk boundaries,
 // isolating a malformed message (typed failure entry) without dropping the tail,
 // and reusing `parseHL7` for each message (no second grammar). Batch-envelope
 // segments are boundaries, never yielded, so yielded count == MSH count. The

@@ -1,5 +1,5 @@
 /**
- * Phase E — integration tests for `msg.immunizations()` (VXU^V04: ORC→RXA→
+ * Phase E: integration tests for `msg.immunizations()` (VXU^V04: ORC→RXA→
  * [RXR]→[{OBX}] order groups). Covers the RXA field map, CVX provenance +
  * dual-coding, NCIT route provenance, the NIP001 administered-vs-historical
  * derivation, verbatim action code, the 999 unknown-dose sentinel, positional
@@ -77,7 +77,7 @@ describe("helpers/immunizations: administered dose (RXA field map)", () => {
       raw: "20260615103000",
       precision: "second",
       year: 2026,
-      month: 6, // June — 1-based, spec-native (not JS 0-indexed)
+      month: 6, // June: 1-based, spec-native (not JS 0-indexed)
       day: 15,
     });
   });

@@ -5,7 +5,7 @@
  *
  * Derived from HL7 v2.5.1 chapters 3-7 (core message segments, order/result
  * tree, financial tree, scheduling, master files). Z-segments
- * (`/^Z[A-Z0-9]{2}$/`) are NOT in this set — they're always user-defined
+ * (`/^Z[A-Z0-9]{2}$/`) are NOT in this set: they're always user-defined
  * and must be declared in a profile to avoid the warning.
  *
  * Frozen as `ReadonlySet<string>` for O(1) lookup without mutation risk.

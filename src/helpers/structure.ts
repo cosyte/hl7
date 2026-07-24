@@ -1,12 +1,12 @@
 /**
- * `buildStructure` — compose the read-side `MessageStructure` summary exposed
+ * `buildStructure`: compose the read-side `MessageStructure` summary exposed
  * by `Hl7Message.structure` (roadmap Phase G). It mirrors, on the public
  * message surface, the same conservative expected-group analysis the parser
- * runs at parse time to emit `MISSING_EXPECTED_GROUP` warnings — so a consumer
+ * runs at parse time to emit `MISSING_EXPECTED_GROUP` warnings: so a consumer
  * can ask "did this message carry its expected core groups?" without scanning
  * `msg.warnings`.
  *
- * Composes on the Phase 3 public surface (`msg.get`, `msg.allSegments()`) —
+ * Composes on the Phase 3 public surface (`msg.get`, `msg.allSegments()`),
  * never walks `rawSegments` directly. D-01 freeze at boundary (the underlying
  * `analyzeMessageStructure` already freezes deeply). D-02 memoization is the
  * caller's job (`Hl7Message.structure` getter). D-22 never throws.

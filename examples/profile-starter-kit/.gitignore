@@ -38,6 +38,6 @@ yarn-error.log*
 .cache/
 .turbo/
 
-# Lockfile — template packages should not ship a lockfile; users generate
+# Lockfile, template packages should not ship a lockfile; users generate
 # their own after running the find/replace in CUSTOMIZING.md step 1.
 pnpm-lock.yaml

@@ -1,5 +1,5 @@
 /**
- * `observations` + `buildObservation` — Phase 4 Plan 03 (visit-and-observations)
+ * `observations` + `buildObservation`: Phase 4 Plan 03 (visit-and-observations)
  * implementation of HELPERS-04. Walks every OBX segment in document order and
  * projects each into a typed `Observation` discriminated by OBX-2
  * (`valueType`) per D-13. The per-segment builder `buildObservation` is
@@ -8,9 +8,9 @@
  * grouping).
  *
  * Design decisions enforced here:
- *   - D-05: `observations(msg)` always returns a readonly array — `[]` when
+ *   - D-05: `observations(msg)` always returns a readonly array: `[]` when
  *     the message has no OBX segments.
- *   - D-06: NOT memoized — each call re-walks `msg.segments("OBX")`.
+ *   - D-06: NOT memoized: each call re-walks `msg.segments("OBX")`.
  *   - D-11: document order (matches the segment iteration order).
  *   - D-13: discriminated union on `valueType`:
  *       - `"NM"`            → `number | undefined`  (via `Field.asNm()`)
@@ -21,7 +21,7 @@
  *   - D-15: common-field shape (setId, identifier, units, referenceRange,
  *     abnormalFlags, status, observedDateTime).
  *   - Phase N: datetime values are the fidelity `TS`, not a flat `Date`.
- *   - D-22: never throws — empty or malformed input surfaces as `undefined`.
+ *   - D-22: never throws: empty or malformed input surfaces as `undefined`.
  *   - D-01: each Observation and the outer array are frozen at the boundary.
  */
 
@@ -53,7 +53,7 @@ function cweOrUndefined(field: Field): CWE | undefined {
  */
 function buildCommon(obx: Segment): ObservationBase {
   type Mutable<T> = { -readonly [K in keyof T]?: T[K] };
-  // `identifier` is always present (D-15) — always parse OBX-3, even if empty.
+  // `identifier` is always present (D-15): always parse OBX-3, even if empty.
   const base: Mutable<ObservationBase> = {
     identifier: obx.field(3).asCwe(),
   };
@@ -156,7 +156,7 @@ function dispatchValue(valueType: string, valueField: Field, common: Observation
  * Build a single `Observation` from one OBX `Segment`. Value is dispatched
  * by OBX-2 per D-13; common fields follow D-15. Exported so Plan 04's
  * `orders()` can reuse this per-segment builder when grouping OBX under OBR
- * positionally (D-12) — do NOT re-implement OBX → Observation construction
+ * positionally (D-12): do NOT re-implement OBX → Observation construction
  * there.
  *
  * @example
@@ -184,7 +184,7 @@ export function buildObservation(obx: Segment, notes?: readonly string[]): Obser
 
 /**
  * Every OBX segment as a typed `Observation` in document order (D-11). D-05:
- * returns `[]` when no OBX segments are present. D-06: NOT memoized — each
+ * returns `[]` when no OBX segments are present. D-06: NOT memoized: each
  * call re-walks `msg.segments("OBX")`.
  *
  * @example

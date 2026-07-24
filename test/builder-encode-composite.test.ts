@@ -3,12 +3,12 @@
  * per-type `encodeXpn`/`encodeCx`/…) and the `Hl7Message.setComposite` setter.
  *
  * The load-bearing claims exercised here:
- *   - **emit ∘ parse identity** — `parseXxx(encodeXxx(v))` reproduces `v` on
+ *   - **emit ∘ parse identity**: `parseXxx(encodeXxx(v))` reproduces `v` on
  *     every modelled component (including nested HDs and preserved
  *     `extraComponents`), and interior empties keep positions aligned.
- *   - **no delimiter injection** — a component value full of `|^~\&` re-parses
+ *   - **no delimiter injection**: a component value full of `|^~\&` re-parses
  *     as the exact string in the exact component, never forging a boundary.
- *   - **never fabricate** — an omitted optional field encodes to
+ *   - **never fabricate**: an omitted optional field encodes to
  *     empty/absent, an all-empty composite clears the field.
  *
  * All values are synthetic.
@@ -62,7 +62,7 @@ function roundTripField(field: RawField): RawRepetition {
   return rep;
 }
 
-describe("Phase T — typed-composite encoders (emit ∘ parse identity)", () => {
+describe("Phase T: typed-composite encoders (emit ∘ parse identity)", () => {
   it("XPN round-trips names, prefix, suffix", () => {
     const v = {
       familyName: "Test",
@@ -198,14 +198,14 @@ describe("Phase T — typed-composite encoders (emit ∘ parse identity)", () =>
   });
 });
 
-describe("Phase T — no delimiter injection", () => {
+describe("Phase T: no delimiter injection", () => {
   it("a component value full of delimiters re-parses as the exact string, no forged boundary", () => {
     const hostile = "a|b^c~d\\e&f";
     const rep = roundTripField(encodeXpn({ familyName: hostile, givenName: "Ann" }));
     const xpn = parseXpn(rep, ENC);
     expect(xpn.familyName).toBe(hostile);
     expect(xpn.givenName).toBe("Ann");
-    // Exactly two components — the hostile value never split into more.
+    // Exactly two components: the hostile value never split into more.
     expect(rep.components.length).toBe(2);
   });
 
@@ -216,7 +216,7 @@ describe("Phase T — no delimiter injection", () => {
   });
 });
 
-describe("Phase T — never fabricate", () => {
+describe("Phase T: never fabricate", () => {
   it("an all-empty composite encodes to an absent field", () => {
     expect(encodeXpn({})).toEqual({ repetitions: [], isNull: false });
     expect(encodeComposite("CX", {})).toEqual({ repetitions: [], isNull: false });
@@ -228,7 +228,7 @@ describe("Phase T — never fabricate", () => {
   });
 });
 
-describe("Phase T — encoder input variants", () => {
+describe("Phase T: encoder input variants", () => {
   it("encodeCompositeReps skips an all-empty entry (no forged bare repetition)", () => {
     const field = encodeCompositeReps("CX", [{}, { idNumber: "X" }]);
     expect(field.repetitions.length).toBe(1);
@@ -262,7 +262,7 @@ describe("Phase T — encoder input variants", () => {
   });
 });
 
-describe("Phase T — setComposite (path-based typed setter)", () => {
+describe("Phase T: setComposite (path-based typed setter)", () => {
   it("sets a name at a field path and re-parses cleanly", () => {
     const msg = buildMessage({ type: "ADT^A01" }).addSegment("PID", [""]);
     msg.setComposite("PID.5", "XPN", { familyName: "Test", givenName: "Ann" });

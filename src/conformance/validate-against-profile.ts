@@ -1,5 +1,5 @@
 /**
- * The conformance-profile engine (roadmap Phase U) — `validateAgainstProfile`.
+ * The conformance-profile engine (roadmap Phase U): `validateAgainstProfile`.
  * Runs a **consumer-authored** declarative {@link ConformanceProfile} against a
  * parsed {@link Hl7Message} and returns typed {@link ConformanceFinding}s.
  *
@@ -11,10 +11,10 @@
  * 1. **Never throws.** Any message × any profile (even a malformed profile, or a
  *    value cast through `any`) yields a {@link ConformanceResult}, never an
  *    exception. A malformed profile becomes `PROFILE_MALFORMED` findings.
- * 2. **Valid ⇒ zero findings**, and **zero findings is NOT an attestation** —
+ * 2. **Valid ⇒ zero findings**, and **zero findings is NOT an attestation**,
  *    it means no *declared* rule was violated, nothing more (see
  *    {@link ConformanceResult}).
- * 3. **No PHI in findings.** Findings name the structural locus and the rule —
+ * 3. **No PHI in findings.** Findings name the structural locus and the rule,
  *    never the offending value (see `src/conformance/findings.ts`).
  * 4. **Read-only.** Validation never mutates the message.
  */
@@ -68,7 +68,7 @@ function fieldHasValue(field: Field): boolean {
  * - `R` absent ⇒ `"required-absent"`.
  * - `X` present ⇒ `"not-permitted"`.
  * - `RE` / `O` ⇒ no presence finding (RE absence is never a violation).
- * - `C` / `CE` ⇒ no presence finding — this bounded engine ships no
+ * - `C` / `CE` ⇒ no presence finding: this bounded engine ships no
  *   predicate language, so a conditional element's presence is **not
  *   evaluated** (a documented defer, roadmap §5). Its length / value-set /
  *   cardinality rules still apply when present.
@@ -129,7 +129,7 @@ function checkFields(
       out.push(F.notPermitted(baseLocus, severity));
       continue; // it should not be here; do not also value-check it
     }
-    if (!present) continue; // absent-but-allowed (RE/O/C/CE) — nothing to check
+    if (!present) continue; // absent-but-allowed (RE/O/C/CE): nothing to check
 
     const reps = field.repetitions;
     checkCardinality(reps.length, rule.cardinality, baseLocus, "repetition", severity, out);
@@ -191,18 +191,18 @@ function checkSegment(message: Hl7Message, rule: SegmentRule, out: ConformanceFi
  *
  * **Never throws.** A well-formed profile is evaluated rule by rule; a
  * malformed profile is reported as `PROFILE_MALFORMED` findings (the engine
- * does not validate against a profile it cannot trust — never a silent pass).
+ * does not validate against a profile it cannot trust: never a silent pass).
  * Either way you get a {@link ConformanceResult}. For fail-fast authoring, run
- * {@link defineConformanceProfile} first — it throws on a malformed profile.
+ * {@link defineConformanceProfile} first: it throws on a malformed profile.
  *
  * **`findings.length === 0` is NOT a conformance attestation.** It means every
- * rule the profile declared was satisfied — nothing about the parts of the
+ * rule the profile declared was satisfied: nothing about the parts of the
  * message the profile did not cover, and nothing about clinical correctness.
  *
- * **No PHI in findings** — each finding names the structural locus (segment /
+ * **No PHI in findings**: each finding names the structural locus (segment /
  * field / component / repetition) and the rule, never the offending value.
  *
- * **Read-only** — the message is never mutated.
+ * **Read-only**: the message is never mutated.
  *
  * @param message - a parsed message from {@link parseHL7}.
  * @param profile - the consumer's declarative {@link ConformanceProfile}.

@@ -5,18 +5,18 @@
  * per-segment field extraction, reporting parity or divergences.
  *
  * Oracle: **python-hl7** (PyPI distribution name `hl7`, BSD license,
- * https://github.com/johnpaulett/python-hl7) — pure-Python, `import hl7`.
+ * https://github.com/johnpaulett/python-hl7): pure-Python, `import hl7`.
  * See `docs-content/spec-notes-differential.md` for the full writeup
  * (approach, licensing, known/justified divergences, how to run).
  *
  * **Oracle-gated, not a hard requirement.** If no Python interpreter with
  * `hl7` importable is found at runtime, every test in this file
- * `it.skip`s — `verify.sh` stays green with zero Python in the
+ * `it.skip`s: `verify.sh` stays green with zero Python in the
  * environment. Detection order:
  *
  *   1. `.difftools/bin/python` (a local venv at the worktree root, created
  *      via `python3 -m venv .difftools && .difftools/bin/pip install hl7`
- *      — never committed, see `.gitignore`);
+ *: never committed, see `.gitignore`);
  *   2. the `python3` on `PATH`, if `import hl7` succeeds there.
  *
  * Field indexing is identical between the two parsers by construction (see
@@ -24,7 +24,7 @@
  * segment-name-or-MSH-1-separator placeholder; `fields[N]`/`seg[N]` for
  * N >= 1 is the HL7 N-th field, including for MSH. Per-field comparison
  * uses `Field.text` (canonical re-serialized wire text) against
- * `str(field)` (python-hl7's reconstruction) — the two libraries' analogous
+ * `str(field)` (python-hl7's reconstruction): the two libraries' analogous
  * "give me this field's full wire text" accessors.
  */
 
@@ -54,11 +54,11 @@ interface OracleResult {
 /**
  * A single documented, JUSTIFIED divergence pattern between `@cosyte/hl7`
  * and the oracle. Each entry is a real behavior difference observed while
- * building this harness (not a hypothetical) — see
+ * building this harness (not a hypothetical): see
  * `docs-content/spec-notes-differential.md` for the full narrative. A
  * mismatch that matches one of these predicates is reported (not silently
  * dropped) but does not fail the suite; anything that matches NONE of them
- * is an unclassified divergence and DOES fail — the harness must not let a
+ * is an unclassified divergence and DOES fail: the harness must not let a
  * real regression hide behind an overly-broad tolerance.
  */
 interface KnownDivergence {
@@ -87,7 +87,7 @@ function classifyFieldMismatch(ours: string, theirs: string): KnownDivergence | 
  * Find a Python interpreter with `hl7` importable. Tries the local
  * `.difftools` venv first (the one `pip install hl7` was asked to create
  * for this exact repo), then falls back to whatever `python3` is on PATH.
- * Returns `undefined` if neither works — the caller treats that as
+ * Returns `undefined` if neither works: the caller treats that as
  * "oracle unavailable" and skips.
  */
 function findOraclePython(): string | undefined {
@@ -115,12 +115,12 @@ function runOracle(pythonBin: string, fixturePath: string): OracleResult {
  * after the segment-identifying slot" convention.
  *
  * Non-MSH: `RawSegment.fields[0]` is the segment-name placeholder (not a
- * data field, matches the oracle's `seg[0]`) — comparison starts at
+ * data field, matches the oracle's `seg[0]`): comparison starts at
  * `fields[1]` (HL7's first data field), using `Field.text` (canonical
  * re-serialized wire text).
  *
  * MSH: `RawSegment.fields[0]` is MSH-1 (the field separator itself) and
- * `fields[1]` is MSH-2 (encoding characters) — BOTH are data the oracle
+ * `fields[1]` is MSH-2 (encoding characters): BOTH are data the oracle
  * includes (its `seg[1]`/`seg[2]`), so comparison starts at `fields[0]`.
  * Those two positions are read literally from the raw tokenizer tree
  * (bypassing `Field.text`, which the JSDoc documents as re-escaping MSH-1/
@@ -136,7 +136,7 @@ function parseWithHl7(raw: string): readonly OracleSegment[] {
       // HL7 1-indexed positions to compare: for MSH, positions 1..(fields.length)
       // (fields[0]=MSH-1 .. fields[last]=MSH-N); for non-MSH, positions
       // 1..(fields.length - 1) (fields[0] is the segment-name placeholder,
-      // not a data field, so it's excluded — matches the oracle's seg[0]).
+      // not a data field, so it's excluded: matches the oracle's seg[0]).
       const isMsh = seg.name === "MSH";
       const lastPosition = isMsh ? seg.fields.length : seg.fields.length - 1;
       for (let hl7Position = 1; hl7Position <= lastPosition; hl7Position++) {
@@ -170,7 +170,7 @@ describe("differential: @cosyte/hl7 vs python-hl7 oracle", () => {
       // eslint-disable-next-line no-console -- test-runner diagnostic, not library code
       console.log(
         "[differential] No Python + `hl7` package found (tried .difftools venv and PATH python3) " +
-          "— skipping the differential suite. See docs-content/spec-notes-differential.md to set one up.",
+          ": skipping the differential suite. See docs-content/spec-notes-differential.md to set one up.",
       );
     }
   });
@@ -191,11 +191,11 @@ describe("differential: @cosyte/hl7 vs python-hl7 oracle", () => {
 
       const oracle = runOracle(oraclePython, fixturePath);
       if (oracle.error !== undefined) {
-        // The oracle itself failed to parse (or import) — report it as a
+        // The oracle itself failed to parse (or import): report it as a
         // visible skip reason rather than a silent pass, but don't fail
         // the suite: an oracle-side parse failure on a specific fixture is
         // a documented divergence candidate, not a bug in this harness.
-        divergenceLog.push(`${file}: oracle error — ${oracle.error}`);
+        divergenceLog.push(`${file}: oracle error: ${oracle.error}`);
         ctx.skip();
         return;
       }
@@ -203,7 +203,7 @@ describe("differential: @cosyte/hl7 vs python-hl7 oracle", () => {
       const ours = parseWithHl7(raw);
       const theirs = oracle.segments ?? [];
 
-      // 1. Segment count parity — always a hard assertion. A segment-count
+      // 1. Segment count parity: always a hard assertion. A segment-count
       // mismatch means one parser saw a fundamentally different message
       // shape, which is never a "known/justified" divergence.
       expect(
@@ -234,7 +234,7 @@ describe("differential: @cosyte/hl7 vs python-hl7 oracle", () => {
           if (divergence !== undefined) {
             divergenceLog.push(
               `${file} segment[${String(i)}] (${ourSeg.name}) field[${String(f + 1)}]: ` +
-                `KNOWN divergence (${divergence.id}) — hl7=${JSON.stringify(ourField)} ` +
+                `KNOWN divergence (${divergence.id}): hl7=${JSON.stringify(ourField)} ` +
                 `oracle=${JSON.stringify(theirField)}`,
             );
             continue;
@@ -243,7 +243,7 @@ describe("differential: @cosyte/hl7 vs python-hl7 oracle", () => {
           expect(
             ourField,
             `segment[${String(i)}] (${ourSeg.name}) field[${String(f + 1)}] text mismatch in ${file} ` +
-              `(UNCLASSIFIED — does not match any KNOWN_DIVERGENCES entry)`,
+              `(UNCLASSIFIED: does not match any KNOWN_DIVERGENCES entry)`,
           ).toBe(theirField);
         }
       }
@@ -259,7 +259,7 @@ describe("differential: @cosyte/hl7 vs python-hl7 oracle", () => {
           divergenceLog.map((l) => `  - ${l}`).join("\n"),
       );
     }
-    // This test always "passes" — it's a reporting step, not a gate. The
+    // This test always "passes": it's a reporting step, not a gate. The
     // gate is: every mismatch above was either exact parity or matched a
     // documented KNOWN_DIVERGENCES entry.
     expect(true).toBe(true);

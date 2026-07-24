@@ -1,17 +1,17 @@
 /**
- * Roadmap Phase K — `identityEvents()` patient-identity / merge events.
+ * Roadmap Phase K: `identityEvents()` patient-identity / merge events.
  *
  * Safety-critical invariants under test:
  * - Role labelling: a `surviving` / `subject` / `linked` party is ONLY ever
  *   sourced from PID (+PV1); a `prior` party is ONLY ever sourced from MRG.
- * - Direction is the spec constant `MRG_TO_PID` on merge/move events —
+ * - Direction is the spec constant `MRG_TO_PID` on merge/move events,
  *   surfaced even when a side is missing, never inferred, never reversed.
  * - Fail-safe: an incomplete MRG→PID pair surfaces what is present plus a
  *   `MERGE_MISSING_PRIOR_OR_SURVIVOR` warning; the MRG is NEVER dropped
  *   (orphaned MRG yields its own event).
  * - Version gate: the withdrawn-as-of-v2.7 legacy fields (PID-2 / MRG-4) are
  *   not read on a v2.7+ message (MSH-12).
- * - PHI: warning messages carry structural facts only — never an identifier
+ * - PHI: warning messages carry structural facts only: never an identifier
  *   or name value.
  * - Helper never throws; all views deeply frozen; `msg.warnings` untouched.
  */
@@ -116,7 +116,7 @@ describe("Phase K: trigger-event recognition", () => {
   });
 });
 
-describe("Phase K: A40 merge — canonical fixture (adt-a40-merge.hl7)", () => {
+describe("Phase K: A40 merge: canonical fixture (adt-a40-merge.hl7)", () => {
   const msg = parseHL7(loadFixture("adt-a40-merge"));
   const events = msg.identityEvents();
 
@@ -235,7 +235,7 @@ describe("Phase K: MRG field-map version gate (withdrawn as of v2.7)", () => {
   });
 });
 
-describe("Phase K: fail-safe — MERGE_MISSING_PRIOR_OR_SURVIVOR", () => {
+describe("Phase K: fail-safe: MERGE_MISSING_PRIOR_OR_SURVIVOR", () => {
   it("merge with a PID but no MRG warns (missing prior), surfaces the survivor", () => {
     const msg = parseHL7(raw(MSH_A40, "PID|1||MRN81001^^^HOSP^MR||Failsafe^NoMrg"));
     const [ev] = msg.identityEvents();
@@ -247,7 +247,7 @@ describe("Phase K: fail-safe — MERGE_MISSING_PRIOR_OR_SURVIVOR", () => {
     ]);
   });
 
-  it("an orphaned MRG (no PID) is NEVER dropped — own event + missing-survivor warning", () => {
+  it("an orphaned MRG (no PID) is NEVER dropped: own event + missing-survivor warning", () => {
     const msg = parseHL7(raw(MSH_A40, "MRG|MRN81002^^^HOSP^MR"));
     const [ev] = msg.identityEvents();
     expect(ev?.prior?.identifiers.map((cx) => cx.idNumber)).toEqual(["MRN81002"]);
@@ -292,7 +292,7 @@ describe("Phase K: fail-safe — MERGE_MISSING_PRIOR_OR_SURVIVOR", () => {
     }
   });
 
-  it("event warnings are scoped to the event — msg.warnings is untouched", () => {
+  it("event warnings are scoped to the event: msg.warnings is untouched", () => {
     const msg = parseHL7(raw(MSH_A40, "PID|1||MRN81005^^^HOSP^MR"));
     const before = msg.warnings.length;
     const [ev] = msg.identityEvents();
@@ -301,7 +301,7 @@ describe("Phase K: fail-safe — MERGE_MISSING_PRIOR_OR_SURVIVOR", () => {
   });
 
   it("a v2.7+ MRG whose only content was the gated MRG-4 warns (missing prior)", () => {
-    // The prior party surfaces with no identity fields — the consumer must
+    // The prior party surfaces with no identity fields: the consumer must
     // not read that as "nothing to retire", so the fail-safe warns.
     const msg = parseHL7(
       raw(
@@ -330,7 +330,7 @@ describe("Phase K: fail-safe — MERGE_MISSING_PRIOR_OR_SURVIVOR", () => {
   });
 
   it("account/visit numbers count as identity fields (A41/A42 merge keys)", () => {
-    // A41-shaped: both sides keyed on the account number alone — no warning.
+    // A41-shaped: both sides keyed on the account number alone: no warning.
     const msg = parseHL7(
       raw(
         "MSH|^~\\&|REG|MAIN|MPI|MAIN|20260704080000||ADT^A41|MSGT12|P|2.5",
@@ -366,7 +366,7 @@ describe("Phase K: repeating groups + document order", () => {
     expect(events[1]?.warnings).toEqual([]);
   });
 
-  it("a second MRG in one group opens an orphan event — never silently dropped", () => {
+  it("a second MRG in one group opens an orphan event: never silently dropped", () => {
     const msg = parseHL7(
       raw(MSH_A40, "PID|1||MRN82005^^^HOSP^MR", "MRG|MRN82006^^^HOSP^MR", "MRG|MRN82007^^^HOSP^MR"),
     );

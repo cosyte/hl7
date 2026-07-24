@@ -4,8 +4,8 @@
  * The contract (parser/index.ts + errors.ts): in lenient mode `parseHL7` may
  * throw ONLY an `Hl7ParseError` carrying one of the four Tier-3 fatal codes
  * (`EMPTY_INPUT`, `NO_MSH_SEGMENT`, `MSH_TOO_SHORT`,
- * `INVALID_ENCODING_CHARACTERS`). Every other deviation — vendor quirks,
- * truncation, weird delimiters, unknown segments, extra fields, random bytes —
+ * `INVALID_ENCODING_CHARACTERS`). Every other deviation: vendor quirks,
+ * truncation, weird delimiters, unknown segments, extra fields, random bytes,
  * must be recovered into `msg.warnings`, never thrown.
  *
  * Additional invariants on the warnings themselves:
@@ -28,7 +28,7 @@ import { hostileInput, randomBytes, quirkyMessageRaw } from "./_arbitraries.js";
 /** Stable seed + run budget so failures reproduce deterministically. */
 const RUN_CONFIG = { numRuns: 500, seed: 0x06_25_2026 } as const;
 
-/** The set of legal Tier-3 fatal code strings — the ONLY throwable codes. */
+/** The set of legal Tier-3 fatal code strings: the ONLY throwable codes. */
 const FATAL_CODE_SET: ReadonlySet<string> = new Set(Object.values(FATAL_CODES));
 
 /** The set of legal Tier-2 warning code strings. */
@@ -60,7 +60,7 @@ function parseOrAssertFatal(raw: string | Buffer): ReturnType<typeof parseHL7> |
 /** Assert every warning on a parsed message is well-formed (code + position). */
 function assertWarningsWellFormed(msg: ReturnType<typeof parseHL7>): void {
   for (const w of msg.warnings) {
-    // Stable, registered code — no unknown/ad-hoc codes.
+    // Stable, registered code: no unknown/ad-hoc codes.
     expect(WARNING_CODE_SET.has(w.code)).toBe(true);
     // Non-empty human message.
     expect(typeof w.message).toBe("string");
@@ -71,7 +71,7 @@ function assertWarningsWellFormed(msg: ReturnType<typeof parseHL7>): void {
 }
 
 describe("property: lenient mode never throws except Tier-3 fatals", () => {
-  it("hostile string input either parses or throws a Tier-3 fatal — nothing else", () => {
+  it("hostile string input either parses or throws a Tier-3 fatal: nothing else", () => {
     fc.assert(
       fc.property(hostileInput(), (raw) => {
         const msg = parseOrAssertFatal(raw);
@@ -127,7 +127,7 @@ describe("property: lenient vs strict consistency on the same input", () => {
         try {
           lenient = parseHL7(raw);
         } catch (err) {
-          // Tier-3 fatal in lenient mode — strict will throw identically.
+          // Tier-3 fatal in lenient mode: strict will throw identically.
           expect(err).toBeInstanceOf(Hl7ParseError);
           lenientThrew = true;
         }

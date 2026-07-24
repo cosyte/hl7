@@ -1,9 +1,9 @@
 /**
- * `Hl7Message` — the immutable parsed-message model produced by `parseHL7`.
+ * `Hl7Message`: the immutable parsed-message model produced by `parseHL7`.
  * Phase 2 shipped the read-only shell; Phase 3 extends the same class with
  * the read-path traversal methods (`get`, `getAll`, `segments`,
  * `allSegments`) on top of lazy, referentially stable Segment/Field caches
- * (D-11/D-12). The constructor surface is unchanged (Phase 2 D-05 lock) —
+ * (D-11/D-12). The constructor surface is unchanged (Phase 2 D-05 lock),
  * `init.segments` is still the parser-side key, but the public raw-tree
  * field is now exposed as `rawSegments` to free up the name `segments` for
  * the typed `segments(type)` method.
@@ -66,7 +66,7 @@ import {
 
 /**
  * HL7 segment-name shape: 3 characters, first an uppercase ASCII letter,
- * remaining two uppercase ASCII letters or digits — `[A-Z][A-Z0-9]{2}`.
+ * remaining two uppercase ASCII letters or digits: `[A-Z][A-Z0-9]{2}`.
  * This matches standard HL7 v2 segment names (MSH, PID, PV1, PV2, OBX,
  * OBR, NK1, AL1, DG1, IN1, IN2, IN3, …) AND Z-segment custom shapes
  * (ZPI, ZX1, …). Enforced symmetrically on `addSegment` and
@@ -79,7 +79,7 @@ const SEGMENT_NAME_RE = /^[A-Z][A-Z0-9]{2}$/u;
 /**
  * Shallow-copy a readonly array to a mutable one. Mutation methods rebuild
  * the affected path from leaf to root to keep the declared `readonly Raw*`
- * shapes honest — this helper is the one sanctioned bridge from readonly to
+ * shapes honest: this helper is the one sanctioned bridge from readonly to
  * mutable for Phase 3 mutation.
  * @internal
  */
@@ -95,7 +95,7 @@ function toMutableArray<T>(arr: readonly T[]): T[] {
  *
  * @remarks
  * With `exactOptionalPropertyTypes: true`, callers cannot pass
- * `{ profile: undefined }` — either omit the key or pass a real profile
+ * `{ profile: undefined }`: either omit the key or pass a real profile
  * descriptor. This matches the `Hl7Message.profile` public field shape
  * (`... | undefined`).
  *
@@ -118,7 +118,7 @@ export interface Hl7MessageInit {
    */
   readonly customSegments?: Readonly<Record<string, CustomSegmentDefinition>>;
   /**
-   * Merged `dateFormats` list — `options.dateFormats ++ profile.dateFormats`
+   * Merged `dateFormats` list: `options.dateFormats ++ profile.dateFormats`
    * deduped first-occurrence per D-21. Consumed by `msg.meta.timestamp` and
    * any future helper that calls `parseDtmCascade` directly. Absent when
    * neither `options.dateFormats` nor `profile.dateFormats` was supplied.
@@ -129,7 +129,7 @@ export interface Hl7MessageInit {
 /**
  * Parsed HL7 v2 message. Produced by `parseHL7`. Exposes the raw positional
  * tree (`rawSegments`), delimiter metadata, warnings, and a typed traversal
- * surface — `get(path)` for dot-paths, `getAll(type)` / `segments(type)` /
+ * surface: `get(path)` for dot-paths, `getAll(type)` / `segments(type)` /
  * `allSegments()` for wrapper-level iteration.
  *
  * @remarks
@@ -154,7 +154,7 @@ export class Hl7Message {
   /**
    * Raw positional tree produced by the parser. 1-indexed per HL7 convention
    * (`fields[0]` is the segment-name / MSH separator placeholder slot). Use
-   * `segments(type)` / `allSegments()` for typed wrapper access — this field
+   * `segments(type)` / `allSegments()` for typed wrapper access: this field
    * is exposed for advanced callers that need the raw tree directly (e.g.
    * future serialization phase 5).
    */
@@ -168,7 +168,7 @@ export class Hl7Message {
     | undefined;
 
   /**
-   * Merged `dateFormats` list — `options.dateFormats ++ profile.dateFormats`
+   * Merged `dateFormats` list: `options.dateFormats ++ profile.dateFormats`
    * deduped first-occurrence per D-21. Empty array when neither source
    * supplied any formats. Exposed publicly so helpers (`msg.meta.timestamp`)
    * and advanced callers can introspect the active cascade.
@@ -202,7 +202,7 @@ export class Hl7Message {
 
   /**
    * Lazily built `Meta` view (Phase 4 D-02 memoization). Dropped wholesale
-   * by `invalidateCaches`. `Meta` is always defined (D-03 — MSH absence
+   * by `invalidateCaches`. `Meta` is always defined (D-03: MSH absence
    * throws `NO_MSH_SEGMENT` at parse time) so no null-sentinel is needed.
    * @internal
    */
@@ -210,7 +210,7 @@ export class Hl7Message {
 
   /**
    * Lazily built `MessageStructure` view (Phase G). Dropped wholesale by
-   * `invalidateCaches`. Always defined — `analyzeMessageStructure` returns an
+   * `invalidateCaches`. Always defined: `analyzeMessageStructure` returns an
    * `recognized: false` summary for unmodelled types rather than absence.
    * @internal
    */
@@ -254,7 +254,7 @@ export class Hl7Message {
     this.profile = init.profile;
     // D-16: stash the merged customSegments map so allSegments() can hand
     // per-segment slices to Segment constructors. Conditional assignment
-    // under exactOptionalPropertyTypes — absent key stays undefined.
+    // under exactOptionalPropertyTypes: absent key stays undefined.
     if (init.customSegments !== undefined) this._customSegments = init.customSegments;
     // D-21: merged dateFormats list (options ++ profile). Empty array when
     // neither source supplied any formats so the public field is always
@@ -264,9 +264,9 @@ export class Hl7Message {
 
   /**
    * Resolve a dot-path (e.g. `PID.5.1`, `OBX[2].5`, `PID.3[0].1`) to its
-   * decoded leaf string (unescaped once at parse — never re-unescaped on read,
+   * decoded leaf string (unescaped once at parse: never re-unescaped on read,
    * HL7-VALUE-REDECODE). Returns `undefined` when the path doesn't
-   * resolve — never throws on missing path (MODEL-05). Throws `TypeError`
+   * resolve: never throws on missing path (MODEL-05). Throws `TypeError`
    * on malformed path syntax (e.g. `"pid.5"`, empty string).
    *
    * @example
@@ -275,7 +275,7 @@ export class Hl7Message {
    * msg.get("PID.5.1");  // "Smith"
    * msg.get("OBX[2].5"); // third OBX's 5th field
    * msg.get("NOT.9.9");  // undefined
-   * msg.get("MSH.12");   // "2.5" — HL7 version string
+   * msg.get("MSH.12");   // "2.5": HL7 version string
    * ```
    */
   public get(path: string): string | undefined {
@@ -285,7 +285,7 @@ export class Hl7Message {
   /**
    * Return every `Segment` of `segmentType` in document order. Returns `[]`
    * (empty array, NEVER `undefined`) when no segment of that type exists
-   * (MODEL-02). Alias for `segments(segmentType)` — shares the same cache.
+   * (MODEL-02). Alias for `segments(segmentType)`: shares the same cache.
    *
    * @example
    * ```ts
@@ -362,7 +362,7 @@ export class Hl7Message {
 
   /**
    * MSH-derived message metadata (type, controlId, timestamp, version, etc.).
-   * D-01: plain object. D-02: memoized — `msg.meta === msg.meta` across
+   * D-01: plain object. D-02: memoized: `msg.meta === msg.meta` across
    * reads until mutation invalidates. D-03: always defined (MSH absence
    * throws `NO_MSH_SEGMENT` at parse time).
    *
@@ -379,10 +379,10 @@ export class Hl7Message {
 
   /**
    * Structural-conformance summary for the common message types (roadmap
-   * Phase G) — a misroute/truncation safety net, NOT a conformance validator.
+   * Phase G): a misroute/truncation safety net, NOT a conformance validator.
    * Reports, per the message's recognized (MSH-9.1, MSH-9.2) type, which
    * Required segment groups are present and which are entirely absent
-   * (`missingGroups` — the same set the parser flags as
+   * (`missingGroups`: the same set the parser flags as
    * `MISSING_EXPECTED_GROUP` warnings). For an unmodelled type, `recognized`
    * is `false` and `missingGroups` is empty. D-02: memoized.
    *
@@ -398,14 +398,14 @@ export class Hl7Message {
 
   /**
    * PID-derived patient view, or `undefined` when no PID segment exists
-   * (D-04). D-02: memoized. HELPERS-07: never throws — absent fields
+   * (D-04). D-02: memoized. HELPERS-07: never throws: absent fields
    * surface as `undefined` on the returned `Patient` object.
    *
    * @example
    * ```ts
    * console.log(msg.patient?.mrn);
    * console.log(msg.patient?.fullName);
-   * console.log(msg.patient?.dateOfBirth?.raw); // fidelity TS — e.g. "19800115"
+   * console.log(msg.patient?.dateOfBirth?.raw); // fidelity TS: e.g. "19800115"
    * ```
    */
   public get patient(): Patient | undefined {
@@ -435,7 +435,7 @@ export class Hl7Message {
 
   /**
    * Every OBX segment as a typed Observation in document order. D-05:
-   * returns `[]` when no OBX present. D-06: NOT memoized — each call
+   * returns `[]` when no OBX present. D-06: NOT memoized: each call
    * re-walks `rawSegments`. Value type is discriminated per D-13.
    *
    * @example
@@ -451,7 +451,7 @@ export class Hl7Message {
 
   /**
    * Every OBR as an Order with its OBX children grouped positionally (D-12) and
-   * its TQ1 / legacy embedded-TQ (ORC-7) `timings` (Phase M — the repeat pattern
+   * its TQ1 / legacy embedded-TQ (ORC-7) `timings` (Phase M: the repeat pattern
    * surfaced verbatim, never resolved to a schedule). D-05: returns `[]` when no
    * OBR present. D-06: not memoized.
    *
@@ -459,7 +459,7 @@ export class Hl7Message {
    * ```ts
    * for (const order of msg.orders()) {
    *   console.log(order.placerOrderNumber, order.observations.length);
-   *   for (const t of order.timings) console.log(t.repeatPattern?.code); // e.g. "Q6H" — verbatim
+   *   for (const t of order.timings) console.log(t.repeatPattern?.code); // e.g. "Q6H": verbatim
    * }
    * ```
    */
@@ -468,11 +468,11 @@ export class Hl7Message {
   }
 
   /**
-   * Message-level NTE notes (Phase P) — every NTE segment with no recognized
+   * Message-level NTE notes (Phase P): every NTE segment with no recognized
    * preceding parent (not immediately following a `PID`, `ORC`, `OBR`, or
    * `OBX`), surfaced verbatim in document order so nothing is dropped. Notes
    * that DO attach to a specific patient / order / result are exposed on those
-   * helper outputs (`msg.patient?.notes`, `order.notes`, `observation.notes`) —
+   * helper outputs (`msg.patient?.notes`, `order.notes`, `observation.notes`),
    * not here. D-05: returns `[]` when there are none. D-06: NOT memoized.
    *
    * @example
@@ -486,7 +486,7 @@ export class Hl7Message {
 
   /**
    * Every recognized ADT patient-identity event (merge / move / link /
-   * unlink / person add/update — roadmap Phase K), with the MRG-sourced
+   * unlink / person add/update: roadmap Phase K), with the MRG-sourced
    * `prior` and PID/PV1-sourced `surviving` parties labelled by role and the
    * spec-constant `direction: "MRG_TO_PID"` on merge/move events. Returns
    * `[]` when the trigger event is not in the identity family. D-06: not
@@ -514,7 +514,7 @@ export class Hl7Message {
    * and never reconciled (Phase D §4).
    *
    * Each medication also carries its TQ1 / legacy embedded-TQ (RXE-1) `timings`
-   * (Phase M — repeat pattern verbatim, never resolved to a schedule).
+   * (Phase M: repeat pattern verbatim, never resolved to a schedule).
    *
    * @example
    * ```ts
@@ -536,7 +536,7 @@ export class Hl7Message {
    * returns `[]` when no RXA present. D-06: not memoized. The vaccine code
    * carries its own provenance; the action code (RXA-21) is surfaced verbatim
    * and `recordOrigin` (administered vs historical) is derived only from the
-   * well-known NIP001 RXA-9.1 codes — never guessed.
+   * well-known NIP001 RXA-9.1 codes: never guessed.
    *
    * @example
    * ```ts
@@ -611,7 +611,7 @@ export class Hl7Message {
    * status (Table 0278), SCH-11 start/end timing, and the resource groups
    * (service / general / location / personnel). D-05: returns `[]` when no SCH
    * is present. D-06: not memoized. Never throws (HELPERS-07). Not a
-   * scheduling-workflow state machine — see the package known-limitations.
+   * scheduling-workflow state machine: see the package known-limitations.
    *
    * @example
    * ```ts
@@ -629,7 +629,7 @@ export class Hl7Message {
    * Every TXA of an MDM message as a typed `ClinicalDocument` (roadmap Phase Q),
    * with the OBX narrative body grouped positionally under that TXA. The
    * completion status (TXA-17) and availability status (TXA-19) are surfaced as
-   * **distinct** fields and never conflated — a document can be available before
+   * **distinct** fields and never conflated: a document can be available before
    * it is authenticated, and reading a preliminary document as final is the
    * harm. D-05: returns `[]` when no TXA is present. D-06: not memoized. Never
    * throws (HELPERS-07).
@@ -650,7 +650,7 @@ export class Hl7Message {
    * Every FT1 of a DFT message as a typed `Charge` (roadmap Phase Q), one per
    * FT1 in document order. Surfaces billing-critical fields (FT1-6 transaction
    * type, FT1-7 code, FT1-11/12 extended/unit amount, FT1-19 diagnosis linkage)
-   * with **no billing logic and no money-as-float** — amounts are the verbatim
+   * with **no billing logic and no money-as-float**: amounts are the verbatim
    * CP wire text. D-05: returns `[]` when no FT1 is present. D-06: not memoized.
    * Never throws (HELPERS-07).
    *
@@ -672,7 +672,7 @@ export class Hl7Message {
    * D-05; MSH-1 and MSH-2 are inlined verbatim from
    * `this.encodingCharacters` per D-06; every field string passes through
    * `reescape` per D-04. `RawField.isNull === true` is preserved as the
-   * HL7 literal `""` (D-02). Pure — never warns, never throws (D-07).
+   * HL7 literal `""` (D-02). Pure: never warns, never throws (D-07).
    *
    * @example
    * ```ts
@@ -691,7 +691,7 @@ export class Hl7Message {
    * Re-walks `rawSegments` on every call (D-30 no caching). Mirrors the
    * raw tree one-for-one, preserves `isNull`, always includes
    * `warnings: []`, and includes `profile: { name, lineage }` only when
-   * `this.profile` is truthy (D-19/D-20). Pure — never warns, never throws.
+   * `this.profile` is truthy (D-19/D-20). Pure: never warns, never throws.
    *
    * @example
    * ```ts
@@ -711,16 +711,16 @@ export class Hl7Message {
    * debugging (SER-04). Single opinionated format (D-22 no options):
    * header line with type / controlId / timestamp / segment count, then
    * one line per segment with labeled `[N]=value` fields (D-23). Composite
-   * values render as their raw HL7 string — depth stops at field level
-   * (D-24). Pure — never warns, never throws (D-26).
+   * values render as their raw HL7 string: depth stops at field level
+   * (D-24). Pure: never warns, never throws (D-26).
    *
    * **Field values render as their raw HL7 string representation.**
-   * Embedded delimiters in user data appear as escape sequences — e.g.
+   * Embedded delimiters in user data appear as escape sequences: e.g.
    * a patient family name containing `|` renders as `Smith\F\Jones`
    * (NOT `Smith|Jones`). This preserves round-trip fidelity: copy-pasting
    * prettyPrint output into `parseHL7` yields a structurally equivalent
    * message. For un-escaped human display, parse the composite first via
-   * typed accessors (e.g. `msg.patient?.familyName`) — those return
+   * typed accessors (e.g. `msg.patient?.familyName`): those return
    * already-decoded strings.
    *
    * @example
@@ -741,13 +741,13 @@ export class Hl7Message {
    * Set the string value at a dot-path. Mutates the underlying tree and
    * returns `this` for chaining (D-15). Auto-creates missing repetitions,
    * components, and subcomponents WITHIN an existing field, but does NOT
-   * auto-create segments — callers must `addSegment` first (throws
+   * auto-create segments: callers must `addSegment` first (throws
    * `TypeError` with an actionable message otherwise).
    *
    * The value is accepted verbatim: unescaped delimiter characters are NOT
    * rejected on input (D-18). Re-escaping on serialize is Phase 5's concern.
    *
-   * MSH-1 / MSH-2 follow the user-facing HL7 convention — `setField("MSH.3", ...)`
+   * MSH-1 / MSH-2 follow the user-facing HL7 convention: `setField("MSH.3", ...)`
    * targets MSH-3 (sending application), matching `msg.get("MSH.3")`.
    *
    * Segment/Field wrapper caches are invalidated wholesale on success (D-17).
@@ -791,13 +791,13 @@ export class Hl7Message {
 
     // Rebuild the affected path from leaf to root, keeping every Raw* shape
     // structurally immutable. The only readonly bypass is reassigning the
-    // `rawSegments` reference on `this` — per D-16, the tree is mutable
+    // `rawSegments` reference on `this`: per D-16, the tree is mutable
     // through the mutation API.
     const mutSegments = toMutableArray(this.rawSegments);
     const seg = mutSegments[segIdx];
-    // Exhaustive guard — the index was just located above.
+    // Exhaustive guard: the index was just located above.
     if (seg === undefined) {
-      throw new Error("setField: internal invariant — segment disappeared after lookup.");
+      throw new Error("setField: internal invariant, segment disappeared after lookup.");
     }
 
     const mutFields = toMutableArray(seg.fields);
@@ -806,7 +806,7 @@ export class Hl7Message {
     }
     const field = mutFields[rawFieldIndex];
     if (field === undefined) {
-      throw new Error("setField: internal invariant — field missing after growth.");
+      throw new Error("setField: internal invariant, field missing after growth.");
     }
 
     const mutReps = toMutableArray(field.repetitions);
@@ -816,7 +816,7 @@ export class Hl7Message {
     }
     const rep = mutReps[repIdx];
     if (rep === undefined) {
-      throw new Error("setField: internal invariant — repetition missing after growth.");
+      throw new Error("setField: internal invariant, repetition missing after growth.");
     }
 
     const mutComps = toMutableArray(rep.components);
@@ -826,7 +826,7 @@ export class Hl7Message {
     }
     const comp = mutComps[compIdx];
     if (comp === undefined) {
-      throw new Error("setField: internal invariant — component missing after growth.");
+      throw new Error("setField: internal invariant, component missing after growth.");
     }
 
     const mutSubs = toMutableArray(comp.subcomponents);
@@ -845,7 +845,7 @@ export class Hl7Message {
     const newSeg: RawSegment = { name: seg.name, fields: mutFields };
     mutSegments[segIdx] = newSeg;
 
-    // One readonly bypass — reassign the rawSegments reference. Consumers are
+    // One readonly bypass: reassign the rawSegments reference. Consumers are
     // warned by D-16 that the tree is mutable via the mutation API.
     (this as { -readonly [K in keyof this]: this[K] }).rawSegments = mutSegments;
 
@@ -854,7 +854,7 @@ export class Hl7Message {
   }
 
   /**
-   * Set a **typed composite** at a field (or field-repetition) dot-path —
+   * Set a **typed composite** at a field (or field-repetition) dot-path,
    * roadmap Phase T, the conservative-emit mirror of the typed read accessors
    * (`asXpn`/`asCx`/…). The caller passes a structured value (an XPN name, a CX
    * identifier, a TS timestamp, …) by its {@link CompositeKind}, and the setter
@@ -865,7 +865,7 @@ export class Hl7Message {
    *
    * The path must resolve to a **field** (`"PID.5"`) or a specific
    * **repetition** of a field (`"PID.11[1]"`). A component/subcomponent-level
-   * path (`"PID.5.1"`) is rejected with `TypeError` — a composite occupies a
+   * path (`"PID.5.1"`) is rejected with `TypeError`: a composite occupies a
    * whole field, not a single component. Like {@link setField}, the target
    * segment must already exist (`addSegment` first); the repetition defaults to
    * index 0 and other repetitions of the field are preserved.
@@ -901,7 +901,7 @@ export class Hl7Message {
     }
 
     // Locate the target segment by type + 0-indexed occurrence (same rule as
-    // setField — the segment must already exist).
+    // setField: the segment must already exist).
     let seen = 0;
     let segIdx = -1;
     for (let i = 0; i < this.rawSegments.length; i++) {
@@ -932,7 +932,7 @@ export class Hl7Message {
     const mutSegments = toMutableArray(this.rawSegments);
     const seg = mutSegments[segIdx];
     if (seg === undefined) {
-      throw new Error("setComposite: internal invariant — segment disappeared after lookup.");
+      throw new Error("setComposite: internal invariant, segment disappeared after lookup.");
     }
 
     const mutFields = toMutableArray(seg.fields);
@@ -941,7 +941,7 @@ export class Hl7Message {
     }
     const field = mutFields[rawFieldIndex];
     if (field === undefined) {
-      throw new Error("setComposite: internal invariant — field missing after growth.");
+      throw new Error("setComposite: internal invariant, field missing after growth.");
     }
 
     const mutReps = toMutableArray(field.repetitions);
@@ -963,7 +963,7 @@ export class Hl7Message {
 
   /**
    * Append a new segment to the end of the message. `name` must match
-   * `/^(?:[A-Z]{3}|Z[A-Z0-9]{2})$/u` — throws `TypeError` otherwise (D-19).
+   * `/^(?:[A-Z]{3}|Z[A-Z0-9]{2})$/u`: throws `TypeError` otherwise (D-19).
    *
    * `fields` is interpreted in HL7 1-indexed terms: `addSegment("NTE", [a, b, c])`
    * produces a segment whose `NTE-1 = a`, `NTE-2 = b`, `NTE-3 = c`. The
@@ -1021,14 +1021,14 @@ export class Hl7Message {
   /**
    * Remove segments by type + occurrence or by type + all. Call shapes:
    *
-   * - `removeSegment("NTE")` — remove the FIRST NTE (occurrence 0).
-   * - `removeSegment("OBX", 1)` — remove the SECOND OBX (0-indexed per D-01).
-   * - `removeSegment("OBX", { all: true })` — remove ALL OBX segments.
+   * - `removeSegment("NTE")`: remove the FIRST NTE (occurrence 0).
+   * - `removeSegment("OBX", 1)`: remove the SECOND OBX (0-indexed per D-01).
+   * - `removeSegment("OBX", { all: true })`: remove ALL OBX segments.
    *
-   * `MSH` is protected — `removeSegment("MSH")` throws `TypeError` (every
+   * `MSH` is protected: `removeSegment("MSH")` throws `TypeError` (every
    * HL7 message must retain its MSH segment). Unknown segment types are a
    * no-op (idempotent; no throw). Segment name must match the D-19 shape
-   * regex — invalid shapes throw `TypeError` for symmetry with `addSegment`.
+   * regex: invalid shapes throw `TypeError` for symmetry with `addSegment`.
    *
    * Invalidates caches on return; warnings untouched (D-16).
    *
@@ -1080,7 +1080,7 @@ export class Hl7Message {
         mut.splice(removeAt, 1);
         (this as { -readonly [K in keyof this]: this[K] }).rawSegments = mut;
       }
-      // else: no-op — unknown segment type or occurrence out of range.
+      // else: no-op: unknown segment type or occurrence out of range.
     }
 
     this.invalidateCaches();

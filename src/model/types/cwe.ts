@@ -1,18 +1,18 @@
 /**
- * CWE — HL7 v2 Coded with Exceptions composite. 9-component coded-element
+ * CWE: HL7 v2 Coded with Exceptions composite. 9-component coded-element
  * shape parsed from a `RawRepetition` on demand by `Field.asCwe()` (wired in
- * Plan 04). Fields are OMITTED when absent (exactOptionalPropertyTypes) —
+ * Plan 04). Fields are OMITTED when absent (exactOptionalPropertyTypes),
  * NEVER set to `undefined`.
  *
  * Note: full HL7 v2.6+ CWE has 22 components. v1 of this library ships the 9
- * core components — identifier, text, coding-system trio + version ids, and
- * originalText — which cover the common HL7 v2.5 use cases. v2 may restore
- * the full shape. Components 10+ that a newer (v2.7+) sender supplies — the
- * second-alternate triplet and the coding-system / value-set OIDs — are NOT
+ * core components: identifier, text, coding-system trio + version ids, and
+ * originalText: which cover the common HL7 v2.5 use cases. v2 may restore
+ * the full shape. Components 10+ that a newer (v2.7+) sender supplies: the
+ * second-alternate triplet and the coding-system / value-set OIDs: are NOT
  * dropped: they are preserved verbatim on `extraComponents` so the typed view
  * is lossless across versions.
  *
- * Zero runtime deps — pure function over the raw positional tree + `unescape`.
+ * Zero runtime deps: pure function over the raw positional tree + `unescape`.
  */
 
 import type { EncodingCharacters, RawRepetition } from "../../parser/types.js";
@@ -20,7 +20,7 @@ import type { EncodingCharacters, RawRepetition } from "../../parser/types.js";
 import { readComponent, readExtraComponents } from "./_shared.js";
 
 /**
- * HL7 v2 Coded with Exceptions (CWE) — coded element per HL7 Chapter 2. All
+ * HL7 v2 Coded with Exceptions (CWE): coded element per HL7 Chapter 2. All
  * 9 components are optional. Fields are OMITTED when the underlying
  * component is absent (exactOptionalPropertyTypes).
  *
@@ -36,7 +36,7 @@ import { readComponent, readExtraComponents } from "./_shared.js";
  * 9. originalText
  *
  * Components 10+ (present only on v2.7+ senders) are surfaced verbatim, in
- * order, on `extraComponents` — never silently truncated.
+ * order, on `extraComponents`: never silently truncated.
  *
  * @example
  * ```ts
@@ -67,7 +67,7 @@ export interface CWE {
 
 /**
  * Parse an HL7 v2 CWE repetition into a structured `CWE` object. Components
- * are returned verbatim (already decoded once by the tokenizer — never re-unescaped,
+ * are returned verbatim (already decoded once by the tokenizer: never re-unescaped,
  * HL7-VALUE-REDECODE). Absent / empty components are OMITTED
  * from the result (exactOptionalPropertyTypes semantics).
  *

@@ -154,7 +154,7 @@ describe("parseHL7: Tier-2 warnings (lenient mode) + onWarning callback", () => 
   it("suppresses MLLP_FRAMING_STRIPPED warning when stripMllpFraming is explicitly false, but still strips the bytes", () => {
     const msg = parseHL7(MLLP_WRAPPED, { stripMllpFraming: false });
     expect(msg.warnings.some((w) => w.code === WARNING_CODES.MLLP_FRAMING_STRIPPED)).toBe(false);
-    // Bytes were still stripped — otherwise segment splitting would have produced garbage.
+    // Bytes were still stripped: otherwise segment splitting would have produced garbage.
     expect(msg.version).toBe("2.5");
   });
 });
@@ -233,7 +233,7 @@ describe("parseHL7: argument discrimination (D-06)", () => {
   });
 });
 
-describe("parseHL7: PARSE-01 end-to-end — well-formed v2.x messages parse correctly", () => {
+describe("parseHL7: PARSE-01 end-to-end: well-formed v2.x messages parse correctly", () => {
   it("parses v2.3 message", () => {
     const msg = parseHL7("MSH|^~\\&|APP|FAC|APP|FAC|20250101||ADT^A01|1|P|2.3\rPID|||123");
     expect(msg.version).toBe("2.3");
@@ -259,7 +259,7 @@ describe("parseHL7: PARSE-01 end-to-end — well-formed v2.x messages parse corr
   });
 });
 
-describe("PARSE-09 — MSH-18 charset wiring", () => {
+describe("PARSE-09: MSH-18 charset wiring", () => {
   // Build a message whose MSH-18 declares the supplied charset. PID-5 carries
   // the supplied patient-surname token (which may be a single non-ASCII
   // character that round-trips only under the declared charset). Fields are
@@ -275,14 +275,14 @@ describe("PARSE-09 — MSH-18 charset wiring", () => {
   //   [6]=20250101, [7]="", [8]=ADT^A01, [9]=1, [10]=P, [11]=2.5,
   //   [12]="", [13]="", [14]="", [15]="", [16]="", [17]=<charset>
   // After MSH-12 ("2.5") we need 5 empty fields (MSH-13..17) then MSH-18
-  // = charset — i.e. six pipes: `2.5||||||<charset>`.
+  // = charset: i.e. six pipes: `2.5||||||<charset>`.
   const buildMessage = (charset: string, pidSurname: string, lineSep: string): string =>
     [
       `MSH|^~\\&|APP|FAC|APP|FAC|20250101||ADT^A01|1|P|2.5||||||${charset}`,
       `PID|||123||${pidSurname}`,
     ].join(lineSep);
 
-  // Single-byte Latin-1 character: Ü (U+00DC) — 0xDC in ISO-8859-1.
+  // Single-byte Latin-1 character: Ü (U+00DC): 0xDC in ISO-8859-1.
   const LATIN1_U_UMLAUT = "\u00DC";
 
   /** Walk the 1-indexed positional tree to pull PID-5's first subcomponent. */
@@ -364,7 +364,7 @@ describe("PARSE-09 — MSH-18 charset wiring", () => {
 
   it("7. regression: string input path does not invoke charset resolution", () => {
     const msg = parseHL7(VALID_MSG, { charset: "ISO-8859-1" });
-    // options.charset is silently ignored for string input — no warnings.
+    // options.charset is silently ignored for string input: no warnings.
     expect(msg.warnings.some((w) => w.code === WARNING_CODES.ENCODING_MISMATCH)).toBe(false);
     expect(msg.warnings.some((w) => w.code === WARNING_CODES.UNKNOWN_CHARSET)).toBe(false);
     expect(msg.version).toBe("2.5");
@@ -388,7 +388,7 @@ describe("PARSE-09 — MSH-18 charset wiring", () => {
     // parsing completes is the contract.
     expect(() => parseHL7(buf)).not.toThrow();
     const msg = parseHL7(buf);
-    // No ENCODING_MISMATCH — no override was supplied.
+    // No ENCODING_MISMATCH: no override was supplied.
     expect(msg.warnings.some((w) => w.code === WARNING_CODES.ENCODING_MISMATCH)).toBe(false);
     // Version still parses (MLLP bytes were stripped downstream).
     expect(msg.version).toBe("2.5");

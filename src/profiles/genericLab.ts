@@ -4,7 +4,7 @@
  * `YYYY-MM-DD` (ISO date-only). Two Z-segments: `ZLB` (lab-override
  * flags) and `ZNT` (lab note). BIP-05.
  *
- * The canonical HL7 format `YYYYMMDDHHmmss` is NOT shipped here — it's
+ * The canonical HL7 format `YYYYMMDDHHmmss` is NOT shipped here: it's
  * already the parser's primary (zero-warning) match for TS/DTM.
  *
  * @example
@@ -30,7 +30,7 @@ import { defineProfile } from "./define.js";
  */
 export const genericLab = defineProfile({
   name: "genericLab",
-  description: "Generic reference-laboratory — ASTM-era + ISO-date formats + lab Z-segments",
+  description: "Generic reference-laboratory: ASTM-era + ISO-date formats + lab Z-segments",
   dateFormats: ["YYYYMMDD HHmm", "YYYY-MM-DD"],
   customSegments: {
     ZLB: { fields: { specimenOverride: 3, methodOverride: 5 } },

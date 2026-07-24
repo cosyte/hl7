@@ -1,5 +1,5 @@
 /**
- * Phase 4 Plan 04 — integration tests for `msg.orders()` (HELPERS-05, HELPERS-07).
+ * Phase 4 Plan 04: integration tests for `msg.orders()` (HELPERS-05, HELPERS-07).
  * Covers D-12 positional OBX grouping + ORC orderControl attachment.
  */
 
@@ -19,7 +19,7 @@ const TWO_ORDERS =
   "OBR|2|PLACER2|FILLER2|HGB^Hemoglobin^LN\r" +
   "OBX|1|NM|HGB^Hemoglobin^LN||14.5|g/dL";
 
-describe("helpers/orders: msg.orders() — HELPERS-05", () => {
+describe("helpers/orders: msg.orders(): HELPERS-05", () => {
   it("returns [] when no OBR present (D-05)", () => {
     const msg = parseHL7(MSH + PID);
     expect(msg.orders()).toEqual([]);
@@ -48,7 +48,7 @@ describe("helpers/orders: msg.orders() — HELPERS-05", () => {
   it("attaches ORC-1 as orderControl when ORC precedes OBR (D-16)", () => {
     const orders = parseHL7(TWO_ORDERS).orders();
     expect(orders[0]?.orderControl).toBe("NW");
-    // Second OBR has no preceding ORC — orderControl absent.
+    // Second OBR has no preceding ORC: orderControl absent.
     expect("orderControl" in (orders[1] ?? {})).toBe(false);
   });
 

@@ -18,7 +18,7 @@ import type { Hl7Position } from "./types.js";
 /**
  * Result of an MLLP framing strip. `wasFramed` is `true` iff any of the three
  * MLLP control bytes (VT = `0x0B`, FS = `0x1C`, trailing CR = `0x0D` paired
- * with an FS) were removed from the input — the signal downstream code uses
+ * with an FS) were removed from the input: the signal downstream code uses
  * to decide whether to emit an `MLLP_FRAMING_STRIPPED` warning.
  *
  * @example
@@ -69,7 +69,7 @@ export function stripMllp(input: string): StripMllpResult {
  * Emit an `MLLP_FRAMING_STRIPPED` warning via the supplied callback when the
  * given strip result indicates framing bytes were removed. No-op when
  * `result.wasFramed` is false. Kept as a companion helper (rather than
- * collapsed into `stripMllp`) so the two concerns — transform and emit —
+ * collapsed into `stripMllp`) so the two concerns (transform and emit)
  * stay testable in isolation, per CLAUDE.md guardrails.
  *
  * @example

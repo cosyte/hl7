@@ -1,5 +1,5 @@
 /**
- * Phase 4 Plan 03 — integration tests for `msg.visit` (HELPERS-03 + HELPERS-07).
+ * Phase 4 Plan 03: integration tests for `msg.visit` (HELPERS-03 + HELPERS-07).
  * Verifies the 7 locked fields (patientClass, location, admitDateTime,
  * dischargeDateTime, attendingDoctor, referringDoctor, visitNumber), D-04
  * nullable (undefined on missing PV1), D-18 flat Date, D-24 option (a) XCN
@@ -17,9 +17,9 @@ const PID = "PID|||X|||Smith^Jane\r";
 // 7=attendingDoctor, 8=referringDoctor, 19=visitNumber, 44=admitDateTime,
 // 45=dischargeDateTime.
 // Build FULL_PV1 by concatenating field groups separated by "|".
-// Pipe count matters — each "|" advances the field index by 1.
+// Pipe count matters: each "|" advances the field index by 1.
 const FULL_PV1 =
-  "PV1|" + // segment name — field 0 is the name, field 1 starts after first "|"
+  "PV1|" + // segment name: field 0 is the name, field 1 starts after first "|"
   "1|" + // 1 setId
   "I|" + // 2 patientClass
   "ICU^101^A^HOSP|" + // 3 location (PL)

@@ -11,7 +11,7 @@ afterEach(() => {
   setDefaultProfile(null);
 });
 
-describe("setDefaultProfile + getDefaultProfile — basic wiring", () => {
+describe("setDefaultProfile + getDefaultProfile: basic wiring", () => {
   it("getDefaultProfile returns undefined before any set", () => {
     expect(getDefaultProfile()).toBeUndefined();
   });
@@ -22,7 +22,7 @@ describe("setDefaultProfile + getDefaultProfile — basic wiring", () => {
     expect(getDefaultProfile()).toBe(p);
   });
 
-  it("setDefaultProfile(null) clears — getDefaultProfile returns undefined", () => {
+  it("setDefaultProfile(null) clears: getDefaultProfile returns undefined", () => {
     const p = defineProfile({ name: "test" });
     setDefaultProfile(p);
     setDefaultProfile(null);
@@ -64,7 +64,7 @@ describe("parseHL7 default-profile dispatch (D-19)", () => {
     setDefaultProfile(p);
     const msg = parseHL7(BASE_MSH, { profile: null });
     expect(msg.profile).toBeUndefined();
-    // Default is NOT cleared by the opt-out — still usable for next call.
+    // Default is NOT cleared by the opt-out: still usable for next call.
     expect(getDefaultProfile()).toBe(p);
   });
 });
@@ -132,7 +132,7 @@ describe("D-20 effects equivalence: default profile === explicit profile", () =>
 });
 
 describe("test-isolation contract (documents the afterEach obligation)", () => {
-  it("afterEach cleanup prevents bleed — this test expects NO default set", () => {
+  it("afterEach cleanup prevents bleed: this test expects NO default set", () => {
     expect(getDefaultProfile()).toBeUndefined();
   });
 });

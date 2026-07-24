@@ -34,7 +34,7 @@ describe("model/message: traversal methods", () => {
     expect(obx[2]?.field(3).value).toBe("PLT");
   });
 
-  it("msg.segments is cached — same array reference across calls (D-11)", () => {
+  it("msg.segments is cached: same array reference across calls (D-11)", () => {
     const msg = parseHL7(FIXTURE);
     expect(msg.segments("OBX")).toBe(msg.segments("OBX"));
   });

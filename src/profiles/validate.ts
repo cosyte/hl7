@@ -8,7 +8,7 @@
  * `defineProfile()` can call it FIRST and pass `opts.name` to every
  * subsequent throw site.
  *
- * Zero runtime deps — inlined Levenshtein (~15 LoC) + regex + token match.
+ * Zero runtime deps: inlined Levenshtein (~15 LoC) + regex + token match.
  *
  * @internal
  */
@@ -22,7 +22,7 @@ import type { DefineProfileOptions } from "./define.js";
 /**
  * Z-segment shape: `Z` + 2 uppercase alphanumerics (D-05). Mirrors the
  * `SEGMENT_NAME_RE` convention used in `src/model/message.ts` for
- * addSegment validation — Z-segments are the allowed v1 overlay set.
+ * addSegment validation: Z-segments are the allowed v1 overlay set.
  *
  * @internal
  */
@@ -47,7 +47,7 @@ const KNOWN_OPTION_KEYS: readonly string[] = [
 /**
  * Regex that matches any of the supported date-format tokens. Used by
  * `validateDateFormats` (D-08) to confirm each user-supplied format string
- * contains at least one recognised token — empty strings and dead formats
+ * contains at least one recognised token: empty strings and dead formats
  * (`"YYY/MM"`, `"foo"`) fail fast.
  *
  * @internal
@@ -150,7 +150,7 @@ export function validateCustomSegments(
   for (const key of Object.keys(map)) {
     if (!Z_SEGMENT_RE.test(key)) {
       throw new ProfileDefinitionError(
-        `Profile '${profileName}' declares customSegments for '${key}' — only Z-segments ` +
+        `Profile '${profileName}' declares customSegments for '${key}': only Z-segments ` +
           `(Z[A-Z0-9]{2}) are allowed in v1. Typed overlays are a v2 feature.`,
         profileName,
       );
@@ -181,7 +181,7 @@ export function validateCustomSegments(
 }
 
 /**
- * Validate date-format strings (D-08) — each MUST contain at least one
+ * Validate date-format strings (D-08): each MUST contain at least one
  * supported token from `SUPPORTED_DATE_TOKENS`. Catches typos like
  * `"YYY/MM"` (missing a `Y`) and empty strings before they reach the
  * parser's timestamp cascade.
@@ -193,7 +193,7 @@ export function validateDateFormats(formats: readonly string[], profileName: str
     const f = formats[i] ?? "";
     if (!TOKEN_MATCH_RE.test(f)) {
       throw new ProfileDefinitionError(
-        `Profile '${profileName}' dateFormats[${String(i)}] = ${JSON.stringify(f)} is malformed — ` +
+        `Profile '${profileName}' dateFormats[${String(i)}] = ${JSON.stringify(f)} is malformed: ` +
           `must contain at least one of ${SUPPORTED_DATE_TOKENS.join("/")}.`,
         profileName,
       );
@@ -204,7 +204,7 @@ export function validateDateFormats(formats: readonly string[], profileName: str
 /**
  * Post-merge D-06 DEFENSE-IN-DEPTH check: within a single segment, the
  * SAME field name MUST NOT resolve to DIFFERENT positions. Cross-
- * position aliasing (two names, same position) is allowed — that's
+ * position aliasing (two names, same position) is allowed: that's
  * intentional convenience.
  *
  * **Runtime observation:** Given the current `mergeCustomSegments`
@@ -213,7 +213,7 @@ export function validateDateFormats(formats: readonly string[], profileName: str
  * parent has `{ a: 3 }` and a child has `{ a: 5 }`, the accumulator
  * produces `{ 3: "a", 5: "a" }` which lowers to `{ a: 5 }` (the second
  * assignment wins inside the final `Record`). If a parent has
- * `{ a: 3, b: 3 }` (two names at the same position — legal) and the
+ * `{ a: 3, b: 3 }` (two names at the same position: legal) and the
  * child has `{ a: 5 }`, the accumulator produces `{ 3: "b", 5: "a" }` →
  * output `{ a: 5, b: 3 }`; `a` maps to ONE position (5), no violation.
  * Therefore this validator never fires under the present strategy.

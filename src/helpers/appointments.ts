@@ -1,31 +1,31 @@
 /**
- * `appointments` — Phase Q (scheduling breadth) implementation of the SIU
+ * `appointments`: Phase Q (scheduling breadth) implementation of the SIU
  * appointment extractor. Walks the message in document order and projects each
  * SCH (Scheduling Activity Information) segment into a typed {@link Appointment},
  * grouping the AIS/AIG/AIL/AIP resource segments that follow it positionally
- * under that SCH — the same open-a-group-on-the-anchor state machine
+ * under that SCH: the same open-a-group-on-the-anchor state machine
  * `immunizations()` uses for ORC→RXA→[RXR]. Covers the common SIU trigger
  * events (S12 new / S13 reschedule / S14 modify / S15 cancel / S26 no-show).
  *
- * Field map (HL7 v2 Ch. 10 — scheduling):
+ * Field map (HL7 v2 Ch. 10: scheduling):
  *   - SCH-1  placer appointment ID (EI; first component surfaced verbatim)
  *   - SCH-2  filler appointment ID (EI; first component surfaced verbatim)
- *   - SCH-11 appointment timing quantity (TQ) — TQ.4 start / TQ.5 end (DTM)
- *   - SCH-25 filler status code (CWE — HL7 Table 0278): the appointment status
+ *   - SCH-11 appointment timing quantity (TQ): TQ.4 start / TQ.5 end (DTM)
+ *   - SCH-25 filler status code (CWE: HL7 Table 0278): the appointment status
  *   - AIS-3  universal service ID (CE)      → resource kind "service"
  *   - AIG-3  general resource ID (CE)        → resource kind "general"
  *   - AIL-3  location resource (PL / coded)  → resource kind "location"
  *   - AIP-3  personnel resource (XCN)        → resource kind "personnel" (provider)
  *
  * Safety rules enforced here (Phase Q §Fail-safe):
- *   - Never throws — a malformed SCH / AI* surfaces as omitted keys (HELPERS-07).
- *   - The filler status code (SCH-25) is surfaced VERBATIM (provenance-only) — a
+ *   - Never throws: a malformed SCH / AI* surfaces as omitted keys (HELPERS-07).
+ *   - The filler status code (SCH-25) is surfaced VERBATIM (provenance-only): a
  *     mis-keyed status is echoed exactly, never normalized or validated.
  *   - Missing fields → keys omitted; `resources` is ALWAYS a (possibly empty) array.
  *   - Output is frozen at the boundary (D-01); NOT memoized (D-06).
  *
  * Known limitations: this covers the appointment-level identifiers, status,
- * SCH-11 timing, and the AI* resource identifiers only — it is NOT a
+ * SCH-11 timing, and the AI* resource identifiers only: it is NOT a
  * scheduling-workflow state machine, and it does not resolve per-resource start
  * offsets/durations. See KNOWN-LIMITATIONS.md.
  */
@@ -108,7 +108,7 @@ function finalizeAppointment(sch: Segment, resources: readonly AppointmentResour
   type Mutable<T> = { -readonly [K in keyof T]?: T[K] };
   const out: Mutable<Appointment> = { resources: Object.freeze(resources.slice()) };
 
-  // SCH-1 / SCH-2 appointment ids (EI) — first component surfaced verbatim.
+  // SCH-1 / SCH-2 appointment ids (EI): first component surfaced verbatim.
   const placer = stringOrUndefined(sch.field(1).value);
   if (placer !== undefined) out.placerAppointmentId = placer;
   const filler = stringOrUndefined(sch.field(2).value);
@@ -121,7 +121,7 @@ function finalizeAppointment(sch: Segment, resources: readonly AppointmentResour
   const endRaw = fieldSub(timing, 4, 0);
   if (endRaw !== undefined) out.endDateTime = parseDtm(endRaw);
 
-  // SCH-25 filler status code (Table 0278) — verbatim/provenance-only.
+  // SCH-25 filler status code (Table 0278): verbatim/provenance-only.
   const status = cweOrUndefined(sch.field(25));
   if (status !== undefined) out.fillerStatusCode = status;
 
@@ -132,7 +132,7 @@ function finalizeAppointment(sch: Segment, resources: readonly AppointmentResour
  * Every SCH of an SIU message as a typed {@link Appointment}, with the
  * AIS/AIG/AIL/AIP resource segments that follow it grouped positionally under
  * that SCH (service / general resource / location / personnel). Document order.
- * Returns `[]` when no SCH is present. NOT memoized — each call re-walks
+ * Returns `[]` when no SCH is present. NOT memoized: each call re-walks
  * `msg.allSegments()`. Never throws (HELPERS-07).
  *
  * The filler status code (SCH-25, Table 0278) is surfaced verbatim; per-resource
@@ -169,7 +169,7 @@ export function appointments(msg: Hl7Message): readonly Appointment[] {
       resources = [];
       continue;
     }
-    if (currentSch === undefined) continue; // AI* before any SCH — dropped.
+    if (currentSch === undefined) continue; // AI* before any SCH: dropped.
     if (RESOURCE_KIND[seg.type] !== undefined) {
       const resource = buildResource(seg);
       if (resource !== undefined) resources.push(resource);

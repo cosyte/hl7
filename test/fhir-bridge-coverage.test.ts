@@ -1,32 +1,32 @@
 /**
- * Roadmap Phase V — FHIR-bridge readiness: the **coverage proof** for the
+ * Roadmap Phase V: FHIR-bridge readiness: the **coverage proof** for the
  * IR-stability contract (`docs-content/spec-notes-fhir-bridge.md`).
  *
  * This suite is the executable half of Phase V. It does **not** add any v2→FHIR
- * mapping — hl7 does not know about FHIR, and nothing here constructs a FHIR
+ * mapping: hl7 does not know about FHIR, and nothing here constructs a FHIR
  * resource, a ConceptMap, or a mapping table (that is `@cosyte/transform`'s
  * job). What it proves is narrow and honest:
  *
  *  1. **Addressability.** Every v2 source path the HL7 **v2-to-FHIR IG**
  *     references (the field-level `SEG-N` entries in the IG's segment-map
  *     "Identifier" column, read firsthand from the vendored raw CSVs) is
- *     addressable by hl7's dot-path model — `parsePath("SEG.N")` resolves to
+ *     addressable by hl7's dot-path model: `parsePath("SEG.N")` resolves to
  *     the same segment + field number. hl7 addresses every field generically,
  *     so there is **no hl7-side addressability gap**; any unaddressable ref is
  *     recorded, not hidden.
  *
- *  2. **Sample-corpus resolution.** Over the IG's **public sample corpus** —
+ *  2. **Sample-corpus resolution.** Over the IG's **public sample corpus**,
  *     which, verified firsthand at commit {@link IG_COMMIT}, is exactly one v2
- *     message (`samples/messages/Message.hl7_MDM_T02.txt`) — every IG-referenced
+ *     message (`samples/messages/Message.hl7_MDM_T02.txt`): every IG-referenced
  *     source path the sample actually populates resolves to a value through
  *     hl7's read model. The IG-referenced paths the single sample does **not**
  *     exercise are enumerated as recorded corpus-coverage gaps (a property of
  *     the thin public sample set, not of hl7).
  *
  *  3. **Datatype-IR surfacing.** The exact typed shapes the IG's *datatype*
- *     maps consume — XPN→HumanName, CX→Identifier (with assigning authority +
+ *     maps consume: XPN→HumanName, CX→Identifier (with assigning authority +
  *     type code), CWE/CE coded values with code-system provenance, DTM with
- *     precision + timezone, and decoded/rendered narrative text — are surfaced
+ *     precision + timezone, and decoded/rendered narrative text: are surfaced
  *     from the sample through the documented mapping-surface accessors.
  *
  *  4. **No-FHIR boundary.** The package exports carry no FHIR-typed symbol.
@@ -57,7 +57,7 @@ const FIXTURE_DIR = path.join(import.meta.dirname, "fixtures", "fhir-bridge");
 const MAP_DIR = path.join(FIXTURE_DIR, "ig-segment-maps");
 
 /**
- * Minimal RFC-4180 CSV reader — the IG segment-map sheets carry quoted,
+ * Minimal RFC-4180 CSV reader: the IG segment-map sheets carry quoted,
  * comma- and newline-bearing narrative cells, so a naïve line split would
  * corrupt record boundaries. Returns records as string[][].
  */
@@ -92,7 +92,7 @@ function parseCsv(text: string): string[][] {
       record = [];
       field = "";
     } else if (c === "\r") {
-      // swallow — a following \n closes the record
+      // swallow: a following \n closes the record
     } else {
       field += c;
     }
@@ -112,7 +112,7 @@ const FIELD_REF_RE = /^([A-Z][A-Z0-9]{1,2})-(\d+)$/u;
  * the sample exercises, with the count of unique field-level source paths each
  * references (pinned so a silent extraction/IG drift fails the suite). Other
  * target-resource maps exist per segment (e.g. `OBX[DocumentReference]`,
- * `PID[Account]`); the primary mapping per segment is vendored here — see the
+ * `PID[Account]`); the primary mapping per segment is vendored here: see the
  * contract doc's coverage table and PROVENANCE.md.
  */
 const SEGMENT_MAPS = [
@@ -144,7 +144,7 @@ function referencedFields(file: string, segment: string): number[] {
 
 /**
  * The exact set of IG-referenced field numbers the single public sample
- * populates, per segment — the pinned coverage matrix. Any drift (a parser
+ * populates, per segment: the pinned coverage matrix. Any drift (a parser
  * regression that stops surfacing a field, or a fixture edit) fails the suite.
  */
 const SAMPLE_POPULATED: Readonly<Record<string, readonly number[]>> = {
@@ -193,12 +193,12 @@ function populatedFields(segment: string): number[] {
   return [...populated].sort((a, b) => a - b);
 }
 
-describe("Phase V — FHIR-bridge IR: firsthand IG grounding", () => {
+describe("Phase V: FHIR-bridge IR: firsthand IG grounding", () => {
   it("vendored the IG's public sample corpus, which is exactly one v2 message", () => {
     // The vendored artifacts are pinned to a 40-char IG commit sha (PROVENANCE.md).
     expect(IG_COMMIT).toHaveLength(40);
     // Firsthand finding, recorded honestly: the IG repo ships ONE v2 sample
-    // message (MDM^T02). The coverage proof runs over it — the roadmap's
+    // message (MDM^T02). The coverage proof runs over it: the roadmap's
     // optimistic "samples/ (ADT/ORU/…)" is not matched by the published repo.
     expect(msg.version).toBe("2.5.1");
     expect(msg.meta.type).toBe("MDM^T02^MDM_T02");
@@ -216,7 +216,7 @@ describe("Phase V — FHIR-bridge IR: firsthand IG grounding", () => {
   });
 });
 
-describe("Phase V — invariant 1: addressability of every IG source path", () => {
+describe("Phase V: invariant 1: addressability of every IG source path", () => {
   it("hl7's dot-path model addresses every IG-referenced field-level source path", () => {
     const unaddressable: string[] = [];
     for (const { file, segment } of SEGMENT_MAPS) {
@@ -232,12 +232,12 @@ describe("Phase V — invariant 1: addressability of every IG source path", () =
         }
       }
     }
-    // No hl7-side addressability gap — hl7 addresses every v2 field generically.
+    // No hl7-side addressability gap: hl7 addresses every v2 field generically.
     expect(unaddressable).toEqual([]);
   });
 });
 
-describe("Phase V — invariant 2: sample-corpus resolution + recorded gaps", () => {
+describe("Phase V: invariant 2: sample-corpus resolution + recorded gaps", () => {
   it("the sample populates exactly the pinned IG-referenced fields per segment", () => {
     for (const { file, segment } of SEGMENT_MAPS) {
       const igReferenced = new Set(referencedFields(file, segment));
@@ -257,7 +257,7 @@ describe("Phase V — invariant 2: sample-corpus resolution + recorded gaps", ()
         const occurrences = msg.segments(segment);
         const reachable =
           occurrences.some((seg) => seg.field(n).text !== "") ||
-          // MSH-1/MSH-2 are the delimiter-definition fields — their mapping
+          // MSH-1/MSH-2 are the delimiter-definition fields: their mapping
           // input is `msg.encodingCharacters`, not re-serialized field text.
           (segment === "MSH" && (n === 1 || n === 2));
         if (!reachable) unreachable.push(`${segment}.${String(n)}`);
@@ -278,7 +278,7 @@ describe("Phase V — invariant 2: sample-corpus resolution + recorded gaps", ()
       totalReferenced += referenced.length;
       totalExercised += exercised.size;
     }
-    // Pinned coverage totals — the honest headline: hl7 surfaces 100% of the
+    // Pinned coverage totals: the honest headline: hl7 surfaces 100% of the
     // paths the sample exercises; the remainder are corpus-coverage gaps (the
     // single public sample does not populate them), NOT hl7 reachability gaps.
     expect(totalReferenced).toBe(296);
@@ -290,7 +290,7 @@ describe("Phase V — invariant 2: sample-corpus resolution + recorded gaps", ()
   });
 });
 
-describe("Phase V — invariant 3: datatype-IR the IG datatype maps consume", () => {
+describe("Phase V: invariant 3: datatype-IR the IG datatype maps consume", () => {
   it("MSH-1/MSH-2 delimiter inputs surface via encodingCharacters", () => {
     expect(msg.encodingCharacters.field).toBe("|");
     expect(msg.encodingCharacters.component).toBe("^");
@@ -329,7 +329,7 @@ describe("Phase V — invariant 3: datatype-IR the IG datatype maps consume", ()
   });
 
   it("CWE code-system provenance (OBX-3) surfaces primary + alternate systems", () => {
-    // OBX[4] carries a dual-coded CWE (local "L" + LOINC "LN") — the exact
+    // OBX[4] carries a dual-coded CWE (local "L" + LOINC "LN"): the exact
     // provenance the IG's CWE[CodeableConcept] map needs to build .coding[].
     const cwe = nthSegment("OBX", 3).field(3).asCwe();
     expect(cwe.identifier).toBe("1111.2");
@@ -339,7 +339,7 @@ describe("Phase V — invariant 3: datatype-IR the IG datatype maps consume", ()
   });
 
   it("decoded/rendered narrative text (OBX-5 FT with formatting escapes) surfaces without sentinels", () => {
-    // OBX[2] is an FT critical-value note laden with `\.br\` line breaks — the
+    // OBX[2] is an FT critical-value note laden with `\.br\` line breaks: the
     // IG's `.text`/narrative maps need this rendered, not raw sentinels.
     const rendered = nthSegment("OBX", 1).field(5).render();
     expect(rendered.text).toContain("Critical Values Entered On");
@@ -348,7 +348,7 @@ describe("Phase V — invariant 3: datatype-IR the IG datatype maps consume", ()
   });
 });
 
-describe("Phase V — invariant 4: no v2→FHIR mapping added (scope boundary)", () => {
+describe("Phase V: invariant 4: no v2→FHIR mapping added (scope boundary)", () => {
   it("the package exports carry no FHIR-typed symbol", () => {
     const fhirish = /fhir|bundle|conceptmap|\bresource\b|valueset/iu;
     const offenders = Object.keys(hl7).filter((k) => fhirish.test(k));

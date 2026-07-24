@@ -1,12 +1,12 @@
 /**
- * XTN — HL7 v2 Extended Telecommunication Number composite. 12-component
+ * XTN: HL7 v2 Extended Telecommunication Number composite. 12-component
  * structured telecom shape (v1 trimmed from the HL7 v2.5 full 14-component
- * XTN — slots 13/14 are rarely-used legacy fields; v2 may restore the full
+ * XTN: slots 13/14 are rarely-used legacy fields; v2 may restore the full
  * shape) parsed from a `RawRepetition` on demand by `Field.asXtn()` (wired
  * in Plan 04). Fields are OMITTED when absent (exactOptionalPropertyTypes)
- * — NEVER set to `undefined`.
+ *: NEVER set to `undefined`.
  *
- * Zero runtime deps — pure function over the raw positional tree + `unescape`.
+ * Zero runtime deps: pure function over the raw positional tree + `unescape`.
  */
 
 import type { EncodingCharacters, RawRepetition } from "../../parser/types.js";
@@ -14,23 +14,23 @@ import type { EncodingCharacters, RawRepetition } from "../../parser/types.js";
 import { readComponent } from "./_shared.js";
 
 /**
- * HL7 v2 Extended Telecommunication Number (XTN) — structured telecom per
+ * HL7 v2 Extended Telecommunication Number (XTN): structured telecom per
  * HL7 Chapter 2. All 12 v1 components are optional. Fields are OMITTED when
  * the underlying component is absent (exactOptionalPropertyTypes).
  *
  * Component positions (HL7 1-indexed; this interface is 0-indexed by key):
- * 1. telephoneNumber — formatted or unformatted phone number
- * 2. telecommunicationUseCode — PRN=Primary Residence, WPN=Work, NET=Internet,
+ * 1. telephoneNumber: formatted or unformatted phone number
+ * 2. telecommunicationUseCode: PRN=Primary Residence, WPN=Work, NET=Internet,
  *    ORN=Other Residence, BPN=Beeper, VHN=Vacation Home, ASN=Answering
  *    Service, EMR=Emergency, ...
- * 3. telecommunicationEquipmentType — PH=Phone, FX=Fax, MD=Modem,
+ * 3. telecommunicationEquipmentType: PH=Phone, FX=Fax, MD=Modem,
  *    CP=Cellular Phone, BP=Beeper, Internet, X.400, TDD, TTY
  * 4. emailAddress
  * 5. countryCode (e.g. "+1")
  * 6. areaCityCode
  * 7. localNumber
  * 8. extension
- * 9. anyText — free-text note
+ * 9. anyText: free-text note
  * 10. extensionPrefix (e.g. "x")
  * 11. speedDialCode
  * 12. unformattedTelephoneNumber
@@ -62,7 +62,7 @@ export interface XTN {
 
 /**
  * Parse an HL7 v2 XTN repetition into a structured `XTN` object. Components
- * are returned verbatim (already decoded once by the tokenizer — never re-unescaped,
+ * are returned verbatim (already decoded once by the tokenizer: never re-unescaped,
  * HL7-VALUE-REDECODE). Absent / empty components are OMITTED
  * from the result (exactOptionalPropertyTypes semantics). Components past
  * position 12 are silently ignored in v1.

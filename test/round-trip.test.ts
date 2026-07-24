@@ -3,13 +3,13 @@
  * fixture under `test/fixtures/canonical/`, asserts:
  *   - `parseHL7(fixture)` succeeds.
  *   - `parseHL7(parseHL7(fixture).toString()).rawSegments` deeply equals
- *     `parseHL7(fixture).rawSegments` (D-03 structural — not byte —
+ *     `parseHL7(fixture).rawSegments` (D-03 structural, not byte,
  *     equivalence on the first pass).
  *   - `parseHL7(emitted).toString() === emitted` byte-for-byte (D-03
  *     idempotency from the second pass).
  *
  * Also covers specific preservation checks for the 3 migrated edge-case
- * fixtures (null-fields, embedded-delimiters, decoded-br — now under
+ * fixtures (null-fields, embedded-delimiters, decoded-br: now under
  * `test/fixtures/edge-cases/` per Phase 7 Plan 01 D-08), plus the
  * oru-r01 repetition-count check and the adt-a01 segment-roster check.
  *
@@ -132,7 +132,7 @@ describe("round-trip: specific preservation checks", () => {
     // After emit, OBX-5 should contain \.br\ (NOT literal \n) because
     // reescape translates \n -> \.br\.
     expect(emitted).toContain("\\.br\\");
-    // No literal LF anywhere — only CR segment terminators.
+    // No literal LF anywhere: only CR segment terminators.
     expect(emitted.includes("\n")).toBe(false);
     // Raw tree's OBX-5 first subcomponent stores the DECODED form (literal
     // \n chars from the \.br\ sequences on the wire).

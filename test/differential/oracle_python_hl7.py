@@ -3,19 +3,19 @@
 Differential-testing oracle adapter: parses one HL7 v2 message file with
 `python-hl7` (PyPI distribution name `hl7`, BSD license,
 https://github.com/johnpaulett/python-hl7) and prints a JSON summary of
-segment names, per-segment field counts, and per-field wire text — the same
+segment names, per-segment field counts, and per-field wire text, the same
 shape `test/differential/differential.test.ts` extracts from `@cosyte/hl7`.
 
 Usage: python3 oracle_python_hl7.py <path-to-.hl7-file>
 
 Reads the file with `newline=""` (universal-newline translation OFF) so a
 `\\r`-terminated HL7 message is not silently rewritten to `\\n` by Python's
-text-mode line-ending normalization before `hl7.parse()` ever sees it — that
+text-mode line-ending normalization before `hl7.parse()` ever sees it, that
 translation would otherwise collapse every segment into one, which is a
 Python file-I/O footgun, not a real HL7 divergence.
 
 Field indexing matches `@cosyte/hl7`'s convention exactly: `seg[0]` is the
-segment name (or, for MSH, the field separator itself — MSH-1); `seg[N]` for
+segment name (or, for MSH, the field separator itself, MSH-1); `seg[N]` for
 N >= 1 is the HL7 N-th field. `str(field)` reconstructs the field's original
 delimiter-joined wire text, the same role `Field.text` plays on the
 `@cosyte/hl7` side.

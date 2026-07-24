@@ -1,13 +1,13 @@
 /**
  * Property tests for Phase N datetime fidelity. Three invariants:
  *
- *   1. **Lossless round-trip** — `formatDtm(parseDtm(raw)) === raw` for every
+ *   1. **Lossless round-trip**: `formatDtm(parseDtm(raw)) === raw` for every
  *      well-formed DTM string across all precision levels and offsets. Proves
  *      the parts capture the value with no zero-fill and no offset drift.
- *   2. **No silent UTC** — a value with no offset is always `hasTimezone:false`
+ *   2. **No silent UTC**: a value with no offset is always `hasTimezone:false`
  *      and `dtmToDate` (with no assumption) returns `undefined`; it never
  *      fabricates an instant.
- *   3. **Offset determinism** — a value with an offset resolves to the same
+ *   3. **Offset determinism**: a value with an offset resolves to the same
  *      instant regardless of the host timezone.
  */
 import { describe, expect, it } from "vitest";

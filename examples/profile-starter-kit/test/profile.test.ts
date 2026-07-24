@@ -11,7 +11,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const loadFixture = (relPath: string): string =>
   readFileSync(join(__dirname, "fixtures", relPath), "utf-8");
 
-describe("MyProfile — starter kit sample", () => {
+describe("MyProfile: starter kit sample", () => {
   const raw = loadFixture("sample.hl7");
 
   it("exposes name + description", () => {

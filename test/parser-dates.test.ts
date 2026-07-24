@@ -17,7 +17,7 @@ function collect(): { emit: (w: Hl7ParseWarning) => void; warnings: Hl7ParseWarn
   return { warnings, emit: (w) => warnings.push(w) };
 }
 
-describe("parser/dates: parseDtm — precision fidelity", () => {
+describe("parser/dates: parseDtm: precision fidelity", () => {
   it("year-only preserves precision without zero-fill", () => {
     const p = parseDtm("1970");
     expect(p).toMatchObject({ valid: true, precision: "year", year: 1970, hasTimezone: false });
@@ -57,7 +57,7 @@ describe("parser/dates: parseDtm — precision fidelity", () => {
   });
 });
 
-describe("parser/dates: parseDtm — timezone fidelity (never assume UTC)", () => {
+describe("parser/dates: parseDtm: timezone fidelity (never assume UTC)", () => {
   it("flags a missing offset as no-timezone, never resolving it", () => {
     const p = parseDtm("20250102153045");
     expect(p.hasTimezone).toBe(false);
@@ -83,7 +83,7 @@ describe("parser/dates: parseDtm — timezone fidelity (never assume UTC)", () =
   });
 });
 
-describe("parser/dates: parseDtm — fail-safe (invalid → valid:false, never a guess)", () => {
+describe("parser/dates: parseDtm: fail-safe (invalid → valid:false, never a guess)", () => {
   it.each([
     ["month 00", "20250001"],
     ["month 13", "20251301"],
@@ -106,7 +106,7 @@ describe("parser/dates: parseDtm — fail-safe (invalid → valid:false, never a
   });
 });
 
-describe("parser/dates: dtmToDate — explicit, opt-in, honest", () => {
+describe("parser/dates: dtmToDate: explicit, opt-in, honest", () => {
   it("uses an embedded offset to compute the exact instant", () => {
     expect(dtmToDate(parseDtm("20250102153045+0500"))?.toISOString()).toBe(
       "2025-01-02T10:30:45.000Z",
@@ -158,7 +158,7 @@ describe("parser/dates: dtmToDate — explicit, opt-in, honest", () => {
   });
 });
 
-describe("parser/dates: formatDtm — lossless reconstruction (no zero-fill)", () => {
+describe("parser/dates: formatDtm: lossless reconstruction (no zero-fill)", () => {
   it.each([
     "1970",
     "202501",
@@ -181,7 +181,7 @@ describe("parser/dates: formatDtm — lossless reconstruction (no zero-fill)", (
   });
 });
 
-describe("parser/dates: parseDtm — result is frozen (immutable by default)", () => {
+describe("parser/dates: parseDtm: result is frozen (immutable by default)", () => {
   it("freezes both valid and invalid results", () => {
     expect(Object.isFrozen(parseDtm("20250102153045-0500"))).toBe(true);
     expect(Object.isFrozen(parseDtm("not-a-date"))).toBe(true);
@@ -189,7 +189,7 @@ describe("parser/dates: parseDtm — result is frozen (immutable by default)", (
   });
 });
 
-describe("parser/dates: parseDtmCascade — lenient fallback for non-composite callers", () => {
+describe("parser/dates: parseDtmCascade: lenient fallback for non-composite callers", () => {
   it("strict HL7 DTM path never warns and returns full parts", () => {
     const { emit, warnings } = collect();
     const p = parseDtmCascade("20250102", { userFormats: ["MM/DD/YYYY"], emit, position: pos });
@@ -213,7 +213,7 @@ describe("parser/dates: parseDtmCascade — lenient fallback for non-composite c
     expect(warnings[0]?.message).toMatch(/MM\/DD\/YYYY/);
   });
 
-  it("tries user formats in order — second matches when first fails", () => {
+  it("tries user formats in order: second matches when first fails", () => {
     const { emit, warnings } = collect();
     parseDtmCascade("01/02/2025", {
       userFormats: ["YYYY-MM-DD", "MM/DD/YYYY"],

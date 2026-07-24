@@ -1,6 +1,6 @@
 /**
  * Plan 06-03 Task 3: End-to-end coverage for the profile integration
- * pipeline delivered in Plan 06-03 — Segment.get(name) named-field access
+ * pipeline delivered in Plan 06-03: Segment.get(name) named-field access
  * (PROF-07), UNKNOWN_SEGMENT emit site + profile suppression (D-31, part of
  * PROF-06), merged `dateFormats` precedence observable via
  * `msg.meta.timestamp` (D-21), Hl7Message storage for both (D-16), and the
@@ -17,7 +17,7 @@ import { defineProfile } from "../src/profiles/define.js";
 // tests below override MSH-7 to exercise non-HL7 formats.
 const BASE_MSH = "MSH|^~\\&|SENDAPP|SENDFAC|RCVAPP|RCVFAC|20250101120000||ADT^A01|MSG001|P|2.5\r";
 
-describe("Segment.get(name) — happy paths (PROF-07)", () => {
+describe("Segment.get(name): happy paths (PROF-07)", () => {
   it("resolves a profile-declared field name to the correct Field", () => {
     const profile = defineProfile({
       name: "test",
@@ -50,7 +50,7 @@ describe("Segment.get(name) — happy paths (PROF-07)", () => {
 
   it("returns undefined on a standard segment (D-15 defense-in-depth)", () => {
     // defineProfile rejects standard-segment customSegments via D-05, so we
-    // bypass it with a hand-crafted Profile-shaped object — same as the
+    // bypass it with a hand-crafted Profile-shaped object: same as the
     // rogue-parent test in profiles-extends.test.ts. This proves
     // Segment.get returns undefined for a standard segment even when one
     // slips through a bypass route (D-15).
@@ -145,7 +145,7 @@ describe("D-21 merged dateFormats: options.dateFormats precedes profile.dateForm
     // timestamp parse into the parse pipeline to surface
     // TIMESTAMP_FALLBACK_FORMAT in msg.warnings is a separate concern
     // (requires buildMeta to run eagerly during parseHL7 with live emit
-    // access) and is outside the Plan 06-03 scope — the Date itself is
+    // access) and is outside the Plan 06-03 scope: the Date itself is
     // the observable contract for D-21 from this plan's perspective.
   });
 
@@ -159,7 +159,7 @@ describe("D-21 merged dateFormats: options.dateFormats precedes profile.dateForm
     expect(msg.meta.timestamp).toMatchObject({ valid: true, year: 2025, month: 1, day: 15 });
   });
 
-  it("options.dateFormats present AND profile.dateFormats present — OPTIONS tried first (D-21)", () => {
+  it("options.dateFormats present AND profile.dateFormats present: OPTIONS tried first (D-21)", () => {
     // Crafted so both formats match the input but produce DIFFERENT dates.
     // Input "01/02/2025": options "MM/DD/YYYY" → Jan 2, profile
     // "DD/MM/YYYY" → Feb 1. Options-first means Jan 2 wins.

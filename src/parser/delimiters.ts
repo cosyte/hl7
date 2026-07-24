@@ -8,7 +8,7 @@
  * them, which keeps custom-delimiter behaviour (PARSE-02) consistent across
  * the pipeline.
  *
- * Only three of the four Tier-3 fatal codes originate here —
+ * Only three of the four Tier-3 fatal codes originate here,
  * `NO_MSH_SEGMENT`, `MSH_TOO_SHORT`, `INVALID_ENCODING_CHARACTERS`. The
  * fourth, `EMPTY_INPUT`, is owned by the `normalize.ts` preprocessing stage.
  */
@@ -39,18 +39,18 @@ export const DEFAULT_ENCODING_CHARACTERS: EncodingCharacters = {
 /**
  * Extract the HL7 encoding characters from the first segment of a message.
  *
- * Accepts a 4-character MSH-2 (HL7 v2.1–v2.6 — component/repetition/escape/
- * subcomponent) or a 5-character MSH-2 (HL7 v2.7+ — adds a truncation
+ * Accepts a 4-character MSH-2 (HL7 v2.1–v2.6: component/repetition/escape/
+ * subcomponent) or a 5-character MSH-2 (HL7 v2.7+: adds a truncation
  * character; spec default `#`). Both shapes are spec-conformant and must not
  * fatal.
  *
  * Throws `Hl7ParseError` with one of three Tier-3 fatal codes when the
  * structural preconditions fail:
  *
- * - `NO_MSH_SEGMENT` — first segment does not start with `MSH`.
- * - `MSH_TOO_SHORT` — MSH has fewer than 8 chars (cannot contain the
+ * - `NO_MSH_SEGMENT`: first segment does not start with `MSH`.
+ * - `MSH_TOO_SHORT`: MSH has fewer than 8 chars (cannot contain the
  *   encoding-characters field).
- * - `INVALID_ENCODING_CHARACTERS` — MSH-1 is whitespace; MSH-2 is not
+ * - `INVALID_ENCODING_CHARACTERS`: MSH-1 is whitespace; MSH-2 is not
  *   4 or 5 distinct non-whitespace chars; or the field separator appears
  *   among the MSH-2 encoding chars.
  *
@@ -70,7 +70,7 @@ export function readDelimiters(firstSegment: string): EncodingCharacters {
   if (firstSegment.length < 3 || firstSegment.slice(0, 3) !== "MSH") {
     throw new Hl7ParseError(
       FATAL_CODES.NO_MSH_SEGMENT,
-      "First segment is not MSH — HL7 v2 messages must begin with an MSH segment.",
+      "First segment is not MSH: HL7 v2 messages must begin with an MSH segment.",
       fatalPosition,
       snip,
     );
@@ -81,7 +81,7 @@ export function readDelimiters(firstSegment: string): EncodingCharacters {
   if (firstSegment.length < 8) {
     throw new Hl7ParseError(
       FATAL_CODES.MSH_TOO_SHORT,
-      "MSH segment is truncated — cannot read encoding characters.",
+      "MSH segment is truncated: cannot read encoding characters.",
       fatalPosition,
       snip,
     );
@@ -92,7 +92,7 @@ export function readDelimiters(firstSegment: string): EncodingCharacters {
   if (/\s/u.test(field)) {
     throw new Hl7ParseError(
       FATAL_CODES.INVALID_ENCODING_CHARACTERS,
-      "MSH-1 field separator is whitespace — refusing to parse.",
+      "MSH-1 field separator is whitespace: refusing to parse.",
       fatalPosition,
       snip,
     );

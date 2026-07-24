@@ -29,7 +29,7 @@ describe("extends: lineage (D-03)", () => {
 
   it("self-name already present in parent lineage is NOT re-appended", () => {
     const a = defineProfile({ name: "a" });
-    // Manually craft a child named 'a' extending 'a' — rare but legal.
+    // Manually craft a child named 'a' extending 'a': rare but legal.
     const aPrime = defineProfile({ name: "a", extends: a });
     expect(aPrime.lineage).toEqual(["a"]); // no ['a', 'a']
   });
@@ -184,7 +184,7 @@ describe("extends: onWarning chain (D-12)", () => {
     expect(b.onWarning).toBeUndefined();
   });
 
-  it("[p1, p2] + child handler — all 3 invoked in order", () => {
+  it("[p1, p2] + child handler: all 3 invoked in order", () => {
     const callLog: string[] = [];
     const a = defineProfile({
       name: "a",

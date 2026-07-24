@@ -1,5 +1,5 @@
 /**
- * `Field` — wrapper over a `RawField` exposing HL7 null/empty discrimination
+ * `Field`: wrapper over a `RawField` exposing HL7 null/empty discrimination
  * (`isNull`), the raw repetitions tree, and a convenience `value` getter that
  * reads the first subcomponent of the first component of the first
  * repetition. Constructed internally by `Segment.field(n)`; user code never
@@ -8,7 +8,7 @@
  * Typed composite coercions (`asXpn`, `asXad`, `asCx`, `asCwe`, `asCe`,
  * `asXtn`, `asPl`, `asTs`, `asNm`, `asHd`) delegate to the corresponding
  * composite parsers from `./types/*`. Coercions are lazy and NOT memoized
- * in v1 (D-09) — each call re-parses the first repetition. Empty fields
+ * in v1 (D-09): each call re-parses the first repetition. Empty fields
  * return empty typed objects (`{}` for optional-field composites,
  * `{ raw: "", date: undefined }` / `{ raw: "", value: undefined }` for
  * the TS/NM scalar composites).
@@ -37,7 +37,7 @@ const DEFAULT_POSITION: Hl7Position = { segmentIndex: 0 };
 /**
  * Wrapper over a `RawField` exposing HL7 null/empty discrimination
  * (`isNull`), the repetitions tree, and a decoded `value` getter.
- * `seg.field(3) === seg.field(3)` — Field instances are referentially stable
+ * `seg.field(3) === seg.field(3)`: Field instances are referentially stable
  * per segment position (D-12).
  *
  * @example
@@ -45,13 +45,13 @@ const DEFAULT_POSITION: Hl7Position = { segmentIndex: 0 };
  * import { parseHL7 } from "@cosyte/hl7";
  * const msg = parseHL7(raw);
  * const pid5 = msg.segments("PID")[0]?.field(5);
- * console.log(pid5?.value);              // "Smith" — decoded at parse
- * console.log(pid5?.isNull);             // false — HL7 explicit null is "", absent is not
+ * console.log(pid5?.value);              // "Smith": decoded at parse
+ * console.log(pid5?.isNull);             // false: HL7 explicit null is "", absent is not
  * console.log(pid5?.repetitions.length); // 1
  * ```
  */
 export class Field {
-  /** HL7 null indicator — `true` iff the underlying field was the two-char literal `""`. */
+  /** HL7 null indicator: `true` iff the underlying field was the two-char literal `""`. */
   public readonly isNull: boolean;
 
   /** Reference to the underlying `RawField.repetitions` (no defensive copy). */
@@ -60,7 +60,7 @@ export class Field {
   /** The 5 encoding characters for this message. Exposed for composite parsers (Plan 04). @internal */
   public readonly enc: EncodingCharacters;
 
-  /** Position of this field in the parent message — used for position-aware error messages. @internal */
+  /** Position of this field in the parent message: used for position-aware error messages. @internal */
   public readonly position: Hl7Position;
 
   /** The full `RawField` this wrapper wraps. Exposed for composite parsers (Plan 02/03/04). @internal */
@@ -81,7 +81,7 @@ export class Field {
 
   /**
    * First-repetition, first-component, first-subcomponent value as a decoded
-   * string — unescaped ONCE by the tokenizer on parse, returned verbatim here
+   * string: unescaped ONCE by the tokenizer on parse, returned verbatim here
    * (never re-unescaped, HL7-VALUE-REDECODE). Returns `""` when the field is
    * empty or HL7 null. Equivalent to `msg.get('SEG.N')` for a top-level access.
    *
@@ -100,7 +100,7 @@ export class Field {
     const sub = comp.subcomponents[0];
     if (sub === undefined) return "";
     // The tokenizer already unescaped every subcomponent on parse (parser-02),
-    // so the stored value is decoded — return it directly. Re-unescaping here
+    // so the stored value is decoded: return it directly. Re-unescaping here
     // would double-decode a value whose own bytes look like an escape (a wire
     // `\E\F\E\` decodes to `\F\`, which a second pass would wrongly turn into
     // `|`). Emit fidelity is handled separately by the raw overlay (HL7-ESC).
@@ -108,13 +108,13 @@ export class Field {
   }
 
   /**
-   * The field's **canonical wire text** — the full field re-serialized with
+   * The field's **canonical wire text**: the full field re-serialized with
    * the active delimiters and re-escaped content (repetitions, components,
    * and subcomponents included). Contrast with {@link value}, which
    * returns only the first subcomponent of the first component of the first
-   * repetition (decoded once at parse — never re-unescaped).
+   * repetition (decoded once at parse: never re-unescaped).
    *
-   * Use this when a field must be compared or echoed as a whole — e.g.
+   * Use this when a field must be compared or echoed as a whole: e.g.
    * correlating an ACK's MSA-2 against the inbound MSH-10, where a
    * vendor-quirk control id containing an unescaped delimiter (`ID^X`) must
    * not be truncated to its first component.
@@ -133,7 +133,7 @@ export class Field {
    *
    * **MSH-1/MSH-2 caveat.** Like {@link value}, calling this on MSH-1 or
    * MSH-2 (the delimiter-definition fields) re-escapes the encoding
-   * characters themselves and produces garbage — those two fields are only
+   * characters themselves and produces garbage: those two fields are only
    * meaningful through `Hl7Message.encodingCharacters`.
    *
    * @example
@@ -150,7 +150,7 @@ export class Field {
 
   /**
    * Render this field's formatted text (HL7 v2 §2.7 highlight + formatting
-   * escapes) into a normalized {@link RenderedText} display model — plain text
+   * escapes) into a normalized {@link RenderedText} display model: plain text
    * plus highlight-aware runs. A **read projection** over the field's
    * byte-verbatim wire {@link text}: it never mutates the raw value, and it
    * never fabricates (an unrenderable escape is preserved + flagged). Use this
@@ -171,12 +171,12 @@ export class Field {
   }
 
   /**
-   * Return a synthetic empty `Field` sentinel — used by `Segment.field(n)` to
+   * Return a synthetic empty `Field` sentinel: used by `Segment.field(n)` to
    * honor MODEL-05's "never throws on missing" contract. The returned Field
    * has `isNull === false`, `repetitions === []`, and `value === ""`.
    * Referentially stable across calls (same instance returned each time).
    *
-   * The `enc` argument is accepted for API symmetry but ignored — the
+   * The `enc` argument is accepted for API symmetry but ignored: the
    * synthetic field carries no content, so unescape would be a no-op
    * regardless of the active encoding characters.
    *
@@ -194,7 +194,7 @@ export class Field {
   /**
    * Coerce this field's first repetition to a typed `XPN` (Extended Person
    * Name). Absent components are OMITTED from the result
-   * (`exactOptionalPropertyTypes`). Not memoized in v1 — each call re-parses
+   * (`exactOptionalPropertyTypes`). Not memoized in v1: each call re-parses
    * (D-09).
    *
    * @example
@@ -291,7 +291,7 @@ export class Field {
   }
 
   /**
-   * Coerce this field's first repetition to a typed `TS` (Time Stamp) — the
+   * Coerce this field's first repetition to a typed `TS` (Time Stamp): the
    * fidelity `DtmParts` (raw + parts + precision + timezone). `valid` is
    * `false` on unparseable input (no throw). Build an absolute instant only on
    * explicit request via `dtmToDate(ts)`.
@@ -308,7 +308,7 @@ export class Field {
 
   /**
    * Coerce this field's first repetition to a typed `NM` (Numeric).
-   * `{ raw, value }` — `value` is `undefined` on non-numeric input.
+   * `{ raw, value }`: `value` is `undefined` on non-numeric input.
    *
    * @example
    * ```ts
@@ -377,7 +377,7 @@ const EMPTY_RAW_FIELD: RawField = Object.freeze({
 const EMPTY_FIELD = new Field(EMPTY_RAW_FIELD, DEFAULT_ENCODING_CHARACTERS, DEFAULT_POSITION);
 
 /**
- * Synthetic empty repetition — feeds composite parsers for empty fields so
+ * Synthetic empty repetition: feeds composite parsers for empty fields so
  * they return `{}` / empty typed objects instead of throwing. Shared across
  * every `.asXxx()` coercion. Frozen so no parser can mutate the sentinel.
  * @internal

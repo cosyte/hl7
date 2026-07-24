@@ -1,7 +1,7 @@
 /**
- * Phase Q — integration tests for `msg.charges()` (DFT^P03: one Charge per FT1).
+ * Phase Q: integration tests for `msg.charges()` (DFT^P03: one Charge per FT1).
  * Covers the FT1 field map (FT1-6 transaction type, FT1-7 code, FT1-11/12
- * extended/unit amount as VERBATIM wire text — never money-as-float, FT1-19
+ * extended/unit amount as VERBATIM wire text: never money-as-float, FT1-19
  * repeating diagnosis linkage), one-per-FT1 document order, and the
  * HELPERS-07 / D-01 / D-06 contracts.
  */
@@ -62,7 +62,7 @@ describe("helpers/charges: FT1 field map", () => {
     expect(charge?.quantity).toBe(1);
   });
 
-  it("FT1-19 repeating diagnosis linkage — all repetitions surface", () => {
+  it("FT1-19 repeating diagnosis linkage: all repetitions surface", () => {
     expect(charge?.diagnoses).toHaveLength(2);
     expect(charge?.diagnoses[0]?.identifier).toBe("E11.9");
     expect(charge?.diagnoses[1]?.identifier).toBe("I10");

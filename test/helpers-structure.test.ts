@@ -1,17 +1,17 @@
 /**
- * Phase G — message-type & structure awareness. Covers the conservative
+ * Phase G: message-type & structure awareness. Covers the conservative
  * misroute/truncation safety net on both the read-side (`msg.structure`) and
  * the parse-side (`MISSING_EXPECTED_GROUP` warning emission), plus the two
  * accuracy guarantees that make it shippable:
  *
- *   1. ZERO false positives — every well-formed canonical fixture of a
+ *   1. ZERO false positives: every well-formed canonical fixture of a
  *      recognized type produces NO structural warning.
- *   2. The truncation signature — a recognized type stripped of an expected
+ *   2. The truncation signature: a recognized type stripped of an expected
  *      Required group warns ADDITIVELY, exactly once per missing group, and
  *      lenient parse never throws.
  *
  * The warning message carries only structural facts (type, group, anchor
- * names) — never a field value — so the PHI-safety assertion is explicit here.
+ * names), never a field value, so the PHI-safety assertion is explicit here.
  */
 
 import { readFileSync } from "node:fs";

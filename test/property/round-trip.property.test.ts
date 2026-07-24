@@ -10,9 +10,9 @@
  * (`\F\ \S\ \T\ \R\ \E\`) plus the `\.br\` newline shorthand.
  *
  * Invariants:
- *   1. Structural equality — `parse(serialize(m)).rawSegments` deep-equals
+ *   1. Structural equality: `parse(serialize(m)).rawSegments` deep-equals
  *      `m.rawSegments` (and encodingCharacters match).
- *   2. Idempotency — `serialize(parse(serialize(m))) === serialize(m)`.
+ *   2. Idempotency: `serialize(parse(serialize(m))) === serialize(m)`.
  */
 
 import { describe, expect, it } from "vitest";
@@ -60,7 +60,7 @@ describe("property: round-trip (serialize → parse) structural equality", () =>
     // proving fidelity. MISSING_EXPECTED_GROUP (Phase G) is excluded: the
     // generator builds recognized message types with arbitrary segments and so
     // legitimately omits Required groups, but that warning is purely structural
-    // advice — it changes no bytes and is orthogonal to round-trip fidelity.
+    // advice: it changes no bytes and is orthogonal to round-trip fidelity.
     fc.assert(
       fc.property(specCleanMessageRaw(), (raw) => {
         const msg = parseHL7(raw);
@@ -76,7 +76,7 @@ describe("property: round-trip (serialize → parse) structural equality", () =>
 
 describe("property: HL7-ESC full-alphabet byte-verbatim fidelity", () => {
   // Escape tokens spanning EVERY family the parser recognizes. Emitting a
-  // parsed field must reproduce these bytes verbatim — delimiter escapes via
+  // parsed field must reproduce these bytes verbatim: delimiter escapes via
   // reescape, preserve/hex escapes via the rawSubcomponents overlay.
   const escapeToken = fc.constantFrom(
     "\\F\\",
@@ -99,9 +99,9 @@ describe("property: HL7-ESC full-alphabet byte-verbatim fidelity", () => {
     "\\Z99\\",
     "\\Zvendor\\",
   );
-  // Plain runs use an alphabet with NO reserved delimiter/escape chars — and
+  // Plain runs use an alphabet with NO reserved delimiter/escape chars: and
   // no whitespace (the default `trimFields` would strip a leading/trailing
-  // space, which is orthogonal to escape fidelity) — so the generated OBX-5
+  // space, which is orthogonal to escape fidelity): so the generated OBX-5
   // stays a single spec-clean subcomponent whose only escapes are the tokens
   // above.
   const plainRun = fc.stringOf(fc.constantFrom(..."abcXYZ0189".split("")), { maxLength: 6 });

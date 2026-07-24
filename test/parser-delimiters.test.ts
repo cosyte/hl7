@@ -80,7 +80,7 @@ describe("parser/delimiters: readDelimiters (fatal paths)", () => {
 
   it("throws INVALID_ENCODING_CHARACTERS when MSH-2 holds fewer than 4 code points", () => {
     // An astral character (emoji) is two UTF-16 code units, so the 4-unit
-    // slice(4,8) decodes to only 3 Unicode code points — not a valid 4-char
+    // slice(4,8) decodes to only 3 Unicode code points: not a valid 4-char
     // encoding set. Counting by code point (not code unit) is the correct
     // behavior; this guards against a multi-byte char sneaking into MSH-2.
     try {
@@ -96,7 +96,7 @@ describe("parser/delimiters: readDelimiters (fatal paths)", () => {
   });
 
   it("throws INVALID_ENCODING_CHARACTERS when a 5-char MSH-2 has duplicates", () => {
-    // The same distinctness rule applies to the v2.7+ 5-char form — the
+    // The same distinctness rule applies to the v2.7+ 5-char form: the
     // truncation char must not collide with any of the other four.
     try {
       readDelimiters("MSH|^~\\&^|APP");

@@ -3,7 +3,7 @@
  * pipeline. These types are contracts between parser stages (normalize,
  * mllp, segments, delimiters, tokenize) and the `Hl7Message` model shell.
  *
- * Every type here is deliberately readonly — the parser produces immutable
+ * Every type here is deliberately readonly: the parser produces immutable
  * data structures and consumers must not mutate them. Narrowing is done via
  * the `Hl7ParseWarning.code` and `Hl7ParseError.code` discriminants defined
  * in sibling files.
@@ -17,14 +17,14 @@ import type { Hl7ParseWarning } from "./warnings.js";
 /**
  * Positional context attached to every warning and fatal error. Fields are
  * 1-indexed against the HL7 spec convention (see `RawSegment.fields` for the
- * index 0 slot convention). All fields past `segmentIndex` are optional —
+ * index 0 slot convention). All fields past `segmentIndex` are optional,
  * for a top-level fatal like `EMPTY_INPUT` only `segmentIndex: 0` is
  * populated; for a tokenizer warning deep inside a subcomponent all five
  * indices may be set.
  *
  * @remarks
  * With `exactOptionalPropertyTypes: true`, do not pass `fieldIndex: undefined`
- * explicitly — omit the key instead.
+ * explicitly: omit the key instead.
  *
  * @example
  * ```ts
@@ -63,7 +63,7 @@ export type OnWarningCallback = (warning: Hl7ParseWarning) => void;
  *
  * @remarks
  * With `exactOptionalPropertyTypes: true`, callers cannot pass
- * `{ strict: undefined }` — either omit the key or pass a boolean. The
+ * `{ strict: undefined }`: either omit the key or pass a boolean. The
  * `profile: null` form is the explicit opt-out from the process-scoped
  * default profile (PROF-08 semantics); `profile` omitted means "use the
  * default if one is registered".
@@ -126,14 +126,14 @@ export interface CustomSegmentDefinition {
 /**
  * Structural placeholder for HL7 profiles. A profile bundles vendor-specific
  * tolerances, date formats, custom segment definitions, and optional
- * callbacks. Phase 2 ships only the type — the `defineProfile()` builder
+ * callbacks. Phase 2 ships only the type: the `defineProfile()` builder
  * and runtime effects land in Phase 6.
  *
  * Phase 6 Plan 01 tightens `customSegments` to the locked
  * `CustomSegmentDefinition` shape and adds an optional `describe?` method
  * so `defineProfile()`-produced profiles can be introspected without
  * consumers needing to narrow away from the `Profile` type. The `describe`
- * method is only populated by `defineProfile()` — hand-authored `Profile`
+ * method is only populated by `defineProfile()`: hand-authored `Profile`
  * objects may omit it.
  *
  * @example
@@ -161,8 +161,8 @@ export interface Profile {
 
 /**
  * The HL7 delimiter characters discovered from MSH-1 (field separator) and
- * MSH-2 (encoding characters). The first four — component, repetition,
- * escape, subcomponent — are mandatory across all HL7 v2 versions. The fifth,
+ * MSH-2 (encoding characters). The first four: component, repetition,
+ * escape, subcomponent: are mandatory across all HL7 v2 versions. The fifth,
  * `truncation`, is the v2.7+ truncation character (default `#` per spec
  * §2.5.5.2): only present when MSH-2 actually carries 5 encoding characters,
  * so messages that pre-date v2.7 round-trip with a 4-char MSH-2 unchanged.
@@ -190,7 +190,7 @@ export interface EncodingCharacters {
 }
 
 /**
- * A single component inside a repetition — the most deeply nested data
+ * A single component inside a repetition: the most deeply nested data
  * layer in the HL7 positional tree. A component is an ordered list of
  * subcomponent strings (subcomponent separator `&` by default).
  *
@@ -202,7 +202,7 @@ export interface EncodingCharacters {
  */
 export interface RawComponent {
   /**
-   * The component's subcomponents, **HL7-decoded** — the tokenizer expands
+   * The component's subcomponents, **HL7-decoded**: the tokenizer expands
    * escape sequences on parse so consumers read literal values (`Smith|Jones`,
    * not `Smith\F\Jones`). This is the value surface every reader uses
    * (`Field.value`, the composite parsers, dot-path, `toJSON`).
@@ -213,7 +213,7 @@ export interface RawComponent {
    * for each index, the subcomponent's **original wire bytes** to emit
    * verbatim instead of re-escaping the decoded form. An entry is present
    * (non-`undefined`) only when a subcomponent carried an escape whose decoded
-   * form does not re-escape back to the exact wire bytes — i.e. a recognize-
+   * form does not re-escape back to the exact wire bytes: i.e. a recognize-
    * and-preserve escape (`\H\`, `\Z..\`, charset/formatting) or a hex escape
    * (`\X41\`, or non-canonical hex casing). Delimiter escapes (`\F\`→`|`) round-
    * trip through `reescape` unchanged and get no overlay. The whole field is
@@ -230,7 +230,7 @@ export interface RawComponent {
 }
 
 /**
- * A single repetition inside a field — HL7 fields may repeat using the
+ * A single repetition inside a field: HL7 fields may repeat using the
  * repetition separator (`~` by default). Each repetition is an ordered list
  * of components.
  *
@@ -263,7 +263,7 @@ export interface RawField {
 }
 
 /**
- * A parsed HL7 segment — the top level of the positional tree. The `name`
+ * A parsed HL7 segment: the top level of the positional tree. The `name`
  * is the three-character segment identifier (`MSH`, `PID`, `ZPI`, ...) and
  * `fields` is the 1-indexed positional field array (see the JSDoc on
  * `fields` for the index 0 slot convention).

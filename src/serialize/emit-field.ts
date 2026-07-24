@@ -1,5 +1,5 @@
 /**
- * HL7 emit primitives for the `@cosyte/hl7` serializer pipeline —
+ * HL7 emit primitives for the `@cosyte/hl7` serializer pipeline,
  * walks a `RawField` / `RawSegment` tree and produces spec-clean HL7 text
  * by joining repetitions, components, and subcomponents with the active
  * delimiters and re-escaping user content via `reescape`.
@@ -8,21 +8,21 @@
  * - D-02: trailing empty components and subcomponents are stripped;
  *   `RawField.isNull === true` is preserved as the two-character literal `""`.
  * - D-04: a subcomponent with no fidelity overlay passes through
- *   `reescape(sub, enc)` — the 5 active delimiters + `\n` (via `\.br\`) + a
+ *   `reescape(sub, enc)`: the 5 active delimiters + `\n` (via `\.br\`) + a
  *   decoded CR (via `\X0D\`) are re-escaped; other already-decoded text passes
  *   through as plain characters. A subcomponent whose parse recorded original
- *   wire bytes in `RawComponent.rawSubcomponents` (HL7-ESC — a recognize-and-
+ *   wire bytes in `RawComponent.rawSubcomponents` (HL7-ESC: a recognize-and-
  *   preserve escape like `\H\`/`\Z..\`, or a hex escape like `\X41\`) is
  *   emitted from that overlay **verbatim**, so those families round-trip
  *   byte-for-byte instead of canonicalizing.
- * - D-06 guard: `emitSegment` throws when called with an MSH segment —
+ * - D-06 guard: `emitSegment` throws when called with an MSH segment,
  *   MSH must be routed through `to-string.ts`'s special-case path, which
  *   inlines MSH-1 and MSH-2 instead of running them through `emitField`
  *   (running MSH-2 through `emitField` would re-escape the encoding chars
  *   and produce garbage). The throw is a deliberate deviation from D-07
- *   purity — it catches programmer misuse at the call site instead of
+ *   purity: it catches programmer misuse at the call site instead of
  *   silently corrupting wire output.
- * - D-07: pure for all non-MSH inputs — never warns, never throws.
+ * - D-07: pure for all non-MSH inputs: never warns, never throws.
  *
  * Not part of the public API (no re-export from `src/index.ts`). Phase 6
  * profile hooks may compose around `emitSegment` / `emitField`.
@@ -41,7 +41,7 @@ import type { EncodingCharacters, RawField, RawRepetition, RawSegment } from "..
  *
  * D-02 rules:
  * - `field.isNull === true` returns the two-character string `""` (literal
- *   quote-quote — HL7 explicit null), regardless of repetitions content.
+ *   quote-quote: HL7 explicit null), regardless of repetitions content.
  * - Trailing empty subcomponents inside a component are stripped.
  * - Trailing empty components inside a repetition are stripped.
  * - A field with zero repetitions renders as the empty string.
@@ -67,7 +67,7 @@ function emitRepetition(rep: RawRepetition, enc: EncodingCharacters): string {
     for (let i = 0; i < comp.subcomponents.length; i++) {
       // Escape-fidelity overlay (HL7-ESC): when the tokenizer recorded the
       // subcomponent's original wire bytes (a preserve-or-hex escape whose
-      // decoded form does not re-escape byte-verbatim), emit them verbatim —
+      // decoded form does not re-escape byte-verbatim), emit them verbatim,
       // otherwise re-escape the decoded value. Delimiter escapes have no
       // overlay and take the reescape path, exactly as before.
       const raw = overlay?.[i];
@@ -90,14 +90,14 @@ function emitRepetition(rep: RawRepetition, enc: EncodingCharacters): string {
  * Emit a single non-MSH HL7 segment as its spec-clean string fragment:
  * `<seg.name>` + `enc.field` + `<fields[1..N] joined by enc.field>`.
  *
- * **IMPORTANT — MSH guard:** If `seg.name === "MSH"` this function
+ * **IMPORTANT: MSH guard:** If `seg.name === "MSH"` this function
  * THROWS. MSH requires D-06's special-case emission (MSH-1 = single
- * delimiter char, MSH-2 = 4 literal encoding chars — neither is routed
+ * delimiter char, MSH-2 = 4 literal encoding chars: neither is routed
  * through `emitField`, because running MSH-2 through `emitField` would
  * re-escape the encoding chars and produce garbage output). The only
  * correct caller for MSH is `to-string.ts::emitMessage`, which inlines
  * MSH-1/MSH-2 before handing MSH-3..N off to `emitField`. This guard
- * is a deliberate deviation from D-07 "never throws" — it catches
+ * is a deliberate deviation from D-07 "never throws": it catches
  * programmer misuse loudly at the call site rather than silently
  * corrupting wire output.
  *

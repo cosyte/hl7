@@ -2,13 +2,13 @@
  * Tests for the Phase T typed message builders `buildAdt` / `buildOru`.
  *
  * Acceptance exercised here (roadmap Phase T):
- *   - **spec-clean golden** — the builder emits byte-for-byte the recorded
+ *   - **spec-clean golden**: the builder emits byte-for-byte the recorded
  *     golden for fixed inputs.
- *   - **zero-warning + structurally complete** — a built message re-parses with
+ *   - **zero-warning + structurally complete**: a built message re-parses with
  *     `warnings: []` and `msg.structure.missingGroups` empty.
- *   - **emit ∘ parse identity** — `parse → typed → buildX(typed) → parse`
+ *   - **emit ∘ parse identity**: `parse → typed → buildX(typed) → parse`
  *     preserves the modelled fields.
- *   - **never fabricate** — required-but-absent inputs are a typed error; an
+ *   - **never fabricate**: required-but-absent inputs are a typed error; an
  *     omitted optional field is never defaulted.
  *
  * All values are synthetic.
@@ -207,7 +207,7 @@ describe("buildAdt", () => {
   });
 
   it("throws a typed error when patient is absent", () => {
-    // @ts-expect-error — patient is required
+    // @ts-expect-error: patient is required
     expect(() => buildAdt("A01", {})).toThrow(TypeError);
   });
 
@@ -270,12 +270,12 @@ describe("buildOru", () => {
   });
 
   it("throws a typed error when observations is absent", () => {
-    // @ts-expect-error — observations is required
+    // @ts-expect-error: observations is required
     expect(() => buildOru({ patient: ORU_INIT.patient })).toThrow(TypeError);
   });
 
   it("throws a typed error when patient is absent", () => {
-    // @ts-expect-error — patient is required
+    // @ts-expect-error: patient is required
     expect(() => buildOru({ observations: ORU_INIT.observations })).toThrow(TypeError);
   });
 
@@ -292,7 +292,7 @@ describe("buildOru", () => {
   });
 });
 
-describe("Phase T — every typed input field is emitted (full population)", () => {
+describe("Phase T: every typed input field is emitted (full population)", () => {
   it("buildAdt emits every supplied PID/PV1/EVN field, zero-warning", () => {
     const msg = buildAdt("A04", {
       sendingApp: "S",

@@ -84,7 +84,7 @@ describe("parser/warnings: registry + factories", () => {
     });
 
     it("names no type letter when the body's first char is not a recognized escape letter", () => {
-      // A stray escape char landed in front of genuine field text — the first
+      // A stray escape char landed in front of genuine field text: the first
       // character ("p" of "patientname") is not one of F S T R E X C M Z H N
       // or "." so nothing about the body may be named, only its length.
       const w = unknownEscapeSequence({ segmentIndex: 2, fieldIndex: 3 }, "patientname");
@@ -105,7 +105,7 @@ describe("parser/warnings: registry + factories", () => {
       const w = unterminatedEscapeSequence({ segmentIndex: 2, fieldIndex: 3 });
       expect(w.code).toBe(WARNING_CODES.UNKNOWN_ESCAPE_SEQUENCE);
       expect(w.message).toMatch(/[Uu]nterminated/);
-      // No length-of-tail figure and no field content — the only digit that
+      // No length-of-tail figure and no field content: the only digit that
       // may legitimately appear is the "7" in the structural word "HL7".
       expect(w.message.replace(/HL7/g, "")).not.toMatch(/\d/);
     });

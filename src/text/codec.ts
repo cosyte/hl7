@@ -1,5 +1,5 @@
 /**
- * First-class HL7 v2 text codec for `@cosyte/hl7` — the ergonomic
+ * First-class HL7 v2 text codec for `@cosyte/hl7`: the ergonomic
  * decode / encode pair that sits on top of the parser-internal
  * `unescape` / `reescape` primitives.
  *
@@ -32,7 +32,7 @@ function ignore(): void {
  * verbatim** so nothing is lost. Never throws.
  *
  * This is the one-call inverse of {@link encodeText} for delimiter-bearing
- * content. It does **not** interpret formatting/highlight — for a normalized
+ * content. It does **not** interpret formatting/highlight: for a normalized
  * display string use {@link renderText}.
  *
  * @param input - the field's escape-bearing text.
@@ -42,7 +42,7 @@ function ignore(): void {
  * @example
  * ```ts
  * import { decodeText } from "@cosyte/hl7";
- * decodeText("Doe\\S\\John");   // "Doe^John"  — \S\ → component separator
+ * decodeText("Doe\\S\\John");   // "Doe^John": \S\ → component separator
  * decodeText("line1\\.br\\line2"); // "line1\nline2"
  * ```
  */
@@ -56,16 +56,16 @@ export function decodeText(
 /**
  * **Encode-safe** direction: escape an arbitrary string so it can be placed in
  * an HL7 field as data without ever breaking framing. Every reserved character
- * — the escape char (escaped **first**, so decoding is unambiguous), the field,
+ *: the escape char (escaped **first**, so decoding is unambiguous), the field,
  * component, subcomponent, and repetition separators, the declared truncation
- * char, and the framing-critical `\n`/`\r` — is replaced by its escape
+ * char, and the framing-critical `\n`/`\r`: is replaced by its escape
  * sequence, so the value **cannot inject a delimiter or forge a component /
  * subcomponent / repetition boundary**.
  *
  * The hard invariant, property-tested over arbitrary strings:
  * `decodeText(encodeText(s, enc), enc) === s`, and a message field carrying
  * `encodeText(s)` **cannot forge a component / subcomponent / repetition
- * boundary or break framing** — the value never escapes its field.
+ * boundary or break framing**: the value never escapes its field.
  *
  * Two caveats are inherent to HL7 field encoding, not to this codec, and apply
  * to *whole-field* re-parse (they do not weaken the no-injection guarantee):
@@ -86,7 +86,7 @@ export function decodeText(
  * const hostile = "a|b^c~d\\e&f";
  * const body = encodeText(hostile); // "a\\F\\b\\S\\c\\R\\d\\E\\e\\T\\f"
  * const msg = parseHL7(`MSH|^~\\&|A|B|C|D|20260101||ADT^A01|1|P|2.5\rNTE|1||${body}`);
- * msg.segments("NTE")[0]?.field(3).value === hostile; // true — round-trips exactly
+ * msg.segments("NTE")[0]?.field(3).value === hostile; // true: round-trips exactly
  * ```
  */
 export function encodeText(

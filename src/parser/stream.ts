@@ -3,14 +3,14 @@
  * Phase S). Real ELR / IIS / lab feeds and files ship many messages and can be
  * far too large to buffer whole; a live source (an already-de-framed MLLP feed,
  * a growing file) has no "whole" to buffer at all. `parseStream()` consumes a
- * **chunked** byte/string source — a Node `Readable`, an async-iterable, or a
- * plain iterable of chunks — and **yields one {@link StreamMessageEntry} per
+ * **chunked** byte/string source: a Node `Readable`, an async-iterable, or a
+ * plain iterable of chunks: and **yields one {@link StreamMessageEntry} per
  * `MSH`-delimited message** as each boundary completes, holding only
  * **O(one message)** of state (the in-flight message's lines plus the current
- * partial-segment buffer) — never the whole stream.
+ * partial-segment buffer): never the whole stream.
  *
  * Design (HL7 v2 Ch. 2; note this is engineering guidance, not a spec-mandated
- * streaming grammar — the base standard prescribes no incremental parse):
+ * streaming grammar: the base standard prescribes no incremental parse):
  *
  * - **`MSH` at segment start is the message boundary.** A message runs from an
  *   `MSH` segment up to (but not including) the next `MSH` (or a batch-envelope
@@ -18,30 +18,30 @@
  *   demarcation exactly, so the streamed decomposition of a buffer is identical
  *   to the whole-buffer one.
  * - **Batch-aware.** The four batch-envelope segments (`FHS`/`BHS`/`BTS`/`FTS`,
- *   §2.10.3) act as message boundaries — they flush the current message — and are
+ *   §2.10.3) act as message boundaries (they flush the current message) and are
  *   **never yielded as messages**, so `yielded count == MSH count`. Envelope
  *   **count reconciliation** (BTS-1 / FTS-1) is {@link splitBatch}'s job, not this
  *   surface's: `parseStream` streams *messages*, not a batch report.
- * - **Chunk-boundary invariant.** Segments — including the `MSH|^~\&` header — are
+ * - **Chunk-boundary invariant.** Segments (including the `MSH|^~\&` header) are
  *   only demarcated once their terminator arrives, so a message split across two
  *   chunks (mid-segment, mid-field, even mid-`MSH`) is reassembled correctly.
  *   Feeding the same bytes in 1-byte chunks vs. one big chunk yields **identical**
  *   messages. A `\r\n` terminator split across a chunk boundary is not mistaken
  *   for a bare `\r` + empty segment (a trailing `\r` waits for the next chunk).
  * - **Terminator tolerance.** `\r`, `\r\n`, and `\n` are all accepted as segment
- *   terminators (Postel's Law — real feeds mix them), matching the core parser's
+ *   terminators (Postel's Law: real feeds mix them), matching the core parser's
  *   `normalize`.
  * - **Isolation, never dropped tails.** Each message is parsed by the shipped
  *   {@link parseHL7} (no second grammar; raw extraction semantics unchanged) and
  *   surfaced as either an `ok` entry (its own `.warnings` hold per-message
  *   deviations) or a typed **failure** entry carrying the `Hl7ParseError`. A
- *   corrupt message mid-stream is isolated — it **never suppresses** the messages
+ *   corrupt message mid-stream is isolated: it **never suppresses** the messages
  *   after it. A final message that ends without a segment terminator is still
  *   yielded in full, flagged via a stream-level {@link unterminatedStreamMessage}
  *   warning (never a throw), so a truncated feed is surfaced, never silently
  *   dropped.
  *
- * Transport framing (MLLP `<SB>…<EB><CR>`) is **out of scope** — this consumes an
+ * Transport framing (MLLP `<SB>…<EB><CR>`) is **out of scope**: this consumes an
  * already-de-framed stream; `@cosyte/mllp` owns the wire. See
  * `docs-content/spec-notes-stream.md`.
  */
@@ -60,7 +60,7 @@ import type { Hl7Message } from "../model/message.js";
  * A chunked source `parseStream` can consume: a Node `Readable`, any
  * async-iterable, or any plain iterable of chunks. Chunks are `string`
  * (text stream) or `Buffer`/`Uint8Array` (binary stream). A real Node stream in
- * binary mode yields `Buffer`s; in text mode it yields `string`s — a source is
+ * binary mode yields `Buffer`s; in text mode it yields `string`s: a source is
  * expected to be **homogeneous** (all-text or all-binary), which every real
  * `Readable` is. A binary chunk is decoded 1:1 via `latin1` (a lossless
  * byte↔codepoint mapping) so each message's own MSH-18 charset resolution runs
@@ -87,13 +87,13 @@ export type Hl7StreamSource =
  * {@link splitBatch}'s per-message entry: a successful parse carries the
  * `Hl7Message` (whose own `.warnings` hold per-message Tier-2 deviations); a
  * message that hit one of the four Tier-3 fatals carries the `Hl7ParseError`
- * instead — **isolated**, so the rest of the stream still yields.
+ * instead: **isolated**, so the rest of the stream still yields.
  *
  * `raw` is the message's verbatim source (re-parseable by {@link parseHL7});
  * `position.segmentIndex` is the message's `MSH` (or, for stray pre-`MSH`
- * content, its first) segment index in the overall stream — the streaming
+ * content, its first) segment index in the overall stream: the streaming
  * analogue of {@link splitBatch}'s message position. `streamWarnings` holds
- * **stream-level** diagnostics that are not per-message parse warnings — today
+ * **stream-level** diagnostics that are not per-message parse warnings: today
  * only {@link unterminatedStreamMessage} on a final message that lacked a
  * terminator. It is kept separate from `message.warnings` (which stays exactly
  * what a whole-buffer `parseHL7` of the same bytes would produce) and is
@@ -184,7 +184,7 @@ async function* iterateChunks(source: Hl7StreamSource): AsyncGenerator<unknown> 
  * when the buffer does not yet hold a full segment (more data is needed).
  * Terminators are `\r`, `\r\n`, or `\n`. A trailing `\r` at the very end of a
  * non-final buffer returns `null` (it may be the first half of a `\r\n` split
- * across a chunk boundary — waiting avoids a spurious empty segment); on the
+ * across a chunk boundary: waiting avoids a spurious empty segment); on the
  * final drain (`final: true`) the trailing `\r` is a real terminator.
  *
  * @internal
@@ -254,23 +254,23 @@ function parseStreamEntry(
 /**
  * Incrementally parse a chunked HL7 v2 byte / text stream, yielding one
  * {@link StreamMessageEntry} per `MSH`-delimited message as its boundary
- * completes, with **O(one-message)** memory — the whole stream is never
+ * completes, with **O(one-message)** memory: the whole stream is never
  * retained. Demarcates by `MSH` boundaries inside the optional
  * `[FHS] { [BHS] { MSH… } [BTS] } [FTS]` batch frame (HL7 v2 Ch. 2 §2.10.3):
  *
  * - a message split across chunk boundaries (mid-segment, mid-field, even
- *   mid-`MSH|^~\&`) is reassembled correctly — feeding the same bytes in 1-byte
+ *   mid-`MSH|^~\&`) is reassembled correctly: feeding the same bytes in 1-byte
  *   chunks vs. one chunk yields **identical** messages;
  * - `\r`, `\r\n`, and `\n` segment terminators are all tolerated (a `\r\n` split
  *   across a chunk boundary is not mistaken for a bare `\r`);
- * - each message is parsed by the shipped {@link parseHL7} (no second grammar) —
+ * - each message is parsed by the shipped {@link parseHL7} (no second grammar),
  *   `ok` entries carry the `Hl7Message`, a Tier-3 fatal is an isolated failure
  *   entry; a **malformed message never suppresses later messages**;
  * - batch-envelope segments (`FHS`/`BHS`/`BTS`/`FTS`) are treated as boundaries
  *   and never yielded as messages, so `yielded count == MSH count` (envelope
  *   count reconciliation is {@link splitBatch}'s job);
  * - a final message with no trailing terminator is still yielded, flagged with a
- *   stream-level {@link unterminatedStreamMessage} warning — **never a throw, the
+ *   stream-level {@link unterminatedStreamMessage} warning: **never a throw, the
  *   tail is never dropped**.
  *
  * The second argument, when given, is forwarded verbatim to {@link parseHL7} for
@@ -288,7 +288,7 @@ function parseStreamEntry(
  *
  * let count = 0;
  * for await (const entry of parseStream(chunks())) {
- *   if (entry.ok) count += 1; // 2 — one per MSH, streamed, released each time
+ *   if (entry.ok) count += 1; // 2: one per MSH, streamed, released each time
  * }
  * ```
  */
@@ -303,13 +303,13 @@ export function parseStream(
   source: Hl7StreamSource,
   options: ParseOptions,
 ): AsyncGenerator<StreamMessageEntry, void, void>;
-/** @internal — implementation signature; overloads above carry the public JSDoc. */
+/** @internal implementation signature; overloads above carry the public JSDoc. */
 export async function* parseStream(
   source: Hl7StreamSource,
   optionsOrProfile?: ParseOptions | Profile,
 ): AsyncGenerator<StreamMessageEntry, void, void> {
   // A bare string is Iterable<string> (of single characters) and a bare Buffer
-  // is Iterable<number> (of bytes) — both would be silently mis-consumed as a
+  // is Iterable<number> (of bytes): both would be silently mis-consumed as a
   // "stream of chunks". Reject them with a pointer to the right surface: a
   // single message is `parseHL7`'s job, and a whole buffer to stream is wrapped
   // in an array (`parseStream([buffer])`).
@@ -322,7 +322,7 @@ export async function* parseStream(
   }
 
   // The single partial-segment buffer: text seen but not yet formed into a
-  // complete segment. Bounded by one segment (chunked feed) — never the file.
+  // complete segment. Bounded by one segment (chunked feed): never the file.
   let pending = "";
   // The current in-flight message's completed segment lines. Released on every
   // flush (yield), so at most one message's worth of lines is ever retained.
@@ -331,7 +331,7 @@ export async function* parseStream(
   // The running segment index in the overall stream (blanks included), so a
   // message's position mirrors splitBatch's MSH segment index.
   let globalSegmentIndex = 0;
-  // Whether the byte path was taken (binary source) — governs per-message
+  // Whether the byte path was taken (binary source): governs per-message
   // re-encode. Determined by the first chunk; sources are homogeneous.
   let wasBuffer = false;
   let firstChunkSeen = false;
@@ -387,7 +387,7 @@ export async function* parseStream(
       messageStartIndex = thisIndex;
       return flushed;
     }
-    // Message body — or stray content before the first MSH, which is kept (never
+    // Message body: or stray content before the first MSH, which is kept (never
     // dropped) and surfaces as a NO_MSH_SEGMENT failure entry on flush.
     if (currentLines.length === 0) {
       // A blank line between messages is inter-message whitespace: skip it (its
@@ -458,7 +458,7 @@ export async function* parseStream(
   // `splitBatch` yields for the same bytes: `splitBatch` keeps a final
   // unterminated segment verbatim (its `flushMessage` pops only exact-empty
   // trailing lines, and `processSegment` here skips a whitespace-only line only
-  // when no message is open — the same inter-message-noise rule). The
+  // when no message is open: the same inter-message-noise rule). The
   // stream-level unterminated flag fires only for a genuine (non-blank) content
   // tail, never for trailing whitespace (which is not a truncation signal).
   const tail = pending;

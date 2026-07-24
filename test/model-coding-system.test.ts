@@ -80,7 +80,7 @@ describe("model/coding-system: codingSystem() resolver", () => {
     expect(info?.id).toBe("LN");
   });
 
-  it("surfaces an unknown system verbatim with known:false — never dropped, never guessed", () => {
+  it("surfaces an unknown system verbatim with known:false: never dropped, never guessed", () => {
     expect(codingSystem("99zL")).toStrictEqual({ claimed: "99zL", known: false });
     // A local/proprietary system claim is reported, not silently discarded.
     const local = codingSystem("L");

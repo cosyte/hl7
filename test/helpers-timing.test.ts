@@ -1,5 +1,5 @@
 /**
- * Phase M — integration tests for order / medication timing (`TQ1` + legacy
+ * Phase M: integration tests for order / medication timing (`TQ1` + legacy
  * embedded TQ in ORC-7 / RXE-1) surfaced on `order.timings` / `med.timings`.
  *
  * Load-bearing safety claims exercised here:
@@ -51,7 +51,7 @@ describe("helpers/timing: TQ1 on orders()", () => {
     expect(t?.repeatPattern).toEqual({ code: "BID", kind: "named" });
     expect(t?.priority?.identifier).toBe("R");
     expect(t?.priority?.text).toBe("Routine");
-    // Phase N TS fidelity — second precision, no zero-fill.
+    // Phase N TS fidelity: second precision, no zero-fill.
     expect(t?.startDateTime?.precision).toBe("second");
     expect(t?.startDateTime?.raw).toBe("20260705120000");
     expect(t?.endDateTime?.raw).toBe("20260712120000");
@@ -147,7 +147,7 @@ describe("helpers/timing: presence-based source choice (never double-count, neve
 
   it("a legacy ORC-7 timing on an RXO pharmacy order is never dropped by medications()", () => {
     // Pre-v2.5 OMP^O09: timing lives in ORC-7, the med is an RXO (not RXE), and
-    // there is no OBR — so orders() surfaces nothing. medications() must still
+    // there is no OBR: so orders() surfaces nothing. medications() must still
     // surface the ORC-7 legacy timing (never-dropped safety claim).
     const raw =
       "MSH|^~\\&|APP|FAC|||20250102||OMP^O09|1|P|2.3\r" +
@@ -179,7 +179,7 @@ describe("helpers/timing: presence-based source choice (never double-count, neve
 
   it("an intervening ORC re-scopes a following TQ1 to the next order (orders)", () => {
     // ORC1 OBR1 ORC2 TQ1 OBR2: the TQ1 belongs to OBR2, and OBR1 keeps ORC1's
-    // legacy timing — the TQ1 must NOT bind to the still-open OBR1.
+    // legacy timing: the TQ1 must NOT bind to the still-open OBR1.
     const raw =
       MSH +
       PID +
@@ -191,7 +191,7 @@ describe("helpers/timing: presence-based source choice (never double-count, neve
       "OBR|2|O2|O2|BMP^^L\r";
     const orders = parseHL7(raw).orders();
     expect(orders).toHaveLength(2);
-    // OBR1 keeps its own ORC-7 legacy Q8H — not stolen, not overwritten.
+    // OBR1 keeps its own ORC-7 legacy Q8H: not stolen, not overwritten.
     expect(orders[0]?.timings[0]?.source).toBe("legacy");
     expect(orders[0]?.timings[0]?.repeatPattern?.code).toBe("Q8H");
     // OBR2 gets the TQ1 Q6H that followed ORC2.
@@ -292,7 +292,7 @@ describe("timing/classifyRepeatPattern: verbatim code, provenance-only kind", ()
     expect(classifyRepeatPattern("Q2D").interval).toEqual({ count: 2, unit: "D" });
     expect(classifyRepeatPattern("Q1W").interval).toEqual({ count: 1, unit: "W" });
     expect(classifyRepeatPattern("Q12L").interval).toEqual({ count: 12, unit: "L" });
-    // Q<n>J<dow> — every N weeks on a weekday.
+    // Q<n>J<dow>: every N weeks on a weekday.
     expect(classifyRepeatPattern("Q1J3").interval).toEqual({ count: 1, unit: "J" });
   });
 
@@ -311,7 +311,7 @@ describe("timing/classifyRepeatPattern: verbatim code, provenance-only kind", ()
     expect(classifyRepeatPattern("bid")).toEqual({ code: "bid", kind: "named" });
   });
 
-  it("surfaces an unrecognized pattern verbatim as unknown — never mapped", () => {
+  it("surfaces an unrecognized pattern verbatim as unknown: never mapped", () => {
     for (const code of ["Q4-6H", "FOO", "EVERY_OTHER_TUESDAY", ""]) {
       expect(classifyRepeatPattern(code)).toEqual({ code, kind: "unknown" });
     }

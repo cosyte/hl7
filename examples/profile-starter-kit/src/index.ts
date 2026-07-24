@@ -1,7 +1,7 @@
 /**
  * {{PROFILE_NAME}} profile for {{YOUR_ORG}} HL7 integrations.
  *
- * Declares one Z-segment (ZAL — allergy detail) and one non-HL7 date
+ * Declares one Z-segment (ZAL: allergy detail) and one non-HL7 date
  * format (ISO date-only). Extends the built-in generic reference-lab
  * profile to inherit ASTM-era and ISO-date fallbacks for free.
  *

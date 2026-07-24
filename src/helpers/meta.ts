@@ -1,12 +1,12 @@
 /**
- * `buildMeta` — compose MSH-derived message metadata into the frozen `Meta`
+ * `buildMeta`: compose MSH-derived message metadata into the frozen `Meta`
  * view exposed by `Hl7Message.meta` (HELPERS-01). Implementation composes on
- * the Phase 3 public surface (`msg.get`, `msg.segments("MSH")[0].field(N)`) —
+ * the Phase 3 public surface (`msg.get`, `msg.segments("MSH")[0].field(N)`),
  * never walks `rawSegments` directly (CONTEXT.md §domain "Compose, don't
  * reach through").
  *
  * D-01 freeze at boundary. D-02 memoization is handled by the caller
- * (`Hl7Message.meta` getter). D-03 Meta is always defined — MSH absence
+ * (`Hl7Message.meta` getter). D-03 Meta is always defined: MSH absence
  * throws `NO_MSH_SEGMENT` at parse time, so the MSH guard here is purely for
  * TS narrowing. Phase N: `timestamp` is the fidelity `TS` (precision +
  * timezone preserved), never an eager UTC-assuming `Date`. D-21 silent. D-22
@@ -23,7 +23,7 @@ import type { Meta } from "./types.js";
  * Build the immutable `Meta` view from a parsed message's MSH segment. The
  * result is deeply frozen (D-01) and consumed through the memoized
  * `Hl7Message.meta` getter (D-02). Absent fields are OMITTED from the
- * resulting object (exactOptionalPropertyTypes semantics) — never set to
+ * resulting object (exactOptionalPropertyTypes semantics): never set to
  * `undefined`.
  *
  * @example
@@ -46,7 +46,7 @@ export function buildMeta(msg: Hl7Message): Meta {
   const msh = msg.segments("MSH")[0];
 
   // ─── MSH-9 message type (full string + per-component shortcuts) ────────
-  // msg.get("MSH.9") returns the first subcomponent of the first component —
+  // msg.get("MSH.9") returns the first subcomponent of the first component,
   // i.e. MSH-9.1. To emit the FULL typed string (e.g. "ADT^A01^ADT_A01") we
   // reconstruct it from each component's first subcomponent, joined on '^'
   // and trimmed of trailing empties so "ADT^A01" doesn't render as
@@ -117,6 +117,6 @@ export function buildMeta(msg: Hl7Message): Meta {
   const processingId = msg.get("MSH.11.1");
   if (processingId !== undefined && processingId !== "") out.processingId = processingId;
 
-  // D-01: freeze at boundary — callers see an immutable view.
+  // D-01: freeze at boundary: callers see an immutable view.
   return Object.freeze(out);
 }

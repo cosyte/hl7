@@ -3,18 +3,18 @@
  * conformance profile is **consumer-authored configuration**, so it can be
  * malformed. Two entry points share one total defect collector:
  *
- * - {@link collectProfileDefects} — **total over `unknown`, never throws.** It
+ * - {@link collectProfileDefects}: **total over `unknown`, never throws.** It
  *   returns a list of structural {@link ProfileDefect}s (empty ⇒ well-formed).
  *   {@link validateAgainstProfile} calls it first and, on any defect, returns
  *   `PROFILE_MALFORMED` findings instead of validating a profile it cannot
  *   trust (never a silent pass).
- * - {@link defineConformanceProfile} — the **fail-fast authoring** helper. It
+ * - {@link defineConformanceProfile}: the **fail-fast authoring** helper. It
  *   runs the same collector and **throws {@link ProfileDefinitionError}** on the
  *   first-through-all defects, returning the profile typed on success. Use it at
  *   profile-authoring time; the engine itself never throws (task invariant).
  *
  * A defect `detail` describes the profile's SHAPE (`segments[2].fields[0].field
- * must be a positive integer`) — profile structure only, never PHI.
+ * must be a positive integer`): profile structure only, never PHI.
  *
  * @internal (the two functions are re-exported from the package root)
  */
@@ -23,7 +23,7 @@ import { ProfileDefinitionError } from "../parser/errors.js";
 
 import { USAGE_CODES, type ConformanceProfile, type FindingLocus } from "./types.js";
 
-/** Segment-name shape — 3 chars, standard or `Z…` segment. Mirrors the model's rule. @internal */
+/** Segment-name shape: 3 chars, standard or `Z…` segment. Mirrors the model's rule. @internal */
 const SEGMENT_NAME_RE = /^[A-Z][A-Z0-9]{2}$/u;
 
 /** The three valid severities, for shape validation. @internal */
@@ -96,7 +96,7 @@ function describe(locus: FindingLocus): string {
 
 /**
  * Collect every structural defect in a candidate conformance profile. **Total
- * over `unknown` and never throws** — a caller may pass any value (even one
+ * over `unknown` and never throws**: a caller may pass any value (even one
  * cast through `any`) and get back a defect list rather than an exception. An
  * empty result means the profile is well-formed enough to validate against.
  *
@@ -231,8 +231,8 @@ function checkFieldRule(rule: unknown, segment: string, index: number, out: Prof
  * single {@link ProfileDefinitionError} listing every defect. On success,
  * returns the profile typed as {@link ConformanceProfile}.
  *
- * This is **optional** — {@link validateAgainstProfile} tolerates a raw profile
- * object and never throws — but it lets an author catch a typo when the profile
+ * This is **optional**: {@link validateAgainstProfile} tolerates a raw profile
+ * object and never throws: but it lets an author catch a typo when the profile
  * is written rather than when it is run.
  *
  * @throws {ProfileDefinitionError} when the profile is structurally malformed.

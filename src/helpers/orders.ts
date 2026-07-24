@@ -1,5 +1,5 @@
 /**
- * `orders` — Phase 4 Plan 04 implementation of HELPERS-05. Walks the message
+ * `orders`: Phase 4 Plan 04 implementation of HELPERS-05. Walks the message
  * in document order and groups OBX segments positionally under their
  * preceding OBR (D-12). An ORC segment that precedes an OBR contributes its
  * ORC-1 as the order's `orderControl` (D-16); unmatched trailing ORCs are
@@ -8,15 +8,15 @@
  * Design decisions enforced here:
  *   - D-01: `Object.freeze` applied to each Order and to the outer array.
  *   - D-05: returns `[]` when no OBR is present.
- *   - D-06: NOT memoized — each call re-walks `msg.allSegments()`.
+ *   - D-06: NOT memoized: each call re-walks `msg.allSegments()`.
  *   - D-12: OBX attached positionally to the preceding OBR; pre-OBR OBX are
  *     NOT grouped here (but still surface via `msg.observations()`).
  *   - D-16: Order field contract (placerOrderNumber, fillerOrderNumber,
  *     universalServiceId, orderStatus, orderControl, orderedBy, observations).
  *   - D-18: `orderStatus` uses OBR-25 (resultStatus) for v1; Phase 7 may revisit.
- *   - D-22: never throws — malformed OBR/OBX surface as omitted keys.
+ *   - D-22: never throws: malformed OBR/OBX surface as omitted keys.
  *   - D-24 (a): `orderedBy` is an XCN composite (not a flat string).
- *   - Reuses `buildObservation` from `./observations.ts` (Plan 03) — never
+ *   - Reuses `buildObservation` from `./observations.ts` (Plan 03): never
  *     re-implement OBX → Observation construction here.
  *
  * State-machine shape: two ORC slots.
@@ -47,7 +47,7 @@ function stringOrUndefined(v: string): string | undefined {
  * Build the frozen `timings` list for an order group (Phase M). Every TQ1
  * segment grouped under the OBR yields one `OrderTiming` (`source: "TQ1"`).
  * The legacy embedded TQ in the attached ORC's ORC-7 is read **only when the
- * group carries no TQ1** — so the same timing is never double-counted and a
+ * group carries no TQ1**: so the same timing is never double-counted and a
  * legacy-only (pre-v2.5) timing is never dropped. @internal
  */
 function buildTimings(
@@ -79,7 +79,7 @@ function finalizeOrder(
   };
 
   // Phase P: every order-level note (ORC-region + OBR-region) is keyed on the
-  // OBR in document order by `groupNotes` — the ORC region is flushed onto the
+  // OBR in document order by `groupNotes`: the ORC region is flushed onto the
   // OBR when the order opens, so this is a single already-ordered lookup. The
   // array is already frozen by `groupNotes`.
   const orderNotes = noteIndex.byParent.get(obr);
@@ -188,7 +188,7 @@ export function orders(msg: Hl7Message): readonly Order[] {
   }
 
   // Finalize the trailing order. A trailing ORC / TQ1 after the last OBR stays
-  // pending and is implicitly dropped (never promoted) — parity with ORC.
+  // pending and is implicitly dropped (never promoted): parity with ORC.
   if (currentObr !== undefined) {
     out.push(
       finalizeOrder(

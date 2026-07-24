@@ -1,19 +1,19 @@
 /**
- * PL — HL7 v2 Person Location composite. 11-component structured-location
- * shape (v1 trimmed from the HL7 v2.5 full 12-component PL — slot 12
+ * PL: HL7 v2 Person Location composite. 11-component structured-location
+ * shape (v1 trimmed from the HL7 v2.5 full 12-component PL: slot 12
  * `entityIdentifier` is rarely used; v2 may restore the full shape) parsed
  * from a `RawRepetition` on demand by `Field.asPl()` (wired in Plan 04).
- * Fields are OMITTED when absent (exactOptionalPropertyTypes) — NEVER set
+ * Fields are OMITTED when absent (exactOptionalPropertyTypes): NEVER set
  * to `undefined`.
  *
  * Component 4 (`facility`) is the ONE nested-composite field in this
  * parser: its subcomponents form a 3-field HD (namespaceId, universalId,
- * universalIdType) — same synthesis pattern used in `parseCx` for
+ * universalIdType): same synthesis pattern used in `parseCx` for
  * `assigningAuthority`. To reuse `parseHd` without duplicating logic, the
  * parser synthesises a `RawRepetition` whose components wrap the
  * subcomponents of PL component 4.
  *
- * Zero runtime deps — pure function over the raw positional tree + `unescape`.
+ * Zero runtime deps: pure function over the raw positional tree + `unescape`.
  */
 
 import type { EncodingCharacters, RawComponent, RawRepetition } from "../../parser/types.js";
@@ -22,24 +22,24 @@ import { readComponent } from "./_shared.js";
 import { parseHd, type HD } from "./hd.js";
 
 /**
- * HL7 v2 Person Location (PL) — structured location per HL7 Chapter 2. All
+ * HL7 v2 Person Location (PL): structured location per HL7 Chapter 2. All
  * 11 v1 components are optional. Fields are OMITTED when the underlying
  * component is absent (exactOptionalPropertyTypes). `facility` uses the
  * nested `HD` shape; `assigningAuthorityForLocation` is flattened to a
  * plain string in v1 (HL7 spec treats it as HD-shaped).
  *
  * Component positions (HL7 1-indexed; this interface is 0-indexed by key):
- * 1. pointOfCare — e.g. "ICU", "ED"
+ * 1. pointOfCare: e.g. "ICU", "ED"
  * 2. room
  * 3. bed
- * 4. facility — nested HD (3 subcomponents form an HD composite)
- * 5. locationStatus — O=Occupied, U=Unoccupied, K=Contaminated, C=Closed,
+ * 4. facility: nested HD (3 subcomponents form an HD composite)
+ * 5. locationStatus: O=Occupied, U=Unoccupied, K=Contaminated, C=Closed,
  *    H=Housekeeping, I=Isolated
- * 6. personLocationType — C=Clinic, D=Department, H=Home, N=Nursing Unit,
+ * 6. personLocationType: C=Clinic, D=Department, H=Home, N=Nursing Unit,
  *    O=Office, R=Revenue Location
  * 7. building
  * 8. floor
- * 9. locationDescription — free-text
+ * 9. locationDescription: free-text
  * 10. comprehensiveLocationId
  * 11. assigningAuthorityForLocation (v1: flattened to string)
  *
@@ -77,7 +77,7 @@ export interface PL {
  * without reimplementing the read.
  *
  * Returns `undefined` when the source component is missing or every
- * subcomponent is the empty string — prevents stub empty HD objects from
+ * subcomponent is the empty string: prevents stub empty HD objects from
  * leaking into PL output (T-03-03 analogue of CX's T-03-02-02 mitigation).
  *
  * @internal
@@ -94,7 +94,7 @@ function parseFacility(comp: RawComponent | undefined, enc: EncodingCharacters):
 
 /**
  * Parse an HL7 v2 PL repetition into a structured `PL` object. Components
- * are returned verbatim (already decoded once by the tokenizer — never re-unescaped,
+ * are returned verbatim (already decoded once by the tokenizer: never re-unescaped,
  * HL7-VALUE-REDECODE). Absent / empty components are OMITTED
  * from the result (exactOptionalPropertyTypes semantics). Component 4
  * (`facility`) is parsed as a nested `HD`; see component table in the `PL`

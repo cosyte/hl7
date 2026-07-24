@@ -1,15 +1,15 @@
 /**
- * `buildPatient` — compose PID-derived patient demographics into the frozen
+ * `buildPatient`: compose PID-derived patient demographics into the frozen
  * `Patient` view exposed by `Hl7Message.patient` (HELPERS-02). Composition
  * happens through the Phase 3 public surface (`msg.segments("PID")[0].field(N)`
- * + composite coercions + `parseCx` / `parseXtn` for multi-rep walks) —
+ * + composite coercions + `parseCx` / `parseXtn` for multi-rep walks),
  * never through `rawSegments` directly.
  *
  * Decisions honored here:
  * - D-01: `Object.freeze` the top-level object at the boundary.
  * - D-04: return `undefined` when no PID segment exists.
  * - D-07 / D-08 / D-10: MRN pick via `pickMrn` (isolated for Phase 6).
- * - D-09: `identifiers` is a frozen `readonly CX[]` — always present.
+ * - D-09: `identifiers` is a frozen `readonly CX[]`: always present.
  * - D-17: `fullName` is Western order "Given Middle Family, Suffix", omitted
  *   parts cleanly joined, absent when no usable parts.
  * - Phase N: `dateOfBirth` is the fidelity `TS` (day-only DOB keeps `precision:
@@ -17,7 +17,7 @@
  * - D-19: flat `familyName` / `givenName` / `middleName` convenience fields
  *   mirror XPN, with `middleName` mapped from `XPN.secondName`.
  * - D-20: `phoneNumbers` concatenates PID-13 then PID-14 repetitions.
- * - D-22: never throws — absent / malformed fields surface as omitted keys.
+ * - D-22: never throws: absent / malformed fields surface as omitted keys.
  * - D-23: string reads are decoded via `Field.value` / composite parsers (once at parse).
  */
 
@@ -34,7 +34,7 @@ import type { Patient } from "./types.js";
 
 /**
  * Compose the `fullName` string in Western order "Given Middle Family,
- * Suffix" from XPN parts (D-17). Missing parts are omitted cleanly — no
+ * Suffix" from XPN parts (D-17). Missing parts are omitted cleanly: no
  * double spaces, no leading/trailing comma. Returns `undefined` when no
  * usable parts remain so the helper can omit the key entirely.
  *
@@ -71,7 +71,7 @@ function composeFullName(name: XPN): string | undefined {
  * const msg = parseHL7(raw);
  * console.log(msg.patient?.mrn);                        // first CX-5="MR" idNumber
  * console.log(msg.patient?.fullName);                   // "Jane Q Smith, Jr"
- * console.log(msg.patient?.dateOfBirth?.raw); // fidelity TS (Phase N) — e.g. "19800115"
+ * console.log(msg.patient?.dateOfBirth?.raw); // fidelity TS (Phase N): e.g. "19800115"
  * for (const phone of msg.patient?.phoneNumbers ?? []) {
  *   console.log(phone.telephoneNumber);
  * }
@@ -117,7 +117,7 @@ export function buildPatient(msg: Hl7Message): Patient | undefined {
   const sex = pid.field(8).value;
   if (sex !== "") out.sex = sex;
 
-  // ─── PID-11 address (XAD) — omit when empty ───────────────────────────
+  // ─── PID-11 address (XAD): omit when empty ───────────────────────────
   const address = pid.field(11).asXad();
   if (Object.keys(address).length > 0) out.address = address;
 
@@ -148,7 +148,7 @@ export function buildPatient(msg: Hl7Message): Patient | undefined {
   // ─── Phase P: NTE notes positionally attached to this PID ─────────────
   // Notes immediately following the (first) PID segment attach to the patient.
   // A second PID's group notes ride on that PID segment but are not surfaced
-  // here (the patient view is the first PID — a documented single-patient model).
+  // here (the patient view is the first PID: a documented single-patient model).
   // The array is already frozen by `groupNotes`; a later PID's notes are routed
   // to `msg.notes()` there, never mis-attached to this first-PID patient view.
   const patientNotes = groupNotes(msg).byParent.get(pid);

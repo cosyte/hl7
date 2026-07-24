@@ -53,7 +53,7 @@ describe("defineProfile: happy path", () => {
   });
 
   it("Wave-2: extends computes full lineage [parent, child]", () => {
-    // Plan 06-02 replaces the Wave-1 stub — lineage now flattens parent
+    // Plan 06-02 replaces the Wave-1 stub: lineage now flattens parent
     // lineage + appends child name, deduped by first occurrence (D-03).
     const parent = defineProfile({ name: "parent" });
     const child = defineProfile({ name: "child", extends: parent });
@@ -61,7 +61,7 @@ describe("defineProfile: happy path", () => {
   });
 
   it("invokes onWarning callback when supplied (composed via D-12 chain)", () => {
-    // Plan 06-02 introduces composeOnWarning — even a single handler is
+    // Plan 06-02 introduces composeOnWarning: even a single handler is
     // wrapped in a chain closure for uniform D-12 try/catch behavior. The
     // behavior contract ("handler runs when onWarning fires") is what
     // matters; reference identity was an implementation detail of the
@@ -201,7 +201,7 @@ describe("defineProfile: D-08 date format validation", () => {
     // Plan's behavior note referenced "YYY/MM" as a negative case, but that
     // string contains "MM" as a literal substring and legitimately matches
     // the month token. Use a string with zero recognised tokens to exercise
-    // the D-08 throw path (Rule-1 fix — plan test example was contradictory).
+    // the D-08 throw path (Rule-1 fix: plan test example was contradictory).
     expect(() => defineProfile({ name: "bad", dateFormats: ["nope"] })).toThrow(
       ProfileDefinitionError,
     );
@@ -300,7 +300,7 @@ describe("defineProfile: describe() (D-04, PROF-05)", () => {
 
   it("renders lineage with arrows when more than one name present", () => {
     // Wave 1 only produces single-name lineage, but describe() must
-    // handle multi-name lineage for Plan 06-02 readiness — verify via a
+    // handle multi-name lineage for Plan 06-02 readiness: verify via a
     // hand-built Profile passed through buildDescribe.
     const p = defineProfile({ name: "solo" });
     expect(p.describe?.()).toContain("lineage: solo");

@@ -1,29 +1,29 @@
 /**
- * `timing` — Phase M (order / medication timing) extraction. Projects the
+ * `timing`: Phase M (order / medication timing) extraction. Projects the
  * TQ1 segment (HL7 v2.5+, Ch. 4 §4.5.4) and the **legacy embedded TQ** data
- * type in ORC-7 / RXE-1 (pre-v2.5, Ch. 2A §2.A.81 — retained backward-compat
+ * type in ORC-7 / RXE-1 (pre-v2.5, Ch. 2A §2.A.81: retained backward-compat
  * only, detail withdrawn as of v2.7) into the typed {@link OrderTiming}
  * surfaced on `Order.timings` / `Medication.timings`.
  *
  * Safety rules enforced here (Phase M §Fail-safe):
  *   - The **repeat pattern** (TQ1-3 / legacy interval RI.1, HL7 Table 0335) is
- *     surfaced **verbatim** — never normalized, never resolved to clock times,
+ *     surfaced **verbatim**: never normalized, never resolved to clock times,
  *     never mapped to a different frequency. Reading `Q6H` as "daily" or losing
  *     a `BID` silently changes the administered dose count (transcription-class
  *     harm).
  *   - A parametric `Q<integer><unit>` template's integer is **load-bearing** and
- *     is never dropped — surfaced on `RepeatPattern.interval`.
+ *     is never dropped: surfaced on `RepeatPattern.interval`.
  *   - Total occurrences is read from **TQ1-14** (NM), *not* TQ1-11 (which is a
  *     Text Instruction, TX).
- *   - Never throws — a malformed timing surfaces as omitted keys (HELPERS-07).
+ *   - Never throws: a malformed timing surfaces as omitted keys (HELPERS-07).
  *   - hl7 surfaces the timing *structure* only; it does NOT compute schedules,
  *     resolve "institution-specified times", or interpret sig.
  *
  * Field maps:
- *   TQ1 segment — TQ1-2 quantity (CQ), TQ1-3 repeat pattern (RPT.1, Table 0335),
+ *   TQ1 segment: TQ1-2 quantity (CQ), TQ1-3 repeat pattern (RPT.1, Table 0335),
  *   TQ1-4 explicit time, TQ1-6 service duration, TQ1-7 start (DTM), TQ1-8 end
  *   (DTM), TQ1-9 priority (CWE), TQ1-14 total occurrences (NM).
- *   Legacy embedded TQ (one field) — TQ.1 quantity (CQ), TQ.2 interval (RI.1
+ *   Legacy embedded TQ (one field): TQ.1 quantity (CQ), TQ.2 interval (RI.1
  *   repeat pattern / RI.2 explicit time), TQ.3 duration, TQ.4 start (TS), TQ.5
  *   end (TS), TQ.6 priority (ID), TQ.12 total occurrences (NM).
  */
@@ -37,7 +37,7 @@ import { readSubcomponent } from "../model/types/_shared.js";
 import type { OrderTiming, RepeatPattern, TimingQuantity } from "./types.js";
 
 /**
- * Table-0335 fixed mnemonics scheduled at institution-specified times — a
+ * Table-0335 fixed mnemonics scheduled at institution-specified times: a
  * conservative, provenance-only set (HL7 v2.5.1 Ch. 4 Table 0335). Membership
  * only sets `RepeatPattern.kind = "named"`; it never changes the verbatim
  * `code` or resolves a schedule. Compared case-insensitively. @internal
@@ -65,7 +65,7 @@ const PARAMETRIC = /^Q(\d+)([SMHDWL])$/iu;
 const PARAMETRIC_DOW = /^Q(\d+)(J)(\d)$/iu;
 
 /**
- * Classify a Table-0335 repeat-pattern `code` for **provenance only** — the
+ * Classify a Table-0335 repeat-pattern `code` for **provenance only**: the
  * verbatim `code` is always authoritative and is never modified. A parametric
  * `Q<n><unit>` template surfaces its load-bearing integer + unit on `interval`;
  * a recognized mnemonic is `"named"`; anything else is `"unknown"` (surfaced
@@ -75,7 +75,7 @@ const PARAMETRIC_DOW = /^Q(\d+)(J)(\d)$/iu;
  * ```ts
  * classifyRepeatPattern("Q6H"); // { code: "Q6H", kind: "parametric", interval: { count: 6, unit: "H" } }
  * classifyRepeatPattern("BID"); // { code: "BID", kind: "named" }
- * classifyRepeatPattern("Q4-6H"); // { code: "Q4-6H", kind: "unknown" } — verbatim, never mapped
+ * classifyRepeatPattern("Q4-6H"); // { code: "Q4-6H", kind: "unknown" }: verbatim, never mapped
  * ```
  * @internal
  */
@@ -101,7 +101,7 @@ export function classifyRepeatPattern(code: string): RepeatPattern {
   return { code, kind: "unknown" };
 }
 
-/** Strict-`Number` parse of a raw HL7 numeric — `undefined` (never `NaN`) on empty/garbage. @internal */
+/** Strict-`Number` parse of a raw HL7 numeric: `undefined` (never `NaN`) on empty/garbage. @internal */
 function strictNumber(raw: string | undefined): number | undefined {
   if (raw === undefined || raw === "") return undefined;
   const n = Number(raw);
@@ -109,7 +109,7 @@ function strictNumber(raw: string | undefined): number | undefined {
 }
 
 /**
- * Build a `CWE` from the subcomponents of one raw component — used to surface
+ * Build a `CWE` from the subcomponents of one raw component: used to surface
  * the units (a CE) nested inside a CQ (e.g. TQ1-2's `quantity^units&&`). Each
  * subcomponent maps to one CWE component. Returns `undefined` when the
  * component is absent or carries no content. @internal
@@ -174,19 +174,19 @@ export function buildTq1Timing(tq1: Segment): OrderTiming {
   const quantity = buildQuantity(fieldSub(q2, 0, 0), componentAt(q2, 1), tq1.enc);
   if (quantity !== undefined) out.quantity = quantity;
 
-  // TQ1-3 repeat pattern (RPT.1) — verbatim, classified for provenance only.
+  // TQ1-3 repeat pattern (RPT.1): verbatim, classified for provenance only.
   const rpt = fieldSub(tq1.field(3), 0, 0);
   if (rpt !== undefined) out.repeatPattern = Object.freeze(classifyRepeatPattern(rpt));
 
-  // TQ1-4 explicit time — verbatim (first repetition/value).
+  // TQ1-4 explicit time: verbatim (first repetition/value).
   const explicit = fieldSub(tq1.field(4), 0, 0);
   if (explicit !== undefined) out.explicitTime = explicit;
 
-  // TQ1-6 service duration — verbatim.
+  // TQ1-6 service duration: verbatim.
   const duration = fieldSub(tq1.field(6), 0, 0);
   if (duration !== undefined) out.serviceDuration = duration;
 
-  // TQ1-7 / TQ1-8 start / end (DTM) — Phase N fidelity TS.
+  // TQ1-7 / TQ1-8 start / end (DTM): Phase N fidelity TS.
   const start = tq1.field(7).asTs();
   if (start.raw !== "") out.startDateTime = start;
   const end = tq1.field(8).asTs();
@@ -196,7 +196,7 @@ export function buildTq1Timing(tq1: Segment): OrderTiming {
   const priority = tq1.field(9).asCwe();
   if (Object.keys(priority).length > 0) out.priority = priority;
 
-  // TQ1-14 total occurrences (NM) — NOT TQ1-11.
+  // TQ1-14 total occurrences (NM): NOT TQ1-11.
   const total = strictNumber(fieldSub(tq1.field(14), 0, 0));
   if (total !== undefined) out.totalOccurrences = total;
 
@@ -228,7 +228,7 @@ export function buildLegacyTiming(field: Field): OrderTiming | undefined {
   // TQ.1 Quantity (CQ): CQ.1 = component 0 subcomponent 0, CQ.2 units = subcomponent 1.
   const quantity = buildQuantity(fieldSub(field, 0, 0), undefined, field.enc);
   if (quantity !== undefined) {
-    // Legacy CQ.2 units collapse to a single subcomponent — surface as { identifier }.
+    // Legacy CQ.2 units collapse to a single subcomponent: surface as { identifier }.
     const unitsId = fieldSub(field, 0, 1);
     out.quantity =
       unitsId !== undefined
@@ -246,13 +246,13 @@ export function buildLegacyTiming(field: Field): OrderTiming | undefined {
   const duration = fieldSub(field, 2, 0);
   if (duration !== undefined) out.serviceDuration = duration;
 
-  // TQ.4 / TQ.5 Start / End (TS) — Phase N fidelity parse of the embedded value.
+  // TQ.4 / TQ.5 Start / End (TS): Phase N fidelity parse of the embedded value.
   const startRaw = fieldSub(field, 3, 0);
   if (startRaw !== undefined) out.startDateTime = parseDtm(startRaw);
   const endRaw = fieldSub(field, 4, 0);
   if (endRaw !== undefined) out.endDateTime = parseDtm(endRaw);
 
-  // TQ.6 Priority (ID) — surfaced as a CWE { identifier } for shape parity with TQ1-9.
+  // TQ.6 Priority (ID): surfaced as a CWE { identifier } for shape parity with TQ1-9.
   const priorityId = fieldSub(field, 5, 0);
   if (priorityId !== undefined) out.priority = Object.freeze({ identifier: priorityId });
 

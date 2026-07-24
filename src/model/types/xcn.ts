@@ -1,5 +1,5 @@
 /**
- * XCN — HL7 v2 Extended Composite ID Number and Name for Persons. Common in
+ * XCN: HL7 v2 Extended Composite ID Number and Name for Persons. Common in
  * OBR-16 (ordering provider), PV1-7 (attending doctor), PV1-8 (referring
  * doctor), and other fields that identify a human clinician.
  *
@@ -8,7 +8,7 @@
  * most-used components (HL7 v2.5 defines 23); additional components may be
  * restored in v2 if vendor-quirk fixtures require them.
  *
- * Zero runtime deps — pure function over the raw positional tree + `unescape`.
+ * Zero runtime deps: pure function over the raw positional tree + `unescape`.
  * Parser is silent (D-09 composite-parser silence).
  */
 
@@ -18,24 +18,24 @@ import { readComponent } from "./_shared.js";
 import { parseHd, type HD } from "./hd.js";
 
 /**
- * HL7 v2 Extended Composite ID Number and Name for Persons (XCN) — per HL7
+ * HL7 v2 Extended Composite ID Number and Name for Persons (XCN): per HL7
  * Chapter 2.A.88. All 13 v1 components are optional. Fields are OMITTED when
  * the underlying component is absent (exactOptionalPropertyTypes).
  *
  * Component positions (HL7 1-indexed; this interface is 0-indexed by key):
- * 1. idNumber — e.g. employee ID, NPI digits, DEA number (CX-1 analogue)
+ * 1. idNumber: e.g. employee ID, NPI digits, DEA number (CX-1 analogue)
  * 2. familyName (XPN-1)
  * 3. givenName (XPN-2)
- * 4. secondName — second and further given names (XPN-3)
- * 5. suffix — Jr., III, etc. (XPN-4)
- * 6. prefix — Dr., Mrs., etc. (XPN-5)
- * 7. degree — MD, PhD, etc. (XPN-6)
+ * 4. secondName: second and further given names (XPN-3)
+ * 5. suffix: Jr., III, etc. (XPN-4)
+ * 6. prefix: Dr., Mrs., etc. (XPN-5)
+ * 7. degree: MD, PhD, etc. (XPN-6)
  * 8. sourceTable
- * 9. assigningAuthority — nested HD (CX-4 analogue)
- * 10. nameTypeCode — L=Legal, M=Maiden, N=Nickname, ... (XPN-7)
+ * 9. assigningAuthority: nested HD (CX-4 analogue)
+ * 10. nameTypeCode: L=Legal, M=Maiden, N=Nickname, ... (XPN-7)
  * 11. identifierCheckDigit
- * 12. checkDigitScheme — ISO 7064, M10, M11, NPI
- * 13. identifierTypeCode — "NPI", "DN" (DEA number), ... (CX-5 analogue)
+ * 12. checkDigitScheme: ISO 7064, M10, M11, NPI
+ * 13. identifierTypeCode: "NPI", "DN" (DEA number), ... (CX-5 analogue)
  *
  * @example
  * ```ts
@@ -73,7 +73,7 @@ export interface XCN {
  * without reimplementing the read.
  *
  * Returns `undefined` when the source component is missing or every
- * subcomponent is the empty string — prevents stub empty HD objects from
+ * subcomponent is the empty string: prevents stub empty HD objects from
  * leaking into XCN output (mirrors the CX/PL convention).
  *
  * @internal
@@ -93,7 +93,7 @@ function parseAssigningAuthority(
 
 /**
  * Parse an HL7 v2 XCN repetition into a structured `XCN` object. Components
- * are returned verbatim (already decoded once by the tokenizer — never re-unescaped,
+ * are returned verbatim (already decoded once by the tokenizer: never re-unescaped,
  * HL7-VALUE-REDECODE). Absent / empty components are OMITTED
  * from the result (exactOptionalPropertyTypes semantics). Component 9
  * (`assigningAuthority`) is parsed as a nested `HD`; see component table in

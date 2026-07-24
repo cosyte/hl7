@@ -82,7 +82,7 @@ describe("model/types/cwe: parseCwe", () => {
         ["44054006"], // 10: second-alternate identifier
         ["Type 2 DM"], // 11: second-alternate text
         ["SCT2"], // 12: name of second-alternate coding system
-        [""], // 13: absent interior — preserved as ""
+        [""], // 13: absent interior: preserved as ""
         ["2.16.840.1.113883.6.96"], // 14: coding-system OID
       ]),
       enc,

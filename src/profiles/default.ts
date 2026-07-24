@@ -1,6 +1,6 @@
 /**
  * Process-scoped default profile management (PROF-08 / D-18). This module
- * holds the first mutable module-scoped state in the codebase — an
+ * holds the first mutable module-scoped state in the codebase: an
  * intentional trade-off documented in PROJECT.md Key Decisions:
  * `setDefaultProfile` EXISTS but is DISCOURAGED. It is scoped to the
  * current Node process, NOT shared across workers, NOT a symbol-keyed
@@ -17,7 +17,7 @@ import type { Profile } from "../parser/types.js";
 
 /**
  * Process-scoped default profile. `undefined` means "unset" (the initial
- * state). `null` is not a stable stored value — `setDefaultProfile(null)`
+ * state). `null` is not a stable stored value: `setDefaultProfile(null)`
  * resets this to `undefined` per D-18.
  * @internal
  */
@@ -32,7 +32,7 @@ let _defaultProfile: Profile | undefined = undefined;
  * arg of `parseHL7` (D-20): customSegments, dateFormats, onWarning chain,
  * and profile attribution all apply the same way.
  *
- * Explicit args ALWAYS win — `parseHL7(raw, myProfile)` uses `myProfile`
+ * Explicit args ALWAYS win: `parseHL7(raw, myProfile)` uses `myProfile`
  * regardless of the default; `parseHL7(raw, { profile: null })` opts out
  * of the default for a single call without changing the registered
  * default.
@@ -59,14 +59,14 @@ let _defaultProfile: Profile | undefined = undefined;
  * ```
  */
 export function setDefaultProfile(profile: Profile | null): void {
-  // Accept `undefined` defensively — TypeScript narrows to `Profile | null`,
+  // Accept `undefined` defensively: TypeScript narrows to `Profile | null`,
   // but a JS caller may pass `undefined`. Treat it like null (clear).
   _defaultProfile = profile ?? undefined;
 }
 
 /**
  * Return the current default profile, or `undefined` if none is
- * registered. Consistent with `msg.profile` convention — `undefined`
+ * registered. Consistent with `msg.profile` convention: `undefined`
  * rather than `null`.
  *
  * @example

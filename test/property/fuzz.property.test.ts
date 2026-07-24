@@ -5,7 +5,7 @@
  * `lenient.property.test.ts` doesn't already generate:
  *
  *   1. arbitrary byte/char strings (no HL7 structure at all);
- *   2. delimiter-mutation of REAL canonical corpus messages — randomly
+ *   2. delimiter-mutation of REAL canonical corpus messages: randomly
  *      inject/duplicate/drop the five HL7 delimiter characters (`| ^ ~ \ &`)
  *      and the segment terminator (`\r`) into a message that started out
  *      spec-clean;
@@ -13,12 +13,12 @@
  *      point.
  *
  * This file also snapshots `FATAL_CODES`/`WARNING_CODES` membership (both
- * are declared `as const` — compile-time-locked, not runtime-frozen — so a
+ * are declared `as const` (compile-time-locked, not runtime-frozen) so a
  * silent registry change is caught here, independent of any single parse
  * outcome) and asserts the "survivor round-trip" property: every message
  * that DOES parse can be `toString()`'d and re-parsed without throwing.
  *
- * Complements (does not replace) `lenient.property.test.ts` — that file
+ * Complements (does not replace) `lenient.property.test.ts`: that file
  * covers the same core invariant against `hostileInput()`/`quirkyMessageRaw()`;
  * this file adds real-corpus delimiter mutation + truncation at fuzz-scale
  * run counts, per HL7-J Part B.
@@ -33,7 +33,7 @@ import fc from "fast-check";
 
 import { FATAL_CODES, Hl7ParseError, WARNING_CODES, parseHL7 } from "../../src/index.js";
 
-/** High run count, fixed seed — deterministic fuzz-scale reproduction. */
+/** High run count, fixed seed: deterministic fuzz-scale reproduction. */
 const RUN_CONFIG = { numRuns: 1000, seed: 0x07_09_2026 } as const;
 
 const FATAL_CODE_SET: ReadonlySet<string> = new Set(Object.values(FATAL_CODES));
@@ -77,7 +77,7 @@ const MUTATION_CHARS = ["|", "^", "~", "\\", "&", "\r"] as const;
 
 /**
  * Delimiter-mutation arbitrary: pick a canonical message, then apply a
- * sequence of random point mutations — each either INJECTS a random
+ * sequence of random point mutations: each either INJECTS a random
  * delimiter char at a random offset, DUPLICATES the char already at a
  * random offset, or DROPS (deletes) the char at a random offset. Produces
  * malformed-but-delimiter-shaped input derived from real, spec-clean
@@ -119,8 +119,8 @@ function delimiterMutatedMessage(): fc.Arbitrary<string> {
 
 /**
  * Truncation arbitrary: pick a canonical message and cut it at a random
- * point (from 0 chars up to the full length), so every prefix length —
- * including mid-segment and mid-field cuts — is exercised across runs.
+ * point (from 0 chars up to the full length), so every prefix length,
+ * including mid-segment and mid-field cuts: is exercised across runs.
  */
 function truncatedMessage(): fc.Arbitrary<string> {
   return fc
@@ -132,7 +132,7 @@ function truncatedMessage(): fc.Arbitrary<string> {
 }
 
 describe("fuzz: canonical corpus is loaded", () => {
-  it("has at least one non-empty fixture (sanity — a 0-fixture corpus would make every property vacuous)", () => {
+  it("has at least one non-empty fixture (sanity: a 0-fixture corpus would make every property vacuous)", () => {
     expect(CANONICAL_MESSAGES.length).toBeGreaterThan(0);
   });
 });
@@ -140,7 +140,7 @@ describe("fuzz: canonical corpus is loaded", () => {
 describe("fuzz: FATAL_CODES / WARNING_CODES registries stay pinned", () => {
   it("FATAL_CODES is exactly the documented 4-code set (locked at 4 per errors.ts JSDoc)", () => {
     // `FATAL_CODES` is declared `as const` (compile-time-readonly, per the
-    // errors.ts JSDoc "locked at four codes") — not runtime-`Object.freeze`d,
+    // errors.ts JSDoc "locked at four codes"): not runtime-`Object.freeze`d,
     // so this snapshot asserts membership, the actual documented contract.
     expect(Object.keys(FATAL_CODES).sort()).toEqual(
       ["EMPTY_INPUT", "INVALID_ENCODING_CHARACTERS", "MSH_TOO_SHORT", "NO_MSH_SEGMENT"].sort(),
@@ -221,7 +221,7 @@ describe("fuzz: truncations of valid canonical messages never throw except a 4-f
   });
 });
 
-describe("fuzz: survivor round-trip — anything that parses can be re-parsed", () => {
+describe("fuzz: survivor round-trip: anything that parses can be re-parsed", () => {
   it("parseHL7(msg.toString()) never throws for any input that parsed the first time", () => {
     const anyFuzzInput = fc.oneof(
       { weight: 1, arbitrary: fc.string({ minLength: 0, maxLength: 300, unit: "binary" }) },
@@ -231,9 +231,9 @@ describe("fuzz: survivor round-trip — anything that parses can be re-parsed", 
     fc.assert(
       fc.property(anyFuzzInput, (raw) => {
         const msg = assertNeverThrowsExceptFatal(raw);
-        if (msg === undefined) return; // fatal on first parse — nothing to round-trip
+        if (msg === undefined) return; // fatal on first parse: nothing to round-trip
         const serialized = msg.toString();
-        // Re-parsing the serialized survivor must not throw — the whole
+        // Re-parsing the serialized survivor must not throw: the whole
         // point of a "survivor" is that it already reached a valid
         // Hl7Message, and toString() is the serializer's own conservative
         // (spec-clean) output.

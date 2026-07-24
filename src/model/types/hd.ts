@@ -1,10 +1,10 @@
 /**
- * HD — HL7 v2 Hierarchic Designator composite. 3-component structured
+ * HD: HL7 v2 Hierarchic Designator composite. 3-component structured
  * identifier (namespace + universal id + universal id type) parsed from a
  * `RawRepetition` on demand. Fields are OMITTED when absent
- * (exactOptionalPropertyTypes) — NEVER set to `undefined`.
+ * (exactOptionalPropertyTypes): NEVER set to `undefined`.
  *
- * Zero runtime deps — pure function over the raw positional tree + `unescape`.
+ * Zero runtime deps: pure function over the raw positional tree + `unescape`.
  */
 
 import type { EncodingCharacters, RawRepetition } from "../../parser/types.js";
@@ -12,14 +12,14 @@ import type { EncodingCharacters, RawRepetition } from "../../parser/types.js";
 import { readComponent } from "./_shared.js";
 
 /**
- * HL7 v2 Hierarchic Designator (HD) — per HL7 Chapter 2 data type. All 3
+ * HL7 v2 Hierarchic Designator (HD): per HL7 Chapter 2 data type. All 3
  * components are optional. Fields are OMITTED when the underlying component
  * is absent (exactOptionalPropertyTypes).
  *
  * Component positions (HL7 1-indexed; this interface is 0-indexed by key):
- * 1. namespaceId — application- or facility-scoped identifier (e.g. "EPIC").
- * 2. universalId — globally-unique id (e.g. an OID or UUID string).
- * 3. universalIdType — classifier for `universalId` (ISO, GUID, UUID, DNS,
+ * 1. namespaceId: application- or facility-scoped identifier (e.g. "EPIC").
+ * 2. universalId: globally-unique id (e.g. an OID or UUID string).
+ * 3. universalIdType: classifier for `universalId` (ISO, GUID, UUID, DNS,
  *    URI, HL7, HCD, Random, etc.).
  *
  * @example
@@ -36,7 +36,7 @@ export interface HD {
 
 /**
  * Parse an HL7 v2 HD repetition into a structured `HD` object. Components
- * are returned verbatim (already decoded once by the tokenizer — never re-unescaped,
+ * are returned verbatim (already decoded once by the tokenizer: never re-unescaped,
  * HL7-VALUE-REDECODE). Absent / empty components are OMITTED
  * from the result (exactOptionalPropertyTypes semantics).
  *

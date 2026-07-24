@@ -1,5 +1,5 @@
 /**
- * `buildVisit` — Phase 4 Plan 03 (visit-and-observations) implementation of
+ * `buildVisit`: Phase 4 Plan 03 (visit-and-observations) implementation of
  * HELPERS-03. Reads the first PV1 segment (if any) and projects the 7 locked
  * v1 fields as a deeply frozen `Visit` object, composing on Phase 3's public
  * read surface (`msg.segments("PV1")[0].field(n).asXxx()`).
@@ -14,7 +14,7 @@
  *   - D-22 never-throws: every field reaches a safe default when absent or
  *     malformed (empty strings and empty composites are omitted via
  *     `exactOptionalPropertyTypes`).
- *   - D-02 memoization is handled by the `Hl7Message.visit` getter — this
+ *   - D-02 memoization is handled by the `Hl7Message.visit` getter: this
  *     function is invoked lazily on first access and its result is cached.
  */
 
@@ -69,7 +69,7 @@ export function buildVisit(msg: Hl7Message): Visit | undefined {
   const location = nonEmptyPl(pv1.field(3).asPl());
   if (location !== undefined) out.location = location;
 
-  // PV1-7: attendingDoctor (XCN — D-24 option (a))
+  // PV1-7: attendingDoctor (XCN: D-24 option (a))
   const attending = nonEmptyXcn(pv1.field(7).asXcn());
   if (attending !== undefined) out.attendingDoctor = attending;
 
@@ -77,7 +77,7 @@ export function buildVisit(msg: Hl7Message): Visit | undefined {
   const referring = nonEmptyXcn(pv1.field(8).asXcn());
   if (referring !== undefined) out.referringDoctor = referring;
 
-  // PV1-19: visitNumber. Spec-wise PV1-19 is a CX — the lean v1 shape surfaces
+  // PV1-19: visitNumber. Spec-wise PV1-19 is a CX: the lean v1 shape surfaces
   // the first component (idNumber) via `.value`. Callers needing the full CX
   // can reach msg.segments("PV1")[0].field(19).asCx().
   const visitNumber = pv1.field(19).value;

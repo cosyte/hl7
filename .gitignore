@@ -39,5 +39,5 @@ yarn-error.log*
 .turbo/
 dist-artifacts/
 
-# Differential-testing oracle venv (test/differential — never committed)
+# Differential-testing oracle venv (test/differential, never committed)
 .difftools/

@@ -1,6 +1,6 @@
 /**
  * Build the multi-line `describe()` output per Plan 06-01 D-04. Omits
- * lines for absent fields (exactOptionalPropertyTypes idiom — mirrors
+ * lines for absent fields (exactOptionalPropertyTypes idiom: mirrors
  * `src/helpers/meta.ts::buildMeta`); lineage rendered as `a → b → c`
  * when more than one name is present.
  *
@@ -15,7 +15,7 @@ import type { Profile } from "../parser/types.js";
 
 /**
  * Format a `Profile` as a multi-line human-readable description. Always
- * starts with `Profile '<name>'` — see module-level JSDoc for the full
+ * starts with `Profile '<name>'`: see module-level JSDoc for the full
  * line-per-field layout.
  *
  * @internal

@@ -1,10 +1,10 @@
 /**
- * `buildAck` — generate a spec-clean HL7 v2 acknowledgment (ACK) message from
+ * `buildAck`: generate a spec-clean HL7 v2 acknowledgment (ACK) message from
  * an inbound message (Phase C). The boundary with `@cosyte/mllp` is resolved
  * (hl7 roadmap §10.1): **hl7 owns ACK *content*** (this file + the control
  * tables); mllp owns *policy/timing* (the commit contract) and *framing*.
  *
- * `buildAck` is **mechanical** — it builds the disposition it is *told* via
+ * `buildAck` is **mechanical**: it builds the disposition it is *told* via
  * `options.code`; it never decides accept-vs-reject. The one safety override is
  * the fail-safe below: it refuses to fabricate a positive `AA`/`CA` for an
  * inbound message that carries no MSH-10 correlation id.
@@ -37,7 +37,7 @@ import { formatHl7Timestamp } from "./format-timestamp.js";
 
 /**
  * One ERR segment's worth of error detail for `buildAck`. Carries **codes and
- * locations only — never echoed PHI values** (the phi-redaction-review gate
+ * locations only: never echoed PHI values** (the phi-redaction-review gate
  * binds this contract).
  *
  * @example
@@ -54,7 +54,7 @@ export interface AckErrorDetail {
    * HL7 Table 0357 message error condition code (ERR-3.1). Defaults to `"207"`
    * (Application internal error). The standard display text is looked up from
    * Table 0357 and emitted in ERR-3.2; unknown codes emit with empty text
-   * (the code is preserved verbatim — never dropped).
+   * (the code is preserved verbatim: never dropped).
    */
   readonly conditionCode?: string;
   /** HL7 Table 0516 severity (ERR-4). Defaults to `"E"` (Error). */
@@ -62,7 +62,7 @@ export interface AckErrorDetail {
   /**
    * Error location (ERR-2, an HL7 ERL). A structural path such as `"PID^1^5"`
    * (segment id ^ segment sequence ^ field position). **Must not contain a
-   * patient data value** — locations point at *where*, never *what*.
+   * patient data value**: locations point at *where*, never *what*.
    */
   readonly location?: string;
 }
@@ -80,7 +80,7 @@ export interface BuildAckOptions {
   /**
    * The acknowledgment disposition to emit in MSA-1 (HL7 Table 0008). One of
    * `AA`/`AE`/`AR` (original) or `CA`/`CE`/`CR` (enhanced accept-level).
-   * Required — `buildAck` builds the disposition it is told. An unknown code
+   * Required: `buildAck` builds the disposition it is told. An unknown code
    * is a programming error and throws `TypeError`.
    */
   readonly code: AckCode;
@@ -92,7 +92,7 @@ export interface BuildAckOptions {
   /**
    * Optional explicit acknowledgment mode. When omitted it is derived from the
    * inbound MSH-15/16 via {@link detectAckMode}. `buildAck` emits `code`
-   * verbatim regardless of mode — this field is advisory metadata for adapters
+   * verbatim regardless of mode: this field is advisory metadata for adapters
    * (e.g. `@cosyte/mllp`'s commit-policy layer) that need the detected mode.
    */
   readonly mode?: AckMode;
@@ -103,7 +103,7 @@ export interface BuildAckOptions {
  * acknowledgment type) and MSH-16 (application acknowledgment type), per HL7 v2
  * Chapter 2 §2.9: **original** when *both* are absent/empty; **enhanced** when
  * *either* is present. This split is spec-exact (unlike the disposition mapping,
- * which has no single correct model — see the package README).
+ * which has no single correct model: see the package README).
  *
  * @example
  * ```ts
@@ -123,33 +123,33 @@ export function detectAckMode(inbound: Hl7Message): AckMode {
  * Build a spec-clean ACK (`MSH` + `MSA` [+ `ERR`…]) responding to `inbound`.
  *
  * Behavior:
- * - **MSH** — sender/receiver are swapped (inbound MSH-5/6 → ACK MSH-3/4;
+ * - **MSH**: sender/receiver are swapped (inbound MSH-5/6 → ACK MSH-3/4;
  *   inbound MSH-3/4 → ACK MSH-5/6); MSH-7 is the current UTC time; MSH-9 is
  *   `ACK` (with the inbound trigger event echoed as `ACK^<trigger>^ACK` when
  *   present); MSH-10 is a freshly generated control id; MSH-11 (processing id)
  *   and MSH-12 (version) echo the inbound values.
- * - **MSA** — MSA-1 = `code`; **MSA-2 echoes the full inbound MSH-10 field**
- *   (the raw field structure is carried over whole — a vendor-quirk id like
+ * - **MSA**: MSA-1 = `code`; **MSA-2 echoes the full inbound MSH-10 field**
+ *   (the raw field structure is carried over whole: a vendor-quirk id like
  *   `ID^X` is never truncated to its first component). The echo carries the
  *   inbound field's escape-fidelity overlay (HL7-ESC), so an id bearing a hex
  *   escape (`ID\X41\Q`) or a preserved escape (`\H\`) echoes **byte-verbatim**,
- *   not canonicalized — exactly the bytes the sender put on the wire, which is
+ *   not canonicalized: exactly the bytes the sender put on the wire, which is
  *   what MSA-2 correlation compares. The only structural transform is
  *   trailing-empty canonicalization (D-02). (A sender that used *custom*
  *   encoding characters is **re-delimited spec-cleanly**: the overlay carries
  *   the sender's raw bytes in the sender's alphabet, so echoing them verbatim
  *   under the ACK's default alphabet would corrupt the field's structure and
- *   break correlation — the overlay is therefore bypassed and the decoded id is
+ *   break correlation: the overlay is therefore bypassed and the decoded id is
  *   re-escaped under default, which re-parses back to the same control id.
  *   Default-delimiter senders, the norm, keep the byte-exact overlay echo.)
- * - **ERR** — one segment per supplied {@link AckErrorDetail}: ERR-2 location
+ * - **ERR**: one segment per supplied {@link AckErrorDetail}: ERR-2 location
  *   (when given), ERR-3 the Table 0357 condition code as a CWE
  *   (`code^text^HL70357`), ERR-4 the Table 0516 severity.
  *
  * **Fail-safe (roadmap §Phase C).** If the inbound message has no MSH-10, the
  * ACK cannot be correlated. `buildAck` then leaves MSA-2 empty and, if a
  * positive accept (`AA`/`CA`) was requested, **downgrades it** to the matching
- * error code (`AE`/`CE`) — it never fabricates an unverifiable positive ACK.
+ * error code (`AE`/`CE`): it never fabricates an unverifiable positive ACK.
  * The returned message carries an `ACK_NO_CORRELATION_ID` warning. (This is the
  * inbound-side complement to `@cosyte/mllp`'s "no commit ⇒ never AA".)
  *
@@ -183,12 +183,12 @@ export function buildAck(inbound: Hl7Message, options: BuildAckOptions): Hl7Mess
   // the component-1-only `meta` scalars), so multi-component HDs like
   // `APP^DNS^ISO` survive into the reply intact rather than being truncated.
   // Sharing by reference is safe because every Hl7Message mutation method
-  // (setField et al.) is copy-on-write leaf-to-root — neither message can
+  // (setField et al.) is copy-on-write leaf-to-root: neither message can
   // corrupt the other through the shared subtree.
   const msh = inbound.segments("MSH")[0];
   const inboundMsh = (n: number): RawField => msh?.field(n).raw ?? absentField();
 
-  // Correlation: MSA-2 echoes the inbound RAW MSH-10 field **verbatim** —
+  // Correlation: MSA-2 echoes the inbound RAW MSH-10 field **verbatim**,
   // not the component-1-only `meta.controlId` scalar. A vendor-quirk control
   // id carrying an unescaped delimiter (`ID^X`) must survive into MSA-2
   // byte-for-byte, or a sender correlating on the raw MSH-10 bytes will
@@ -198,12 +198,12 @@ export function buildAck(inbound: Hl7Message, options: BuildAckOptions): Hl7Mess
   // Escape-fidelity overlay caveat (HL7-ESC): the overlay carries the inbound
   // MSH-10's original wire bytes in the SENDER's delimiter alphabet. This ACK
   // emits with DEFAULT encoding characters, so emitting those bytes verbatim is
-  // only correct when the inbound used the default alphabet too — otherwise a
+  // only correct when the inbound used the default alphabet too: otherwise a
   // raw byte that is a delimiter/escape under DEFAULT (but was plain data or a
   // different escape for the sender) would re-parse into a corrupted, truncated
   // MSA-2 and BREAK correlation. So for a custom-delimiter sender we drop the
   // overlay and re-escape the DECODED value under default (spec-clean, and it
-  // re-parses back to the same decoded control id — correlation-correct). A
+  // re-parses back to the same decoded control id: correlation-correct). A
   // default-delimiter sender (the norm) keeps the overlay and echoes byte-exact.
   const sameEnc = encodingsEqual(inbound.encodingCharacters, enc);
   const rawControlId = sameEnc ? inboundMsh(10) : stripEscapeOverlay(inboundMsh(10));
@@ -316,7 +316,7 @@ function buildErrSegment(detail: AckErrorDetail): RawSegment {
   return {
     name: "ERR",
     fields: [
-      absentField(), // fields[0] — segment-name/separator placeholder slot
+      absentField(), // fields[0]: segment-name/separator placeholder slot
       absentField(), // ERR-1 (deprecated v2.4 / withdrawn v2.7)
       detail.location !== undefined ? compositeField(detail.location) : absentField(), // ERR-2 (ERL)
       err3, // ERR-3
@@ -342,7 +342,7 @@ function absentField(): RawField {
 /**
  * True iff two encoding-character sets are identical across every delimiter
  * (and the optional v2.7+ truncation char). Used to decide whether the inbound
- * MSH-10's escape-fidelity overlay — captured in the sender's alphabet — is safe
+ * MSH-10's escape-fidelity overlay (captured in the sender's alphabet) is safe
  * to echo verbatim under the ACK's DEFAULT alphabet.
  * @internal
  */
@@ -361,7 +361,7 @@ function encodingsEqual(a: EncodingCharacters, b: EncodingCharacters): boolean {
  * Return a copy of `field` with the HL7-ESC `rawSubcomponents` overlay dropped
  * from every component, so `emitField` re-escapes the DECODED value instead of
  * emitting the sender's raw wire bytes verbatim. Used when the ACK's encoding
- * differs from the inbound's — see the correlation caveat in {@link buildAck}.
+ * differs from the inbound's: see the correlation caveat in {@link buildAck}.
  * Returns the field unchanged when it carries no overlay (the common case), so
  * a default-delimiter inbound is untouched.
  * @internal
@@ -380,7 +380,7 @@ function stripEscapeOverlay(field: RawField): RawField {
 }
 
 /**
- * True iff the raw field carries any content at all — at least one non-empty
+ * True iff the raw field carries any content at all: at least one non-empty
  * subcomponent in any component of any repetition. Drives the correlation
  * check on the raw MSH-10: a quirky `^X` still correlates (the verbatim echo
  * preserves it), while a genuinely empty/absent field triggers the fail-safe.

@@ -1,12 +1,12 @@
 /**
- * Phase O — MSH-18 / Table-0211 character-set decoding at the `parseHL7`
+ * Phase O: MSH-18 / Table-0211 character-set decoding at the `parseHL7`
  * boundary. Exercises the Buffer-decode path end-to-end: UTF-8 and single-byte
  * ISO-8859 decode, the repeating-MSH-18 "first occurrence is the default" rule,
  * the verbatim fail-safe for recognized-but-undecoded and unrecognized sets,
  * the `\Mxxyyzz\` switch-escape recognition, and the `options.charset`
  * override / `ENCODING_MISMATCH` interaction.
  *
- * All fixtures are synthetic — no PHI. Latin-1 / multibyte byte streams are
+ * All fixtures are synthetic: no PHI. Latin-1 / multibyte byte streams are
  * built as raw Buffers here (a non-UTF-8 byte stream cannot be stored losslessly
  * in a UTF-8 text fixture).
  */
@@ -57,7 +57,7 @@ describe("parseHL7 charset: UTF-8 decode", () => {
   });
 
   it("treats a blank MSH-18 as ASCII decoded as its UTF-8 superset (no warning)", () => {
-    // No MSH-18 declared, yet the payload is UTF-8 — the ASCII default decodes
+    // No MSH-18 declared, yet the payload is UTF-8: the ASCII default decodes
     // it correctly (ASCII ⊂ UTF-8) rather than mojibaking common real traffic.
     const bytes = buildBuffer("", "Müller", "utf-8");
     const msg = parseHL7(bytes);
@@ -126,7 +126,7 @@ describe("parseHL7 charset: multibyte framing limitation (documented, pinned)", 
   it("an embedded CR byte in an undecoded multibyte field acts as a segment terminator", () => {
     // A recognized-but-undecoded multibyte set is preserved as latin1 and still
     // tokenized, so a content byte equal to CR (0x0D) is framed as a segment
-    // terminator. This is the documented reason multibyte DECODE is deferred —
+    // terminator. This is the documented reason multibyte DECODE is deferred,
     // pinned here so the limitation is explicit, not silent. The UNSUPPORTED_CHARSET
     // warning tells the consumer the charset was not decoded.
     const head = Buffer.from(
@@ -148,7 +148,7 @@ describe("parseHL7 charset: multibyte framing limitation (documented, pinned)", 
 describe("parseHL7 charset: switch escapes are recognized (preserved, not decoded)", () => {
   it("recognizes a \\Mxxyyzz\\ charset-switch escape (no UNKNOWN_ESCAPE_SEQUENCE) and preserves it", () => {
     // ISO-2022 charset switch inside a field: \M2442\ ... \M2842\. The escape
-    // layer recognizes it (Phase A) — no warning — and the parsed value keeps
+    // layer recognizes it (Phase A), no warning, and the parsed value keeps
     // the sequence verbatim. Full stateful decode of the switched bytes is a
     // documented non-goal of this phase; byte-verbatim RE-EMIT of the escape is
     // tracked separately (HL7-ESC), so this asserts recognition + read-side

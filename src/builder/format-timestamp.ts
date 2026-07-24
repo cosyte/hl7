@@ -1,5 +1,5 @@
 /**
- * `formatHl7Timestamp` — format a JS `Date` to HL7 TS `YYYYMMDDHHmmss`
+ * `formatHl7Timestamp`: format a JS `Date` to HL7 TS `YYYYMMDDHHmmss`
  * (UTC, second precision). The outbound (builder) counterpart to the inbound
  * `src/parser/dates.ts::parseDtm`; this side intentionally emits full
  * second-precision UTC for newly-constructed messages.
@@ -8,7 +8,7 @@
  *
  * Decisions:
  * - D-13: second precision only (no `.SSSS`); UTC via `getUTC*` methods.
- * - D-31: zero deps — stdlib `Date` only.
+ * - D-31: zero deps: stdlib `Date` only.
  *
  * @internal
  */
@@ -16,20 +16,20 @@
 /**
  * Format a JS `Date` to HL7 TS `YYYYMMDDHHmmss` (UTC, second precision,
  * always 14 chars). The builder counterpart to the parser's `parseDtm`.
- * D-13: sub-second precision is NOT emitted (acceptable asymmetry — most
+ * D-13: sub-second precision is NOT emitted (acceptable asymmetry: most
  * outbound use cases don't need ms, and HL7 TS `.SSSS` is optional).
  *
- * Always uses UTC — callers who need local-time emission should supply a
+ * Always uses UTC: callers who need local-time emission should supply a
  * pre-formatted HL7 TS string to `buildMessage({ timestamp: "..." })`.
  *
  * On an Invalid Date (`new Date("not-a-date")`) the output is a string of
  * 14 `NaN`-derived chars. `buildMessage`'s upstream validation never passes
- * an invalid Date — sibling functions don't throw (D-07), so this pathological
+ * an invalid Date: sibling functions don't throw (D-07), so this pathological
  * case is accepted silently.
  *
  * @example
  * ```ts
- * // formatHl7Timestamp is @internal — call buildMessage's `timestamp`
+ * // formatHl7Timestamp is internal, call buildMessage's `timestamp`
  * // option instead. Internally this maps Date -> YYYYMMDDHHmmss:
  * //   new Date("2026-04-19T10:15:00Z") -> "20260419101500"
  * ```

@@ -1,5 +1,5 @@
 /**
- * Phase D — integration tests for `msg.medications()` (RXO/RXE/RXD/RXA with
+ * Phase D: integration tests for `msg.medications()` (RXO/RXE/RXD/RXA with
  * RXR/RXC grouped positionally). Covers the four contexts, give-code
  * provenance, the amount-vs-strength separation (never reconciled), positional
  * grouping, and the HELPERS-07 never-throws contract.
@@ -51,11 +51,11 @@ describe("helpers/medications: contexts", () => {
     expect(m?.context).toBe("encoded");
     expect(m?.giveCode?.identifier).toBe("1049630");
     expect(m?.giveCode?.nameOfCodingSystem).toBe("RXN");
-    // amount (how much is given) — RXE-3/4/5
+    // amount (how much is given): RXE-3/4/5
     expect(m?.amount?.minimum).toBe(2);
     expect(m?.amount?.maximum).toBe(2);
     expect(m?.amount?.units?.identifier).toBe("TAB");
-    // strength (concentration) — RXE-25/26 — a SEPARATE field
+    // strength (concentration), RXE-25/26, a SEPARATE field
     expect(m?.strength?.value).toBe(325);
     expect(m?.strength?.units?.identifier).toBe("mg");
     expect(m?.strength?.units?.nameOfCodingSystem).toBe("UCUM");
@@ -152,7 +152,7 @@ describe("helpers/medications: positional grouping of RXR / RXC", () => {
 });
 
 describe("helpers/medications: fail-safe + immutability", () => {
-  it("strict-parses numerics — non-numeric amount → omitted key, never NaN", () => {
+  it("strict-parses numerics: non-numeric amount → omitted key, never NaN", () => {
     const fx = MSH + PID + "RXO|1100^Amoxicillin^RXN|notanumber||mg";
     const m = parseHL7(fx).medications()[0];
     expect("minimum" in (m?.amount ?? {})).toBe(false);

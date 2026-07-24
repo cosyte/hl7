@@ -1,48 +1,48 @@
 /**
  * Public types for the conformance-profile engine (roadmap Phase U). A
- * **consumer authors** a declarative {@link ConformanceProfile} — a bounded
+ * **consumer authors** a declarative {@link ConformanceProfile}: a bounded
  * subset of the HL7 v2 Message-Profile / NIST-IGAMT model (usage codes,
  * cardinality, length, value-set binding against a consumer-supplied code
- * list) — and {@link validateAgainstProfile} runs it against a parsed message,
+ * list): and {@link validateAgainstProfile} runs it against a parsed message,
  * returning typed {@link ConformanceFinding}s.
  *
  * This is the **sanctioned functionality-plane replacement for the retired
  * vendor-corpus arc**: instead of hl7 shipping vendor/IHE/regulatory profiles
  * or code sets, the consumer brings their own interface spec and hl7 validates
  * against it. hl7 ships **no** profile, **no** code set, and makes **no**
- * network call — the profile and every value set are supplied by the caller.
+ * network call: the profile and every value set are supplied by the caller.
  *
  * Two invariants govern the whole surface:
  *
  * 1. **"No findings" is NOT a conformance attestation.** An empty
  *    {@link ConformanceResult.findings} means "nothing THIS profile checked was
- *    violated" — never "this message is conformant." The profile only covers
+ *    violated": never "this message is conformant." The profile only covers
  *    what the author declared; everything undeclared is unchecked.
  * 2. **No PHI in findings.** A finding names the structural **locus** (segment
  *    name, field / component index, repetition, occurrence) and the rule that
- *    fired — **never** the offending field value. A "value not in set" finding
+ *    fired: **never** the offending field value. A "value not in set" finding
  *    says *where* and *which value set*, never *what the value was*.
  *
  * @see validateAgainstProfile
  */
 
 /**
- * The six HL7 v2 conformance **usage codes** (HL7 Conformance Methodology —
+ * The six HL7 v2 conformance **usage codes** (HL7 Conformance Methodology,
  * Message Profiles; IHE ITI TF Vol.2 Appendix C). They constrain whether an
  * element must, may, or must not appear:
  *
- * - **`R`** — Required. The element SHALL be present (with a value). Absent →
+ * - **`R`**: Required. The element SHALL be present (with a value). Absent →
  *   {@link FINDING_CODES.PROFILE_REQUIRED_ABSENT}.
- * - **`RE`** — Required but may be Empty. The element is supported and SHALL be
+ * - **`RE`**: Required but may be Empty. The element is supported and SHALL be
  *   sent when the sender has the data; its **absence is never a violation**
  *   (this engine cannot know whether the sender had the data).
- * - **`C`** — Conditional. Presence depends on a predicate. This bounded engine
- *   ships **no predicate language** (a documented defer — roadmap §5), so a
+ * - **`C`**: Conditional. Presence depends on a predicate. This bounded engine
+ *   ships **no predicate language** (a documented defer: roadmap §5), so a
  *   `C` element's **presence is not evaluated** (treated as optional); its
  *   length / value-set / cardinality rules still apply when it IS present.
- * - **`CE`** — Conditional but may be Empty. Same non-evaluation as `C`.
- * - **`O`** — Optional. No presence constraint.
- * - **`X`** — Not supported / not permitted. The element SHALL NOT be present.
+ * - **`CE`**: Conditional but may be Empty. Same non-evaluation as `C`.
+ * - **`O`**: Optional. No presence constraint.
+ * - **`X`**: Not supported / not permitted. The element SHALL NOT be present.
  *   Present → {@link FINDING_CODES.PROFILE_NOT_PERMITTED}.
  *
  * @example
@@ -73,7 +73,7 @@ export const USAGE_CODES: readonly UsageCode[] = Object.freeze(["R", "RE", "C", 
  *
  * **Cardinality `min` is checked only when the element is present.** An absent
  * **Required** element is reported as {@link FINDING_CODES.PROFILE_REQUIRED_ABSENT}
- * (a usage finding), not a cardinality finding — so a missing `R` field with
+ * (a usage finding), not a cardinality finding: so a missing `R` field with
  * `cardinality.min = 1` yields exactly one finding, never two.
  *
  * @example
@@ -94,7 +94,7 @@ export interface Cardinality {
  *
  * @remarks
  * `field` is the 1-indexed HL7 position (MSH offset handled internally, exactly
- * like `Segment.field(n)` — `{ field: 9 }` on `MSH` targets MSH-9). Length and
+ * like `Segment.field(n)`: `{ field: 9 }` on `MSH` targets MSH-9). Length and
  * value-set checks read the value at `component` (default **1**), so a coded
  * field's code (`CWE.1` / `CE.1`) is checked by default; set `component` to
  * check a different component. Both are applied **per present repetition**.
@@ -104,7 +104,7 @@ export interface FieldRule {
   readonly field: number;
   /**
    * Optional human label for the field (e.g. `"Patient Identifier List"`).
-   * Structural documentation for the profile author only — findings identify a
+   * Structural documentation for the profile author only: findings identify a
    * field by its PHI-free structural locus (segment + index), never by this
    * label, so the label is never echoed into a finding message.
    */
@@ -117,14 +117,14 @@ export interface FieldRule {
   readonly length?: number;
   /**
    * Consumer-supplied permitted-value list. The checked component value must be
-   * a member (case-sensitive exact match). **hl7 ships no code set** — this is
+   * a member (case-sensitive exact match). **hl7 ships no code set**: this is
    * BYO terminology; membership is a literal string check, never a LOINC /
    * SNOMED / ICD / RxNorm lookup and never a network call.
    */
   readonly valueSet?: readonly string[];
   /**
    * 1-indexed component whose value the `length` / `valueSet` checks read.
-   * Defaults to `1` (the first component — a coded element's code).
+   * Defaults to `1` (the first component: a coded element's code).
    */
   readonly component?: number;
   /**
@@ -142,7 +142,7 @@ export interface FieldRule {
  * segment.
  */
 export interface SegmentRule {
-  /** Segment name — 3 chars, `[A-Z][A-Z0-9]{2}` (standard or `Z…` segment). */
+  /** Segment name: 3 chars, `[A-Z][A-Z0-9]{2}` (standard or `Z…` segment). */
   readonly segment: string;
   /**
    * Usage for the segment as a whole. `R` ⇒ at least one occurrence required;
@@ -161,15 +161,15 @@ export interface SegmentRule {
 /**
  * A **user-authored, declarative** conformance profile (roadmap Phase U). The
  * consumer supplies this; hl7 ships none. It is a bounded subset of the HL7 v2
- * Message-Profile model — usage / cardinality / length / consumer-supplied
- * value set — with **no** conditional-predicate language, **no** bundled code
+ * Message-Profile model: usage / cardinality / length / consumer-supplied
+ * value set: with **no** conditional-predicate language, **no** bundled code
  * set, and **no** network binding (all deliberate scope boundaries).
  *
  * @example
  * ```ts
  * import type { ConformanceProfile } from "@cosyte/hl7";
  *
- * // A minimal ADT profile the CONSUMER authors — example, NOT an attestation.
+ * // A minimal ADT profile the CONSUMER authors: example, NOT an attestation.
  * const profile: ConformanceProfile = {
  *   name: "example-adt-min",
  *   segments: [
@@ -184,7 +184,7 @@ export interface SegmentRule {
  * ```
  */
 export interface ConformanceProfile {
-  /** A name for provenance — echoed into {@link ConformanceResult.profileName}. */
+  /** A name for provenance: echoed into {@link ConformanceResult.profileName}. */
   readonly name: string;
   /** The segment rules, evaluated in array order (stable finding order). */
   readonly segments: readonly SegmentRule[];
@@ -198,7 +198,7 @@ export interface ConformanceProfile {
 export type FindingSeverity = "error" | "warning" | "info";
 
 /**
- * The frozen registry of finding codes. Stable, additive string codes — a
+ * The frozen registry of finding codes. Stable, additive string codes: a
  * consumer compares `finding.code === FINDING_CODES.PROFILE_REQUIRED_ABSENT`.
  * Segment-level vs field-level is disambiguated by whether the finding's
  * {@link FindingLocus.field} is present, not by separate codes.
@@ -232,7 +232,7 @@ export const FINDING_CODES = {
 export type FindingCode = (typeof FINDING_CODES)[keyof typeof FINDING_CODES];
 
 /**
- * The **structural** locus a finding refers to — segment name plus, where
+ * The **structural** locus a finding refers to: segment name plus, where
  * applicable, the field position, component, repetition, and segment
  * occurrence. Every member is a name or an index: a locus is **inherently
  * PHI-free** and never carries a field value.
@@ -260,7 +260,7 @@ export interface FindingLocus {
  * {@link FindingSeverity}, the structural {@link FindingLocus}, and a
  * human-readable `message` describing the rule that fired.
  *
- * **The `message` is PHI-safe by construction** — it names the locus, the rule,
+ * **The `message` is PHI-safe by construction**: it names the locus, the rule,
  * and (for a value-set miss) the SIZE of the value set, but **never** the
  * offending field value.
  *
@@ -287,7 +287,7 @@ export interface ConformanceFinding {
  * ordered list of `findings`.
  *
  * **`findings.length === 0` is NOT a conformance attestation.** It means every
- * rule the profile declared was satisfied — nothing about the parts of the
+ * rule the profile declared was satisfied: nothing about the parts of the
  * message the profile did not cover, and nothing about clinical correctness.
  * Read it as "no declared rule was violated," never as "conformant."
  */

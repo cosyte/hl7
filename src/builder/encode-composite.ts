@@ -1,6 +1,6 @@
 /**
  * Typed-composite **encoders** for the `@cosyte/hl7` emit path (roadmap Phase
- * T) — the conservative-emit mirror of the `src/model/types/*` read parsers.
+ * T): the conservative-emit mirror of the `src/model/types/*` read parsers.
  *
  * Each encoder takes one typed composite (an {@link XPN} name, a {@link CX}
  * identifier, a {@link TS} timestamp, …) and produces a `RawField` whose
@@ -9,7 +9,7 @@
  *
  * - **No delimiter injection.** Component values are stored **decoded** (the
  *   same surface `parseXxx` returns), and the serializer (`emit-field.ts`)
- *   runs every subcomponent through `reescape` — the HL7-R encode-safe codec —
+ *   runs every subcomponent through `reescape` (the HL7-R encode-safe codec)
  *   on the way out. A `familyName` of `"Smith^Jr"` is therefore emitted as
  *   `Smith\S\Jr` (one component) and re-parses to the exact string `"Smith^Jr"`,
  *   never forging a component boundary. The caller never hand-assembles
@@ -20,10 +20,10 @@
  *   parser's omit-on-absent), so `parseXxx(encodeXxx(v)) ` reproduces `v` on
  *   every modelled field.
  * - **Never fabricate.** An omitted optional field encodes to an empty /
- *   absent component — never a defaulted value. An all-empty composite encodes
+ *   absent component: never a defaulted value. An all-empty composite encodes
  *   to an absent field (`repetitions: []`).
  *
- * Zero runtime deps — pure functions over the raw positional tree.
+ * Zero runtime deps: pure functions over the raw positional tree.
  */
 
 import type { RawComponent, RawField, RawRepetition } from "../parser/types.js";
@@ -61,7 +61,7 @@ export type CompositeKind =
 /**
  * Maps each {@link CompositeKind} to the typed value {@link encodeComposite}
  * (and `setComposite`) accept for it. `TS` also accepts a pre-formatted HL7
- * timestamp string; `NM` also accepts a `number` or a raw numeric string —
+ * timestamp string; `NM` also accepts a `number` or a raw numeric string,
  * both are emitted verbatim (the serializer never re-formats a claimed value).
  */
 export interface CompositeValueByKind {
@@ -85,7 +85,7 @@ function sc(value: string | undefined): RawComponent {
 
 /**
  * A component whose subcomponents form a nested HD (namespaceId & universalId &
- * universalIdType) — the shape `parseHd` reads from a synthesised repetition
+ * universalIdType): the shape `parseHd` reads from a synthesised repetition
  * inside CX-4 / PL-4 / XCN-9. Trailing-empty subcomponents are trimmed so the
  * emitted `&`-run matches what the parser produced. Absent HD → empty component.
  * @internal
@@ -174,7 +174,7 @@ export function encodeXad(v: XAD): RawField {
 }
 
 /**
- * Encode a CX (identifier) — component 4 is a nested HD (assigningAuthority).
+ * Encode a CX (identifier): component 4 is a nested HD (assigningAuthority).
  *
  * @example
  * ```ts
@@ -271,7 +271,7 @@ export function encodeXtn(v: XTN): RawField {
 }
 
 /**
- * Encode a PL (person location) — component 4 is a nested HD (facility).
+ * Encode a PL (person location): component 4 is a nested HD (facility).
  *
  * @example
  * ```ts
@@ -310,7 +310,7 @@ export function encodeHd(v: HD): RawField {
 
 /**
  * Encode a TS/DTM timestamp. Accepts either the typed {@link TS} (its `raw`
- * string is emitted verbatim — the serializer never re-derives a timestamp
+ * string is emitted verbatim: the serializer never re-derives a timestamp
  * from parts) or a pre-formatted HL7 timestamp string.
  *
  * @example
@@ -345,7 +345,7 @@ export function encodeNm(v: NM | number | string): RawField {
 }
 
 /**
- * Encode an XCN — component 9 is a nested HD (assigningAuthority).
+ * Encode an XCN: component 9 is a nested HD (assigningAuthority).
  *
  * @example
  * ```ts
@@ -379,7 +379,7 @@ export function encodeXcn(v: XCN): RawField {
  * Encoding takes **no** encoding-characters argument on purpose: the field it
  * produces carries the **decoded** component values, and the actual
  * delimiter-escaping happens later in the serializer against the message's own
- * encoding characters — so a composite is delimiter-independent to encode.
+ * encoding characters: so a composite is delimiter-independent to encode.
  *
  * @example
  * ```ts
@@ -416,7 +416,7 @@ export function encodeComposite<K extends CompositeKind>(
     case "XCN":
       return encodeXcn(value as XCN);
     default: {
-      // Exhaustiveness guard — a new CompositeKind must add a branch above.
+      // Exhaustiveness guard: a new CompositeKind must add a branch above.
       const never: never = kind;
       throw new TypeError(`encodeComposite: unknown composite kind ${JSON.stringify(never)}.`);
     }
@@ -424,7 +424,7 @@ export function encodeComposite<K extends CompositeKind>(
 }
 
 /**
- * Encode an array of typed composites into a single repeating `RawField` — one
+ * Encode an array of typed composites into a single repeating `RawField`: one
  * HL7 repetition (`~`-joined on emit) per array element. Used for repeating
  * fields such as PID-3 (patient identifier list) and PID-11 (addresses). An
  * empty array yields an absent field.
@@ -446,7 +446,7 @@ export function encodeCompositeReps<K extends CompositeKind>(
   for (const value of values) {
     const encoded = encodeComposite(kind, value);
     // Each single-composite encode yields at most one repetition; an all-empty
-    // composite yields none — skip it so an empty entry never forges a bare `~`.
+    // composite yields none: skip it so an empty entry never forges a bare `~`.
     for (const rep of encoded.repetitions) repetitions.push(rep);
   }
   return { repetitions, isNull: false };

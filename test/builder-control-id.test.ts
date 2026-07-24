@@ -38,7 +38,7 @@ describe("generateControlId (D-12)", () => {
   it("generates distinct IDs for back-to-back calls", () => {
     const ids = new Set<string>();
     for (let i = 0; i < 100; i++) ids.add(generateControlId());
-    // 100 distinct IDs expected — the random suffix guarantees it with
+    // 100 distinct IDs expected: the random suffix guarantees it with
     // overwhelming probability. If this ever fails, investigate Math.random
     // being mocked/frozen in the test env.
     expect(ids.size).toBe(100);

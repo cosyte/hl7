@@ -1,11 +1,11 @@
 /**
- * `medications` — Phase D (P0 safety) implementation of the pharmacy/treatment
+ * `medications`: Phase D (P0 safety) implementation of the pharmacy/treatment
  * extractor. Walks the message in document order and projects each RXO / RXE /
  * RXD / RXA segment into a typed `Medication`, grouping the RXR (route) and
- * RXC (component) segments that follow it positionally under that parent —
+ * RXC (component) segments that follow it positionally under that parent,
  * the same state-machine pattern `orders()` uses for OBR → OBX (D-12).
  *
- * Field map (HL7 Ch. 4A — Pharmacy/Treatment):
+ * Field map (HL7 Ch. 4A: Pharmacy/Treatment):
  *   - RXO (order):          give RXO-1, amount RXO-2/3, units RXO-4, form RXO-5
  *   - RXE (encoded):        give RXE-2, amount RXE-3/4, units RXE-5,
  *                           strength RXE-25 + units RXE-26
@@ -15,10 +15,10 @@
  *   - RXC (component, grouped): type RXC-1, code RXC-2, amount RXC-3, units RXC-4
  *
  * Safety rules enforced here (Phase D §4):
- *   - Never throws — malformed RX* surface as omitted keys (matches the helper
+ *   - Never throws: malformed RX* surface as omitted keys (matches the helper
  *     layer contract; HELPERS-07).
  *   - `amount` (how much) and `strength` (concentration) are surfaced as
- *     SEPARATE fields and are NEVER reconciled — including against any strength
+ *     SEPARATE fields and are NEVER reconciled: including against any strength
  *     a coded drug (e.g. an NDC) implies. A disagreement is preserved.
  *   - Numeric fields are strict-`Number()` parsed via `Field.asNm()` → never
  *     `NaN`; absent/blank → key omitted.
@@ -30,7 +30,7 @@
  * Grouping rules:
  *   - Each RXO/RXE/RXD/RXA opens a new `Medication`. RXR/RXC seen before any
  *     RX* parent are dropped (parity with `orders()` dropping a leading OBX /
- *     trailing ORC) — they are not attached to a phantom medication.
+ *     trailing ORC): they are not attached to a phantom medication.
  *   - `routes` and `components` are ALWAYS present arrays (empty when none).
  */
 
@@ -91,7 +91,7 @@ function buildAmount(
   return Object.keys(out).length === 0 ? undefined : Object.freeze(out);
 }
 
-/** RXE-25/26 give strength — surfaced verbatim, never reconciled with the give code. @internal */
+/** RXE-25/26 give strength: surfaced verbatim, never reconciled with the give code. @internal */
 function buildStrength(rxe: Segment): MedicationStrength | undefined {
   type Mutable<T> = { -readonly [K in keyof T]?: T[K] };
   const out: Mutable<MedicationStrength> = {};
@@ -130,13 +130,13 @@ function buildFromParent(parent: Segment, context: MedicationContext): Medicatio
     }
     case "dispense": {
       giveCode = cweOrUndefined(parent.field(2));
-      // RXD-4 is a SINGLE actual-dispense amount — no max field.
+      // RXD-4 is a SINGLE actual-dispense amount: no max field.
       amount = buildAmount(parent.field(4), undefined, parent.field(5));
       break;
     }
     case "administration": {
       giveCode = cweOrUndefined(parent.field(5));
-      // RXA-6 is a SINGLE administered amount — no max field.
+      // RXA-6 is a SINGLE administered amount: no max field.
       amount = buildAmount(parent.field(6), undefined, parent.field(7));
       break;
     }
@@ -162,7 +162,7 @@ function buildRoute(rxr: Segment): MedicationRoute {
   return Object.freeze(out);
 }
 
-/** One RXC segment → a grouped `MedicationComponent` (structural — not pharmacologically resolved). @internal */
+/** One RXC segment → a grouped `MedicationComponent` (structural: not pharmacologically resolved). @internal */
 function buildComponent(rxc: Segment): MedicationComponent {
   type Mutable<T> = { -readonly [K in keyof T]?: T[K] };
   const out: Mutable<MedicationComponent> = {};
@@ -187,7 +187,7 @@ function buildComponent(rxc: Segment): MedicationComponent {
  * segment grouped under the RX* parent yields one `OrderTiming`
  * (`source: "TQ1"`). When the group carries no TQ1, the **legacy embedded TQ**
  * is read from RXE-1 (an encoded RXE order) or, failing that, from the preceding
- * ORC's ORC-7 (any pharmacy order — e.g. a pre-v2.5 RXO whose timing lives in
+ * ORC's ORC-7 (any pharmacy order: e.g. a pre-v2.5 RXO whose timing lives in
  * ORC-7 with no OBR to surface it via `orders()`). Reading the legacy source
  * only when no TQ1 is present means the same timing is never double-counted; the
  * ORC-7 fallback means a legacy-only timing is never dropped. `orc` is the ORC
@@ -235,12 +235,12 @@ function finalize(
  * Every RXO/RXE/RXD/RXA as a typed `Medication`, with RXR (route) and RXC
  * (component) segments grouped positionally under the preceding RX* parent
  * (Phase D, P0 safety). Document order. Returns `[]` when no RX* parent is
- * present. NOT memoized — each call re-walks `msg.allSegments()`. Never throws
+ * present. NOT memoized: each call re-walks `msg.allSegments()`. Never throws
  * (HELPERS-07).
  *
  * The give code carries its own coding-system provenance
  * (`giveCode.nameOfCodingSystem`). The give *amount* and the give *strength*
- * are surfaced as separate fields and are never reconciled — a strength a
+ * are surfaced as separate fields and are never reconciled: a strength a
  * coded drug implies is never used to validate or overwrite the explicit
  * RXE-25/26 strength (Phase D §4).
  *
@@ -279,7 +279,7 @@ export function medications(msg: Hl7Message): readonly Medication[] {
   for (const seg of msg.allSegments()) {
     const context = PARENT_CONTEXT[seg.type];
     if (context !== undefined) {
-      // Close the previous medication group, then open a new one — promoting
+      // Close the previous medication group, then open a new one: promoting
       // any TQ1 seen since the last parent (the order group places TQ1 ahead
       // of the RXE it modifies). The preceding ORC (its ORC-7 legacy timing) is
       // consumed by only this first RX*: `pendingOrc` is cleared so a sibling
@@ -311,7 +311,7 @@ export function medications(msg: Hl7Message): readonly Medication[] {
       else pendingTq1.push(seg);
       continue;
     }
-    if (current === undefined) continue; // RXR/RXC before any RX* parent — dropped.
+    if (current === undefined) continue; // RXR/RXC before any RX* parent: dropped.
     if (seg.type === "RXR") {
       routes.push(buildRoute(seg));
     } else if (seg.type === "RXC") {

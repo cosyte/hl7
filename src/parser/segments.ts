@@ -2,7 +2,7 @@
  * Segment-split stage for the `@cosyte/hl7` parser pipeline. After
  * input normalization (line endings unified to `\r`), this module turns the
  * single-string input into an ordered array of segment strings with stable
- * positions. Purely mechanical — no HL7 semantics are evaluated here. MSH
+ * positions. Purely mechanical: no HL7 semantics are evaluated here. MSH
  * detection, delimiter discovery, and field tokenization all live in sibling
  * modules (`delimiters.ts`, `tokenize.ts`).
  *

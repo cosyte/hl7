@@ -25,7 +25,7 @@ describe("buildMessage (SER-06)", () => {
       const round = parseHL7(msg.toString());
       expect(round.meta.timestamp?.valid).toBe(true);
       // buildMessage emits UTC second-precision (no offset); read it back by
-      // explicitly assuming UTC. Within the last 5s — generous for slow CI.
+      // explicitly assuming UTC. Within the last 5s: generous for slow CI.
       const now = Date.now();
       const ts = round.meta.timestamp;
       const instant =
@@ -69,7 +69,7 @@ describe("buildMessage (SER-06)", () => {
         timestamp: new Date("2026-04-19T10:15:00Z"),
       });
       // MSH-7 should round-trip to the exact UTC instant (emitted offset-less,
-      // read back by explicitly assuming UTC — the zone the builder wrote).
+      // read back by explicitly assuming UTC: the zone the builder wrote).
       const round = parseHL7(msg.toString());
       const ts = round.meta.timestamp;
       expect(ts?.raw).toBe("20260419101500");
@@ -146,7 +146,7 @@ describe("buildMessage (SER-06)", () => {
 
     it("chained result round-trips through parseHL7", () => {
       // D-15 scalar-string input: `addSegment` treats each string entry as a
-      // single subcomponent — delimiter chars like `^` are reescape'd to
+      // single subcomponent: delimiter chars like `^` are reescape'd to
       // `\S\` on emit, so the round-trip yields a single-component PID-5,
       // not a composite XPN. Callers who need XPN components should use
       // `setField("PID.5.1", "Doe").setField("PID.5.2", "John")` after
@@ -185,11 +185,11 @@ describe("buildMessage (SER-06)", () => {
       expect(() => buildMessage({ type: 123 as unknown as string })).toThrow(TypeError);
     });
 
-    it("throws TypeError on `^` only (all components empty — WR-04)", () => {
+    it("throws TypeError on `^` only (all components empty: WR-04)", () => {
       expect(() => buildMessage({ type: "^" })).toThrow(TypeError);
     });
 
-    it("throws TypeError on `^^` (three empty components — WR-04)", () => {
+    it("throws TypeError on `^^` (three empty components: WR-04)", () => {
       expect(() => buildMessage({ type: "^^" })).toThrow(TypeError);
     });
 
@@ -197,7 +197,7 @@ describe("buildMessage (SER-06)", () => {
       expect(() => buildMessage({ type: "   ^   " })).toThrow(TypeError);
     });
 
-    it("accepts single-component type (no `^`) — still valid", () => {
+    it("accepts single-component type (no `^`): still valid", () => {
       expect(() => buildMessage({ type: "ADT" })).not.toThrow();
     });
   });

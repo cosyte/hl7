@@ -2,7 +2,7 @@
  * Derive the UPPER_SNAKE code name from a kebab-case fixture filename.
  * Used by vendor-quirks and malformed sweeps to map a filename like
  * `mllp-framing-stripped.hl7` to its expected enum value
- * `MLLP_FRAMING_STRIPPED`. Pure string transform — does not validate
+ * `MLLP_FRAMING_STRIPPED`. Pure string transform: does not validate
  * against any enum, so it serves both `WarningCode` (Plan 04) and
  * `FatalCode` (Plan 05) sweeps.
  *

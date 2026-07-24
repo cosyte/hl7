@@ -1,10 +1,10 @@
 # scripts/phi-allow-list.txt
 #
-# PHI-scan allow-list — the positive declaration that a fixture's identifiers
+# PHI-scan allow-list, the positive declaration that a fixture's identifiers
 # are synthetic. `scripts/phi-scan.ts` reads this file; any realistic-PHI-shaped
 # token NOT covered here is a hit. An HL7 v2 message is byte-strict at the front
 # (the MSH / FHS / BHS segment must be the first thing in the file), so it cannot
-# carry an inline `# synthetic: true` header — that would break every parser
+# carry an inline `# synthetic: true` header, that would break every parser
 # test. This allow-list is therefore the synthetic-fixture declaration mechanism,
 # the same approach `@cosyte/dicom` uses for binary `.dcm` files and `@cosyte/x12`
 # for byte-strict `.edi`.
@@ -20,7 +20,7 @@
 #   EMAILDOMAIN <domain>  reserved / test email domain that is allowed to appear
 #
 # To add a new synthetic fixture: reuse the tokens below, or append new ones here
-# and commit. Adding a token is a reviewed, intentional act — never silent.
+# and commit. Adding a token is a reviewed, intentional act, never silent.
 
 # --- Synthetic patient / person surnames (XPN comp1 / XCN comp2) ---
 NAME DOE
@@ -89,7 +89,7 @@ NAME SOURCE
 NAME PARTYONE
 NAME PARTYTWO
 # Batch per-message uniqueness tags placed in the PID-5 middle-name slot
-# (test/fixtures/batch/*.hl7 — `Test^Patient^MSGA0001`)
+# (test/fixtures/batch/*.hl7, `Test^Patient^MSGA0001`)
 NAME MSGA
 NAME MSGB
 NAME MSGC

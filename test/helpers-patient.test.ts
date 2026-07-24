@@ -1,5 +1,5 @@
 /**
- * Phase 4 Plan 02 — integration tests for `msg.patient` (HELPERS-02 +
+ * Phase 4 Plan 02: integration tests for `msg.patient` (HELPERS-02 +
  * HELPERS-07). Verifies D-04 undefined-on-no-PID, D-07/D-08 MRN pick, D-17
  * Western fullName, D-18 flat Date, D-19 locked name shortcuts, D-20 phones
  * concat, D-01 frozen, D-23 auto-unescape, HELPERS-07 never-throw.
@@ -43,7 +43,7 @@ describe("helpers/patient: msg.patient (HELPERS-02)", () => {
     expect(parseHL7(fx).patient?.mrn).toBe("X1");
   });
 
-  it("MR match is case-sensitive — lowercase 'mr' falls back (D-10)", () => {
+  it("MR match is case-sensitive: lowercase 'mr' falls back (D-10)", () => {
     const fx = `${MSH}\r` + "PID|||ALT~MRN^^^HOSP^mr";
     expect(parseHL7(fx).patient?.mrn).toBe("ALT");
   });
@@ -86,7 +86,7 @@ describe("helpers/patient: msg.patient (HELPERS-02)", () => {
     expect(parseHL7(FULL).patient?.fullName).toBe("Jane Q Smith, Jr");
   });
 
-  it("fullName omits missing parts cleanly — no double spaces", () => {
+  it("fullName omits missing parts cleanly: no double spaces", () => {
     const fx = `${MSH}\r` + "PID|||X||Smith^Jane";
     expect(parseHL7(fx).patient?.fullName).toBe("Jane Smith");
   });

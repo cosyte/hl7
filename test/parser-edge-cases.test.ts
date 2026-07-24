@@ -1,6 +1,6 @@
 /**
  * TEST-03 edge-case sweep. Per CONTEXT.md D-22, each edge case has its
- * own explicit `it(...)` block — NOT a parameterized fs-scan — because
+ * own explicit `it(...)` block (NOT a parameterized fs-scan) because
  * each scenario's assertion surface is unique (some are Tier-1 silent,
  * some emit Tier-2 warnings, some affect helper output).
  *
@@ -50,7 +50,7 @@ describe("TEST-03 edge-cases: line endings (PARSE-08 Tier-1 silent)", () => {
 describe("TEST-03 edge-cases: trailing-newline handling (PARSE-08)", () => {
   it("trailing \\r byte is absorbed silently", () => {
     const msg = parseHL7(loadFixture("trailing-newline"));
-    // MSH + EVN + PID + PV1 — the trailing byte must NOT create a phantom
+    // MSH + EVN + PID + PV1: the trailing byte must NOT create a phantom
     // empty segment.
     expect(msg.rawSegments.length).toBe(4);
     expect(msg.warnings.length).toBe(0);
@@ -101,7 +101,7 @@ describe("TEST-03 edge-cases: unknown escape sequences (TOL-10)", () => {
     expect(obx).toBeDefined();
     const obx5 = obx?.fields[5]?.repetitions[0]?.components[0]?.subcomponents[0];
     // TOL-10: the verbatim sequence is preserved (the parser does NOT
-    // strip an unknown escape — it surfaces a warning and keeps the
+    // strip an unknown escape: it surfaces a warning and keeps the
     // payload). The full "\Z99\" substring must remain in the decoded
     // value.
     expect(obx5).toContain("\\Z99\\");
@@ -112,7 +112,7 @@ describe("TEST-03 edge-cases: unknown escape sequences (TOL-10)", () => {
 describe("TEST-03 edge-cases: custom MSH delimiters (PARSE-02)", () => {
   it("custom delimiters honored on MSH-1 / MSH-2 discovery", () => {
     const msg = parseHL7(loadFixture("custom-msh-delimiters"));
-    // MSH-1 = "@", MSH-2 = "~&#\" per the fixture — the parser MUST
+    // MSH-1 = "@", MSH-2 = "~&#\" per the fixture: the parser MUST
     // discover the full delimiter set from those bytes rather than
     // falling back to "|^~\&".
     expect(msg.encodingCharacters.field).toBe("@");
@@ -124,7 +124,7 @@ describe("TEST-03 edge-cases: custom MSH delimiters (PARSE-02)", () => {
 
   it("custom delimiters honored throughout subsequent segments", () => {
     const msg = parseHL7(loadFixture("custom-msh-delimiters"));
-    // PID-3 was authored as "MRN-CMD-001~~~HOSP~MR" — using `~` as the
+    // PID-3 was authored as "MRN-CMD-001~~~HOSP~MR": using `~` as the
     // component separator. After parse, component[0] must be the MRN.
     const pid = msg.rawSegments.find((s) => s.name === "PID");
     expect(pid).toBeDefined();
@@ -166,7 +166,7 @@ describe("Roadmap Phase A: v2.7+ truncation char (5-char MSH-2)", () => {
   it("MSH-2 of length 5 parses without fatal (was INVALID_ENCODING_CHARACTERS)", () => {
     const msg = parseHL7(loadFixture("truncation-char-msh2"));
     // Pre-fix: a v2.7 `^~\&#` 5-char MSH-2 was rejected with the
-    // INVALID_ENCODING_CHARACTERS Tier-3 fatal — a fail-unsafe rejection of
+    // INVALID_ENCODING_CHARACTERS Tier-3 fatal: a fail-unsafe rejection of
     // spec-conformant input. After fix, parsing succeeds and the truncation
     // character is surfaced.
     expect(msg.encodingCharacters.field).toBe("|");
@@ -181,7 +181,7 @@ describe("Roadmap Phase A: v2.7+ truncation char (5-char MSH-2)", () => {
     const msg = parseHL7(loadFixture("truncation-char-msh2"));
     const obx = msg.rawSegments.find((s) => s.name === "OBX");
     const obx5 = obx?.fields[5]?.repetitions[0]?.components[0]?.subcomponents[0];
-    // Fixture authored OBX-5 as "truncated\P\at end" — \P\ must expand
+    // Fixture authored OBX-5 as "truncated\P\at end": \P\ must expand
     // to the truncation character `#` (no UNKNOWN_ESCAPE_SEQUENCE warning).
     expect(obx5).toBe("truncated#at end");
     expect(msg.warnings.find((w) => w.code === "UNKNOWN_ESCAPE_SEQUENCE")).toBeUndefined();
@@ -194,7 +194,7 @@ describe("Roadmap Phase A: v2.7+ truncation char (5-char MSH-2)", () => {
     expect(msg.encodingCharacters.truncation).toBeUndefined();
   });
 
-  it("round-trips byte-exact through toString() — 5-char MSH-2 preserved", () => {
+  it("round-trips byte-exact through toString(): 5-char MSH-2 preserved", () => {
     const original = loadFixture("truncation-char-msh2");
     const msg = parseHL7(original);
     const reemitted = msg.toString();
@@ -211,7 +211,7 @@ describe("Roadmap Phase A: v2.7+ truncation char (5-char MSH-2)", () => {
 });
 
 describe("Roadmap Phase A: highlight + formatting + charset escapes recognized", () => {
-  it("\\H\\…\\N\\ is recognized — no UNKNOWN_ESCAPE_SEQUENCE warning emitted", () => {
+  it("\\H\\…\\N\\ is recognized: no UNKNOWN_ESCAPE_SEQUENCE warning emitted", () => {
     const msg = parseHL7(loadFixture("escape-highlight"));
     expect(msg.warnings.find((w) => w.code === "UNKNOWN_ESCAPE_SEQUENCE")).toBeUndefined();
   });
@@ -250,7 +250,7 @@ describe("Roadmap Phase A: highlight + formatting + charset escapes recognized",
     expect(obx2v).toContain("\\M824041\\");
   });
 
-  it("round-trips byte-exact through toString() — preserved escapes survive", () => {
+  it("round-trips byte-exact through toString(): preserved escapes survive", () => {
     const original = loadFixture("escape-formatting");
     const msg = parseHL7(original);
     const reparsed = parseHL7(msg.toString());
@@ -276,7 +276,7 @@ describe("TEST-03 edge-cases: missing optional segments (HELPERS-03)", () => {
 
   it("patient helper still resolves even without PV1", () => {
     const msg = parseHL7(loadFixture("missing-optional-segments"));
-    // PID-derived helpers keep working — only PV1-derived helpers fold.
+    // PID-derived helpers keep working: only PV1-derived helpers fold.
     expect(msg.patient?.mrn).toBe("MRN-MOS-001");
   });
 });

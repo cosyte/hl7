@@ -5,7 +5,7 @@
  * thrown directly; consumers narrow via the `code` discriminant.
  *
  * `ProfileDefinitionError` is declared here so the error taxonomy is locked
- * before Phase 6 wires profile validation — keeping file ownership clean
+ * before Phase 6 wires profile validation: keeping file ownership clean
  * across phases.
  */
 
@@ -67,7 +67,7 @@ export type FatalCode = (typeof FATAL_CODES)[keyof typeof FATAL_CODES];
  * snippet of the offending input so consumers can log actionable errors.
  *
  * @remarks
- * Snippets may contain PHI when parsing real clinical messages — redact at
+ * Snippets may contain PHI when parsing real clinical messages: redact at
  * the call site if required by your compliance posture. The library does
  * not redact snippets itself.
  *
@@ -78,7 +78,7 @@ export type FatalCode = (typeof FATAL_CODES)[keyof typeof FATAL_CODES];
  *   parseHL7("");
  * } catch (err) {
  *   if (err instanceof Hl7ParseError && err.code === "EMPTY_INPUT") {
- *     // handle empty input — err.position, err.snippet available
+ *     // handle empty input: err.position, err.snippet available
  *   }
  * }
  * ```
@@ -105,7 +105,7 @@ export class Hl7ParseError extends Error {
 
 /**
  * Thrown by `defineProfile()` and profile-validation code (Phase 6) when a
- * profile definition is structurally invalid — e.g. references an undefined
+ * profile definition is structurally invalid: e.g. references an undefined
  * parent, declares a malformed custom segment, or includes an unsupported
  * date format. Declared in Phase 2 so the error taxonomy is locked before
  * Phase 6 lands; callers may optionally supply the offending profile name

@@ -11,7 +11,7 @@ import type { Hl7Position } from "./types.js";
 /**
  * Stable string codes for every Tier-2 warning the parser may emit. The
  * registry is frozen via `as const` so TypeScript infers the exact string
- * literal union for `WarningCode` — there is zero runtime cost and no
+ * literal union for `WarningCode`: there is zero runtime cost and no
  * magic-string comparisons for consumers.
  *
  * @example
@@ -113,8 +113,8 @@ export function mllpFramingStripped(position: Hl7Position): Hl7ParseWarning {
  * Build a `FIELD_WHITESPACE_TRIMMED` warning. Emitted when the parser trims
  * leading or trailing whitespace from a field value (the `trimFields`
  * option, on by default). The message carries only the leading/trailing
- * character **counts** — NEVER the field value itself (before or after
- * trimming) — so no PHI is exposed; the trimmed value is still preserved
+ * character **counts**: NEVER the field value itself (before or after
+ * trimming): so no PHI is exposed; the trimmed value is still preserved
  * verbatim in the parsed output.
  *
  * @example
@@ -142,7 +142,7 @@ export function fieldWhitespaceTrimmed(
 /**
  * The standard HL7 v2 escape-identifier letters/prefixes (§2.7): the
  * single-character escapes (`F S T R E X C M Z H N`) and the `.`-prefixed
- * formatting escapes. These are structural HL7 grammar, not sender content —
+ * formatting escapes. These are structural HL7 grammar, not sender content,
  * safe to name in a warning message even when the escape body as a whole is
  * unrecognized (e.g. a malformed `\Cxx\` or a vendor `\Z...\`).
  *
@@ -182,12 +182,12 @@ export function classifyEscapeType(body: string): string | null {
 /**
  * Build an `UNKNOWN_ESCAPE_SEQUENCE` warning for a **terminated** escape
  * sequence (`\..\`) whose body is not a recognized HL7 escape. The message
- * NEVER embeds the escape body — only its length and, when the body's first
+ * NEVER embeds the escape body: only its length and, when the body's first
  * character is a recognized HL7 escape-identifier letter (structural HL7
- * grammar, not PHI — e.g. `Z` for a vendor escape, `.` for a formatting
+ * grammar, not PHI: e.g. `Z` for a vendor escape, `.` for a formatting
  * escape), that single letter. A body that doesn't start with a known escape
  * letter is untrusted field text and names no character at all. The sequence
- * itself is still preserved verbatim in the parsed output — only the WARNING
+ * itself is still preserved verbatim in the parsed output: only the WARNING
  * message is PHI-safe.
  *
  * @example
@@ -212,7 +212,7 @@ export function unknownEscapeSequence(position: Hl7Position, body: string): Hl7P
  * (an escape character with no closing partner before end-of-input). The
  * "body" in this case is the entire remainder of the field, so the message
  * carries NEITHER the body NOR its length (the length of a truncated tail is
- * itself derivable field-shape information) — just the fact that an
+ * itself derivable field-shape information): just the fact that an
  * unterminated escape was found, and the position. The remainder is still
  * preserved verbatim in the parsed output.
  *
@@ -278,7 +278,7 @@ export function segmentCase(position: Hl7Position, observed: string): Hl7ParseWa
 
 /**
  * Build an `EXTRA_FIELDS` warning. Emitted when a segment contains more
- * fields than the profile definition (or HL7 spec) declares — the extras
+ * fields than the profile definition (or HL7 spec) declares: the extras
  * are preserved on `RawSegment.fields` but flagged for consumers.
  *
  * @example
@@ -313,7 +313,7 @@ export function extraFields(
 export function unknownSegment(position: Hl7Position, segmentName: string): Hl7ParseWarning {
   return {
     code: WARNING_CODES.UNKNOWN_SEGMENT,
-    message: `Unknown segment "${segmentName}" — not in HL7 spec and no profile claim.`,
+    message: `Unknown segment "${segmentName}": not in HL7 spec and no profile claim.`,
     position,
   };
 }
@@ -388,10 +388,10 @@ export function missingRequiredField(
  * Build a `MISSING_EXPECTED_GROUP` warning (roadmap Phase G). Emitted once per
  * absent Required segment group when the message's (MSH-9.1, MSH-9.2) type is
  * one the structure safety net recognizes and an expected group is entirely
- * missing — e.g. an `ORU^R01` carrying no `OBR`/`OBX` result group, the
+ * missing: e.g. an `ORU^R01` carrying no `OBR`/`OBX` result group, the
  * signature of a truncated or misrouted feed. Tier-2 and additive: lenient
  * parse never throws on it, `strict` mode may promote it. The message carries
- * only the structural fact (message type, group name, anchor segment names) —
+ * only the structural fact (message type, group name, anchor segment names),
  * NEVER a field value, so no PHI is exposed. `position` references MSH-9.
  *
  * @example
@@ -468,7 +468,7 @@ export function versionMismatch(
  * Table-0211 character set**. The parser never guesses an encoding: it reads the
  * raw bytes as `latin1` (a 1:1 byte mapping) so single-byte content stays
  * recoverable, rather than corrupting it with replacement characters. The
- * message carries the charset code only — never a decoded field value — so no
+ * message carries the charset code only, never a decoded field value, so no
  * PHI is exposed.
  *
  * @example
@@ -487,18 +487,18 @@ export function unknownCharset(position: Hl7Position, requested: string): Hl7Par
 
 /**
  * Build an `UNSUPPORTED_CHARSET` warning. Emitted when a **recognized**
- * Table-0211 character set is not decoded into text — either because this parser
- * does not decode it (the multibyte / ISO-2022-switched East-Asian sets — JIS,
- * GB 18030, KS X 1001, CNS 11643, BIG-5 — and the wide Unicode transforms
+ * Table-0211 character set is not decoded into text: either because this parser
+ * does not decode it (the multibyte / ISO-2022-switched East-Asian sets: JIS,
+ * GB 18030, KS X 1001, CNS 11643, BIG-5: and the wide Unicode transforms
  * UTF-16 / UTF-32), or because a strict decode of a decodable set **failed** (a
  * byte invalid / undefined for the declared set, or an ICU build lacking the
  * label). In every case the raw bytes are read as `latin1`, never guessed at, so
  * the parser does not emit replacement-char-corrupted text. Single-byte content
  * stays byte-recoverable; multibyte content is best-effort (a content byte can
- * coincide with a structural delimiter — see the parser's known-limitations).
+ * coincide with a structural delimiter: see the parser's known-limitations).
  * The switch escapes (`\Cxxyy\` / `\Mxxyyzz\`) are recognized and preserved by
  * the escape layer; full stateful decoding is a documented non-goal. The message
- * carries the charset code only — never a decoded field value — so no PHI is
+ * carries the charset code only, never a decoded field value, so no PHI is
  * exposed.
  *
  * @example
@@ -521,7 +521,7 @@ export function unsupportedCharset(position: Hl7Position, code: string): Hl7Pars
  * so the generated ACK leaves MSA-2 empty and, when a positive accept was
  * requested, downgrades it to an error code rather than fabricating an
  * unverifiable `AA`/`CA`. The `position` references the inbound MSH segment.
- * The message NEVER echoes a PHI value — only the structural fact.
+ * The message NEVER echoes a PHI value: only the structural fact.
  *
  * @example
  * ```ts
@@ -542,20 +542,20 @@ export function ackNoCorrelationId(position: Hl7Position): Hl7ParseWarning {
 
 /**
  * Build a `MERGE_MISSING_PRIOR_OR_SURVIVOR` warning (roadmap Phase K). Emitted
- * by `identityEvents()` (a read-side helper — it attaches to the returned
+ * by `identityEvents()` (a read-side helper: it attaches to the returned
  * `IdentityEvent.warnings`, never to `Hl7Message.warnings`) when a merge/move
  * trigger event (A18/A34/A35/A36/A39/A40/A41/A42/A43/A44) is missing one side
- * of the spec-mandated MRG (prior) → PID (surviving) pair — or when that side
+ * of the spec-mandated MRG (prior) → PID (surviving) pair: or when that side
  * carries no usable identity field: no MRG segment in the patient group, no
  * PID for an orphaned MRG, or a PID/MRG whose identifier, account, and visit
  * fields are all empty or version-gated (a v2.7+ MRG whose only content was
  * the withdrawn MRG-4 must not read as "nothing to retire"). The helper
  * surfaces whatever IS present and never
- * guesses the merge direction — this warning is the signal that the pair is
+ * guesses the merge direction: this warning is the signal that the pair is
  * incomplete.
  *
  * The message carries only the structural facts (trigger event code + which
- * role is missing) — NEVER an identifier, name, or any other field value, so
+ * role is missing): NEVER an identifier, name, or any other field value, so
  * no PHI is exposed (HL7 v2 Ch. 3: the PID carries surviving and the MRG
  * carries non-surviving identity information).
  *
@@ -585,18 +585,18 @@ export function mergeMissingPriorOrSurvivor(
 
 /**
  * Build a `BATCH_COUNT_MISMATCH` warning (roadmap Phase L). Emitted by
- * `splitBatch()` — attached to the returned `BatchSplitResult.warnings`, never
- * to `Hl7Message.warnings` — when a declared envelope count does not equal the
+ * `splitBatch()`: attached to the returned `BatchSplitResult.warnings`, never
+ * to `Hl7Message.warnings`: when a declared envelope count does not equal the
  * count actually split out: a **BTS-1** batch message count that differs from
  * the messages found in that batch, or an **FTS-1** file batch count that
  * differs from the batches found in the file (HL7 v2 Ch. 2 §2.10.3; BTS-1 / FTS-1
  * per the BTS / FTS segment definitions in §2.15).
- * The splitter **never drops the tail** to make the numbers agree — the
+ * The splitter **never drops the tail** to make the numbers agree: the
  * mismatch is surfaced and every message is still returned; the caller decides
  * whether to reject.
  *
  * The message carries only the declared-vs-actual **integers** and the unit
- * (`message` for BTS-1, `batch` for FTS-1) — NEVER a field value, facility
+ * (`message` for BTS-1, `batch` for FTS-1): NEVER a field value, facility
  * identifier, or any other content, so no PHI is exposed. `position` references
  * the trailer segment (`BTS`/`FTS`) that declared the count.
  *
@@ -623,15 +623,15 @@ export function batchCountMismatch(
 
 /**
  * Build a `BATCH_MISSING_TRAILER` warning (roadmap Phase L). Emitted by
- * `splitBatch()` — attached to `BatchSplitResult.warnings` — when an envelope
+ * `splitBatch()` (attached to `BatchSplitResult.warnings`) when an envelope
  * header opens a scope that is never closed: a **BHS** batch header with no
  * matching **BTS** trailer, or an **FHS** file header with no matching **FTS**
- * trailer (HL7 v2 Ch. 2 §2.10.3 — each envelope segment is optional, but a
+ * trailer (HL7 v2 Ch. 2 §2.10.3: each envelope segment is optional, but a
  * profile such as an IIS file-submission spec may mandate the full frame).
- * `splitBatch` **does not enforce** such a rule — it splits, warns, and leaves
+ * `splitBatch` **does not enforce** such a rule: it splits, warns, and leaves
  * the accept/reject decision to the caller; the parse never throws for this.
  *
- * The message carries only the header/trailer segment names — NEVER a field
+ * The message carries only the header/trailer segment names: NEVER a field
  * value, so no PHI is exposed. `position` references the unmatched header
  * segment (`FHS`/`BHS`).
  *
@@ -650,23 +650,23 @@ export function batchMissingTrailer(
     code: WARNING_CODES.BATCH_MISSING_TRAILER,
     message:
       `Batch envelope header "${header}" has no matching "${expectedTrailer}" trailer; ` +
-      "splitBatch surfaces this but does not reject — a profile that mandates the full envelope may.",
+      "splitBatch surfaces this but does not reject: a profile that mandates the full envelope may.",
     position,
   };
 }
 
 /**
  * Build an `UNTERMINATED_STREAM_MESSAGE` warning (roadmap Phase S). Emitted by
- * `parseStream()` — attached to a {@link StreamMessageEntry}'s `streamWarnings`,
- * NOT to `Hl7Message.warnings` — when the **final** message in a stream ends
+ * `parseStream()`: attached to a {@link StreamMessageEntry}'s `streamWarnings`,
+ * NOT to `Hl7Message.warnings`: when the **final** message in a stream ends
  * without a segment terminator (its last segment ran to end-of-stream with no
  * trailing `\r`/`\r\n`/`\n`). The message is still parsed and yielded **in
  * full**; this is the fail-safe signal that the tail may have been truncated
  * mid-message (a cut-off feed), never a reason to drop it and never a throw.
- * Only the last message can be unterminated — every earlier message is closed by
+ * Only the last message can be unterminated: every earlier message is closed by
  * the terminator that precedes the next `MSH`/envelope boundary.
  *
- * The message carries only the structural fact — NEVER a field value — so no PHI
+ * The message carries only the structural fact, NEVER a field value, so no PHI
  * is exposed. `position` references the message's `MSH` segment index.
  *
  * @example

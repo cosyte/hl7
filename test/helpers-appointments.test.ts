@@ -1,5 +1,5 @@
 /**
- * Phase Q — integration tests for `msg.appointments()` (SIU scheduling:
+ * Phase Q: integration tests for `msg.appointments()` (SIU scheduling:
  * SCH → [AIS/AIG/AIL/AIP] resource groups). Covers the SCH field map
  * (placer/filler ids, SCH-11 TQ start/end timing, SCH-25 filler status),
  * positional AI* resource grouping with the service/general/location/personnel

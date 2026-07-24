@@ -1,5 +1,5 @@
 /**
- * `emitJson` + `SerializedMessage` — snapshot-stable JSON projection of an
+ * `emitJson` + `SerializedMessage`: snapshot-stable JSON projection of an
  * `Hl7Message`. Mirrors `rawSegments` one-for-one; preserves `isNull`;
  * always includes `warnings: []`; omits `profile` when absent.
  *
@@ -12,15 +12,15 @@
  *   warnings + optional profile).
  * - D-18: `Hl7Message.toJSON` delegates here so `JSON.stringify(msg)` Just Works.
  * - D-19: warnings array is ALWAYS present (`warnings: []` when empty).
- * - D-20: `profile` field appears only when `msg.profile` is truthy — then
+ * - D-20: `profile` field appears only when `msg.profile` is truthy: then
  *   contains only `name` + `lineage`.
  * - D-21: `SerializedMessage` is exported from `src/index.ts` (not nested
  *   under HL7 namespace).
  *
  * Note on runtime freeze scope: `emitJson` returns an object that is
- * boundary-frozen (top level only — `Object.isFrozen(msg.toJSON()) === true`).
+ * boundary-frozen (top level only: `Object.isFrozen(msg.toJSON()) === true`).
  * Inner arrays are readonly at the TypeScript type level but MUTABLE at
- * runtime — consumers should treat the returned structure as immutable
+ * runtime: consumers should treat the returned structure as immutable
  * and not mutate nested arrays. Deep-freeze is explicitly rejected per
  * D-30 (emit is hot-path; runtime deep-freeze would add cost with no
  * observable benefit given the type-level readonly contract).
@@ -36,7 +36,7 @@ import type { Hl7ParseWarning } from "../parser/warnings.js";
  *
  * Runtime immutability: the top-level object is `Object.freeze`d
  * (boundary-frozen). Inner arrays are readonly at the TypeScript type
- * level but mutable at runtime — treat as immutable, do not mutate.
+ * level but mutable at runtime: treat as immutable, do not mutate.
  *
  * @example
  * ```ts
@@ -67,18 +67,18 @@ export interface SerializedMessage {
 /**
  * Build the `SerializedMessage` snapshot from a parsed message (SER-03).
  * Raw-tree mirror per D-17; warnings array always present (D-19); profile
- * included only when `msg.profile` is truthy (D-20). Pure — never warns,
- * never throws. Not cached (D-30 — each call re-walks `rawSegments`).
+ * included only when `msg.profile` is truthy (D-20). Pure: never warns,
+ * never throws. Not cached (D-30: each call re-walks `rawSegments`).
  *
  * Boundary-frozen: the top-level returned object passes through
  * `Object.freeze` before return, so `Object.isFrozen(result) === true`.
  * Inner arrays are readonly at the TS type level but NOT runtime-frozen
- * (D-30 cost doctrine — emit is hot-path; deep-freeze would add traversal
+ * (D-30 cost doctrine: emit is hot-path; deep-freeze would add traversal
  * cost with no observable benefit beyond the type contract).
  *
  * Shared Phase-2 invariant (established by Plan 02): the raw tree stores
  * DECODED subcomponent strings (tokenize now unescapes on parse). emitJson
- * mirrors those decoded strings verbatim — NO re-escape transformation is
+ * mirrors those decoded strings verbatim: NO re-escape transformation is
  * applied here; the JSON projection reflects the decoded source of truth.
  *
  * @internal
@@ -91,7 +91,7 @@ export function emitJson(msg: Hl7Message): SerializedMessage {
     name: seg.name,
     fields: seg.fields.map((field) => ({
       // D-17 + Claude's-Discretion: `repetitions` is ALWAYS `[]` when the
-      // field has zero repetitions — shape-stable, no conditional omission.
+      // field has zero repetitions: shape-stable, no conditional omission.
       repetitions: field.repetitions.map((rep) => ({
         components: rep.components.map((comp) => ({
           subcomponents: comp.subcomponents.slice(),
@@ -115,7 +115,7 @@ export function emitJson(msg: Hl7Message): SerializedMessage {
     },
     segments,
     // D-19: ALWAYS present, even when empty. `msg.warnings` is already frozen
-    // at Hl7Message construction (Phase 2) — pass-through is safe.
+    // at Hl7Message construction (Phase 2): pass-through is safe.
     warnings: msg.warnings,
   };
 
@@ -124,7 +124,7 @@ export function emitJson(msg: Hl7Message): SerializedMessage {
     // parser constructor (src/parser/index.ts) already strips any extra
     // `Profile`-descriptor fields (onWarning, customSegments, dateFormats,
     // description) before assigning to `Hl7Message.profile`. `lineage` is
-    // REQUIRED (not optional) when profile is defined — straight
+    // REQUIRED (not optional) when profile is defined: straight
     // assignment; no nullish-coalesce fallback (would be dead code given
     // the type guarantee).
     out.profile = {
@@ -134,7 +134,7 @@ export function emitJson(msg: Hl7Message): SerializedMessage {
   }
 
   // W5: boundary-freeze at the top level only. Inner arrays remain mutable
-  // at runtime by design (D-30 — deep-freeze rejected as hot-path cost with
+  // at runtime by design (D-30: deep-freeze rejected as hot-path cost with
   // no observable benefit over the TS readonly type contract).
   return Object.freeze(out) as SerializedMessage;
 }

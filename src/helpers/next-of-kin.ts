@@ -1,12 +1,12 @@
 /**
- * `nextOfKin` — Phase 4 Plan 04 implementation of HELPERS-06. One entry per
+ * `nextOfKin`: Phase 4 Plan 04 implementation of HELPERS-06. One entry per
  * NK1 segment in document order.
  *
  * Design decisions enforced here:
  *   - D-01: `Object.freeze` applied to each entry and to the outer array.
  *   - D-05: returns `[]` when no NK1 present.
- *   - D-06: NOT memoized — each call re-walks `msg.segments("NK1")`.
- *   - D-22: never throws — empty / malformed fields surface as omitted keys.
+ *   - D-06: NOT memoized: each call re-walks `msg.segments("NK1")`.
+ *   - D-22: never throws: empty / malformed fields surface as omitted keys.
  *
  * Lean v1 field set (callers wanting more can drop to `msg.segments("NK1")`):
  *   - `name`         ← NK1-2 (XPN)

@@ -4,7 +4,7 @@
  *
  * These three modules sit at 81.98% branches as a whole (profiles/) because
  * a handful of internal branches are UNREACHABLE via the public
- * `defineProfile()` API — they only fire when a `Profile`-shaped object
+ * `defineProfile()` API: they only fire when a `Profile`-shaped object
  * bypasses `defineProfile`'s own validation/assembly (e.g. a hand-crafted
  * parent object missing `lineage`, or a `customSegments` map with a
  * `fields` entry whose value is `undefined`). The existing
@@ -14,7 +14,7 @@
  * `merge.ts` / `validate.ts` / `describe.ts` branch holes.
  *
  * Every test here asserts REAL behavior of the merge/validate/describe
- * helpers (not coverage-gaming no-ops) — each one pins a documented
+ * helpers (not coverage-gaming no-ops): each one pins a documented
  * reducer or validator contract (D-03, D-09, D-10, D-11, D-06 defense-in-
  * depth, D-04) against a specific hand-crafted input shape.
  */
@@ -42,7 +42,7 @@ describe("mergeLineage: parent without a `lineage` field falls back to [p.name] 
     expect(lineage).toEqual(["bare-parent", "child"]);
   });
 
-  it("mixed: one parent with lineage, one without — both contribute correctly", () => {
+  it("mixed: one parent with lineage, one without: both contribute correctly", () => {
     const withLineage = { name: "b", lineage: ["a", "b"] } as unknown as Profile;
     const withoutLineage = { name: "c" } as unknown as Profile;
     const lineage = mergeLineage([withLineage, withoutLineage], "d");
@@ -75,7 +75,7 @@ describe("mergeCustomSegments: layer() branches (merge.ts:82-115)", () => {
 
   it("a parent whose customSegments has an undefined entry value is skipped (entry-undefined branch)", () => {
     // Sparse-ish record: Object.keys still yields the key, but the value
-    // itself is `undefined` — hits the `entry === undefined` continue at
+    // itself is `undefined`: hits the `entry === undefined` continue at
     // merge.ts:115. Cast bypasses the compile-time guarantee since this
     // shape cannot occur through normal TS construction.
     const parentWithHole = {
@@ -98,8 +98,8 @@ describe("mergeCustomSegments: layer() branches (merge.ts:82-115)", () => {
 describe("mergeCustomSegments: field position-undefined branch (merge.ts:123)", () => {
   it("a field entry with pos === undefined is skipped, not written to the accumulator", () => {
     // `entry.fields` typed as Record<string, number>, but we hand-craft a
-    // hole so `pos === undefined` — the `if (pos === undefined) continue;`
-    // branch — actually fires. Cast bypasses compile-time guarantees the
+    // hole so `pos === undefined`: the `if (pos === undefined) continue;`
+    // branch: actually fires. Cast bypasses compile-time guarantees the
     // same way the existing rogue-parent tests do.
     const selfMap = {
       ZPI: { fields: { a: 3, ghost: undefined } },
@@ -153,14 +153,14 @@ describe("validateUniqueFieldNames: D-06 defense-in-depth (validate.ts)", () => 
 
   it("documents: the throw branch (validate.ts:247) is provably unreachable via any real Record<string, number>", () => {
     // `Object.keys`/`for...in` cannot yield the same enumerable own-key
-    // twice for any real JS object — not via an object literal, `Map` →
+    // twice for any real JS object: not via an object literal, `Map` →
     // `Object.fromEntries`, `Object.defineProperty`, or even a `Proxy`
     // (V8 throws "'ownKeys' on proxy: trap returned duplicate entries" if
     // you try). Since `entry.fields` is typed `Record<string, number>`,
     // `positionsByName` in `validateUniqueFieldNames` can therefore never
     // observe the same `fieldName` twice within one segment's fields loop,
     // so `prior !== undefined` can never be true and the throw at
-    // validate.ts:247 is dead code under the current type — exactly as
+    // validate.ts:247 is dead code under the current type: exactly as
     // the function's own JSDoc states. This test pins that contract
     // (a no-op over every constructible input) rather than fabricating an
     // artificial throw the real code path cannot produce.

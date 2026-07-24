@@ -1,9 +1,9 @@
 /**
- * Example-based tests for `splitBatch()` (roadmap Phase L — batch / file
+ * Example-based tests for `splitBatch()` (roadmap Phase L: batch / file
  * envelope splitting). Drives the five canonical batch fixtures plus targeted
  * edge cases:
  *
- *   - single-batch          FHS/BHS/2 msgs/BTS(2)/FTS(1) — counts agree
+ *   - single-batch          FHS/BHS/2 msgs/BTS(2)/FTS(1): counts agree
  *   - multi-batch-file      two BHS/BTS batches under one FHS/FTS
  *   - count-mismatch        BTS declares 3, two present  → BATCH_COUNT_MISMATCH
  *   - malformed-mid-batch   a too-short MSH is isolated  → siblings still yield
@@ -69,7 +69,7 @@ describe("splitBatch: single-batch fixture", () => {
   it("each split message re-parses standalone (raw is MSH-led + round-trippable)", () => {
     for (const entry of result.messages) {
       expect(entry.raw.startsWith("MSH")).toBe(true);
-      // The raw slice is exactly what parseHL7 accepts — the message's own
+      // The raw slice is exactly what parseHL7 accepts: the message's own
       // toString re-serializes without the envelope.
       expect(okMessage(entry).toString().startsWith("MSH")).toBe(true);
     }
@@ -96,7 +96,7 @@ describe("splitBatch: multi-batch-file fixture", () => {
     ]);
   });
 
-  it("no warnings — every declared count agrees", () => {
+  it("no warnings: every declared count agrees", () => {
     expect(result.warnings).toHaveLength(0);
   });
 });
@@ -104,7 +104,7 @@ describe("splitBatch: multi-batch-file fixture", () => {
 describe("splitBatch: count-mismatch fixture", () => {
   const result = splitBatch(fixture("count-mismatch"));
 
-  it("still returns every message — the tail is never dropped", () => {
+  it("still returns every message: the tail is never dropped", () => {
     expect(result.messages).toHaveLength(2);
     expect(result.messages.every((e) => e.ok)).toBe(true);
   });
@@ -166,7 +166,7 @@ describe("splitBatch: bare-message passthrough", () => {
   });
 
   it("does not synthesize a batch for an un-enveloped message (batches stay empty)", () => {
-    // A bare message belongs to no BHS/BTS batch — it lives in `messages` only,
+    // A bare message belongs to no BHS/BTS batch: it lives in `messages` only,
     // so it never inflates a batch count. `batches` is reserved for explicit
     // envelope-delimited batches.
     expect(result.batches).toHaveLength(0);
@@ -247,7 +247,7 @@ describe("splitBatch: edge cases", () => {
 
   it("forwards the second argument to parseHL7 per message (strict isolates a warner)", () => {
     // An unknown Z-segment warns in lenient mode; under strict it throws and is
-    // caught as an isolated failure entry — the batch still yields it.
+    // caught as an isolated failure entry: the batch still yields it.
     const raw = "MSH|^~\\&|A|F|B|G|20260101||ADT^A01|1|P|2.5\rZZZ|custom\r";
     const lenient = splitBatch(raw);
     expect(lenient.messages[0]?.ok).toBe(true);
@@ -301,7 +301,7 @@ describe("splitBatch: edge cases", () => {
   });
 
   it("preserves a middle empty segment inside a message (raw re-parses identically)", () => {
-    // A blank segment INSIDE a message is meaningful — HL7 keeps middle empties
+    // A blank segment INSIDE a message is meaningful: HL7 keeps middle empties
     // for positional stability. splitBatch must not drop it, or the message's
     // segment indices shift vs a standalone parseHL7.
     const body = "MSH|^~\\&|A|F|B|G|20260101||ADT^A01|1|P|2.5\rPID|||1\r\rOBX|1||x\r";
@@ -350,11 +350,11 @@ describe("splitBatch: edge cases", () => {
   it("a reserved-name (FHS/BHS/BTS/FTS) body segment severs the tail as a NO_MSH failure, never silently", () => {
     // Documented hard limitation: envelope names are reserved, so a message body
     // that literally contains one is mis-detected as a boundary. The severed
-    // tail is surfaced as a typed failure entry — never dropped.
+    // tail is surfaced as a typed failure entry: never dropped.
     const stream = "MSH|^~\\&|A|F|B|G|20260101||ADT^A01|1|P|2.5\rFTS|x\rPID|||9\r";
     const result = splitBatch(stream);
     // The MSH message, then FTS closes the (implicit) file, then PID|||9 becomes
-    // an MSH-less failure entry — present in `messages`, not discarded.
+    // an MSH-less failure entry: present in `messages`, not discarded.
     const failures = result.messages.filter((e) => !e.ok);
     expect(failures).toHaveLength(1);
     expect(failures.every((e) => !e.ok && e.error.code === "NO_MSH_SEGMENT")).toBe(true);
@@ -372,7 +372,7 @@ describe("splitBatch: edge cases", () => {
   });
 
   it("treats a BHS-omitted batch (messages closed by BTS) as one batch, no false mismatch", () => {
-    // §2.10.3: BHS is optional — a BTS closes the preceding message run into a
+    // §2.10.3: BHS is optional: a BTS closes the preceding message run into a
     // batch even with no BHS. Its BTS-1 must reconcile against those messages,
     // not against an empty synthetic batch.
     const stream =
@@ -389,7 +389,7 @@ describe("splitBatch: edge cases", () => {
     expect(result.warnings).toHaveLength(0); // BTS|2==2 and FTS|1==1
   });
 
-  it("a trailing blank line is inter-message whitespace — the message re-parses identically", () => {
+  it("a trailing blank line is inter-message whitespace: the message re-parses identically", () => {
     // A blank segment immediately before a boundary is not part of the message;
     // splitBatch's per-message raw must re-parse to the same segments it reports.
     const stream =
@@ -399,7 +399,7 @@ describe("splitBatch: edge cases", () => {
     const result = splitBatch(stream);
     expect(result.messages).toHaveLength(2);
     const first = okMessage(result.messages[0]);
-    // MSH + OBX only — the trailing blank is dropped like parseHL7 drops a
+    // MSH + OBX only: the trailing blank is dropped like parseHL7 drops a
     // trailing CR, and the reported message equals a standalone parse of its raw.
     expect(first.rawSegments.map((s) => s.name)).toEqual(["MSH", "OBX"]);
     expect(parseHL7(result.messages[0]?.raw ?? "").rawSegments.length).toBe(
