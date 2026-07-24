@@ -8,7 +8,7 @@ sidebar_position: 1
 
 Parse a real HL7 v2 message and pull fields out in a few lines. `@cosyte/hl7` is **lenient by
 default** (Postel's Law): vendor-quirky input parses into an immutable message plus a list of
-tolerance **warnings**, rather than throwing. The serializer, by contrast, is conservative —
+tolerance **warnings**, rather than throwing. The serializer, by contrast, is conservative.
 `msg.toString()` always emits spec-clean HL7.
 
 ## Parse a message
@@ -19,7 +19,7 @@ knowledge required**:
 ```ts runnable
 import { parseHL7 } from "@cosyte/hl7";
 
-// Synthetic ADT^A01 — segments are CR-delimited per the spec.
+// Synthetic ADT^A01: segments are CR-delimited per the spec.
 const raw = [
   "MSH|^~\\&|EPIC|MAIN|LIS|REF|20260419101500||ADT^A01^ADT_A01|EX00001|P|2.5",
   "EVN|A01|20260419101500",
@@ -41,7 +41,7 @@ msg.warnings; // => []
 ## Reach any field by path
 
 When there's no named helper for what you need, dot-paths reach any field, component, or
-subcomponent — `SEGMENT.field.component.subcomponent`:
+subcomponent: `SEGMENT.field.component.subcomponent`:
 
 ```ts runnable
 import { parseHL7 } from "@cosyte/hl7";
@@ -73,12 +73,12 @@ for (const w of msg.warnings) {
 ```
 
 > **About runnable examples.** The blocks tagged ` ```ts runnable ` above are extracted by the docs
-> build, executed against the package, and their `// =>` results asserted — so a documented example
+> build, executed against the package, and their `// =>` results asserted, so a documented example
 > can never silently drift from the code. Illustrative fragments (like the one directly above, which
 > references an undeclared `raw`) stay plain ` ```ts ` blocks.
 
 ## Next
 
-- [Core Concepts](./spec-notes-primer) — the tolerance model and the spec grounding behind it.
-- [Guides](./guides-overview) — task-oriented recipes: lab results, vendor profiles, ACKs, building.
-- [Troubleshooting](./troubleshooting) — warnings vs. errors, strict mode, and known limitations.
+- [Core Concepts](./spec-notes-primer): the tolerance model and the spec grounding behind it.
+- [Guides](./guides-overview): task-oriented recipes: lab results, vendor profiles, ACKs, building.
+- [Troubleshooting](./troubleshooting): warnings vs. errors, strict mode, and known limitations.

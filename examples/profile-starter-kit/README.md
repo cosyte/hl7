@@ -27,7 +27,7 @@ console.log(zal?.get("allergyId")?.value);
 
 ## What this profile does
 
-- Extends `profiles.genericLab` — inherits ASTM-era + ISO-date fallbacks.
+- Extends `profiles.genericLab`: inherits ASTM-era + ISO-date fallbacks.
 - Declares one custom Z-segment: `ZAL` (allergy detail) with named fields
   `allergyId`, `severity`, `verifiedAt`.
 - Adds `YYYY-MM-DD` as a date-format fallback.

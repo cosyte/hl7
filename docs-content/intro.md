@@ -6,7 +6,7 @@ sidebar_position: 1
 
 # @cosyte/hl7
 
-Parse real-world, vendor-quirky HL7 v2 and pull fields out in one line — without reading the spec.
+Parse real-world, vendor-quirky HL7 v2 and pull fields out in one line, without reading the spec.
 `@cosyte/hl7` is a zero-dependency TypeScript toolkit: a lenient parser, an immutable model with
 dot-path access, named helpers for the common segments, a spec-clean serializer, a message builder,
 and a profile system for vendor quirks.
@@ -30,7 +30,7 @@ msg.observations(); // typed OBX rows
 msg.warnings; // stable, positional tolerance warnings
 ```
 
-The parser is **lenient by default** — vendor quirks become warnings, not failures — while
+The parser is **lenient by default** (vendor quirks become warnings, not failures) while
 `msg.toString()` always emits spec-clean HL7 (Postel's Law). Pass `{ strict: true }` to escalate
 every tolerated deviation to a thrown `Hl7ParseError`.
 
@@ -45,7 +45,7 @@ const msg = parseHL7(raw, profiles.epic);
 ```
 
 Built-ins ship for Epic, Cerner, Meditech, Athena, a generic lab, and the Visage 7 and Philips Vue
-PACS imaging systems — each authored through the same public `defineProfile()` API you'd use yourself.
+PACS imaging systems, each authored through the same public `defineProfile()` API you'd use yourself.
 
 ## Next
 

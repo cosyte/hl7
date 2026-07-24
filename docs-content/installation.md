@@ -10,13 +10,13 @@ sidebar_position: 1
 builds with per-condition type declarations, so it works from either module system without
 configuration.
 
-> **Status:** published on npm at `0.0.1` and public — still pre-alpha on the
+> **Status:** published on npm at `0.0.1` and public, still pre-alpha on the
 > `0.0.x`-until-first-alpha ladder. The `npm install` command below is live, not aspirational.
 
 ## Prerequisites
 
 - **Node.js >= 22.** The whole `@cosyte/*` suite targets ES2023 / Node 22+.
-- A package manager — `pnpm`, `npm`, or `yarn`.
+- A package manager: `pnpm`, `npm`, or `yarn`.
 - **No runtime dependencies.** Nothing else is pulled in; the parser is Node stdlib only.
 
 ## Install
@@ -35,7 +35,7 @@ import { VERSION } from "@cosyte/hl7";
 typeof VERSION; // => "string"
 ```
 
-If that resolves, the install is good — head to the [Quickstart](./quickstart).
+If that resolves, the install is good. Head to the [Quickstart](./quickstart).
 
 ## Module systems
 
