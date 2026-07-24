@@ -19,7 +19,7 @@ Replace the placeholders with your real values.
   (e.g., `AcmeAdtProfile`)
 
 **Files touched:** `package.json`, `src/index.ts`, `test/profile.test.ts`,
-`README.md`, `LICENSE`, `CUSTOMIZING.md` (this file — leave it alone or
+`README.md`, `LICENSE`, `CUSTOMIZING.md` (this file: leave it alone or
 delete after reading).
 
 Also update the `@cosyte/hl7` entry under `devDependencies` in
@@ -46,7 +46,7 @@ pnpm install --no-frozen-lockfile
 ## 2. Swap the base profile
 
 The sample extends `profiles.genericLab`. Change that to whichever
-built-in best matches your integration — `profiles.epic`,
+built-in best matches your integration: `profiles.epic`,
 `profiles.cerner`, `profiles.meditech`, `profiles.athena`, or remove
 the `extends` line entirely for a from-scratch profile.
 

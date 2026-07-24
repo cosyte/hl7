@@ -6,7 +6,7 @@ sidebar_position: 1
 
 # Guides
 
-Task-oriented recipes against the real API. Each stands alone — jump to the one that matches what
+Task-oriented recipes against the real API. Each stands alone. Jump to the one that matches what
 you're doing. For the _why_ behind the behavior, follow the links into [Core
 Concepts](./spec-notes-primer).
 
@@ -39,7 +39,7 @@ wbc.units?.identifier; // => "10*3/uL"
 wbc.referenceRange; // => "4.5-11.0"
 ```
 
-Numeric `OBX-5` values arrive typed as `number` (here `7.5`), not strings — a fidelity detail, not a
+Numeric `OBX-5` values arrive typed as `number` (here `7.5`), not strings: a fidelity detail, not a
 string you have to `parseFloat` yourself.
 
 ## Apply a vendor profile
@@ -60,7 +60,7 @@ msg.patient.mrn; // => "MRN12345"
 ```
 
 Built-ins ship for Epic, Cerner, Meditech, Athena, a generic lab, and the Visage 7 and Philips Vue
-PACS imaging systems — each authored through the same public `defineProfile()` API you'd use
+PACS imaging systems, each authored through the same public `defineProfile()` API you'd use
 yourself. Start from the **profile starter kit** in the
 package's `examples/` to publish your own as a standalone package.
 
@@ -103,14 +103,14 @@ const msg = buildMessage({
 msg.get("PID.3"); // => "MRN12345"
 ```
 
-`msg.toString()` then emits spec-clean HL7 — correct delimiters, escaping, and an auto-generated MSH
+`msg.toString()` then emits spec-clean HL7: correct delimiters, escaping, and an auto-generated MSH
 control id. Field array elements are raw field _values_: any delimiter character inside one (e.g. a
 `^` in a name) is escaped as data, so pass pre-structured composites when you need components.
 
 ## Author a message from typed objects
 
 `buildAdt` and `buildOru` are the typed, high-level counterparts of the read helpers (`msg.patient`,
-`msg.observations`): pass structured values — an `XPN` name, `CX` identifiers, a `TS` timestamp — and
+`msg.observations`): pass structured values (an `XPN` name, `CX` identifiers, a `TS` timestamp) and
 the builder assembles the required segments (MSH + EVN + PID + PV1 for ADT; MSH + PID + OBR + OBX for
 ORU) with correct `^`/`&`/`~` structure. No hand-assembly of delimiters, and any delimiter embedded in
 a value is **escaped, never injected**. The result is spec-clean and re-parses with **zero warnings**.
@@ -138,11 +138,11 @@ round.warnings.length; // => 0
 
 Builders **never fabricate**: only values you supply are emitted, an omitted optional field stays
 absent, and a required-but-absent input (`patient`, or at least one ORU observation) is a typed
-`TypeError` — never a guessed value. For a lower-level typed set on an existing message, use
+`TypeError`, never a guessed value. For a lower-level typed set on an existing message, use
 `msg.setComposite(path, kind, value)` (e.g. `msg.setComposite("PID.5", "XPN", { familyName: "Doe" })`),
 or `encodeComposite(kind, value)` to build a field directly.
 
 ## Next
 
-- [Troubleshooting](./troubleshooting) — warnings vs. errors, strict mode, charset, and batches.
-- **API Reference** — every export, generated from source.
+- [Troubleshooting](./troubleshooting): warnings vs. errors, strict mode, charset, and batches.
+- **API Reference**: every export, generated from source.

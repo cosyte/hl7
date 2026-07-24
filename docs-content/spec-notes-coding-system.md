@@ -1,20 +1,20 @@
 ---
 id: spec-notes-coding-system
-title: Spec notes — coding-system provenance (Phase F)
+title: "Spec notes: coding-system provenance (Phase F)"
 sidebar_label: Coding-system provenance
 ---
 
-# Spec notes — coding-system provenance (Phase F)
+# Spec notes: coding-system provenance (Phase F)
 
 `@cosyte/hl7` surfaces the coding-system a code **claims** (CWE.3 / CE.3, "Name
 of Coding System"), drawn from **HL7 Table 0396 (Coding System)**. This is
-**provenance only** — read-only, no validation, no lookup, no network, no
+**provenance only**: read-only, no validation, no lookup, no network, no
 bundled codeset. `codingSystem(id)` / `codingSystemOf(coded)` answer "which
 system?"; they never assert a code is valid or current.
 
 ## What ships (the frozen `KNOWN_CODING_SYSTEMS` subset)
 
-A deliberately small, safety-relevant subset of Table 0396 — not the full
+A deliberately small, safety-relevant subset of Table 0396, not the full
 registry. Each row: the registered acronym carried in CWE.3, the canonical
 name, and tolerated aliases (matched case-insensitively).
 
@@ -25,14 +25,14 @@ name, and tolerated aliases (matched case-insensitively).
 | `I10`  | ICD-10 | `ICD-10`, `ICD10` | HL7 Table 0396; WHO ICD-10 |
 | `I10P` | ICD-10-PCS | `ICD-10-PCS`, `ICD10PCS` | HL7 Table 0396; CMS ICD-10-PCS |
 | `RXN`  | RxNorm | `RXNORM` | HL7 Table 0396; NLM RxNorm |
-| `NDC`  | National Drug Codes | — | HL7 Table 0396; FDA NDC |
-| `CVX`  | CDC Vaccine Codes | — | HL7 Table 0396; CDC/NCIRD (codes = Table 0292) |
-| `MVX`  | CDC Vaccine Manufacturer Codes | — | HL7 Table 0396; CDC (codes = Table 0227) |
-| `UCUM` | Unified Code for Units of Measure | — | HL7 Table 0396; Regenstrief/UCUM.org |
+| `NDC`  | National Drug Codes | none | HL7 Table 0396; FDA NDC |
+| `CVX`  | CDC Vaccine Codes | none | HL7 Table 0396; CDC/NCIRD (codes = Table 0292) |
+| `MVX`  | CDC Vaccine Manufacturer Codes | none | HL7 Table 0396; CDC (codes = Table 0227) |
+| `UCUM` | Unified Code for Units of Measure | none | HL7 Table 0396; Regenstrief/UCUM.org |
 
 ## The `I10` nuance (a deliberate fail-safe choice)
 
-Table 0396 registers `I10` as **ICD-10** — the WHO base classification. US v2
+Table 0396 registers `I10` as **ICD-10**, the WHO base classification. US v2
 feeds very frequently send `I10` in DG1-3 when they actually mean
 ICD-10-**CM** (the US clinical modification). That CM specificity is a sender
 convention, **not** what the acronym registers.
@@ -55,7 +55,7 @@ carry.
 
 ## Known limitations after Phase F
 
-- Provenance is the sender's claim, **not verified** — a registered system with
+- Provenance is the sender's claim, **not verified**. A registered system with
   a wrong/deleted code still reports `known: true`.
 - The map is a *provenance* map, not a *versioned codeset*: code-system versions
   move (LOINC twice-yearly, RxNorm monthly, ICD-10-CM annually) and this slice
@@ -65,7 +65,7 @@ carry.
 
 ## References
 
-- **HL7 Table 0396 (Coding System)** —
+- **HL7 Table 0396 (Coding System)**:
   [terminology.hl7.org/CodeSystem-v2-0396.html](https://terminology.hl7.org/CodeSystem-v2-0396.html);
-  HL7 Vocab registry —
+  HL7 Vocab registry:
   [www.hl7.org/special/committees/vocab/table_0396/index.cfm](https://www.hl7.org/special/committees/vocab/table_0396/index.cfm)

@@ -9,9 +9,9 @@ back to the npm ecosystem.
 
 Before filing, please:
 
-1. Search existing issues — chances are your quirk is already logged.
+1. Search existing issues. Chances are your quirk is already logged.
 2. Reduce to the smallest reproducing HL7 message. Use synthetic
-   patient identifiers only — no PHI. We keep fixtures in the public
+   patient identifiers only: no PHI. We keep fixtures in the public
    repo.
 3. Include the exact `parseHL7` call that reproduces, the full
    `err.code` / `warning.code` you saw, and the `err.position` /
@@ -20,14 +20,14 @@ Before filing, please:
 ## Opening a PR
 
 1. Fork and branch from `main`.
-2. Run the full pipeline locally before pushing — see [Dev setup](#dev-setup).
+2. Run the full pipeline locally before pushing. See [Dev setup](#dev-setup).
 3. If your change is user-visible, add a bullet under the
    `## [Unreleased]` section of [CHANGELOG.md](./CHANGELOG.md).
-4. Keep PRs focused — one logical change per PR. Large refactors
+4. Keep PRs focused: one logical change per PR. Large refactors
    should start as an issue for discussion.
 5. Write a descriptive commit message. Imperative mood
    (`fix(parser): ...`, `feat(helpers): ...`) is encouraged but not
-   enforced — no Conventional-Commits tooling required.
+   enforced. No Conventional-Commits tooling required.
 
 ## Dev setup
 
@@ -47,19 +47,19 @@ same pipeline across Node 18, 20, and 22.
 
 Useful extras:
 
-- `pnpm test:watch` — re-runs tests on file change
-- `pnpm test:coverage` — produces a coverage report (≥ 90% branches
+- `pnpm test:watch`: re-runs tests on file change
+- `pnpm test:coverage`: produces a coverage report (≥ 90% branches
   on `src/parser/`, `src/model/`, `src/helpers/`, `src/serialize/`,
   `src/builder/`, `src/profiles/`)
-- `pnpm format` / `pnpm format:check` — Prettier on source + tests
-- `pnpm examples` — smoke-runs the three examples under `examples/*.ts`
+- `pnpm format` / `pnpm format:check`: Prettier on source + tests
+- `pnpm examples`: smoke-runs the three examples under `examples/*.ts`
 
 ### Fuzz + differential testing
 
 `test/property/fuzz.property.test.ts` runs a high-run-count `fast-check` fuzz harness (arbitrary
 bytes, delimiter-mutated canonical messages, truncations) against the "never throw except a
 4-fatal `Hl7ParseError`" invariant. It runs as part of the normal `pnpm test`/`pnpm test:coverage`
-— no extra setup.
+with no extra setup.
 
 `test/differential/differential.test.ts` compares `@cosyte/hl7`'s parse of the canonical corpus
 against an external oracle, [python-hl7](https://github.com/johnpaulett/python-hl7) (BSD license).
@@ -78,7 +78,7 @@ gets compared and the known/justified divergences already documented.
 ## Adding a vendor-quirk fixture
 
 The library's credibility depends on a growing library of real-world
-quirk fixtures — every one makes the parser more robust.
+quirk fixtures: every one makes the parser more robust.
 
 Fixtures live under `test/fixtures/vendor-quirks/`. Each file targets
 exactly one Tier-2 warning code. Filename convention: the kebab-case
@@ -91,7 +91,7 @@ example:
 
 Fixture rules:
 
-- Synthetic data only — no PHI (swap names, MRNs, DOBs for fabricated
+- Synthetic data only: no PHI (swap names, MRNs, DOBs for fabricated
   values).
 - `\r`-separated segments, no trailing newline.
 - The fixture MUST emit the warning code its filename encodes when
@@ -100,18 +100,18 @@ Fixture rules:
   when parsed in strict mode (`{ strict: true }`).
 
 The existing sweep tests (`test/parser-strict-mode-sweep.test.ts`)
-enumerate the fixtures directory automatically — add your `.hl7` file
+enumerate the fixtures directory automatically. Add your `.hl7` file
 and the sweep picks it up with zero additional test code. If the
 warning code doesn't currently emit from the parser (some codes have
-factories but no call site yet — see `test/fixtures/vendor-quirks/README.md`),
+factories but no call site yet, see `test/fixtures/vendor-quirks/README.md`),
 your fixture still belongs in the tree; it graduates from `it.todo`
 to a passing assertion when the emit site lands.
 
 ## Authoring a profile
 
 Profiles are plain data produced by the public `defineProfile()` API.
-The easiest path to a working profile — whether you intend to upstream
-it as a built-in or publish your own package — is the starter kit.
+The easiest path to a working profile (whether you intend to upstream
+it as a built-in or publish your own package) is the starter kit.
 
 See [`examples/profile-starter-kit/`](./examples/profile-starter-kit/)
 and its [CUSTOMIZING.md](./examples/profile-starter-kit/CUSTOMIZING.md)

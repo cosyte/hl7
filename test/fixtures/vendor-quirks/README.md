@@ -2,7 +2,7 @@
 
 One fixture per Tier-2 warning code in
 `src/parser/warnings.ts::WARNING_CODES` (13 total). Each fixture parses in
-lenient mode and — for warnings the parser currently emits — surfaces the
+lenient mode and (for warnings the parser currently emits) surfaces the
 named code in `msg.warnings` and throws `Hl7ParseError` under
 `{ strict: true }`.
 
@@ -22,8 +22,8 @@ field-whitespace-trimmed.hl7   →  FIELD_WHITESPACE_TRIMMED
 
 `src/parser/warnings.ts::WARNING_CODES` (lines 26–40) is authoritative for
 the code list. Adding a fixture for a new code requires (a) adding the code
-to `WARNING_CODES` first — a project-level decision (Phase 5 D-27/D-28 and
-Phase 6 D-31 carry forward the no-new-codes constraint) — then (b)
+to `WARNING_CODES` first, a project-level decision (Phase 5 D-27/D-28 and
+Phase 6 D-31 carry forward the no-new-codes constraint), then (b)
 authoring the fixture here.
 
 ## Fixture inventory
@@ -54,28 +54,28 @@ Six codes have active emit sites in the lenient default parser; **seven
 codes have factory functions in `src/parser/warnings.ts` but no call site
 wired into the parser pipeline** as of the close of Phase 6:
 
-- `SEGMENT_CASE` — `segmentCase()` factory is never called. `splitSegments`
+- `SEGMENT_CASE`: `segmentCase()` factory is never called. `splitSegments`
   preserves the lowercase name; the downstream `UNKNOWN_SEGMENT` scan
   surfaces the lowercase identifier instead.
-- `EXTRA_FIELDS` — `extraFields()` factory is never called. The tokenizer
+- `EXTRA_FIELDS`: `extraFields()` factory is never called. The tokenizer
   preserves every field; no per-segment spec width is enforced.
-- `DUPLICATE_REQUIRED_SEGMENT` — `duplicateRequiredSegment()` factory is
+- `DUPLICATE_REQUIRED_SEGMENT`: `duplicateRequiredSegment()` factory is
   never called. Duplicate MSH (or other singleton) segments flow through
   unflagged.
-- `MISSING_REQUIRED_FIELD` — `missingRequiredField()` factory is never
+- `MISSING_REQUIRED_FIELD`: `missingRequiredField()` factory is never
   called. Empty required fields flow through unflagged.
-- `OUT_OF_ORDER_SEGMENT` — `outOfOrderSegment()` factory is never called.
-- `VERSION_MISMATCH` — `versionMismatch()` factory is never called from
+- `OUT_OF_ORDER_SEGMENT`: `outOfOrderSegment()` factory is never called.
+- `VERSION_MISMATCH`: `versionMismatch()` factory is never called from
   `parseHL7`. There is no anchored "expected version" in the lenient
   default path.
-- `TIMESTAMP_FALLBACK_FORMAT` — `timestampFallbackFormat()` is emitted
+- `TIMESTAMP_FALLBACK_FORMAT`: `timestampFallbackFormat()` is emitted
   only by `parseDtmCascade` when an `emit` + `position` is supplied.
   The composite `.asTs()` call site in `src/model/types/ts.ts` uses
   `parseDtm` (strict, no fallback, silent per Phase 3 D-10). The meta builder in
   `src/helpers/meta.ts` calls `parseDtmCascade` without `emit`, so the
   warning cannot reach `msg.warnings` through `msg.meta` access either.
 
-These are **latent Tier-2 codes** — reserved in the enum and locked by the
+These are **latent Tier-2 codes**: reserved in the enum and locked by the
 no-new-codes constraint (Phase 5 D-27/D-28), but not yet wired into the
 parser. Wiring them is future work; the fixtures are authored now so that
 when a future plan lands the emit site, the sweep automatically validates

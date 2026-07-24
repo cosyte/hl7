@@ -13,11 +13,11 @@ some emit Tier-2 warnings, some affect helper output).
 
 | File                               | Scenario                                                | REQ-ID(s)         | Expected behavior                                   |
 | ---------------------------------- | ------------------------------------------------------- | ----------------- | --------------------------------------------------- |
-| lf-line-endings.hl7                | `\n` segment separators                                 | PARSE-08          | Tier-1 silent — no warning                          |
-| crlf-line-endings.hl7              | `\r\n` segment separators                               | PARSE-08          | Tier-1 silent — no warning                          |
-| mixed-line-endings.hl7             | Alternating `\r` / `\n` / `\r\n` separators             | PARSE-08          | Tier-1 silent — no warning                          |
-| trailing-newline.hl7               | Body + trailing `\r`                                    | PARSE-08          | Tier-1 silent — trailing byte absorbed              |
-| no-trailing-newline.hl7            | Body verbatim, no trailing byte                         | PARSE-08          | Tier-1 silent — baseline                            |
+| lf-line-endings.hl7                | `\n` segment separators                                 | PARSE-08          | Tier-1 silent: no warning                          |
+| crlf-line-endings.hl7              | `\r\n` segment separators                               | PARSE-08          | Tier-1 silent: no warning                          |
+| mixed-line-endings.hl7             | Alternating `\r` / `\n` / `\r\n` separators             | PARSE-08          | Tier-1 silent: no warning                          |
+| trailing-newline.hl7               | Body + trailing `\r`                                    | PARSE-08          | Tier-1 silent: trailing byte absorbed              |
+| no-trailing-newline.hl7            | Body verbatim, no trailing byte                         | PARSE-08          | Tier-1 silent: baseline                            |
 | empty-fields.hl7                   | `\|\|` runs (empty, NOT null)                           | PARSE-06          | RawField.isNull === false on the empty positions    |
 | null-fields.hl7 (migrated)         | `""` markers (HL7 null sentinel)                        | PARSE-06          | RawField.isNull === true on the `""` positions      |
 | consecutive-delimiters.hl7         | Multiple adjacent `\|`                                  | PARSE-05          | Field count correct (no fields silently dropped)    |
