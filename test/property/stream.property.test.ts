@@ -3,15 +3,15 @@
  * analogues of the example-based `test/parser-stream.test.ts` sweep. The
  * headline invariants, restated from the Phase-S acceptance:
  *
- *   1. Chunk-boundary invariance — feeding the same bytes under ANY chunking
+ *   1. Chunk-boundary invariance: feeding the same bytes under ANY chunking
  *      (including 1-byte chunks) yields identical messages to one whole chunk,
  *      and identical to the whole-buffer `splitBatch`.
- *   2. Count fidelity — yielded message count == the number of `MSH` boundaries,
+ *   2. Count fidelity: yielded message count == the number of `MSH` boundaries,
  *      for any stream, under any chunking.
- *   3. Isolation — a malformed message injected anywhere never suppresses a
+ *   3. Isolation: a malformed message injected anywhere never suppresses a
  *      later message: every valid sibling still comes back `ok`, whatever the
  *      chunking.
- *   4. Bounded memory — the source is pulled lazily and at most O(one message)
+ *   4. Bounded memory: the source is pulled lazily and at most O(one message)
  *      is retained; the whole stream is never buffered ahead.
  */
 
@@ -167,7 +167,7 @@ describe("property: parseStream isolation (a malformed message never suppresses 
 });
 
 describe("property: parseStream bounded memory (O(one message), never buffers the stream)", () => {
-  it("pulls the source lazily — at each yield, at most one message is read ahead", async () => {
+  it("pulls the source lazily: at each yield, at most one message is read ahead", async () => {
     // If parseStream buffered the whole stream, `produced` would reach N before
     // the first message is yielded, so `produced - received` would be ~N. A
     // land-and-release streamer keeps that difference at a small constant (it
@@ -176,7 +176,7 @@ describe("property: parseStream bounded memory (O(one message), never buffers th
     let produced = 0;
     async function* source(): AsyncGenerator<string> {
       for (let i = 0; i < N; i++) {
-        await Promise.resolve(); // a genuinely async source — the real streaming shape
+        await Promise.resolve(); // a genuinely async source: the real streaming shape
         produced += 1;
         yield validMessage(`M${String(i)}`);
       }
@@ -189,7 +189,7 @@ describe("property: parseStream bounded memory (O(one message), never buffers th
       maxReadAhead = Math.max(maxReadAhead, produced - received);
     }
     expect(received).toBe(N);
-    // Constant read-ahead — decisively not O(N).
+    // Constant read-ahead: decisively not O(N).
     expect(maxReadAhead).toBeLessThanOrEqual(2);
   });
 });

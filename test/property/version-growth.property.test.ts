@@ -3,18 +3,18 @@
  * (CWE / CE) that grew across HL7 versions is tolerated **without loss or
  * throw**.
  *
- * HL7 composites are append-only across versions — v2.7 grew CWE from 9 to 22
+ * HL7 composites are append-only across versions: v2.7 grew CWE from 9 to 22
  * components (second-alternate triplet + coding-system / value-set OIDs), and
  * CE was superseded by CWE entirely. A fixed-shape parser that assumed a
  * component count would either throw or silently truncate the newer
  * components. The contract here:
  *
- *   1. No throw — parsing a coded element with an arbitrary number of trailing
+ *   1. No throw: parsing a coded element with an arbitrary number of trailing
  *      components never throws (forward-compatibility with future versions).
- *   2. No loss — every modeled component is unchanged, and every component past
+ *   2. No loss: every modeled component is unchanged, and every component past
  *      the modeled set is preserved verbatim and in order on `extraComponents`
  *      (up to the last non-empty one).
- *   3. CE↔CWE uniformity — reading a CWE-shaped value through `parseCe` keeps
+ *   3. CE↔CWE uniformity: reading a CWE-shaped value through `parseCe` keeps
  *      its components 7+ on `extraComponents` rather than dropping them.
  */
 
@@ -75,7 +75,7 @@ describe("property: CWE/CE tolerate version component-growth without loss or thr
     );
   });
 
-  it("CE↔CWE uniformity — reading a CWE through parseCe loses nothing", () => {
+  it("CE↔CWE uniformity: reading a CWE through parseCe loses nothing", () => {
     fc.assert(
       fc.property(fc.array(valueArb, { minLength: 6, maxLength: 22 }), (values) => {
         const asCwe = parseCwe(rep(values), enc);

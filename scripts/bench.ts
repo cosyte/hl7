@@ -1,20 +1,20 @@
 /**
- * `@cosyte/hl7` benchmark suite (roadmap Phase W — performance / throughput bar).
+ * `@cosyte/hl7` benchmark suite (roadmap Phase W: performance / throughput bar).
  *
  * A **reproducible** benchmark that measures the reference parser's:
  *
- *   - **parse throughput** — messages/sec and MB/sec across representative
+ *   - **parse throughput**: messages/sec and MB/sec across representative
  *     message classes (a small ADT^A01, a larger multi-OBX ORU^R01);
- *   - **per-message retained memory** — the steady-state heap cost of holding a
+ *   - **per-message retained memory**: the steady-state heap cost of holding a
  *     parsed `Hl7Message` (materialize N, divide the retained delta by N);
- *   - **streaming peak memory** — the headline HL7-S claim: `parseStream` over a
+ *   - **streaming peak memory**: the headline HL7-S claim: `parseStream` over a
  *     large batch retains **O(one message)**, not O(file). We report the heap the
  *     streamer holds at its peak against the heap a whole-buffer parse of the same
  *     bytes retains, so the ratio (streaming ≪ whole) is visible, not asserted.
  *
- * Inputs are **synthetic-only** (generated here — no PHI, no fixture) so the run
+ * Inputs are **synthetic-only** (generated here: no PHI, no fixture) so the run
  * is self-contained and reproducible on any machine. Absolute numbers are
- * **machine- and load-dependent** — they are published as *indicative* context,
+ * **machine- and load-dependent**: they are published as *indicative* context,
  * never as a portable floor. The portable, CI-gating guard lives in
  * `test/perf/perf-regression.test.ts` and is **ratio-based** for exactly that
  * reason (see `docs-content/benchmarks.md`). This phase adds **no runtime
@@ -39,7 +39,7 @@ const MARKDOWN = process.argv.includes("--markdown");
 const maybeGc = (globalThis as { gc?: () => void }).gc;
 
 /**
- * A small, spec-clean ADT^A01 (5 segments) — the highest-traffic admit message,
+ * A small, spec-clean ADT^A01 (5 segments): the highest-traffic admit message,
  * the low end of the size range. Synthetic: every name/id is fabricated.
  */
 function adtMessage(i: number): string {
@@ -54,7 +54,7 @@ function adtMessage(i: number): string {
 }
 
 /**
- * A larger ORU^R01 (12 segments — OBR + 8 OBX result lines) — the result-report
+ * A larger ORU^R01 (12 segments: OBR + 8 OBX result lines), the result-report
  * shape that dominates lab/ELR volume, the high end of the size range.
  */
 function oruMessage(i: number): string {
@@ -91,7 +91,7 @@ function heapUsed(): number {
  * JIT can't dead-code-eliminate the parse.
  */
 function timeParse(msgs: readonly string[], reps: number): number {
-  // Warm-up (JIT) — not measured.
+  // Warm-up (JIT): not measured.
   let sink = 0;
   for (const m of msgs) sink += parseHL7(m).segments.length;
   const samples: number[] = [];
@@ -141,8 +141,8 @@ interface StreamingRow {
 
 /**
  * The streaming-peak headline. Build one large batch string, then compare:
- *   - **whole-buffer** — `splitBatch` materializes every message → O(N) retained;
- *   - **streaming** — `parseStream` drains the same bytes keeping only a running
+ *   - **whole-buffer**: `splitBatch` materializes every message → O(N) retained;
+ *   - **streaming**: `parseStream` drains the same bytes keeping only a running
  *     count → O(1) retained; we sample heap at each yield and keep the peak delta.
  */
 async function streaming(n: number): Promise<StreamingRow> {
@@ -210,7 +210,7 @@ async function main(): Promise<void> {
     const lines: string[] = [];
     lines.push(
       `> Indicative run: Node ${meta.node}, ${meta.platform}, GC ${meta.gc}, ${meta.date}. ` +
-        `Absolute numbers are machine- and load-dependent — see Methodology.`,
+        `Absolute numbers are machine- and load-dependent: see Methodology.`,
     );
     lines.push("");
     lines.push("| Message class | N | msgs/sec | MB/sec | retained heap / msg |");
@@ -233,7 +233,7 @@ async function main(): Promise<void> {
   }
 
   process.stdout.write(
-    `\n@cosyte/hl7 benchmark — Node ${meta.node}, ${meta.platform}, GC ${meta.gc}\n\n`,
+    `\n@cosyte/hl7 benchmark: Node ${meta.node}, ${meta.platform}, GC ${meta.gc}\n\n`,
   );
   for (const r of rows) {
     process.stdout.write(
@@ -245,7 +245,7 @@ async function main(): Promise<void> {
   process.stdout.write(
     `\n  streaming ${stream.count.toLocaleString()} msgs: whole-buffer retains ` +
       `${fmtBytes(stream.wholeRetainedBytes)}, parseStream peak ${fmtBytes(stream.streamPeakBytes)} ` +
-      `(${stream.ratio.toFixed(3)}× — O(one message), not O(file))\n\n`,
+      `(${stream.ratio.toFixed(3)}×: O(one message), not O(file))\n\n`,
   );
 }
 

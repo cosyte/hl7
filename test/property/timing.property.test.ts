@@ -4,8 +4,8 @@
  * The load-bearing claims, over thousands of generated TQ1 segments:
  *   1. `orders()` / `medications()` NEVER throw on arbitrary TQ1 content
  *      (HELPERS-07 holds for the timing extractor).
- *   2. The repeat pattern (TQ1-3) is surfaced as the decoded field value —
- *      never normalized, never resolved to a schedule — for any code string.
+ *   2. The repeat pattern (TQ1-3) is surfaced as the decoded field value,
+ *      never normalized, never resolved to a schedule: for any code string.
  *   3. A parametric `Q<integer><unit>` template's integer is NEVER dropped: the
  *      parsed `interval.count` always equals the authored integer, and the code
  *      is preserved verbatim.
@@ -31,7 +31,7 @@ function tq1(fields: Record<number, string>): string {
   return parts.join("|");
 }
 
-/** Field content free of HL7 delimiters / line breaks — the parser tolerates it. */
+/** Field content free of HL7 delimiters / line breaks: the parser tolerates it. */
 const junkArb = fc.string({ maxLength: 12 }).filter((s) => !/[|^~\\&\r\n]/u.test(s));
 /** A non-empty Table-0335-shaped code with no delimiters. */
 const codeArb = fc.stringMatching(/^[A-Za-z0-9]{1,10}$/u);

@@ -3,8 +3,8 @@
  * engine, the fail-fast profile-authoring gate, and the public types. Also
  * available as the `conformance` namespace object from the package root.
  *
- * @see validateAgainstProfile — run a user-authored profile against a message.
- * @see defineConformanceProfile — optional fail-fast profile-authoring gate.
+ * @see validateAgainstProfile: run a user-authored profile against a message.
+ * @see defineConformanceProfile: optional fail-fast profile-authoring gate.
  */
 
 export { validateAgainstProfile } from "./validate-against-profile.js";

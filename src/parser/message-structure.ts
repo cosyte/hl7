@@ -1,12 +1,12 @@
 /**
- * Message-type & structure awareness (roadmap Phase G) — a conservative
+ * Message-type & structure awareness (roadmap Phase G): a conservative
  * **misroute / truncation safety net**, NOT an abstract-message-syntax
  * validator.
  *
  * It answers one question per message: **"for this trigger event, are the
  * core segment groups the spec marks Required actually present?"** When an
  * expected group is entirely absent (e.g. an `ORU^R01` carrying no `OBR`/`OBX`
- * result group — the classic signature of a truncated or misrouted feed), the
+ * result group: the classic signature of a truncated or misrouted feed), the
  * parser emits a single additive Tier-2 `MISSING_EXPECTED_GROUP` warning. It
  * never throws, never refuses, never rewrites the message.
  *
@@ -14,24 +14,24 @@
  * false-positives):
  *
  *   - **Per trigger event, never per family.** The claim that an ADT family
- *     shares one shape is false — events diverge by version and trigger. Every
+ *     shares one shape is false: events diverge by version and trigger. Every
  *     definition keys on the (messageCode, triggerEvent) pair.
  *   - **Required (R) anchors only.** A group is modelled only when its anchor
  *     segment is genuinely Required by the v2.5.1 abstract syntax for that
  *     event. Optional groups (e.g. PID in ORU, RXA in VXU, OBR in OML) are
  *     deliberately excluded so a conformant-but-sparse message never warns.
  *   - **Presence is liberal.** A group counts as present if ANY of its anchor
- *     segments appears — the conservative direction (it suppresses a warning
+ *     segments appears: the conservative direction (it suppresses a warning
  *     rather than inventing one).
  *   - **Unrecognized = silent.** A message whose type has no definition here
  *     produces an unrecognized structure summary and zero structural warnings.
  *
- * Spec traceability: HL7 v2.5.1 — Ch. 3 (ADT), Ch. 4 (orders), Ch. 6
- * (financial — DFT), Ch. 7 (observation — ORU), Ch. 9 (MDM), Ch. 10
- * (scheduling — SIU), Ch. 2 (ACK), CDC IG (VXU). Per-entry sourcing lives in
+ * Spec traceability: HL7 v2.5.1: Ch. 3 (ADT), Ch. 4 (orders), Ch. 6
+ * (financial: DFT), Ch. 7 (observation: ORU), Ch. 9 (MDM), Ch. 10
+ * (scheduling: SIU), Ch. 2 (ACK), CDC IG (VXU). Per-entry sourcing lives in
  * `docs-content/spec-notes-structure.md`.
  *
- * Zero runtime deps — pure data + pure functions.
+ * Zero runtime deps: pure data + pure functions.
  */
 
 /**
@@ -86,7 +86,7 @@ export interface MessageStructureDefinition {
 export const MESSAGE_STRUCTURE_DEFINITIONS: readonly MessageStructureDefinition[] = Object.freeze([
   // ── ADT (Ch. 3): patient identification (PID) + visit (PV1) are Required
   //    for these admit/transfer/discharge/register/update/cancel events.
-  //    EVN is intentionally excluded — real senders omit it freely, making it
+  //    EVN is intentionally excluded: real senders omit it freely, making it
   //    a weak (false-positive-prone) signal.
   Object.freeze({
     messageCode: "ADT",
@@ -98,7 +98,7 @@ export const MESSAGE_STRUCTURE_DEFINITIONS: readonly MessageStructureDefinition[
   }),
   // ── ORU^R01 (Ch. 7): the OBR/OBX result group is the Required payload.
   //    PID is excluded (the patient-result group's PID is R within the group,
-  //    but a result-only relay can legitimately omit it at the top — keep the
+  //    but a result-only relay can legitimately omit it at the top: keep the
   //    anchor on the result segments themselves, the true truncation signal).
   Object.freeze({
     messageCode: "ORU",
@@ -108,7 +108,7 @@ export const MESSAGE_STRUCTURE_DEFINITIONS: readonly MessageStructureDefinition[
     ]),
   }),
   // ── Orders (Ch. 4): ORC is the Required common-order segment across the
-  //    order message family. OBR is excluded — it is Optional in several of
+  //    order message family. OBR is excluded: it is Optional in several of
   //    these (OML/OMG/OMI carry it inside an optional observation-request
   //    group), so anchoring only on ORC avoids a false positive.
   Object.freeze({
@@ -171,7 +171,7 @@ export const MESSAGE_STRUCTURE_DEFINITIONS: readonly MessageStructureDefinition[
       Object.freeze({ name: "schedule", anchorSegments: Object.freeze(["SCH"]) }),
     ]),
   }),
-  // ── MDM (Ch. 9): document management — PID + the TXA document header are
+  // ── MDM (Ch. 9): document management: PID + the TXA document header are
   //    Required for T02 (original document) and T06 (document addendum).
   Object.freeze({
     messageCode: "MDM",
@@ -181,7 +181,7 @@ export const MESSAGE_STRUCTURE_DEFINITIONS: readonly MessageStructureDefinition[
       Object.freeze({ name: "document", anchorSegments: Object.freeze(["TXA"]) }),
     ]),
   }),
-  // ── DFT^P03 (Ch. 6): financial transaction — PID + at least one FT1
+  // ── DFT^P03 (Ch. 6): financial transaction: PID + at least one FT1
   //    financial-transaction segment are Required.
   Object.freeze({
     messageCode: "DFT",
@@ -191,7 +191,7 @@ export const MESSAGE_STRUCTURE_DEFINITIONS: readonly MessageStructureDefinition[
       Object.freeze({ name: "financial", anchorSegments: Object.freeze(["FT1"]) }),
     ]),
   }),
-  // ── VXU^V04 (CDC IG): immunization update — PID is Required. RXA is
+  // ── VXU^V04 (CDC IG): immunization update: PID is Required. RXA is
   //    excluded: it lives in the Optional order group of the CDC IG, so a
   //    query-shaped VXU with no administered vaccine must not warn.
   Object.freeze({
@@ -201,7 +201,7 @@ export const MESSAGE_STRUCTURE_DEFINITIONS: readonly MessageStructureDefinition[
       Object.freeze({ name: "patient", anchorSegments: Object.freeze(["PID"]) }),
     ]),
   }),
-  // ── ACK (Ch. 2): a general acknowledgment — MSA (message acknowledgment) is
+  // ── ACK (Ch. 2): a general acknowledgment: MSA (message acknowledgment) is
   //    Required. Matched on message code alone (no trigger event in MSH-9.2).
   Object.freeze({
     messageCode: "ACK",
@@ -225,7 +225,7 @@ export interface StructureGroup {
 }
 
 /**
- * The structure summary for a parsed message — the data behind
+ * The structure summary for a parsed message: the data behind
  * `Hl7Message.structure`. For an unrecognized type, `recognized` is `false`,
  * `expectedGroups` is empty, and `missingGroups` is empty (the safety net is
  * deliberately silent on types it does not model).
@@ -267,7 +267,7 @@ function findDefinition(
  * Analyze a parsed message's structure against the conservative expected-group
  * registry. Pure: it takes the message code, trigger event, and the set of
  * segment names actually present, and returns a `MessageStructure` summary. It
- * decides nothing about whether to warn — the caller (parser) emits one
+ * decides nothing about whether to warn: the caller (parser) emits one
  * `MISSING_EXPECTED_GROUP` warning per name in `missingGroups`.
  *
  * @param messageCode - MSH-9.1 (e.g. `"ORU"`); empty string if absent.

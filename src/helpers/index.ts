@@ -5,7 +5,7 @@
  * and indirectly by `src/index.ts` through selective named re-exports of
  * the types + `pickMrn`.
  *
- * Not part of the public package surface — `src/index.ts` is the sole
+ * Not part of the public package surface: `src/index.ts` is the sole
  * entry point for the `@cosyte/hl7` barrel.
  */
 

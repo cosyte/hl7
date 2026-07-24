@@ -1,18 +1,18 @@
 /**
- * `emitPrettyPrint` — human-readable multi-line rendering of an `Hl7Message`
+ * `emitPrettyPrint`: human-readable multi-line rendering of an `Hl7Message`
  * for logs and debugging (SER-04).
  *
  * Implementation lives in Phase 5 Plan 04 (pretty-print). Stub throws.
  *
  * Decisions (for Plan 04 implementer):
- * - D-22: no options — single opinionated format.
+ * - D-22: no options: single opinionated format.
  * - D-23: segment-per-line with labeled fields `[N]=value`. Field values
  *   shown verbatim with active delimiters; empty trailing positions suppressed.
- * - D-24: resolution depth stops at field level — composite values render as
+ * - D-24: resolution depth stops at field level: composite values render as
  *   their raw HL7 string (e.g. `Smith^John^Q`).
  * - D-25: first line is a metadata header
  *   `HL7 <type>  controlId=<id>  timestamp=<raw-hl7>  (<N> segments)`.
- * - D-26: pure — never warns or throws.
+ * - D-26: pure: never warns or throws.
  *
  * @internal
  */
@@ -29,7 +29,7 @@ import { emitField } from "./emit-field.js";
  *
  * **Raw-escape rendering (W2):** field values render as their raw HL7
  * string representation, produced via `emitField`. Embedded delimiters in
- * user data appear as HL7 escape sequences — e.g. a patient family name
+ * user data appear as HL7 escape sequences: e.g. a patient family name
  * that was decoded from `\F\` on input (literal `|` in `Field.value`)
  * renders in pretty-print as `Smith\F\Jones`, NOT as `Smith|Jones`. This
  * preserves round-trip fidelity: copy-pasting the output into `parseHL7`
@@ -82,7 +82,7 @@ function buildHeaderLine(msg: Hl7Message): string {
  *   `<seg.name>  [N]=<emittedFieldValue>  [M]=<emittedFieldValue>  ...`
  * - Non-MSH: start at fields[1] with HL7 index 1.
  * - MSH: start at fields[2] with HL7 index 3 (MSH-1/MSH-2 are the
- *   delimiters themselves and are not labelled — their content is
+ *   delimiters themselves and are not labelled: their content is
  *   implicit in the header).
  * - Field rendered via `emitField` (D-24 depth stop + W2 raw-escape).
  * - Empty-emitted values are SUPPRESSED (no `[N]=` entry) so sparse

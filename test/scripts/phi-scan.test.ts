@@ -1,5 +1,5 @@
 /**
- * Unit tests for scripts/phi-scan.ts — the HL7 v2 PHI commit-gate.
+ * Unit tests for scripts/phi-scan.ts: the HL7 v2 PHI commit-gate.
  *
  * Positive tests prove the scanner CATCHES real-looking PHI (a weak scanner is
  * worse than none); negative tests prove it PASSES genuinely synthetic,
@@ -80,7 +80,7 @@ afterAll(() => {
 });
 
 // ---------------------------------------------------------------------------
-// Negative tests — genuinely synthetic, allow-listed content PASSES
+// Negative tests: genuinely synthetic, allow-listed content PASSES
 // ---------------------------------------------------------------------------
 
 describe("phi-scan: synthetic / allow-listed content passes (exit 0)", () => {
@@ -98,12 +98,12 @@ describe("phi-scan: synthetic / allow-listed content passes (exit 0)", () => {
   it("the committed corpus (all-mode) is clean", () => {
     const r = runScanner([]);
     expect(r.code, `stderr: ${r.stderr}`).toBe(0);
-    expect(r.stdout).toMatch(/OK — no hits/);
+    expect(r.stdout).toMatch(/OK: no hits/);
   });
 });
 
 // ---------------------------------------------------------------------------
-// Positive tests — real-looking PHI is CAUGHT
+// Positive tests: real-looking PHI is CAUGHT
 // ---------------------------------------------------------------------------
 
 describe("phi-scan: names", () => {
@@ -259,7 +259,7 @@ describe("phi-scan: delimiter handling", () => {
 });
 
 describe("phi-scan: structured scan is not silently bypassed (refuter regressions)", () => {
-  it("scans a header-less message (no MSH — starts with EVN)", () => {
+  it("scans a header-less message (no MSH: starts with EVN)", () => {
     // A message whose first segment is not MSH must still get the structured
     // scan (default delimiters), not fall through to the text-only pass.
     const r = scan(
@@ -300,7 +300,7 @@ describe("phi-scan: structured scan is not silently bypassed (refuter regression
 
   it("keeps src-style .ts content (embedded MSH example) on the text-only pass", () => {
     // A file that is not fixture-like must not be parsed as HL7 even if it
-    // contains an MSH example string — otherwise its code lines become "hits".
+    // contains an MSH example string: otherwise its code lines become "hits".
     const path = join(dir, "example.ts");
     writeFileSync(path, 'const example = "MSH|^~\\\\&|A|B|C|D|20260101||ADT^A01|1|P|2.5";\n');
     const r = runScanner([path]);
@@ -326,7 +326,7 @@ describe("phi-scan: --allow-fixture override gate", () => {
     const path = join(dir, "override-me.hl7");
     writeFileSync(path, msg(MSH, "PID|1||MRN1^^^HOSP^MR||Anderson^Michael||19770707|M"));
     const rel = relative(REPO_ROOT, path).split(sep).join("/");
-    // Sanity: scanned on its own it is a genuine violator — so the override, not
+    // Sanity: scanned on its own it is a genuine violator: so the override, not
     // an empty target set, is what flips the next run to clean.
     expect(runScanner([path]).code).toBe(1);
 

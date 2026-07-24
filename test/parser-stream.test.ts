@@ -1,11 +1,11 @@
 /**
- * Example-based tests for `parseStream()` (roadmap Phase S — streaming /
+ * Example-based tests for `parseStream()` (roadmap Phase S: streaming /
  * incremental parse). Drives the four canonical stream fixtures plus targeted
  * cases for the Phase-S acceptance criteria:
  *
  *   - yields one message per MSH boundary as it completes;
  *   - a message split across chunk boundaries (mid-segment, mid-field, even
- *     mid-`MSH|^~\&`) reassembles — 1-byte chunks === one big chunk;
+ *     mid-`MSH|^~\&`) reassembles: 1-byte chunks === one big chunk;
  *   - `\r`, `\r\n`, `\n` terminators all tolerated;
  *   - a malformed message mid-stream is isolated (typed failure entry) and the
  *     tail still yields;
@@ -148,7 +148,7 @@ describe("parseStream: chunk-boundary invariance", () => {
     const whole =
       "MSH|^~\\&|A|F|B|G|20260101||ADT^A01|CRLF1|P|2.5\r\nPID|1||FAKE^^^H^MR\r\n" +
       "MSH|^~\\&|A|F|B|G|20260101||ADT^A03|CRLF2|P|2.5\r\nPID|1||FAKE2^^^H^MR\r\n";
-    // Cut each chunk to end right AFTER a \r, so its \n begins the next chunk —
+    // Cut each chunk to end right AFTER a \r, so its \n begins the next chunk,
     // every \r\n pair straddles a boundary (the precise adversarial split).
     const chunks: string[] = [];
     let prev = 0;
@@ -254,7 +254,7 @@ describe("parseStream: unterminated final message (surfaced, never dropped, neve
     expect(entries[0]?.streamWarnings.map((w) => w.code)).toEqual([
       WARNING_CODES.UNTERMINATED_STREAM_MESSAGE,
     ]);
-    // The tail segment was NOT dropped — PID is present.
+    // The tail segment was NOT dropped: PID is present.
     if (entries[0]?.ok) {
       expect(entries[0].message.rawSegments.map((s) => s.name)).toEqual(["MSH", "PID"]);
     }
@@ -296,7 +296,7 @@ describe("parseStream: unterminated final message (surfaced, never dropped, neve
 describe("parseStream: guards and immutability", () => {
   it("rejects a bare string source with a helpful TypeError", async () => {
     await expect(async () => {
-      // A string is Iterable<string>, so it type-checks as a source — the guard is a runtime reject.
+      // A string is Iterable<string>, so it type-checks as a source: the guard is a runtime reject.
       for await (const _ of parseStream("MSH|^~\\&|A")) void _;
     }).rejects.toThrow(/not a single string or Buffer/);
   });

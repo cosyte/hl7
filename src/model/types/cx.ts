@@ -1,8 +1,8 @@
 /**
- * CX — HL7 v2 Extended Composite ID (with check digit) composite.
+ * CX: HL7 v2 Extended Composite ID (with check digit) composite.
  * 10-component structured-identifier shape parsed from a `RawRepetition` on
  * demand by `Field.asCx()` (wired in Plan 04). Fields are OMITTED when
- * absent (exactOptionalPropertyTypes) — NEVER set to `undefined`.
+ * absent (exactOptionalPropertyTypes): NEVER set to `undefined`.
  *
  * Component 4 (`assigningAuthority`) is the ONE nested-composite field in
  * this plan: its subcomponents form a 3-field HD (namespaceId, universalId,
@@ -11,10 +11,10 @@
  * CX component 4.
  *
  * Component 6 (`assigningFacility`) is simplified to a flat `string` in v1
- * — the HL7 spec treats it as HD-shaped, but v1 favours simplicity. Callers
+ *: the HL7 spec treats it as HD-shaped, but v1 favours simplicity. Callers
  * who need the full HD can parse the raw string separately.
  *
- * Zero runtime deps — pure function over the raw positional tree + `unescape`.
+ * Zero runtime deps: pure function over the raw positional tree + `unescape`.
  */
 
 import type { EncodingCharacters, RawComponent, RawRepetition } from "../../parser/types.js";
@@ -23,7 +23,7 @@ import { readComponent } from "./_shared.js";
 import { parseHd, type HD } from "./hd.js";
 
 /**
- * HL7 v2 Extended Composite ID (CX) — structured identifier per HL7 Chapter
+ * HL7 v2 Extended Composite ID (CX): structured identifier per HL7 Chapter
  * 2. All 10 components are optional. Fields are OMITTED when the underlying
  * component is absent (exactOptionalPropertyTypes). `assigningAuthority`
  * uses the nested `HD` shape; `assigningFacility` is flattened to a plain
@@ -33,7 +33,7 @@ import { parseHd, type HD } from "./hd.js";
  * 1. idNumber
  * 2. checkDigit
  * 3. checkDigitScheme (ISO 7064, M10, M11, NPI)
- * 4. assigningAuthority (nested HD — 3 subcomponents form a HD composite)
+ * 4. assigningAuthority (nested HD: 3 subcomponents form a HD composite)
  * 5. identifierTypeCode (MR, SSN, DL, MC, ...)
  * 6. assigningFacility (v1: flattened to string; spec is HD-shaped)
  * 7. effectiveDate (raw HL7 TS string)
@@ -73,7 +73,7 @@ export interface CX {
  * without reimplementing the read.
  *
  * Returns `undefined` when the source component is missing or every
- * subcomponent is the empty string — prevents stub empty HD objects from
+ * subcomponent is the empty string: prevents stub empty HD objects from
  * leaking into CX output (T-03-02-02 mitigation).
  *
  * @internal
@@ -93,7 +93,7 @@ function parseAssigningAuthority(
 
 /**
  * Parse an HL7 v2 CX repetition into a structured `CX` object. Components
- * are returned verbatim (already decoded once by the tokenizer — never re-unescaped,
+ * are returned verbatim (already decoded once by the tokenizer: never re-unescaped,
  * HL7-VALUE-REDECODE). Absent / empty components are OMITTED
  * from the result (exactOptionalPropertyTypes semantics). Component 4
  * (`assigningAuthority`) is parsed as a nested `HD`; see component table in

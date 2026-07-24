@@ -3,11 +3,11 @@
  *
  * The load-bearing claims, over thousands of generated RX* segments:
  *   1. `medications()` NEVER throws on arbitrary RXO/RXE/RXD/RXA content
- *      (including malformed/empty fields and adversarial give amounts) —
+ *      (including malformed/empty fields and adversarial give amounts),
  *      HELPERS-07 holds for the pharmacy extractor.
  *   2. A well-formed give code + amount survives parse → project verbatim
  *      (identifier, coding-system provenance, strict-parsed numeric).
- *   3. The give *amount* and give *strength* are surfaced independently — a
+ *   3. The give *amount* and give *strength* are surfaced independently: a
  *      strength is never derived from, reconciled with, or overwritten by the
  *      amount (Phase D §4). When RXE-25 carries an explicit strength it always
  *      survives unchanged regardless of the give amount.
@@ -22,11 +22,11 @@ const RUN_CONFIG = { numRuns: 500, seed: 0x0d_5e_2026 } as const;
 
 const MSH = "MSH|^~\\&|APP|FAC|||20250102||RDE^O11|1|P|2.5\r";
 
-// Fields that may contain delimiter-free junk — the parser must tolerate them
+// Fields that may contain delimiter-free junk: the parser must tolerate them
 // and the helper must never throw.
 const junkArb = fc.string({ maxLength: 12 }).filter((s) => !/[|^~\\&\r\n]/u.test(s));
 // Identifier-shaped codes: alphanumeric, non-empty, no leading/trailing
-// whitespace (the parser trims field whitespace — that's a separate, correct
+// whitespace (the parser trims field whitespace: that's a separate, correct
 // behavior we don't want to fight here).
 const idArb = fc.stringMatching(/^[A-Za-z0-9]{1,12}$/u);
 const numArb = fc.integer({ min: 0, max: 100_000 });
@@ -82,7 +82,7 @@ describe("property: amount and strength are independent (Phase D §4)", () => {
         const arr = Array.from({ length: max }, (_, i) => fields[i + 1] ?? "");
         const rxe = `RXE|${arr.join("|")}`;
         const m = parseHL7(`${MSH}PID|||X\r${rxe}\r`).medications()[0];
-        // The strength is exactly what RXE-25 declared — never the give amount.
+        // The strength is exactly what RXE-25 declared: never the give amount.
         expect(m?.strength?.value).toBe(strength);
         expect(m?.amount?.minimum).toBe(giveAmount);
       }),

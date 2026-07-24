@@ -1,10 +1,10 @@
 /**
- * Property tests for Phase R — the first-class text codec and formatted-text
+ * Property tests for Phase R: the first-class text codec and formatted-text
  * renderer.
  *
  * The load-bearing invariant is **encode-safety**: an arbitrary string, once
  * `encodeText`-ed into a field body, re-parses to *exactly* itself with no
- * delimiter injection — it can never forge a component / subcomponent /
+ * delimiter injection: it can never forge a component / subcomponent /
  * repetition boundary or break framing. Plus: `renderText` never throws, and a
  * formatting sentinel is never left in the rendered plain text.
  */
@@ -28,7 +28,7 @@ describe("property: text codec encode-safety", () => {
     );
   });
 
-  it("an encoded value re-parses to exactly itself — no delimiter injection", () => {
+  it("an encoded value re-parses to exactly itself: no delimiter injection", () => {
     // Trim-stable (default trimFields would strip edge whitespace, orthogonal to
     // injection) and never the explicit-null token `""`.
     const arbitrary = fc.string({ maxLength: 40 }).filter((s) => s.trim() === s && s !== '""');
@@ -64,7 +64,7 @@ describe("property: renderText is total and sentinel-free", () => {
     );
   });
 
-  it("never throws (or OOMs) on an arbitrarily large \\.sp\\/\\.sk\\ count — count is clamped", () => {
+  it("never throws (or OOMs) on an arbitrarily large \\.sp\\/\\.sk\\ count: count is clamped", () => {
     // Guards the fail-safe hole a fixed token list misses: a huge repeat count
     // must clamp, never `RangeError: Invalid string length`. Output length is
     // bounded regardless of the count in the sentinel.

@@ -2,11 +2,11 @@
  * VA VistA Radiology / Nuclear Medicine imaging HL7 interface quirks. The
  * Veterans Affairs VistA Radiology package exchanges HL7 **v2.4** messages
  * with commercial RIS/PACS systems and carries the DICOM **Study Instance
- * UID** in a `ZDS` Z-segment (field 1, `RP` "Reference Pointer" composite —
+ * UID** in a `ZDS` Z-segment (field 1, `RP` "Reference Pointer" composite,
  * the UID sits in the first component, ZDS-1.1 "Pointer"), so the receiving
  * image manager can correlate the HL7 order/result with the DICOM study.
  * This is the same IHE Radiology cross-vendor bridge segment declared by the
- * `visage` and `philips` profiles — `ZDS` is an IHE extension, not a
+ * `visage` and `philips` profiles: `ZDS` is an IHE extension, not a
  * VA-proprietary quirk; the value this profile adds is a **named federal
  * source** grounded in a distinct public spec, plus coverage of the shape the
  * VA spec documents that the imaging-vendor specs do not: `ZDS` on **ORU**
@@ -20,11 +20,11 @@
  * Application ID, 1.3 Type of Data, 1.4 Subtype). It is a publicly
  * downloadable federal interface spec on the VA VistA Documentation Library
  * (`va.gov/vdl`), not an invented quirk (ADR 0018). The spec's messaging is
- * HL7-native v2.4, so its `TS` timestamps use the `YYYYMMDDHHMMSS` form — this
+ * HL7-native v2.4, so its `TS` timestamps use the `YYYYMMDDHHMMSS` form: this
  * profile therefore declares **no** custom `dateFormats`, only the ZDS
  * segment.
  *
- * Authored from the public `defineProfile()` API — zero privileged internal
+ * Authored from the public `defineProfile()` API: zero privileged internal
  * coupling. Consumers extend this profile via
  * `defineProfile({ name: '...', extends: profiles.va, ... })`.
  *
@@ -52,7 +52,7 @@ import { defineProfile } from "./define.js";
 export const va = defineProfile({
   name: "va",
   description:
-    "VA VistA Radiology/Nuclear Medicine imaging — ZDS DICOM Study Instance UID segment (ORM + ORU, IHE RAD)",
+    "VA VistA Radiology/Nuclear Medicine imaging: ZDS DICOM Study Instance UID segment (ORM + ORU, IHE RAD)",
   customSegments: {
     // ZDS-1 = Study Instance UID (RP), UID in the first component (1.1 Pointer).
     // VA Radiology/Nuclear Medicine 5.0 HL7 IS v3.6 (June 2024): "ZDS Segment

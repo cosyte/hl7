@@ -1,5 +1,5 @@
 /**
- * Public entry point for the `@cosyte/hl7` parser — composes every
+ * Public entry point for the `@cosyte/hl7` parser: composes every
  * parser stage built across Plans 01–05 (normalize, strip MLLP, split
  * segments, read delimiters, tokenize) and routes every Tier-2 warning
  * through a single `emitWarning` chokepoint. The four Tier-3 fatal codes
@@ -39,19 +39,19 @@ import { Hl7Message } from "../model/message.js";
 import { getDefaultProfile } from "../profiles/default.js";
 
 /**
- * The list of `ParseOptions` keys that are TRULY options-only — i.e. keys
+ * The list of `ParseOptions` keys that are TRULY options-only: i.e. keys
  * that appear on `ParseOptions` but NOT on `Profile`. Used by
  * `discriminateOptionsOrProfile` to decide whether an anonymous second
  * argument is a `ParseOptions` (has at least one of these keys) or a
  * `Profile` (no options-only key, has a string `name`).
  *
  * Deliberately EXCLUDES `onWarning` and `dateFormats` even though they're
- * valid `ParseOptions` keys — those two also appear on `Profile` (Profile
+ * valid `ParseOptions` keys: those two also appear on `Profile` (Profile
  * carries `onWarning`/`dateFormats` fields), so checking for them would
  * mis-classify a `defineProfile()` output (which always has `dateFormats`,
  * even as `[]`) as a `ParseOptions` when a caller passes it as the second
  * arg. The subset below is the precise "disambiguates options from
- * profile" witness set — every key here is options-only.
+ * profile" witness set: every key here is options-only.
  *
  * @internal
  */
@@ -81,7 +81,7 @@ function discriminateOptionsOrProfile(arg: ParseOptions | Profile | undefined): 
   if (arg === undefined) return {};
   // A Profile is REQUIRED to have `name: string` (parser/types.ts locked
   // interface). Any arg without a string `name` is therefore unambiguously
-  // ParseOptions — including bare option bags like `{ onWarning }` or
+  // ParseOptions: including bare option bags like `{ onWarning }` or
   // `{ dateFormats }` whose keys overlap with Profile but whose shape
   // lacks the required `name` witness.
   const hasStringName = typeof (arg as { name?: unknown }).name === "string";
@@ -115,7 +115,7 @@ function discriminateOptionsOrProfile(arg: ParseOptions | Profile | undefined): 
  *
  * D-22 ordering: profile handlers are observers that run FIRST; caller
  * handler runs LAST. Preserves the "profile behavior, then caller
- * behavior" layering pattern — the profile sees warnings as they arise;
+ * behavior" layering pattern: the profile sees warnings as they arise;
  * the caller's handler sees post-profile-handler warnings (same object,
  * same time, just guaranteed ordering).
  *
@@ -123,7 +123,7 @@ function discriminateOptionsOrProfile(arg: ParseOptions | Profile | undefined): 
  * Under strict mode the thrown error's `code` is a `WarningCode` string
  * which is NOT in `FATAL_CODES`. This intentionally widens the runtime
  * set of values `Hl7ParseError.code` can take without widening the
- * compile-time type — consumers narrow on `err.code` after catching.
+ * compile-time type: consumers narrow on `err.code` after catching.
  * See the `as unknown as` comment in the implementation for the
  * justification (Plan 06 decision (b)).
  *
@@ -145,9 +145,9 @@ function makeEmitter(
       // runtime under strict mode it also carries any `WarningCode`. We
       // preserve the narrow compile-time type so lenient-mode callers get
       // exhaustive-switch checks on `FatalCode`; strict-mode consumers
-      // narrow on the runtime string. Alternative (a) — widening
-      // FatalCode — would leak strict-mode semantics into the lenient-mode
-      // type surface; alternative (c) — a separate Hl7StrictError class —
+      // narrow on the runtime string. Alternative (a): widening
+      // FatalCode: would leak strict-mode semantics into the lenient-mode
+      // type surface; alternative (c), a separate Hl7StrictError class,
       // would introduce a third error class. (b) is the minimum-surface
       // change and matches Plan 06's recommendation.
       throw new Hl7ParseError(
@@ -163,7 +163,7 @@ function makeEmitter(
     // the other from receiving the warning, and cannot bubble out of the
     // parser (consistent with the D-12 silent-swallow contract for the
     // profile-chain composer). Symmetric treatment of options.onWarning
-    // keeps the contract uniform — a noisy caller handler is as contained
+    // keeps the contract uniform: a noisy caller handler is as contained
     // as a noisy profile handler.
     if (effectiveProfile?.onWarning !== undefined) {
       try {
@@ -184,8 +184,8 @@ function makeEmitter(
 
 /**
  * Build a bounded snippet of the input for attaching to a strict-mode
- * `Hl7ParseError`. Phase 2 does not track character offsets — positions
- * are segment/field/component indices — so we return a leading excerpt
+ * `Hl7ParseError`. Phase 2 does not track character offsets: positions
+ * are segment/field/component indices: so we return a leading excerpt
  * of the input bounded by `segments.snippet`.
  *
  * @internal
@@ -197,7 +197,7 @@ function buildSnippet(input: string, _position: Hl7Position): string {
 /**
  * Shallow MSH-18 extractor for the tentative-decode first pass of Buffer
  * charset resolution. Deliberately avoids calling `readDelimiters` or
- * `tokenize` — those can throw on malformed MSH, which would defeat the
+ * `tokenize`: those can throw on malformed MSH, which would defeat the
  * "tentative" contract of the first pass.
  *
  * Line-ending agnostic: splits on `/[\r\n]/` so a Buffer that uses Unix
@@ -211,7 +211,7 @@ function buildSnippet(input: string, _position: Hl7Position): string {
  * MSH-18 is a **repeating** field (HL7 v2 Ch. 2): the **first** occurrence is
  * the message's default encoding; later occurrences are alternates activated
  * mid-message by the charset-switch escapes. Only the first repetition governs
- * the whole-buffer decode, so this returns it — split on the message's own
+ * the whole-buffer decode, so this returns it: split on the message's own
  * repetition separator (MSH-2 char 2, default `~`).
  *
  * Returns the trimmed first MSH-18 repetition, or `undefined` on any failure
@@ -269,7 +269,7 @@ function resolveBufferCharset(
   emit: (w: Hl7ParseWarning) => void,
 ): string {
   const override = options.charset;
-  // Pass 1: tentative UTF-8 decode to read MSH-18. This is cheap — for
+  // Pass 1: tentative UTF-8 decode to read MSH-18. This is cheap: for
   // UTF-8 payloads the tentative decode is exactly what `normalizeBuffer`
   // would produce anyway; for non-UTF-8 payloads the MSH header bytes are
   // ASCII so MSH-18 still surfaces correctly even if the body garbles.
@@ -303,7 +303,7 @@ function resolveBufferCharset(
  * HL7 1-indexed convention locked in Plan 03, `fields[0]` is the
  * separator/name placeholder, `fields[1]` is MSH-2 (encoding chars),
  * `fields[11]` is MSH-12 (version). Returns the empty string when the
- * first segment is absent, not an MSH, or MSH-12 has no content — the
+ * first segment is absent, not an MSH, or MSH-12 has no content: the
  * `noUncheckedIndexedAccess` strictness flag forces every intermediate
  * index guard to be explicit.
  *
@@ -326,7 +326,7 @@ function extractVersion(msh: RawSegment | undefined): string {
  * tokenized segment for the Phase G structure safety net. MSH-9 is
  * `fields[8]` under the unified 1-indexed convention (`fields[0]` is the
  * name/separator placeholder). Returns empty strings when the first segment is
- * absent, not an MSH, or the components have no content — every intermediate
+ * absent, not an MSH, or the components have no content: every intermediate
  * index guard is explicit under `noUncheckedIndexedAccess`.
  *
  * @internal
@@ -374,7 +374,7 @@ function extractMessageType(msh: RawSegment | undefined): {
 export function parseHL7(raw: string | Buffer): Hl7Message;
 export function parseHL7(raw: string | Buffer, profile: Profile): Hl7Message;
 export function parseHL7(raw: string | Buffer, options: ParseOptions): Hl7Message;
-/** @internal — implementation signature; overload signatures above carry the public JSDoc + @example. */
+/** @internal implementation signature; overload signatures above carry the public JSDoc + @example. */
 export function parseHL7(
   raw: string | Buffer,
   optionsOrProfile?: ParseOptions | Profile,
@@ -407,12 +407,12 @@ export function parseHL7(
   }
 
   // Step 4: Strip MLLP framing bytes. Even if `stripMllpFraming` is
-  // disabled we still strip — leaving VT/FS in the buffer would corrupt
-  // segment splitting — but we suppress the warning in that case.
+  // disabled we still strip: leaving VT/FS in the buffer would corrupt
+  // segment splitting: but we suppress the warning in that case.
   const mllpResult = stripMllp(text);
   text = mllpResult.stripped;
 
-  // Step 5: Re-check EMPTY_INPUT — MLLP strip may have emptied the payload.
+  // Step 5: Re-check EMPTY_INPUT: MLLP strip may have emptied the payload.
   if (text.length === 0) {
     throw new Hl7ParseError(
       FATAL_CODES.EMPTY_INPUT,
@@ -437,7 +437,7 @@ export function parseHL7(
   //   - options.profile === undefined → fall back to the registered default
   //     via getDefaultProfile() (which may itself be undefined, in which
   //     case effectiveProfile stays undefined and parseHL7 behaves exactly
-  //     like the no-profile case — zero semantic change for unregistered
+  //     like the no-profile case: zero semantic change for unregistered
   //     consumers).
   let effectiveProfile: Profile | undefined;
   if (options.profile === null) {
@@ -451,11 +451,11 @@ export function parseHL7(
   // Step 7: All Tier-3 fatals are past. Build the real emitter (now
   // profile-aware per D-22) and forward any warnings captured during the
   // Buffer decode. Buffer-decode warnings route through BOTH profile and
-  // options handlers — full fidelity from the first warning onwards.
+  // options handlers: full fidelity from the first warning onwards.
   const emit = makeEmitter(warnings, options, inputForPipeline, effectiveProfile);
   for (const pre of bufferWarnings) emit(pre);
 
-  // Step 8: MLLP framing warning (Tier-2) — fired AFTER the fatal checks
+  // Step 8: MLLP framing warning (Tier-2): fired AFTER the fatal checks
   // so `EMPTY_INPUT` always takes precedence over
   // `MLLP_FRAMING_STRIPPED` (D-03 ordering).
   if ((options.stripMllpFraming ?? true) === true) {
@@ -491,7 +491,7 @@ export function parseHL7(
 
   // Step 11.5: Emit UNKNOWN_SEGMENT for any non-standard segment name that
   // is not declared in the active profile (D-31). Uses the already-resolved
-  // effectiveProfile for customSegments suppression. O(N) — one Set.has +
+  // effectiveProfile for customSegments suppression. O(N): one Set.has +
   // one hasOwnProperty per segment. Uses Object.prototype.hasOwnProperty.call
   // to guard against prototype pollution (matches the T-02-06-01 mitigation
   // in discriminateOptionsOrProfile).
@@ -510,10 +510,10 @@ export function parseHL7(
 
   // Step 11.6 (Phase G): structural-conformance safety net. For the common
   // message types the registry recognizes, warn ADDITIVELY when an expected
-  // Required segment group is entirely absent (e.g. ORU^R01 with no OBR/OBX) —
+  // Required segment group is entirely absent (e.g. ORU^R01 with no OBR/OBX),
   // the signature of a truncated or misrouted feed. Warning-only (Tier-2);
   // lenient parse never throws, `strict` may promote via the emitter. The
-  // warning carries only structural facts (type, group, anchor names) — never
+  // warning carries only structural facts (type, group, anchor names): never
   // a field value, so no PHI is exposed. Conservative by construction: an
   // unrecognized type yields no expected groups and emits nothing.
   const { messageCode, triggerEvent } = extractMessageType(rawSegments[0]);
@@ -538,7 +538,7 @@ export function parseHL7(
     }
   }
 
-  // Step 12: Version extraction — Phase 4 extends this via msg.meta.
+  // Step 12: Version extraction: Phase 4 extends this via msg.meta.
   const version = extractVersion(rawSegments[0]);
 
   // Step 13: Profile attribution + merged customSegments / dateFormats for

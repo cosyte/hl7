@@ -82,7 +82,7 @@ describe("model/types/xtn: parseXtn", () => {
   });
 
   it("ignores components past position 12 (v1 trimmed shape)", () => {
-    // 14-element input — only first 12 should populate the interface.
+    // 14-element input: only first 12 should populate the interface.
     const out = parseXtn(
       rep([
         ["555"],

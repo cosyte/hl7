@@ -3,9 +3,9 @@
  * pinned across thousands of generated composites whose leaves are drawn from
  * the delimiter-laden alphabet (so the escape path is heavily exercised):
  *
- *   1. **emit ∘ parse identity** — `parseXxx(encodeXxx(v))` reproduces `v` on
+ *   1. **emit ∘ parse identity**: `parseXxx(encodeXxx(v))` reproduces `v` on
  *      every modelled component, after a real serialize → parse round-trip.
- *   2. **no delimiter injection** — a value full of `|^~\&` re-parses as the
+ *   2. **no delimiter injection**: a value full of `|^~\&` re-parses as the
  *      exact string in the exact component, never forging a boundary.
  *
  * Leaves are non-empty and trim-stable (the documented round-trip traps), so a
@@ -57,7 +57,7 @@ type Optionalize<T> = { [K in keyof T]?: Exclude<T[K], undefined> };
 /**
  * Like `fc.record`, but the generated object drops any `undefined`-valued key
  * (from an `fc.option(..., { nil: undefined })` leaf), so the result matches
- * the composite interfaces under `exactOptionalPropertyTypes` — a missing
+ * the composite interfaces under `exactOptionalPropertyTypes`: a missing
  * optional is an absent key, never a present `undefined`.
  */
 function record<T>(spec: { [K in keyof T]: fc.Arbitrary<T[K]> }): fc.Arbitrary<Optionalize<T>> {
@@ -79,7 +79,7 @@ const optHd = () =>
     (hd) => (Object.keys(hd).length > 0 ? hd : undefined),
   );
 
-describe("Phase T property — emit ∘ parse identity", () => {
+describe("Phase T property: emit ∘ parse identity", () => {
   it("XPN", () => {
     const arb = record({
       familyName: leafValue(),
@@ -217,7 +217,7 @@ describe("Phase T property — emit ∘ parse identity", () => {
   });
 });
 
-describe("Phase T property — no delimiter injection", () => {
+describe("Phase T property: no delimiter injection", () => {
   it("a delimiter-laden XPN never forges a component boundary", () => {
     fc.assert(
       fc.property(leafValue(), leafValue(), (family, given) => {

@@ -1,14 +1,14 @@
 /**
- * TEST-04 sweep — for every fixture in `test/fixtures/malformed/`,
+ * TEST-04 sweep: for every fixture in `test/fixtures/malformed/`,
  * asserts `parseHL7` throws `Hl7ParseError` with the expected fatal
  * code (filename → code via `fileToCode`), and that the thrown error
  * carries `position` + `snippet` per TOL-02.
  *
- * Tier-3 fatals fire in BOTH lenient and strict mode — the second
+ * Tier-3 fatals fire in BOTH lenient and strict mode: the second
  * `it(...)` block per fixture confirms strict-mode equivalence.
  *
  * Adding a new fatal-code fixture (after a v2 code lands in
- * `FATAL_CODES`) auto-joins the sweep via `readdirSync` — no edits
+ * `FATAL_CODES`) auto-joins the sweep via `readdirSync`: no edits
  * to this file required.
  */
 
@@ -57,7 +57,7 @@ describe("TEST-04: malformed fixture sweep", () => {
           // position is a plain object; just assert it's present and an object.
           expect(err.position).toBeDefined();
           expect(typeof err.position).toBe("object");
-          // snippet may be the empty string for EMPTY_INPUT — presence
+          // snippet may be the empty string for EMPTY_INPUT: presence
           // (defined, typed as string) is what TOL-02 requires.
           expect(err.snippet).toBeDefined();
           expect(typeof err.snippet).toBe("string");

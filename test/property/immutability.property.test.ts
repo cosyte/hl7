@@ -7,15 +7,15 @@
  * `removeSegment`). These properties assert, over generated messages, that:
  *
  *   1. The `warnings` array is frozen and survives mutation by reference
- *      (mutation methods never touch it — model/message.ts D-16).
+ *      (mutation methods never touch it: model/message.ts D-16).
  *   2. Cached wrapper arrays (`segments(type)` / `allSegments()`) are rebuilt
- *      (new identity) after a mutation — i.e. a mutation cannot leave a stale
+ *      (new identity) after a mutation: i.e. a mutation cannot leave a stale
  *      wrapper aliasing freed internals (D-17).
  *   3. A read of one message is not perturbed by mutating a SEPARATE parse of
- *      the same bytes — no shared mutable tree leaks across `parseHL7` calls.
+ *      the same bytes: no shared mutable tree leaks across `parseHL7` calls.
  *   4. `setField` does not retroactively alter the value seen through a
  *      Segment/Field wrapper captured BEFORE the mutation (the old wrapper
- *      still points at the pre-mutation raw node — no in-place leaf mutation).
+ *      still points at the pre-mutation raw node: no in-place leaf mutation).
  *   5. `toString()` is a pure read: calling it does not mutate the message
  *      (serialize twice → identical bytes, rawSegments identity unchanged).
  */
@@ -37,7 +37,7 @@ describe("property: parsed model immutability", () => {
         const msg = parseHL7(raw);
         const warningsRef = msg.warnings;
         expect(Object.isFrozen(msg.warnings)).toBe(true);
-        // A guaranteed-present field on MSH (sending app at MSH.3) — safe to set.
+        // A guaranteed-present field on MSH (sending app at MSH.3): safe to set.
         msg.setField("MSH.3", value);
         expect(msg.warnings).toBe(warningsRef);
         expect(Object.isFrozen(msg.warnings)).toBe(true);
@@ -98,7 +98,7 @@ describe("property: parsed model immutability", () => {
     );
   });
 
-  it("toString() is a pure read — no mutation of the message", () => {
+  it("toString() is a pure read: no mutation of the message", () => {
     fc.assert(
       fc.property(specCleanMessageRaw(), (raw) => {
         const msg = parseHL7(raw);
@@ -133,7 +133,7 @@ describe("property: parsed model immutability", () => {
             position: { segmentIndex: 0 },
           });
         }).toThrow(TypeError);
-        // The freeze held — length is unchanged.
+        // The freeze held: length is unchanged.
         expect(msg.warnings).toBe(frozen);
       }),
       RUN_CONFIG,

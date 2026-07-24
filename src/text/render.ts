@@ -1,12 +1,12 @@
 /**
- * Formatted-text rendering for `@cosyte/hl7` — turns HL7 v2 §2.7
+ * Formatted-text rendering for `@cosyte/hl7`: turns HL7 v2 §2.7
  * escape/formatting-bearing field content into a **normalized display model**
  * a human (or a downstream display / FHIR `.text`) can read, instead of the
  * raw `\H\`/`\.br\` sentinels the lenient parser preserves.
  *
  * This is the read-projection half of Phase R: `renderText` never mutates the
  * raw field value (rendering is opt-in on top of the tolerant parse), and it
- * **never fabricates** — an escape it cannot render is preserved as its literal
+ * **never fabricates**: an escape it cannot render is preserved as its literal
  * characters AND flagged in {@link RenderedText.unrenderedSequences}, never
  * dropped and never replaced with a guessed glyph.
  *
@@ -15,30 +15,30 @@
  * prevents. Formatting commands become real whitespace/line-breaks and
  * highlight boundaries are dropped from the plain text (and exposed as
  * `highlighted` runs for consumers that want emphasis), so what a reader sees
- * is the intended text — never a sentinel and never an invented character.
+ * is the intended text: never a sentinel and never an invented character.
  *
- * ## Spec traceability (HL7 v2 Chapter 2, §2.7 — confirmed firsthand
+ * ## Spec traceability (HL7 v2 Chapter 2, §2.7: confirmed firsthand
  * 2026-07-21 against the v2.5.1 and v2.8.2 chapter text; section numbers shift
  * by version)
  *
- * - **§2.7.1 formatting codes** — the delimiter/escape substitutions
+ * - **§2.7.1 formatting codes**: the delimiter/escape substitutions
  *   `\F\ \S\ \T\ \R\ \E\` (→ the message's own field/component/subcomponent/
  *   repetition/escape characters), the highlight pair `\H\` (start) / `\N\`
  *   (normal, i.e. end), and (v2.7+) `\P\` (the truncation character).
- * - **§2.7.2/2.7.3 charset switch** — `\Cxxyy\` (single-byte) / `\Mxxyyzz\`
+ * - **§2.7.2/2.7.3 charset switch**: `\Cxxyy\` (single-byte) / `\Mxxyyzz\`
  *   (multi-byte, `zz` optional): selects an alternate MSH-18 character set for
  *   the following run. Decoding requires stateful charset context this module
  *   does not have, so a switch is **preserved + flagged**, never guessed.
- * - **§2.7.5/2.7.6 hex** — `\Xdddd…\`: consecutive **pairs** of hex digits,
+ * - **§2.7.5/2.7.6 hex**: `\Xdddd…\`: consecutive **pairs** of hex digits,
  *   each pair one 8-bit byte.
- * - **§2.7.6/2.7.7 formatting commands** (FT data type) — `\.br\` `\.sp\`
+ * - **§2.7.6/2.7.7 formatting commands** (FT data type): `\.br\` `\.sp\`
  *   `\.in\` `\.ti\` `\.fi\` `\.nf\` `\.ce\` `\.sk\`; `.sp` takes an optional
  *   positive count, `.in`/`.ti` a signed indent, `.sk` a space count. Rendered
  *   to a conservative plain-text normalization (see the table below).
- * - **§2.7.7/2.7.8 locally-defined** — `\Zdddd…\`: opaque, meaning is a
+ * - **§2.7.7/2.7.8 locally-defined**: `\Zdddd…\`: opaque, meaning is a
  *   sender/receiver agreement, so **preserved + flagged**, never interpreted.
  *
- * ## Normalization policy (conservative, documented — not a page-layout engine)
+ * ## Normalization policy (conservative, documented: not a page-layout engine)
  *
  * | Escape                      | Rendered as                                   |
  * | --------------------------- | --------------------------------------------- |
@@ -48,8 +48,8 @@
  * | `\.br\`                     | one line break                                |
  * | `\.sp\` / `\.sp <n>\`       | `n` line breaks (default 1, clamped to 100)    |
  * | `\.ce\`                     | one line break (centering dropped)            |
- * | `\.in <n>\` / `\.ti <n>\`   | dropped (indentation — exact column math is a defer) |
- * | `\.fi\` / `\.nf\`           | dropped (word-wrap mode — no content)         |
+ * | `\.in <n>\` / `\.ti <n>\`   | dropped (indentation: exact column math is a defer) |
+ * | `\.fi\` / `\.nf\`           | dropped (word-wrap mode: no content)         |
  * | `\.sk <n>\`                 | `n` spaces (default 1, clamped to 100)         |
  * | `\Cxxyy\` `\Mxxyyzz\` `\Zdddd…\`, malformed / unterminated | literal chars, **preserved + flagged** |
  *
@@ -73,7 +73,7 @@ import type { EncodingCharacters } from "../parser/types.js";
  */
 export interface TextRun {
   /**
-   * The literal display text of this run — escape sentinels already resolved
+   * The literal display text of this run: escape sentinels already resolved
    * (delimiter/hex decoded, formatting → whitespace/line breaks). Never
    * contains a formatting sentinel; may contain the newline used for breaks.
    */
@@ -104,7 +104,7 @@ export interface RenderedText {
   readonly runs: readonly TextRun[];
   /**
    * The escape sequences `renderText` **preserved verbatim instead of
-   * rendering** — vendor `\Zdddd…\`, charset switches `\Cxxyy\`/`\Mxxyyzz\`,
+   * rendering**: vendor `\Zdddd…\`, charset switches `\Cxxyy\`/`\Mxxyyzz\`,
    * and any malformed / unterminated sequence. Their literal characters ALSO
    * appear in {@link text}/{@link runs} (never silently dropped); this list
    * exists so a consumer can detect that a non-render decision was made and
@@ -157,14 +157,14 @@ function clampCount(arg: string | undefined): number {
 
 /**
  * Render an HL7 v2 escape/formatting-bearing string into a normalized display
- * model (plain text + highlight-aware runs). A **read projection** — it never
+ * model (plain text + highlight-aware runs). A **read projection**: it never
  * mutates the underlying field, and it never fabricates: an escape it cannot
  * render is preserved as literal characters and flagged in
  * {@link RenderedText.unrenderedSequences}.
  *
  * `input` is the field's escape-bearing text. Pass the **wire form** (e.g.
  * `Field.text`, byte-verbatim for parsed content) for the most faithful
- * result — a wire `\E\H\E\` (an escaped literal backslash-H-backslash) then
+ * result: a wire `\E\H\E\` (an escaped literal backslash-H-backslash) then
  * renders as the three literal characters `\H\`, never as a highlight. Passing
  * an already-decoded `Field.value` also works: its `\.br\` is already a
  * newline (rendered as one line break) and its `\H\`/formatting sentinels are
@@ -235,7 +235,7 @@ export function renderText(
     // An escape character: find its closing partner.
     const close = input.indexOf(esc, i + 1);
     if (close === -1) {
-      // Unterminated — preserve the remainder verbatim and flag it. Never a
+      // Unterminated: preserve the remainder verbatim and flag it. Never a
       // throw; the scan is strictly O(n).
       const tail = input.slice(i);
       current += tail;
@@ -303,11 +303,11 @@ function decodeBody(body: string, enc: EncodingCharacters, newline: string): str
     const m = FORMATTING_RE.exec(body);
     if (m !== null) return renderFormatting(m[1] ?? "", m[2], newline);
     // A dot body that is not one of the eight known commands is not a
-    // formatting command — fall through to unknown handling.
+    // formatting command: fall through to unknown handling.
     return null;
   }
 
-  // §2.7.5 hex — consecutive hex-digit PAIRS, each pair one byte.
+  // §2.7.5 hex: consecutive hex-digit PAIRS, each pair one byte.
   if (body.charAt(0) === "X") {
     const hex = body.slice(1);
     if (hex.length === 0 || hex.length % 2 !== 0 || !/^[0-9A-Fa-f]+$/u.test(hex)) {
@@ -339,13 +339,13 @@ function renderFormatting(cmd: string, arg: string | undefined, newline: string)
   switch (cmd) {
     case "br":
     case "ce":
-      // Hard line break (centering is dropped — we are not a layout engine).
+      // Hard line break (centering is dropped: we are not a layout engine).
       return newline;
     case "sp":
-      // Vertical skip: n line breaks, default 1 (clamped — see MAX_FORMAT_REPEAT).
+      // Vertical skip: n line breaks, default 1 (clamped: see MAX_FORMAT_REPEAT).
       return newline.repeat(clampCount(arg));
     case "sk":
-      // Horizontal skip: n spaces, default 1 (clamped — see MAX_FORMAT_REPEAT).
+      // Horizontal skip: n spaces, default 1 (clamped: see MAX_FORMAT_REPEAT).
       return " ".repeat(clampCount(arg));
     case "in":
     case "ti":

@@ -33,7 +33,7 @@ describe("text/codec: decodeText", () => {
   });
 });
 
-describe("text/codec: encodeText — encode-safety (no delimiter injection)", () => {
+describe("text/codec: encodeText: encode-safety (no delimiter injection)", () => {
   it("escapes every reserved delimiter so a hostile value cannot break framing", () => {
     const hostile = "a|b^c~d\\e&f";
     const body = encodeText(hostile);

@@ -1,45 +1,45 @@
 /**
- * Performance-regression guard (roadmap Phase W — performance / throughput bar).
+ * Performance-regression guard (roadmap Phase W: performance / throughput bar).
  *
  * This is the **CI-gating** half of Phase W (the human-readable benchmark suite
  * with published numbers is `scripts/bench.ts` → `docs-content/benchmarks.md`).
  * Its job is narrow: fail if a future change **silently degrades** parse
- * performance or breaks the HL7-S streaming memory guarantee — without
+ * performance or breaks the HL7-S streaming memory guarantee: without
  * false-alarming across CI runners of wildly different speed and under v8
  * coverage instrumentation.
  *
  * ## Why every guard here is RELATIVE, never an absolute number
  *
  * Absolute throughput (msgs/sec) and absolute memory (bytes) vary by an order of
- * magnitude across machines, background load, and — critically — whether v8
+ * magnitude across machines, background load, and (critically) whether v8
  * coverage instrumentation is active (`pnpm test:coverage` instruments `src/**`,
  * inflating every parse time several-fold). A committed absolute floor would
  * either be so low it catches nothing, or flaky on a slow/contended runner. So
  * the guards below are **ratios of two measurements taken in the same process**,
  * where machine speed and instrumentation overhead **cancel**:
  *
- *   - **Throughput linearity, by message count** — parsing 4× the messages must
+ *   - **Throughput linearity, by message count**: parsing 4× the messages must
  *     take ≈4× the time, not more. `t(4N)/t(N) ≤ LINEARITY_MAX` (= 10, 2.5× the
  *     ideal 4) catches a super-linear regression in message *count*. Both timings
  *     parse the same code, so a slow or instrumented runner scales both equally.
- *   - **Throughput linearity, by message size** — the complement: one message of
+ *   - **Throughput linearity, by message size**: the complement: one message of
  *     size S vs 4S, each parsed an equal number of times, so the ratio isolates
  *     *length*. This is what catches an accidental **O(n²)-in-message-length**
  *     tokenizer regression (which the count test, at fixed size, cannot see).
- *   - **Streaming read-ahead** — `parseStream` must pull its source lazily and
+ *   - **Streaming read-ahead**: `parseStream` must pull its source lazily and
  *     retain **O(one message)**, not buffer the file. Measured by counting how far
- *     the source is pulled *ahead* of what's been yielded — a pure count (`≤ 2`),
+ *     the source is pulled *ahead* of what's been yielded: a pure count (`≤ 2`),
  *     immune to GC timing and machine memory. This is the streaming **memory**
  *     guard: if `parseStream` started buffering the file, read-ahead would grow
  *     toward N and trip. (An earlier draft asserted a retained-heap *ratio*, but
  *     `heapUsed` deltas without a forced GC measure uncollected young-gen garbage,
  *     not live retained state, and false-fail under a larger `--max-semi-space-size`
- *     — the conformance-refuter caught this. The read-ahead count covers the same
+ *: the conformance-refuter caught this. The read-ahead count covers the same
  *     regression robustly; the *absolute* heap numbers live in the benchmark, which
  *     forces GC via `--expose-gc`, not in this gate.)
  *
  * There is one deliberately **coarse absolute liveness floor** (parse ≥ a few
- * dozen msgs/sec) with ~100× headroom even under coverage on a loaded runner — it
+ * dozen msgs/sec) with ~100× headroom even under coverage on a loaded runner: it
  * only trips on a catastrophic hang a ratio could miss, never on ordinary slowness.
  *
  * This phase adds **no runtime behavior**: the guard only measures the shipped
@@ -53,14 +53,14 @@ import { parseHL7, parseStream } from "../../src/index.js";
 /**
  * Ideal linear ratio is 4 (4× the work). 10 leaves 2.5× headroom for cold-JIT /
  * scheduler / GC noise while staying well below the ~16 a genuine super-linear
- * (O(n²)) regression on a 4× workload produces — so the guard is roomy against
+ * (O(n²)) regression on a 4× workload produces: so the guard is roomy against
  * false alarms yet still trips on a real quadratic blow-up.
  */
 const LINEARITY_MAX = 10;
-/** Coarse liveness floor — ~100× below real instrumented throughput. Not a perf target. */
+/** Coarse liveness floor: ~100× below real instrumented throughput. Not a perf target. */
 const MIN_MSGS_PER_SEC = 40;
 
-/** Synthetic ADT^A01 (5 segments). No PHI — every value is fabricated. */
+/** Synthetic ADT^A01 (5 segments). No PHI: every value is fabricated. */
 function adtMessage(i: number): string {
   const id = String(i).padStart(6, "0");
   return (
@@ -90,8 +90,8 @@ function oruMessage(i: number, obxCount = 8): string {
 
 /**
  * **Minimum** milliseconds to parse `msgs` over `reps` runs, after an unmeasured
- * warm-up. Benchmark noise is one-sided — a GC pause or a scheduler preemption
- * only ever *adds* time — so the minimum is the cleanest estimator of true
+ * warm-up. Benchmark noise is one-sided: a GC pause or a scheduler preemption
+ * only ever *adds* time: so the minimum is the cleanest estimator of true
  * compute cost, and taking the min on both sides of the linearity ratio cancels
  * transient stalls instead of letting them inflate `t(4N)` and flake the guard.
  * The parsed segment count is summed into a sink so the parse can't be eliminated
@@ -113,7 +113,7 @@ function timeParse(msgs: readonly string[], reps: number): number {
 describe("perf guard: parse throughput scales linearly (no super-linear regression)", () => {
   // Tier V8 up before ANY ratio is measured, so the first timed test is not
   // penalized by cold-JIT compilation (which would inflate one run and flake the
-  // ratio). Not timed — purely to warm the code paths under test.
+  // ratio). Not timed: purely to warm the code paths under test.
   beforeAll(() => {
     let sink = 0;
     for (let r = 0; r < 3; r++) {
@@ -143,19 +143,19 @@ describe("perf guard: parse throughput scales linearly (no super-linear regressi
         expect(ratio).toBeLessThanOrEqual(LINEARITY_MAX);
       }
 
-      // Coarse liveness floor (huge headroom) — trips only on a catastrophic hang.
+      // Coarse liveness floor (huge headroom): trips only on a catastrophic hang.
       const msgsPerSec = ((N * 4) / tLarge) * 1000;
       expect(msgsPerSec).toBeGreaterThan(MIN_MSGS_PER_SEC);
     }, 30_000);
   }
 
-  it("scales linearly with message SIZE — catches an O(n²)-in-length tokenizer regression", () => {
+  it("scales linearly with message SIZE: catches an O(n²)-in-length tokenizer regression", () => {
     // The count-scaling tests above hold message size fixed, so an accidental
     // super-linear cost in message *length* (e.g. an O(n²) tokenizer) would inflate
     // both runs by the same factor and slip through. This test scales the OTHER
     // axis: one ORU of S OBX lines vs one of 4S, each parsed M times (equal count,
     // so the ratio isolates size). A tokenizer gone quadratic makes 4× the bytes
-    // cost ~16× the time — well over the ceiling — while a linear parser stays ~4.
+    // cost ~16× the time (well over the ceiling) while a linear parser stays ~4.
     // Same code both sides, so machine speed and coverage instrumentation cancel.
     const M = 40;
     const small = Array.from({ length: M }, () => oruMessage(0, 500));
@@ -172,11 +172,11 @@ describe("perf guard: parse throughput scales linearly (no super-linear regressi
 });
 
 describe("perf guard: parseStream retains O(one message), never buffers the file", () => {
-  it("pulls the source lazily — read-ahead stays a small constant, not O(N)", async () => {
+  it("pulls the source lazily: read-ahead stays a small constant, not O(N)", async () => {
     // If parseStream buffered the whole stream, `produced` would race to N before
     // the first yield, so `produced - received` would approach N. A land-and-release
     // streamer holds that difference at ~1 (it reads the next MSH to close the
-    // current message). This is a pure count — immune to GC timing and machine RAM.
+    // current message). This is a pure count: immune to GC timing and machine RAM.
     const N = 4_000;
     let produced = 0;
     async function* source(): AsyncGenerator<string> {

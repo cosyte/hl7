@@ -48,7 +48,7 @@ describe("Public surface (D-26 barrel export shape)", () => {
   });
 });
 
-describe("profiles.epic — BIP-01 + BIP-06 fixture parity", () => {
+describe("profiles.epic: BIP-01 + BIP-06 fixture parity", () => {
   const fixture = loadFixture("epic/adt-a01.hl7");
 
   it("parses structurally with AND without profile", () => {
@@ -87,7 +87,7 @@ describe("profiles.epic — BIP-01 + BIP-06 fixture parity", () => {
   });
 });
 
-describe("profiles.cerner — BIP-02 + BIP-06 fixture parity", () => {
+describe("profiles.cerner: BIP-02 + BIP-06 fixture parity", () => {
   const fixture = loadFixture("cerner/oru-r01.hl7");
 
   it("without profile: UNKNOWN_SEGMENT present for ZDS/ZCO", () => {
@@ -119,7 +119,7 @@ describe("profiles.cerner — BIP-02 + BIP-06 fixture parity", () => {
   });
 });
 
-describe("profiles.meditech — BIP-03 + BIP-06 fixture parity", () => {
+describe("profiles.meditech: BIP-03 + BIP-06 fixture parity", () => {
   // Re-grounded (HL7-I, ADR 0018) to the public MEDITECH Ancillary Charges
   // (LAB/PHA/ITS/IDM) v2.1 spec: a DFT^P03 charge message carrying the
   // spec-documented ZF1/ZF2 Z-segments, with the minute-precision
@@ -128,7 +128,7 @@ describe("profiles.meditech — BIP-03 + BIP-06 fixture parity", () => {
 
   it("without profile: UNKNOWN_SEGMENT present for ZF1/ZF2", () => {
     const without = parseHL7(fixture);
-    // MEDITECH MSH-7 '202501151430' is 12 digits — HL7 strict-TS accepts it
+    // MEDITECH MSH-7 '202501151430' is 12 digits: HL7 strict-TS accepts it
     // (YYYYMMDDHHmm is a valid partial), so NO TIMESTAMP_FALLBACK warning
     // in the without-profile case. But UNKNOWN_SEGMENT IS expected for ZF1/ZF2.
     expect(without.warnings.map((w) => w.code)).toContain(WARNING_CODES.UNKNOWN_SEGMENT);
@@ -165,7 +165,7 @@ describe("profiles.meditech — BIP-03 + BIP-06 fixture parity", () => {
   });
 });
 
-describe("profiles.athena — BIP-04 + BIP-06 fixture parity", () => {
+describe("profiles.athena: BIP-04 + BIP-06 fixture parity", () => {
   const fixture = loadFixture("athena/adt-a01.hl7");
 
   it("without profile: UNKNOWN_SEGMENT present for ZCA", () => {
@@ -185,24 +185,24 @@ describe("profiles.athena — BIP-04 + BIP-06 fixture parity", () => {
   });
 
   it("ZCA careTeamRole + providerId accessible by name", () => {
-    // Fixture layout: `ZCA|1|1|PRIMARY|PROV-55|Johnson^Maya^MD` — fields 1..5
+    // Fixture layout: `ZCA|1|1|PRIMARY|PROV-55|Johnson^Maya^MD`: fields 1..5
     // (ZCA itself is the segment name, not a field). Profile maps:
-    //   careTeamRole: 3 -> "PRIMARY" (scalar — .value returns whole thing)
-    //   providerId:   5 -> "Johnson^Maya^MD" (composite — .value returns
+    //   careTeamRole: 3 -> "PRIMARY" (scalar: .value returns whole thing)
+    //   providerId:   5 -> "Johnson^Maya^MD" (composite: .value returns
     //                      auto-unescaped first subcomponent: "Johnson")
     //   providerName: 6 -> undefined (fixture stops at field 5; Plan 6-05
-    //                      locked the profile at {..., providerName: 6} —
+    //                      locked the profile at {..., providerName: 6},
     //                      returning undefined per D-14 is the contract).
     const withP = parseHL7(fixture, profiles.athena);
     const zca = withP.allSegments().find((s) => s.type === "ZCA");
     expect(zca?.get("careTeamRole")?.value).toBe("PRIMARY");
-    // providerId is a composite (XCN-style) — .value is the first subcomponent
+    // providerId is a composite (XCN-style): .value is the first subcomponent
     expect(zca?.get("providerId")?.value).toBe("Johnson");
     expect(zca?.get("providerName")).toBeUndefined();
   });
 });
 
-describe("profiles.genericLab — BIP-05 + BIP-06 fixture parity", () => {
+describe("profiles.genericLab: BIP-05 + BIP-06 fixture parity", () => {
   const fixture = loadFixture("genericLab/oru-r01.hl7");
 
   it("without profile: UNKNOWN_SEGMENT present for ZLB/ZNT", () => {
@@ -228,7 +228,7 @@ describe("profiles.genericLab — BIP-05 + BIP-06 fixture parity", () => {
   });
 });
 
-describe("profiles.visage — BIP-07 fixture parity (Visage 7 imaging/PACS ZDS)", () => {
+describe("profiles.visage: BIP-07 fixture parity (Visage 7 imaging/PACS ZDS)", () => {
   const fixture = loadFixture("visage/orm-o01.hl7");
 
   it("without profile: UNKNOWN_SEGMENT present for ZDS", () => {
@@ -260,7 +260,7 @@ describe("profiles.visage — BIP-07 fixture parity (Visage 7 imaging/PACS ZDS)"
   });
 });
 
-describe("profiles.philips — BIP-08 fixture parity (Vue PACS IS Link Z-segments)", () => {
+describe("profiles.philips: BIP-08 fixture parity (Vue PACS IS Link Z-segments)", () => {
   const orm = loadFixture("philips/orm-o01.hl7");
   const adt = loadFixture("philips/adt-a08.hl7");
 
@@ -335,7 +335,7 @@ describe("profiles.philips — BIP-08 fixture parity (Vue PACS IS Link Z-segment
   });
 });
 
-describe("profiles.va — BIP-09 fixture parity (VA VistA Radiology/NucMed ZDS on ORU)", () => {
+describe("profiles.va: BIP-09 fixture parity (VA VistA Radiology/NucMed ZDS on ORU)", () => {
   const fixture = loadFixture("va/oru-r01.hl7");
 
   it("without profile: UNKNOWN_SEGMENT present for ZDS", () => {

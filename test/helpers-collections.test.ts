@@ -1,5 +1,5 @@
 /**
- * Phase 4 Plan 04 — integration tests for `msg.nextOfKin()`, `msg.allergies()`,
+ * Phase 4 Plan 04: integration tests for `msg.nextOfKin()`, `msg.allergies()`,
  * `msg.diagnoses()`, `msg.insurance()` (HELPERS-06 + HELPERS-07).
  * Plus a universal "never throws" sweep covering every Phase 4 helper.
  */

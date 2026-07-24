@@ -1,5 +1,5 @@
 /**
- * Phase P — NTE narrative grouping (positional attach to parent).
+ * Phase P: NTE narrative grouping (positional attach to parent).
  *
  * Covers the positional-attachment contract for `msg.notes()` +
  * `patient.notes` / `order.notes` / `observation.notes`:
@@ -248,7 +248,7 @@ describe("helpers/notes: positional NTE grouping (Phase P)", () => {
         "NTE|1||o\r" +
         "OBX|1|NM|X^Y^LN||1|u\r" +
         "NTE|1||r\r" +
-        "MSA|AA|1\r" + // not a parent — but keep a trailing orphan:
+        "MSA|AA|1\r" + // not a parent: but keep a trailing orphan:
         "NTE|1||orphan";
       const msg = parseHL7(raw);
       expect(Object.isFrozen(msg.patient?.notes)).toBe(true);

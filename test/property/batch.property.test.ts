@@ -3,10 +3,10 @@
  * of the example-based `test/parser-batch.test.ts` sweep. Two headline
  * invariants, restated from the Phase-L acceptance:
  *
- *   1. Count fidelity — the number of entries `splitBatch` returns equals the
+ *   1. Count fidelity: the number of entries `splitBatch` returns equals the
  *      number of `MSH` boundaries in the stream, for any batch of valid
  *      messages under any nesting of BHS/BTS batches.
- *   2. Isolation — a malformed message inserted anywhere mid-stream never
+ *   2. Isolation: a malformed message inserted anywhere mid-stream never
  *      suppresses a later message: every valid sibling still comes back `ok`,
  *      and the total entry count is (valid + malformed).
  */

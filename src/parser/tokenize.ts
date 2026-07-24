@@ -1,7 +1,7 @@
 /**
  * Tokenizer stage for the `@cosyte/hl7` parser pipeline. Decomposes
  * an ordered list of segment strings into the nested positional tree that
- * `Hl7Message` holds — `RawSegment` -> `RawField` -> `RawRepetition` ->
+ * `Hl7Message` holds: `RawSegment` -> `RawField` -> `RawRepetition` ->
  * `RawComponent` -> subcomponent strings. Honors custom encoding characters
  * so PARSE-02 (non-default delimiters) flows through downstream stages
  * without re-derivation.
@@ -23,14 +23,14 @@
  * propagate through the `emit` callback.
  *
  * Escape-fidelity overlay (HL7-ESC): `reescape` is a faithful inverse only for
- * the delimiter/newline escapes — recognize-and-preserve escapes (`\H\`,
+ * the delimiter/newline escapes: recognize-and-preserve escapes (`\H\`,
  * charset, formatting, `\Z..\`) and hex escapes (`\X41\`) decode to plain
  * characters that would re-emit canonicalized (`\H\` → `\E\H\E\`; `\X41\` → `A`),
  * not byte-verbatim. So tokenization also records the **original wire bytes** of
  * exactly those subcomponents in `RawComponent.rawSubcomponents`, which the
  * serializer emits verbatim. The decoded `subcomponents` surface is unchanged;
  * only emit consults the overlay. The MSH-1 / MSH-2 positional
- * placeholders (`fields[0]`, `fields[1]`) are intentionally NOT unescaped —
+ * placeholders (`fields[0]`, `fields[1]`) are intentionally NOT unescaped,
  * they hold the literal delimiter / encoding chars and participate in
  * serialization via the D-06 special-case path, not via `emitField`.
  */
@@ -154,7 +154,7 @@ function tokenizeMshSegment(
  * `fieldStartOffset = 2` so the first tail field (MSH-3) emits
  * `fieldIndex: 3`.
  *
- * The returned array is DATA-ONLY — the caller is responsible for
+ * The returned array is DATA-ONLY: the caller is responsible for
  * prepending the `fields[0]` name/separator placeholder so the unified
  * 1-indexed convention holds on the final `RawSegment.fields`.
  *
@@ -248,7 +248,7 @@ function tokenizeRepetition(
  * Tokenize a single component into its subcomponents, running each
  * subcomponent string through `unescape` so the raw tree stores DECODED
  * values (inverse of `reescape` at emit time). This is load-bearing for
- * SER-02 structural round-trip equivalence — without it, the raw tree would
+ * SER-02 structural round-trip equivalence: without it, the raw tree would
  * store literal `\F\` / `\E\` / `\.br\` sequences and emit would double-
  * escape them into `\E\F\E\` / etc.
  *
@@ -270,7 +270,7 @@ function tokenizeComponent(
   // subcomponent whose decoded form does not re-escape back to those exact
   // bytes (recognize-and-preserve escapes like `\H\`; hex escapes like
   // `\X41\`). Stays `undefined`-per-entry for the common case, and the whole
-  // array is dropped when nothing needs it — so a plain message's raw tree is
+  // array is dropped when nothing needs it: so a plain message's raw tree is
   // shaped exactly as before this overlay existed.
   let rawSubcomponents: (string | undefined)[] | undefined;
   for (let sIdx = 0; sIdx < subs.length; sIdx++) {
@@ -281,7 +281,7 @@ function tokenizeComponent(
     }
     const decodedSub = unescape(sub, enc, emit, { ...position, subcomponentIndex: sIdx + 1 });
     decoded.push(decodedSub);
-    // Only escape-bearing subcomponents can ever need the overlay — the
+    // Only escape-bearing subcomponents can ever need the overlay: the
     // `includes(enc.escape)` guard keeps this off the hot path for plain data.
     if (sub.includes(enc.escape)) {
       const fidelity = escapeFidelityRaw(sub, decodedSub, enc);

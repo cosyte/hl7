@@ -1,12 +1,12 @@
 /**
- * `HL7` namespace — type-only re-exports of the 10 composite interfaces
+ * `HL7` namespace: type-only re-exports of the 10 composite interfaces
  * (XPN, XAD, CX, CWE, CE, XTN, PL, TS, NM, HD). Consumed via
  * `export * as HL7 from "./model/types/namespace.js";` in the top-level barrel
  * (`src/index.ts`). Named exports of the same interfaces live in the public
  * barrel alongside this namespace for developers who prefer the direct
  * `import type { XPN } ...` style (D-13).
  *
- * The namespace is TYPES-ONLY — parser functions (`parseXpn`, `parseXad`, ...)
+ * The namespace is TYPES-ONLY: parser functions (`parseXpn`, `parseXad`, ...)
  * are exported as value exports from the main barrel, not under `HL7`.
  */
 

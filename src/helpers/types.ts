@@ -1,12 +1,12 @@
 /**
- * Phase 4 helper type declarations — the 9 typed shapes returned by
+ * Phase 4 helper type declarations: the 9 typed shapes returned by
  * `Hl7Message.meta`/`.patient`/`.visit` getters and the 6 collection methods
  * (`observations()`, `orders()`, `nextOfKin()`, `allergies()`, `diagnoses()`,
  * `insurance()`). Every field is `readonly`; every optional key is
  * `exactOptionalPropertyTypes`-safe (never `| undefined` on the declaration).
  *
  * Types compose on the 11 v1 composites from `src/model/types/*.ts` (XPN, XAD,
- * CX, CWE, CE, XTN, PL, XCN) — helpers are pure views on top of Phase 3's
+ * CX, CWE, CE, XTN, PL, XCN): helpers are pure views on top of Phase 3's
  * composite coercions, never re-parsing the raw tree.
  *
  * Field lists locked by Phase 4 CONTEXT.md decisions D-01..D-24. Nine interfaces:
@@ -54,7 +54,7 @@ export interface Meta {
   readonly triggerEvent?: string;
   /** MSH-9.3 message structure (e.g. "ADT_A01"). */
   readonly messageStructure?: string;
-  /** MSH-10 message control ID — unique per message per sender. */
+  /** MSH-10 message control ID: unique per message per sender. */
   readonly controlId?: string;
   /** MSH-7 message date/time as the fidelity `TS` (Phase N). */
   readonly timestamp?: TS;
@@ -76,7 +76,7 @@ export interface Meta {
  * PID-derived patient view (HELPERS-02). `msg.patient` is `undefined` (D-04)
  * when no PID segment exists; this interface describes the shape when
  * present. `identifiers` and `phoneNumbers` are ALWAYS present as arrays
- * (D-09 / D-20) — empty when the underlying field is absent. `name` is
+ * (D-09 / D-20): empty when the underlying field is absent. `name` is
  * ALWAYS present (D-19) even if `{}` when PID-5 is empty.
  *
  * @example
@@ -111,7 +111,7 @@ export interface Patient {
   readonly fullName?: string;
   /**
    * PID-7 date of birth as the fidelity `TS` (Phase N). A day-only DOB keeps
-   * `precision: "day"` — never coerced to a UTC-midnight instant that would
+   * `precision: "day"`: never coerced to a UTC-midnight instant that would
    * read as the previous day in a negative-offset zone.
    */
   readonly dateOfBirth?: TS;
@@ -128,7 +128,7 @@ export interface Patient {
   /** PID-15 primary language. */
   readonly language?: CE;
   /**
-   * NTE note lines positionally attached to the (first) PID (Phase P) — notes
+   * NTE note lines positionally attached to the (first) PID (Phase P): notes
    * immediately following the patient's PID segment, HL7-unescaped, in
    * document order. OMITTED when the patient carries no notes. High-PHI-risk
    * clinical narrative.
@@ -186,7 +186,7 @@ export interface Visit {
  * ```
  */
 export interface ObservationBase {
-  /** OBX-1 set id (string — typically sequential "1", "2", ...). */
+  /** OBX-1 set id (string: typically sequential "1", "2", ...). */
   readonly setId?: string;
   /** OBX-3 observation identifier. Always present (may be `{}` if OBX-3 absent). */
   readonly identifier: CWE;
@@ -194,11 +194,11 @@ export interface ObservationBase {
   readonly units?: CWE;
   /**
    * `true` iff OBX-6's coding system (CWE.3, "name of coding system") is
-   * exactly `UCUM` (HL7 Table 0396) — i.e. the unit is declared UCUM and is
+   * exactly `UCUM` (HL7 Table 0396): i.e. the unit is declared UCUM and is
    * safe to interpret as a computable unit. `false` means a unit IS present
    * but is NOT declared UCUM (e.g. a local code or free text) and is surfaced
    * as-is, never coerced. OMITTED when OBX-6 is absent. This is a *claim* check
-   * only — the library does not validate UCUM grammar or check the alternate
+   * only: the library does not validate UCUM grammar or check the alternate
    * coding system (CWE.6).
    */
   readonly unitsAreUcum?: boolean;
@@ -211,7 +211,7 @@ export interface ObservationBase {
   /** OBX-14 date/time of observation as the fidelity `TS` (Phase N). */
   readonly observedDateTime?: TS;
   /**
-   * NTE note lines positionally attached to this OBX (Phase P) — each
+   * NTE note lines positionally attached to this OBX (Phase P): each
    * non-empty NTE-3 (Comment, FT) repetition of every NTE immediately
    * following this observation, HL7-unescaped, in document order. OMITTED when
    * the observation carries no notes. High-PHI-risk clinical narrative.
@@ -258,31 +258,31 @@ export type Observation = ObservationBase &
   );
 
 /**
- * How an order/medication `RepeatPattern` code (HL7 Table 0335) is classified —
+ * How an order/medication `RepeatPattern` code (HL7 Table 0335) is classified,
  * **provenance only, never used to resolve a schedule** (Phase M). The `code`
  * is always authoritative and surfaced verbatim; this flag only tells a
  * consumer *what kind* of pattern it is looking at so it can decide whether a
  * load-bearing integer is present.
  *
- * - `"parametric"` — a `Q<integer><unit>` template (`Q6H`, `Q30M`, `Q2D`,
+ * - `"parametric"`: a `Q<integer><unit>` template (`Q6H`, `Q30M`, `Q2D`,
  *   `Q1W`, `Q3J5`) whose **integer is load-bearing**: `Q6H` (every 6 hours) is
  *   a different dose count from `Q8H`. The parsed integer + unit ride on
  *   {@link RepeatPattern.interval}.
- * - `"named"` — a recognized fixed Table-0335 mnemonic scheduled at
+ * - `"named"`: a recognized fixed Table-0335 mnemonic scheduled at
  *   institution-specified times (`BID`, `TID`, `QID`, `QOD`, `QHS`, `QAM`,
  *   `QPM`, `QSHIFT`, `PRN`, `AC`, `PC`, `HS`, `C`). No numeric interval.
- * - `"unknown"` — anything else (a local code, free text, an unrecognized
+ * - `"unknown"`: anything else (a local code, free text, an unrecognized
  *   mnemonic). Surfaced **verbatim**, never mapped to a frequency.
  */
 export type RepeatPatternKind = "parametric" | "named" | "unknown";
 
 /**
- * An order/medication timing **repeat pattern** (HL7 Table 0335) — the
+ * An order/medication timing **repeat pattern** (HL7 Table 0335): the
  * frequency/SIG field (TQ1-3, or the legacy embedded TQ interval RI.1), Phase M.
  *
  * **Safety contract.** `code` is the **decoded field value** (HL7 escapes are
  * unescaped as with every field read) and is **never resolved to clock times,
- * normalized, or mapped to a different frequency** — reading `Q6H` as "daily"
+ * normalized, or mapped to a different frequency**: reading `Q6H` as "daily"
  * or silently dropping a `BID` changes the administered dose count, a
  * transcription-class harm. `kind`/`interval` are convenience provenance ONLY;
  * `code` is the authoritative value.
@@ -297,19 +297,19 @@ export type RepeatPatternKind = "parametric" | "named" | "unknown";
 export interface RepeatPattern {
   /** The Table-0335 repeat-pattern code exactly as authored (e.g. `"Q6H"`, `"BID"`). Never normalized. */
   readonly code: string;
-  /** Provenance classification of `code` — never used to resolve a schedule. See {@link RepeatPatternKind}. */
+  /** Provenance classification of `code`: never used to resolve a schedule. See {@link RepeatPatternKind}. */
   readonly kind: RepeatPatternKind;
   /**
    * For a `"parametric"` `Q<integer><unit>` template only: the load-bearing
    * integer and its unit letter (`S`/`M`/`H`/`D`/`W`/`L`, or `J` for
-   * day-of-week). OMITTED for `"named"`/`"unknown"` patterns. Informational —
+   * day-of-week). OMITTED for `"named"`/`"unknown"` patterns. Informational,
    * `code` remains authoritative.
    */
   readonly interval?: { readonly count: number; readonly unit: string };
 }
 
 /**
- * A composite-quantity (CQ) value on an order/medication timing — the TQ1-2
+ * A composite-quantity (CQ) value on an order/medication timing: the TQ1-2
  * service quantity, Phase M. `value` is strict-`Number()` parsed (`undefined`,
  * never `NaN`); `units` carries any CQ.2 units. Both keys OMITTED when absent.
  *
@@ -327,7 +327,7 @@ export interface TimingQuantity {
 }
 
 /**
- * The order/medication **timing** structure — one TQ1 segment (v2.5+) or the
+ * The order/medication **timing** structure: one TQ1 segment (v2.5+) or the
  * legacy embedded TQ in ORC-7 / RXE-1 (pre-v2.5), Phase M. Attached to
  * {@link Order.timings} and {@link Medication.timings}.
  *
@@ -336,7 +336,7 @@ export interface TimingQuantity {
  * clock times, or interpret sig. The load-bearing {@link repeatPattern} and
  * {@link totalOccurrences} are preserved verbatim (see {@link RepeatPattern});
  * `startDateTime`/`endDateTime` keep the Phase N `TS` precision + timezone
- * fidelity. A malformed timing never throws — absent pieces are omitted keys.
+ * fidelity. A malformed timing never throws: absent pieces are omitted keys.
  *
  * @example
  * ```ts
@@ -354,18 +354,18 @@ export interface OrderTiming {
    * Which structure this timing was read from: the dedicated **TQ1** segment
    * (v2.5+) or the **legacy** embedded TQ data type in ORC-7 (orders) / RXE-1
    * (encoded medications, pre-v2.5). The library treats the presence of a TQ1
-   * segment as the v2.5+ signal — the legacy embedded TQ is surfaced only when
+   * segment as the v2.5+ signal: the legacy embedded TQ is surfaced only when
    * no TQ1 accompanies the order, so the same timing is never double-counted
    * and a legacy-only timing is never dropped.
    */
   readonly source: "TQ1" | "legacy";
   /** TQ1-2 / legacy TQ.1 service quantity (CQ). */
   readonly quantity?: TimingQuantity;
-  /** TQ1-3 / legacy TQ.2 interval RI.1 repeat pattern (Table 0335) — verbatim. See {@link RepeatPattern}. */
+  /** TQ1-3 / legacy TQ.2 interval RI.1 repeat pattern (Table 0335): verbatim. See {@link RepeatPattern}. */
   readonly repeatPattern?: RepeatPattern;
-  /** TQ1-4 / legacy TQ.2 interval RI.2 explicit time(s) — surfaced verbatim (first repetition/value). */
+  /** TQ1-4 / legacy TQ.2 interval RI.2 explicit time(s): surfaced verbatim (first repetition/value). */
   readonly explicitTime?: string;
-  /** TQ1-6 / legacy TQ.3 service duration — surfaced verbatim. */
+  /** TQ1-6 / legacy TQ.3 service duration: surfaced verbatim. */
   readonly serviceDuration?: string;
   /** TQ1-7 / legacy TQ.4 start date/time as the fidelity `TS` (Phase N). */
   readonly startDateTime?: TS;
@@ -374,7 +374,7 @@ export interface OrderTiming {
   /** TQ1-9 priority (CWE) / legacy TQ.6 priority (surfaced as a CWE `{ identifier }`). */
   readonly priority?: CWE;
   /**
-   * TQ1-14 / legacy TQ.12 total occurrences (NM) — how many times the service
+   * TQ1-14 / legacy TQ.12 total occurrences (NM): how many times the service
    * is to be performed (strict-parsed; never `NaN`). **TQ1-14, not TQ1-11**
    * (TQ1-11 is Text Instruction). Load-bearing: losing it drops the total
    * administered count.
@@ -384,8 +384,8 @@ export interface OrderTiming {
 
 /**
  * OBR-derived order (HELPERS-05, D-16) with positionally-grouped OBX children
- * (D-12). `observations` is ALWAYS present — empty when no OBX follows this
- * OBR before the next OBR or end-of-message. Phase M adds `timings` — ALWAYS
+ * (D-12). `observations` is ALWAYS present: empty when no OBX follows this
+ * OBR before the next OBR or end-of-message. Phase M adds `timings`: ALWAYS
  * present, empty when the order carries no TQ1 / legacy embedded TQ.
  *
  * @example
@@ -408,7 +408,7 @@ export interface Order {
   readonly fillerOrderNumber?: string;
   /** OBR-4 universal service identifier (test code + description). */
   readonly universalServiceId?: CWE;
-  /** OBR-5 order status (v1 — Phase 7 may reconcile with OBR-25). */
+  /** OBR-5 order status (v1: Phase 7 may reconcile with OBR-25). */
   readonly orderStatus?: string;
   /** ORC-1 order control when an ORC precedes this OBR. */
   readonly orderControl?: string;
@@ -418,24 +418,24 @@ export interface Order {
   readonly observations: readonly Observation[];
   /**
    * TQ1 / legacy embedded-TQ timing(s) grouped under this order (Phase M).
-   * Always present — empty when the order carries no timing. See
+   * Always present: empty when the order carries no timing. See
    * {@link OrderTiming}.
    */
   readonly timings: readonly OrderTiming[];
   /**
-   * NTE note lines positionally attached to this order (Phase P) — the
+   * NTE note lines positionally attached to this order (Phase P): the
    * ORC-region notes (before the OBR) followed by the OBR-region notes, in
    * document order. Several ORCs before one OBR all contribute here; nothing is
    * dropped. OMITTED when the order carries no notes. A note on a trailing or
    * dangling ORC that never opens an order is surfaced at message level
-   * (`msg.notes()`), not here — still never dropped. High-PHI-risk clinical
+   * (`msg.notes()`), not here: still never dropped. High-PHI-risk clinical
    * narrative.
    */
   readonly notes?: readonly string[];
 }
 
 /**
- * NK1-derived next-of-kin entry (HELPERS-06). Lean subset — callers can
+ * NK1-derived next-of-kin entry (HELPERS-06). Lean subset: callers can
  * reach for `msg.segments("NK1")` when they need the full NK1 surface.
  *
  * @example
@@ -512,21 +512,21 @@ export interface Diagnosis {
 }
 
 /**
- * Which pharmacy/treatment segment a `Medication` was extracted from — the
+ * Which pharmacy/treatment segment a `Medication` was extracted from: the
  * clinical "phase" of the medication. Each value maps 1:1 to one RX* parent
  * segment (Phase D, Ch. 4A):
- * - `"order"` — **RXO** (Pharmacy/Treatment Order): the originally *requested*
+ * - `"order"`: **RXO** (Pharmacy/Treatment Order): the originally *requested*
  *   give code/amount/dosage-form, before pharmacy encoding.
- * - `"encoded"` — **RXE** (Encoded Order): the pharmacy-encoded give
- *   code/amount, plus the give *strength* (RXE-25/26) — the only context that
+ * - `"encoded"`: **RXE** (Encoded Order): the pharmacy-encoded give
+ *   code/amount, plus the give *strength* (RXE-25/26): the only context that
  *   carries a separate strength.
- * - `"dispense"` — **RXD** (Dispense): what was actually dispensed.
- * - `"administration"` — **RXA** (Administration): what was actually given to
+ * - `"dispense"`: **RXD** (Dispense): what was actually dispensed.
+ * - `"administration"`: **RXA** (Administration): what was actually given to
  *   the patient.
  *
  * The context is preserved verbatim and never collapsed: an RDE order that
  * carries both an RXO request and an RXE encoded line surfaces as TWO
- * `Medication` entries with distinct contexts — the helper never reconciles
+ * `Medication` entries with distinct contexts: the helper never reconciles
  * one against the other.
  */
 export type MedicationContext = "order" | "encoded" | "dispense" | "administration";
@@ -536,10 +536,10 @@ export type MedicationContext = "order" | "encoded" | "dispense" | "administrati
  * Carries the HL7 min/max amount pair and its units.
  *
  * - For an **order** (RXO-2/3) or **encoded** order (RXE-3/4) the amount is a
- *   genuine min..max range — both keys may be present.
+ *   genuine min..max range: both keys may be present.
  * - For a **dispense** (RXD-4) or **administration** (RXA-6) there is a SINGLE
  *   amount; it is surfaced as `minimum` with `maximum` OMITTED. This is a
- *   single value, not a range — do not read the absent `maximum` as "no upper
+ *   single value, not a range: do not read the absent `maximum` as "no upper
  *   bound on a range".
  *
  * `minimum`/`maximum` are strict-`Number()` parsed (`undefined`, never `NaN`).
@@ -563,7 +563,7 @@ export interface MedicationAmount {
 
 /**
  * The give *strength* of an **encoded** `Medication` (RXE-25 value + RXE-26
- * units) — Phase D. Strength is the concentration of active ingredient (e.g.
+ * units): Phase D. Strength is the concentration of active ingredient (e.g.
  * "250 mg"), distinct from the give *amount* (how much is administered, e.g.
  * "2 tablets"). Only the `"encoded"` (RXE) context carries strength.
  *
@@ -571,7 +571,7 @@ export interface MedicationAmount {
  * RXE-25/26 fields declare it, and is NEVER reconciled against any strength
  * *implied* by the give code (e.g. an NDC that encodes "250 mg"). A consumer
  * that sees both an explicit strength here and a coded drug in `giveCode` must
- * treat a disagreement as a real signal — the library does not silently pick a
+ * treat a disagreement as a real signal: the library does not silently pick a
  * winner. `value` is strict-`Number()` parsed (`undefined`, never `NaN`).
  *
  * @example
@@ -590,7 +590,7 @@ export interface MedicationStrength {
 /**
  * One RXR (Pharmacy/Treatment Route) grouped under its parent RX* segment
  * (Phase D). `route` is HL7 Table 0162 (CWE); `site` is Table 0163 (CWE).
- * Provenance travels on the CWE (`route.nameOfCodingSystem`) — a "PO" route is
+ * Provenance travels on the CWE (`route.nameOfCodingSystem`): a "PO" route is
  * only safe to act on when you know the system it was coded against.
  *
  * @example
@@ -608,7 +608,7 @@ export interface MedicationRoute {
 
 /**
  * One RXC (Pharmacy/Treatment Component Order) grouped under its parent RX*
- * segment (Phase D) — a component of a compound/IV. Surfaced STRUCTURALLY
+ * segment (Phase D): a component of a compound/IV. Surfaced STRUCTURALLY
  * (the component list as authored), NOT pharmacologically resolved.
  *
  * @example
@@ -618,7 +618,7 @@ export interface MedicationRoute {
  * ```
  */
 export interface MedicationComponent {
-  /** RXC-1 component type (e.g. "B"=base, "A"=additive — HL7 Table 0166). */
+  /** RXC-1 component type (e.g. "B"=base, "A"=additive: HL7 Table 0166). */
   readonly type?: string;
   /** RXC-2 component code. */
   readonly code?: CWE;
@@ -637,15 +637,15 @@ export interface MedicationComponent {
  * **Safety contract.** A wrong drug, strength, or route can harm a real
  * patient, so this view is deliberately conservative:
  * - `giveCode` carries its own coding-system provenance via the CWE
- *   (`giveCode.nameOfCodingSystem` — e.g. `RXN` RxNorm, `NDC`). The helper
+ *   (`giveCode.nameOfCodingSystem`: e.g. `RXN` RxNorm, `NDC`). The helper
  *   surfaces the *claim*; it never validates or looks the code up.
  * - `amount` (how much) and `strength` (concentration) are SEPARATE fields and
- *   are never reconciled — including against any strength a coded drug implies
+ *   are never reconciled: including against any strength a coded drug implies
  *   (Phase D §4). A disagreement is preserved for the consumer to see.
- * - Malformed RX* segments never throw — absent fields are omitted keys.
+ * - Malformed RX* segments never throw: absent fields are omitted keys.
  *
  * `routes` and `components` are ALWAYS present (possibly empty). Phase M adds
- * `timings` — ALWAYS present, empty when no TQ1 / legacy embedded TQ (RXE-1)
+ * `timings`: ALWAYS present, empty when no TQ1 / legacy embedded TQ (RXE-1)
  * accompanies the medication; the repeat pattern is surfaced **verbatim, never
  * normalized to a schedule**. Deferred (not v1): sig/frequency *interpretation*,
  * dose-range or interaction checking, pharmacologic resolution of compounds.
@@ -671,7 +671,7 @@ export interface Medication {
   readonly giveCode?: CWE;
   /** Give/dispense/administered amount (+ units). See {@link MedicationAmount}. */
   readonly amount?: MedicationAmount;
-  /** RXE-25/26 give strength — ENCODED context only; never reconciled with `giveCode`. */
+  /** RXE-25/26 give strength: ENCODED context only; never reconciled with `giveCode`. */
   readonly strength?: MedicationStrength;
   /** RXO-5 requested dosage form (order context). */
   readonly dosageForm?: CWE;
@@ -681,7 +681,7 @@ export interface Medication {
   readonly components: readonly MedicationComponent[];
   /**
    * TQ1 / legacy embedded-TQ (RXE-1) timing(s) grouped under this medication
-   * (Phase M). Always present — empty when the medication carries no timing.
+   * (Phase M). Always present: empty when the medication carries no timing.
    * See {@link OrderTiming}.
    */
   readonly timings: readonly OrderTiming[];
@@ -729,11 +729,11 @@ export interface Insurance {
 
 /**
  * Whether an `Immunization` records a dose that was **administered** by the
- * reporting system or is **historical** information sourced from elsewhere —
+ * reporting system or is **historical** information sourced from elsewhere,
  * derived conservatively from RXA-9.1 against HL7 Table NIP001 (Immunization
  * Information Source, CDC v2.5.1 Immunization Messaging IG):
- * - `"administered"` — RXA-9.1 is exactly `"00"` (New immunization record).
- * - `"historical"` — RXA-9.1 is `"01".."08"` (any "Historical information …"
+ * - `"administered"`: RXA-9.1 is exactly `"00"` (New immunization record).
+ * - `"historical"`: RXA-9.1 is `"01".."08"` (any "Historical information …"
  *   source).
  *
  * **Fail-safe:** this is OMITTED (never guessed) when RXA-9 is absent or carries
@@ -741,7 +741,7 @@ export interface Insurance {
  * always preserved verbatim on `Immunization.informationSource`, so a consumer
  * can inspect the original code even when `recordOrigin` is undefined. The
  * distinction matters because an IIS de-duplicates a *historical* report
- * differently from a dose it believes was *administered* — guessing corrupts
+ * differently from a dose it believes was *administered*: guessing corrupts
  * the registry.
  */
 export type ImmunizationRecordOrigin = "administered" | "historical";
@@ -757,18 +757,18 @@ export type ImmunizationRecordOrigin = "administered" | "historical";
  * a patient or corrupt an IIS (Immunization Information System) registry, so
  * this view is deliberately conservative:
  * - `vaccineCode` carries its own coding-system provenance via the CWE
- *   (`vaccineCode.nameOfCodingSystem` — `CVX` HL7 Table 0292; live IIS feeds
+ *   (`vaccineCode.nameOfCodingSystem`: `CVX` HL7 Table 0292; live IIS feeds
  *   frequently *dual-code* RXA-5 with an alternate CVX/NDC in CWE.4-6, surfaced
  *   as `vaccineCode.alternateIdentifier`/`alternateText`/`nameOfAlternateCodingSystem`).
  *   The helper reports the *claim*; it never validates or looks the code up.
  * - `actionCode` (RXA-21, `A`/`D`/`U`) is surfaced **verbatim** and never
- *   defaulted — mis-keying it corrupts a registry's add/delete/update dedup.
+ *   defaulted: mis-keying it corrupts a registry's add/delete/update dedup.
  * - `doseAmount` is strict-`Number()` parsed; the IIS "unknown dose" sentinel
  *   `999` is surfaced **as the number `999`**, never specially coerced.
  * - `recordOrigin` (administered vs historical) is derived only from the
- *   well-known NIP001 RXA-9.1 codes and OMITTED otherwise — see
+ *   well-known NIP001 RXA-9.1 codes and OMITTED otherwise: see
  *   {@link ImmunizationRecordOrigin}.
- * - Malformed RXA segments never throw — absent fields are omitted keys.
+ * - Malformed RXA segments never throw: absent fields are omitted keys.
  *
  * `routes` and `observations` are ALWAYS present (possibly empty). Deferred (not
  * v1): IIS-specific state profile constraints; CVX/MVX validity checks; the 2nd+
@@ -803,9 +803,9 @@ export interface Immunization {
   readonly doseUnits?: CWE;
   /**
    * `true` iff RXA-7's coding system (CWE.3) is exactly `UCUM` (HL7 Table 0396)
-   * — i.e. the dose unit is declared UCUM and safe to interpret as computable.
+   *: i.e. the dose unit is declared UCUM and safe to interpret as computable.
    * `false` means a unit IS present but is NOT declared UCUM (surfaced as-is,
-   * never coerced). OMITTED when RXA-7 is absent. A *claim* check only — UCUM
+   * never coerced). OMITTED when RXA-7 is absent. A *claim* check only: UCUM
    * grammar is not validated here.
    */
   readonly doseUnitsAreUcum?: boolean;
@@ -825,7 +825,7 @@ export interface Immunization {
   readonly refusalReason?: CWE;
   /** RXA-20 completion status (`CP`=complete, `RE`=refused, `NA`=not administered, `PA`=partially administered). */
   readonly completionStatus?: string;
-  /** RXA-21 action code (`A`=add, `D`=delete, `U`=update) — preserved verbatim, NEVER defaulted. */
+  /** RXA-21 action code (`A`=add, `D`=delete, `U`=update): preserved verbatim, NEVER defaulted. */
   readonly actionCode?: string;
   /** RXR children grouped under this RXA (Table 0162 route / Table 0163 site). Always present (possibly empty). */
   readonly routes: readonly MedicationRoute[];
@@ -834,7 +834,7 @@ export interface Immunization {
 }
 
 /**
- * One appointment resource grouped under a `SCH` (Phase Q) — an AIS (service),
+ * One appointment resource grouped under a `SCH` (Phase Q): an AIS (service),
  * AIG (general resource), AIL (location), or AIP (personnel / provider) segment.
  * The resource identifier lives at position 3 of every AI* segment; for the
  * personnel resource (AIP) it is additionally surfaced as a typed `person`
@@ -850,7 +850,7 @@ export interface AppointmentResource {
   /** Which AI* segment sourced this resource: AIS→service, AIG→general, AIL→location, AIP→personnel. */
   readonly kind: "service" | "general" | "location" | "personnel";
   /**
-   * The AI*-3 resource identifier surfaced as a coded element — `code.identifier`
+   * The AI*-3 resource identifier surfaced as a coded element: `code.identifier`
    * is the resource id (first component, verbatim). AIS-3 / AIG-3 are coded
    * elements, so `code.text` / `code.nameOfCodingSystem` are meaningful there;
    * AIL-3 is a **PL** (location) rather than a coded element, so only
@@ -858,12 +858,12 @@ export interface AppointmentResource {
    * fields are positional provenance, not a coding system. Provenance-only.
    */
   readonly code?: CWE;
-  /** AIP-3 personnel resource as a typed `XCN` (personnel resources only) — the appointment provider. */
+  /** AIP-3 personnel resource as a typed `XCN` (personnel resources only): the appointment provider. */
   readonly person?: XCN;
 }
 
 /**
- * SCH-derived appointment entry (Phase Q — SIU scheduling breadth). Surfaces the
+ * SCH-derived appointment entry (Phase Q: SIU scheduling breadth). Surfaces the
  * appointment identifiers, filler status (SCH-25, Table 0278), SCH-11 start/end
  * timing, and the AI* resource groups. NOT a scheduling-workflow state machine.
  *
@@ -882,20 +882,20 @@ export interface Appointment {
   readonly placerAppointmentId?: string;
   /** SCH-2 filler appointment ID (EI first component, verbatim). */
   readonly fillerAppointmentId?: string;
-  /** SCH-25 filler status code (HL7 Table 0278) — the appointment status, verbatim/provenance-only. */
+  /** SCH-25 filler status code (HL7 Table 0278): the appointment status, verbatim/provenance-only. */
   readonly fillerStatusCode?: CWE;
-  /** Appointment start date/time — SCH-11 TQ.4 (fidelity `TS`, Phase N). */
+  /** Appointment start date/time: SCH-11 TQ.4 (fidelity `TS`, Phase N). */
   readonly startDateTime?: TS;
-  /** Appointment end date/time — SCH-11 TQ.5 (fidelity `TS`, Phase N). */
+  /** Appointment end date/time: SCH-11 TQ.5 (fidelity `TS`, Phase N). */
   readonly endDateTime?: TS;
   /** AIS/AIG/AIL/AIP resources grouped under this SCH. Always present (possibly empty). */
   readonly resources: readonly AppointmentResource[];
 }
 
 /**
- * TXA-derived clinical-document entry (Phase Q — MDM document breadth). The
+ * TXA-derived clinical-document entry (Phase Q: MDM document breadth). The
  * load-bearing safety property: **completion status (TXA-17) and availability
- * status (TXA-19) are DISTINCT fields and are never conflated** — a document can
+ * status (TXA-19) are DISTINCT fields and are never conflated**: a document can
  * be *available* before it is *authenticated*, and reading a preliminary
  * document as final is the clinical harm. Both are verbatim / provenance-only.
  *
@@ -904,8 +904,8 @@ export interface Appointment {
  * import type { ClinicalDocument } from "@cosyte/hl7";
  * const doc: ClinicalDocument = {
  *   documentType: "DS",
- *   completionStatus: "IP", // in progress — NOT yet authenticated
- *   availabilityStatus: "AV", // available — a different axis
+ *   completionStatus: "IP", // in progress: NOT yet authenticated
+ *   availabilityStatus: "AV", // available: a different axis
  *   observations: [],
  * };
  * ```
@@ -914,14 +914,14 @@ export interface ClinicalDocument {
   /** TXA-2 document type (HL7 Table 0270), verbatim. */
   readonly documentType?: string;
   /**
-   * TXA-17 document **completion** status (HL7 Table 0271 — e.g. `DO` documented,
+   * TXA-17 document **completion** status (HL7 Table 0271: e.g. `DO` documented,
    * `IP` in progress, `AU` authenticated, `LA` legally authenticated, `IN`
    * incomplete). Surfaced DISTINCT from {@link availabilityStatus}; verbatim,
    * never validated, never merged.
    */
   readonly completionStatus?: string;
   /**
-   * TXA-19 document **availability** status (HL7 Table 0273 — `AV` available,
+   * TXA-19 document **availability** status (HL7 Table 0273: `AV` available,
    * `CA` cancelled, `OB` obsolete, `UN` unavailable). Surfaced DISTINCT from
    * {@link completionStatus}; verbatim, never validated, never merged.
    */
@@ -930,15 +930,15 @@ export interface ClinicalDocument {
   readonly activityDateTime?: TS;
   /** TXA-12 unique document number (EI first component, verbatim). */
   readonly uniqueDocumentNumber?: string;
-  /** TXA-13 parent document number (EI first component) — addendum / replacement link. */
+  /** TXA-13 parent document number (EI first component): addendum / replacement link. */
   readonly parentDocumentNumber?: string;
   /** OBX narrative body grouped under this TXA. Always present (possibly empty). */
   readonly observations: readonly Observation[];
 }
 
 /**
- * FT1-derived charge entry (Phase Q — DFT financial breadth). Billing-critical
- * fields surfaced with **no billing logic and no money-as-float** — the
+ * FT1-derived charge entry (Phase Q: DFT financial breadth). Billing-critical
+ * fields surfaced with **no billing logic and no money-as-float**: the
  * extended/unit amounts are the verbatim CP wire text, never parsed to a number.
  *
  * @example
@@ -955,16 +955,16 @@ export interface ClinicalDocument {
 export interface Charge {
   /** FT1-4 transaction date (fidelity `TS`, Phase N). */
   readonly transactionDate?: TS;
-  /** FT1-6 transaction type (HL7 Table 0017 — `CG` charge, `CD` credit, `PY` payment, `AJ` adjustment). Verbatim. */
+  /** FT1-6 transaction type (HL7 Table 0017: `CG` charge, `CD` credit, `PY` payment, `AJ` adjustment). Verbatim. */
   readonly transactionType?: string;
-  /** FT1-7 transaction code — the institution charge/procedure code (CWE, provenance-only, never validated). */
+  /** FT1-7 transaction code: the institution charge/procedure code (CWE, provenance-only, never validated). */
   readonly transactionCode?: CWE;
   /** FT1-10 transaction quantity (NM; strict-parsed, never `NaN`). */
   readonly quantity?: number;
-  /** FT1-11 transaction amount, extended (CP) — canonical wire text (e.g. `150.00^USD`, byte-exact for a plain amount); never parsed to a number. */
+  /** FT1-11 transaction amount, extended (CP): canonical wire text (e.g. `150.00^USD`, byte-exact for a plain amount); never parsed to a number. */
   readonly amountExtended?: string;
-  /** FT1-12 transaction amount, unit (CP) — canonical wire text; never parsed to a number. */
+  /** FT1-12 transaction amount, unit (CP): canonical wire text; never parsed to a number. */
   readonly amountUnit?: string;
-  /** FT1-19 diagnosis code(s) linked to this charge (CE, repeating) — billing diagnosis linkage. Always present (possibly empty). */
+  /** FT1-19 diagnosis code(s) linked to this charge (CE, repeating): billing diagnosis linkage. Always present (possibly empty). */
   readonly diagnoses: readonly CWE[];
 }

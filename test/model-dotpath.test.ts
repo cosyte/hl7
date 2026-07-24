@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import { parseHL7 } from "../src/parser/index.js";
 import { parsePath, resolvePath } from "../src/model/dot-path.js";
 
-// PID-5: Smith\F\Jr^Jane^Q^Jr.^Mrs. — escaped `|` in the family name exercises auto-unescape.
-// PID-3: 123456^^^MRN — single rep, 4 components (tests component indexing and gaps).
+// PID-5: Smith\F\Jr^Jane^Q^Jr.^Mrs.: escaped `|` in the family name exercises auto-unescape.
+// PID-3: 123456^^^MRN: single rep, 4 components (tests component indexing and gaps).
 // Added PID-3 repetition variant for rep-index tests: "100~200^^^MRN" parses as PID-3 with
 // two repetitions: rep[0]={100}, rep[1]={200,,,MRN}.
 const FIXTURE =
@@ -69,7 +69,7 @@ describe("model/dot-path: parsePath rejects malformed paths", () => {
   });
 });
 
-describe("model/dot-path: resolvePath — acceptance paths", () => {
+describe("model/dot-path: resolvePath: acceptance paths", () => {
   it("resolves PID.5.1 to the component string (auto-unescaped)", () => {
     const msg = parseHL7(FIXTURE);
     expect(resolvePath("PID.5.1", msg.rawSegments, msg.encodingCharacters)).toBe("Smith|Jr");
@@ -82,13 +82,13 @@ describe("model/dot-path: resolvePath — acceptance paths", () => {
 
   it("resolves OBX[2].5 to the third OBX segment's 5th field (0-indexed)", () => {
     const msg = parseHL7(FIXTURE);
-    // Third OBX is `OBX|3|TX|PLT|3|200|...` — OBX-5 = "200".
+    // Third OBX is `OBX|3|TX|PLT|3|200|...`: OBX-5 = "200".
     expect(resolvePath("OBX[2].5", msg.rawSegments, msg.encodingCharacters)).toBe("200");
   });
 
   it("resolves OBX[0].5 to the FIRST OBX segment's 5th field", () => {
     const msg = parseHL7(FIXTURE);
-    // First OBX is `OBX|1|TX|GLUC|1|120|...` — OBX-5 = "120".
+    // First OBX is `OBX|1|TX|GLUC|1|120|...`: OBX-5 = "120".
     expect(resolvePath("OBX[0].5", msg.rawSegments, msg.encodingCharacters)).toBe("120");
   });
 
@@ -107,7 +107,7 @@ describe("model/dot-path: resolvePath — acceptance paths", () => {
     expect(resolvePath("PID.3", msg.rawSegments, msg.encodingCharacters)).toBe("100");
   });
 
-  it("collapses depth on PID.5.1.1 (no `&` subcomponents — returns component string, D-04)", () => {
+  it("collapses depth on PID.5.1.1 (no `&` subcomponents: returns component string, D-04)", () => {
     const msg = parseHL7(FIXTURE);
     expect(resolvePath("PID.5.1.1", msg.rawSegments, msg.encodingCharacters)).toBe("Smith|Jr");
   });
@@ -154,7 +154,7 @@ describe("model/dot-path: resolvePath — acceptance paths", () => {
 
   it("auto-unescapes at the leaf (D-03)", () => {
     const msg = parseHL7(FIXTURE);
-    // PID-5-1 raw is "Smith\F\Jr" — after unescape becomes "Smith|Jr".
+    // PID-5-1 raw is "Smith\F\Jr": after unescape becomes "Smith|Jr".
     expect(resolvePath("PID.5.1", msg.rawSegments, msg.encodingCharacters)).toBe("Smith|Jr");
   });
 

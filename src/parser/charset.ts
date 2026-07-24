@@ -2,13 +2,13 @@
  * HL7 v2 **Table 0211 (Alternate Character Sets)** resolution for the parser's
  * `Buffer`-decode stage (Phase O). Mirrors the frozen read-only registries
  * `KNOWN_SEGMENTS` / `KNOWN_CODING_SYSTEMS`: a single source of truth mapping an
- * MSH-18 character-set code to how the parser treats it — **decode** (single-byte
+ * MSH-18 character-set code to how the parser treats it: **decode** (single-byte
  * ISO-8859 family + Unicode UTF-8) or **preserve-verbatim** (the multibyte /
  * ISO-2022-switched East-Asian sets and UTF-16/32, which HL7 renders through
  * stateful `\Mxxyyzz\` escapes this phase deliberately does not fully decode).
  *
  * Spec traceability: HL7 v2 Chapter 2, **MSH-18** (item 00692) + **Table 0211**
- * (OID 2.16.840.1.113883.18.116). MSH-18 is **repeating** — the first occurrence
+ * (OID 2.16.840.1.113883.18.116). MSH-18 is **repeating**: the first occurrence
  * is the message's default encoding, later occurrences are alternates activated
  * mid-message by the §2.7.4 charset-switch escapes (`\Cxxyy\` single-byte,
  * `\Mxxyyzz\` multi-byte). A **blank** MSH-18 means 7-bit ASCII (the default).
@@ -22,19 +22,19 @@
  * be re-decoded downstream via `Buffer.from(value, "latin1")`. For a **multibyte**
  * set (UTF-16/32, the East-Asian DBCS/ISO-2022 sets) a content byte can coincide
  * with a structural byte, so tokenization runs on raw bytes and framing is
- * best-effort, not byte-recoverable — which is exactly why decoding those sets is
+ * best-effort, not byte-recoverable: which is exactly why decoding those sets is
  * deferred (see the parser's known-limitations). Because a recognized-but-undecoded
  * set and an unrecognized label both preserve bytes, the exact Table-0211 spelling
- * of the multibyte codes is not load-bearing for safety — only for which warning
+ * of the multibyte codes is not load-bearing for safety: only for which warning
  * (`UNSUPPORTED_CHARSET` vs `UNKNOWN_CHARSET`) fires.
  */
 
 /**
  * How the parser treats a resolved MSH-18 character set.
  *
- * - `decode` — decode the byte stream to text with {@link CharsetResolution.decoder}.
- * - `verbatim` — read the raw bytes as a 1:1 `latin1` mapping; do not decode
- *   (byte-recoverable for single-byte content — see the module header).
+ * - `decode`: decode the byte stream to text with {@link CharsetResolution.decoder}.
+ * - `verbatim`: read the raw bytes as a 1:1 `latin1` mapping; do not decode
+ *   (byte-recoverable for single-byte content: see the module header).
  */
 export type CharsetTreatment = "decode" | "verbatim";
 
@@ -106,7 +106,7 @@ function buildTable(): ReadonlyMap<string, CharsetEntry> {
     for (const alias of aliases) table.set(normalizeLabel(alias), entry);
   };
 
-  // 7-bit ASCII (ISO IR6) — the Table-0211 default. Decoded as UTF-8: for
+  // 7-bit ASCII (ISO IR6): the Table-0211 default. Decoded as UTF-8: for
   // conformant 7-bit content the result is byte-identical, and it tolerates the
   // ubiquitous undeclared-UTF-8 feed without corruption (ASCII ⊂ UTF-8).
   add(["ASCII", "US-ASCII", "ISO IR6"], decodeEntry("ASCII", "utf-8"));
@@ -115,14 +115,14 @@ function buildTable(): ReadonlyMap<string, CharsetEntry> {
   // pre-UTF-8 code that real feeds use to mean UTF-8.
   add(["UTF-8", "UTF8", "UNICODE UTF-8", "UNICODE"], decodeEntry("UTF-8", "utf-8"));
 
-  // ISO-8859-1 (Latin-1) — decoded via Node's `latin1`, which is the TRUE
+  // ISO-8859-1 (Latin-1): decoded via Node's `latin1`, which is the TRUE
   // ISO-8859-1 (every byte 0x00–0xFF maps 1:1, byte-exact, never fails). Node's
-  // WHATWG `TextDecoder("iso-8859-1")` is actually windows-1252 — it remaps the
+  // WHATWG `TextDecoder("iso-8859-1")` is actually windows-1252: it remaps the
   // C1 range (0x80 → €), so it is deliberately NOT used here.
   add(["8859/1", "ISO-8859-1", "ISO 8859-1", "ISO8859-1"], decodeEntry("8859/1", "latin1"));
 
   // The rest of the single-byte ISO 8859 family that Node's ICU decodes
-  // FAITHFULLY — i.e. the C1 range 0x80–0x9F maps to U+0080–U+009F (controls),
+  // FAITHFULLY: i.e. the C1 range 0x80–0x9F maps to U+0080–U+009F (controls),
   // matching the true ISO-8859-N code page (audited empirically). Decoded
   // strictly (see normalizeBuffer): a byte genuinely undefined in the set fails
   // the decode and preserves verbatim rather than emitting a silent U+FFFD.
@@ -130,8 +130,8 @@ function buildTable(): ReadonlyMap<string, CharsetEntry> {
   // 8859/9 and 8859/11 are DELIBERATELY EXCLUDED: Node/ICU aliases their labels
   // to windows-1254 / windows-874, which *define* the C1 range as typographic
   // characters (byte 0x80 → €), diverging from true ISO-8859-9/11. A strict
-  // decode would NOT throw on those bytes — it would silently emit a wrong,
-  // non-recoverable character — so they are preserved verbatim below instead of
+  // decode would NOT throw on those bytes: it would silently emit a wrong,
+  // non-recoverable character: so they are preserved verbatim below instead of
   // mis-decoded. (8859/1 is handled byte-exactly above via `latin1`.)
   for (const n of [2, 3, 4, 5, 6, 7, 8, 10, 13, 14, 15, 16]) {
     add(
@@ -139,7 +139,7 @@ function buildTable(): ReadonlyMap<string, CharsetEntry> {
       decodeEntry(`8859/${n}`, `iso-8859-${n}`),
     );
   }
-  // Recognized but NOT decoded — Node's ICU has no faithful decoder (windows
+  // Recognized but NOT decoded: Node's ICU has no faithful decoder (windows
   // codepage alias remaps the C1 range); preserved verbatim (byte-recoverable)
   // rather than silently mis-decoded. See the note above.
   add(["8859/9", "ISO-8859-9", "ISO 8859-9", "ISO8859-9"], verbatimEntry("8859/9"));
@@ -147,7 +147,7 @@ function buildTable(): ReadonlyMap<string, CharsetEntry> {
 
   // Recognized Table-0211 multibyte / ISO-2022-switched East-Asian sets and
   // the wide Unicode transforms: recognized, but preserved verbatim this phase
-  // (full stateful decoding is deferred — see the module header).
+  // (full stateful decoding is deferred: see the module header).
   add(["ISO IR14", "JIS X 0201"], verbatimEntry("ISO IR14"));
   add(["ISO IR87", "JIS X 0208"], verbatimEntry("ISO IR87"));
   add(["ISO IR159", "JIS X 0212"], verbatimEntry("ISO IR159"));
@@ -162,7 +162,7 @@ function buildTable(): ReadonlyMap<string, CharsetEntry> {
 }
 
 /**
- * The frozen HL7 v2 Table-0211 registry, keyed by normalized label. Read-only —
+ * The frozen HL7 v2 Table-0211 registry, keyed by normalized label. Read-only,
  * built once at module load, never mutated.
  */
 const CHARSET_TABLE: ReadonlyMap<string, CharsetEntry> = buildTable();

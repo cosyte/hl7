@@ -11,7 +11,7 @@
  * same-position entries while non-colliding positions survive additively.
  *
  * Post-merge re-validation (D-05 Z-only; D-06 duplicate-name defense-in-
- * depth) is the CALLER's responsibility — these helpers are pure reducers.
+ * depth) is the CALLER's responsibility: these helpers are pure reducers.
  *
  * @internal
  */
@@ -95,7 +95,7 @@ export function mergeDateFormats(
  * entries whose position collides, but preserves parent entries at
  * non-colliding positions within the same Z-segment.
  *
- * Post-merge re-validation (D-05, D-06) is the CALLER's responsibility —
+ * Post-merge re-validation (D-05, D-06) is the CALLER's responsibility,
  * this helper is a pure reducer.
  *
  * @internal

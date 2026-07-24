@@ -1,7 +1,7 @@
 /**
- * Phase Q — integration tests for `msg.documents()` (MDM: TXA → [OBX] narrative
+ * Phase Q: integration tests for `msg.documents()` (MDM: TXA → [OBX] narrative
  * body). The load-bearing case: TXA-17 **completion** status and TXA-19
- * **availability** status are surfaced as DISTINCT fields and NEVER conflated —
+ * **availability** status are surfaced as DISTINCT fields and NEVER conflated,
  * a document can be *available* (AV) while still only *in progress* (IP); reading
  * a preliminary document as final is the harm. Also covers the TXA field map,
  * positional OBX grouping, and the HELPERS-07 / D-01 / D-06 contracts.
@@ -71,11 +71,11 @@ describe("helpers/documents: TXA field map", () => {
 describe("helpers/documents: TXA-17 completion vs TXA-19 availability are DISTINCT", () => {
   const doc = parseHL7(loadFixture("mdm-t02-document")).documents()[0];
 
-  it("completion status (TXA-17) = IP (in progress) — NOT the availability value", () => {
+  it("completion status (TXA-17) = IP (in progress): NOT the availability value", () => {
     expect(doc?.completionStatus).toBe("IP");
   });
 
-  it("availability status (TXA-19) = AV (available) — NOT the completion value", () => {
+  it("availability status (TXA-19) = AV (available): NOT the completion value", () => {
     expect(doc?.availabilityStatus).toBe("AV");
   });
 

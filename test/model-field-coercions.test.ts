@@ -1,5 +1,5 @@
 /**
- * Field coercion integration tests — verify that every `Field.asXxx()` method
+ * Field coercion integration tests: verify that every `Field.asXxx()` method
  * wires through to the corresponding Plan 02 / Plan 03 composite parser and
  * returns a correctly-shaped result against a real `parseHL7`-produced
  * message. Also verifies the empty-field fallback (no throw) and the D-09

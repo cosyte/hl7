@@ -1,14 +1,14 @@
 /**
  * Finding factories for the conformance-profile engine (roadmap Phase U).
  * Every {@link ConformanceFinding} the engine emits is built here so that
- * message wording, severity, and — critically — **PHI safety** stay consistent
+ * message wording, severity, and (critically) **PHI safety** stay consistent
  * across the engine.
  *
  * The one rule every factory obeys: **a finding message names the structural
  * locus and the rule, never the offending value.** A value-set miss reports the
  * SIZE of the value set and the locus; a length overflow reports the declared
  * limit and the locus; neither ever embeds the field's content. This mirrors
- * the parser's warning discipline (`src/parser/warnings.ts`) — the locus is the
+ * the parser's warning discipline (`src/parser/warnings.ts`): the locus is the
  * PHI-free coordinate; the value stays in the (unmodified) message.
  *
  * @internal
@@ -23,7 +23,7 @@ import {
 
 /**
  * Render a {@link FindingLocus} as a compact human string for a finding
- * message — `PID`, `PID-3`, `PID-8 component 1`, `PID[1]-3 rep 2`. Structural
+ * message: `PID`, `PID-3`, `PID-8 component 1`, `PID[1]-3 rep 2`. Structural
  * indices only; never a value. Used only to build the PHI-safe `message`.
  *
  * @internal
@@ -81,7 +81,7 @@ export function notPermitted(locus: FindingLocus, severity: FindingSeverity): Co
 
 /**
  * A repetition / occurrence count is outside the declared cardinality. `actual`
- * and the `min` / `max` bounds are structural integers — never a value.
+ * and the `min` / `max` bounds are structural integers: never a value.
  *
  * @internal
  */
@@ -107,7 +107,7 @@ export function cardinality(
 
 /**
  * A checked component value exceeds the declared maximum length. The message
- * reports the declared `max` and the observed length **count** — never the
+ * reports the declared `max` and the observed length **count**: never the
  * value, and never any substring of it (a length count is a coarse shape fact,
  * consistent with the parser's `FIELD_WHITESPACE_TRIMMED` count-only policy).
  *
@@ -131,7 +131,7 @@ export function length(
 
 /**
  * A checked component value is not a member of the consumer-supplied value set.
- * The message reports the locus and the **size** of the value set — never the
+ * The message reports the locus and the **size** of the value set: never the
  * offending value and never the permitted codes' content beyond their count.
  *
  * @internal
@@ -153,7 +153,7 @@ export function valueNotInSet(
 
 /**
  * The profile ITSELF is structurally malformed. A diagnostic about the
- * **profile**, not the message — always `error` severity. `detail` describes
+ * **profile**, not the message: always `error` severity. `detail` describes
  * the shape defect (a profile is author-supplied configuration, not clinical
  * data, so it carries no PHI).
  *

@@ -28,7 +28,7 @@ import { defineProfile } from "./define.js";
  */
 export const cerner = defineProfile({
   name: "cerner",
-  description: "Cerner Millennium — ISO-style timestamps and common Z-segments",
+  description: "Cerner Millennium: ISO-style timestamps and common Z-segments",
   dateFormats: ["YYYY-MM-DDTHH:mm:ss", "YYYY-MM-DD"],
   customSegments: {
     ZDS: { fields: { summaryText: 3 } },

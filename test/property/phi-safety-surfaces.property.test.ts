@@ -1,6 +1,6 @@
 /**
  * PHI-executable coverage across the FATAL error surface and the serialized
- * output surface (HL7-J Part C — absorbs H-PHI).
+ * output surface (HL7-J Part C: absorbs H-PHI).
  *
  * `test/property/phi-safety.property.test.ts` already covers the WARNING
  * surface (`Hl7ParseWarning.message` never echoes a field VALUE) and pins
@@ -10,13 +10,13 @@
  *   1. **Fatal error MESSAGES** (not snippets): over fuzzed PHI-shaped field
  *      values that trigger each of the 4 fatal codes where reachable,
  *      `Hl7ParseError.message` carries only structural/positional facts
- *      (segment name, char counts, the code's own static wording) — never
+ *      (segment name, char counts, the code's own static wording): never
  *      an arbitrary field VALUE.
  *
  *   2. **The documented snippet nuance**: `errors.ts`'s own JSDoc (lines
  *      66-72) states snippets "may contain PHI when parsing real clinical
- *      messages" and that "the library does not redact — redact at the
- *      call site if required." That is the ACTUAL contract — not "snippets
+ *      messages" and that "the library does not redact: redact at the
+ *      call site if required." That is the ACTUAL contract: not "snippets
  *      never carry values." This file asserts the bound the contract DOES
  *      promise (<= 41 chars, per `segments.ts::snippet`) rather than
  *      inventing a stricter no-PHI-ever guarantee the code doesn't make.
@@ -26,7 +26,7 @@
  *
  *   3. **Serialized output honesty note**: `toString()` / `toJSON()` /
  *      `prettyPrint()` are the message content itself (or a debug dump of
- *      it) — they legitimately CONTAIN field values by design. That is not
+ *      it): they legitimately CONTAIN field values by design. That is not
  *      a leak. This file documents that explicitly with a round-trip
  *      assertion, so a future reader auditing "does hl7 leak PHI anywhere"
  *      doesn't mistake a content surface for a diagnostic/log surface.
@@ -48,7 +48,7 @@ const RUN_CONFIG = { numRuns: 300, seed: 0x07_09_2026 } as const;
 /** Same bound as `phi-safety.property.test.ts`: 40 raw chars + 1 ellipsis. */
 const SNIPPET_BOUND = 41;
 
-/** Fixed synthetic PHI-shaped tokens — same shapes as phi-safety.property.test.ts. */
+/** Fixed synthetic PHI-shaped tokens: same shapes as phi-safety.property.test.ts. */
 const PHI_MARKERS = [
   "JOHNNY-TESTPATIENT",
   "000-00-0000",
@@ -63,7 +63,7 @@ const markerArb = fc
 
 /**
  * Assert an `Hl7ParseError.message` never contains a given PHI-shaped
- * marker. Does NOT touch `.snippet` — that surface's contract is bounded
+ * marker. Does NOT touch `.snippet`: that surface's contract is bounded
  * length, not value-absence (see module JSDoc point 2).
  */
 function assertMessageNeverEchoesMarker(err: Hl7ParseError, marker: string): void {
@@ -77,7 +77,7 @@ describe("PHI-exec: NO_MSH_SEGMENT fatal message never echoes field values", () 
   it("property: PHI-shaped content instead of MSH still yields a structural-only message", () => {
     fc.assert(
       fc.property(markerArb, (marker) => {
-        // First segment does NOT start with "MSH" — NO_MSH_SEGMENT fires.
+        // First segment does NOT start with "MSH": NO_MSH_SEGMENT fires.
         // The marker sits where a naive implementation might echo "the
         // offending content" into the message.
         const raw = `${marker}|foo|bar\rPID|||${marker}\r`;
@@ -131,7 +131,7 @@ describe("PHI-exec: INVALID_ENCODING_CHARACTERS fatal message never echoes field
         try {
           parseHL7(raw);
           // Some marker shapes may coincidentally produce a valid 4/5-char
-          // distinct encoding set — that's a legal parse, not a failure of
+          // distinct encoding set: that's a legal parse, not a failure of
           // this property (it only asserts the fatal path when it fires).
         } catch (err) {
           expect(err).toBeInstanceOf(Hl7ParseError);
@@ -140,7 +140,7 @@ describe("PHI-exec: INVALID_ENCODING_CHARACTERS fatal message never echoes field
             assertMessageNeverEchoesMarker(err, marker);
             // The message legitimately reports a structural fact about the
             // encoding characters (a count / "distinct" / "whitespace" /
-            // "separator" token) — assert one such structural token is present,
+            // "separator" token): assert one such structural token is present,
             // not absent. Each alternative is a standalone token (grouped so the
             // `\d+` count alternative doesn't bind loosely to the rest).
             expect(err.message).toMatch(
@@ -154,7 +154,7 @@ describe("PHI-exec: INVALID_ENCODING_CHARACTERS fatal message never echoes field
   });
 
   it("fixed case: duplicate MSH-2 encoding chars yield a structural message with the marker absent", () => {
-    // MSH-2 "^^\&" repeats "^" — a fixed, reliable trigger for
+    // MSH-2 "^^\&" repeats "^": a fixed, reliable trigger for
     // INVALID_ENCODING_CHARACTERS ("...must be 4 distinct characters.").
     // PID carries PHI-shaped markers past the fatal point, proving they
     // can't leak into this specific structural message even though
@@ -193,7 +193,7 @@ describe("PHI-exec: EMPTY_INPUT fatal carries a static message and empty snippet
   });
 });
 
-describe("PHI-exec: documented snippet contract — bounded, not value-free (errors.ts:66-72)", () => {
+describe("PHI-exec: documented snippet contract: bounded, not value-free (errors.ts:66-72)", () => {
   it("property: fatal snippets on PHI-shaped adversarial input stay within the documented 41-char bound", () => {
     // This is the ACTUAL contract: snippet may carry PHI, bounded in length.
     // We assert the bound (what's promised), not absence (what's NOT promised).
@@ -242,18 +242,18 @@ describe("PHI-exec: documented snippet contract — bounded, not value-free (err
 
 describe("Serialized output honesty note: toString()/toJSON()/prettyPrint() legitimately contain field values", () => {
   // These three methods ARE the message (or a structured/pretty dump of
-  // it) — NOT a diagnostic or log surface. Field values appearing here is
+  // it): NOT a diagnostic or log surface. Field values appearing here is
   // the correct, intended behavior (round-tripping the message), not a PHI
   // leak. Documented explicitly so a reader scanning for "does hl7 leak
   // PHI" doesn't misclassify these as leak paths. Contrast with
   // Hl7ParseWarning.message (never echoes values) and Hl7ParseError.message
-  // (never echoes values) — the diagnostic surfaces — asserted elsewhere in
+  // (never echoes values), the diagnostic surfaces, asserted elsewhere in
   // this file and in phi-safety.property.test.ts.
   it("toString() round-trips the original field value verbatim (content surface, not a log surface)", () => {
     for (const marker of PHI_MARKERS) {
       const raw = `MSH|^~\\&|APP|FAC|APP|FAC|20250101||ADT^A01|1|P|2.5\rPID|||${marker}||${marker}\r`;
       const msg = parseHL7(raw);
-      // Round-trip: the marker DOES appear in toString() — that is correct,
+      // Round-trip: the marker DOES appear in toString(): that is correct,
       // not a defect. This assertion is the honesty note, not a leak guard.
       expect(msg.toString()).toContain(marker);
     }
@@ -272,7 +272,7 @@ describe("Serialized output honesty note: toString()/toJSON()/prettyPrint() legi
     for (const marker of PHI_MARKERS) {
       const raw = `MSH|^~\\&|APP|FAC|APP|FAC|20250101||ADT^A01|1|P|2.5\rPID|||${marker}\r`;
       const msg = parseHL7(raw);
-      // prettyPrint() is a debug/inspection dump — it legitimately CONTAINS the
+      // prettyPrint() is a debug/inspection dump: it legitimately CONTAINS the
       // field value (it IS a rendering of the message), which is why it is a
       // deliberate-inspection surface, never a diagnostic/log surface. Asserting
       // the value is present documents that distinction (see the module JSDoc).

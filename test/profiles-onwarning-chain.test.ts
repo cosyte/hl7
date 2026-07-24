@@ -12,7 +12,7 @@
  *   - Strict mode short-circuits BOTH handlers (existing Phase 2 contract
  *     preserved).
  *   - Option A hoist coverage: early-pipeline warnings (MLLP framing)
- *     route through both handlers too — distinguishes from a lazy-getter
+ *     route through both handlers too: distinguishes from a lazy-getter
  *     design (Option B) that would skip early warnings.
  */
 
@@ -62,7 +62,7 @@ describe("D-22: profile.onWarning fires BEFORE options.onWarning", () => {
       profile,
       onWarning: (w) => received.push(w),
     });
-    // First two entries correspond to the same emission — profile then options.
+    // First two entries correspond to the same emission: profile then options.
     expect(received.length).toBeGreaterThanOrEqual(2);
     expect(received[0]).toBe(received[1]); // identity, not just equality
   });
@@ -169,7 +169,7 @@ describe("D-22: profile.onWarning fires BEFORE options.onWarning", () => {
     // MLLP-framed input triggers MLLP_FRAMING_STRIPPED in Step 8 (after the
     // Task-2 Step-7 emitter construction but before Step 11.5). If the
     // profile.onWarning chain only covered post-Step-11.5 warnings (Option B
-    // lazy getter), this test would fail — it passes under Option A's
+    // lazy getter), this test would fail: it passes under Option A's
     // hoisted effectiveProfile resolution at Step 6.5.
     const VT = "\x0B";
     const FS = "\x1C";

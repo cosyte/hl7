@@ -4,7 +4,7 @@
  * future consumers (Phase 4 helpers) can pull the full surface in one line.
  *
  * The public HL7 namespace lives in `./namespace.js` (types only) and is
- * re-exported via `export * as HL7` from the top-level barrel — see
+ * re-exported via `export * as HL7` from the top-level barrel: see
  * `src/index.ts`.
  */
 

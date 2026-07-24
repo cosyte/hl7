@@ -1,21 +1,21 @@
 /**
  * Frozen HL7 control-vocabulary tables for ACK generation (Phase C). These
- * are read-only enums sourced from the HL7 v2 standard — `@cosyte/hl7` is the
+ * are read-only enums sourced from the HL7 v2 standard: `@cosyte/hl7` is the
  * single owner of this vocabulary; siblings (notably `@cosyte/mllp`) consume
  * `buildAck` rather than re-declaring these codes.
  *
- * Provenance (re-verify before editing — HL7 tables move):
- * - **Table 0008** Acknowledgment code — https://terminology.hl7.org/CodeSystem-v2-0008.html
- * - **Table 0357** Message error condition codes — https://terminology.hl7.org/CodeSystem-v2-0357.html
- * - **Table 0516** Error severity — HL7 v2 Chapter 2 §2.14.5 (ERR-4)
- * - **Table 0155** Accept/application acknowledgment conditions (MSH-15/16) —
+ * Provenance (re-verify before editing: HL7 tables move):
+ * - **Table 0008** Acknowledgment code: https://terminology.hl7.org/CodeSystem-v2-0008.html
+ * - **Table 0357** Message error condition codes: https://terminology.hl7.org/CodeSystem-v2-0357.html
+ * - **Table 0516** Error severity: HL7 v2 Chapter 2 §2.14.5 (ERR-4)
+ * - **Table 0155** Accept/application acknowledgment conditions (MSH-15/16),
  *   HL7 v2 Chapter 2 §2.14.9.15–16
  *
  * Zero runtime deps.
  */
 
 /**
- * HL7 Table 0008 — Acknowledgment code (MSA-1). The two acknowledgment
+ * HL7 Table 0008: Acknowledgment code (MSA-1). The two acknowledgment
  * **vocabularies**:
  * - **original** mode: `AA` Application Accept · `AE` Application Error ·
  *   `AR` Application Reject.
@@ -44,7 +44,7 @@ export const ACK_CODES = {
  */
 export type AckCode = (typeof ACK_CODES)[keyof typeof ACK_CODES];
 
-/** The positive-accept codes — the ones the fail-safe refuses to fabricate. */
+/** The positive-accept codes: the ones the fail-safe refuses to fabricate. */
 const POSITIVE_ACK_CODES: ReadonlySet<string> = new Set([ACK_CODES.AA, ACK_CODES.CA]);
 /** The error codes (message received, processing problem). */
 const ERROR_ACK_CODES: ReadonlySet<string> = new Set([ACK_CODES.AE, ACK_CODES.CE]);
@@ -65,14 +65,14 @@ export function isPositiveAck(code: string | undefined): boolean {
 }
 
 /**
- * Downgrade a positive acknowledgment code to its matching error code —
+ * Downgrade a positive acknowledgment code to its matching error code,
  * `AA` → `AE` (original mode), `CA` → `CE` (enhanced mode). Every other code
  * passes through unchanged.
  *
  * This is the **single upstream source of truth** for the fail-safe downgrade
  * pair: `buildAck` applies it when the inbound carries no MSH-10 correlation
  * id, and `@cosyte/mllp`'s `ack-from-hl7` adapter applies it when the inbound
- * cannot be parsed at all — neither ever fabricates an unverifiable positive
+ * cannot be parsed at all: neither ever fabricates an unverifiable positive
  * acknowledgment, and neither carries its own copy of the mapping.
  *
  * @example
@@ -127,7 +127,7 @@ export function isKnownAckCode(code: string): code is AckCode {
 }
 
 /**
- * HL7 Table 0516 — Error severity (ERR-4). A v2.5+ construct (ERR was
+ * HL7 Table 0516: Error severity (ERR-4). A v2.5+ construct (ERR was
  * structured differently in v2.3.1).
  *
  * @example
@@ -149,13 +149,13 @@ export const ERR_SEVERITIES = {
 export type ErrSeverity = (typeof ERR_SEVERITIES)[keyof typeof ERR_SEVERITIES];
 
 /**
- * HL7 Table 0357 — Message error condition codes (ERR-3.1 → ERR-3.2 text).
+ * HL7 Table 0357: Message error condition codes (ERR-3.1 → ERR-3.2 text).
  * Frozen read-only map of `code → standard display text`. The code system
  * name emitted in ERR-3.3 is {@link ERR_CONDITION_CODE_SYSTEM}.
  *
  * Codes `104` (value too long) and `105` (table value not found) are v2.7+
  * additions; the rest are present from v2.5. `buildAck` emits whatever code it
- * is told — it never invents a condition — and looks up the display text here.
+ * is told (it never invents a condition) and looks up the display text here.
  *
  * @example
  * ```ts
@@ -185,7 +185,7 @@ export const ERR_CONDITION_CODES: Readonly<Record<string, string>> = Object.free
 export const ERR_CONDITION_CODE_SYSTEM = "HL70357";
 
 /**
- * HL7 Table 0155 — Accept/application acknowledgment conditions (MSH-15 /
+ * HL7 Table 0155: Accept/application acknowledgment conditions (MSH-15 /
  * MSH-16): `AL` Always · `NE` Never · `ER` Error/reject conditions only ·
  * `SU` Successful completion only. Exposed read-only for adapters that
  * surface the inbound sender's stated acknowledgment expectations.

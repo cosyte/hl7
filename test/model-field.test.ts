@@ -76,7 +76,7 @@ describe("model/field: Field wrapper", () => {
     expect(empty.repetitions).toHaveLength(0);
   });
 
-  it("integrates with parseHL7 — PID-5 first-subcomponent via Segment.field(5)", () => {
+  it("integrates with parseHL7: PID-5 first-subcomponent via Segment.field(5)", () => {
     const msg = parseHL7(
       "MSH|^~\\&|A|F|A|F|20250101||ADT^A01|1|P|2.5\rPID|||1|A|Smith\\F\\Jr^Jane",
     );

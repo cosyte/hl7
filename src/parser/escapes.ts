@@ -1,6 +1,6 @@
 /**
  * HL7 escape-sequence handling for the `@cosyte/hl7` parser pipeline
- * — expands reserved-delimiter escapes on parse (`unescape`) and re-escapes
+ *: expands reserved-delimiter escapes on parse (`unescape`) and re-escapes
  * them back when emitting spec-clean HL7 on serialize (`reescape`).
  *
  * The HL7 v2 spec reserves the delimiter characters (field, component,
@@ -13,7 +13,7 @@
  * sequences. We **decode** sequences whose meaning is byte-exact (delimiter
  * back-substitution, hex, newline, truncation char). We **recognize and
  * preserve verbatim** sequences whose intent is presentational or sender-
- * specific — decoding them would either lose information (formatting/charset)
+ * specific: decoding them would either lose information (formatting/charset)
  * or invent a rendering policy the spec leaves to the consumer. Either way,
  * a recognized standard sequence never emits `UNKNOWN_ESCAPE_SEQUENCE`;
  * that warning is reserved for genuinely-unknown bodies (`\Z..\`, garbage).
@@ -33,7 +33,7 @@
  *   \.sp\, \.in\, \.ti\, \.fi\,       formatting commands (§2.7.6, kept as
  *   \.nf\, \.ce\                       semantic sentinels for a renderer)
  *   \Cxxyy\, \Mxxyyzz\                single- / multi-byte charset switch
- *                                       (§2.7.4 — sender-local byte sequences;
+ *                                       (§2.7.4: sender-local byte sequences;
  *                                       decoding requires charset context
  *                                       this module does not have)
  *
@@ -59,7 +59,7 @@ import {
  * Unknown or malformed sequences are preserved VERBATIM in the output and
  * emit an `UNKNOWN_ESCAPE_SEQUENCE` warning via `emit`. Unterminated escapes
  * (an escape character with no closing partner before end-of-input) are also
- * preserved in full and warn once — the scan is strictly O(n) and cannot
+ * preserved in full and warn once: the scan is strictly O(n) and cannot
  * infinite-loop on malformed input.
  *
  * @example
@@ -95,9 +95,9 @@ export function unescape(
     }
     const close = input.indexOf(esc, i + 1);
     if (close === -1) {
-      // Unterminated escape — preserve the rest verbatim, warn once, stop.
+      // Unterminated escape: preserve the rest verbatim, warn once, stop.
       // The warning carries NEITHER the tail content NOR its length (the
-      // remainder is arbitrary field text, potentially PHI) — only the fact
+      // remainder is arbitrary field text, potentially PHI): only the fact
       // and position.
       emit(unterminatedEscapeSequence(position));
       out += input.slice(i);
@@ -126,7 +126,7 @@ const DEFAULT_TRUNCATION_CHAR = "#";
 /** Highlight and formatting escapes that we recognize-but-preserve. */
 const RECOGNIZED_PRESERVED_SET: ReadonlySet<string> = new Set([
   "H", // begin highlighting (§2.7.1)
-  "N", // normal text — end highlighting (§2.7.1)
+  "N", // normal text: end highlighting (§2.7.1)
   ".sp", // vertical skip (§2.7.6)
   ".in", // indent
   ".ti", // temporary indent
@@ -137,7 +137,7 @@ const RECOGNIZED_PRESERVED_SET: ReadonlySet<string> = new Set([
 
 /**
  * Returns true for a spec-defined escape body the parser recognizes but
- * deliberately does not decode — recognizing it suppresses the
+ * deliberately does not decode: recognizing it suppresses the
  * `UNKNOWN_ESCAPE_SEQUENCE` warning while preserving the sequence verbatim
  * so the serializer round-trips it byte-for-byte. Covers HL7 v2 §2.7.1
  * highlight, §2.7.6 formatting commands, and §2.7.4 charset switches
@@ -148,11 +148,11 @@ const RECOGNIZED_PRESERVED_SET: ReadonlySet<string> = new Set([
  */
 function isRecognizedPreservedEscape(seq: string): boolean {
   if (RECOGNIZED_PRESERVED_SET.has(seq)) return true;
-  // \Cxxyy\ — single-byte char set switch (2 hex byte pairs = 4 hex digits).
+  // \Cxxyy\: single-byte char set switch (2 hex byte pairs = 4 hex digits).
   if (seq.length === 5 && seq.charAt(0) === "C" && /^[0-9A-Fa-f]{4}$/u.test(seq.slice(1))) {
     return true;
   }
-  // \Mxxyyzz\ — multi-byte char set switch (2 or 3 hex byte pairs = 4 or 6 digits).
+  // \Mxxyyzz\: multi-byte char set switch (2 or 3 hex byte pairs = 4 or 6 digits).
   if (
     seq.charAt(0) === "M" &&
     (seq.length === 5 || seq.length === 7) &&
@@ -166,7 +166,7 @@ function isRecognizedPreservedEscape(seq: string): boolean {
 /**
  * Expand a known HL7 escape body (the characters between the two escape
  * delimiters) to its decoded value. Returns `null` for any body this
- * function does not decode — `unescape` then routes the body through
+ * function does not decode: `unescape` then routes the body through
  * `isRecognizedPreservedEscape` to decide warn-or-preserve.
  *
  * @internal
@@ -177,7 +177,7 @@ function expandSequence(seq: string, enc: EncodingCharacters): string | null {
   if (seq === "T") return enc.subcomponent;
   if (seq === "R") return enc.repetition;
   if (seq === "E") return enc.escape;
-  // \P\ — truncation character (HL7 v2.7+ §2.5.5.2). Decodes to enc.truncation
+  // \P\: truncation character (HL7 v2.7+ §2.5.5.2). Decodes to enc.truncation
   // when MSH-2 declared one (5-char form), otherwise the spec default `#`.
   if (seq === "P") return enc.truncation ?? DEFAULT_TRUNCATION_CHAR;
   if (seq === ".br") return "\n";
@@ -216,10 +216,10 @@ function expandSequence(seq: string, enc: EncodingCharacters): string | null {
  *   "\n" (LF)         → \.br\
  *   "\r" (CR)         → \X0D\  (a decoded CR is the HL7 segment separator;
  *                               emitting it raw would corrupt wire framing, so
- *                               it re-encodes to its hex escape — see below)
+ *                               it re-encodes to its hex escape: see below)
  *
  * **Lossy by construction for the non-delimiter escape families.** `reescape`
- * only knows about the reserved characters above — it cannot reconstruct a
+ * only knows about the reserved characters above: it cannot reconstruct a
  * recognize-and-preserve escape (`\H\`, formatting, charset, `\Z..\`) or the
  * original bytes of a hex escape (`\X41\` decoded to `A`; casing of `\X0d\`),
  * because those decode to ordinary characters that carry no "I was an escape"
@@ -249,13 +249,13 @@ export function reescape(input: string, enc: EncodingCharacters): string {
     else if (ch === enc.component) out += enc.escape + "S" + enc.escape;
     else if (ch === enc.subcomponent) out += enc.escape + "T" + enc.escape;
     else if (ch === enc.repetition) out += enc.escape + "R" + enc.escape;
-    // \P\ — only emitted when MSH-2 declared a truncation character (v2.7+);
+    // \P\: only emitted when MSH-2 declared a truncation character (v2.7+);
     // for pre-v2.7 encodings the character has no reserved meaning and
     // round-trips as a literal.
     else if (trunc !== undefined && ch === trunc) out += enc.escape + "P" + enc.escape;
     else if (ch === "\n") out += enc.escape + ".br" + enc.escape;
     // A literal CR in decoded content (reachable via a spec-legal \X0D\ hex
-    // escape on parse) is the HL7 segment separator — emitting it raw would
+    // escape on parse) is the HL7 segment separator: emitting it raw would
     // CORRUPT the wire framing (a phantom segment split mid-field, silently).
     // Re-emit it as its hex escape so the round-trip is stable and the
     // emitted message always stays structurally intact.
@@ -270,11 +270,11 @@ export function reescape(input: string, enc: EncodingCharacters): string {
  * original wire bytes (`rawSub`) to emit verbatim, or `undefined` when the
  * decoded form already re-escapes back to those exact bytes.
  *
- * The rule is a single equality check — `reescape(decoded) === rawSub` — which
+ * The rule is a single equality check (`reescape(decoded) === rawSub`) which
  * captures every family correctly by construction:
  * - **Delimiter escapes** (`\F\`→`|`, `\E\`→`\`, `\.br\`→`\n`, `\X0D\`→CR) all
  *   re-escape back to their exact wire bytes, so they get **no overlay** and
- *   ride the `reescape` fast path — no per-subcomponent memory cost.
+ *   ride the `reescape` fast path: no per-subcomponent memory cost.
  * - **Recognize-and-preserve escapes** (`\H\`, `\N\`, formatting, charset,
  *   `\Z..\`) decode to a literal backslash-bearing string that `reescape`
  *   would double-escape (`\H\` → `\E\H\E\`), so `reescape(decoded) !== rawSub`

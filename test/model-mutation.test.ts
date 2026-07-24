@@ -1,5 +1,5 @@
 /**
- * Mutation API tests — cover setField/addSegment/removeSegment:
+ * Mutation API tests: cover setField/addSegment/removeSegment:
  * - D-15 chainability (returns `this`)
  * - D-16 frozen warnings preserved across mutations
  * - D-17 cache invalidation

@@ -1,5 +1,5 @@
 /**
- * Phase N accuracy sweep — datetime precision + timezone fidelity against the
+ * Phase N accuracy sweep: datetime precision + timezone fidelity against the
  * three `test/fixtures/datetime/*.hl7` fixtures. These assert the reader-facing
  * contract: precision is preserved (no zero-fill), a missing offset is flagged
  * (never silently UTC, never day-rolled), and an explicit offset survives.
@@ -16,7 +16,7 @@ function load(name: string): string {
 }
 
 describe("datetime fidelity: precision-year.hl7 (|1970| DOB stays a year)", () => {
-  it("preserves year-only precision on the DOB — never a full instant", () => {
+  it("preserves year-only precision on the DOB: never a full instant", () => {
     const dob = parseHL7(load("precision-year.hl7")).patient?.dateOfBirth;
     expect(dob?.valid).toBe(true);
     expect(dob?.precision).toBe("year");

@@ -4,13 +4,13 @@
  * The invariant: `Hl7ParseWarning.message` strings carry only **positional
  * context** plus **bounded metadata** (segment identifiers like `PID`/`ZZZ`,
  * escape sequences, format strings, field counts). They MUST NOT echo the
- * VALUE of a field — patient name, MRN, SSN, phone, address — because warnings
+ * VALUE of a field (patient name, MRN, SSN, phone, address) because warnings
  * routinely flow into application logs, where PHI is a leak.
  *
  * Scope boundary (intentional): `Hl7ParseError.snippet` is a different
  * surface. Its JSDoc at `parser/errors.ts:70-72` documents that snippets may
  * carry up to ~40 bytes of offending input and that **the library does not
- * redact** — consumers must. That is the documented consumer-redaction
+ * redact**: consumers must. That is the documented consumer-redaction
  * boundary, not a bug. This file therefore tests two distinct things:
  *
  *   1. warnings never echo field values (the leak we DO defend against), and
@@ -33,7 +33,7 @@ import { FATAL_CODES, Hl7ParseError, parseHL7 } from "../../src/index.js";
 const RUN_CONFIG = { numRuns: 200, seed: 0x06_27_2026 } as const;
 
 /**
- * Snippet bound from `parser/segments.ts:50` — 40 raw chars + 1 ellipsis
+ * Snippet bound from `parser/segments.ts:50`: 40 raw chars + 1 ellipsis
  * code point (`…`). Locked here so a regression in the bound surfaces
  * as a test failure, not a silent PHI-exposure blow-out.
  */
@@ -43,12 +43,12 @@ const SNIPPET_BOUND = 41;
  * Fixed synthetic PHI-shaped tokens. Each is distinct enough to never
  * accidentally collide with warning-message metadata (segment names,
  * numeric field counts, escape sequences). If one ever appears in a
- * warning's `message`, the parser is echoing a field VALUE — the leak we
+ * warning's `message`, the parser is echoing a field VALUE: the leak we
  * are guarding against.
  */
 const PHI_MARKERS = [
   "JOHNNY-TESTPATIENT", // name shape
-  "987-65-4321", // SSN shape (synthetic — `987-XX-XXXX` is in the IRS never-issued range)
+  "987-65-4321", // SSN shape (synthetic: `987-XX-XXXX` is in the IRS never-issued range)
   "TESTMRN-901234", // MRN shape
   "555-867-5309", // phone shape
   "TESTBLOB-XYZ123", // generic identifier shape
@@ -56,7 +56,7 @@ const PHI_MARKERS = [
 
 /**
  * Build a quirky HL7 message that (a) parses leniently with warnings, and
- * (b) embeds each given marker as a FIELD VALUE in several places — patient
+ * (b) embeds each given marker as a FIELD VALUE in several places: patient
  * name/MRN, extra fields past the segment end, a lowercase-named segment, a
  * Z-segment, and a value in an OBX. Crucially the markers appear only as
  * field VALUES, never as segment identifiers or escape sequences, so any
@@ -89,7 +89,7 @@ function quirkyMessageWithMarkers(markers: readonly string[]): string {
 /**
  * Build a quirky HL7 message where each marker is embedded with surrounding
  * whitespace (to trigger FIELD_WHITESPACE_TRIMMED) and, separately, behind a
- * stray/unknown escape character (to trigger UNKNOWN_ESCAPE_SEQUENCE) — the
+ * stray/unknown escape character (to trigger UNKNOWN_ESCAPE_SEQUENCE): the
  * two leak vectors this fix targets. Markers appear ONLY as field VALUES.
  */
 function quirkyMessageWithEscapesAndWhitespace(markers: readonly string[]): string {
@@ -112,7 +112,7 @@ describe("property: PHI safety in warning paths", () => {
     const raw = quirkyMessageWithMarkers(PHI_MARKERS);
     const msg = parseHL7(raw);
 
-    // Sanity: the fixture is quirky enough to actually trigger warnings —
+    // Sanity: the fixture is quirky enough to actually trigger warnings,
     // an empty warnings array would make the no-echo check vacuous.
     expect(msg.warnings.length).toBeGreaterThan(0);
 
@@ -143,7 +143,7 @@ describe("property: PHI safety in warning paths", () => {
         try {
           parsed = parseHL7(raw);
         } catch (err) {
-          // A Tier-3 fatal is acceptable here — the snippet on a fatal may
+          // A Tier-3 fatal is acceptable here: the snippet on a fatal may
           // carry PHI by design (errors.ts JSDoc). This property covers
           // warnings only.
           expect(err).toBeInstanceOf(Hl7ParseError);
@@ -190,7 +190,7 @@ describe("property: PHI safety in warning paths", () => {
             ).toBe(false);
             // Also guard the lowercase form, since markers are uppercase and
             // a case-insensitive substring match would be a stronger leak
-            // signal to catch — but message text itself is expected to be
+            // signal to catch: but message text itself is expected to be
             // lowercase English, so this only trips on an actual echo.
             expect(
               w.message.toLowerCase().includes(token.toLowerCase()),
@@ -207,7 +207,7 @@ describe("property: PHI safety in warning paths", () => {
 describe("Hl7ParseError.snippet length bound", () => {
   it("snippet stays ≤ 41 chars (40 + ellipsis) for arbitrarily-large fatal inputs", () => {
     // Generate adversarially-sized inputs and check the snippet bound on any
-    // fatal that fires. By design, snippet CONTENT may carry PHI — the bound
+    // fatal that fires. By design, snippet CONTENT may carry PHI: the bound
     // is what locks the consumer-redaction contract.
     fc.assert(
       fc.property(fc.string({ minLength: 1, maxLength: 4000 }), (raw) => {

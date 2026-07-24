@@ -1,9 +1,9 @@
 /**
- * Phase 4 — cache memoization + invalidation tests (D-02).
+ * Phase 4: cache memoization + invalidation tests (D-02).
  *
  * Proves `msg.meta` / `msg.patient` are memoized across repeat reads and
  * dropped wholesale by every mutation method (`setField`, `addSegment`,
- * `removeSegment`). Collection helpers are NOT memoized per D-06 — we verify
+ * `removeSegment`). Collection helpers are NOT memoized per D-06: we verify
  * they re-evaluate on every call.
  *
  * Plan 02 owns this file; Plan 03 adds visit-specific mutation cases in a
@@ -35,7 +35,7 @@ describe("helpers cache memoization (D-02)", () => {
   it("msg.patient caches the 'no PID' negative result (null-sentinel)", () => {
     const msg = parseHL7(NO_PID);
     expect(msg.patient).toBeUndefined();
-    // Second read hits the null-sentinel cache, still undefined — no rebuild.
+    // Second read hits the null-sentinel cache, still undefined: no rebuild.
     expect(msg.patient).toBeUndefined();
   });
 });
@@ -95,13 +95,13 @@ describe("collection helpers are NOT memoized (D-06)", () => {
   it("msg.observations() returns a fresh array reference on every call", () => {
     // FIXTURE has no OBX → both calls return empty arrays, but distinct refs.
     // Plan 03 fills the observations() stub; during Plan 02's window the stub
-    // still throws, so we guard and skip in that window — Plan 03 removes
+    // still throws, so we guard and skip in that window: Plan 03 removes
     // this branch when the stub is replaced.
     const msg = parseHL7(FIXTURE);
     try {
       const a = msg.observations();
       const b = msg.observations();
-      expect(a).not.toBe(b); // D-06 — no memoization
+      expect(a).not.toBe(b); // D-06: no memoization
       expect(a).toStrictEqual(b);
     } catch (err: unknown) {
       if (err instanceof Error && err.message.includes("NOT IMPLEMENTED")) {

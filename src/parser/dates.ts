@@ -5,14 +5,14 @@
  * `Date`-coercing helper into a **fidelity-first** parser. The HL7 v2 Ch. 2A
  * DTM datatype is `YYYY[MM[DD[HH[MM[SS[.S[S[S[S]]]]]]]]][+/-ZZZZ]`, where the
  * number of populated characters (excluding the offset) sets the precision and
- * a missing offset "defaults to that of the local time zone of the sender" —
+ * a missing offset "defaults to that of the local time zone of the sender",
  * NOT UTC and NOT the parser's zone. The old behavior (zero-fill truncations,
  * assume-UTC on a missing offset, eager `Date`) is an architectural defect
  * [S-DTM-IMPL]: it silently shifts a day-only birth date (`|19880705|`) by a
  * day in any negative-offset zone.
  *
  * This module therefore:
- *  - `parseDtm(raw)` decodes the DTM into typed **parts** (`DtmParts`) —
+ *  - `parseDtm(raw)` decodes the DTM into typed **parts** (`DtmParts`),
  *    precision preserved, no zero-fill, no `Date`, no UTC assumption.
  *  - `formatDtm(parts)` reconstructs the DTM string from parts (round-trip).
  *  - `dtmToDate(parts, opts)` materializes an absolute `Date` **only on
@@ -22,7 +22,7 @@
  *    formats → built-in fallbacks) used by non-composite callers such as
  *    `msg.meta.timestamp`; it emits `TIMESTAMP_FALLBACK_FORMAT` on a fallback.
  *
- * Zero runtime deps — only the JS stdlib `Date` / `Date.UTC` APIs and
+ * Zero runtime deps: only the JS stdlib `Date` / `Date.UTC` APIs and
  * hand-rolled regex / token matchers. No date-fns, no luxon, no moment.
  */
 
@@ -31,7 +31,7 @@ import type { Hl7ParseWarning } from "./warnings.js";
 import type { Hl7Position } from "./types.js";
 
 /**
- * Stated precision of a parsed HL7 DTM value — the number of populated
+ * Stated precision of a parsed HL7 DTM value: the number of populated
  * characters (excluding the timezone offset) determines which level applies.
  * A value's precision is preserved verbatim: `|1970|` is `"year"`, never
  * silently promoted to a full timestamp.
@@ -46,7 +46,7 @@ import type { Hl7Position } from "./types.js";
 export type DtmPrecision = "year" | "month" | "day" | "hour" | "minute" | "second" | "fraction";
 
 /**
- * Parsed HL7 v2 TS/DTM value — the raw string plus its structural parts, with
+ * Parsed HL7 v2 TS/DTM value: the raw string plus its structural parts, with
  * the stated **precision** and **timezone fidelity** preserved. This is the
  * shape of the `TS` composite (`field.asTs()`) and every helper datetime.
  *
@@ -54,7 +54,7 @@ export type DtmPrecision = "year" | "month" | "day" | "hour" | "minute" | "secon
  * **spec-native** (`month` is 1–12, NOT the JS `Date` 0–11). `offsetMinutes`
  * is present iff `hasTimezone` is `true` and is signed minutes east of UTC
  * (`+0500` → `300`, `-0430` → `-270`). A missing offset is **flagged**
- * (`hasTimezone: false`), never resolved to UTC — the consumer decides how to
+ * (`hasTimezone: false`), never resolved to UTC: the consumer decides how to
  * localize with {@link dtmToDate}.
  *
  * @example
@@ -72,7 +72,7 @@ export interface DtmParts {
   /**
    * `true` when `raw` is a well-formed, in-range HL7 DTM (or a matched
    * fallback format). `false` for empty, malformed, or calendar-out-of-range
-   * input — in which case only `raw` and `hasTimezone: false` are meaningful.
+   * input: in which case only `raw` and `hasTimezone: false` are meaningful.
    */
   readonly valid: boolean;
   /** Stated precision; absent when `valid` is `false`. */
@@ -91,7 +91,7 @@ export interface DtmParts {
   readonly second?: number;
   /**
    * Fractional-second digits exactly as populated (no leading dot), e.g.
-   * `"5"` (0.5 s), `"0500"` (0.05 s). Preserved verbatim — never rounded.
+   * `"5"` (0.5 s), `"0500"` (0.05 s). Preserved verbatim: never rounded.
    */
   readonly fractionalSeconds?: string;
   /** `true` iff an explicit `+/-ZZZZ` offset was present. */
@@ -149,7 +149,7 @@ export const SUPPORTED_DATE_TOKENS: readonly string[] = [
 ] as const;
 
 /**
- * The empty / unparseable result — `valid: false`, no parts, no timezone.
+ * The empty / unparseable result: `valid: false`, no parts, no timezone.
  * Frozen and shared to avoid per-call allocation on the common miss path.
  *
  * @internal
@@ -157,7 +157,7 @@ export const SUPPORTED_DATE_TOKENS: readonly string[] = [
 const INVALID_PARTS_BASE = { valid: false as const, hasTimezone: false as const };
 
 /**
- * The frozen invalid/unparseable result for a raw string — `valid: false`, no
+ * The frozen invalid/unparseable result for a raw string: `valid: false`, no
  * parts, no timezone. Frozen so every public `DtmParts` is immutable uniformly
  * (matching the composite path and `batch.ts`).
  *
@@ -182,7 +182,7 @@ const DTM_PATTERN =
  * never coerces to a `Date`, and never assumes UTC for a missing offset.
  *
  * Returns `{ raw, valid: false, hasTimezone: false }` (no parts) for empty,
- * malformed, or calendar-out-of-range input — never throws. A fractional
+ * malformed, or calendar-out-of-range input: never throws. A fractional
  * component is only accepted at full second precision.
  *
  * @example
@@ -219,7 +219,7 @@ export function parseDtm(raw: string): DtmParts {
   const minute = minuteStr !== undefined ? parseInt(minuteStr, 10) : undefined;
   const second = secondStr !== undefined ? parseInt(secondStr, 10) : undefined;
 
-  // Calendar-range validation — out-of-range is invalid, never a wrong guess.
+  // Calendar-range validation: out-of-range is invalid, never a wrong guess.
   if (
     (month !== undefined && (month < 1 || month > 12)) ||
     (day !== undefined && (day < 1 || day > 31)) ||
@@ -274,12 +274,12 @@ export function parseDtm(raw: string): DtmParts {
 
 /**
  * Reconstruct the HL7 DTM string from {@link DtmParts}. The inverse of
- * {@link parseDtm} for a strict HL7 parse — `formatDtm(parseDtm(s)) === s` for
+ * {@link parseDtm} for a strict HL7 parse: `formatDtm(parseDtm(s)) === s` for
  * any well-formed `s`, including the byte-preserving `-0000` (which HL7, unlike
  * RFC 3339, treats as UTC but whose sign we retain for exact round-trip).
  * Returns the raw string unchanged when `parts.valid` is `false`.
  *
- * Emits exactly the populated precision — no zero-fill — so a year-only value
+ * Emits exactly the populated precision, no zero-fill, so a year-only value
  * re-serializes to four characters, never `YYYY0101`.
  *
  * @example
@@ -326,7 +326,7 @@ export function formatDtm(parts: DtmParts): string {
 export interface DtmToDateOptions {
   /**
    * Offset (signed minutes east of UTC) to assume when the value carries **no**
-   * timezone. Without it, an offset-less value resolves to `undefined` —
+   * timezone. Without it, an offset-less value resolves to `undefined`,
    * {@link dtmToDate} never guesses a zone. Ignored when the value already has
    * an offset. Pass `0` to explicitly treat a naive value as UTC.
    */
@@ -334,7 +334,7 @@ export interface DtmToDateOptions {
 }
 
 /**
- * Materialize an absolute-instant JS `Date` from {@link DtmParts} — **only on
+ * Materialize an absolute-instant JS `Date` from {@link DtmParts}: **only on
  * explicit caller request**. Truncated fields fill to their lowest legal value
  * (month → January, day → 1, time → 0) *for instant construction only*; the
  * value's stated `precision` still tells the truth.
@@ -352,11 +352,11 @@ export interface DtmToDateOptions {
  * import { parseDtm, dtmToDate } from "@cosyte/hl7";
  *
  * dtmToDate(parseDtm("20250102153045-0500"))?.toISOString();
- * // "2025-01-02T20:30:45.000Z" — exact, offset-derived
+ * // "2025-01-02T20:30:45.000Z": exact, offset-derived
  *
- * dtmToDate(parseDtm("20250102"));                       // undefined — refuses to guess the zone
+ * dtmToDate(parseDtm("20250102"));                       // undefined: refuses to guess the zone
  * dtmToDate(parseDtm("20250102"), { assumeOffsetMinutes: 0 })?.toISOString();
- * // "2025-01-02T00:00:00.000Z" — caller explicitly assumed UTC
+ * // "2025-01-02T00:00:00.000Z": caller explicitly assumed UTC
  * ```
  */
 export function dtmToDate(parts: DtmParts, options: DtmToDateOptions = {}): Date | undefined {
@@ -371,7 +371,7 @@ export function dtmToDate(parts: DtmParts, options: DtmToDateOptions = {}): Date
   }
 
   // Build via setUTCFullYear so a 1–99 AD year is NOT remapped to 1900–1999 by
-  // `Date.UTC`'s legacy two-digit-year behavior (ECMA-262) — a spec-valid
+  // `Date.UTC`'s legacy two-digit-year behavior (ECMA-262): a spec-valid
   // 4-digit DTM year like `0050` must stay year 50.
   const utc = new Date(0);
   utc.setUTCFullYear(parts.year, (parts.month ?? 1) - 1, parts.day ?? 1);
@@ -396,14 +396,14 @@ export interface ParseDtmCascadeOptions {
 /**
  * Lenient datetime parse for non-composite callers (e.g. `msg.meta.timestamp`):
  *
- * 1. Strict HL7 DTM via {@link parseDtm} — no warning (spec-preferred).
- * 2. User-supplied formats, in order — first match wins, emits
+ * 1. Strict HL7 DTM via {@link parseDtm}: no warning (spec-preferred).
+ * 2. User-supplied formats, in order: first match wins, emits
  *    `TIMESTAMP_FALLBACK_FORMAT`.
- * 3. Built-in {@link BUILTIN_DATE_FALLBACKS}, in order — emits on match.
+ * 3. Built-in {@link BUILTIN_DATE_FALLBACKS}, in order: emits on match.
  *
  * Always returns {@link DtmParts}; a fallback match sets `matchedFormat` and
  * `valid: true` with the parts it could recover. A total miss returns an
- * invalid result (no throw, no warning — nothing fell back to).
+ * invalid result (no throw, no warning: nothing fell back to).
  *
  * @internal
  */
@@ -464,7 +464,7 @@ const TOKEN_LENGTHS: Readonly<Record<(typeof TOKENS)[number], number>> = {
 
 /**
  * Minimal format-string matcher over the tokens `YYYY MM DD HH mm ss`. Anything
- * else in `format` is a literal. Returns fidelity {@link DtmParts} (no offset —
+ * else in `format` is a literal. Returns fidelity {@link DtmParts} (no offset,
  * these formats carry none) or `undefined` on mismatch. Parsing is strictly
  * linear so untrusted format strings cannot cause exponential backtracking.
  *

@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 /**
- * `@cosyte/hl7` PHI scanner — the CI / pre-commit half of the PHI commit-gate.
+ * `@cosyte/hl7` PHI scanner: the CI / pre-commit half of the PHI commit-gate.
  *
  * Pure Node. Zero runtime deps. Walks the synthetic HL7 v2 test fixtures (and a
  * conservative text pass over `src/`) and REFUSES anything that looks like real
@@ -8,7 +8,7 @@
  *
  * HL7 v2 carries PHI by design (patient names, dates of birth, SSNs, MRNs /
  * account numbers, addresses, phones / emails, and free-text observations).
- * Unlike a JSON fixture, an HL7 v2 message is byte-strict at the front — the
+ * Unlike a JSON fixture, an HL7 v2 message is byte-strict at the front: the
  * `MSH` (or batch `FHS` / `BHS`) segment must be the first thing in the file, so
  * an inline `# synthetic: true` header is impossible (it would break every
  * parser test). This is the same constraint DICOM hits with binary `.dcm` files
@@ -16,13 +16,13 @@
  * allow-list** (`scripts/phi-allow-list.txt`) is the positive declaration that a
  * fixture's identifiers are fake. Any realistic-PHI-shaped token not covered by
  * the allow-list is a hit. Adding a new synthetic fixture therefore means either
- * reusing known-synthetic tokens or consciously extending the allow-list — a
+ * reusing known-synthetic tokens or consciously extending the allow-list: a
  * reviewed act, never silent.
  *
  * Detection is HL7-shape-aware, NOT a blind text regex: the scanner parses each
  * message's delimiters (from `MSH-1` / `MSH-2`), splits segments → fields →
  * repetitions → components, and inspects only the fields that actually carry
- * each PHI category. That is deliberate — a naive `Family^Given` text scan trips
+ * each PHI category. That is deliberate: a naive `Family^Given` text scan trips
  * on coded values like `CBC^Complete Blood Count^LN` or `Boston^MA`, giving
  * false confidence. See `phi-scan-overrides.md` for the category → field map and
  * the documented limitations.
@@ -54,14 +54,14 @@ const OVERRIDE_LOG_PATH = join(REPO_ROOT, "phi-scan-overrides.md");
 
 // Roots walked in "all" mode. test/fixtures gets the full HL7-aware scan; src
 // gets a conservative text pass (dashed-SSN + non-test email only) because it is
-// hand-written code, not data — JSDoc `@example` HL7 snippets carry synthetic
+// hand-written code, not data: JSDoc `@example` HL7 snippets carry synthetic
 // names/MRNs that must not trip the segment-aware detectors.
 const FIXTURE_ROOT = join(REPO_ROOT, "test", "fixtures");
 const SRC_ROOT = join(REPO_ROOT, "src");
 
 // Person-name fields keyed by segment id. XPN fields carry family in component 1
 // (`Doe^John`); XCN fields carry an id in component 1 and the family/given in
-// components 2/3 (`ATTEND^Smith^Jane`). The distinction is load-bearing — read
+// components 2/3 (`ATTEND^Smith^Jane`). The distinction is load-bearing: read
 // the wrong components and every provider name slips through.
 const XPN_NAME_FIELDS: Readonly<Record<string, readonly number[]>> = {
   PID: [5, 6, 9], // patient name / mother's maiden name / alias
@@ -104,13 +104,13 @@ const PHONE_FIELDS: Readonly<Record<string, readonly number[]>> = {
 const CX_ID_FIELDS: Readonly<Record<string, readonly number[]>> = {
   PID: [3, 18], // patient identifier list / account number
 };
-// Plain SSN fields (HL7 type ST — a bare number, not a CX list).
+// Plain SSN fields (HL7 type ST: a bare number, not a CX list).
 const SSN_ST_FIELDS: Readonly<Record<string, readonly number[]>> = {
   PID: [19], // SSN number - patient
 };
 
 // Name tokens that are HL7 name-type / degree / suffix / prefix codes, never a
-// person's identifying name — extracted alongside real name tokens and skipped.
+// person's identifying name: extracted alongside real name tokens and skipped.
 const NAME_NOISE_TOKENS = new Set<string>([
   "MD",
   "DO",
@@ -319,7 +319,7 @@ function parseArgs(argv: string[]): Args {
   }
 
   // An `--allow-fixture` path is a *subtractive* acknowledgement on a broader
-  // scan, never a scan target on its own — so it also seeds the positional path
+  // scan, never a scan target on its own: so it also seeds the positional path
   // set. That makes `--allow-fixture X` mean "scan X, but allow it" (proving the
   // override gate actually subtracts a scanned target) instead of a silent no-op.
   const scanPaths = paths.length > 0 ? paths : [...allowFixtures];
@@ -438,7 +438,7 @@ function gitIgnored(paths: string[]): Set<string> {
   const ignored = new Set<string>();
   if (paths.length === 0) return ignored;
   try {
-    // SECURITY: array-form execFileSync, no shell. Default (Buffer) encoding —
+    // SECURITY: array-form execFileSync, no shell. Default (Buffer) encoding,
     // `encoding: "buffer"` with `input` is rejected by Node.
     const out = execFileSync("git", ["check-ignore", "--stdin", "-z"], {
       input: paths.map(normalizePath).join("\0"),
@@ -448,7 +448,7 @@ function gitIgnored(paths: string[]): Set<string> {
       if (p.length > 0) ignored.add(p);
     }
   } catch {
-    // `git check-ignore` exits 1 when nothing matches — treat as none ignored.
+    // `git check-ignore` exits 1 when nothing matches: treat as none ignored.
   }
   return ignored;
 }
@@ -516,7 +516,7 @@ function stripFraming(text: string): string {
 }
 
 // A line is a segment when it starts with a 3-char id (letters+digits, HL7
-// allows a leading letter) followed by a delimiter — not a letter/digit/space.
+// allows a leading letter) followed by a delimiter: not a letter/digit/space.
 // Case-insensitive: the parser is lenient about segment case (lowercase `pid`),
 // so the scanner must be too, or a mixed-case feed silently bypasses detection.
 const SEGMENT_LINE_RE = /^([A-Za-z][A-Za-z0-9]{2})([^A-Za-z0-9\s])/;
@@ -541,7 +541,7 @@ function findHeaderLine(text: string): string | undefined {
  *   - it lets a header-less message (the repo ships `malformed/no-msh-segment`)
  *     still get the full structured scan rather than the text-only pass; and
  *   - it keeps hand-written `src/` code on the conservative pass even when a file
- *     embeds an `MSH|…` example string in a comment or test literal — parsing a
+ *     embeds an `MSH|…` example string in a comment or test literal: parsing a
  *     `.ts` file as HL7 segments produces only noise.
  * `src/` is scanned (dashed-SSN + email) via the conservative branch instead.
  */
@@ -593,7 +593,7 @@ function fieldAt(elems: string[], n: number): string {
 
 /** Escape-aware, unicode-aware name tokenizer. */
 function nameTokens(value: string, d: Delimiters): string[] {
-  // Drop HL7 escape sequences (\F\ \S\ \T\ \R\ \E\ \Xhh\ \Zxx\ …) — they are
+  // Drop HL7 escape sequences (\F\ \S\ \T\ \R\ \E\ \Xhh\ \Zxx\ …): they are
   // delimiter placeholders, not name characters.
   const esc = d.escape.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const noEsc = value.replace(new RegExp(`${esc}[^${esc}]*${esc}`, "g"), " ");
@@ -601,7 +601,7 @@ function nameTokens(value: string, d: Delimiters): string[] {
   for (const raw of noEsc.split(/[^\p{L}]+/u)) {
     if (raw.length === 0) continue;
     if (!/\p{L}/u.test(raw)) continue;
-    // A single Latin letter is a middle initial — not identifying. A single CJK
+    // A single Latin letter is a middle initial: not identifying. A single CJK
     // ideograph / kana / hangul IS a name (Chinese/Korean surnames are 1 char),
     // so keep those.
     const isCjk = /[぀-ヿ㐀-鿿가-힯]/u.test(raw);
@@ -805,7 +805,7 @@ function checkSsnStField(
  * Unknown / `Z…` site-defined segments have no known field schema, so a name
  * could hide in any field. Backstop: within each field, flag an adjacent pair of
  * single-token name-shaped components (`Johnson^Maya`) whose tokens are not
- * allow-listed. Only runs on unknown segments — known code-bearing segments
+ * allow-listed. Only runs on unknown segments: known code-bearing segments
  * (`OBX`, `OBR`, …) carry `CODE^Description^System` triples that this would
  * misread as names.
  */
@@ -870,7 +870,7 @@ function scanCommonShapes(path: string, content: string, allow: AllowList, hits:
 function scanHl7(target: Target, text: string, allow: AllowList, hits: Hit[]): void {
   const d = detectDelimiters(text);
   for (const elems of splitSegments(text, d)) {
-    // Segment ids are matched case-insensitively — the lenient parser accepts a
+    // Segment ids are matched case-insensitively: the lenient parser accepts a
     // lowercase `pid`, so the scanner must normalize before every lookup or a
     // mixed-case feed silently escapes the per-field detectors.
     const segId = (elems[0] ?? "").toUpperCase();
@@ -929,7 +929,7 @@ function scanTarget(target: Target, allow: AllowList, hits: Hit[]): void {
     scanHl7(target, text, allow, hits);
   } else {
     // Non-HL7 target (hand-written src, plain-text notes): conservative shape
-    // pass only — no segment model to lean on.
+    // pass only: no segment model to lean on.
     scanCommonShapes(target.path, text, allow, hits);
   }
 }
@@ -940,7 +940,7 @@ function scanTarget(target: Target, allow: AllowList, hits: Hit[]): void {
 
 function report(hits: Hit[]): void {
   if (hits.length === 0) {
-    process.stdout.write("[phi-scan] OK — no hits\n");
+    process.stdout.write("[phi-scan] OK: no hits\n");
     return;
   }
   const byPath = new Map<string, Hit[]>();

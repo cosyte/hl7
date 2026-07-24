@@ -1,19 +1,19 @@
 /**
- * Phase C — `buildAck` / `interpretAck` / `detectAckMode` coverage.
+ * Phase C: `buildAck` / `interpretAck` / `detectAckMode` coverage.
  *
  * Three concerns are exercised here:
  *
- * 1. **buildAck wire correctness** — sender/receiver swap, MSH-9 `ACK^…^ACK`,
+ * 1. **buildAck wire correctness**: sender/receiver swap, MSH-9 `ACK^…^ACK`,
  *    MSA-1 = the disposition told, MSA-2 echoes the inbound MSH-10, and ERR
  *    segments carry codes/locations only (Tables 0357/0516). Goldens normalize
  *    the two volatile MSH fields (MSH-7 timestamp, MSH-10 generated control id).
- * 2. **Fail-safe** — an inbound message with no MSH-10 cannot be correlated, so
+ * 2. **Fail-safe**: an inbound message with no MSH-10 cannot be correlated, so
  *    a requested positive `AA`/`CA` is downgraded to `AE`/`CE`, MSA-2 is empty,
  *    and an `ACK_NO_CORRELATION_ID` warning rides on the returned message.
- * 3. **interpretAck read-side** — the typed view of an inbound ACK, with the
+ * 3. **interpretAck read-side**: the typed view of an inbound ACK, with the
  *    accept/error/reject disposition derived fail-safe from MSA-1.
  *
- * The corpus is synthetic — no PHI. ERR locations are structural paths
+ * The corpus is synthetic: no PHI. ERR locations are structural paths
  * (`PID^1^5`), never data values.
  */
 
@@ -35,7 +35,7 @@ const INBOUND = "MSH|^~\\&|SENDAPP|SENDFAC|RECVAPP|RECVFAC|20260101120000||ADT^A
 const INBOUND_ENHANCED =
   "MSH|^~\\&|SENDAPP|SENDFAC|RECVAPP|RECVFAC|20260101120000||ADT^A01|MSG00002|P|2.5|||AL|AL";
 
-/** Inbound with no MSH-10 control id — the fail-safe trigger. */
+/** Inbound with no MSH-10 control id: the fail-safe trigger. */
 const INBOUND_NO_CONTROL_ID =
   "MSH|^~\\&|SENDAPP|SENDFAC|RECVAPP|RECVFAC|20260101120000||ADT^A01||P|2.5";
 
@@ -56,7 +56,7 @@ function normalizeAck(wire: string): string {
     .join("\r");
 }
 
-describe("buildAck — MSH construction", () => {
+describe("buildAck: MSH construction", () => {
   it("swaps sender/receiver addressing (inbound 5/6 → ack 3/4, inbound 3/4 → ack 5/6)", () => {
     const ack = buildAck(parseHL7(INBOUND), { code: "AA" });
     expect(ack.meta.sendingApp).toBe("RECVAPP");
@@ -84,7 +84,7 @@ describe("buildAck — MSH construction", () => {
     expect(ack.meta.controlId).toMatch(/^[0-9]{17}[A-Za-z0-9]{6}$/);
     expect(ack.meta.controlId).not.toBe("MSG00001");
     // buildAck emits MSH-7 as UTC second-precision (no offset); read it back
-    // by explicitly assuming UTC — the value it was written in.
+    // by explicitly assuming UTC: the value it was written in.
     const ts = ack.meta.timestamp;
     const instant =
       ts === undefined ? 0 : (dtmToDate(ts, { assumeOffsetMinutes: 0 })?.getTime() ?? 0);
@@ -127,7 +127,7 @@ describe("buildAck — MSH construction", () => {
   });
 });
 
-describe("buildAck — MSA construction", () => {
+describe("buildAck: MSA construction", () => {
   it("MSA-1 is the disposition told; MSA-2 echoes the inbound MSH-10", () => {
     const ack = buildAck(parseHL7(INBOUND), { code: "AA" });
     expect(ack.get("MSA.1")).toBe("AA");
@@ -149,7 +149,7 @@ describe("buildAck — MSA construction", () => {
   });
 });
 
-describe("buildAck — ERR segments", () => {
+describe("buildAck: ERR segments", () => {
   it("emits one ERR with location (ERR-2), CWE condition (ERR-3), severity (ERR-4)", () => {
     const ack = buildAck(parseHL7(INBOUND), {
       code: "AE",
@@ -208,7 +208,7 @@ describe("buildAck — ERR segments", () => {
     expect(errs).toHaveLength(2);
     expect(errs[0]?.field(3).asCwe().identifier).toBe("200");
     expect(errs[1]?.field(3).asCwe().identifier).toBe("203");
-    // ERR-2 is an ERL composite — its components are the structural path parts.
+    // ERR-2 is an ERL composite: its components are the structural path parts.
     const erl = errs[1]?.field(2).repetitions[0]?.components.map((c) => c.subcomponents[0]);
     expect(erl).toEqual(["MSH", "1", "12"]);
   });
@@ -226,7 +226,7 @@ describe("buildAck — ERR segments", () => {
   });
 });
 
-describe("buildAck — round-trip + cleanliness", () => {
+describe("buildAck: round-trip + cleanliness", () => {
   it("a built ACK re-parses with zero warnings (when correlated)", () => {
     const ack = buildAck(parseHL7(INBOUND), { code: "AA" });
     const round = parseHL7(ack.toString());
@@ -245,7 +245,7 @@ describe("buildAck — round-trip + cleanliness", () => {
   });
 });
 
-describe("buildAck — fail-safe (no inbound MSH-10)", () => {
+describe("buildAck: fail-safe (no inbound MSH-10)", () => {
   it("downgrades AA → AE and leaves MSA-2 empty when no correlation id", () => {
     const ack = buildAck(parseHL7(INBOUND_NO_CONTROL_ID), { code: "AA" });
     expect(ack.get("MSA.1")).toBe("AE");
@@ -273,7 +273,7 @@ describe("buildAck — fail-safe (no inbound MSH-10)", () => {
   });
 });
 
-describe("buildAck — programming-error guards", () => {
+describe("buildAck: programming-error guards", () => {
   it("throws TypeError when inbound is not an Hl7Message", () => {
     const notAMessage = {} as unknown as ReturnType<typeof parseHL7>;
     expect(() => buildAck(notAMessage, { code: "AA" })).toThrow(TypeError);
@@ -300,7 +300,7 @@ describe("detectAckMode", () => {
   });
 });
 
-describe("interpretAck — read-side", () => {
+describe("interpretAck: read-side", () => {
   it("reads a positive AA: accepted, controlId, no errors", () => {
     const view = interpretAck(
       parseHL7("MSH|^~\\&|S|SF|R|RF|20260101120000||ACK^A01^ACK|A1|P|2.5\rMSA|AA|MSG001"),
@@ -364,7 +364,7 @@ describe("interpretAck — read-side", () => {
     expect(view.controlId).toBeUndefined();
   });
 
-  it("interprets a bare-condition ERR (code only — no text/system/location/severity)", () => {
+  it("interprets a bare-condition ERR (code only: no text/system/location/severity)", () => {
     // ERR with only ERR-3.1 populated: ERR-1/ERR-2 empty, ERR-3 = "500".
     const raw =
       "MSH|^~\\&|S|SF|R|RF|20260101120000||ACK^A01^ACK|A6|P|2.5\r" +
@@ -387,8 +387,8 @@ describe("interpretAck — read-side", () => {
   });
 });
 
-describe("buildAck — verbatim MSA-2 echo (vendor-quirk control ids)", () => {
-  /** Inbound whose MSH-10 carries an unescaped component delimiter — a real vendor quirk. */
+describe("buildAck: verbatim MSA-2 echo (vendor-quirk control ids)", () => {
+  /** Inbound whose MSH-10 carries an unescaped component delimiter: a real vendor quirk. */
   const INBOUND_QUIRKY_CARET =
     "MSH|^~\\&|SENDAPP|SENDFAC|RECVAPP|RECVFAC|20260101120000||ADT^A01|ID^X|P|2.5";
 
@@ -426,12 +426,12 @@ describe("buildAck — verbatim MSA-2 echo (vendor-quirk control ids)", () => {
     expect(msaLine).toBe("MSA|AA|A\\F\\B");
   });
 
-  it("a leading-delimiter id (^X) still correlates — no downgrade, verbatim echo", () => {
+  it("a leading-delimiter id (^X) still correlates: no downgrade, verbatim echo", () => {
     const inbound = parseHL7(
       "MSH|^~\\&|SENDAPP|SENDFAC|RECVAPP|RECVFAC|20260101120000||ADT^A01|^X|P|2.5",
     );
     const ack = buildAck(inbound, { code: "AA" });
-    expect(ack.get("MSA.1")).toBe("AA"); // NOT downgraded — the field has content
+    expect(ack.get("MSA.1")).toBe("AA"); // NOT downgraded: the field has content
     const msaLine = ack
       .toString()
       .split("\r")
@@ -455,7 +455,7 @@ describe("buildAck — verbatim MSA-2 echo (vendor-quirk control ids)", () => {
   });
 });
 
-describe("downgradePositiveAck — the single upstream downgrade primitive", () => {
+describe("downgradePositiveAck: the single upstream downgrade primitive", () => {
   it("downgrades AA→AE and CA→CE; every other code passes through", () => {
     expect(downgradePositiveAck("AA")).toBe("AE");
     expect(downgradePositiveAck("CA")).toBe("CE");
@@ -466,14 +466,14 @@ describe("downgradePositiveAck — the single upstream downgrade primitive", () 
   });
 });
 
-describe("buildAck — escape-fidelity MSA-2 echo (HL7-ESC, byte-verbatim)", () => {
+describe("buildAck: escape-fidelity MSA-2 echo (HL7-ESC, byte-verbatim)", () => {
   const inboundWith = (controlId: string): string =>
     `MSH|^~\\&|SENDAPP|SENDFAC|RECVAPP|RECVFAC|20260101120000||ADT^A01|${controlId}|P|2.5`;
 
   it("a hex-escaped CR in MSH-10 (\\X0D\\) NEVER corrupts the ACK's segment framing", () => {
     const ack = buildAck(parseHL7(inboundWith("A\\X0D\\B")), { code: "AA" });
     const wire = ack.toString();
-    // Exactly MSH + MSA — no phantom segment split by a raw CR.
+    // Exactly MSH + MSA: no phantom segment split by a raw CR.
     const lines = wire.split("\r").filter((l) => l !== "");
     expect(lines).toHaveLength(2);
     expect(lines[1]).toBe("MSA|AA|A\\X0D\\B");
@@ -500,7 +500,7 @@ describe("buildAck — escape-fidelity MSA-2 echo (HL7-ESC, byte-verbatim)", () 
       .toString()
       .split("\r")
       .find((l) => l.startsWith("MSA"));
-    // Lowercase hex must NOT be normalized to \X0D\ — the sender's bytes win.
+    // Lowercase hex must NOT be normalized to \X0D\: the sender's bytes win.
     expect(msaLine).toBe("MSA|AA|A\\X0d\\B");
   });
 
@@ -534,7 +534,7 @@ describe("buildAck — escape-fidelity MSA-2 echo (HL7-ESC, byte-verbatim)", () 
   // Regression (HL7-ESC refuter): the fidelity overlay carries the inbound's
   // raw bytes in the SENDER's alphabet. Echoing them verbatim under the ACK's
   // DEFAULT alphabet corrupted MSA-2 for a custom-delimiter sender whose escape
-  // bytes collide with a default delimiter — breaking §2.9.2.2 correlation. The
+  // bytes collide with a default delimiter: breaking §2.9.2.2 correlation. The
   // overlay must be bypassed (decoded value re-escaped) when encodings differ.
   it("custom escape char whose escaped id collides with the DEFAULT component sep stays correlatable", () => {
     // Sender MSH-2 `@~^&`: component=@, repetition=~, escape=^, subcomponent=&.
@@ -542,13 +542,13 @@ describe("buildAck — escape-fidelity MSA-2 echo (HL7-ESC, byte-verbatim)", () 
     const inbound = parseHL7("MSH|@~^&|SEND|FAC|RECV|RFAC|20260101120000||ADT@A01|ID^H^Q|P|2.5");
     expect(inbound.get("MSH.10")).toBe("ID^H^Q");
     const ack = buildAck(inbound, { code: "AA" });
-    // The ACK re-parses to the SAME decoded control id — no phantom-component
+    // The ACK re-parses to the SAME decoded control id: no phantom-component
     // truncation (pre-fix this was "ID").
     expect(parseHL7(ack.toString()).get("MSA.2")).toBe("ID^H^Q");
     expect(ack.get("MSA.1")).toBe("AA"); // still a positive ACK, correlation held
   });
 
-  it("custom subcomponent sep — a literal & in the id survives correlation under default delimiters", () => {
+  it("custom subcomponent sep: a literal & in the id survives correlation under default delimiters", () => {
     // Sender MSH-2 `^~\\@`: subcomponent=@, escape=\\, so `&` is plain data and
     // `\\H\\` is a highlight escape → decoded "ID\\H\\a&b".
     const inbound = parseHL7(
@@ -572,7 +572,7 @@ describe("buildAck — escape-fidelity MSA-2 echo (HL7-ESC, byte-verbatim)", () 
   });
 });
 
-describe("interpretAck — explicit-null MSA-2 (foreign ACK)", () => {
+describe("interpretAck: explicit-null MSA-2 (foreign ACK)", () => {
   it('surfaces an explicit HL7 null MSA-2 as the literal two-character `""` (whole-field contract)', () => {
     const view = interpretAck(
       parseHL7('MSH|^~\\&|A|B|C|D|20260101120000||ACK^A01^ACK|X1|P|2.5\rMSA|AA|""'),

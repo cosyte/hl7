@@ -58,7 +58,7 @@ describe("model/types/sn: parseSn", () => {
     }
   });
 
-  it("drops a non-operator value in the comparator slot (fail-safe — never a wrong relation)", () => {
+  it("drops a non-operator value in the comparator slot (fail-safe: never a wrong relation)", () => {
     // A bare number mislabeled as SN: `120` sits in SN.1, not SN.2. We refuse to
     // surface "120" as a comparator AND there is no SN.2 → nothing usable → undefined.
     expect(parseSn(rep("120"), enc)).toBeUndefined();

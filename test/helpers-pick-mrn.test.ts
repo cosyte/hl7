@@ -30,7 +30,7 @@ describe("helpers/pick-mrn: pickMrn", () => {
     expect(pickMrn(identifiers)).toBe("X1");
   });
 
-  it("is case-sensitive on 'MR' — lowercase 'mr' falls through to first idNumber (D-10)", () => {
+  it("is case-sensitive on 'MR': lowercase 'mr' falls through to first idNumber (D-10)", () => {
     const identifiers: readonly CX[] = [{ idNumber: "mrn001", identifierTypeCode: "mr" }];
     // lowercase 'mr' does NOT match; fallback is the first CX's idNumber.
     expect(pickMrn(identifiers)).toBe("mrn001");

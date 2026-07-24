@@ -1,10 +1,10 @@
 /**
  * Shared field/segment assembly primitives for the typed builders
- * (`buildAdt`/`buildOru` — roadmap Phase T). Centralises the MSH synthesis and
+ * (`buildAdt`/`buildOru`: roadmap Phase T). Centralises the MSH synthesis and
  * the sparse positional-segment assembly so each builder stays declarative and
  * every builder emits an identical, spec-clean MSH.
  *
- * Zero runtime deps — pure functions over the raw positional tree.
+ * Zero runtime deps: pure functions over the raw positional tree.
  */
 
 import { generateControlId } from "./control-id.js";
@@ -13,7 +13,7 @@ import { DEFAULT_ENCODING_CHARACTERS } from "../parser/delimiters.js";
 import type { RawField, RawSegment } from "../parser/types.js";
 
 /**
- * The MSH envelope shared by every typed builder — the addressing + control
+ * The MSH envelope shared by every typed builder: the addressing + control
  * metadata that is independent of the message body. Mirrors `BuildMessageInit`
  * minus `type` (each builder derives MSH-9 from its own trigger).
  */

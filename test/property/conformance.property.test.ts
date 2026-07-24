@@ -4,14 +4,14 @@
  * `test/conformance-validate.test.ts`, pinning the acceptance invariants across
  * thousands of message × profile pairs:
  *
- *   1. **Never throws** — for ANY message drawn from a valid pool and ANY
+ *   1. **Never throws**: for ANY message drawn from a valid pool and ANY
  *      profile-shaped object (well-formed or garbage), `validateAgainstProfile`
  *      returns a result; it never throws.
- *   2. **Read-only** — the message's serialization is byte-identical before and
+ *   2. **Read-only**: the message's serialization is byte-identical before and
  *      after validation.
- *   3. **Valid ⇒ zero findings** — an all-optional, constraint-free profile
+ *   3. **Valid ⇒ zero findings**: an all-optional, constraint-free profile
  *      never fabricates a finding for any message.
- *   4. **Well-formed, PHI-safe findings** — every finding carries a valid
+ *   4. **Well-formed, PHI-safe findings**: every finding carries a valid
  *      severity, a structural locus, and a non-empty message string.
  */
 
@@ -41,7 +41,7 @@ const cardinalityArb = fc.oneof(
   fc.constant<Record<string, unknown>>({}),
 );
 
-/** A field-rule arbitrary — valid indices mixed with garbage. */
+/** A field-rule arbitrary: valid indices mixed with garbage. */
 const fieldRuleArb = fc.record(
   {
     field: fc.oneof(fc.integer({ min: 1, max: 20 }), fc.integer({ min: -3, max: 0 }), fc.string()),
@@ -68,7 +68,7 @@ const segmentRuleArb = fc.record(
   { requiredKeys: ["segment"] },
 );
 
-/** A whole-profile arbitrary — mixes well-formed and malformed shapes. */
+/** A whole-profile arbitrary: mixes well-formed and malformed shapes. */
 const profileArb = fc.record({
   name: fc.oneof(fc.string({ minLength: 1 }), fc.integer()),
   segments: fc.oneof(fc.array(segmentRuleArb, { maxLength: 6 }), fc.constant(undefined)),
@@ -119,11 +119,11 @@ describe("property: conformance engine invariants", () => {
 
   it("no finding message ever echoes the offending field value (generative PHI check)", () => {
     // Inject a distinctive value into PID-8 that is guaranteed NOT in the value
-    // set, then assert it never surfaces in any finding message — the value-set,
+    // set, then assert it never surfaces in any finding message: the value-set,
     // length, and required paths all fire, and none may leak the value.
     fc.assert(
       fc.property(
-        // A distinctive sentinel — the "ZQV" prefix cannot occur inside the
+        // A distinctive sentinel: the "ZQV" prefix cannot occur inside the
         // finding vocabulary (no fixed message word contains it), so a hit means
         // a genuine value leak, never a coincidental substring of English prose.
         fc.stringMatching(/^[A-Za-z0-9]{1,9}$/u).map((s) => `ZQV${s}`),

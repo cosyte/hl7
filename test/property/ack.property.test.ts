@@ -2,12 +2,12 @@
  * Property tests for `buildAck` (Phase C). Two invariants the generator pins
  * across thousands of synthetic inbound messages:
  *
- *   1. **Clean round-trip** — a built ACK always re-parses without warnings
+ *   1. **Clean round-trip**: a built ACK always re-parses without warnings
  *      and as an `ACK` message (when the inbound carries a correlatable MSH-10).
- *   2. **Correlation echo** — MSA-2 always echoes the inbound MSH-10.
+ *   2. **Correlation echo**: MSA-2 always echoes the inbound MSH-10.
  *
  * Inbound corpus is generated via the shared spec-clean arbitrary, then a
- * disposition + optional ERR detail are drawn. Synthetic only — ERR locations
+ * disposition + optional ERR detail are drawn. Synthetic only: ERR locations
  * are structural paths, never data values.
  */
 
@@ -28,7 +28,7 @@ const ackCode = fc.constantFrom(...ACK_DISPOSITIONS);
 /** The three Table 0516 severities. */
 const SEVERITIES: readonly ErrSeverity[] = ["I", "W", "E"];
 
-/** An optional single ERR detail — codes/locations only. */
+/** An optional single ERR detail: codes/locations only. */
 const errorDetail: fc.Arbitrary<AckErrorDetail | undefined> = fc.option(
   fc.record({
     conditionCode: fc.constantFrom("100", "101", "102", "200", "999"),
@@ -61,7 +61,7 @@ describe("property: buildAck correlation echo", () => {
         const sourceControlId = inbound.meta.controlId;
         const ack = buildAck(inbound, { code });
         // specCleanMessageRaw always sets a non-empty controlId, so the
-        // fail-safe never fires here — MSA-2 mirrors the inbound MSH-10.
+        // fail-safe never fires here: MSA-2 mirrors the inbound MSH-10.
         expect(ack.get("MSA.2")).toBe(sourceControlId);
       }),
       RUN_CONFIG,
@@ -75,7 +75,7 @@ describe("property: buildAck verbatim echo for delimiter-bearing control ids", (
   // separator and CR (would change segment structure) and the bare escape
   // char (covered by a fixed unit test). A TRAILING delimiter is excluded:
   // HL7 treats trailing empty components/repetitions as insignificant, and
-  // the spec-clean serializer canonicalizes them away (D-02) — that
+  // the spec-clean serializer canonicalizes them away (D-02): that
   // canonicalization is documented, not a truncation.
   const quirkyControlId = fc
     .stringOf(fc.constantFrom(..."ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789^&~".split("")), {
@@ -92,7 +92,7 @@ describe("property: buildAck verbatim echo for delimiter-bearing control ids", (
         // The invariant: MSA-2 === the inbound MSH-10's verbatim wire text
         // (`Field.text`). Both sides share the D-02 canonicalization of
         // insignificant empties (an all-empty repetition/component strips),
-        // so comparing against `.text` — not the raw generator string — pins
+        // so comparing against `.text` (not the raw generator string) pins
         // exactly the no-truncation claim without re-litigating D-02.
         const expected = inbound.segments("MSH")[0]?.field(10).text ?? "";
         expect(expected.length).toBeGreaterThan(0);

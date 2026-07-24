@@ -15,7 +15,7 @@
  *    robustness invariant: random bytes, truncated segments, weird
  *    delimiters, unknown segments, extra fields.
  *
- * Nothing here is HL7-package-internal — these are exactly the kind of
+ * Nothing here is HL7-package-internal: these are exactly the kind of
  * arbitraries that would graduate into a shared `@cosyte/test-utils` once a
  * second parser (mllp, x12, …) needs the same round-trip/lenient harness.
  */
@@ -26,7 +26,7 @@ import { buildMessage, type RawField } from "../../src/index.js";
 
 /**
  * Leaf-string alphabet for spec-valid values. Plain printable ASCII letters,
- * digits, and a handful of safe punctuation — deliberately EXCLUDES the five
+ * digits, and a handful of safe punctuation: deliberately EXCLUDES the five
  * HL7 delimiters (`| ^ ~ \ &`), `\n`/`\r`, and the double-quote so a value can
  * never accidentally serialize to the HL7 explicit-null token `""`. Delimiter
  * round-tripping is exercised separately by {@link delimiterLadenValue}.
@@ -69,7 +69,7 @@ export function delimiterLadenValue(): fc.Arbitrary<string> {
 }
 
 /**
- * Either a plain safe value or a delimiter-laden one — the default leaf for
+ * Either a plain safe value or a delimiter-laden one: the default leaf for
  * spec-valid generation. Weighted toward delimiter-laden so the escaping path
  * gets heavy exercise.
  */
@@ -98,7 +98,7 @@ export function structuredField(): fc.Arbitrary<RawField> {
   return repetitions.map((reps) => ({ repetitions: reps, isNull: false }));
 }
 
-/** The HL7 explicit-null field — round-trips as the two-char literal `""`. */
+/** The HL7 explicit-null field: round-trips as the two-char literal `""`. */
 export function nullField(): fc.Arbitrary<RawField> {
   return fc.constant<RawField>({ repetitions: [], isNull: false });
 }
@@ -108,7 +108,7 @@ export function nullField(): fc.Arbitrary<RawField> {
  * full structured fields, and the empty string (absent field). Crucially it
  * does NOT emit a lone explicit-null because two adjacent absent fields and a
  * trailing absent field are positionally indistinguishable after the D-02
- * segment-level rules — using structured/non-empty values keeps the round-trip
+ * segment-level rules: using structured/non-empty values keeps the round-trip
  * exact while still covering repetitions, components, and subcomponents.
  */
 export function segmentFieldEntry(): fc.Arbitrary<string | RawField> {
@@ -189,7 +189,7 @@ export function specCleanMessageRaw(): fc.Arbitrary<string> {
 }
 
 /**
- * Arbitrary raw bytes as a JS string — the most hostile lenient-mode input.
+ * Arbitrary raw bytes as a JS string: the most hostile lenient-mode input.
  * Includes control characters, the HL7 delimiters, and arbitrary code points.
  */
 export function randomBytes(): fc.Arbitrary<string> {
@@ -202,7 +202,7 @@ export function randomBytes(): fc.Arbitrary<string> {
  * unknown segments, extra fields, segments out of order, lowercase segment
  * names, and embedded random bytes. Many of these produce warnings; a handful
  * (no MSH, truncated MSH, bad encoding chars, empty) legitimately throw a
- * Tier-3 fatal — the invariant accounts for both.
+ * Tier-3 fatal: the invariant accounts for both.
  */
 export function quirkyMessageRaw(): fc.Arbitrary<string> {
   const weirdMsh = fc.constantFrom(

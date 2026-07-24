@@ -1,5 +1,5 @@
 /**
- * Unit tests for `src/serialize/to-string.ts::emitMessage` — the Phase 5 Plan
+ * Unit tests for `src/serialize/to-string.ts::emitMessage`: the Phase 5 Plan
  * 02 top-level emitter. Covers:
  * - D-06 MSH-1 / MSH-2 emission trace (exact inverse of `readDelimiters`).
  * - D-05 strict CR segment terminator + trailing CR.
@@ -21,7 +21,7 @@ import { emitField } from "../src/serialize/emit-field.js";
 
 const BASE_MSH = "MSH|^~\\&|A|B|C|D|20260419|||MSG1|P|2.5\r";
 
-describe("emitMessage — D-06 MSH special-case emission", () => {
+describe("emitMessage: D-06 MSH special-case emission", () => {
   it("MSH-1 emits enc.field immediately after 'MSH'", () => {
     const msg = parseHL7(BASE_MSH);
     const out = msg.toString();
@@ -54,12 +54,12 @@ describe("emitMessage — D-06 MSH special-case emission", () => {
   });
 });
 
-describe("emitMessage — D-05 segment terminator", () => {
+describe("emitMessage: D-05 segment terminator", () => {
   it("minimal single-segment message emits trailing \\r exactly once", () => {
     const msg = parseHL7(BASE_MSH);
     const out = msg.toString();
     expect(out.endsWith("\r")).toBe(true);
-    // Only the trailing CR — count occurrences.
+    // Only the trailing CR: count occurrences.
     expect(out.split("\r").length - 1).toBe(1);
   });
 
@@ -90,12 +90,12 @@ describe("emitMessage — D-05 segment terminator", () => {
     const msg = parseHL7(rawCrlf);
     const out = msg.toString();
     expect(out.includes("\n")).toBe(false);
-    // Count CRs only — no CRLF pairs should survive.
+    // Count CRs only: no CRLF pairs should survive.
     expect(out.split("\r").length - 1).toBe(2);
   });
 });
 
-describe("emitMessage — D-04 re-escape through emitField (SER-05)", () => {
+describe("emitMessage: D-04 re-escape through emitField (SER-05)", () => {
   it("embedded HL7 escape sequences round-trip through emit (unescape-on-parse + reescape-on-emit)", () => {
     // Phase 2 tokenize runs every subcomponent through `unescape`, so the raw
     // tree stores DECODED strings. Input `Smith\F\Jones` becomes the literal
@@ -131,7 +131,7 @@ describe("emitMessage — D-04 re-escape through emitField (SER-05)", () => {
     expect(out.includes("\n")).toBe(false);
   });
 
-  it("all 5 active delimiters round-trip (W4 — explicit input shape)", () => {
+  it("all 5 active delimiters round-trip (W4: explicit input shape)", () => {
     const DELIM_CASES: ReadonlyArray<{ delim: string; expectedEscape: string }> = [
       { delim: "|", expectedEscape: "\\F\\" },
       { delim: "^", expectedEscape: "\\S\\" },
@@ -149,7 +149,7 @@ describe("emitMessage — D-04 re-escape through emitField (SER-05)", () => {
   });
 });
 
-describe("emitMessage — D-02 isNull preservation", () => {
+describe("emitMessage: D-02 isNull preservation", () => {
   it('explicit "" null field round-trips through emit', () => {
     const raw = "MSH|^~\\&|A|B|C|D|20260419|||MSG1|P|2.5\r" + 'PID|1|""|MRN001||Doe^John\r';
     const msg = parseHL7(raw);
@@ -168,7 +168,7 @@ describe("emitMessage — D-02 isNull preservation", () => {
   });
 });
 
-describe("emitMessage — D-07 purity", () => {
+describe("emitMessage: D-07 purity", () => {
   it("never throws on diverse parseable inputs", () => {
     const inputs = [
       BASE_MSH,
@@ -181,7 +181,7 @@ describe("emitMessage — D-07 purity", () => {
     }
   });
 
-  it("deterministic — two back-to-back toString() calls return identical strings", () => {
+  it("deterministic: two back-to-back toString() calls return identical strings", () => {
     const msg = parseHL7(BASE_MSH);
     expect(msg.toString()).toBe(msg.toString());
   });
@@ -205,9 +205,9 @@ describe("emitMessage — D-07 purity", () => {
   });
 });
 
-describe("emitMessage — WR-01 zero-segment guard", () => {
+describe("emitMessage: WR-01 zero-segment guard", () => {
   it("throws a typed Error when rawSegments is empty", () => {
-    // Synthetic message with zero segments — only reachable via direct
+    // Synthetic message with zero segments: only reachable via direct
     // `new Hl7Message({...})` construction. parseHL7 rejects such inputs
     // upstream with NO_MSH_SEGMENT.
     const empty = new Hl7Message({
@@ -221,7 +221,7 @@ describe("emitMessage — WR-01 zero-segment guard", () => {
   });
 });
 
-describe("emitMessage — D-08 no MLLP framing", () => {
+describe("emitMessage: D-08 no MLLP framing", () => {
   it("no MLLP bytes on output even when input was MLLP-framed", () => {
     const raw = "\x0BMSH|^~\\&|A|B|C|D|20260419|||MSG1|P|2.5\rPID|1||MRN001\r\x1C\r";
     const msg = parseHL7(raw);
@@ -232,15 +232,15 @@ describe("emitMessage — D-08 no MLLP framing", () => {
   });
 });
 
-describe("emitMessage — D-03 idempotency (byte-identical from second pass)", () => {
-  it("second pass is byte-identical to first — canonical", () => {
+describe("emitMessage: D-03 idempotency (byte-identical from second pass)", () => {
+  it("second pass is byte-identical to first: canonical", () => {
     const raw = BASE_MSH + "PID|1||MRN001||Doe^John\r";
     const once = parseHL7(raw).toString();
     const twice = parseHL7(once).toString();
     expect(twice).toBe(once);
   });
 
-  it("second pass is byte-identical to first — MLLP-framed input", () => {
+  it("second pass is byte-identical to first: MLLP-framed input", () => {
     const raw = "\x0BMSH|^~\\&|A|B|C|D|20260419|||MSG1|P|2.5\rPID|1||MRN001\r\x1C\r";
     const once = parseHL7(raw).toString();
     const twice = parseHL7(once).toString();
@@ -248,8 +248,8 @@ describe("emitMessage — D-03 idempotency (byte-identical from second pass)", (
   });
 });
 
-describe("emitMessage — W3 trailing segment-level empty fields preserved", () => {
-  it("trailing empty fields at segment level preserved — PID with mid/trail empties", () => {
+describe("emitMessage: W3 trailing segment-level empty fields preserved", () => {
+  it("trailing empty fields at segment level preserved: PID with mid/trail empties", () => {
     const raw = "MSH|^~\\&|A|B|C|D|20260419|||MSG1|P|2.5\r" + "PID|1|2|3||5||\r";
     const msg = parseHL7(raw);
     const out = msg.toString();
@@ -286,7 +286,7 @@ describe("emitMessage — W3 trailing segment-level empty fields preserved", () 
     expect(msg.toString()).toBe("MSH|^~\\&|SENDAPP||RECAPP\r");
   });
 
-  it("segment with trailing empty fields — structural round-trip preserves field count", () => {
+  it("segment with trailing empty fields: structural round-trip preserves field count", () => {
     // PID raw has 11 `|` separators → 11 HL7 field positions (PID-1..PID-11),
     // the 7th is "present", 4 trailing empties follow. Including the fields[0]
     // placeholder, rawSegments.find('PID').fields.length === 12.

@@ -35,7 +35,7 @@ describe("model/segment: Segment wrapper", () => {
     expect(seg.type).toBe("PID");
   });
 
-  it("caches Field wrappers by position — seg.field(3) === seg.field(3) (D-12)", () => {
+  it("caches Field wrappers by position: seg.field(3) === seg.field(3) (D-12)", () => {
     const msg = parseHL7(FIXTURE);
     const rawPid = msg.rawSegments[1];
     if (rawPid === undefined) throw new Error("no PID");
@@ -53,7 +53,7 @@ describe("model/segment: Segment wrapper", () => {
     const seg = new Segment(rawPid, msg.encodingCharacters, 1);
     const f0 = seg.field(0);
     expect(f0).toBeInstanceOf(Field);
-    // fields[0] is the segment-name slot — subcomponent[0] is "PID".
+    // fields[0] is the segment-name slot: subcomponent[0] is "PID".
     expect(f0.value).toBe("PID");
   });
 
@@ -81,7 +81,7 @@ describe("model/segment: Segment wrapper", () => {
     const rawPid = msg.rawSegments[1];
     if (rawPid === undefined) throw new Error("no PID");
     const seg = new Segment(rawPid, msg.encodingCharacters, 1);
-    // PID.5 = Smith\F\Jr^Jane — first subcomponent auto-unescaped.
+    // PID.5 = Smith\F\Jr^Jane: first subcomponent auto-unescaped.
     expect(seg.field(5).value).toBe("Smith|Jr");
   });
 });

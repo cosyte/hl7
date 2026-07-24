@@ -60,7 +60,7 @@ describe("model/types/ts: parseTs (Phase N fidelity)", () => {
     expect(ten.fractionalSeconds).toBe("0500");
   });
 
-  it("flags an offset-less value — never resolves it to UTC", () => {
+  it("flags an offset-less value: never resolves it to UTC", () => {
     const ts = parseTs(rep("198807050000"), enc);
     expect(ts.hasTimezone).toBe(false);
     // dtmToDate refuses to guess the zone → undefined, never a silent UTC instant.

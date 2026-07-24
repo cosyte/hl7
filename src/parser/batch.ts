@@ -13,10 +13,10 @@
  *
  * `splitBatch()` demarcates the individual `MSH`-led messages by **MSH
  * boundaries**, parses each one with {@link parseHL7} (so every message is
- * returned either as a parsed `Hl7Message` **or** as a typed failure entry —
+ * returned either as a parsed `Hl7Message` **or** as a typed failure entry,
  * a malformed message mid-stream is isolated, never suppresses its siblings),
  * and reconciles the declared envelope counts (BTS-1 batch message count,
- * FTS-1 file batch count) against the actual counts — surfacing a
+ * FTS-1 file batch count) against the actual counts: surfacing a
  * {@link batchCountMismatch} warning on any mismatch **without ever dropping
  * the tail**. A bare single message with no envelope passes straight through
  * as a one-message result.
@@ -24,7 +24,7 @@
  * This is a **separate surface** from `parseHL7` on purpose: `parseHL7` rejects
  * non-`MSH`-first input outright (that is correct for a single-message
  * parser), so batch demarcation lives here. `splitBatch` is a **splitter**, not
- * an enforcer — it does not send batch ACKs, does not enforce any profile's
+ * an enforcer: it does not send batch ACKs, does not enforce any profile's
  * mandatory-envelope rule (it warns via {@link batchMissingTrailer}; the caller
  * decides to reject), and does not de-batch across transport framing (that is
  * `@cosyte/mllp`). See `docs-content/spec-notes-batch.md`.
@@ -56,7 +56,7 @@ export type BatchEnvelopeName = "FHS" | "BHS" | "BTS" | "FTS";
 /**
  * A raw batch-envelope segment (`FHS`/`BHS`/`BTS`/`FTS`) surfaced by
  * {@link splitBatch}. `fields` is the segment split on its own field separator
- * with `fields[0]` holding the segment name — deliberately the raw token
+ * with `fields[0]` holding the segment name: deliberately the raw token
  * array, not a typed model: first-class FHS/BHS field helpers are deferred
  * (roadmap Phase L defers "typed FHS/BHS helpers beyond raw fields"). Note the
  * HL7 MSH-family indexing quirk: for `FHS`/`BHS`, `fields[1]` is the
@@ -85,7 +85,7 @@ export interface BatchEnvelopeSegment {
  * One message extracted from a batch stream. Discriminated on `ok`: a
  * successful parse carries the `Hl7Message` (whose own `.warnings` hold any
  * per-message Tier-2 deviations); a message that hit one of the four Tier-3
- * fatal conditions carries the `Hl7ParseError` instead — **isolated**, so the
+ * fatal conditions carries the `Hl7ParseError` instead: **isolated**, so the
  * rest of the batch still yields. `raw` is the message's verbatim source
  * (re-parseable by {@link parseHL7}); `position` is the message's `MSH` (or,
  * for pre-`MSH` stray content, its first) segment index in the stream.
@@ -117,7 +117,7 @@ export type BatchMessageEntry =
  * One batch within a stream: a run of messages delimited by a `BHS` header
  * and/or a `BTS` trailer (both optional in §2.10.3, so a `BTS` closes a
  * preceding run into a batch even with no `BHS`). A run of messages with
- * **neither** a header nor a trailer is *not* a batch — those messages live in
+ * **neither** a header nor a trailer is *not* a batch: those messages live in
  * {@link BatchSplitResult.messages} only, so they never inflate a batch count.
  * `declaredMessageCount` is BTS-1 when the trailer declared a usable
  * non-negative integer (it is **optional [0..1]** in the spec, so it may be
@@ -146,7 +146,7 @@ export interface Batch {
 
 /**
  * The result of {@link splitBatch}: the flattened `messages` (every message
- * across every batch, in stream order — the primary surface), the nested
+ * across every batch, in stream order: the primary surface), the nested
  * `batches`, the raw file envelope segments, and the batch-level `warnings`
  * (count-mismatch / missing-trailer). `hadEnvelope` is `false` for a bare
  * passthrough (no FHS/BHS/BTS/FTS seen).
@@ -162,7 +162,7 @@ export interface Batch {
  */
 export interface BatchSplitResult {
   /**
-   * Every message split out of the stream, in order — the primary surface. This
+   * Every message split out of the stream, in order: the primary surface. This
    * includes messages that belong to no explicit batch (a bare stream, or
    * content outside any `BHS`/`BTS`), so it is a superset of the messages
    * reachable via `batches`.
@@ -200,7 +200,7 @@ interface MutableBatch {
  * Deliberately **case-sensitive** (no upper-casing): the batch-boundary segment
  * names (`FHS`/`BHS`/`BTS`/`FTS`/`MSH`) are only recognized when spelled in
  * their canonical uppercase form. This is a fail-safe against a lenient lowercase
- * body segment (e.g. `fts`) being mistaken for an envelope boundary — the
+ * body segment (e.g. `fts`) being mistaken for an envelope boundary: the
  * boundary segments cannot be disambiguated from a same-named body segment by
  * anything but their reserved name, so we keep the match strict. A lowercase
  * `msh`-led message is not a valid message anyway (`parseHL7`'s delimiter reader
@@ -213,14 +213,14 @@ function segmentName(raw: string): string {
   return raw.slice(0, 3);
 }
 
-/** @internal — narrow a 3-char name to a batch-envelope segment name. */
+/** @internal narrow a 3-char name to a batch-envelope segment name. */
 function isEnvelopeName(name: string): name is BatchEnvelopeName {
   return name === "FHS" || name === "BHS" || name === "BTS" || name === "FTS";
 }
 
 /**
  * Split an envelope segment into its raw field tokens on its own field
- * separator (the character at index 3, immediately after the 3-char name — the
+ * separator (the character at index 3, immediately after the 3-char name: the
  * same self-describing convention MSH uses). Returns `[name]` when the segment
  * has no field separator (a bare 3-char segment).
  *
@@ -232,7 +232,7 @@ function envelopeFields(raw: string): readonly string[] {
   return Object.freeze(raw.split(separator));
 }
 
-/** @internal — build a frozen {@link BatchEnvelopeSegment}. */
+/** @internal build a frozen {@link BatchEnvelopeSegment}. */
 function makeEnvelope(
   name: BatchEnvelopeName,
   raw: string,
@@ -249,7 +249,7 @@ function makeEnvelope(
 /**
  * Parse a declared envelope count. Returns the value only for a trimmed,
  * strictly-numeric, safe non-negative integer; `undefined` for an absent,
- * blank, or non-numeric token — so an absent BTS-1 ([0..1] in the spec) or a
+ * blank, or non-numeric token: so an absent BTS-1 ([0..1] in the spec) or a
  * garbage count tolerantly disables reconciliation rather than fabricating a
  * mismatch.
  *
@@ -266,8 +266,8 @@ function parseDeclaredCount(token: string | undefined): number | undefined {
 /**
  * Parse one demarcated message and classify it. A successful {@link parseHL7}
  * yields an `ok` entry; one of the four Tier-3 fatals (`EMPTY_INPUT`,
- * `NO_MSH_SEGMENT`, `MSH_TOO_SHORT`, `INVALID_ENCODING_CHARACTERS`) — or, under
- * `strict`, a promoted Tier-2 warning — is caught and returned as a typed
+ * `NO_MSH_SEGMENT`, `MSH_TOO_SHORT`, `INVALID_ENCODING_CHARACTERS`): or, under
+ * `strict`, a promoted Tier-2 warning: is caught and returned as a typed
  * failure entry so it never suppresses the sibling messages. Any non-parser
  * throw is genuinely unexpected and re-raised.
  *
@@ -310,16 +310,16 @@ function parseEntry(
  * - handles a file with **multiple batches** and a batch with multiple messages;
  * - a **bare single message** (no envelope) passes straight through as one entry;
  * - a **malformed message mid-batch is isolated** (returned as a typed failure
- *   entry) — its siblings are still returned, the tail is never dropped;
+ *   entry): its siblings are still returned, the tail is never dropped;
  * - reconciles BTS-1 (batch message count) and FTS-1 (file batch count) and
- *   emits {@link batchCountMismatch} on a mismatch — counts only, never PHI;
+ *   emits {@link batchCountMismatch} on a mismatch: counts only, never PHI;
  * - emits {@link batchMissingTrailer} when a `BHS`/`FHS` header opens a scope no
- *   `BTS`/`FTS` closes — a warning, never a throw (the caller decides to reject).
+ *   `BTS`/`FTS` closes: a warning, never a throw (the caller decides to reject).
  *
  * The second argument, when given, is forwarded verbatim to {@link parseHL7}
  * for **each** message (profile, `strict`, `charset`, `dateFormats`, …). Under
  * `strict`, a message that would warn surfaces as a failure entry (still
- * isolated). `splitBatch` itself never throws — an empty stream yields an empty
+ * isolated). `splitBatch` itself never throws: an empty stream yields an empty
  * result.
  *
  * @example
@@ -337,13 +337,13 @@ function parseEntry(
  * for (const entry of messages) {
  *   if (entry.ok) console.log(entry.message.version); // "2.5"
  * }
- * console.log(warnings.length); // 0 — declared counts match
+ * console.log(warnings.length); // 0: declared counts match
  * ```
  */
 export function splitBatch(raw: string | Buffer): BatchSplitResult;
 export function splitBatch(raw: string | Buffer, profile: Profile): BatchSplitResult;
 export function splitBatch(raw: string | Buffer, options: ParseOptions): BatchSplitResult;
-/** @internal — implementation signature; overloads above carry the public JSDoc. */
+/** @internal implementation signature; overloads above carry the public JSDoc. */
 export function splitBatch(
   raw: string | Buffer,
   optionsOrProfile?: ParseOptions | Profile,
@@ -353,7 +353,7 @@ export function splitBatch(
   // segment terminator are ASCII, so demarcation is exact, and each message
   // slice re-encodes to its original bytes for per-message MSH-18 charset
   // resolution. NB: stream-level line-ending `normalize()` runs before that
-  // per-message decode — correct for the single-byte / ASCII-superset charsets
+  // per-message decode: correct for the single-byte / ASCII-superset charsets
   // HL7 batch framing uses (its \r terminator must be a single 0x0D byte), but
   // not a byte-exact substitute for a multi-byte charset (e.g. UTF-16) whose
   // payload embeds 0x0A/0x0D bytes. Such batch files effectively do not exist.
@@ -378,11 +378,11 @@ export function splitBatch(
   let hadEnvelope = false;
 
   // A batch is a run of messages delimited by a `BHS` header AND/OR a `BTS`
-  // trailer — both are optional in the §2.10.3 grammar, so a `BTS` closes the
+  // trailer: both are optional in the §2.10.3 grammar, so a `BTS` closes the
   // preceding run into a batch even with no `BHS`. `pendingMessages` accumulates
   // the messages since the last boundary; `currentHeader` is the `BHS` that
   // opened the current run, if any. A run with NEITHER a header nor a trailer is
-  // stray — kept in `flattened`/`messages` only, so it never inflates the FTS-1
+  // stray: kept in `flattened`/`messages` only, so it never inflates the FTS-1
   // batch count.
   let currentHeader: BatchEnvelopeSegment | undefined;
   let pendingMessages: BatchMessageEntry[] = [];
@@ -419,7 +419,7 @@ export function splitBatch(
   };
 
   // Finalize the pending message run. A `BTS` trailer always closes the run into
-  // a batch (headerless or headed) and reconciles BTS-1 — except a lone `BTS`
+  // a batch (headerless or headed) and reconciles BTS-1: except a lone `BTS`
   // closing nothing (no messages, no header), which is ignorable noise. Without
   // a trailer, only a `BHS`-opened run is a batch (and warns for its missing
   // BTS); a headerless, trailer-less run is stray.
@@ -475,7 +475,7 @@ export function splitBatch(
   for (let index = 0; index < segments.length; index++) {
     const segment = segments[index];
     if (segment === undefined) continue;
-    // Skip a blank / whitespace-only line ONLY between messages — it is
+    // Skip a blank / whitespace-only line ONLY between messages: it is
     // inter-message whitespace carrying no segment content (splitBatch is
     // deliberately more tolerant of stream-level whitespace than parseHL7). A
     // blank segment INSIDE an open message is meaningful (HL7 keeps middle empty
@@ -509,7 +509,7 @@ export function splitBatch(
       continue;
     }
 
-    // Message body — or stray content before the first MSH / a body segment
+    // Message body: or stray content before the first MSH / a body segment
     // severed by a reserved-name boundary, which is kept (never dropped) and
     // surfaces as a NO_MSH_SEGMENT failure entry on flush.
     if (messageLines.length === 0) messageIndex = index;

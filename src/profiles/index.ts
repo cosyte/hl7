@@ -5,7 +5,7 @@
  * plus the two type exports `DefineProfileOptions` and
  * `CustomSegmentDefinition`.
  *
- * D-26 contract: individual built-ins are NOT top-level named exports —
+ * D-26 contract: individual built-ins are NOT top-level named exports,
  * consumers access them via `profiles.epic`, `profiles.cerner`, etc.
  * ("epic" is too generic a name for a top-level export.)
  */

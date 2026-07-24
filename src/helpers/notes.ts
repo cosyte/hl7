@@ -1,8 +1,8 @@
 /**
- * `groupNotes` / `notes` — Phase P implementation of NTE narrative grouping.
+ * `groupNotes` / `notes`: Phase P implementation of NTE narrative grouping.
  * Groups **NTE** (Notes and Comments) segments to their parent **by position**:
  * an NTE inherits its meaning entirely from the segment that immediately
- * precedes it (HL7 v2 Ch. 2 — the NTE carries no link field, so attachment is
+ * precedes it (HL7 v2 Ch. 2: the NTE carries no link field, so attachment is
  * purely positional). In an ORU the grammar is
  * `{ [ORC] OBR [{NTE}] [{ [OBX] [{NTE}] }] }`, so a note after OBR is
  * order-level and a note after OBX is *that* result-level (Ch. 7).
@@ -16,19 +16,19 @@
  *   - **Positional, never guessed.** The parent is the nearest *preceding
  *     non-NTE* segment (consecutive NTEs chain to the same parent). Any
  *     non-NTE segment that is NOT a recognized parent (e.g. `PV1`, `AL1`,
- *     `MSH`) resets the target — a subsequent NTE is then surfaced
+ *     `MSH`) resets the target: a subsequent NTE is then surfaced
  *     message-level, not attached to an unrelated earlier parent (fail safe;
  *     the spec's "profile-specific placement outside the common patterns is
  *     surfaced message-level, not guessed").
- *   - **Never dropped — even when the parent's helper projection is dropped.**
+ *   - **Never dropped: even when the parent's helper projection is dropped.**
  *     A note whose recognized parent is *not* surfaced by any helper falls to
  *     the message-level `unattached` bucket rather than vanishing. Two such
  *     cases: (1) a **later PID** in a multi-patient ORU (`msg.patient` is the
- *     first PID only), and (2) an **ORC region that never opens an order** — a
+ *     first PID only), and (2) an **ORC region that never opens an order**: a
  *     trailing/dangling ORC with no following OBR. To handle the ORC↔order
  *     relationship, notes seen after an `ORC` (before its OBR) are **buffered**
  *     and flushed onto the OBR that opens the order (in document order, ahead of
- *     the OBR's own notes) — exactly mirroring how `orders()` promotes a pending
+ *     the OBR's own notes): exactly mirroring how `orders()` promotes a pending
  *     ORC. Several ORCs before one OBR all flush to that order; nothing is lost.
  *   - **Order preserved.** Note lines accumulate in document order per parent;
  *     across parents the walk is `msg.allSegments()` order. Order-level notes
@@ -40,12 +40,12 @@
  *     a parent's notes without re-implementing the positional walk.
  *   - **NTE-3 (Comment, FT, repeating).** Each non-empty NTE-3 repetition is one
  *     note line. The FULL repetition text is reassembled (all components /
- *     subcomponents), HL7-unescaped — a non-conformant raw `^`/`&` in the FT
+ *     subcomponents), HL7-unescaped: a non-conformant raw `^`/`&` in the FT
  *     narrative tokenizes into components, so reading only the first would
  *     truncate the note (silent clinical-text loss). NTE-1 (set id), NTE-2
- *     (source of comment), and NTE-4 (comment type) are intentionally deferred —
+ *     (source of comment), and NTE-4 (comment type) are intentionally deferred,
  *     FT formatting beyond the standard escape set is not specially rendered.
- *   - NTE free-text is high-PHI-risk clinical narrative — it is payload; no
+ *   - NTE free-text is high-PHI-risk clinical narrative: it is payload; no
  *     warning or log line echoes it.
  */
 
@@ -76,12 +76,12 @@ export interface NoteGrouping {
  * FT) repetition as one line, decoded, in order. An NTE carrying no NTE-3
  * text yields `[]`.
  *
- * The FULL repetition text is reassembled — a lenient parser tokenizes a
+ * The FULL repetition text is reassembled: a lenient parser tokenizes a
  * non-conformant raw `^`/`&` in the FT narrative into components/subcomponents,
  * so reading only the first would silently truncate the note. Each leaf is
- * already decoded by the tokenizer (parser-02) — it is used verbatim, NOT
+ * already decoded by the tokenizer (parser-02): it is used verbatim, NOT
  * re-unescaped (a second decode would double-decode a value whose bytes look
- * like an escape, HL7-VALUE-REDECODE) — and components/subcomponents are
+ * like an escape, HL7-VALUE-REDECODE): and components/subcomponents are
  * rejoined with the literal delimiters so both the conformant (`\S\`-escaped)
  * and quirky (raw-caret) forms read to the same text.
  *
@@ -99,7 +99,7 @@ export function extractNoteLines(nte: Segment): string[] {
   const enc = field.enc;
   const lines: string[] = [];
   for (const rep of field.repetitions) {
-    // Subcomponents are already decoded by the tokenizer — join them verbatim,
+    // Subcomponents are already decoded by the tokenizer: join them verbatim,
     // never a second `unescape` (HL7-VALUE-REDECODE).
     const text = rep.components
       .map((c) => c.subcomponents.join(enc.subcomponent))
@@ -111,7 +111,7 @@ export function extractNoteLines(nte: Segment): string[] {
 
 /**
  * Walk the message once and group NTE note lines to their positional parent.
- * The returned maps/arrays are frozen at the boundary. NOT memoized — each
+ * The returned maps/arrays are frozen at the boundary. NOT memoized: each
  * caller (`observations()` / `orders()` / `buildPatient()` / `msg.notes()`)
  * re-walks, mirroring the non-memoized collection helpers.
  *
@@ -187,7 +187,7 @@ export function groupNotes(msg: Hl7Message): NoteGrouping {
     }
 
     // Any other segment (MSH, PV1, AL1, …) re-scopes the immediate target to
-    // message level (fail-safe — never guess). A buffered ORC region survives:
+    // message level (fail-safe: never guess). A buffered ORC region survives:
     // it still belongs to the order its OBR will open.
     target = undefined;
   }
@@ -205,7 +205,7 @@ export function groupNotes(msg: Hl7Message): NoteGrouping {
 }
 
 /**
- * Message-level notes — surfaced verbatim in document order so nothing is ever
+ * Message-level notes: surfaced verbatim in document order so nothing is ever
  * dropped. This bucket holds an NTE with **no recognized preceding parent**
  * (not immediately following a `PID` / `ORC` / `OBR` / `OBX`), plus the notes
  * whose recognized parent has **no surfaced projection**: a later `PID`'s notes
@@ -213,7 +213,7 @@ export function groupNotes(msg: Hl7Message): NoteGrouping {
  * that never opens an order (a trailing/dangling `ORC` with no following OBR).
  * Notes that DO attach to a specific patient / order / result are exposed on
  * those helper outputs (`msg.patient?.notes`, `order.notes`, `observation.notes`)
- * — not here. D-05: returns `[]` when there are none. NOT memoized.
+ *: not here. D-05: returns `[]` when there are none. NOT memoized.
  *
  * @example
  * ```ts

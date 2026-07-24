@@ -1,16 +1,16 @@
 /**
- * Property tests for Phase O charset decoding — the two safety invariants the
+ * Property tests for Phase O charset decoding: the two safety invariants the
  * fail-safe design guarantees over arbitrary MSH-18 declarations + byte content:
  *
  *   1. **A decodable single-byte set never mojibakes.** For any ISO-8859-1
  *      byte stream declared `8859/1`, the parser reproduces the exact code
- *      points a Latin-1 decode would — no replacement characters, no loss.
+ *      points a Latin-1 decode would: no replacement characters, no loss.
  *
  *   2. **An undecoded set preserves bytes losslessly (reversibly).** For any
  *      byte stream under a recognized-but-undecoded set (`ISO IR87`) or an
  *      unrecognized label, the parsed field text re-encodes byte-identical via
  *      `latin1`, and exactly one charset warning (`UNSUPPORTED_CHARSET` /
- *      `UNKNOWN_CHARSET`) is raised — the parser never silently guesses.
+ *      `UNKNOWN_CHARSET`) is raised: the parser never silently guesses.
  */
 
 import { describe, expect, it } from "vitest";
@@ -22,11 +22,11 @@ import { parseHL7, WARNING_CODES } from "../../src/index.js";
 const RUN_CONFIG = { numRuns: 300, seed: 0x07_05_2026 } as const;
 
 /**
- * Field-content byte payload: the FULL 0x20–0xFF range — **including the C1
+ * Field-content byte payload: the FULL 0x20–0xFF range: **including the C1
  * range 0x80–0x9F**, which `8859/1` (decoded via `latin1`) now maps byte-exactly
  * (the WHATWG `TextDecoder("iso-8859-1")` = windows-1252 remap is not used).
- * Only the HL7 **structural** bytes are excluded — the field/component/repetition/
- * escape/sub delimiters (`|^~\&`) — because a content byte equal to a structural
+ * Only the HL7 **structural** bytes are excluded: the field/component/repetition/
+ * escape/sub delimiters (`|^~\&`): because a content byte equal to a structural
  * delimiter is, by definition of the wire format, a delimiter, not content. The
  * segment terminators CR (0x0D) / LF (0x0A) are below 0x20 and thus already out
  * of range; the framing hazard they pose to *multibyte* content is pinned

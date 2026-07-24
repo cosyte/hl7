@@ -5,19 +5,19 @@
  * missing/empty components identically.
  *
  * Subcomponents are returned VERBATIM: the tokenizer (parser-02) already
- * unescaped each one on parse, so the stored value is decoded — a second
+ * unescaped each one on parse, so the stored value is decoded: a second
  * `unescape` here would double-decode a value whose own bytes look like an
  * escape (HL7-VALUE-REDECODE). The `enc` params are retained for signature
  * uniformity across the composite read path.
  *
- * Not part of the public API — never re-exported from `src/index.ts`.
+ * Not part of the public API: never re-exported from `src/index.ts`.
  */
 
 import type { EncodingCharacters, RawComponent, RawRepetition } from "../../parser/types.js";
 
 /**
  * Read `subcomponents[index]` from a component and return it (already decoded
- * by the tokenizer — see the module header). Returns `undefined` when:
+ * by the tokenizer: see the module header). Returns `undefined` when:
  * - `component` is `undefined` (missing component).
  * - `index` is out of range.
  * - the subcomponent is the empty string `""`.
@@ -38,7 +38,7 @@ export function readSubcomponent(
   const sub = component.subcomponents[index];
   if (sub === undefined || sub === "") return undefined;
   // The tokenizer already unescaped every subcomponent on parse (parser-02), so
-  // the stored value is decoded — return it directly. A second unescape would
+  // the stored value is decoded: return it directly. A second unescape would
   // double-decode a value whose own bytes look like an escape (wire `\E\F\E\` →
   // decoded `\F\`, which a second pass would wrongly turn into `|`). Emit
   // fidelity is handled separately by the raw overlay (HL7-ESC). `_enc` is
@@ -50,7 +50,7 @@ export function readSubcomponent(
  * Read the first subcomponent of `components[index]` and return it (already
  * decoded by the tokenizer). Shorthand for
  * `readSubcomponent(rep.components[index], 0, enc)`. Most composite fields
- * are single-subcomponent values — this helper keeps composite parsers
+ * are single-subcomponent values: this helper keeps composite parsers
  * declarative.
  *
  * @internal
@@ -64,8 +64,8 @@ export function readComponent(
 }
 
 /**
- * Read every component at or beyond `fromIndex` — the components a fixed-shape
- * composite parser does NOT model — so a coded element that grew across HL7
+ * Read every component at or beyond `fromIndex`: the components a fixed-shape
+ * composite parser does NOT model: so a coded element that grew across HL7
  * versions (e.g. the v2.7 CWE second-alternate triplet + coding-system OIDs at
  * components 10–22) is never silently truncated. Each entry is the
  * first-subcomponent value (already decoded), positionally aligned: an absent
@@ -74,7 +74,7 @@ export function readComponent(
  *
  * Trailing empties are stripped (D-02 parity), and the whole result is
  * `undefined` when there is nothing beyond `fromIndex` or every extra component
- * is empty — so the optional `extraComponents` key is OMITTED rather than set
+ * is empty: so the optional `extraComponents` key is OMITTED rather than set
  * to an empty array (exactOptionalPropertyTypes). The returned array is frozen.
  *
  * @internal

@@ -13,7 +13,7 @@ function fixture(name: string): string {
   return readFileSync(fileURLToPath(new URL(`./fixtures/text/${name}`, import.meta.url)), "utf8");
 }
 
-describe("text/render: renderText — plain content & delimiters", () => {
+describe("text/render: renderText: plain content & delimiters", () => {
   it("passes through plain text unchanged with a single run", () => {
     const r = renderText("plain narrative text");
     expect(r.text).toBe("plain narrative text");
@@ -49,7 +49,7 @@ describe("text/render: renderText — plain content & delimiters", () => {
   });
 });
 
-describe("text/render: renderText — highlight (§2.7.1 \\H\\/\\N\\)", () => {
+describe("text/render: renderText: highlight (§2.7.1 \\H\\/\\N\\)", () => {
   it("drops highlight boundaries from text and exposes highlighted runs", () => {
     const r = renderText("Result is \\H\\CRITICAL\\N\\ now");
     expect(r.text).toBe("Result is CRITICAL now");
@@ -61,7 +61,7 @@ describe("text/render: renderText — highlight (§2.7.1 \\H\\/\\N\\)", () => {
     expect(r.unrenderedSequences).toEqual([]);
   });
 
-  it("handles an unclosed highlight (\\H\\ with no \\N\\) — rest stays highlighted", () => {
+  it("handles an unclosed highlight (\\H\\ with no \\N\\): rest stays highlighted", () => {
     const r = renderText("see \\H\\emphasis to end");
     expect(r.text).toBe("see emphasis to end");
     expect(r.runs).toEqual([
@@ -71,7 +71,7 @@ describe("text/render: renderText — highlight (§2.7.1 \\H\\/\\N\\)", () => {
   });
 });
 
-describe("text/render: renderText — formatting commands (§2.7.6, FT)", () => {
+describe("text/render: renderText: formatting commands (§2.7.6, FT)", () => {
   it("renders \\.br\\ and \\.ce\\ as a single line break each", () => {
     expect(renderText("a\\.br\\b\\.ce\\c").text).toBe("a\nb\nc");
   });
@@ -114,7 +114,7 @@ describe("text/render: renderText — formatting commands (§2.7.6, FT)", () => 
   });
 });
 
-describe("text/render: renderText — line-break normalization", () => {
+describe("text/render: renderText: line-break normalization", () => {
   it("normalizes raw CR, LF, and CRLF (e.g. an already-decoded \\.br\\) to one break", () => {
     expect(renderText("a\rb\nc\r\nd").text).toBe("a\nb\nc\nd");
   });
@@ -139,7 +139,7 @@ describe("text/render: renderText — line-break normalization", () => {
   });
 });
 
-describe("text/render: renderText — never fabricates (fail-safe)", () => {
+describe("text/render: renderText: never fabricates (fail-safe)", () => {
   it("preserves a vendor \\Z..\\ escape as literal characters AND flags it", () => {
     const r = renderText("note \\Z99\\ end");
     expect(r.text).toBe("note \\Z99\\ end");
@@ -171,7 +171,7 @@ describe("text/render: renderText — never fabricates (fail-safe)", () => {
   });
 });
 
-describe("text/render: renderText — fixtures (synthetic)", () => {
+describe("text/render: renderText: fixtures (synthetic)", () => {
   it("renders a formatting-laden pathology narrative to correct line structure", () => {
     const obx5 = parseHL7(fixture("formatting-note.hl7")).segments("OBX")[0]?.field(5);
     const r = obx5?.render();
@@ -199,7 +199,7 @@ describe("text/render: renderText — fixtures (synthetic)", () => {
 });
 
 describe("model/field: Field.render", () => {
-  it("renders a note field through the convenience method (read projection — raw unchanged)", () => {
+  it("renders a note field through the convenience method (read projection: raw unchanged)", () => {
     const raw =
       "MSH|^~\\&|A|B|C|D|20260101||ORU^R01|1|P|2.5\r" + "OBX|1|TX|N^N^L||Line1\\.br\\Line2||||||F";
     const msg = parseHL7(raw);

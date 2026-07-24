@@ -4,7 +4,7 @@
  * The load-bearing clinical claim: a comparator or range carried in an
  * `OBX-2 = SN` result is NEVER silently dropped. The pre-Phase-B parser sent
  * SN through the plain-string branch, where `<^10` collapsed to the bare
- * string "<" — a misread result with a documented patient-harm path
+ * string "<": a misread result with a documented patient-harm path
  * (OpenSAFELY: ~36% of pathology results carry a comparator).
  *
  * Invariants, over thousands of generated SN values:

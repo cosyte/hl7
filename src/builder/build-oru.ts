@@ -1,5 +1,5 @@
 /**
- * `buildOru` — author a spec-clean HL7 v2 **ORU^R01** (observation result)
+ * `buildOru`: author a spec-clean HL7 v2 **ORU^R01** (observation result)
  * message from typed inputs (roadmap Phase T). The conservative-emit mirror of
  * the read helpers (`msg.orders`, `msg.observations`): a caller supplies a
  * typed patient, an optional order (OBR), and one or more typed observations
@@ -12,10 +12,10 @@
  *
  * **Never fabricate.** Only supplied values are emitted; omitted fields become
  * empty/absent. `patient` and at least one `observations` entry are
- * **required** — an ORU with no subject or no result is a typed `TypeError`,
+ * **required**: an ORU with no subject or no result is a typed `TypeError`,
  * not a guessed PID or a fabricated OBX.
  *
- * Spec traceability: HL7 v2 Ch. 7 (ORU — MSH/PID/OBR/OBX), Ch. 2 datatypes.
+ * Spec traceability: HL7 v2 Ch. 7 (ORU: MSH/PID/OBR/OBX), Ch. 2 datatypes.
  * Zero runtime deps.
  */
 
@@ -41,7 +41,7 @@ import {
 } from "./segment-fields.js";
 
 /**
- * Typed PID content for {@link buildOru}. Reuses {@link AdtPatient} — the
+ * Typed PID content for {@link buildOru}. Reuses {@link AdtPatient}: the
  * patient-identification shape is identical across message families.
  */
 export type OruPatient = AdtPatient;
@@ -72,7 +72,7 @@ export interface OruObservation {
   readonly valueType?: string;
   /** OBX-3 Observation Identifier. */
   readonly identifier?: CWE;
-  /** OBX-5 Observation Value (emitted verbatim — the caller owns its formatting). */
+  /** OBX-5 Observation Value (emitted verbatim: the caller owns its formatting). */
   readonly value?: string;
   /** OBX-6 Units. */
   readonly units?: CWE;
@@ -88,11 +88,11 @@ export interface OruObservation {
 
 /** Input for {@link buildOru}: the MSH envelope plus the typed segment bodies. */
 export interface BuildOruInit extends MessageEnvelope {
-  /** PID content. **Required** — never fabricated. */
+  /** PID content. **Required**: never fabricated. */
   readonly patient: OruPatient;
   /** OBR content. Optional; an (empty) OBR is emitted regardless so the result group is well-formed. */
   readonly order?: OruOrder;
-  /** OBX content. **Required, non-empty** — an ORU with no result is a typed error. */
+  /** OBX content. **Required, non-empty**: an ORU with no result is a typed error. */
   readonly observations: readonly OruObservation[];
 }
 
@@ -147,10 +147,10 @@ export function buildOru(init: BuildOruInit): Hl7Message {
     init.patient === undefined
   ) {
     throw new TypeError(
-      "buildOru: `patient` is required — an ORU is never emitted with a fabricated subject.",
+      "buildOru: `patient` is required. An ORU is never emitted with a fabricated subject.",
     );
   }
-  // Note: intentionally NOT `Array.isArray` — that narrows a `readonly T[]` to
+  // Note: intentionally NOT `Array.isArray`: that narrows a `readonly T[]` to
   // `any[]` and would poison `obs` in the loop below to `any`. An
   // undefined-or-empty check keeps the element type.
   if (
@@ -158,7 +158,7 @@ export function buildOru(init: BuildOruInit): Hl7Message {
     init.observations.length === 0
   ) {
     throw new TypeError(
-      "buildOru: at least one `observations` entry (OBX) is required — an ORU with no " +
+      "buildOru: at least one `observations` entry (OBX) is required. An ORU with no " +
         "result is a typed error, never a fabricated observation.",
     );
   }

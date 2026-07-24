@@ -10,7 +10,7 @@
  *     pnpm tsx scripts/run-examples.ts
  *
  * Security note (Phase 8 threat T-08-01): filenames are passed as argv
- * to spawnSync — they are NEVER concatenated into a shell template. Any
+ * to spawnSync: they are NEVER concatenated into a shell template. Any
  * future example file whose name contains shell metacharacters (spaces,
  * `;`, `$`, backticks, etc.) would still run safely.
  */
@@ -33,7 +33,7 @@ const entries = readdirSync(EXAMPLES_DIR, { withFileTypes: true })
 
 let failed = 0;
 for (const file of entries) {
-  // argv array — NOT shell text — so filenames with metacharacters are safe.
+  // argv array, NOT shell text, so filenames with metacharacters are safe.
   const result = spawnSync("pnpm", ["tsx", `${EXAMPLES_DIR}/${file}`], {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],

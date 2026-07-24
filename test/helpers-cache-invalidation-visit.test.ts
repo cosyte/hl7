@@ -1,5 +1,5 @@
 /**
- * Phase 4 Plan 03 — cache memoization + invalidation tests for `msg.visit`.
+ * Phase 4 Plan 03: cache memoization + invalidation tests for `msg.visit`.
  * Parallel to Plan 02's `helpers-cache-invalidation.test.ts` (which covers
  * meta + patient + the D-06 collection assertion). This file is intentionally
  * disjoint so Plans 02 and 03 can run in parallel on Wave 2 without editing
@@ -22,7 +22,7 @@ const MSH = "MSH|^~\\&|APP|FAC|||20250102||ADT^A01|1|P|2.5\r";
 const WITH_PV1 = MSH + "PID|||X\r" + "PV1|1|I";
 const WITHOUT_PV1 = MSH + "PID|||X";
 
-describe("helpers cache invalidation — visit (D-02 + HELPERS-03)", () => {
+describe("helpers cache invalidation: visit (D-02 + HELPERS-03)", () => {
   it("msg.visit === msg.visit across reads (memoization)", () => {
     const msg = parseHL7(WITH_PV1);
     expect(msg.visit).toBe(msg.visit);

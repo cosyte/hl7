@@ -1,7 +1,7 @@
 /**
- * Phase 4 Plan 02 — integration tests for `msg.meta` (HELPERS-01).
+ * Phase 4 Plan 02: integration tests for `msg.meta` (HELPERS-01).
  * Verifies the locked field list (D-03, D-18, D-22, D-23) against realistic
- * MSH fixtures. All assertions exercise the public read surface — no
+ * MSH fixtures. All assertions exercise the public read surface: no
  * reach-through to rawSegments.
  */
 
@@ -28,7 +28,7 @@ describe("helpers/meta: msg.meta (HELPERS-01)", () => {
     expect(msg.meta.controlId).toBe("MSG001");
   });
 
-  it("reads MSH-7 timestamp as the fidelity TS (Phase N — no eager UTC)", () => {
+  it("reads MSH-7 timestamp as the fidelity TS (Phase N: no eager UTC)", () => {
     const msg = parseHL7(FULL);
     expect(msg.meta.timestamp).toMatchObject({
       raw: "20250102153045",

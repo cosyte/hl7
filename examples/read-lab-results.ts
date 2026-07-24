@@ -1,5 +1,5 @@
 /**
- * EX-02 — Iterate lab observations from an ORU^R01 message using
+ * EX-02: Iterate lab observations from an ORU^R01 message using
  * `msg.observations()`. Demonstrates the collection-iteration access path:
  * one call returns every OBX as a typed `Observation` in document order.
  *
@@ -10,7 +10,7 @@
  * Expected stdout contains `Observation` (marker asserted by
  * `scripts/run-examples.ts`).
  *
- * Note on types: `obs.identifier` and `obs.units` are `CWE` composites —
+ * Note on types: `obs.identifier` and `obs.units` are `CWE` composites,
  * `.identifier` is the code (e.g. `"WBC"`), `.text` is the human-readable
  * name (e.g. `"White Blood Cells"`). This example prints the code + text
  * + the numeric value and reference range.

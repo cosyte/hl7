@@ -4,12 +4,12 @@
  * work the decoded tree conflated recognize-and-preserve escapes (`\H\`,
  * `\Z..\`, charset/formatting) and hex escapes (`\X41\`) with literal
  * backslashes, so emit double-escaped the former (`\H\` → `\E\H\E\`) and
- * decoded the latter (`\X41\` → `A`) — spec-clean + lossless-as-text, but not
+ * decoded the latter (`\X41\` → `A`): spec-clean + lossless-as-text, but not
  * byte-verbatim. The `RawComponent.rawSubcomponents` overlay pins the original
  * wire bytes so emit reproduces them exactly, across the FULL escape alphabet.
  *
  * The decoded `subcomponents` surface (what `Field.value` / composites read) is
- * deliberately unchanged — these tests only pin the EMIT side.
+ * deliberately unchanged: these tests only pin the EMIT side.
  */
 
 import { describe, expect, it } from "vitest";

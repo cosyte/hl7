@@ -4,7 +4,7 @@
  * feeds, plus two Z-segments: `ZDP` (department context) and `ZRS`
  * (result status). BIP-01.
  *
- * Authored from the public `defineProfile()` API — zero privileged
+ * Authored from the public `defineProfile()` API: zero privileged
  * internal coupling. Consumers extend this profile via
  * `defineProfile({ name: '...', extends: profiles.epic, ... })`.
  *
@@ -31,7 +31,7 @@ import { defineProfile } from "./define.js";
  */
 export const epic = defineProfile({
   name: "epic",
-  description: "Epic Bridges Interconnect — ADT-style date formats and common Z-segments",
+  description: "Epic Bridges Interconnect: ADT-style date formats and common Z-segments",
   dateFormats: ["MM/DD/YYYY HH:mm:ss", "MM/DD/YYYY"],
   customSegments: {
     ZDP: { fields: { departmentCode: 3, departmentName: 4 } },

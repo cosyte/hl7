@@ -131,7 +131,7 @@ describe("emitPrettyPrint - Block 1: D-25 header", () => {
     expect(firstLine).toContain("controlId=-");
   });
 
-  it("header contains the raw HL7 timestamp when present (Phase N — no UTC coercion)", () => {
+  it("header contains the raw HL7 timestamp when present (Phase N: no UTC coercion)", () => {
     const out = parseHL7(CANONICAL_ADT).prettyPrint();
     const [firstLine] = out.split("\n");
     // Phase N: the header renders MSH-7 verbatim, preserving precision + zone,

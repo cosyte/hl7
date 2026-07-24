@@ -1,34 +1,34 @@
 /**
- * `immunizations` — Phase E (P0 safety) implementation of the VXU^V04
+ * `immunizations`: Phase E (P0 safety) implementation of the VXU^V04
  * immunization extractor. Walks the message in document order and projects each
  * RXA (Pharmacy/Treatment Administration) segment into a typed `Immunization`,
  * grouping the RXR (route/site) and OBX (e.g. VFC eligibility / funding) that
- * follow it positionally under that RXA — the same order-group state machine
+ * follow it positionally under that RXA: the same order-group state machine
  * `orders()` uses for ORC → OBR → OBX, specialized to the VXU group
  * `ORC`→`RXA`→`[RXR]`→`[{OBX}]` (one RXA per ORC; CDC v2.5.1 Immunization
  * Messaging IG).
  *
- * Field map (HL7 Ch. 4A — RXA; CDC v2.5.1 Immunization Messaging IG R1.5):
+ * Field map (HL7 Ch. 4A: RXA; CDC v2.5.1 Immunization Messaging IG R1.5):
  *   - RXA-3  date/time start of administration (TS)
- *   - RXA-5  administered vaccine code (CWE — CVX, Table 0292) + any alternate
+ *   - RXA-5  administered vaccine code (CWE: CVX, Table 0292) + any alternate
  *   - RXA-6  administered dose amount (NM; `999` = IIS "unknown", surfaced as-is)
- *   - RXA-7  administered dose units (CWE — UCUM)
- *   - RXA-9  immunization information source (CWE — Table NIP001) → recordOrigin
+ *   - RXA-7  administered dose units (CWE: UCUM)
+ *   - RXA-9  immunization information source (CWE: Table NIP001) → recordOrigin
  *   - RXA-15 substance lot number (ST, first repetition)
  *   - RXA-16 substance expiration date (TS, first repetition)
- *   - RXA-17 substance manufacturer (CWE — MVX, Table 0227, first repetition)
+ *   - RXA-17 substance manufacturer (CWE: MVX, Table 0227, first repetition)
  *   - RXA-18 substance/treatment refusal reason (CWE, first repetition)
- *   - RXA-20 completion status (ID — CP/RE/NA/PA)
- *   - RXA-21 action code (ID — A/D/U), preserved verbatim
+ *   - RXA-20 completion status (ID: CP/RE/NA/PA)
+ *   - RXA-21 action code (ID: A/D/U), preserved verbatim
  *   - RXR-1/2 route (Table 0162) / site (Table 0163), grouped (reuses MedicationRoute)
  *   - ORC-1   order control of the preceding ORC, attached as orderControl
  *
  * Safety rules enforced here (Phase E):
- *   - Never throws — malformed RXA surfaces as omitted keys (HELPERS-07).
- *   - `actionCode` (RXA-21) is surfaced VERBATIM and never defaulted — a wrong
+ *   - Never throws: malformed RXA surfaces as omitted keys (HELPERS-07).
+ *   - `actionCode` (RXA-21) is surfaced VERBATIM and never defaulted: a wrong
  *     A/D/U corrupts an IIS add/delete/update dedup.
  *   - `recordOrigin` is derived ONLY from the well-known NIP001 RXA-9.1 codes
- *     (`00` administered; `01`-`08` historical) and OMITTED otherwise — the raw
+ *     (`00` administered; `01`-`08` historical) and OMITTED otherwise: the raw
  *     RXA-9 claim is always preserved on `informationSource`. Never guessed.
  *   - `doseAmount` is strict-`Number()` parsed via `Field.asNm()` → never `NaN`;
  *     the `999` unknown-dose sentinel is surfaced as the number `999`, not coerced.
@@ -62,7 +62,7 @@ import type {
  * NIP001 RXA-9.1 codes that classify a dose as *historical* (sourced from
  * elsewhere, not administered by the reporting system). `00` is the sole
  * administered code; everything outside this set + `00` yields `undefined`
- * (fail-safe — never guessed). @internal
+ * (fail-safe: never guessed). @internal
  */
 const NIP001_HISTORICAL: ReadonlySet<string> = new Set([
   "01",
@@ -87,7 +87,7 @@ function cweOrUndefined(field: Field): CWE | undefined {
 }
 
 /**
- * Classify RXA-9.1 against HL7 Table NIP001 — `00` administered, `01`-`08`
+ * Classify RXA-9.1 against HL7 Table NIP001: `00` administered, `01`-`08`
  * historical, anything else (incl. absent) → `undefined` (fail-safe). @internal
  */
 function classifyOrigin(infoSource: CWE | undefined): ImmunizationRecordOrigin | undefined {
@@ -176,7 +176,7 @@ function finalizeImmunization(
   const completionStatus = stringOrUndefined(rxa.field(20).value);
   if (completionStatus !== undefined) out.completionStatus = completionStatus;
 
-  // RXA-21 action code — VERBATIM, never defaulted.
+  // RXA-21 action code: VERBATIM, never defaulted.
   const actionCode = stringOrUndefined(rxa.field(21).value);
   if (actionCode !== undefined) out.actionCode = actionCode;
 
@@ -187,14 +187,14 @@ function finalizeImmunization(
  * Every RXA of a VXU^V04 as a typed `Immunization`, with RXR (route/site) and
  * OBX children grouped positionally under the RXA and `orderControl` carried
  * from the preceding ORC of the VXU order group (Phase E, P0 safety). Document
- * order. Returns `[]` when no RXA is present. NOT memoized — each call re-walks
+ * order. Returns `[]` when no RXA is present. NOT memoized: each call re-walks
  * `msg.allSegments()`. Never throws (HELPERS-07).
  *
  * The vaccine code carries its own coding-system provenance
- * (`vaccineCode.nameOfCodingSystem` — `CVX`); a dual-coded RXA-5 surfaces its
+ * (`vaccineCode.nameOfCodingSystem`: `CVX`); a dual-coded RXA-5 surfaces its
  * alternate (CVX/NDC) on `vaccineCode.alternateIdentifier`/`…`. The action code
  * (RXA-21) is surfaced verbatim and `recordOrigin` (administered vs historical)
- * is derived only from the well-known NIP001 RXA-9.1 codes — see
+ * is derived only from the well-known NIP001 RXA-9.1 codes: see
  * {@link Immunization}.
  *
  * @example
@@ -241,7 +241,7 @@ export function immunizations(msg: Hl7Message): readonly Immunization[] {
       observations = [];
       continue;
     }
-    if (currentRxa === undefined) continue; // RXR/OBX before any RXA — dropped.
+    if (currentRxa === undefined) continue; // RXR/OBX before any RXA: dropped.
     if (seg.type === "RXR") {
       routes.push(buildRoute(seg));
     } else if (seg.type === "OBX") {

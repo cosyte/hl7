@@ -1,5 +1,5 @@
 /**
- * Unit tests for `src/serialize/emit-field.ts` — the D-02/D-04 emit
+ * Unit tests for `src/serialize/emit-field.ts`: the D-02/D-04 emit
  * primitive that every other serializer composes on. Covers:
  * - D-02 trailing-empty strip + isNull preservation.
  * - D-04 reescape chokepoint across all 5 active delimiters + `\n`.
@@ -32,7 +32,7 @@ function rep(...components: Array<{ readonly subcomponents: readonly string[] }>
   return { components };
 }
 
-describe("emitField — D-02 behavior", () => {
+describe("emitField: D-02 behavior", () => {
   it("absent field → empty string", () => {
     expect(emitField(field([]), ENC)).toBe("");
   });
@@ -77,7 +77,7 @@ describe("emitField — D-02 behavior", () => {
     expect(emitField(field([rep(sub("R1")), rep(sub("R2"))]), ENC)).toBe("R1~R2");
   });
 
-  it("complex nested — multi-rep, multi-comp, multi-sub", () => {
+  it("complex nested: multi-rep, multi-comp, multi-sub", () => {
     const f: RawField = {
       repetitions: [rep(sub("A", "B"), sub("C")), rep(sub("D"))],
       isNull: false,
@@ -90,7 +90,7 @@ describe("emitField — D-02 behavior", () => {
   });
 });
 
-describe("emitField — D-04 reescape", () => {
+describe("emitField: D-04 reescape", () => {
   it("subcomponent containing field delimiter → reescaped", () => {
     expect(emitField(field([rep(sub("Smith|Jones"))]), ENC)).toBe("Smith\\F\\Jones");
   });
@@ -127,7 +127,7 @@ describe("emitField — D-04 reescape", () => {
   });
 });
 
-describe("emitSegment — basics", () => {
+describe("emitSegment: basics", () => {
   const placeholder: RawField = { repetitions: [], isNull: false };
 
   it("simple PID with one simple field and one null field", () => {
@@ -166,7 +166,7 @@ describe("emitSegment — basics", () => {
   });
 });
 
-describe("emitSegment — MSH guard (D-06)", () => {
+describe("emitSegment: MSH guard (D-06)", () => {
   const placeholder: RawField = { repetitions: [], isNull: false };
 
   it("throws an Error on MSH input", () => {
@@ -191,7 +191,7 @@ describe("emitSegment — MSH guard (D-06)", () => {
   });
 });
 
-describe("emitField / emitSegment — sparse-array robustness", () => {
+describe("emitField / emitSegment: sparse-array robustness", () => {
   // The parser never produces holes, but a synthetic tree built by hand (per
   // the to-string.ts JSDoc, callers may construct `RawSegment`/`RawField`
   // directly) can carry sparse arrays. The emitter must treat a hole as an
@@ -217,7 +217,7 @@ describe("emitField / emitSegment — sparse-array robustness", () => {
   });
 });
 
-describe("emitSegment / emitField — purity", () => {
+describe("emitSegment / emitField: purity", () => {
   const placeholder: RawField = { repetitions: [], isNull: false };
 
   it("emitSegment returns just the name when fields array is empty (non-MSH)", () => {
@@ -238,7 +238,7 @@ describe("emitSegment / emitField — purity", () => {
     expect(JSON.stringify(rf)).toBe(snapshot);
   });
 
-  it("deterministic — two back-to-back calls return identical strings", () => {
+  it("deterministic: two back-to-back calls return identical strings", () => {
     const f = field([rep(sub("a"), sub("b", "c")), rep(sub("d"))]);
     expect(emitField(f, ENC)).toBe(emitField(f, ENC));
   });

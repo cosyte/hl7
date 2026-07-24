@@ -1,5 +1,5 @@
 /**
- * `emitMessage` — top-level HL7 string emitter. Composes `emitSegment` from
+ * `emitMessage`: top-level HL7 string emitter. Composes `emitSegment` from
  * `./emit-field.ts`, special-cases MSH-1 / MSH-2 per D-06, and joins segments
  * with strict CR (`\r`) per D-05.
  *
@@ -13,7 +13,7 @@
  *   `reescape` internally).
  * - D-05: segments joined by `\r`; trailing `\r` after the last segment.
  * - D-06: MSH-1 / MSH-2 inlined (see CONTEXT §specifics emission trace).
- * - D-07: pure — never warns, never throws.
+ * - D-07: pure: never warns, never throws.
  * - D-08: no MLLP wrapping.
  *
  * @internal
@@ -30,18 +30,18 @@ import type { EncodingCharacters, RawSegment } from "../parser/types.js";
  * and appends a trailing CR per D-05. Does NOT wrap in MLLP framing (D-08).
  *
  * Trailing-empty semantics: D-02's trailing-empty strip is field-SCOPED
- * (inside `emitField` — trailing empty repetitions/components/subcomponents
+ * (inside `emitField`: trailing empty repetitions/components/subcomponents
  * are stripped). At the SEGMENT level (inside `emitSegment`) trailing empty
  * fields are PRESERVED to maintain HL7 positional addressing. `emitMessage`
  * does not alter either behavior.
  *
- * Pure for all well-formed inputs — never warns on structurally valid
+ * Pure for all well-formed inputs: never warns on structurally valid
  * messages (D-07). Throws a typed `Error` ONLY for the structurally
  * invalid case of `msg.rawSegments.length === 0` (W1 fix): emitting a
  * bare `"\r"` for a zero-segment message would violate the "serializer
  * is conservative (always emits spec-clean HL7)" guardrail, since
  * `parseHL7("\r")` fails with `NO_MSH_SEGMENT`. The throw mirrors the
- * D-06 MSH guard in `emitSegment` — catch programmer misuse loudly at
+ * D-06 MSH guard in `emitSegment`: catch programmer misuse loudly at
  * the call site rather than silently corrupting wire output. The parser
  * cannot produce an empty `rawSegments`, so this path is only reachable
  * via direct `new Hl7Message({ segments: [] })` construction or post-
@@ -80,10 +80,10 @@ export function emitMessage(msg: Hl7Message): string {
  *    and `firstSegment.slice(4, 8)` as MSH-2;
  *  - `emitMshSegment` writes `"MSH" + enc.field + <MSH-2 chars> + enc.field + <rest>`.
  *
- * Trailing empty fields in MSH-3..N are PRESERVED (W3) — no trimming of
+ * Trailing empty fields in MSH-3..N are PRESERVED (W3): no trimming of
  * the `tailParts` array before joining.
  *
- * **IMPORTANT — `seg.fields[0]` and `seg.fields[1]` content is IGNORED**
+ * **IMPORTANT: `seg.fields[0]` and `seg.fields[1]` content is IGNORED**
  * (WR-02): MSH-1 and MSH-2 are emitted from `msg.encodingCharacters` per
  * D-06, which is the single source of truth. This is a deliberate
  * deviation from the general D-01 "walk `msg.rawSegments` verbatim"
@@ -92,7 +92,7 @@ export function emitMessage(msg: Hl7Message): string {
  * `fields[0]` / `fields[1]` always match `encodingCharacters`. For
  * synthetic messages constructed via `new Hl7Message({...})` directly,
  * the burden is on the caller to keep `encodingCharacters` aligned with
- * the raw tree's MSH-1/MSH-2 placeholders — if they diverge, this
+ * the raw tree's MSH-1/MSH-2 placeholders: if they diverge, this
  * emitter silently favors `encodingCharacters`.
  *
  * @internal
@@ -104,7 +104,7 @@ function emitMshSegment(seg: RawSegment, enc: EncodingCharacters): string {
   const msh2 =
     enc.component + enc.repetition + enc.escape + enc.subcomponent + (enc.truncation ?? "");
   // MSH-3..N: fields[2..N] via emitField, joined by enc.field.
-  // W3: trailing empty fields preserved — do NOT pop trailing "" off tailParts.
+  // W3: trailing empty fields preserved: do NOT pop trailing "" off tailParts.
   const tailParts: string[] = [];
   for (let i = 2; i < seg.fields.length; i++) {
     const f = seg.fields[i];

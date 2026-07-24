@@ -1,5 +1,5 @@
 /**
- * Coding-system provenance (HL7 Table 0396, READ-ONLY) — roadmap Phase F.
+ * Coding-system provenance (HL7 Table 0396, READ-ONLY): roadmap Phase F.
  *
  * Answers one question about a coded element: **"what coding system does this
  * code CLAIM?"** It surfaces the sender's CWE.3 / CE.3 "Name of Coding System"
@@ -12,20 +12,20 @@
  *   - **No lookup, no network, no bundled codeset.** Zero runtime deps; this is
  *     a frozen acronym→name map, nothing more.
  *   - **Fail-safe.** An unregistered / local / mistyped system id is surfaced
- *     **verbatim** with `known: false` — never dropped, never guessed.
+ *     **verbatim** with `known: false`: never dropped, never guessed.
  *
  * Because provenance is the *sender's claim*, not a verified fact, a consumer
  * MUST still treat the code per its own trust policy. The value of this module
- * is letting that consumer ask "which system?" before interpreting a code — a
+ * is letting that consumer ask "which system?" before interpreting a code: a
  * "PCN" allergen or an "I10" diagnosis is only safe to read once you know the
  * system it belongs to.
  *
- * Spec traceability: HL7 Table 0396 (Coding System) — the registry of
+ * Spec traceability: HL7 Table 0396 (Coding System): the registry of
  * coding-system acronyms carried in the CWE.3 / CE.3 component. v2.7+ expects
  * the registered acronym. See `docs-content/spec-notes-coding-system.md` for
  * the per-entry source and the `I10` (ICD-10 vs ICD-10-CM) nuance.
  *
- * Zero runtime deps — pure data + pure functions.
+ * Zero runtime deps: pure data + pure functions.
  */
 
 /**
@@ -48,14 +48,14 @@ export interface KnownCodingSystem {
 
 /**
  * The safety-relevant subset of HL7 Table 0396 this library recognizes for
- * provenance. Deliberately small and frozen — it is NOT the full Table 0396
+ * provenance. Deliberately small and frozen: it is NOT the full Table 0396
  * registry. Each entry's source is recorded in
  * `docs-content/spec-notes-coding-system.md`.
  *
  * Note on `I10`: Table 0396 registers `I10` as **ICD-10** (the WHO base
  * classification). US v2 feeds frequently send `I10` when they mean
  * ICD-10-**CM**, but that clinical-modification specificity is the sender's
- * convention, not what the acronym registers — so this map reports the
+ * convention, not what the acronym registers: so this map reports the
  * registered claim (`"ICD-10"`) and does not silently upgrade it to CM.
  *
  * @example
@@ -107,14 +107,14 @@ const LOOKUP: ReadonlyMap<string, KnownCodingSystem> = (() => {
 })();
 
 /**
- * A coding-system provenance answer — the system a code CLAIMS, never
+ * A coding-system provenance answer: the system a code CLAIMS, never
  * validated. `claimed` is always present and verbatim (never dropped); the
  * resolved `id` / `name` are present only when the claim maps to a registered
  * Table 0396 entry.
  */
 export interface CodingSystemInfo {
   /**
-   * The coding-system id exactly as it appeared in CWE.3 / CE.3 — preserved
+   * The coding-system id exactly as it appeared in CWE.3 / CE.3: preserved
    * verbatim (original case and spelling), never altered, never dropped.
    */
   readonly claimed: string;
@@ -129,12 +129,12 @@ export interface CodingSystemInfo {
 /**
  * Resolve a raw coding-system id (a CWE.3 / CE.3 "Name of Coding System"
  * value) to its provenance. Returns `undefined` when there is no claim to
- * resolve — `id` is `undefined`, empty, or whitespace-only.
+ * resolve: `id` is `undefined`, empty, or whitespace-only.
  *
  * Matching is case-insensitive and tolerant of surrounding whitespace, and
  * normalizes the well-known aliases in {@link KNOWN_CODING_SYSTEMS} (e.g.
  * `"LOINC"` → `LN`, `"SNOMED"` → `SCT`, `"RxNorm"` → `RXN`). An unrecognized
- * id is returned verbatim with `known: false` — never guessed.
+ * id is returned verbatim with `known: false`: never guessed.
  *
  * @example
  * ```ts
@@ -159,7 +159,7 @@ export function codingSystem(id: string | undefined): CodingSystemInfo | undefin
 
 /**
  * Structural shape of any coded element that carries a primary + alternate
- * coding system — both {@link CWE} and {@link CE} satisfy it. Kept structural
+ * coding system: both {@link CWE} and {@link CE} satisfy it. Kept structural
  * (not a union) so callers can pass a `dg.code` / `obs.code` directly.
  */
 export interface CodedSystemFields {

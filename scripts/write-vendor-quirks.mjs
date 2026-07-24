@@ -1,5 +1,5 @@
 /**
- * One-shot script — authors the 13 vendor-quirks fixtures with exact byte
+ * One-shot script: authors the 13 vendor-quirks fixtures with exact byte
  * content (\r-separated, no trailing newline, synthetic data). Run once via
  * `node scripts/write-vendor-quirks.mjs`. Safe to re-run (idempotent).
  *
@@ -54,7 +54,7 @@ function body(segments) {
 }
 
 // ─── UNKNOWN_ESCAPE_SEQUENCE ──────────────────────────────────────────────
-// OBX-5 contains a \Z99\ vendor-escape the parser cannot expand — warns and
+// OBX-5 contains a \Z99\ vendor-escape the parser cannot expand: warns and
 // preserves the sequence verbatim.
 {
   const raw = body([
@@ -68,7 +68,7 @@ function body(segments) {
 
 // ─── TIMESTAMP_FALLBACK_FORMAT ────────────────────────────────────────────
 // MSH-7 in ISO-8601 format. NOTE: the current parser pipeline does NOT emit
-// this warning during `parseHL7` — the emit site in `src/parser/dates.ts`
+// this warning during `parseHL7`: the emit site in `src/parser/dates.ts`
 // fires only when a composite/helper actively parses the timestamp with an
 // `emit` callback, which no lenient-default code path does. The fixture is
 // authored for future completeness; the sweep tolerates non-emission via
@@ -85,7 +85,7 @@ function body(segments) {
 
 // ─── SEGMENT_CASE ─────────────────────────────────────────────────────────
 // Lowercase segment name `pid`. NOTE: current parser does NOT call the
-// `segmentCase` factory anywhere — the lowercase name flows through
+// `segmentCase` factory anywhere: the lowercase name flows through
 // splitSegments verbatim and surfaces as UNKNOWN_SEGMENT (since "pid" is not
 // in KNOWN_SEGMENTS). Fixture authored for future completeness.
 {
@@ -100,7 +100,7 @@ function body(segments) {
 
 // ─── EXTRA_FIELDS ─────────────────────────────────────────────────────────
 // EVN padded beyond its spec width. NOTE: parser has no emit site for
-// `extraFields` — all field excess is preserved without warning. Fixture
+// `extraFields`: all field excess is preserved without warning. Fixture
 // authored for future completeness.
 {
   const raw = body([
@@ -113,7 +113,7 @@ function body(segments) {
 }
 
 // ─── UNKNOWN_SEGMENT ──────────────────────────────────────────────────────
-// Z-segment with no profile claim — fires UNKNOWN_SEGMENT in the lenient path.
+// Z-segment with no profile claim: fires UNKNOWN_SEGMENT in the lenient path.
 {
   const raw = body([
     "MSH|^~\\&|SENDAPP|SENDFAC|RECVAPP|RECVFAC|20260419100000||ADT^A01^ADT_A01|MSGVQ007|P|2.5",
@@ -126,7 +126,7 @@ function body(segments) {
 }
 
 // ─── DUPLICATE_REQUIRED_SEGMENT ───────────────────────────────────────────
-// Two MSH segments. NOTE: parser has no emit site — the duplicate flows
+// Two MSH segments. NOTE: parser has no emit site: the duplicate flows
 // through as a raw second segment. Fixture authored for future completeness.
 {
   const raw = body([
@@ -143,7 +143,7 @@ function body(segments) {
 // MSH-18 declares UTF-8; the sweep supplies options.charset="ASCII" so the
 // two-pass Buffer decoder detects the mismatch and emits ENCODING_MISMATCH.
 // (The mismatch emit site lives in resolveBufferCharset, not in the
-// tokenizer — fixture PARSED as Buffer is required, and the sweep wires the
+// tokenizer: fixture PARSED as Buffer is required, and the sweep wires the
 // override per filename.)
 {
   const raw = body([
@@ -156,7 +156,7 @@ function body(segments) {
 }
 
 // ─── MISSING_REQUIRED_FIELD ───────────────────────────────────────────────
-// MSH-9 empty. NOTE: parser has no emit site — no required-field schema is
+// MSH-9 empty. NOTE: parser has no emit site: no required-field schema is
 // wired at lenient-default level. Fixture authored for future completeness.
 {
   const raw = body([
@@ -169,7 +169,7 @@ function body(segments) {
 }
 
 // ─── OUT_OF_ORDER_SEGMENT ─────────────────────────────────────────────────
-// PID before EVN. NOTE: parser has no emit site — segment ordering is not
+// PID before EVN. NOTE: parser has no emit site: segment ordering is not
 // validated at the lenient-default level. Fixture authored for future
 // completeness.
 {
@@ -183,7 +183,7 @@ function body(segments) {
 }
 
 // ─── VERSION_MISMATCH ─────────────────────────────────────────────────────
-// MSH-12 = 2.9. NOTE: parser has no emit site — there is no anchored
+// MSH-12 = 2.9. NOTE: parser has no emit site: there is no anchored
 // "expected version" anywhere in the lenient default path. Fixture authored
 // for future completeness.
 {

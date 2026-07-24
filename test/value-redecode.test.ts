@@ -2,14 +2,14 @@
  * HL7-VALUE-REDECODE: the value-READ surface must decode each subcomponent
  * exactly ONCE. The tokenizer already unescapes every subcomponent on parse
  * (parser-02), so `Field.value`, the dot-path `get()`, and the composite
- * coercions must return the stored (decoded) value verbatim — never run a
+ * coercions must return the stored (decoded) value verbatim: never run a
  * SECOND `unescape` over it.
  *
  * The bug (found by the HL7-ESC conformance-refuter): a value whose OWN decoded
- * bytes look like an escape — e.g. a wire `\E\F\E\` decodes once to the literal
- * three chars `\F\` — was decoded a second time by the readers, turning `\F\`
+ * bytes look like an escape: e.g. a wire `\E\F\E\` decodes once to the literal
+ * three chars `\F\`: was decoded a second time by the readers, turning `\F\`
  * into the field separator `|`: a silently-wrong read on rare-but-spec-legal
- * input. Emit stays byte-verbatim (HL7-ESC) — proven here too.
+ * input. Emit stays byte-verbatim (HL7-ESC): proven here too.
  */
 
 import { describe, expect, it } from "vitest";
@@ -35,7 +35,7 @@ function pid5(content: string): string {
 describe("HL7-VALUE-REDECODE: reads decode exactly once (no double-unescape)", () => {
   it("Field.value returns a decoded value whose bytes look like an escape, verbatim", () => {
     // Wire `A\E\F\E\B` decodes ONCE (tokenizer) to the literal 5 chars `A\F\B`.
-    // The old reader re-unescaped that `\F\` into `|` — the bug. Now: verbatim.
+    // The old reader re-unescaped that `\F\` into `|`: the bug. Now: verbatim.
     const f = parseHL7(obx5("A\\E\\F\\E\\B")).segments("OBX")[0]?.field(5);
     expect(f?.value).toBe("A\\F\\B");
   });
@@ -65,7 +65,7 @@ describe("HL7-VALUE-REDECODE: reads decode exactly once (no double-unescape)", (
     expect(f?.asNm()).toStrictEqual({ raw: "12\\F\\5", value: undefined });
   });
 
-  it("emit is unaffected — the field round-trips byte-verbatim (HL7-ESC)", () => {
+  it("emit is unaffected: the field round-trips byte-verbatim (HL7-ESC)", () => {
     const line = parseHL7(obx5("A\\E\\F\\E\\B"))
       .toString()
       .split("\r")

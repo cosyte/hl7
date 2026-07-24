@@ -66,7 +66,7 @@ describe("parser/normalize: Buffer path", () => {
   it("emits UNSUPPORTED_CHARSET and preserves bytes verbatim on a recognized multibyte set", () => {
     const warnings: Hl7ParseWarning[] = [];
     // ISO IR87 (JIS X 0208) is a recognized Table-0211 code this parser does
-    // not decode — bytes are preserved, never guessed at.
+    // not decode: bytes are preserved, never guessed at.
     const out = normalizeBuffer(Buffer.from(validRaw, "utf-8"), "ISO IR87", (w) =>
       warnings.push(w),
     );
@@ -124,10 +124,10 @@ describe("parser/normalize: Buffer path", () => {
     expect(Buffer.from(out, "latin1")).toEqual(bytes);
   });
 
-  it("preserves 8859/9 verbatim (no silent windows-1254 C1 remap) — 0x80 stays U+0080, not €", () => {
+  it("preserves 8859/9 verbatim (no silent windows-1254 C1 remap): 0x80 stays U+0080, not €", () => {
     const warnings: Hl7ParseWarning[] = [];
     // Node's TextDecoder("iso-8859-9") is windows-1254, which would map 0x80 → €
-    // (U+20AC) — a wrong, non-recoverable character. 8859/9 is therefore NOT
+    // (U+20AC): a wrong, non-recoverable character. 8859/9 is therefore NOT
     // decoded: bytes are preserved as latin1 (byte-recoverable) + flagged.
     const bytes = Buffer.from([0x4d, 0x53, 0x48, 0x7c, 0x80]); // "MSH|" + 0x80
     const out = normalizeBuffer(bytes, "8859/9", (w) => warnings.push(w));
@@ -140,7 +140,7 @@ describe("parser/normalize: Buffer path", () => {
   it("decodes a faithful ISO-8859 set (8859/2) with the C1 range mapped to controls, not remapped", () => {
     const warnings: Hl7ParseWarning[] = [];
     // 8859/2 (Latin-2) is decoded via TextDecoder, which maps 0x80 → U+0080
-    // (control) — faithful to the true code page, unlike the windows aliases.
+    // (control): faithful to the true code page, unlike the windows aliases.
     const bytes = Buffer.from([0x4d, 0x53, 0x48, 0x7c, 0x80]); // "MSH|" + 0x80
     const out = normalizeBuffer(bytes, "8859/2", (w) => warnings.push(w));
     expect(warnings).toHaveLength(0);
@@ -160,7 +160,7 @@ describe("parser/normalize: Buffer path", () => {
 
   it("decodes Latin-1 bytes via the ISO-8859-1 alias and emits no warning", () => {
     const warnings: Hl7ParseWarning[] = [];
-    // 0xE9 is "é" in ISO-8859-1 but an invalid lone byte in UTF-8 — decoding
+    // 0xE9 is "é" in ISO-8859-1 but an invalid lone byte in UTF-8: decoding
     // it as UTF-8 would corrupt the name, so the declared charset must win.
     const latin1 = Buffer.from([
       0x4d,

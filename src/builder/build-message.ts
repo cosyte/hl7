@@ -1,5 +1,5 @@
 /**
- * `buildMessage` — top-level outbound factory for the `@cosyte/hl7`
+ * `buildMessage`: top-level outbound factory for the `@cosyte/hl7`
  * package. Synthesizes a complete MSH `RawSegment` from `BuildMessageInit`
  * and returns a real `Hl7Message` (not a builder subtype). Callers chain
  * `.addSegment(...)` (Phase 3 mutation method, unchanged) to append PID,
@@ -14,7 +14,7 @@
  * - D-10: `BuildMessageInit` shape below.
  * - D-11: internally synthesises a complete MSH `RawSegment` and hands to
  *   `new Hl7Message({...})`.
- * - D-12: controlId auto-gen — YYYYMMDDHHmmssSSS + 6 alnum = 23 chars.
+ * - D-12: controlId auto-gen: YYYYMMDDHHmmssSSS + 6 alnum = 23 chars.
  * - D-13: `timestamp` accepts `Date | string`; `Date` formats to
  *   `YYYYMMDDHHmmss` UTC.
  * - D-14: encoding chars always `DEFAULT_ENCODING_CHARACTERS`.
@@ -24,9 +24,9 @@
  *
  * **Absent vs. explicit null at the wire level:** at the HL7 wire level,
  * an empty-string field and an omitted field produce IDENTICAL output
- * (both emit as absent — `||` in the line). If you need to distinguish
+ * (both emit as absent: `||` in the line). If you need to distinguish
  * "explicitly null" (HL7 `""`) from "absent" in an outbound message, use
- * `buildMessage({...}).setField(path, '""')` after construction — the
+ * `buildMessage({...}).setField(path, '""')` after construction: the
  * Phase 3 `setField` mutation method sets `RawField.isNull = true`, which
  * the emitter preserves as the literal two-char string `""` per D-02.
  */
@@ -48,7 +48,7 @@ import { formatHl7Timestamp } from "./format-timestamp.js";
  * empty string produce IDENTICAL wire output (both emit as an absent
  * positional field). To emit an HL7 explicit null (`""`) at a specific
  * position in an outbound message, build the message first and then call
- * `.setField(path, '""')` — the Phase 3 mutation method sets `isNull=true`
+ * `.setField(path, '""')`: the Phase 3 mutation method sets `isNull=true`
  * on the underlying `RawField`, and the emitter preserves that as the
  * literal two-char output per D-02.
  *
@@ -77,7 +77,7 @@ export interface BuildMessageInit {
    *
    * The string is split on `^` into MSH-9 components; each component is
    * emitted verbatim. Literal `^` characters in a component are NOT
-   * representable via this field — splitting is unconditional. Callers
+   * representable via this field: splitting is unconditional. Callers
    * needing that edge case should build the message and then use
    * `.setField("MSH.9.1", ...)` etc. after construction.
    *
@@ -123,7 +123,7 @@ export interface BuildMessageInit {
  *
  * **Empty string vs. omitted field (W1):** at the HL7 wire level, passing
  * `sendingApp: ""` and omitting `sendingApp` produce IDENTICAL output
- * (both emit as absent — `||` at the MSH-3 position). If you need to
+ * (both emit as absent: `||` at the MSH-3 position). If you need to
  * emit an HL7 explicit null (`""`, the two-char literal) at a specific
  * position, build the message first, then use `setField`:
  *
@@ -156,7 +156,7 @@ export interface BuildMessageInit {
 export function buildMessage(init: BuildMessageInit): Hl7Message {
   // D-16 validation: type must be a non-empty, non-whitespace string.
   // `init` may be `null`/`undefined` at runtime if a JS caller bypasses the
-  // type — guard defensively.
+  // type: guard defensively.
   if (
     init === null ||
     init === undefined ||
@@ -170,7 +170,7 @@ export function buildMessage(init: BuildMessageInit): Hl7Message {
     );
   }
 
-  // WR-04: tighten D-16 — split on `^` and reject a string whose every
+  // WR-04: tighten D-16: split on `^` and reject a string whose every
   // component is empty/whitespace (e.g. `"^"`, `"   ^   "`, `"^^"`). The
   // outer `.trim().length === 0` check above catches `""` and `"   "`, but
   // passes `"^"` (split → `["",""]` → MSH-9 emits as `^` which round-trips
@@ -214,7 +214,7 @@ export function buildMessage(init: BuildMessageInit): Hl7Message {
   //   fields[11] = MSH-12 version
   //
   // W1: `scalarField("")` produces an absent RawField (zero repetitions,
-  // isNull:false) — identical to omitting the field. That's the correct
+  // isNull:false): identical to omitting the field. That's the correct
   // wire semantic; callers who want explicit null use `.setField("MSH.N",
   // '""')` after construction.
   const mshFields: RawField[] = [

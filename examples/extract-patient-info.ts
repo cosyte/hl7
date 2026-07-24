@@ -1,5 +1,5 @@
 /**
- * EX-01 — Extract patient info from a parsed ADT^A01 message using the
+ * EX-01: Extract patient info from a parsed ADT^A01 message using the
  * named-helper API (`msg.patient`, `msg.meta`). Demonstrates the
  * zero-HL7-knowledge access path promised by the library's core value prop.
  *
@@ -20,7 +20,7 @@ const msg = parseHL7(raw);
 
 console.log("Patient MRN:", msg.patient.mrn);
 console.log("Full name:", msg.patient.fullName);
-// Datetimes are a fidelity TS — precision + timezone preserved, no eager Date.
+// Datetimes are a fidelity TS: precision + timezone preserved, no eager Date.
 console.log("DOB:", msg.patient.dateOfBirth?.raw, `(precision: ${msg.patient.dateOfBirth?.precision})`);
 console.log("Sex:", msg.patient.sex);
 console.log("Message type:", msg.meta.type);

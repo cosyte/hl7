@@ -14,7 +14,7 @@
  *
  * The fixture filename is the kebab-case of its target code (Plan 07-04
  * D-12); adding a new fixture file to the directory auto-joins the
- * sweep (D-15 — `readdirSync` + `describe.each`). See
+ * sweep (D-15: `readdirSync` + `describe.each`). See
  * `test/fixtures/vendor-quirks/README.md` for per-fixture notes.
  *
  * Per D-14, co-triggered warnings are permitted; we use `.toContain` on
@@ -41,7 +41,7 @@ const fixtures = readdirSync(VQ_DIR)
 
 /**
  * Warning codes the lenient parser actively emits today. Exhaustive as of
- * Phase 7 baseline — derived by probing every fixture and recording which
+ * Phase 7 baseline: derived by probing every fixture and recording which
  * `msg.warnings` codes surface. Other codes in
  * `src/parser/warnings.ts::WARNING_CODES` have factory functions but no
  * call site in the parser pipeline (SEGMENT_CASE, EXTRA_FIELDS,
@@ -113,7 +113,7 @@ describe("TEST-05 + TEST-06: vendor-quirks fixture sweep", () => {
       });
     } else {
       it.todo(
-        `lenient mode: msg.warnings contains ${expectedCode} (factory wired, parser call site pending — see vendor-quirks/README.md)`,
+        `lenient mode: msg.warnings contains ${expectedCode} (factory wired, parser call site pending: see vendor-quirks/README.md)`,
       );
       it.todo(
         `strict mode: throws Hl7ParseError for ${expectedCode} (blocked on the lenient emit site landing first)`,

@@ -1,11 +1,11 @@
 /**
- * Conformance-profile engine tests (roadmap Phase U — `validateAgainstProfile`).
+ * Conformance-profile engine tests (roadmap Phase U: `validateAgainstProfile`).
  *
  * Covers the four acceptance invariants directly:
- *   - **Never throws** — malformed profile / message yields findings, not an error.
+ *   - **Never throws**: malformed profile / message yields findings, not an error.
  *   - **Valid ⇒ zero findings** (and the documented "not an attestation").
- *   - **No PHI in findings** — a finding names the locus + rule, never the value.
- *   - **Read-only** — validation never mutates the message.
+ *   - **No PHI in findings**: a finding names the locus + rule, never the value.
+ *   - **Read-only**: validation never mutates the message.
  * plus the per-usage-code semantics, cardinality, length, value-set, per-rule
  * severity, and the fail-fast `defineConformanceProfile` gate.
  */
@@ -31,7 +31,7 @@ const readProfile = (name: string): ConformanceProfile =>
 
 const MIN_PROFILE = readProfile("profile-adt-min.json");
 
-describe("validateAgainstProfile — fixtures (roadmap accuracy bar)", () => {
+describe("validateAgainstProfile: fixtures (roadmap accuracy bar)", () => {
   it("a conforming message produces ZERO findings", () => {
     const msg = parseHL7(readFix("adt-pass.hl7"));
     const result = validateAgainstProfile(msg, MIN_PROFILE);
@@ -66,7 +66,7 @@ describe("validateAgainstProfile — fixtures (roadmap accuracy bar)", () => {
   });
 });
 
-describe("validateAgainstProfile — usage-code semantics", () => {
+describe("validateAgainstProfile: usage-code semantics", () => {
   const raw =
     "MSH|^~\\&|A|B|C|D|20260101||ADT^A01|MSG1|P|2.5\rEVN|A01|20260101\r" +
     "PID|1||MRN12345^^^H^MR||Doe^John||19800101|M";
@@ -89,7 +89,7 @@ describe("validateAgainstProfile — usage-code semantics", () => {
     expect(validateAgainstProfile(msg, profile).findings).toEqual([]);
   });
 
-  it("C / CE presence is NOT evaluated (no predicate language) — absent conditional is clean", () => {
+  it("C / CE presence is NOT evaluated (no predicate language): absent conditional is clean", () => {
     const msg = parseHL7(raw);
     const profile: ConformanceProfile = {
       name: "conditional",
@@ -120,7 +120,7 @@ describe("validateAgainstProfile — usage-code semantics", () => {
   });
 
   it("R segment absent, X segment present, and segment cardinality all fire at segment level", () => {
-    const msg = parseHL7(raw); // has MSH, EVN, PID — no PV1, no OBX
+    const msg = parseHL7(raw); // has MSH, EVN, PID: no PV1, no OBX
     const profile: ConformanceProfile = {
       name: "seg-level",
       segments: [
@@ -173,10 +173,10 @@ describe("validateAgainstProfile — usage-code semantics", () => {
   });
 });
 
-describe("validateAgainstProfile — never throws, read-only, PHI-safe", () => {
-  it("never throws on a malformed profile — returns PROFILE_MALFORMED findings", () => {
+describe("validateAgainstProfile: never throws, read-only, PHI-safe", () => {
+  it("never throws on a malformed profile: returns PROFILE_MALFORMED findings", () => {
     const msg = parseHL7("MSH|^~\\&|A|B|C|D|20260101||ADT^A01|M1|P|2.5");
-    // A deliberately broken profile passed through `any` — the engine must not throw.
+    // A deliberately broken profile passed through `any`: the engine must not throw.
     const broken = {
       name: "",
       segments: [{ segment: "pid", usage: "NOPE", fields: [{ field: 0 }] }],
@@ -229,7 +229,7 @@ describe("validateAgainstProfile — never throws, read-only, PHI-safe", () => {
   });
 });
 
-describe("defineConformanceProfile — fail-fast authoring gate", () => {
+describe("defineConformanceProfile: fail-fast authoring gate", () => {
   it("returns the profile unchanged when well-formed", () => {
     const p = defineConformanceProfile(MIN_PROFILE);
     expect(p).toBe(MIN_PROFILE);

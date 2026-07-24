@@ -1,5 +1,5 @@
 /**
- * Phase 4 Plan 03 — integration tests for `msg.observations()` (HELPERS-04,
+ * Phase 4 Plan 03: integration tests for `msg.observations()` (HELPERS-04,
  * HELPERS-07). Covers the D-13 value-type-discriminated union across every v1
  * valueType (NM / ST / TX / FT / TS / DT / CWE / CE / ID + unknown), D-15
  * common field shape, D-05 empty-list semantics, D-06 no-memoization, D-18
@@ -26,7 +26,7 @@ function obx(valueType: string, value: string): string {
   return `OBX|1|${valueType}|GLU^Glucose^LN||${value}|mg/dL|80-110||||F|||20250102153100\r`;
 }
 
-describe("helpers/observations: msg.observations() — D-13 value-type dispatch", () => {
+describe("helpers/observations: msg.observations(): D-13 value-type dispatch", () => {
   it("NM → value is a number", () => {
     const msg = parseHL7(MSH + obx("NM", "120"));
     const o = msg.observations()[0];
@@ -147,7 +147,7 @@ describe("helpers/observations: shape + common fields (D-15)", () => {
     expect(o?.observedDateTime?.valid).toBe(true);
   });
 
-  it("identifier is always present (D-15 locked — even for an empty OBX-3)", () => {
+  it("identifier is always present (D-15 locked: even for an empty OBX-3)", () => {
     const fx = MSH + "OBX|1|NM||||||||||F\r";
     const o = parseHL7(fx).observations()[0];
     expect(o?.identifier).toBeDefined();

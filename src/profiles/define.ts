@@ -1,5 +1,5 @@
 /**
- * `defineProfile()` — public factory for building `Profile` objects with
+ * `defineProfile()`: public factory for building `Profile` objects with
  * validation + `describe()` attached (PROF-01, PROF-04, PROF-05).
  *
  * Wave 1 (Plan 06-01) ships the single-profile (no-extends) path;
@@ -85,7 +85,7 @@ export interface DefineProfileOptions {
  * unknown top-level keys with typo hints (D-07), and missing/empty
  * name.
  *
- * Wave 1 (Plan 06-01) ships the no-extends path — `opts.extends` is
+ * Wave 1 (Plan 06-01) ships the no-extends path: `opts.extends` is
  * ACCEPTED but IGNORED, resulting in `lineage === [opts.name]`
  * regardless. Wave 2 (Plan 06-02) adds full lineage computation + merge
  * semantics.
@@ -115,14 +115,14 @@ export function defineProfile(opts: DefineProfileOptions): Profile {
 
   // Pre-merge: validate self-declared customSegments + dateFormats in
   // isolation so errors surface with the offending profile's own name
-  // (not "after merge" — a user hitting D-05 should see their own
+  // (not "after merge": a user hitting D-05 should see their own
   // profile flagged, not the composed lineage).
   const selfCustomSegments = opts.customSegments ?? {};
   validateCustomSegments(selfCustomSegments, opts.name);
   const selfDateFormats = opts.dateFormats ?? [];
   validateDateFormats(selfDateFormats, opts.name);
 
-  // D-03 + D-09..D-12 — full merge. Plan 06-02 replaces the Wave-1
+  // D-03 + D-09..D-12: full merge. Plan 06-02 replaces the Wave-1
   // lineage stub with this block.
   const parents = normaliseParents(opts.extends);
   const lineage = mergeLineage(parents, opts.name);
@@ -134,7 +134,7 @@ export function defineProfile(opts: DefineProfileOptions): Profile {
   // Post-merge re-validation. `validateCustomSegments` catches the D-05
   // rogue-parent scenario (a hand-crafted Profile bypassing
   // defineProfile whose customSegments contains a non-Z key).
-  // `validateUniqueFieldNames` is installed as DEFENSE-IN-DEPTH — it is
+  // `validateUniqueFieldNames` is installed as DEFENSE-IN-DEPTH: it is
   // unreachable via the present mergeCustomSegments strategy (position-
   // indexed accumulator collapses same-name-different-position cases
   // to a single entry) but guards against future merge-strategy
@@ -146,7 +146,7 @@ export function defineProfile(opts: DefineProfileOptions): Profile {
   // Assemble the frozen Profile. exactOptionalPropertyTypes discipline:
   // conditionally assign optional fields rather than writing
   // `description: undefined`. Mirrors `src/helpers/meta.ts::buildMeta`
-  // lines 38-73 — the consistent pattern across the codebase.
+  // lines 38-73: the consistent pattern across the codebase.
   type Mutable<T> = { -readonly [K in keyof T]?: T[K] };
   const profile: Mutable<Profile> = {
     name: opts.name,
@@ -157,7 +157,7 @@ export function defineProfile(opts: DefineProfileOptions): Profile {
   if (description !== undefined) profile.description = description;
   if (onWarning !== undefined) profile.onWarning = onWarning;
 
-  // D-04: `describe()` attached as a method — closes over the assembled
+  // D-04: `describe()` attached as a method: closes over the assembled
   // profile object so calling `.describe()` always reflects the
   // fully-assembled state (not a half-built intermediate).
   const finalised: Profile = profile as Profile;

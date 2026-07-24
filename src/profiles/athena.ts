@@ -4,7 +4,7 @@
  * `ZCA` (care team membership). BIP-04.
  *
  * The AM/PM meridian variant (`MM/DD/YYYY HH:mm AM/PM`) is intentionally
- * NOT shipped — the library's format-token set does not include AM/PM
+ * NOT shipped: the library's format-token set does not include AM/PM
  * (`SUPPORTED_DATE_TOKENS` = YYYY/MM/DD/HH/mm/ss/SSSS). Consumers needing
  * meridian support can extend this profile or supply their own format
  * handler.
@@ -32,7 +32,7 @@ import { defineProfile } from "./define.js";
  */
 export const athena = defineProfile({
   name: "athena",
-  description: "athenahealth Interop — US-short-date format and care-team Z-segment",
+  description: "athenahealth Interop: US-short-date format and care-team Z-segment",
   dateFormats: ["MM/DD/YYYY"],
   customSegments: {
     ZCA: { fields: { careTeamRole: 3, providerId: 5, providerName: 6 } },

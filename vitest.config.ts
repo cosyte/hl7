@@ -9,11 +9,11 @@ import { cosyteVitest } from "@cosyte/vitest-config";
  * branch tests put parser at ~94% and serialize at 100%.
  *
  * RESOLVED (HL7-J, was the "D10 expiry" transient relaxation): `src/profiles/**` was the one
- * remaining hole — reported but ungated at 81.98% branches, so the global floor stayed at 85 to
+ * remaining hole: reported but ungated at 81.98% branches, so the global floor stayed at 85 to
  * avoid implicitly gating it. Targeted tests (`test/profiles-merge-validate-coverage.test.ts`)
  * closed the `mergeCustomSegments`/inheritance paths in `profiles/merge.ts` and the validator
  * branches in `profiles/validate.ts` + `profiles/describe.ts`. `src/profiles/**` now carries its
- * own >= 90 per-dir entry and the global `branches` floor is back to the canonical 90 — no
+ * own >= 90 per-dir entry and the global `branches` floor is back to the canonical 90: no
  * remaining relaxation.
  */
 export default cosyteVitest({

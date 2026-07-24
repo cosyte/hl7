@@ -3,7 +3,7 @@ import { expect } from "vitest";
 import { parseHL7 } from "../../src/index.js";
 
 /**
- * SER-02 structural round-trip — asserts `parseHL7(msg.toString())` yields
+ * SER-02 structural round-trip: asserts `parseHL7(msg.toString())` yields
  * a message with the same `rawSegments` and `encodingCharacters` as the
  * original. Byte-identity is NOT required on the first pass (MLLP / BOM /
  * CRLF / custom-delimiter inputs emit spec-clean bytes).

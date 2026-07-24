@@ -1,5 +1,5 @@
 /**
- * `identityEvents` — roadmap Phase K read-side helper that recognizes the ADT
+ * `identityEvents`: roadmap Phase K read-side helper that recognizes the ADT
  * patient-identity management trigger events and surfaces the MRG segment's
  * *prior* (non-surviving) identifiers alongside the PID/PV1 *surviving*
  * identifiers, each labelled by role.
@@ -7,7 +7,7 @@
  * Spec traceability (HL7 v2 Ch. 3, Patient Administration):
  * - A18 "The PID segment contains the surviving patient ID information. The
  *   MRG segment contains the non-surviving information." The merge direction
- *   is spec-explicit and constant: **MRG (prior) → PID (surviving)** — this
+ *   is spec-explicit and constant: **MRG (prior) → PID (surviving)**: this
  *   helper NEVER infers it from content and never reverses it.
  * - Merge family (§3.3.34–§3.3.42): A34/A35/A36 (v2.3-era merges), A39 merge
  *   person, A40 merge patient identifier list, A41 merge account, A42 merge
@@ -16,24 +16,24 @@
  *   A28 / A31 (PID only, no MRG).
  * - MRG field map is **version-scoped** (v2.5.1 §3.4.10): MRG-1 prior patient
  *   identifier list (CX, repeating), MRG-3 prior patient account number (CX),
- *   MRG-4 prior patient ID (CX, backward-compat only — **withdrawn as of
+ *   MRG-4 prior patient ID (CX, backward-compat only: **withdrawn as of
  *   v2.7** in favour of MRG-1), MRG-5 prior visit number (CX), MRG-7 prior
  *   patient name (XPN). MRG-2 / MRG-6 (prior *alternate* patient/visit IDs,
  *   also withdrawn v2.7) are deliberately not surfaced. On a v2.7+ message
- *   (MSH-12) the withdrawn MRG-4 — and the symmetric withdrawn PID-2 — are
+ *   (MSH-12) the withdrawn MRG-4 (and the symmetric withdrawn PID-2) are
  *   NOT read as identity fields.
  *
  * Fail-safe: a merge/move event missing either side of the MRG→PID pair
  * surfaces what is present plus a `MERGE_MISSING_PRIOR_OR_SURVIVOR` warning on
- * the event — the MRG is **never dropped** (an orphaned MRG yields its own
+ * the event: the MRG is **never dropped** (an orphaned MRG yields its own
  * event) and the direction is **never guessed**. The helper never throws.
  *
  * PHI note: identifiers and names are the *payload* of the typed view (by
- * design — the consumer needs them to apply the merge), but warning messages
+ * design: the consumer needs them to apply the merge), but warning messages
  * carry only structural facts (event code + missing role), never a value.
  *
  * Applying the merge (re-pointing stored data to the survivor) is the
- * consumer's / integration engine's job — this helper only surfaces it.
+ * consumer's / integration engine's job: this helper only surfaces it.
  */
 
 import type { Hl7Position } from "../parser/types.js";
@@ -48,10 +48,10 @@ import type { XPN } from "../model/types/xpn.js";
 /**
  * Classification of a recognized identity trigger event.
  *
- * - `merge` — A18 / A34 / A35 / A36 / A39 / A40 / A41 / A42 (MRG expected)
- * - `move` — A43 / A44 (MRG expected)
- * - `link` / `unlink` — A24 / A37 (two PID groups, no MRG)
- * - `add` / `update` — A28 / A31 (person add/update, no MRG)
+ * - `merge`: A18 / A34 / A35 / A36 / A39 / A40 / A41 / A42 (MRG expected)
+ * - `move`: A43 / A44 (MRG expected)
+ * - `link` / `unlink`: A24 / A37 (two PID groups, no MRG)
+ * - `add` / `update`: A28 / A31 (person add/update, no MRG)
  *
  * @example
  * ```ts
@@ -64,7 +64,7 @@ export type IdentityEventKind = "merge" | "move" | "link" | "unlink" | "add" | "
 /**
  * Role of one party in an identity event. `surviving` / `subject` / `linked`
  * parties are ONLY ever sourced from PID (+ PV1); `prior` parties are ONLY
- * ever sourced from MRG — the role-labelling invariant Phase K exists for.
+ * ever sourced from MRG: the role-labelling invariant Phase K exists for.
  *
  * @example
  * ```ts
@@ -99,15 +99,15 @@ export type IdentityRole = "surviving" | "prior" | "linked" | "subject";
  * ```
  */
 export interface IdentityParty {
-  /** Role of this party in the event — the safety-critical label. */
+  /** Role of this party in the event: the safety-critical label. */
   readonly role: IdentityRole;
-  /** Segment this party was sourced from — provenance for the role label. */
+  /** Segment this party was sourced from: provenance for the role label. */
   readonly sourceSegment: "PID" | "MRG";
   /** Identifier list (PID-3 / MRG-1), every non-empty CX repetition. */
   readonly identifiers: readonly CX[];
   /**
    * Legacy single patient ID (PID-2 / MRG-4). Backward-compat only; withdrawn
-   * as of HL7 v2.7 — OMITTED (not read) when MSH-12 declares v2.7 or later.
+   * as of HL7 v2.7: OMITTED (not read) when MSH-12 declares v2.7 or later.
    */
   readonly legacyPatientId?: CX;
   /** Patient account number (PID-18 / MRG-3). */
@@ -121,11 +121,11 @@ export interface IdentityParty {
 /**
  * One recognized patient-identity event. For `merge` / `move` kinds the
  * `surviving` (PID/PV1-sourced) and `prior` (MRG-sourced) parties are also
- * exposed directly, with the spec-constant `direction: "MRG_TO_PID"` — the
+ * exposed directly, with the spec-constant `direction: "MRG_TO_PID"`: the
  * prior identifiers are the ones being retired in favour of the surviving
  * ones, never the reverse (HL7 v2 Ch. 3, A18/A39/A40).
  *
- * `parties` is the complete role-labelled surface in document order — nothing
+ * `parties` is the complete role-labelled surface in document order: nothing
  * present in the message is dropped, including a nonconforming MRG in a
  * link/add message (surfaced as a `prior`-role party).
  *
@@ -141,7 +141,7 @@ export interface IdentityParty {
  *   if (ev.kind === "merge" && ev.prior && ev.surviving) {
  *     // retire ev.prior.identifiers in favour of ev.surviving.identifiers
  *   } else if (ev.warnings.length > 0) {
- *     // incomplete pair — do NOT apply; route for review
+ *     // incomplete pair: do NOT apply; route for review
  *   }
  * }
  * ```
@@ -151,11 +151,11 @@ export interface IdentityEvent {
   readonly eventType: string;
   /** Classification of the trigger event. */
   readonly kind: IdentityEventKind;
-  /** Every party in document order, role-labelled — the complete surface. */
+  /** Every party in document order, role-labelled: the complete surface. */
   readonly parties: readonly IdentityParty[];
-  /** The surviving party (merge/move) — ONLY ever sourced from PID/PV1. */
+  /** The surviving party (merge/move): ONLY ever sourced from PID/PV1. */
   readonly surviving?: IdentityParty;
-  /** The prior (non-surviving) party (merge/move) — ONLY ever sourced from MRG. */
+  /** The prior (non-surviving) party (merge/move): ONLY ever sourced from MRG. */
   readonly prior?: IdentityParty;
   /**
    * Spec-constant merge/move direction: the MRG (prior) identifiers merge
@@ -189,7 +189,7 @@ const IDENTITY_TRIGGERS: ReadonlyMap<string, IdentityEventKind> = new Map<
 ]);
 
 /**
- * True when MSH-12 declares HL7 v2.7 or later — the era in which the
+ * True when MSH-12 declares HL7 v2.7 or later: the era in which the
  * backward-compat single-ID fields (PID-2, MRG-2/4/6) are withdrawn. An
  * absent or unparseable version is treated as pre-v2.7 (the lenient default:
  * real-world ADT traffic is overwhelmingly v2.3–v2.5.1, where those fields
@@ -294,7 +294,7 @@ interface IdentityGroup {
 /**
  * Split the message into PID-led groups (spec shape: `PID [PD1] MRG [PV1]`,
  * repeating). An MRG or PV1 attaches to the currently-open PID group; an MRG
- * with no open group — or arriving when the open group already holds one —
+ * with no open group (or arriving when the open group already holds one)
  * opens/continues an orphan group so it is NEVER dropped. @internal
  */
 function splitGroups(msg: Hl7Message): IdentityGroup[] {
@@ -331,8 +331,8 @@ function hasUsableId(cx: CX | undefined): boolean {
 /**
  * Does a party carry at least one usable identity field? A CX with no ID
  * number (e.g. `^^^HOSP`, assigning authority only) is not a usable
- * identifier. Account and visit numbers count on BOTH sides — they are the
- * merge keys of A41/A42 — but a name alone never does. @internal
+ * identifier. Account and visit numbers count on BOTH sides: they are the
+ * merge keys of A41/A42: but a name alone never does. @internal
  */
 function hasIdentityField(party: IdentityParty): boolean {
   return (
@@ -373,7 +373,7 @@ function buildMergeEvent(
   // Fail-safe (roadmap Phase K): surface what is present + a typed warning
   // when either role of the MRG→PID pair is missing OR carries no usable
   // identity field (e.g. a v2.7+ MRG whose only content was the gated
-  // MRG-4 — the consumer must not read an empty prior as "nothing to
+  // MRG-4: the consumer must not read an empty prior as "nothing to
   // retire"); never guess direction.
   if (prior === undefined || !hasIdentityField(prior)) {
     warnings.push(
@@ -402,14 +402,14 @@ function buildMergeEvent(
  * Recognize the message's identity trigger event and surface every party
  * labelled by role. Returns `[]` when the trigger (MSH-9.2, falling back to
  * EVN-1) is not in the identity family. Never throws; the result and every
- * nested view are deeply frozen. NOT memoized — each call re-walks the
+ * nested view are deeply frozen. NOT memoized: each call re-walks the
  * message (mirrors `orders()`).
  *
  * Event shapes:
- * - `merge` / `move` — one event per PID-led group (repeating groups yield
+ * - `merge` / `move`: one event per PID-led group (repeating groups yield
  *   one event each); `surviving` + `prior` + constant `direction`.
- * - `link` / `unlink` — ONE event; every PID group is a `linked` party.
- * - `add` / `update` — one event per PID group; the party role is `subject`.
+ * - `link` / `unlink`: ONE event; every PID group is a `linked` party.
+ * - `add` / `update`: one event per PID group; the party role is `subject`.
  *
  * @example
  * ```ts
@@ -417,7 +417,7 @@ function buildMergeEvent(
  * const msg = parseHL7(rawA40);
  * const [ev] = msg.identityEvents();
  * ev?.kind;                      // "merge"
- * ev?.direction;                 // "MRG_TO_PID" — spec-constant, never guessed
+ * ev?.direction;                 // "MRG_TO_PID": spec-constant, never guessed
  * ev?.surviving?.sourceSegment;  // "PID"
  * ev?.prior?.sourceSegment;      // "MRG"
  * ```
@@ -447,7 +447,7 @@ export function identityEvents(msg: Hl7Message): readonly IdentityEvent[] {
       }
     }
   } else if (kind === "link" || kind === "unlink") {
-    // A24/A37: the PID groups are peers being (un)linked — no survivor/prior
+    // A24/A37: the PID groups are peers being (un)linked: no survivor/prior
     // semantics. A nonconforming MRG is still surfaced (never dropped) as a
     // prior-role party in document order.
     const parties: IdentityParty[] = [];

@@ -1,5 +1,5 @@
 /**
- * Public barrel smoke tests — verify that every symbol the plan promised is
+ * Public barrel smoke tests: verify that every symbol the plan promised is
  * importable from `@cosyte/hl7` (via the source barrel) as both named
  * and namespace forms. The compile-time checks are implicit: if any import
  * breaks the file fails typecheck, and vitest won't even load it.

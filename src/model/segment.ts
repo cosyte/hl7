@@ -1,10 +1,10 @@
 /**
- * `Segment` — wrapper class over a `RawSegment` that exposes `field(n)` with
+ * `Segment`: wrapper class over a `RawSegment` that exposes `field(n)` with
  * referentially stable `Field` instances (D-12). Constructed internally by
  * `Hl7Message.segments(type)` / `Hl7Message.allSegments()`; user code never
  * calls `new Segment(...)` directly.
  *
- * The wrapper does NOT copy `raw.fields` — it holds a reference so mutations
+ * The wrapper does NOT copy `raw.fields`: it holds a reference so mutations
  * through Plan 04's `setField` / `addSegment` / `removeSegment` stay visible.
  */
 
@@ -13,7 +13,7 @@ import type { EncodingCharacters, RawField, RawSegment } from "../parser/types.j
 
 /**
  * Wrapper over a `RawSegment` exposing typed per-position `Field` instances.
- * `seg.field(3) === seg.field(3)` — referential stability is guaranteed per
+ * `seg.field(3) === seg.field(3)`: referential stability is guaranteed per
  * segment instance.
  *
  * @example
@@ -28,7 +28,7 @@ export class Segment {
   /** Segment name (3 chars, e.g. `"PID"`, `"OBX"`, `"ZPI"`). */
   public readonly type: string;
 
-  /** Reference to the underlying `RawSegment.fields` — 1-indexed per HL7 convention. */
+  /** Reference to the underlying `RawSegment.fields`: 1-indexed per HL7 convention. */
   public readonly fields: readonly RawField[];
 
   /** The 5 encoding characters for this message. Exposed for composite parsers. @internal */
@@ -49,7 +49,7 @@ export class Segment {
    */
   public readonly customFields: Readonly<Record<string, number>> | undefined;
 
-  /** Lazy cache of Field wrappers — one per fields[] position. @internal */
+  /** Lazy cache of Field wrappers: one per fields[] position. @internal */
   private _fieldWrappers: Field[] | undefined;
 
   /**
@@ -79,16 +79,16 @@ export class Segment {
 
   /**
    * Return the `Field` wrapper at HL7 position `n`. Indexing follows the HL7
-   * 1-indexed convention — `seg.field(5)` on a PID segment maps to PID-5.
+   * 1-indexed convention: `seg.field(5)` on a PID segment maps to PID-5.
    * MSH segments use the same user-facing convention: `msh.field(1)` returns
    * the field-separator (MSH-1), `msh.field(2)` returns encoding chars
-   * (MSH-2), `msh.field(3)` returns MSH-3, and so on — the internal
+   * (MSH-2), `msh.field(3)` returns MSH-3, and so on: the internal
    * `fields[N-1]` offset for MSH segments is applied here (mirrors the
    * dot-path resolver in `dot-path.ts`, keeping `msg.segments('MSH')[0].field(3)`
    * and `msg.get('MSH.3')` in agreement).
    *
    * Returns a synthetic empty `Field` (`.isNull === false`, `.value === ""`)
-   * when `n` is out of range — never throws (MODEL-05). Successive calls with
+   * when `n` is out of range: never throws (MODEL-05). Successive calls with
    * the same `n` return the same `Field` instance (D-12).
    *
    * @example
@@ -121,13 +121,13 @@ export class Segment {
   /**
    * Return the `Field` at the profile-declared position for `name`, or
    * `undefined` when no custom mapping exists (PROF-07). Unlike `field(n)`,
-   * missing names return `undefined` — NOT a synthetic empty Field — so
+   * missing names return `undefined`, NOT a synthetic empty Field, so
    * typos surface instead of silently resolving to an empty string (D-14).
    *
    * For segments without a profile-declared customSegments slice (most
    * non-Z segments, and any Z-segment whose host message had no profile
    * applied), this method always returns `undefined` (D-15 defense-in-depth
-   * — D-05 already rejects standard-segment overlays at `defineProfile()`
+   *: D-05 already rejects standard-segment overlays at `defineProfile()`
    * time).
    *
    * When the declared position is out of range for the underlying

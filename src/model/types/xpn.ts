@@ -1,10 +1,10 @@
 /**
- * XPN — HL7 v2 Extended Person Name composite. 14-component structured-name
+ * XPN: HL7 v2 Extended Person Name composite. 14-component structured-name
  * shape parsed from a `RawRepetition` on demand by `Field.asXpn()` (wired in
- * Plan 04). Fields are OMITTED when absent (exactOptionalPropertyTypes) —
+ * Plan 04). Fields are OMITTED when absent (exactOptionalPropertyTypes),
  * NEVER set to `undefined`.
  *
- * Zero runtime deps — pure function over the raw positional tree + `unescape`.
+ * Zero runtime deps: pure function over the raw positional tree + `unescape`.
  */
 
 import type { EncodingCharacters, RawRepetition } from "../../parser/types.js";
@@ -12,7 +12,7 @@ import type { EncodingCharacters, RawRepetition } from "../../parser/types.js";
 import { readComponent } from "./_shared.js";
 
 /**
- * HL7 v2 Extended Person Name (XPN) — structured name per HL7 Chapter 2. All
+ * HL7 v2 Extended Person Name (XPN): structured name per HL7 Chapter 2. All
  * 14 components are optional. Fields are OMITTED when the underlying
  * component is absent (exactOptionalPropertyTypes).
  *
@@ -25,10 +25,10 @@ import { readComponent } from "./_shared.js";
  * 6. degree (e.g. MD, PhD)
  * 7. nameTypeCode (L=Legal, M=Maiden, N=Nickname, S=Coded Pseudo-Name, ...)
  * 8. nameRepresentationCode
- * 9. nameContext (flattened to string in v1 — CWE nesting is out of scope)
+ * 9. nameContext (flattened to string in v1: CWE nesting is out of scope)
  * 10. nameValidityRange
  * 11. nameAssemblyOrder (F=family first, G=given first)
- * 12. effectiveDate (raw HL7 TS string — caller may parse via parseDtm)
+ * 12. effectiveDate (raw HL7 TS string: caller may parse via parseDtm)
  * 13. expirationDate
  * 14. professionalSuffix
  *
@@ -57,7 +57,7 @@ export interface XPN {
 
 /**
  * Parse an HL7 v2 XPN repetition into a structured `XPN` object. Components
- * are returned verbatim (already decoded once by the tokenizer — never re-unescaped,
+ * are returned verbatim (already decoded once by the tokenizer: never re-unescaped,
  * HL7-VALUE-REDECODE). Absent / empty components are OMITTED
  * from the result (exactOptionalPropertyTypes semantics).
  *

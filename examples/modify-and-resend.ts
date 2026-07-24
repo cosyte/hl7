@@ -1,5 +1,5 @@
 /**
- * EX-03 — Parse, mutate one field, and re-serialize to spec-clean HL7.
+ * EX-03: Parse, mutate one field, and re-serialize to spec-clean HL7.
  * Demonstrates the mutation + round-trip access path and Postel's Law:
  * the serializer always produces spec-clean HL7, regardless of input
  * quirks.

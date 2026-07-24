@@ -5,17 +5,17 @@
  * (encounter-procedure data). BIP-03.
  *
  * Grounded in **publicly downloadable** MEDITECH interface specifications
- * (ADR 0018 — public specs count as real artifacts), not invented:
+ * (ADR 0018: public specs count as real artifacts), not invented:
  *
  * - The **minute-precision** date/time format is confirmed by *two*
  *   public MEDITECH specs: "MEDITECH Admissions and Registration to Other
  *   Vendor Ancillary" (Version 2.4, © 2021 Medical Information Technology,
- *   Inc.) — "Date and Time in Admissions. Format is YYYYMMDDHHMM" — and
+ *   Inc.) ("Date and Time in Admissions. Format is YYYYMMDDHHMM") and
  *   "MEDITECH Ancillary Charges (LAB/PHA/ITS/IDM)" (Version 2.1, © 2021),
  *   whose MSH-7 is length **12** (= `YYYYMMDDHHMM`) and whose EVN-2/PID-7
  *   are documented "Format is YYYYMMDDHHMM". Minute precision is
  *   HL7-conformant (TS/DTM permit variable precision), so declaring it here
- *   is not about accepting an illegal value — it records MEDITECH's
+ *   is not about accepting an illegal value: it records MEDITECH's
  *   characteristic no-seconds convention so date resolution across a
  *   MEDITECH feed is explicit rather than incidental.
  * - `ZF1` and `ZF2` are the DFT (charge) Z-segments defined verbatim in
@@ -28,11 +28,11 @@
  *   ZF2-7 PRV PROCEDURE AMOUNT PAID, ZF2-8 PRV PROCEDURE AMOUNT DUE).
  *
  * (This replaced an earlier `ZVI` "visit info" segment that was a
- * community-sourced prior with no citable public grounding — HL7-I
+ * community-sourced prior with no citable public grounding: HL7-I
  * re-grounding, ADR 0018. Field positions here are transcribed directly
  * from the spec's segment tables.)
  *
- * Authored from the public `defineProfile()` API — zero privileged
+ * Authored from the public `defineProfile()` API: zero privileged
  * internal coupling. Consumers extend this profile via
  * `defineProfile({ name: '...', extends: profiles.meditech, ... })`.
  *
@@ -60,7 +60,7 @@ import { defineProfile } from "./define.js";
 export const meditech = defineProfile({
   name: "meditech",
   description:
-    "MEDITECH MAGIC/6.x/Expanse — minute-precision timestamps and DFT charge Z-segments (ZF1/ZF2)",
+    "MEDITECH MAGIC/6.x/Expanse: minute-precision timestamps and DFT charge Z-segments (ZF1/ZF2)",
   dateFormats: ["YYYYMMDDHHmm"],
   customSegments: {
     ZF1: {

@@ -3,15 +3,15 @@
  *
  * The load-bearing claims, over thousands of generated RXA segments:
  *   1. `immunizations()` NEVER throws on arbitrary RXA content (including
- *      malformed/empty fields and adversarial dose amounts) — HELPERS-07 holds
+ *      malformed/empty fields and adversarial dose amounts): HELPERS-07 holds
  *      for the VXU extractor.
  *   2. A well-formed CVX vaccine code + dose amount survives parse → project
  *      verbatim (identifier, coding-system provenance, strict-parsed numeric).
- *   3. The action code (RXA-21) is surfaced VERBATIM and never defaulted — a
+ *   3. The action code (RXA-21) is surfaced VERBATIM and never defaulted: a
  *      mis-keyed A/D/U corrupts an IIS add/delete/update dedup, so the helper
  *      must echo exactly what the wire carried, for any value.
  *   4. `recordOrigin` is derived ONLY from the well-known NIP001 RXA-9.1 codes
- *      (`00` administered; `01`-`08` historical) and OMITTED otherwise — the
+ *      (`00` administered; `01`-`08` historical) and OMITTED otherwise: the
  *      classification never guesses.
  */
 
@@ -27,7 +27,7 @@ const MSH = "MSH|^~\\&|APP|FAC|||20250102||VXU^V04|1|T|2.5.1\r";
 // Delimiter-free junk the parser must tolerate and the helper must never throw on.
 const junkArb = fc.string({ maxLength: 12 }).filter((s) => !/[|^~\\&\r\n]/u.test(s));
 // Identifier-shaped codes: alphanumeric, non-empty, no surrounding whitespace
-// (the parser trims field whitespace — a separate, correct behavior).
+// (the parser trims field whitespace: a separate, correct behavior).
 const idArb = fc.stringMatching(/^[A-Za-z0-9]{1,12}$/u);
 const numArb = fc.integer({ min: 0, max: 100_000 });
 

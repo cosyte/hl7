@@ -1,10 +1,10 @@
 /**
- * `buildAdt` — author a spec-clean HL7 v2 **ADT** (admit/discharge/transfer)
+ * `buildAdt`: author a spec-clean HL7 v2 **ADT** (admit/discharge/transfer)
  * message from typed inputs (roadmap Phase T). The conservative-emit mirror of
  * the read helpers (`msg.patient`, `msg.visit`): a caller supplies structured
  * values (an {@link XPN} name, {@link CX} identifiers, a {@link TS} birth date,
  * a {@link PL} location, …) and `buildAdt` assembles `MSH + EVN + PID + PV1`
- * with correct `^`/`&`/`~` structure via the HL7-R encode-safe path — never
+ * with correct `^`/`&`/`~` structure via the HL7-R encode-safe path: never
  * hand-assembling delimiters, never injecting one.
  *
  * **Structurally complete + zero-warning.** The emitted message carries the
@@ -14,10 +14,10 @@
  *
  * **Never fabricate.** Only values the caller supplies are emitted; an omitted
  * optional field becomes an empty/absent field, never a defaulted clinical
- * value. `patient` is **required** — an ADT patient event with no patient is a
+ * value. `patient` is **required**: an ADT patient event with no patient is a
  * typed `TypeError`, not a guessed PID.
  *
- * Spec traceability: HL7 v2 Ch. 3 (ADT — MSH/EVN/PID/PV1), Ch. 2 datatypes.
+ * Spec traceability: HL7 v2 Ch. 3 (ADT: MSH/EVN/PID/PV1), Ch. 2 datatypes.
  * Zero runtime deps.
  */
 
@@ -49,7 +49,7 @@ import {
 export interface AdtPatient {
   /** PID-1 Set ID. */
   readonly setId?: string;
-  /** PID-3 Patient Identifier List — one or more CX identifiers (MRN, SSN, …). */
+  /** PID-3 Patient Identifier List: one or more CX identifiers (MRN, SSN, …). */
   readonly identifiers?: CX | readonly CX[];
   /** PID-5 Patient Name. */
   readonly name?: XPN | readonly XPN[];
@@ -59,9 +59,9 @@ export interface AdtPatient {
   readonly birthDateTime?: TS | string;
   /** PID-8 Administrative Sex (e.g. `"F"`, `"M"`, `"U"`). */
   readonly administrativeSex?: string;
-  /** PID-11 Patient Address — one or more XAD addresses. */
+  /** PID-11 Patient Address: one or more XAD addresses. */
   readonly address?: XAD | readonly XAD[];
-  /** PID-13 Phone Number - Home — one or more XTN telecoms. */
+  /** PID-13 Phone Number - Home: one or more XTN telecoms. */
   readonly phoneHome?: XTN | readonly XTN[];
   /** PID-18 Patient Account Number. */
   readonly accountNumber?: CX;
@@ -95,7 +95,7 @@ export interface AdtEvent {
 
 /** Input for {@link buildAdt}: the MSH envelope plus the typed segment bodies. */
 export interface BuildAdtInit extends MessageEnvelope {
-  /** PID content. **Required** — never fabricated. */
+  /** PID content. **Required**: never fabricated. */
   readonly patient: AdtPatient;
   /** PV1 content. Optional; an (empty) PV1 is emitted regardless so the visit group is present. */
   readonly visit?: AdtVisit;
@@ -164,7 +164,7 @@ export function buildAdt(event: string, init: BuildAdtInit): Hl7Message {
     init.patient === undefined
   ) {
     throw new TypeError(
-      "buildAdt: `patient` is required — an ADT patient event is never emitted with a " +
+      "buildAdt: `patient` is required. An ADT patient event is never emitted with a " +
         "fabricated patient. Supply at least one identifier or a name.",
     );
   }
@@ -175,7 +175,7 @@ export function buildAdt(event: string, init: BuildAdtInit): Hl7Message {
   const segments: RawSegment[] = [buildMshSegment(`ADT^${event}`, init)];
 
   // ── EVN ──────────────────────────────────────────────────────────────────
-  // EVN-1 is the (caller-supplied) trigger event — not a fabricated value.
+  // EVN-1 is the (caller-supplied) trigger event: not a fabricated value.
   const evn = init.event;
   segments.push(
     assembleSegment(
@@ -222,7 +222,7 @@ export function buildAdt(event: string, init: BuildAdtInit): Hl7Message {
 
   // ── PV1 ──────────────────────────────────────────────────────────────────
   // Always emitted so the ADT "visit" group is present (structure-complete),
-  // even when the caller supplies no visit — an empty PV1 is the fail-safe,
+  // even when the caller supplies no visit: an empty PV1 is the fail-safe,
   // never fabricated content.
   const v = init.visit;
   segments.push(
