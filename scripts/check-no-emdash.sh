@@ -134,9 +134,13 @@ cd "$(git rev-parse --show-toplevel)"
 #   repo where a fixture deliberately encoded in one (an MSH-18 `8859/1` case carrying
 #   CP1252 0x97, or a UTF-16 document) is a plausible future artifact. Measured, not
 #   assumed: such a file scans clean and this gate stays GREEN. There is none today (all
-#   414 tracked files decode as UTF-8), and the -I discussion above does not rescue it,
-#   because grep only classifies a file as binary when its bytes happen to include a NUL
-#   or the UTF-8 sequence for the em dash, which a Latin-1 fixture generally will not.
+#   414 tracked files decode as UTF-8), and the -I discussion above does not rescue it.
+#   GNU grep DOES classify such a file as binary (any encoding error is enough; a NUL is
+#   not required), but it only surfaces that as the "binary file matches" diagnostic when
+#   the pattern actually matches, and a pattern written in UTF-8 never matches a CP1252
+#   0x97. So nothing reaches refuse_if_incomplete and the run stays quiet. This is not a
+#   wholesale skip of mixed-encoding files, though: a UTF-8 em dash on another line of the
+#   same file is still caught normally.
 #   This is accepted rather than fixed: the ban is a rule about prose that people write,
 #   and fixture bytes are grounded data, not brand copy. If a legacy-charset fixture ever
 #   lands, a reviewer covers it, not this script. Do not widen the pattern to chase it,
