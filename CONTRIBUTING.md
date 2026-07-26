@@ -53,6 +53,10 @@ Useful extras:
   `src/builder/`, `src/profiles/`)
 - `pnpm format` / `pnpm format:check`: Prettier on source + tests
 - `pnpm examples`: smoke-runs the three examples under `examples/*.ts`
+- `pnpm check:no-emdash`: the brand gate. cosyte never uses the em dash (`U+2014`), and CI
+  enforces it on the tracked files **and on your PR title, PR body, and commit messages**,
+  because this repo squash-merges and those become the message that lands on `main`. Rewrite
+  with a period, a colon, a comma, or parentheses rather than re-encoding the character.
 
 ### Fuzz + differential testing
 
