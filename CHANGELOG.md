@@ -27,10 +27,14 @@ per the cosyte version ladder (`0.0.x` until first alpha).
   retitled after the final push is re-checked before a squash merge turns it into the commit
   message. It is a separate workflow rather than a job in `ci.yml` because `ci.yml`'s triggers drive
   the Node 22 + 24 matrix plus the examples and starter-kit `extras` job, which should not re-run on
-  every PR-description edit. The scanner refuses to report green from a scan it could not complete:
-  it pins `LC_ALL=C.UTF-8` (without it GNU grep 3.8 aborts on `\x{2014}` and a naive port prints OK
-  having matched nothing), self-tests against a known em dash before believing a clean result, fails
-  on any scanner stderr, and refuses an empty file list. **No content changed**: hl7 was already
+  every PR-description edit. Within the bytes it is designed to match, the scanner refuses to report
+  green from a scan it could not complete: it pins `LC_ALL=C.UTF-8` (without it GNU grep 3.8 aborts
+  on `\x{2014}` and a naive port prints OK having matched nothing), self-tests against a known em
+  dash before believing a clean result, fails on any scanner stderr, and refuses an empty file list.
+  Two limits are documented in the script rather than engineered away: it excludes itself (it has to
+  name the encodings it bans), and it matches `U+2014` as UTF-8 plus five textual encodings, so an em
+  dash in a legacy-charset fixture (CP1252 `0x97`, UTF-16) scans clean and is a reviewer's job, not
+  the gate's. **No content changed**: hl7 was already
   clean (0 of 53 markdown files), so this is regression prevention only. Dev-tooling only: no change
   to the published package surface, parser behavior, or warning codes.
 - **Performance / throughput bar: reproducible benchmark suite + a ratio-based perf-regression guard

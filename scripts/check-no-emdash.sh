@@ -128,13 +128,19 @@ cd "$(git rev-parse --show-toplevel)"
 #   -I makes a future binary a loud false positive (grep prints "Binary file X matches",
 #   the gate goes red, a human looks) instead of a silent miss. Fail closed, not open.
 #
-#   hl7 is a parser repo, so the file most likely to trip that is not a binary but a
-#   fixture deliberately encoded in something other than UTF-8 (an MSH-18 ISO-8859-1 or
-#   JIS case). Today there is none. When one lands, this gate goes RED and a human
-#   decides, which is the intended outcome: the alternatives are a silent skip (-I) or
-#   the website copy's NUL partition, and a Latin-1 fixture holds no NUL byte, so that
-#   partition would not exclude it either. Add a narrow, named exclusion for the one
-#   fixture; do not re-add -I and do not widen the rule.
+#   KNOWN LIMIT, stated because hl7 is the repo where it is most likely to matter. The
+#   pattern above matches U+2014 as UTF-8 and as the five textual encodings listed with
+#   it. It does NOT match an em dash encoded in some other charset, and hl7 is a parser
+#   repo where a fixture deliberately encoded in one (an MSH-18 `8859/1` case carrying
+#   CP1252 0x97, or a UTF-16 document) is a plausible future artifact. Measured, not
+#   assumed: such a file scans clean and this gate stays GREEN. There is none today (all
+#   414 tracked files decode as UTF-8), and the -I discussion above does not rescue it,
+#   because grep only classifies a file as binary when its bytes happen to include a NUL
+#   or the UTF-8 sequence for the em dash, which a Latin-1 fixture generally will not.
+#   This is accepted rather than fixed: the ban is a rule about prose that people write,
+#   and fixture bytes are grounded data, not brand copy. If a legacy-charset fixture ever
+#   lands, a reviewer covers it, not this script. Do not widen the pattern to chase it,
+#   and do not re-add -I.
 #
 #   stderr is captured and any of it fails the run (see refuse_if_incomplete above).
 #

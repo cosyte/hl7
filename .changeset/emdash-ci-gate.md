@@ -19,13 +19,21 @@ re-checked before a squash merge turns it into the commit message. It lives in i
 rather than in `ci.yml` because `ci.yml`'s triggers drive the Node 22 + 24 matrix and the examples
 and starter-kit `extras` job, which should not re-run on every PR-description edit.
 
-The scanner is built so that it cannot report green from a scan it did not complete: it pins
+Within the bytes it is designed to match, the scanner is built so that it cannot report green from
+a scan it did not complete: it pins
 `LC_ALL=C.UTF-8` (without the pin GNU grep 3.8 aborts on `\x{2014}` and a naive port prints OK
 having matched nothing), self-tests itself against a known em dash before believing a clean result,
 treats any scanner stderr as a failure, refuses an empty file list, builds its file list as its own
 command so a failed `git ls-files` stops the run, uses NUL-separated paths because `git ls-files`
 C-quotes non-ASCII names, passes `-e` and `--` so a tracked file named `-q` cannot silence a batch,
 and anchors at the repo top level so invocation from a subdirectory cannot under-report.
+
+Two limits are documented in the script rather than engineered away. It excludes itself from the
+tracked-file scan, because it has to name the encodings it bans. And it matches `U+2014` as UTF-8
+plus five textual encodings, so an em dash carried in a legacy-charset fixture (CP1252 `0x97`, or
+UTF-16) scans clean. There is no such fixture today, and if one lands it is a reviewer's job rather
+than the gate's: the ban is a rule about prose that people write, and fixture bytes are grounded
+data, not brand copy.
 
 hl7 was already clean (0 of 53 markdown files carried an em dash), so no content changed. This is
 regression prevention only. Dev-tooling: no change to the published package surface, parser
