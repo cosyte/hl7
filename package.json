@@ -73,6 +73,7 @@
     "lint:fix": "eslint \"src/**/*.ts\" \"scripts/**/*.ts\" \"test/**/*.ts\" --fix --no-error-on-unmatched-pattern",
     "format": "prettier --write \"src/**/*.{ts,md}\" \"test/**/*.ts\" \"scripts/**/*.{ts,mjs}\" \"*.{json,md,yml}\"",
     "format:check": "prettier --check \"src/**/*.{ts,md}\" \"test/**/*.ts\" \"scripts/**/*.{ts,mjs}\" \"*.{json,md,yml}\"",
+    "check:no-emdash": "bash scripts/check-no-emdash.sh",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",

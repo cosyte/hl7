@@ -15,6 +15,24 @@ per the cosyte version ladder (`0.0.x` until first alpha).
 
 ### Added
 
+- **Em-dash brand gate in CI (`scripts/check-no-emdash.sh`, `pnpm check:no-emdash`,
+  `.github/workflows/no-emdash.yml`; `EMDASH-CONFORMANCE` part 1).** The founder directive of
+  2026-07-24 (`knowledgebase/06-brand/voice-and-tone.md`) bans `U+2014` outright across every cosyte
+  surface and names commit messages explicitly, and the meta-repo's `documentation/conventions.md`
+  has described the rule as CI-gated; it was in fact gated in only 3 repos of 10. This ports
+  `knowledgebase`'s scanner (the text-only variant, correct here because hl7 tracks no binaries:
+  all 414 tracked files read as us-ascii or utf-8 and none holds a NUL byte) and wires it to a
+  dedicated workflow that checks **both** the tracked files and the **PR title, body, and branch
+  commit messages**, the last of these on the non-default `edited` activity type so a description
+  retitled after the final push is re-checked before a squash merge turns it into the commit
+  message. It is a separate workflow rather than a job in `ci.yml` because `ci.yml`'s triggers drive
+  the Node 22 + 24 matrix plus the examples and starter-kit `extras` job, which should not re-run on
+  every PR-description edit. The scanner refuses to report green from a scan it could not complete:
+  it pins `LC_ALL=C.UTF-8` (without it GNU grep 3.8 aborts on `\x{2014}` and a naive port prints OK
+  having matched nothing), self-tests against a known em dash before believing a clean result, fails
+  on any scanner stderr, and refuses an empty file list. **No content changed**: hl7 was already
+  clean (0 of 53 markdown files), so this is regression prevention only. Dev-tooling only: no change
+  to the published package surface, parser behavior, or warning codes.
 - **Performance / throughput bar: reproducible benchmark suite + a ratio-based perf-regression guard
   (HL7-W, Phase W, sixth and final phase of the v2.4 capability arc; completes it).** `pnpm bench`
   (`scripts/bench.ts`) measures parse **throughput** (msgs/sec + MB/sec across a small ADT^A01 and a
