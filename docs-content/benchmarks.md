@@ -107,3 +107,5 @@ on ordinary slowness.
   measures hl7 against itself over time.
 - **Not a behavior contract.** Nothing here changes how a message parses. See the
   [core concepts](./spec-notes-primer.md) for parse semantics.
+
+Scratch commit for CI gate proof. This line is clean.
