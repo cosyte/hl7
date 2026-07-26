@@ -109,3 +109,4 @@ on ordinary slowness.
   [core concepts](./spec-notes-primer.md) for parse semantics.
 
 Scratch commit for CI gate proof. This line is clean.
+Seeded for the CI proof: a — dash in a tracked file.
