@@ -1,10 +1,10 @@
 ---
 id: spec-notes-nte
-title: "Spec notes: NTE narrative grouping (Phase P)"
+title: "Spec notes: NTE narrative grouping"
 sidebar_label: NTE narrative grouping
 ---
 
-# Spec notes: NTE narrative grouping (Phase P)
+# Spec notes: NTE narrative grouping
 
 NTE (Notes and Comments) segments are surfaced on the helper output for the
 **entity they annotate**, resolved **by position**. A lab result note lands on
@@ -28,7 +28,7 @@ HL7 v2 Chapter 2 (control) + Chapter 7 (observation reporting):
   where it appears. It carries no field linking it to a parent, so attachment is
   **positional**: an NTE annotates the entity whose segment immediately precedes
   it.
-- **NTE-3 Comment (FT), repeating [S-NTE].** The note body. Each non-empty
+- **NTE-3 Comment (FT), repeating.** The note body. Each non-empty
   repetition is surfaced as one note line, HL7-unescaped (so `\F\` → `|`,
   `\T\` → `&`, and the FT line-break escape `\.br\` → newline). The **full**
   repetition text is preserved: a lenient parser tokenizes a non-conformant raw
@@ -103,8 +103,8 @@ never mis-attached to the first patient or a neighbouring order.
   following `OBR`) is surfaced at message level (`msg.notes()`), not on any
   order, never dropped. (This differs from `orderControl` (ORC-1), which
   `orders()` genuinely drops for such an ORC; the note is preserved rather than
-  discarded because losing clinical narrative is the failure this phase guards
+  discarded because losing clinical narrative is the failure the grouping guards
   against.)
-- **No new warning code.** Phase P is a pure additive read surface; it emits no
+- **No new warning code.** Note grouping is a pure additive read surface; it emits no
   warning of its own. NTE free-text is high-PHI-risk clinical narrative and is
   treated purely as payload. No warning or log line echoes note text.

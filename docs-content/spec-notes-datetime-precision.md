@@ -1,26 +1,25 @@
 ---
 id: spec-notes-datetime-precision
-title: "Spec notes: datetime precision & timezone fidelity (Phase N)"
+title: "Spec notes: datetime precision & timezone fidelity"
 sidebar_label: Datetime precision & timezone
 ---
 
-# Phase N: datetime precision + timezone fidelity
+# Spec notes: datetime precision + timezone fidelity
 
-**Item:** HL7-N · Parser class · P1. Roadmap `operations/roadmaps/hl7.md` §8a "Phase N".
 **Spec:** HL7 v2 Ch. 2A **DTM**: `YYYY[MM[DD[HH[MM[SS[.S[S[S[S]]]]]]]]][+/-ZZZZ]`; the number of
 characters populated (excluding the offset) sets the precision; a missing offset "defaults to that of
 the local time zone of the sender" (NOT UTC, NOT the parser's zone). TS→DTM moved precision from an
-explicit degree-of-precision component to the value's length (v2.5/v2.7). All confirmed 3-0 (pass 5)
-against primary Ch. 2A + HAPI `CommonTS`/`DTM`. Eager `Date`+assume-UTC is an architectural defect
-[S-DTM-IMPL]. Open-question #12 resolves the direction: expose raw + parsed parts; build a `Date` only
-on explicit caller request, never by default.
+explicit degree-of-precision component to the value's length (v2.5/v2.7). All verified against
+primary Ch. 2A and HAPI `CommonTS`/`DTM`. Eager `Date`+assume-UTC is an architectural defect, so the
+library exposes raw + parsed parts and builds a `Date` only on explicit caller request, never by
+default.
 
 ## The defect being fixed
 
 `parser/dates.ts::parseHl7TsDtm` zero-fills truncations (`|1970|` → `1970-01-01T00:00:00Z`) and coerces
-a missing offset to **UTC**. Helpers propagate that `Date` (D-18 "flat Date"): a day-only DOB
+a missing offset to **UTC**. Helpers propagate that flat `Date`: a day-only DOB
 `|19880705|` becomes a UTC-midnight instant, which reads as **July 4** via `.getDate()` in any
-negative-offset zone, an off-by-a-day DOB. Phase N replaces the coercion with fidelity.
+negative-offset zone, an off-by-a-day DOB. The parser replaces that coercion with fidelity.
 
 ## Design (locked)
 
@@ -64,12 +63,8 @@ Update `helpers/types.ts` defs + each helper test.
 - Unit: precision levels 4/6/8/14/19; tz presence + signed offset; `dtmToDate` refuses no-tz without
   `assumeOffsetMinutes`; invalid/short → `valid:false`.
 
-### Non-goals (KNOWN-LIMITATIONS + CAPABILITIES)
+### Non-goals
 Fidelity only: **no** localization, timezone conversion, or arithmetic; a missing offset is **flagged
 sender-local**, never resolved. `HHMM=0000` is preserved (never rolled to the previous day). No new
 warning code. Missing-tz is the structural `hasTimezone:false`, not a warning (avoids noise on the
 overwhelmingly common no-offset feed).
-
-### Assumption logged
-Spec facts taken from the roadmap's verified (3-0, pass 5) traceability rather than re-researching;
-the Step 4.5 `conformance-refuter` independently re-verifies against Ch. 2A.

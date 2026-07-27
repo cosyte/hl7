@@ -1,10 +1,10 @@
 ---
 id: spec-notes-structure
-title: "Spec notes: message-type & structure awareness (Phase G)"
+title: "Spec notes: message-type & structure awareness"
 sidebar_label: Message-type & structure awareness
 ---
 
-# Spec notes: message-type & structure awareness (Phase G)
+# Spec notes: message-type & structure awareness
 
 `@cosyte/hl7` ships a conservative **misroute / truncation safety net**: for the
 common message types it knows whether the core segment groups the HL7 v2.5.1
@@ -71,7 +71,7 @@ nothing.
 None. The warning message carries only structural facts: the message type, the
 group name, and the anchor segment names, never a field value.
 
-## Known limitations after Phase G
+## Known limitations
 
 - Recognizes the common types' **core Required groups only**. It is a safety
   net, not an abstract-message-syntax or IHE conformance validator (a permanent

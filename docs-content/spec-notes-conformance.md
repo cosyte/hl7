@@ -1,10 +1,10 @@
 ---
 id: spec-notes-conformance
-title: "Spec notes: conformance-profile tooling (Phase U)"
+title: "Spec notes: conformance-profile tooling"
 sidebar_label: Conformance profiles
 ---
 
-# Spec notes: conformance-profile tooling (Phase U)
+# Spec notes: conformance-profile tooling
 
 `validateAgainstProfile(message, profile)` runs a **conformance profile you
 author** against a parsed message and returns typed findings. It is the

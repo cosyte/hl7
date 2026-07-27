@@ -1,10 +1,10 @@
 ---
 id: spec-notes-stream
-title: "Spec notes: streaming / incremental parse (Phase S)"
+title: "Spec notes: streaming / incremental parse"
 sidebar_label: Streaming large files
 ---
 
-# Spec notes: streaming / incremental parse (Phase S)
+# Spec notes: streaming / incremental parse
 
 `parseStream(source, optionsOrProfile?)` parses an HL7 v2 byte/text stream
 **incrementally**: it consumes a chunked source and yields one message per
@@ -77,9 +77,8 @@ The one subtle case is a **`\r\n` terminator straddling a chunk boundary**: a
 `\r` at the very end of the current buffer is *not* yet treated as a terminator:
 it waits for the next chunk, because that chunk may begin with the `\n` that
 completes a single `\r\n`. Treating it eagerly would invent a spurious empty
-segment. (VERIFY-AT-BUILD from the roadmap, the pathological
-chunk-split-mid-`MSH|^~\&` and mid-`\r\n` cases, is covered by the property and
-example suites.)
+segment. (The pathological chunk-split-mid-`MSH|^~\&` and mid-`\r\n` cases are
+covered by the property and example suites.)
 
 ## Bounded memory (O(one message), not O(file))
 

@@ -1,10 +1,10 @@
 ---
 id: spec-notes-version-matrix
-title: "Spec notes: version-sensitivity matrix (Phase H)"
+title: "Spec notes: version-sensitivity matrix"
 sidebar_label: Version-sensitivity (v2.1–v2.8)
 ---
 
-# Spec notes: version-sensitivity matrix (Phase H)
+# Spec notes: version-sensitivity matrix
 
 `@cosyte/hl7` parses HL7 v2 messages **structurally across v2.1–v2.8**. It does
 **not** transform a message between versions, and it is not a version validator.
@@ -23,7 +23,7 @@ content it does not yet name.
 
 | Area | Version event | Handling |
 |---|---|---|
-| **MSH-2 encoding chars** | v2.7 allows a 5th char (truncation `#`) → MSH-2 may be 5 chars | Accepted; the standard escape set is recognized (Phase A). |
+| **MSH-2 encoding chars** | v2.7 allows a 5th char (truncation `#`) → MSH-2 may be 5 chars | Accepted; the standard escape set is recognized. |
 | **Composite component growth** | Composites gain trailing components across versions (CWE: 9 → 22 at v2.7) | Never assumed fixed; extra components preserved (see below), never truncated, never thrown on. |
 | **CE → CWE** | CE deprecated v2.5, **withdrawn v2.6**; CWE is the successor coded element | Read uniformly: `asCe()` and `asCwe()` accept either shape; neither is lossy (see *CE↔CWE interchange*). |
 | **CWE version ids** | CWE.7 / CWE.8 (coding-system version id, alternate version id) present from v2.5+ | Surfaced as `codingSystemVersionId` / `alternateCodingSystemVersionId` when present. |
@@ -73,7 +73,7 @@ So a downstream that picked the "wrong" accessor for the sender's version still
 sees all the data; it never silently loses the version-id or alternate-coding
 information.
 
-## Known limitations after Phase H
+## Known limitations
 
 - **Structural parse, not transformation.** The library reads v2.1–v2.8
   messages; it does not up-/down-convert between versions.

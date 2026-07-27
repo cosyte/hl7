@@ -15,6 +15,36 @@ per the cosyte version ladder (`0.0.x` until first alpha).
 
 ### Added
 
+- **Public-surface hygiene gate in CI (`scripts/check-no-internal-refs.sh`,
+  `pnpm check:no-internal-refs`, `.github/workflows/no-internal-refs.yml`;
+  `PUBLIC-SURFACE-HYGIENE`).** Founder directive of 2026-07-27: no internal project bookkeeping on
+  any surface a consumer reads. The remediation half of that directive was a sweep of 149 references
+  across 11 repos, and a sweep regresses the first time someone writes `(CCDA-P8)` into a README, so
+  the deliverable here is the gate; the sweep rides along. **47 violating lines were removed from
+  `docs-content/`** (measured on this tree, against the backlog's markdown-only count of 44): phase
+  identifiers in 15 page titles and headings, `HL7-N` / `HL7-J` / `HL7-ESC` / `HL7-R` /
+  `VERIFY-AT-BUILD` item identifiers, a citation of `operations/roadmaps/hl7.md`, bracketed
+  spec-trace tags (`[S-NTE]`, `[S-DTM-IMPL]`), an "Open-question #12", and review-process commentary
+  ("All confirmed 3-0 (pass 5)", "Assumption logged"). Identifiers were translated at the boundary,
+  not merely deleted, and every head left behind by a front-of-line strip was repaired: a heading cut
+  to `: datetime precision` reads worse than the text it replaced. The detection rules are lifted
+  from `cosyte/.github` `scripts/release-notes.mjs`, which is already tested byte-for-byte against
+  the 14 published release bodies, and they are **keyed on known project prefixes, never on the
+  `WORD-N` shape**: `MSH-2`, `PID-3`, `OBX-5`, `TQ1-7`, `NM1-03`, `ICD-10-CM`, `FHIR-bridge` and
+  `HL7-defined` are the reference material an HL7 parser's docs exist to provide, and a shape rule
+  deletes them. That is asserted, not assumed: the script carries a **negative** self-test per rule
+  alongside the positive one, so widening a rule into the `WORD-N` shape reds the gate instead of
+  silently corrupting a segment reference on the next sweep. The scan harness is the em-dash gate's,
+  in mllp's variant: scan list built and `./`-prefixed in one loop so the scan stays a single command
+  with stderr bound to all of it, no `sed -z`, no `-d skip`, no `-I`, `-e`/`--`, `-0 -r`, and a
+  refusal to print OK from an empty list, an unreadable input, a non-regular-file entry, or any
+  scanner stderr. Every one of those routes was checked RED against a seeded violation rather than
+  inherited. It scans the public surface only (`README.md`, `TRADEMARKS.md`, `LICENSE`,
+  `docs-content/`, and the npm `description` and `keywords`) because the same identifier is required
+  on the inside: `CHANGELOG.md`, `.changeset/`, commits and PRs are where it belongs. A tripwire
+  refuses the run if `package.json`'s `files` starts shipping prose the gate does not cover.
+  Documentation and CI only: no change to the published package surface, parser behavior, or warning
+  codes.
 - **Em-dash brand gate in CI (`scripts/check-no-emdash.sh`, `pnpm check:no-emdash`,
   `.github/workflows/no-emdash.yml`; `EMDASH-CONFORMANCE` part 1).** The founder directive of
   2026-07-24 (`knowledgebase/06-brand/voice-and-tone.md`) bans `U+2014` outright across every cosyte

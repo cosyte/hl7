@@ -1,10 +1,10 @@
 ---
 id: spec-notes-timing
-title: "Spec notes: order / medication timing (Phase M)"
+title: "Spec notes: order / medication timing"
 sidebar_label: Order & medication timing
 ---
 
-# Spec notes: order / medication timing (Phase M)
+# Spec notes: order / medication timing
 
 `order.timings` and `med.timings` surface the **timing structure** of an order or
 medication (how often, how many, when it starts/ends) from the `TQ1` segment
@@ -30,8 +30,8 @@ HL7 v2 Chapter 4 (order entry) + Chapter 2A (data types):
     is read.
   - **TQ1-4 Explicit Time (TM)** → `explicitTime` (verbatim, first value).
   - **TQ1-6 Service Duration (CQ)** → `serviceDuration` (verbatim).
-  - **TQ1-7 Start Date/Time (DTM)** → `startDateTime` (Phase N fidelity `TS`).
-  - **TQ1-8 End Date/Time (DTM)** → `endDateTime` (Phase N fidelity `TS`).
+  - **TQ1-7 Start Date/Time (DTM)** → `startDateTime` (precision-preserving `TS`).
+  - **TQ1-8 End Date/Time (DTM)** → `endDateTime` (precision-preserving `TS`).
   - **TQ1-9 Priority (CWE)** → `priority`.
   - **TQ1-14 Total Occurrences (NM)** → `totalOccurrences`. **This is TQ1-14,
     _not_ TQ1-11**. TQ1-11 is the Text Instruction (TX). The load-bearing total
@@ -139,5 +139,5 @@ state machine `orders()` uses for OBX→OBR and `medications()` for RXR→RX\*:
   (`1e3`, `0x10`, `10.5`) yields that JS number rather than a warning. This is
   deliberately uniform with `medications()` amounts and `observations()`, not a
   timing-specific behavior; conformant integer `NM` values (the norm) are exact.
-- **No new warning code.** Phase M is a pure additive read surface; it emits no
+- **No new warning code.** Order and medication timing is a pure additive read surface; it emits no
   warning of its own.

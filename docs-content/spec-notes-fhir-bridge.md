@@ -1,10 +1,10 @@
 ---
 id: spec-notes-fhir-bridge
-title: "Spec notes: FHIR-bridge IR-stability contract (Phase V)"
+title: "Spec notes: FHIR-bridge IR-stability contract"
 sidebar_label: FHIR-bridge IR contract
 ---
 
-# Spec notes: FHIR-bridge IR-stability contract (Phase V)
+# Spec notes: FHIR-bridge IR-stability contract
 
 > **IR Contract v1.0.0** · grounds against the HL7 **v2-to-FHIR** Implementation Guide
 > **v1.0.0** (FHIR **R4**), commit `873b331b3890c8bc5d62ef9b4dabb41801aac70d`.
@@ -34,8 +34,8 @@ The contract pins exactly the surface a mapper needs, and puts a **semver postur
 
 ## The stable mapping surface (the IR)
 
-These are the access paths under contract. All are already-shipped, already-tested public API. This
-phase adds no new runtime surface, it **freezes** the relevant existing one.
+These are the access paths under contract. All are already-shipped, already-tested public API. The
+contract adds no new runtime surface, it **freezes** the relevant existing one.
 
 ### 1. Source-path addressing: `msg.get` / `resolvePath` / `parsePath`
 

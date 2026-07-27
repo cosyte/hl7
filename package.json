@@ -74,6 +74,7 @@
     "format": "prettier --write \"src/**/*.{ts,md}\" \"test/**/*.ts\" \"scripts/**/*.{ts,mjs}\" \"*.{json,md,yml}\"",
     "format:check": "prettier --check \"src/**/*.{ts,md}\" \"test/**/*.ts\" \"scripts/**/*.{ts,mjs}\" \"*.{json,md,yml}\"",
     "check:no-emdash": "bash scripts/check-no-emdash.sh",
+    "check:no-internal-refs": "bash scripts/check-no-internal-refs.sh",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",

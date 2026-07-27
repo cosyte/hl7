@@ -1,10 +1,10 @@
 ---
 id: spec-notes-batch
-title: "Spec notes: batch / file envelope splitting (Phase L)"
+title: "Spec notes: batch / file envelope splitting"
 sidebar_label: Batch & file envelopes
 ---
 
-# Spec notes: batch / file envelope splitting (Phase L)
+# Spec notes: batch / file envelope splitting
 
 `splitBatch(raw, optionsOrProfile?)` demarcates the individual `MSH`-led
 messages inside an HL7 v2 **batch / file** stream and hands each one back

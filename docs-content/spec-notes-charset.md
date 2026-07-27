@@ -1,10 +1,10 @@
 ---
 id: spec-notes-charset
-title: "Spec notes: character-set / encoding decode (Phase O)"
+title: "Spec notes: character-set / encoding decode"
 sidebar_label: Character sets (MSH-18)
 ---
 
-# Spec notes: character-set / encoding decode (Phase O)
+# Spec notes: character-set / encoding decode
 
 `parseHL7` accepts a `Buffer` as well as a `string`. When you hand it bytes, it
 resolves the message's declared character set from **MSH-18** and decodes the
@@ -35,7 +35,7 @@ HL7 v2 Chapter 2:
   ASCII** (the default repertoire, ISO IR6).
 - **§2.7.4 (charset-switch escapes):** `\Cxxyy\` (single-byte) and
   `\Mxxyyzz\` (multi-byte; `zz` optional) name an alternate repertoire inline.
-  These are **recognized** (the escape layer, Phase A, preserves them verbatim:
+  These are **recognized** (the escape layer preserves them verbatim:
   no `UNKNOWN_ESCAPE_SEQUENCE`); full stateful ISO-2022 rendering of the switched
   bytes is a documented non-goal (see limitations).
 

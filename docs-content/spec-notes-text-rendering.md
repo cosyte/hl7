@@ -1,17 +1,17 @@
 ---
 id: spec-notes-text-rendering
-title: "Spec notes: formatted-text rendering & the text codec (HL7-R)"
+title: "Spec notes: formatted-text rendering & the text codec"
 sidebar_label: Text rendering & codec
 ---
 
-# Spec notes: formatted-text rendering & the text codec (HL7-R)
+# Spec notes: formatted-text rendering & the text codec
 
 The lenient parser **decodes** delimiter, hex, and `\.br\` escapes on read but
 deliberately **preserves** the presentational ones (`\H\`/`\N\` highlight, the
 `\.sp\`/`\.in\`/… formatting commands, charset switches, vendor `\Z..\`) as
 un-rendered sentinels. See [Escapes & round-trip](./spec-notes-escapes.md).
 That is correct for a tolerant parser, but a clinical narrative surfaced to a
-human with raw `\.br\` / `\H\` sentinels in it is **misread**. Phase R adds an
+human with raw `\.br\` / `\H\` sentinels in it is **misread**. The library adds an
 opt-in **rendering + encoding layer** on top of the unchanged raw values:
 
 - **`renderText`** turns HL7 v2 §2.7 escape/formatting-bearing content into a
