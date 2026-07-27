@@ -126,10 +126,9 @@ export interface CustomSegmentDefinition {
 /**
  * Structural placeholder for HL7 profiles. A profile bundles vendor-specific
  * tolerances, date formats, custom segment definitions, and optional
- * callbacks. Phase 2 ships only the type: the `defineProfile()` builder
- * and runtime effects land in Phase 6.
+ * callbacks. Profiles are built with the `defineProfile()` factory.
  *
- * Phase 6 Plan 01 tightens `customSegments` to the locked
+ * `customSegments` is narrowed to the locked
  * `CustomSegmentDefinition` shape and adds an optional `describe?` method
  * so `defineProfile()`-produced profiles can be introspected without
  * consumers needing to narrow away from the `Profile` type. The `describe`

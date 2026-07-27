@@ -57,7 +57,7 @@ export class Segment {
    * should obtain `Segment` instances via `msg.segments(type)` or
    * `msg.allSegments()`.
    *
-   * The optional `customFields` parameter is the per-segment slice of the
+   * The optional `customFields` parameter is the per-segment portion of the
    * applied profile's merged `customSegments` map (PROF-07 / D-16). When
    * supplied, `get(name)` resolves names against it; otherwise `get(name)`
    * always returns `undefined`.

@@ -1,18 +1,18 @@
 /**
- * `diagnoses`: Phase 4 Plan 04 implementation of HELPERS-06. One entry per
+ * `diagnoses`: one entry per
  * DG1 segment in document order.
  *
  * Design decisions enforced here:
  *   - D-01: `Object.freeze` applied to each entry and to the outer array.
  *   - D-05: returns `[]` when no DG1 present.
  *   - D-06: NOT memoized: each call re-walks `msg.segments("DG1")`.
- *   - Phase N: `dateTime` is the fidelity `TS` (precision + timezone preserved).
+ *   - `dateTime` is the fidelity `TS` (precision + timezone preserved).
  *   - D-22: never throws: empty / malformed fields surface as omitted keys.
  *
  * Lean v1 field set (callers wanting more can drop to `msg.segments("DG1")`):
  *   - `code`        ← DG1-3 (CWE)
  *   - `description` ← DG1-4 (ST)
- *   - `dateTime`    ← DG1-5 (TS/DT → fidelity `TS`, Phase N)
+ *   - `dateTime`    ← DG1-5 (TS/DT → fidelity `TS`)
  *   - `type`        ← DG1-6 (IS: "A"=admit, "W"=working, "F"=final)
  */
 

@@ -6,17 +6,17 @@
  * `undefined` on missing path). Zero runtime deps: a hand-rolled linear scan
  * (analog: `src/parser/dates.ts::matchTokenFormat`).
  *
- * Indexing conventions (locked in Phase 3 CONTEXT.md):
+ * Indexing conventions:
  * - `[N]` is ALWAYS 0-indexed: applies to segment repeats AND field repeats (D-01).
- * - Dot-numbers are ALWAYS 1-indexed: matches HL7 spec and Phase 2's 1-indexed
+ * - Dot-numbers are ALWAYS 1-indexed: matches HL7 spec and the 1-indexed
  *   `RawSegment.fields` (D-02). `PID.5` → `fields[5]`.
  * - MSH.1 / MSH.2 are the separator char and encoding-chars string, both
- *   stored at `fields[0]` / `fields[1]` by Phase 2 tokenize.ts (D-05).
+ *   stored at `fields[0]` / `fields[1]` by tokenize.ts (D-05).
  * - Missing subcomponent on a single-sub component returns the component
  *   string (depth-collapse, D-04).
  * - Leaf reads return the subcomponent verbatim: the tokenizer (parser-02)
  *   already unescaped it once on parse, so the stored value is decoded and a
- *   second `unescape` here would double-decode it (HL7-VALUE-REDECODE).
+ *   second `unescape` here would double-decode it.
  */
 
 import type { EncodingCharacters, RawSegment } from "../parser/types.js";

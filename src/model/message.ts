@@ -1,12 +1,11 @@
 /**
  * `Hl7Message`: the immutable parsed-message model produced by `parseHL7`.
- * Phase 2 shipped the read-only shell; Phase 3 extends the same class with
- * the read-path traversal methods (`get`, `getAll`, `segments`,
- * `allSegments`) on top of lazy, referentially stable Segment/Field caches
- * (D-11/D-12). The constructor surface is unchanged (Phase 2 D-05 lock),
- * `init.segments` is still the parser-side key, but the public raw-tree
- * field is now exposed as `rawSegments` to free up the name `segments` for
- * the typed `segments(type)` method.
+ * A read-only shell over the raw segment tree, plus the read-path traversal
+ * methods (`get`, `getAll`, `segments`, `allSegments`) on top of lazy,
+ * referentially stable Segment/Field caches. `init.segments` is the
+ * parser-side constructor key; the public raw-tree field is exposed as
+ * `rawSegments`, which frees the name `segments` for the typed
+ * `segments(type)` method.
  */
 
 import { parsePath, resolvePath } from "./dot-path.js";
@@ -80,7 +79,7 @@ const SEGMENT_NAME_RE = /^[A-Z][A-Z0-9]{2}$/u;
  * Shallow-copy a readonly array to a mutable one. Mutation methods rebuild
  * the affected path from leaf to root to keep the declared `readonly Raw*`
  * shapes honest: this helper is the one sanctioned bridge from readonly to
- * mutable for Phase 3 mutation.
+ * mutable for the mutation methods.
  * @internal
  */
 function toMutableArray<T>(arr: readonly T[]): T[] {
@@ -99,8 +98,8 @@ function toMutableArray<T>(arr: readonly T[]): T[] {
  * descriptor. This matches the `Hl7Message.profile` public field shape
  * (`... | undefined`).
  *
- * The init key is still named `segments` (not `rawSegments`) so Phase 2
- * parser code that constructs `Hl7Message` does not need to change. Inside
+ * The init key is named `segments` (not `rawSegments`) so parser code that
+ * constructs `Hl7Message` does not need to change. Inside
  * the class body the raw tree is stored on `this.rawSegments`.
  *
  * @internal
@@ -134,10 +133,10 @@ export interface Hl7MessageInit {
  *
  * @remarks
  * The `warnings` array is frozen at the model boundary so downstream
- * traversal and helper phases cannot mutate parser output. The `profile`
- * field is populated by Phase 6 when a profile is passed; Phase 2 leaves
- * it `undefined` by default. Segment/Field wrappers are cached per-message
- * and invalidated wholesale by Plan 04 mutation methods.
+ * traversal and helpers cannot mutate parser output. The `profile`
+ * field is populated when a profile is passed, and is `undefined`
+ * otherwise. Segment/Field wrappers are cached per-message and
+ * invalidated wholesale by the mutation methods.
  *
  * @example
  * ```ts
@@ -155,8 +154,7 @@ export class Hl7Message {
    * Raw positional tree produced by the parser. 1-indexed per HL7 convention
    * (`fields[0]` is the segment-name / MSH separator placeholder slot). Use
    * `segments(type)` / `allSegments()` for typed wrapper access: this field
-   * is exposed for advanced callers that need the raw tree directly (e.g.
-   * future serialization phase 5).
+   * is exposed for advanced callers that need the raw tree directly.
    */
   public readonly rawSegments: readonly RawSegment[];
 
@@ -201,7 +199,7 @@ export class Hl7Message {
   private _allSegments: readonly Segment[] | undefined;
 
   /**
-   * Lazily built `Meta` view (Phase 4 D-02 memoization). Dropped wholesale
+   * Lazily built `Meta` view (memoized). Dropped wholesale
    * by `invalidateCaches`. `Meta` is always defined (D-03: MSH absence
    * throws `NO_MSH_SEGMENT` at parse time) so no null-sentinel is needed.
    * @internal
@@ -209,7 +207,7 @@ export class Hl7Message {
   private _meta: Meta | undefined;
 
   /**
-   * Lazily built `MessageStructure` view (Phase G). Dropped wholesale by
+   * Lazily built `MessageStructure` view. Dropped wholesale by
    * `invalidateCaches`. Always defined: `analyzeMessageStructure` returns an
    * `recognized: false` summary for unmodelled types rather than absence.
    * @internal
@@ -217,7 +215,7 @@ export class Hl7Message {
   private _structure: MessageStructure | undefined;
 
   /**
-   * Lazily built `Patient | undefined` view (Phase 4 D-02 memoization). Uses
+   * Lazily built `Patient | undefined` view (memoized). Uses
    * a null-sentinel cache because `undefined` means "not yet computed" while
    * `null` means "computed, absent". D-04: no PID → public value `undefined`.
    * @internal
@@ -225,7 +223,7 @@ export class Hl7Message {
   private _patient: Patient | null | undefined;
 
   /**
-   * Lazily built `Visit | undefined` view (Phase 4 D-02 memoization). Same
+   * Lazily built `Visit | undefined` view (memoized). Same
    * null-sentinel convention as `_patient`. HELPERS-03: no PV1 → public
    * value `undefined`.
    * @internal
@@ -264,8 +262,8 @@ export class Hl7Message {
 
   /**
    * Resolve a dot-path (e.g. `PID.5.1`, `OBX[2].5`, `PID.3[0].1`) to its
-   * decoded leaf string (unescaped once at parse: never re-unescaped on read,
-   * HL7-VALUE-REDECODE). Returns `undefined` when the path doesn't
+   * decoded leaf string (unescaped once at parse: never re-unescaped on
+   * read). Returns `undefined` when the path doesn't
    * resolve: never throws on missing path (MODEL-05). Throws `TypeError`
    * on malformed path syntax (e.g. `"pid.5"`, empty string).
    *
@@ -369,7 +367,7 @@ export class Hl7Message {
    * @example
    * ```ts
    * console.log(msg.meta.type);                     // "ADT^A01"
-   * console.log(msg.meta.timestamp?.raw);           // fidelity TS (Phase N)
+   * console.log(msg.meta.timestamp?.raw);           // fidelity TS
    * console.log(msg.meta.controlId);                // "MSG001"
    * ```
    */
@@ -378,8 +376,8 @@ export class Hl7Message {
   }
 
   /**
-   * Structural-conformance summary for the common message types (roadmap
-   * Phase G): a misroute/truncation safety net, NOT a conformance validator.
+   * Structural-conformance summary for the common message types: a
+   * misroute/truncation safety net, NOT a conformance validator.
    * Reports, per the message's recognized (MSH-9.1, MSH-9.2) type, which
    * Required segment groups are present and which are entirely absent
    * (`missingGroups`: the same set the parser flags as
@@ -451,7 +449,7 @@ export class Hl7Message {
 
   /**
    * Every OBR as an Order with its OBX children grouped positionally (D-12) and
-   * its TQ1 / legacy embedded-TQ (ORC-7) `timings` (Phase M: the repeat pattern
+   * its TQ1 / legacy embedded-TQ (ORC-7) `timings` (the repeat pattern is
    * surfaced verbatim, never resolved to a schedule). D-05: returns `[]` when no
    * OBR present. D-06: not memoized.
    *
@@ -468,7 +466,7 @@ export class Hl7Message {
   }
 
   /**
-   * Message-level NTE notes (Phase P): every NTE segment with no recognized
+   * Message-level NTE notes: every NTE segment with no recognized
    * preceding parent (not immediately following a `PID`, `ORC`, `OBR`, or
    * `OBX`), surfaced verbatim in document order so nothing is dropped. Notes
    * that DO attach to a specific patient / order / result are exposed on those
@@ -486,7 +484,7 @@ export class Hl7Message {
 
   /**
    * Every recognized ADT patient-identity event (merge / move / link /
-   * unlink / person add/update: roadmap Phase K), with the MRG-sourced
+   * unlink / person add/update), with the MRG-sourced
    * `prior` and PID/PV1-sourced `surviving` parties labelled by role and the
    * spec-constant `direction: "MRG_TO_PID"` on merge/move events. Returns
    * `[]` when the trigger event is not in the identity family. D-06: not
@@ -508,13 +506,13 @@ export class Hl7Message {
 
   /**
    * Every RXO/RXE/RXD/RXA as a typed `Medication`, with RXR (route) and RXC
-   * (component) segments grouped positionally under their parent (Phase D,
-   * P0 safety). D-05: returns `[]` when no RX* parent present. D-06: not
-   * memoized. The give *amount* and give *strength* are surfaced separately
-   * and never reconciled (Phase D §4).
+   * (component) segments grouped positionally under their parent. D-05:
+   * returns `[]` when no RX* parent present. D-06: not memoized. The give
+   * *amount* and give *strength* are surfaced separately and never
+   * reconciled.
    *
    * Each medication also carries its TQ1 / legacy embedded-TQ (RXE-1) `timings`
-   * (Phase M: repeat pattern verbatim, never resolved to a schedule).
+   * (repeat pattern verbatim, never resolved to a schedule).
    *
    * @example
    * ```ts
@@ -532,7 +530,7 @@ export class Hl7Message {
   /**
    * Every RXA of a VXU^V04 as a typed `Immunization`, with RXR (route/site)
    * and OBX children grouped positionally under the RXA and `orderControl`
-   * from the preceding ORC of the VXU order group (Phase E, P0 safety). D-05:
+   * from the preceding ORC of the VXU order group. D-05:
    * returns `[]` when no RXA present. D-06: not memoized. The vaccine code
    * carries its own provenance; the action code (RXA-21) is surfaced verbatim
    * and `recordOrigin` (administered vs historical) is derived only from the
@@ -605,7 +603,7 @@ export class Hl7Message {
   }
 
   /**
-   * Every SCH of an SIU message as a typed `Appointment` (roadmap Phase Q), with
+   * Every SCH of an SIU message as a typed `Appointment`, with
    * the AIS/AIG/AIL/AIP resource segments that follow it grouped positionally
    * under that SCH. Surfaces the placer/filler appointment ids, SCH-25 filler
    * status (Table 0278), SCH-11 start/end timing, and the resource groups
@@ -626,7 +624,7 @@ export class Hl7Message {
   }
 
   /**
-   * Every TXA of an MDM message as a typed `ClinicalDocument` (roadmap Phase Q),
+   * Every TXA of an MDM message as a typed `ClinicalDocument`,
    * with the OBX narrative body grouped positionally under that TXA. The
    * completion status (TXA-17) and availability status (TXA-19) are surfaced as
    * **distinct** fields and never conflated: a document can be available before
@@ -647,7 +645,7 @@ export class Hl7Message {
   }
 
   /**
-   * Every FT1 of a DFT message as a typed `Charge` (roadmap Phase Q), one per
+   * Every FT1 of a DFT message as a typed `Charge`, one per
    * FT1 in document order. Surfaces billing-critical fields (FT1-6 transaction
    * type, FT1-7 code, FT1-11/12 extended/unit amount, FT1-19 diagnosis linkage)
    * with **no billing logic and no money-as-float**: amounts are the verbatim
@@ -745,7 +743,7 @@ export class Hl7Message {
    * `TypeError` with an actionable message otherwise).
    *
    * The value is accepted verbatim: unescaped delimiter characters are NOT
-   * rejected on input (D-18). Re-escaping on serialize is Phase 5's concern.
+   * rejected on input (D-18). Re-escaping is the serializer's concern.
    *
    * MSH-1 / MSH-2 follow the user-facing HL7 convention: `setField("MSH.3", ...)`
    * targets MSH-3 (sending application), matching `msg.get("MSH.3")`.
@@ -854,11 +852,11 @@ export class Hl7Message {
   }
 
   /**
-   * Set a **typed composite** at a field (or field-repetition) dot-path,
-   * roadmap Phase T, the conservative-emit mirror of the typed read accessors
+   * Set a **typed composite** at a field (or field-repetition) dot-path:
+   * the conservative-emit mirror of the typed read accessors
    * (`asXpn`/`asCx`/…). The caller passes a structured value (an XPN name, a CX
    * identifier, a TS timestamp, …) by its {@link CompositeKind}, and the setter
-   * encodes it into a spec-clean field using the HL7-R encode-safe path: any
+   * encodes it into a spec-clean field using the encode-safe path: any
    * delimiter embedded in a component value is **escaped, never injected**, so
    * a `familyName` of `"Smith^Jr"` re-parses to exactly that string rather than
    * forging a component boundary. No hand-assembly of `^`/`&`/`~`.
@@ -1088,8 +1086,8 @@ export class Hl7Message {
   }
 
   /**
-   * Drop every wrapper AND helper cache wholesale (Phase 3 D-17 + Phase 4
-   * D-02). Called by every mutation method so subsequent `segments(type)` /
+   * Drop every wrapper AND helper cache wholesale (D-17 + D-02). Called by
+   * every mutation method so subsequent `segments(type)` /
    * `allSegments()` / `meta` / `patient` / `visit` reads rebuild from the
    * mutated `rawSegments` tree.
    * @internal

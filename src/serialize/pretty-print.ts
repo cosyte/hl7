@@ -2,9 +2,7 @@
  * `emitPrettyPrint`: human-readable multi-line rendering of an `Hl7Message`
  * for logs and debugging (SER-04).
  *
- * Implementation lives in Phase 5 Plan 04 (pretty-print). Stub throws.
- *
- * Decisions (for Plan 04 implementer):
+ * Decisions:
  * - D-22: no options: single opinionated format.
  * - D-23: segment-per-line with labeled fields `[N]=value`. Field values
  *   shown verbatim with active delimiters; empty trailing positions suppressed.

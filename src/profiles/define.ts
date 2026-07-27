@@ -2,10 +2,9 @@
  * `defineProfile()`: public factory for building `Profile` objects with
  * validation + `describe()` attached (PROF-01, PROF-04, PROF-05).
  *
- * Wave 1 (Plan 06-01) ships the single-profile (no-extends) path;
- * Wave 2 (Plan 06-02) fills in `extends` + merge semantics by extending
- * this factory's body. For Wave 1, `opts.extends` is ACCEPTED but
- * IGNORED, resulting in `lineage === [opts.name]` regardless.
+ * `opts.extends` is honoured: parents are merged into the returned
+ * profile (lineage, `dateFormats`, `customSegments`, `description` and
+ * `onWarning`), and the merged result is re-validated before it is frozen.
  *
  * Zero runtime deps. Matches CLAUDE.md engineering guardrails: no `any`,
  * JSDoc `@example` on every public export, immutability at the return
@@ -85,10 +84,11 @@ export interface DefineProfileOptions {
  * unknown top-level keys with typo hints (D-07), and missing/empty
  * name.
  *
- * Wave 1 (Plan 06-01) ships the no-extends path: `opts.extends` is
- * ACCEPTED but IGNORED, resulting in `lineage === [opts.name]`
- * regardless. Wave 2 (Plan 06-02) adds full lineage computation + merge
- * semantics.
+ * `opts.extends` accepts a single parent `Profile` or an array of them.
+ * Parents are merged into the result: `lineage` is the parents' lineages
+ * followed by this profile's own name, `dateFormats` and `customSegments`
+ * are merged, `description` inherits when not supplied, and `onWarning`
+ * handlers are composed. With no parent, `lineage === [opts.name]`.
  *
  * @example
  * ```ts

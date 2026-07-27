@@ -1,14 +1,14 @@
 /**
  * `buildMeta`: compose MSH-derived message metadata into the frozen `Meta`
  * view exposed by `Hl7Message.meta` (HELPERS-01). Implementation composes on
- * the Phase 3 public surface (`msg.get`, `msg.segments("MSH")[0].field(N)`),
+ * the public surface (`msg.get`, `msg.segments("MSH")[0].field(N)`),
  * never walks `rawSegments` directly (CONTEXT.md §domain "Compose, don't
  * reach through").
  *
  * D-01 freeze at boundary. D-02 memoization is handled by the caller
  * (`Hl7Message.meta` getter). D-03 Meta is always defined: MSH absence
  * throws `NO_MSH_SEGMENT` at parse time, so the MSH guard here is purely for
- * TS narrowing. Phase N: `timestamp` is the fidelity `TS` (precision +
+ * TS narrowing. `timestamp` is the fidelity `TS` (precision +
  * timezone preserved), never an eager UTC-assuming `Date`. D-21 silent. D-22
  * never throws. D-23 string fields are decoded (unescaped once at parse) by routing through
  * `msg.get()` / `field.value`.
@@ -32,7 +32,7 @@ import type { Meta } from "./types.js";
  * const msg = parseHL7(raw);
  * console.log(msg.meta.type);                     // "ADT^A01^ADT_A01"
  * console.log(msg.meta.controlId);                // "MSG001"
- * console.log(msg.meta.timestamp?.raw); // fidelity TS (Phase N)
+ * console.log(msg.meta.timestamp?.raw); // fidelity TS
  * ```
  *
  * @internal

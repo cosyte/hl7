@@ -1,6 +1,6 @@
 /**
- * Streaming / incremental parse for the `@cosyte/hl7` parser (roadmap
- * Phase S). Real ELR / IIS / lab feeds and files ship many messages and can be
+ * Streaming / incremental parse for the `@cosyte/hl7` parser. Real ELR / IIS
+ * / lab feeds and files ship many messages and can be
  * far too large to buffer whole; a live source (an already-de-framed MLLP feed,
  * a growing file) has no "whole" to buffer at all. `parseStream()` consumes a
  * **chunked** byte/string source: a Node `Readable`, an async-iterable, or a
@@ -136,7 +136,7 @@ function isEnvelopeName(name: string): boolean {
 /**
  * Decode one raw chunk into text. A `string` passes through; a `Buffer` /
  * `Uint8Array` is read as `latin1` (1 byte → 1 codepoint, lossless) so the
- * per-message slice re-encodes to its original bytes for MSH-18 charset
+ * per-message substring re-encodes to its original bytes for MSH-18 charset
  * resolution. `wasBuffer` records whether the byte path was taken.
  *
  * @internal

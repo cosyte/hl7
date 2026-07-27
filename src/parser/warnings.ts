@@ -385,7 +385,7 @@ export function missingRequiredField(
 }
 
 /**
- * Build a `MISSING_EXPECTED_GROUP` warning (roadmap Phase G). Emitted once per
+ * Build a `MISSING_EXPECTED_GROUP` warning. Emitted once per
  * absent Required segment group when the message's (MSH-9.1, MSH-9.2) type is
  * one the structure safety net recognizes and an expected group is entirely
  * missing: e.g. an `ORU^R01` carrying no `OBR`/`OBX` result group, the
@@ -516,7 +516,7 @@ export function unsupportedCharset(position: Hl7Position, code: string): Hl7Pars
 }
 
 /**
- * Build an `ACK_NO_CORRELATION_ID` warning. Emitted by `buildAck` (Phase C),
+ * Build an `ACK_NO_CORRELATION_ID` warning. Emitted by `buildAck`,
  * not by the parser: the inbound message carried no MSH-10 message control ID,
  * so the generated ACK leaves MSA-2 empty and, when a positive accept was
  * requested, downgrades it to an error code rather than fabricating an
@@ -541,7 +541,7 @@ export function ackNoCorrelationId(position: Hl7Position): Hl7ParseWarning {
 }
 
 /**
- * Build a `MERGE_MISSING_PRIOR_OR_SURVIVOR` warning (roadmap Phase K). Emitted
+ * Build a `MERGE_MISSING_PRIOR_OR_SURVIVOR` warning. Emitted
  * by `identityEvents()` (a read-side helper: it attaches to the returned
  * `IdentityEvent.warnings`, never to `Hl7Message.warnings`) when a merge/move
  * trigger event (A18/A34/A35/A36/A39/A40/A41/A42/A43/A44) is missing one side
@@ -584,7 +584,7 @@ export function mergeMissingPriorOrSurvivor(
 }
 
 /**
- * Build a `BATCH_COUNT_MISMATCH` warning (roadmap Phase L). Emitted by
+ * Build a `BATCH_COUNT_MISMATCH` warning. Emitted by
  * `splitBatch()`: attached to the returned `BatchSplitResult.warnings`, never
  * to `Hl7Message.warnings`: when a declared envelope count does not equal the
  * count actually split out: a **BTS-1** batch message count that differs from
@@ -622,7 +622,7 @@ export function batchCountMismatch(
 }
 
 /**
- * Build a `BATCH_MISSING_TRAILER` warning (roadmap Phase L). Emitted by
+ * Build a `BATCH_MISSING_TRAILER` warning. Emitted by
  * `splitBatch()` (attached to `BatchSplitResult.warnings`) when an envelope
  * header opens a scope that is never closed: a **BHS** batch header with no
  * matching **BTS** trailer, or an **FHS** file header with no matching **FTS**
@@ -656,7 +656,7 @@ export function batchMissingTrailer(
 }
 
 /**
- * Build an `UNTERMINATED_STREAM_MESSAGE` warning (roadmap Phase S). Emitted by
+ * Build an `UNTERMINATED_STREAM_MESSAGE` warning. Emitted by
  * `parseStream()`: attached to a {@link StreamMessageEntry}'s `streamWarnings`,
  * NOT to `Hl7Message.warnings`: when the **final** message in a stream ends
  * without a segment terminator (its last segment ran to end-of-stream with no

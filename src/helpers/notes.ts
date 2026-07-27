@@ -1,5 +1,5 @@
 /**
- * `groupNotes` / `notes`: Phase P implementation of NTE narrative grouping.
+ * `groupNotes` / `notes`: NTE narrative grouping.
  * Groups **NTE** (Notes and Comments) segments to their parent **by position**:
  * an NTE inherits its meaning entirely from the segment that immediately
  * precedes it (HL7 v2 Ch. 2: the NTE carries no link field, so attachment is
@@ -81,7 +81,7 @@ export interface NoteGrouping {
  * so reading only the first would silently truncate the note. Each leaf is
  * already decoded by the tokenizer (parser-02): it is used verbatim, NOT
  * re-unescaped (a second decode would double-decode a value whose bytes look
- * like an escape, HL7-VALUE-REDECODE): and components/subcomponents are
+ * like an escape): and components/subcomponents are
  * rejoined with the literal delimiters so both the conformant (`\S\`-escaped)
  * and quirky (raw-caret) forms read to the same text.
  *

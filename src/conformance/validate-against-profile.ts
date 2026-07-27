@@ -1,5 +1,5 @@
 /**
- * The conformance-profile engine (roadmap Phase U): `validateAgainstProfile`.
+ * The conformance-profile engine: `validateAgainstProfile`.
  * Runs a **consumer-authored** declarative {@link ConformanceProfile} against a
  * parsed {@link Hl7Message} and returns typed {@link ConformanceFinding}s.
  *
@@ -187,7 +187,7 @@ function checkSegment(message: Hl7Message, rule: SegmentRule, out: ConformanceFi
 
 /**
  * Validate a parsed HL7 v2 message against a **user-authored** declarative
- * conformance profile (roadmap Phase U) and return typed findings.
+ * conformance profile and return typed findings.
  *
  * **Never throws.** A well-formed profile is evaluated rule by rule; a
  * malformed profile is reported as `PROFILE_MALFORMED` findings (the engine

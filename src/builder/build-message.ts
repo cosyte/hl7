@@ -2,12 +2,11 @@
  * `buildMessage`: top-level outbound factory for the `@cosyte/hl7`
  * package. Synthesizes a complete MSH `RawSegment` from `BuildMessageInit`
  * and returns a real `Hl7Message` (not a builder subtype). Callers chain
- * `.addSegment(...)` (Phase 3 mutation method, unchanged) to append PID,
+ * `.addSegment(...)` (mutation method) to append PID,
  * OBX, etc. Symmetric with `parseHL7` (D-09).
  *
- * The `BuildMessageInit` interface is exported in Plan 01 (this file) so
- * consumers + `src/index.ts` can reference the type immediately. The
- * `buildMessage` function body is filled in Phase 5 Plan 05 (build-message).
+ * `BuildMessageInit` is exported from this module and re-exported from
+ * `src/index.ts`, so consumers can reference the type directly.
  *
  * Decisions:
  * - D-09: top-level named export from `src/index.ts`.
@@ -18,8 +17,8 @@
  * - D-13: `timestamp` accepts `Date | string`; `Date` formats to
  *   `YYYYMMDDHHmmss` UTC.
  * - D-14: encoding chars always `DEFAULT_ENCODING_CHARACTERS`.
- * - D-15: subsequent `.addSegment(name, fields)` uses Phase 3 unchanged
- *   (`readonly string[]` field input).
+ * - D-15: subsequent `.addSegment(name, fields)` takes `readonly string[]`
+ *   field input.
  * - D-16: missing/empty `type` throws `TypeError`.
  *
  * **Absent vs. explicit null at the wire level:** at the HL7 wire level,
@@ -27,7 +26,7 @@
  * (both emit as absent: `||` in the line). If you need to distinguish
  * "explicitly null" (HL7 `""`) from "absent" in an outbound message, use
  * `buildMessage({...}).setField(path, '""')` after construction: the
- * Phase 3 `setField` mutation method sets `RawField.isNull = true`, which
+ * `setField` mutation method sets `RawField.isNull = true`, which
  * the emitter preserves as the literal two-char string `""` per D-02.
  */
 
@@ -48,7 +47,7 @@ import { formatHl7Timestamp } from "./format-timestamp.js";
  * empty string produce IDENTICAL wire output (both emit as an absent
  * positional field). To emit an HL7 explicit null (`""`) at a specific
  * position in an outbound message, build the message first and then call
- * `.setField(path, '""')`: the Phase 3 mutation method sets `isNull=true`
+ * `.setField(path, '""')`: the mutation method sets `isNull=true`
  * on the underlying `RawField`, and the emitter preserves that as the
  * literal two-char output per D-02.
  *
@@ -109,7 +108,7 @@ export interface BuildMessageInit {
  * Construct an outbound `Hl7Message` from semantic MSH fields (SER-06).
  * Synthesises a complete MSH `RawSegment` per D-10/D-11 and hands to
  * `new Hl7Message({...})`. Callers chain `.addSegment(name, fields)`
- * (Phase 3 mutation method, unchanged) to append PID, OBX, etc.
+ * (mutation method) to append PID, OBX, etc.
  *
  * Defaults applied when fields are omitted (D-10):
  * - `controlId` → `generateControlId()` (D-12)

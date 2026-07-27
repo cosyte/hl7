@@ -1,11 +1,10 @@
 /**
- * `observations` + `buildObservation`: Phase 4 Plan 03 (visit-and-observations)
- * implementation of HELPERS-04. Walks every OBX segment in document order and
- * projects each into a typed `Observation` discriminated by OBX-2
- * (`valueType`) per D-13. The per-segment builder `buildObservation` is
- * exported so Plan 04's `orders()` can reuse the same OBX → Observation
- * dispatch without duplicating the value-type switch (D-12 positional
- * grouping).
+ * `observations` + `buildObservation` (HELPERS-04). Walks every OBX segment
+ * in document order and projects each into a typed `Observation`
+ * discriminated by OBX-2 (`valueType`) per D-13. The per-segment builder
+ * `buildObservation` is exported so `orders()` can reuse the same
+ * OBX → Observation dispatch without duplicating the value-type switch
+ * (D-12 positional grouping).
  *
  * Design decisions enforced here:
  *   - D-05: `observations(msg)` always returns a readonly array: `[]` when
@@ -15,12 +14,12 @@
  *   - D-13: discriminated union on `valueType`:
  *       - `"NM"`            → `number | undefined`  (via `Field.asNm()`)
  *       - `"SN"`            → `SN | undefined`       (via `Field.asSn()`, structured numeric)
- *       - `"TS" | "DT"`     → `TS | undefined`      (via `Field.asTs()`, fidelity per Phase N)
+ *       - `"TS" | "DT"`     → `TS | undefined`      (via `Field.asTs()`, fidelity preserved)
  *       - `"CWE" | "CE"`    → composite | undefined (via `Field.asCwe/asCe`)
  *       - other (`ST`/`TX`/`FT`/`ID`/`IS`/unknown) → `string | undefined`
  *   - D-15: common-field shape (setId, identifier, units, referenceRange,
  *     abnormalFlags, status, observedDateTime).
- *   - Phase N: datetime values are the fidelity `TS`, not a flat `Date`.
+ *   - datetime values are the fidelity `TS`, not a flat `Date`.
  *   - D-22: never throws: empty or malformed input surfaces as `undefined`.
  *   - D-01: each Observation and the outer array are frozen at the boundary.
  */

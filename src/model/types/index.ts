@@ -1,7 +1,7 @@
 /**
  * Internal barrel for composite types. Re-exports every composite interface
  * and its parser function under a single import path so `src/index.ts` and
- * future consumers (Phase 4 helpers) can pull the full surface in one line.
+ * future consumers (the helpers) can pull the full surface in one line.
  *
  * The public HL7 namespace lives in `./namespace.js` (types only) and is
  * re-exported via `export * as HL7` from the top-level barrel: see

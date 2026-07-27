@@ -1,12 +1,12 @@
 /**
- * `allergies`: Phase 4 Plan 04 implementation of HELPERS-06. One entry per
+ * `allergies`: one entry per
  * AL1 segment in document order.
  *
  * Design decisions enforced here:
  *   - D-01: `Object.freeze` applied to each entry and to the outer array.
  *   - D-05: returns `[]` when no AL1 present.
  *   - D-06: NOT memoized: each call re-walks `msg.segments("AL1")`.
- *   - Phase N: `onsetDate` is the fidelity `TS` (precision + timezone preserved).
+ *   - `onsetDate` is the fidelity `TS` (precision + timezone preserved).
  *   - D-22: never throws: empty / malformed fields surface as omitted keys.
  *
  * Lean v1 field set (callers wanting more can drop to `msg.segments("AL1")`):
@@ -14,7 +14,7 @@
  *   - `code`      ← AL1-3 (CWE)
  *   - `severity`  ← AL1-4 (IS: "SV"/"MO"/"MI")
  *   - `reaction`  ← AL1-5 (string / CWE first value)
- *   - `onsetDate` ← AL1-6 (TS/DT → fidelity `TS`, Phase N)
+ *   - `onsetDate` ← AL1-6 (TS/DT → fidelity `TS`)
  */
 
 import type { Hl7Message } from "../model/message.js";

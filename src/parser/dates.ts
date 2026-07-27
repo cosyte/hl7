@@ -1,15 +1,15 @@
 /**
  * HL7 v2 TS/DTM datetime handling for the `@cosyte/hl7` parser pipeline.
  *
- * Phase N (datetime precision + timezone fidelity) reworked this module from a
- * `Date`-coercing helper into a **fidelity-first** parser. The HL7 v2 Ch. 2A
+ * This module is a **fidelity-first** datetime parser rather than a
+ * `Date`-coercing helper. The HL7 v2 Ch. 2A
  * DTM datatype is `YYYY[MM[DD[HH[MM[SS[.S[S[S[S]]]]]]]]][+/-ZZZZ]`, where the
  * number of populated characters (excluding the offset) sets the precision and
  * a missing offset "defaults to that of the local time zone of the sender",
  * NOT UTC and NOT the parser's zone. The old behavior (zero-fill truncations,
- * assume-UTC on a missing offset, eager `Date`) is an architectural defect
- * [S-DTM-IMPL]: it silently shifts a day-only birth date (`|19880705|`) by a
- * day in any negative-offset zone.
+ * assume-UTC on a missing offset, eager `Date`) is an architectural defect:
+ * it silently shifts a day-only birth date (`|19880705|`) by a day in any
+ * negative-offset zone.
  *
  * This module therefore:
  *  - `parseDtm(raw)` decodes the DTM into typed **parts** (`DtmParts`),

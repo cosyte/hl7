@@ -1,5 +1,5 @@
 /**
- * `nextOfKin`: Phase 4 Plan 04 implementation of HELPERS-06. One entry per
+ * `nextOfKin`: one entry per
  * NK1 segment in document order.
  *
  * Design decisions enforced here:

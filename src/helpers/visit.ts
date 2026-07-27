@@ -1,12 +1,12 @@
 /**
- * `buildVisit`: Phase 4 Plan 03 (visit-and-observations) implementation of
- * HELPERS-03. Reads the first PV1 segment (if any) and projects the 7 locked
- * v1 fields as a deeply frozen `Visit` object, composing on Phase 3's public
+ * `buildVisit` (HELPERS-03). Reads the first PV1 segment (if any) and
+ * projects the 7 locked
+ * v1 fields as a deeply frozen `Visit` object, composing on the package's public
  * read surface (`msg.segments("PV1")[0].field(n).asXxx()`).
  *
  * Design decisions enforced here:
  *   - D-04 nullable: returns `undefined` when no PV1 segment is present.
- *   - Phase N: admit/discharge timestamps are the fidelity `TS` (precision +
+ *   - admit/discharge timestamps are the fidelity `TS` (precision +
  *     timezone preserved), not an eager `Date`.
  *   - D-24 option (a): attendingDoctor/referringDoctor use the Plan 01
  *     `Field.asXcn()` coercion (composite, not flat string).
@@ -40,7 +40,7 @@ function nonEmptyXcn(xcn: XCN): XCN | undefined {
  * `invalidateCaches()`.
  *
  * Doctors (attendingDoctor/referringDoctor) are XCN composites per D-24
- * option (a). admitDateTime/dischargeDateTime are the fidelity `TS` (Phase N).
+ * option (a). admitDateTime/dischargeDateTime are the fidelity `TS`.
  *
  * @example
  * ```ts
@@ -48,7 +48,7 @@ function nonEmptyXcn(xcn: XCN): XCN | undefined {
  * const msg = parseHL7(raw);
  * console.log(msg.visit?.patientClass);                 // "I"
  * console.log(msg.visit?.location?.pointOfCare);        // "ICU"
- * console.log(msg.visit?.admitDateTime?.raw); // fidelity TS (Phase N)
+ * console.log(msg.visit?.admitDateTime?.raw); // fidelity TS
  * console.log(msg.visit?.attendingDoctor?.familyName);  // XCN via D-24(a)
  * ```
  *

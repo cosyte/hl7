@@ -1,6 +1,6 @@
 /**
  * Shared field/segment assembly primitives for the typed builders
- * (`buildAdt`/`buildOru`: roadmap Phase T). Centralises the MSH synthesis and
+ * (`buildAdt`/`buildOru`). Centralises the MSH synthesis and
  * the sparse positional-segment assembly so each builder stays declarative and
  * every builder emits an identical, spec-clean MSH.
  *

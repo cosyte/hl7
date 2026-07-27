@@ -1,10 +1,10 @@
 /**
  * `buildOru`: author a spec-clean HL7 v2 **ORU^R01** (observation result)
- * message from typed inputs (roadmap Phase T). The conservative-emit mirror of
+ * message from typed inputs. The conservative-emit mirror of
  * the read helpers (`msg.orders`, `msg.observations`): a caller supplies a
  * typed patient, an optional order (OBR), and one or more typed observations
  * (OBX), and `buildOru` assembles `MSH + PID + OBR + OBX…` with correct
- * `^`/`&`/`~` structure via the HL7-R encode-safe path.
+ * `^`/`&`/`~` structure via the encode-safe path.
  *
  * **Structurally complete + zero-warning.** The emitted message carries the
  * ORU^R01 result group the parser's structure net marks Required (OBR/OBX), so

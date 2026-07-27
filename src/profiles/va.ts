@@ -19,7 +19,7 @@
  * and ORM" with `ZDS-1` = Study Instance UID (`RP`: 1.1 Pointer, 1.2
  * Application ID, 1.3 Type of Data, 1.4 Subtype). It is a publicly
  * downloadable federal interface spec on the VA VistA Documentation Library
- * (`va.gov/vdl`), not an invented quirk (ADR 0018). The spec's messaging is
+ * (`va.gov/vdl`), not an invented quirk. The spec's messaging is
  * HL7-native v2.4, so its `TS` timestamps use the `YYYYMMDDHHMMSS` form: this
  * profile therefore declares **no** custom `dateFormats`, only the ZDS
  * segment.

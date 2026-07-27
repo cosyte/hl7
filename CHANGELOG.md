@@ -15,6 +15,62 @@ per the cosyte version ladder (`0.0.x` until first alpha).
 
 ### Added
 
+- **The published JSDoc is swept, and `src/` doc comments are gated
+  (`pnpm check:no-internal-refs` third pass; `PUBLIC-SURFACE-HYGIENE`).** Doc comments compile
+  into `dist/index.d.ts` and `dist/index.d.cts`, `dist` is the first entry in `files`, and every
+  `npm i @cosyte/hl7` receives them, so what a consumer's editor renders on hover is public
+  surface and the founder directive of 2026-07-27 applies to it. Re-measured with the shipped
+  rules before the change: **293 distinct lines** across tracked `src/*.ts` (253 phase-rule, 39
+  identifier-rule, 5 ADR, 1 jargon, 1 traceability marker), of which a local build carried
+  **164 distinct lines into `dist/index.d.ts`** (137 phase-rule, 22 identifier-rule, 5 ADR,
+  1 jargon, 1 traceability). After: **0 on every rule, in `src/` doc comments and in both built
+  declaration files.** A consumer hovering `parseHL7`, `defineProfile`, `Medication` or
+  `buildMessage` no longer reads which internal phase built it.
+
+  **Identifiers were translated, never deleted, and no public export lost its documentation.**
+  That is measured, not asserted: the built `dist/index.d.ts` carries **691 doc-comment blocks,
+  633 documented declarations and 237 `@example` blocks before and after, and the sorted list of
+  documented declaration names is byte-identical.** Heads left behind by a front-of-line strip
+  were repaired: nine composite parsers wrapped `HL7-VALUE-REDECODE)` onto a continuation line,
+  where a naive strip leaves `). Absent / empty components are OMITTED`.
+
+  **Stripping the framing exposed a false claim on a published API, which is the argument for
+  doing this at all.** `defineProfile`'s doc block in `dist/index.d.ts` told consumers that
+  `opts.extends` was "ACCEPTED but IGNORED, resulting in `lineage === [opts.name]` regardless".
+  The implementation merges parents (lineage, `dateFormats`, `customSegments`, `description`,
+  composed `onWarning`) and re-validates the merged result. The text now describes what the
+  function does. Four sibling claims of the same kind were also stale and are gone: `emitMessage`,
+  `emitPrettyPrint`, `emitJson` and `buildMessage` were each documented as an unimplemented stub
+  ("Stub throws", "Implementation lives in..."), and all four have been implemented for some time.
+  Internal framing is where stale claims hide, which is why this is a correctness change and not
+  a tidying one.
+
+  **The gate now has a third pass** with its own rule array, its own extractor and its own
+  positive/negative self-tests written in the language of source rather than markdown. It scans
+  `/** */` text only, line by line and again over the block reflowed the way a hover tooltip
+  reflows it, because multi-token rules are blind to a violation that straddles a wrap and this
+  package wraps its doc comments. `//` and `/* */` comments are deliberately **not** covered and
+  keep their identifiers: they do not reach `dist` (checked both directions), and the convention
+  names source comments as a place identifiers belong. 61 such lines remain in `src/` by choice.
+
+  Every claim above was checked RED against a seeded violation rather than assumed: a single-line
+  violation in an exported function's JSDoc; a violation split across a wrap that a line-only
+  grep scores 0 on; the same bookkeeping in a `//` comment staying green; widening the source
+  identifier rule to the `WORD-N` shape failing its own negative self-test naming `MSH-2`; an
+  extractor that strips the comment leader before testing the terminator reporting 66 false hits
+  on a clean tree; and an extractor that yields nothing refusing to report green.
+
+  **The ceiling is stated rather than implied shut.** `dist/` is untracked build output, so no
+  checked-in gate can read it: this gates dist's _source_, which holds only because the dts build
+  copies doc text verbatim. The `164` figure is a hand-taken snapshot. `D-NN` internal decision
+  numbers still ship in `dist/` and are deliberately not caught, for the same reason as in the
+  prose rules: legacy SNOMED RT codes are axis-prefixed in exactly that shape (`D-13000`,
+  `T-32000`, `M-80003`). Two "the per-X slice of Y" false positives, where `slice` means portion,
+  were fixed by rewording rather than by narrowing the rule.
+
+  Documentation, tooling and CI only. No change to the published package surface, parser
+  behavior, or warning codes.
+
 - **Public-surface hygiene gate in CI (`scripts/check-no-internal-refs.sh`,
   `pnpm check:no-internal-refs`, `.github/workflows/no-internal-refs.yml`;
   `PUBLIC-SURFACE-HYGIENE`).** Founder directive of 2026-07-27: no internal project bookkeeping on
@@ -67,9 +123,10 @@ precision` reads worse than the text it replaced. The datetime page needed more 
   shut:** `dist/` ships the compiled JSDoc, and the tracked `src/*.ts` files carry 253 phase-rule and
   39 identifier-rule lines, of which a local build puts 137 and 22 into `dist/index.d.ts` for every
   consumer's editor to render, unswept and ungated here because remediating ~290 source doc comments
-  is its own reviewable change (and `dist/` is untracked, so no checked-in gate can re-derive that
-  figure without building first); determiner-plus-`phase` is not detected, by choice; and the rules
-  catch identifiers, not English sentences about our process. Documentation and CI only: no change to the
+  is its own reviewable change (**that change is the entry above, which swept them and added the
+  third pass**; `dist/` is untracked, so no checked-in gate can re-derive that figure without
+  building first, and that part is still true); determiner-plus-`phase` is not detected, by choice;
+  and the rules catch identifiers, not English sentences about our process. Documentation and CI only: no change to the
   published package surface, parser behavior, or warning codes.
 - **Em-dash brand gate in CI (`scripts/check-no-emdash.sh`, `pnpm check:no-emdash`,
   `.github/workflows/no-emdash.yml`; `EMDASH-CONFORMANCE` part 1).** The founder directive of

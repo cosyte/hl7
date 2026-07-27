@@ -1,10 +1,10 @@
 /**
  * `buildAdt`: author a spec-clean HL7 v2 **ADT** (admit/discharge/transfer)
- * message from typed inputs (roadmap Phase T). The conservative-emit mirror of
+ * message from typed inputs. The conservative-emit mirror of
  * the read helpers (`msg.patient`, `msg.visit`): a caller supplies structured
  * values (an {@link XPN} name, {@link CX} identifiers, a {@link TS} birth date,
  * a {@link PL} location, …) and `buildAdt` assembles `MSH + EVN + PID + PV1`
- * with correct `^`/`&`/`~` structure via the HL7-R encode-safe path: never
+ * with correct `^`/`&`/`~` structure via the encode-safe path: never
  * hand-assembling delimiters, never injecting one.
  *
  * **Structurally complete + zero-warning.** The emitted message carries the

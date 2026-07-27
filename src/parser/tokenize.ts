@@ -13,7 +13,7 @@
  * chars string (MSH-2). Non-MSH (PID, EVN, ZPI, ...): `fields[0]` holds the
  * segment name, `fields[1]` holds the HL7 first field (PID-1).
  *
- * Escape expansion (Phase 5 round-trip contract): each subcomponent is run
+ * Escape expansion (the round-trip contract): each subcomponent is run
  * through `unescape()` during tokenization, so the raw tree holds DECODED
  * strings (e.g. `Smith|Jones`, not `Smith\F\Jones`). This is the exact
  * inverse of `reescape()` in `src/serialize/emit-field.ts`, which is how the
@@ -22,7 +22,7 @@
  * `msg.rawSegments`. `UNKNOWN_ESCAPE_SEQUENCE` warnings from `unescape`
  * propagate through the `emit` callback.
  *
- * Escape-fidelity overlay (HL7-ESC): `reescape` is a faithful inverse only for
+ * Escape-fidelity overlay: `reescape` is a faithful inverse only for
  * the delimiter/newline escapes: recognize-and-preserve escapes (`\H\`,
  * charset, formatting, `\Z..\`) and hex escapes (`\X41\`) decode to plain
  * characters that would re-emit canonicalized (`\H\` → `\E\H\E\`; `\X41\` → `A`),

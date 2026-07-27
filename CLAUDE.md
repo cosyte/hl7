@@ -62,3 +62,15 @@ Mirrors the three disciplines in `documentation/conventions.md`. They bind here 
    text it replaced. Gated by `pnpm check:no-internal-refs`. The gate keys on known project prefixes,
    so **a new programme prefix has to be added to it by hand**; and it catches identifiers, not
    English sentences about our process, so the reviewer still owns half the rule.
+
+   **`src/` JSDoc is public surface too, and is gated.** Doc comments (`/** */`) compile into
+   `dist/index.d.ts` / `dist/index.d.cts`, which `files` ships and which every consumer's editor
+   renders on hover. So the same rule applies to them, enforced by the same command's third pass,
+   which has its own rule array and its own self-tests. **`//` and `/* */` comments are NOT gated
+   and identifiers are welcome in them** -- they do not reach `dist`, and that is precisely the line:
+   what a _consumer receives_ is public, what only a _maintainer reads_ is not. Two consequences:
+   a doc comment is not the place for build-order or "which phase added this" framing, and
+   **removing a doc comment to satisfy the gate is a regression**, not a fix -- JSDoc with
+   `@example` on every public export is a hard guardrail above, and neither lint nor coverage
+   will catch its loss. What the gate CANNOT do is read `dist/` itself: `dist/` is untracked
+   build output, so this is a gate on the source of the published text, not on the published text.

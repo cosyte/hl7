@@ -111,7 +111,7 @@ function discriminateOptionsOrProfile(arg: ParseOptions | Profile | undefined): 
  * profile chain so a noisy caller handler cannot break the parser).
  * Strict mode: throw an `Hl7ParseError` whose `code` carries the warning
  * code; neither onWarning handler fires (preserves the existing
- * lenient-vs-strict split from Phase 2).
+ * lenient-vs-strict split).
  *
  * D-22 ordering: profile handlers are observers that run FIRST; caller
  * handler runs LAST. Preserves the "profile behavior, then caller
@@ -184,8 +184,8 @@ function makeEmitter(
 
 /**
  * Build a bounded snippet of the input for attaching to a strict-mode
- * `Hl7ParseError`. Phase 2 does not track character offsets: positions
- * are segment/field/component indices: so we return a leading excerpt
+ * `Hl7ParseError`. The parser does not track character offsets: positions
+ * are segment/field/component indices, so we return a leading excerpt
  * of the input bounded by `segments.snippet`.
  *
  * @internal
@@ -323,7 +323,7 @@ function extractVersion(msh: RawSegment | undefined): string {
 
 /**
  * Read MSH-9.1 (message code) and MSH-9.2 (trigger event) from the first
- * tokenized segment for the Phase G structure safety net. MSH-9 is
+ * tokenized segment for the structure safety net. MSH-9 is
  * `fields[8]` under the unified 1-indexed convention (`fields[0]` is the
  * name/separator placeholder). Returns empty strings when the first segment is
  * absent, not an MSH, or the components have no content: every intermediate

@@ -113,30 +113,33 @@
 #                          meta-repo, rather than silently decided in either direction.
 #   * CLAUDE.md, .github/, .changeset/, scripts/, test/, examples/, profile/
 #                          internal by definition, or code rather than prose.
-#   * src/ AND dist/       THE BIGGEST HOLE IN THIS GATE, and the measurement is here so it
-#                          cannot be mistaken for a quiet edge case. `src/` JSDoc IS public:
-#                          it is compiled into `dist/index.d.ts` and `dist/index.d.cts`,
-#                          `dist` is the first entry in package.json's `files`, and it is
-#                          what a consumer's editor shows on hover.
-#                          Measured with THESE rules over the TRACKED `src/*.ts` files, so
-#                          the figure is reproducible from a clean checkout: 253 lines match
-#                          the phase rule, 39 the identifier rule, 5 the ADR rule and 1 the
-#                          jargon rule, including doc comments on exported functions that
-#                          read "Build a `MISSING_EXPECTED_GROUP` warning (roadmap Phase G)".
-#                          A local build of this commit carries 137 and 22 of those into
-#                          `dist/index.d.ts`, which every `npm i @cosyte/hl7` receives. Treat
-#                          the built figures as a snapshot rather than a fact this gate can
-#                          re-derive: `dist/` is untracked build output, so neither this
-#                          script nor CI can check it without building first, and that is
-#                          part of why the hole is real.
-#                          They are NOT swept and NOT gated here, deliberately: remediating
-#                          ~290 source doc comments is a change to every module in the
-#                          package, it wants its own review, and doing it inside a CI slice
-#                          is how a docs sweep turns into an unreviewed source-wide diff.
-#                          It is queued on PUBLIC-SURFACE-HYGIENE in the meta-repo. What is
-#                          NOT acceptable is to state it as covered, which an earlier draft
-#                          of this header did ("the identifier rules would fire on nothing
-#                          today"), and which was false by 280 lines.
+#   * src/ DOC COMMENTS    NOW IN SCOPE, as a THIRD PASS at the bottom of this file, with
+#                          its own rule array (SRC_RULE_PATTERN), its own self-tests, and
+#                          its own extractor. `src/` JSDoc IS public: it is compiled into
+#                          `dist/index.d.ts` and `dist/index.d.cts`, `dist` is the first
+#                          entry in package.json's `files`, and it is what a consumer's
+#                          editor shows on hover. Measured with these rules over the tracked
+#                          `src/*.ts` files at the commit that added the pass: 253 lines
+#                          matched the phase rule, 39 the identifier rule, 5 the ADR rule,
+#                          1 the jargon rule and 1 the traceability rule, 293 distinct, and
+#                          a local build carried 164 of those into `dist/index.d.ts`. All
+#                          164 are gone; the doc-comment surface is 0 on all six rules.
+#   * src/ `//` COMMENTS   OUT of scope, deliberately, and this is the line the third pass
+#                          draws. `//` and plain `/* */` comments do NOT reach `dist`
+#                          (checked both directions: a doc comment's "Escape-fidelity
+#                          overlay" appears in `dist/index.d.ts`, a `//` comment's
+#                          "positional NTE grouping" does not appear at all). The convention
+#                          names source comments as a place identifiers BELONG, so what only
+#                          a maintainer reads stays internal and what a CONSUMER receives is
+#                          swept. 61 lines of `//` and trailing-comment bookkeeping are left
+#                          in `src/` on that basis, deliberately, not by omission.
+#   * dist/                STILL NOT SCANNED, and this is the gate's stated ceiling rather
+#                          than a hole that has been closed. `dist/` is untracked build
+#                          output: neither this script nor CI can read it without building
+#                          first, and this script does not build. What the third pass gates
+#                          is dist's SOURCE, which is a proxy that holds only because the
+#                          dts build copies doc text verbatim. A build that began
+#                          transforming comments would decouple the two silently.
 #
 # ---------------------------------------------------------------------------
 # NO STDIN / PR-TEXT MODE, deliberately, and this is the other difference from
@@ -211,6 +214,31 @@
 #         actually covered; but a line ending in a backslash hard break keeps the backslash
 #         in the joined text and would sit between the two tokens, like (ix). Zero instances
 #         in this corpus today.
+#   (xi)  THE THIRD PASS CANNOT SEE `dist/`, only its source. Stated at length in the pass
+#         itself and in SCAN SURFACE above, and repeated here because it is the single most
+#         important thing to know about what this gate does and does not prove. The `164
+#         lines of dist/index.d.ts` figure that motivated the pass is a SNAPSHOT taken by
+#         hand from a local build; no checked-in gate can re-derive it.
+#  (xii)  RULE 4 (`slice`) FALSE-POSITIVES ON "the per-X slice of Y" IN CODE PROSE, where
+#         `slice` means portion and is nobody's jargon. Two live instances were found by
+#         this pass on the tree it shipped with ("the per-segment slice of the profile's
+#         customSegments map", "the per-message slice re-encodes to its original bytes").
+#         BOTH WERE REWRITTEN ("portion", "substring"), and the rule was NOT narrowed: a
+#         narrowing has no self-test to hold it, and "portion" and "substring" are the
+#         clearer words anyway. If a third instance appears where no rewrite reads well,
+#         that is the signal to narrow the rule and assert the phrasing in SRC_NEGATIVE[3],
+#         not to widen an exclusion quietly.
+# (xiii)  `D-NN` INTERNAL DECISION NUMBERS SURVIVE IN `src/` DOC COMMENTS, and therefore in
+#         `dist/`, in some volume. They are the same deliberate non-catch as residual (vi):
+#         a single-letter prefix rule collides with legacy SNOMED RT axis codes (`D-13000`,
+#         `T-32000`, `M-80003`). So `dist/index.d.ts` still ships "D-05: returns `[]` when
+#         no RX* parent present" and its siblings. That is internal bookkeeping on a public
+#         surface by the founder's rule, it is NOT covered here, and it is the largest
+#         remaining gap on this surface. Queued on PUBLIC-SURFACE-HYGIENE, not decided here.
+#  (xiv)  THE THIRD PASS SWEEPS DOC COMMENTS THAT NEVER REACH AN EXPORTED DECLARATION, so it
+#         is broader than `dist/` strictly requires. Deliberate: which comments survive the
+#         dts rollup is a property of the BUILD, and a gate whose answer depends on tsup
+#         inlining decisions would change colour when the bundler is upgraded.
 #
 # Run it locally with `pnpm check:no-internal-refs`.
 set -euo pipefail
@@ -348,6 +376,46 @@ RULE_PATTERN[5]='\[S-[A-Z][A-Z0-9]+(?:-[A-Z0-9]+)*\]|(?i:\bopen[- ]question #?\d
 RULE_COUNT=6
 
 # ---------------------------------------------------------------------------
+# THE `src/` DOC-COMMENT RULE SET, deliberately a SEPARATE ARRAY
+# ---------------------------------------------------------------------------
+#
+# WHY A SECOND SURFACE EXISTS AT ALL. The block above scans markdown a reader browses.
+# This one scans the JSDoc a consumer's EDITOR renders: `src/` doc comments are compiled
+# into `dist/index.d.ts` and `dist/index.d.cts` by tsup, `dist` is the first entry in
+# package.json's `files`, and every `npm i @cosyte/hl7` receives them. Measured on the
+# commit that added this pass: tracked `src/*.ts` carried 293 distinct lines matching
+# these rules, and a local build put 164 of them into `dist/index.d.ts` -- including
+# "Build a `MISSING_EXPECTED_GROUP` warning (roadmap Phase G)" on an exported function,
+# and a `defineProfile` doc block that told consumers `opts.extends` was "ACCEPTED but
+# IGNORED" when the implementation had merged parents for some time. That second one is
+# the argument for this pass in one line: internal framing is where stale claims hide.
+#
+# WHY A SEPARATE ARRAY RATHER THAN REUSING RULE_PATTERN. Code comments are not markdown.
+# The two surfaces have different collision profiles (TypeScript prose says `.slice()`
+# and "a slice of the map"; markdown says "the thirteenth slice"), different wrap shapes,
+# and different self-test material. Sharing one array would mean a fix for one surface
+# silently retunes the other, and the negative self-test that caught it would be in the
+# wrong file's language. They START identical. They are ALLOWED to diverge, and when they
+# do, each side's NEGATIVE sample is what stops the divergence from being a widening.
+#
+# WHAT IS SCANNED, precisely: only text inside `/** ... */` blocks. NOT `//` line
+# comments and NOT `/* */` block comments, and that boundary is the whole point rather
+# than a convenience. `/** */` is what the dts build carries into `dist`; `//` is not
+# (checked: "Escape-fidelity overlay" survives into `dist/index.d.ts` from a doc comment,
+# while "positional NTE grouping" from a `//` comment does not appear at all). The
+# convention names source comments as a place identifiers BELONG. So the line this draws
+# is exactly the founder's line: what a CONSUMER receives is public and is swept; what
+# only a maintainer reads stays internal. 61 lines of `//` and trailing-comment
+# bookkeeping are deliberately left in `src/` on that basis.
+SRC_RULE_NAME[0]="${RULE_NAME[0]}"; SRC_RULE_PATTERN[0]="${RULE_PATTERN[0]}"
+SRC_RULE_NAME[1]="${RULE_NAME[1]}"; SRC_RULE_PATTERN[1]="${RULE_PATTERN[1]}"
+SRC_RULE_NAME[2]="${RULE_NAME[2]}"; SRC_RULE_PATTERN[2]="${RULE_PATTERN[2]}"
+SRC_RULE_NAME[3]="${RULE_NAME[3]}"; SRC_RULE_PATTERN[3]="${RULE_PATTERN[3]}"
+SRC_RULE_NAME[4]="${RULE_NAME[4]}"; SRC_RULE_PATTERN[4]="${RULE_PATTERN[4]}"
+SRC_RULE_NAME[5]="${RULE_NAME[5]}"; SRC_RULE_PATTERN[5]="${RULE_PATTERN[5]}"
+SRC_RULE_COUNT=6
+
+# ---------------------------------------------------------------------------
 # SELF-TESTS. A gate is believed only after it has shown it can still see.
 # ---------------------------------------------------------------------------
 #
@@ -396,6 +464,39 @@ while [ "$i" -lt "$RULE_COUNT" ]; do
   i=$((i + 1))
 done
 
+# The `src/` set gets its OWN self-tests, in the language of the surface it guards. The
+# NEGATIVE samples are built from material that is actually present in this package's
+# source: HL7 segment-field references in doc comments, the CSP Clinical Study PHASE
+# field names, DICOM imaging vocabulary the FHIR-bridge and imaging-order docs reach for,
+# and TypeScript that reads like our jargon (`subcomponents.slice()`, `path.slice(4, 8)`).
+# If someone widens the `src` rules into the WORD-N shape, this reds instead of deleting
+# `MSH-2` from an exported function's IntelliSense on the next sweep.
+SRC_POSITIVE[0]='Item HL7-N is done, and CCDA-P7 with it'
+SRC_POSITIVE[1]='Phase 5b closes it (Phase W, Phase-L and the thirteenth slice landed earlier, in wave 2)'
+SRC_POSITIVE[2]='Decided in ADR 0015 and restated in ADR-0021'
+SRC_POSITIVE[3]='This slice adds the helper and the final slice removes it'
+SRC_POSITIVE[4]='Roadmap operations/roadmaps/hl7.md and documentation/decisions/0015-x.md'
+SRC_POSITIVE[5]='Repeating [S-NTE], and Open-question #12 resolves the direction'
+
+SRC_NEGATIVE[0]='MSH-2 encoding characters, PID-3 identifier list, OBX-5 value, SCH-11 timing, TQ1-7 start, NM1-03 name, PKG-1 and PKG-4 packaging, ICD-10-CM P00-P96, FHIR-bridge stability, HL7-defined tables, HL7-0396 and HL7-0211 and HL7-0335, HL7-V2 and HL7-CDA, FHIR-R4, DICOM-SR, NCPDP-SCRIPT, X12-837P, RXA-3 and RXE-25 and AL1-6 and DG1-5 and IN1-12 and TXA-4 and FT1-4'
+SRC_NEGATIVE[1]='CSP-1 Study Phase Identifier, CSP-2 Study Phase Start Date/Time, CSP-3 Study Phase End Date/Time, CSP-4 Study Phase Evaluability; a Phase III oncology trial and a Phase II study; the acute phase reactant; the adapter stays in phase with the source system and is out of phase'
+SRC_NEGATIVE[2]='ADR is not a segment, and 0015 alone is a value'
+SRC_NEGATIVE[3]='The slice thickness and the number of slices are DICOM attributes, each slice location is too; subcomponents.slice() and path.slice(4, 8) are TypeScript; and the phase of the clinical study, the phase of illness and each phase of the trial are the reader words this rule must not touch'
+SRC_NEGATIVE[4]='Parser operations are documented in the README, and documentation for the API is generated'
+SRC_NEGATIVE[5]='A character range like [S-Z], a value set written [SNOMED], and open questions about the feed'
+
+i=0
+while [ "$i" -lt "$SRC_RULE_COUNT" ]; do
+  if ! printf '%s\n' "${SRC_POSITIVE[$i]}" | grep -qP -e "${SRC_RULE_PATTERN[$i]}"; then
+    self_test_fail "src rule '${SRC_RULE_NAME[$i]}' no longer matches its own positive sample."
+  fi
+  if printf '%s\n' "${SRC_NEGATIVE[$i]}" | grep -qP -e "${SRC_RULE_PATTERN[$i]}"; then
+    hit=$(printf '%s\n' "${SRC_NEGATIVE[$i]}" | grep -oP -e "${SRC_RULE_PATTERN[$i]}" | head -1)
+    self_test_fail "src rule '${SRC_RULE_NAME[$i]}' now matches legitimate reference material (matched: '${hit}'). This is the WORD-N trap, arriving through the source-comment surface: it destroys the segment-field references an HL7 parser's IntelliSense exists to provide."
+  fi
+  i=$((i + 1))
+done
+
 # ---------------------------------------------------------------------------
 # Refusals. Anything the scanner writes to stderr means it did not read everything it was
 # given, and an incomplete scan must never print OK. Exit status cannot carry that signal:
@@ -409,7 +510,14 @@ SCANLIST=$(mktemp)
 NPMBUF=$(mktemp)
 REFLOWBUF=$(mktemp)
 RAWBUF=$(mktemp)
-trap 'rm -f "$ERRLOG" "$FILELIST" "$SCANLIST" "$NPMBUF" "$REFLOWBUF" "$RAWBUF"' EXIT
+SRCLIST=$(mktemp)
+SRCSCAN=$(mktemp)
+DOCLINES=$(mktemp)
+DOCMAP=$(mktemp)
+DOCFLOW=$(mktemp)
+DOCFLOWMAP=$(mktemp)
+trap 'rm -f "$ERRLOG" "$FILELIST" "$SCANLIST" "$NPMBUF" "$REFLOWBUF" "$RAWBUF" \
+      "$SRCLIST" "$SRCSCAN" "$DOCLINES" "$DOCMAP" "$DOCFLOW" "$DOCFLOWMAP"' EXIT
 
 refuse_if_incomplete() {
   [ -s "$ERRLOG" ] || return 0
@@ -483,8 +591,8 @@ done
 # so structurally could not see the tarball's largest prose payload: the compiled JSDoc in
 # `dist/index.d.ts`. A tripwire that cannot see the thing it was built to catch is the
 # `CI-REQUIRED-CHECKS` defect in miniature. The two standing exclusions are named with their
-# reasons in SCAN SURFACE above: `CHANGELOG.md` (contested, queued) and `dist` (a real hole,
-# measured, queued).
+# reasons in SCAN SURFACE above: `CHANGELOG.md` (contested, queued) and `dist` (untracked
+# build output this script cannot read; its SOURCE is gated by the third pass instead).
 command -v node >/dev/null || {
   echo "ERROR: check-no-internal-refs - node is required (to read package.json) and is not" >&2
   echo "       on PATH. Refusing to skip the npm-surface half of this gate." >&2
@@ -714,6 +822,169 @@ while IFS= read -r -d '' f; do
   done
 done < "$SCANLIST"
 
-[ -n "$ALL_HITS" ] && fail_with_hits "the public surface listed above" "$ALL_HITS"
+# ---------------------------------------------------------------------------
+# THIRD PASS: `src/` DOC COMMENTS, the prose that compiles into `dist/`
+# ---------------------------------------------------------------------------
+#
+# THE CEILING, STATED FIRST, because it is the honest frame for everything below.
+# `dist/` is UNTRACKED BUILD OUTPUT. No checked-in gate can scan it without building
+# first, and this script deliberately does not build. So the thing a consumer actually
+# receives is NOT what is checked here. What is checked is its SOURCE: the `/** */`
+# blocks the dts build copies verbatim. That is a PROXY, and it is a good one only
+# because the copy is verbatim -- tsup rewrites declarations, not doc text. A rewrite of
+# the build that started transforming comments would silently decouple the two, and
+# nothing here would notice. This pass therefore raises the floor on `dist/`; it does not
+# observe `dist/`.
+#
+# Two consequences worth naming rather than discovering:
+#   * A doc comment that never reaches an exported declaration is swept anyway. That is
+#     deliberate: which comments survive the dts rollup is a property of the BUILD, not of
+#     the source, and gating on it would make the gate's answer depend on tsup's inlining
+#     decisions.
+#   * `dist/index.d.cts` is the same text as `dist/index.d.ts`, so one clean source
+#     covers both conditions. Checked, not assumed.
 
-echo "check-no-internal-refs: OK (${scanned} public-surface file(s) and the npm metadata scanned against ${RULE_COUNT} rules, line by line and paragraph-joined; ${gitlinks} gitlink(s) skipped)"
+# The `src/` surface must still be tracked, for the same reason SURFACE_PATHS is checked:
+# a rename that empties this list must red, not shrink the scan in silence.
+git ls-files -z -- 'src/*.ts' 'src/**/*.ts' > "$SRCLIST"
+if [ ! -s "$SRCLIST" ]; then
+  echo "ERROR: check-no-internal-refs - no tracked src/*.ts files to scan for doc" >&2
+  echo "       comments. Either the source moved (update this pass, deliberately) or the" >&2
+  echo "       scan is about to cover less than it claims. Refusing to report green." >&2
+  exit 1
+fi
+
+# Same list-building discipline as the public-surface pass: `./`-prefixed as the list is
+# built (route 6), a non-regular-file entry refused by name rather than skipped (route 7),
+# an unreadable entry refused (not silently missed).
+: > "$SRCSCAN"
+src_scanned=0
+while IFS= read -r -d '' f; do
+  if [ -d "$f" ] && [ ! -L "$f" ]; then continue; fi
+  if [ ! -r "$f" ]; then
+    echo "ERROR: check-no-internal-refs - tracked source file is not readable: $f" >&2
+    echo "       Refusing to report green from a scan that could not open its input." >&2
+    exit 1
+  fi
+  if [ ! -f "$f" ]; then
+    echo "ERROR: check-no-internal-refs - tracked source entry is not a regular file: $f" >&2
+    echo "       Refusing to report green from a scan that skipped one of its inputs." >&2
+    exit 1
+  fi
+  printf './%s\0' "$f" >> "$SRCSCAN"
+  src_scanned=$((src_scanned + 1))
+done < "$SRCLIST"
+
+if [ ! -s "$SRCSCAN" ]; then
+  echo "ERROR: check-no-internal-refs - no source files survived list building." >&2
+  echo "       Refusing to report green from a scan that read nothing." >&2
+  exit 1
+fi
+
+# EXTRACT THE DOC COMMENTS. Two buffers per pass, and the reason for the second one is
+# line numbers: the rules must run over doc text ALONE (so a rule cannot match a line
+# number, a path, or the code on the far side of a `*/`), which means the location has to
+# travel beside the text rather than inside it. DOCLINES holds one doc line of text per
+# line; DOCMAP holds `file:lineno` at the SAME line index. A hit at index N in one is
+# located by index N in the other.
+#
+# The leaders are stripped the way an IDE strips them: `/**`, a leading `*`, and `*/`
+# disappear, because none of them is part of what the reader sees on hover. `//` and
+# plain `/* */` are NOT extracted -- see the boundary argument at SRC_RULE_NAME above.
+: > "$DOCLINES"; : > "$DOCMAP"; : > "$DOCFLOW"; : > "$DOCFLOWMAP"
+: > "$ERRLOG"
+while IFS= read -r -d '' f; do
+  awk -v file="$f" -v dl="$DOCLINES" -v dm="$DOCMAP" -v df="$DOCFLOW" -v dfm="$DOCFLOWMAP" '
+    function flush() {
+      if (blockstart > 0) {
+        gsub(/[[:space:]]+/, " ", joined); sub(/^ /, "", joined); sub(/ $/, "", joined)
+        if (joined != "") { print joined >> df; print file ":" blockstart >> dfm }
+      }
+      joined = ""; blockstart = 0
+    }
+    {
+      line = $0
+      if (!indoc) {
+        if (line !~ /^[[:space:]]*\/\*\*/) { next }
+        indoc = 1; blockstart = FNR; joined = ""
+        sub(/^[[:space:]]*\/\*\*/, "", line)
+      }
+      # THE TERMINATOR IS TESTED BEFORE THE LEADER IS STRIPPED, and that ordering is the
+      # whole correctness of this extractor. Stripping first turns a closing " */" into
+      # "/" (the leader pattern eats the asterisk of the terminator), the block never
+      # closes, and every `//` comment and line of CODE after it is scanned as doc text.
+      # That is not a hypothetical: it is what the first draft of this pass did, and it
+      # reported 60 violations that were all real bookkeeping sitting in `//` comments
+      # this surface deliberately does not cover. A gate that over-reports is not "safe":
+      # it would have forced a sweep of the wrong 61 lines.
+      closed = 0
+      if (line ~ /\*\//) { closed = 1; sub(/\*\/.*$/, "", line) }
+      # Exactly ONE leading asterisk, never `\*+`: a greedy leader would swallow the
+      # opening `**` of markdown bold ("* **Fail-safe:**") and alter the scanned text.
+      sub(/^[[:space:]]*\*[[:space:]]?/, "", line)
+      sub(/^[[:space:]]+/, "", line)
+      # The LINE pass sees the doc text with its location beside it.
+      print line >> dl; print file ":" FNR >> dm
+      # The FLOW pass accumulates the whole block, squeezed the way a tooltip reflows it.
+      joined = joined " " line
+      if (closed) { flush(); indoc = 0 }
+    }
+    END { if (indoc) flush() }
+  ' "$f" 2>>"$ERRLOG"
+done < "$SRCSCAN"
+refuse_if_incomplete
+
+# An extraction that produced nothing from a non-empty, JSDoc-heavy source tree means the
+# extractor broke, not that the tree is clean. Same class as the empty-file-list refusal.
+if [ ! -s "$DOCLINES" ]; then
+  echo "ERROR: check-no-internal-refs - extracted no doc-comment text from ${src_scanned}" >&2
+  echo "       tracked source file(s). Every public export in this package carries JSDoc," >&2
+  echo "       so an empty extraction means the extractor is broken, not that the source" >&2
+  echo "       is clean. Refusing to report green from a scan that read nothing." >&2
+  exit 1
+fi
+
+# SCAN. Line pass first (it can name a file and a line), then the reflowed pass for
+# violations that straddle a wrap. Wraps are not hypothetical here: remediating this
+# surface produced a fragment on nine separate files because `HL7-VALUE-REDECODE)` sat at
+# the start of a continuation line, and `A future phase` / `may add` is exactly as
+# invisible to a line scan in JSDoc as it was in markdown. The reflow models a hover
+# tooltip: whitespace squeezed, `*` leaders already gone.
+SRC_HITS=""
+i=0
+while [ "$i" -lt "$SRC_RULE_COUNT" ]; do
+  : > "$ERRLOG"
+  LINE_IDX=$(grep -nP -e "${SRC_RULE_PATTERN[$i]}" -- "$DOCLINES" 2>>"$ERRLOG" | cut -d: -f1 || true)
+  refuse_if_incomplete
+  if [ -n "$LINE_IDX" ]; then
+    while IFS= read -r n; do
+      [ -n "$n" ] || continue
+      loc=$(sed -n "${n}p" "$DOCMAP")
+      txt=$(sed -n "${n}p" "$DOCLINES")
+      SRC_HITS="${SRC_HITS}[${SRC_RULE_NAME[$i]} / src doc comment]"$'\n'"${loc}: ${txt}"$'\n'
+    done <<< "$LINE_IDX"
+  fi
+
+  : > "$ERRLOG"
+  FLOW_IDX=$(grep -nP -e "${SRC_RULE_PATTERN[$i]}" -- "$DOCFLOW" 2>>"$ERRLOG" | cut -d: -f1 || true)
+  refuse_if_incomplete
+  if [ -n "$FLOW_IDX" ]; then
+    while IFS= read -r n; do
+      [ -n "$n" ] || continue
+      # Report only what the line pass could not see, so a wrapped hit is not printed
+      # twice. A block whose violation is on one line is already reported above.
+      blockloc=$(sed -n "${n}p" "$DOCFLOWMAP")
+      case "$SRC_HITS" in
+        *"$blockloc"*) continue ;;
+      esac
+      m=$(sed -n "${n}p" "$DOCFLOW" | grep -oP -e "${SRC_RULE_PATTERN[$i]}" | head -1)
+      SRC_HITS="${SRC_HITS}[${SRC_RULE_NAME[$i]} / src doc comment, wrapped across lines]"$'\n'"${blockloc} (block): ${m}"$'\n'
+    done <<< "$FLOW_IDX"
+  fi
+  i=$((i + 1))
+done
+
+[ -n "$ALL_HITS" ] && fail_with_hits "the public surface listed above" "$ALL_HITS"
+[ -n "$SRC_HITS" ] && fail_with_hits "src/ doc comments, which compile into dist/ and render in every consumer's editor" "$SRC_HITS"
+
+echo "check-no-internal-refs: OK (${scanned} public-surface file(s) and the npm metadata scanned against ${RULE_COUNT} rules, line by line and paragraph-joined; ${src_scanned} source file(s) scanned for doc-comment bookkeeping against ${SRC_RULE_COUNT} rules, line by line and block-reflowed; ${gitlinks} gitlink(s) skipped)"

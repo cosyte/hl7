@@ -4,8 +4,8 @@
  * Z-segments: `ZF1` (provider-encounter copay data) and `ZF2`
  * (encounter-procedure data). BIP-03.
  *
- * Grounded in **publicly downloadable** MEDITECH interface specifications
- * (ADR 0018: public specs count as real artifacts), not invented:
+ * Grounded in **publicly downloadable** MEDITECH interface specifications,
+ * not invented:
  *
  * - The **minute-precision** date/time format is confirmed by *two*
  *   public MEDITECH specs: "MEDITECH Admissions and Registration to Other
@@ -27,10 +27,8 @@
  *   ZF2-5 ENCOUNTER PROCEDURE QUANTITY, ZF2-6 ENCOUNTER PROCEDURE CHARGE,
  *   ZF2-7 PRV PROCEDURE AMOUNT PAID, ZF2-8 PRV PROCEDURE AMOUNT DUE).
  *
- * (This replaced an earlier `ZVI` "visit info" segment that was a
- * community-sourced prior with no citable public grounding: HL7-I
- * re-grounding, ADR 0018. Field positions here are transcribed directly
- * from the spec's segment tables.)
+ * (Field positions above are transcribed directly from the spec's segment
+ * tables.)
  *
  * Authored from the public `defineProfile()` API: zero privileged
  * internal coupling. Consumers extend this profile via

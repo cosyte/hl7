@@ -3,9 +3,8 @@
  * `Hl7Message`. Mirrors `rawSegments` one-for-one; preserves `isNull`;
  * always includes `warnings: []`; omits `profile` when absent.
  *
- * The `SerializedMessage` interface is exported in Plan 01 (this file) so
- * consumers + `src/index.ts` can reference the type immediately. The
- * `emitJson` function body is filled in Phase 5 Plan 03 (to-json).
+ * `SerializedMessage` is exported from this module and re-exported from
+ * `src/index.ts`, so consumers can reference the type directly.
  *
  * Decisions:
  * - D-17: shape is a raw-tree mirror (encodingCharacters + segments +
@@ -76,8 +75,8 @@ export interface SerializedMessage {
  * (D-30 cost doctrine: emit is hot-path; deep-freeze would add traversal
  * cost with no observable benefit beyond the type contract).
  *
- * Shared Phase-2 invariant (established by Plan 02): the raw tree stores
- * DECODED subcomponent strings (tokenize now unescapes on parse). emitJson
+ * Shared parser invariant: the raw tree stores DECODED subcomponent
+ * strings (tokenize unescapes on parse). `emitJson`
  * mirrors those decoded strings verbatim: NO re-escape transformation is
  * applied here; the JSON projection reflects the decoded source of truth.
  *

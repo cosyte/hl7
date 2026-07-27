@@ -8,7 +8,7 @@
  *
  * - `text.decode(field.text)`: resolve delimiter/hex/`\.br\` escapes to a value;
  * - `text.render(field.text)`: normalize formatting + highlight to a display model;
- * - `text.encode(anyString)`: encode-safe: no delimiter injection (Phase T's primitive).
+ * - `text.encode(anyString)`: encode-safe: no delimiter injection.
  *
  * ```ts
  * import { text } from "@cosyte/hl7";

@@ -1,7 +1,7 @@
 /**
- * `immunizations`: Phase E (P0 safety) implementation of the VXU^V04
- * immunization extractor. Walks the message in document order and projects each
- * RXA (Pharmacy/Treatment Administration) segment into a typed `Immunization`,
+ * `immunizations`: VXU^V04 immunization extractor. Walks the message in
+ * document order and projects each RXA (Pharmacy/Treatment Administration)
+ * segment into a typed `Immunization`,
  * grouping the RXR (route/site) and OBX (e.g. VFC eligibility / funding) that
  * follow it positionally under that RXA: the same order-group state machine
  * `orders()` uses for ORC → OBR → OBX, specialized to the VXU group
@@ -23,7 +23,7 @@
  *   - RXR-1/2 route (Table 0162) / site (Table 0163), grouped (reuses MedicationRoute)
  *   - ORC-1   order control of the preceding ORC, attached as orderControl
  *
- * Safety rules enforced here (Phase E):
+ * Safety rules enforced here:
  *   - Never throws: malformed RXA surfaces as omitted keys (HELPERS-07).
  *   - `actionCode` (RXA-21) is surfaced VERBATIM and never defaulted: a wrong
  *     A/D/U corrupts an IIS add/delete/update dedup.
@@ -186,8 +186,8 @@ function finalizeImmunization(
 /**
  * Every RXA of a VXU^V04 as a typed `Immunization`, with RXR (route/site) and
  * OBX children grouped positionally under the RXA and `orderControl` carried
- * from the preceding ORC of the VXU order group (Phase E, P0 safety). Document
- * order. Returns `[]` when no RXA is present. NOT memoized: each call re-walks
+ * from the preceding ORC of the VXU order group. Document order.
+ * Returns `[]` when no RXA is present. NOT memoized: each call re-walks
  * `msg.allSegments()`. Never throws (HELPERS-07).
  *
  * The vaccine code carries its own coding-system provenance

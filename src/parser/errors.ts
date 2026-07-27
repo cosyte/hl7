@@ -4,9 +4,8 @@
  * severe is a Tier-2 warning (see `./warnings.ts`). `Hl7ParseError` is
  * thrown directly; consumers narrow via the `code` discriminant.
  *
- * `ProfileDefinitionError` is declared here so the error taxonomy is locked
- * before Phase 6 wires profile validation: keeping file ownership clean
- * across phases.
+ * `ProfileDefinitionError` is declared here so the whole error taxonomy
+ * lives in one module.
  */
 
 import type { Hl7Position } from "./types.js";
@@ -104,12 +103,11 @@ export class Hl7ParseError extends Error {
 }
 
 /**
- * Thrown by `defineProfile()` and profile-validation code (Phase 6) when a
+ * Thrown by `defineProfile()` and profile-validation code when a
  * profile definition is structurally invalid: e.g. references an undefined
  * parent, declares a malformed custom segment, or includes an unsupported
- * date format. Declared in Phase 2 so the error taxonomy is locked before
- * Phase 6 lands; callers may optionally supply the offending profile name
- * for better diagnostics.
+ * date format. Callers may optionally supply the offending profile name for
+ * better diagnostics.
  *
  * @example
  * ```ts
@@ -125,7 +123,7 @@ export class ProfileDefinitionError extends Error {
 
   /**
    * Construct a new `ProfileDefinitionError`. `profileName` is optional so
-   * Phase 6 callers may omit it when the offending profile cannot be named
+   * callers may omit it when the offending profile cannot be named
    * (e.g. during initial validation before a name is parsed).
    *
    * @internal

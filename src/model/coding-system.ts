@@ -1,5 +1,5 @@
 /**
- * Coding-system provenance (HL7 Table 0396, READ-ONLY): roadmap Phase F.
+ * Coding-system provenance (HL7 Table 0396, READ-ONLY).
  *
  * Answers one question about a coded element: **"what coding system does this
  * code CLAIM?"** It surfaces the sender's CWE.3 / CE.3 "Name of Coding System"

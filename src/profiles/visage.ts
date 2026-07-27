@@ -9,7 +9,7 @@
  * (V23.00, Jun 2026, Visage Imaging GmbH), §4.4 "ORM Messages" + the ZDS
  * segment table ("Study Instance UID … contained in the first component of
  * the first field of the ZDS Segment"): a publicly downloadable vendor
- * interface spec, not an invented quirk (ADR 0018). Dates in that spec use
+ * interface spec, not an invented quirk. Dates in that spec use
  * the HL7-native `YYYYMMDDHHMMSS` form, so this profile declares **no**
  * custom `dateFormats`: only the ZDS segment.
  *
