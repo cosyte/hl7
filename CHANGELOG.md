@@ -20,8 +20,8 @@ per the cosyte version ladder (`0.0.x` until first alpha).
   `PUBLIC-SURFACE-HYGIENE`).** Founder directive of 2026-07-27: no internal project bookkeeping on
   any surface a consumer reads. The remediation half of that directive was a sweep of 149 references
   across 11 repos, and a sweep regresses the first time someone writes `(CCDA-P8)` into a README, so
-  the deliverable here is the gate; the sweep rides along. **51 violating lines across 15
-  `docs-content/` pages were cleared** (measured with the shipped rules against the previous tree;
+  the deliverable here is the gate; the sweep rides along. **50 violating lines across 15
+  `docs-content/` pages were cleared** (re-measured with the shipped rules against the previous tree;
   the backlog's count of 44 was markdown-only and predates two of the rules): phase identifiers in
   page titles and headings, `HL7-N` / `HL7-J` / `HL7-ESC` / `HL7-R` / `VERIFY-AT-BUILD` item
   identifiers, a citation of `operations/roadmaps/hl7.md`, bracketed spec-trace tags (`[S-NTE]`,
@@ -39,11 +39,16 @@ precision` reads worse than the text it replaced. The datetime page needed more 
   rules are lifted
   from `cosyte/.github` `scripts/release-notes.mjs`, which is already tested byte-for-byte against
   the 14 published release bodies, and they are **keyed on known project prefixes, never on the
-  `WORD-N` shape**: `MSH-2`, `PID-3`, `OBX-5`, `TQ1-7`, `NM1-03`, `ICD-10-CM`, `FHIR-bridge` and
-  `HL7-defined` are the reference material an HL7 parser's docs exist to provide, and a shape rule
-  deletes them. That is asserted, not assumed: the script carries a **negative** self-test per rule
-  alongside the positive one, so widening a rule into the `WORD-N` shape reds the gate instead of
-  silently corrupting a segment reference on the next sweep. The scan harness is the em-dash gate's,
+  `WORD-N` shape**: `MSH-2`, `PID-3`, `OBX-5`, `TQ1-7`, `NM1-03`, `PKG-4`, `ICD-10-CM`, `HL7-V2`,
+  `FHIR-R4`, `DICOM-SR`, `NCPDP-SCRIPT`, `FHIR-bridge`, `HL7-defined` and the four `CSP`
+  Clinical Study **Phase** field names are the reference material an HL7 parser's docs exist to
+  provide, and a shape rule deletes them. That is asserted, not assumed: the script carries a
+  **negative** self-test per rule, built from that material, alongside the positive one, so widening
+  a rule into the `WORD-N` shape reds the gate instead of silently corrupting a segment reference on
+  the next sweep. Where a rule could not be guarded it was **cut** instead: `phase` after a
+  determiner ("the non-goals of this phase") is not detected at all, because catching it also caught
+  "the phase of the clinical study" and "the phase encoding direction", and when the collision is
+  with clinical reference material the reference material wins. The scan harness is the em-dash gate's,
   in mllp's variant: scan list built and `./`-prefixed in one loop so the scan stays a single command
   with stderr bound to all of it, no `sed -z`, no `-d skip`, no `-I`, `-e`/`--`, `-0 -r`, and a
   refusal to print OK from an empty list, an unreadable input, a non-regular-file entry, or any
@@ -51,14 +56,19 @@ precision` reads worse than the text it replaced. The datetime page needed more 
   inherited. **Every rule is also applied a second time to paragraph-joined text**, because the rules
   are multi-token and this repo hard-wraps markdown: a violation straddling a wrap was invisible to a
   line scan and one was live (`A future phase` / `may add opt-in decode`, with the gate printing OK).
+  The join squeezes whitespace the way markdown does, which is load-bearing rather than cosmetic: a
+  verbatim join leaves the continuation line's indentation in place, and 601 lines of `docs-content/`
+  start indented, so the pass would have missed the dominant wrap shape while reporting that it ran.
   It scans the public surface only (`README.md`, `TRADEMARKS.md`, `LICENSE`, `docs-content/`, and the
   npm `description` and `keywords`) because the same identifier is required on the inside:
   `CHANGELOG.md`, `.changeset/`, commits and PRs are where it belongs. A tripwire refuses the run if
-  `package.json`'s `files` starts shipping anything the gate does not cover. **Two holes are measured
-  and disclosed rather than implied shut:** `dist/` ships the compiled JSDoc, and 132 lines of
-  `dist/index.d.ts` carry phase language a consumer sees in IntelliSense today, unswept and ungated
-  here because remediating ~280 source doc comments is its own reviewable change; and the rules catch
-  identifiers, not English sentences about our process. Documentation and CI only: no change to the
+  `package.json`'s `files` starts shipping anything the gate does not cover. **Three holes are measured and disclosed rather than implied
+  shut:** `dist/` ships the compiled JSDoc, and the tracked `src/*.ts` files carry 253 phase-rule and
+  39 identifier-rule lines, of which a local build puts 137 and 22 into `dist/index.d.ts` for every
+  consumer's editor to render, unswept and ungated here because remediating ~290 source doc comments
+  is its own reviewable change (and `dist/` is untracked, so no checked-in gate can re-derive that
+  figure without building first); determiner-plus-`phase` is not detected, by choice; and the rules
+  catch identifiers, not English sentences about our process. Documentation and CI only: no change to the
   published package surface, parser behavior, or warning codes.
 - **Em-dash brand gate in CI (`scripts/check-no-emdash.sh`, `pnpm check:no-emdash`,
   `.github/workflows/no-emdash.yml`; `EMDASH-CONFORMANCE` part 1).** The founder directive of

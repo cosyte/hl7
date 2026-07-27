@@ -29,7 +29,7 @@ for one.
   second?; fractionalSeconds?(verbatim digits, no dot); hasTimezone; offsetMinutes?(signed, iff tz) }`.
 - `parseDtm(raw): DtmParts`: pure structural parse of the HL7 DTM shape. **No zero-fill, no `Date`, no
   UTC.** Precision from populated length. Calendar-range check (month 1–12, day 1–31, hour 0–23,
-  min/sec 0–59, offset ≤ ±24:00) → on bad shape/range `valid:false`, raw kept, parts omitted, never a
+  min/sec 0–59, offset hours ≤ 24 with minutes ≤ 59) → on bad shape/range `valid:false`, raw kept, parts omitted, never a
   throw. Empty → `valid:false, hasTimezone:false`.
 - `formatDtm(parts): string`: reconstruct the DTM string from parts (proves losslessness; round-trip
   property = `parseDtm(raw)→formatDtm ≡ raw`, exact length, no zero-fill).
@@ -50,7 +50,8 @@ for one.
 ### Helpers: `TS`-typed fields (the fidelity reaches the consumer)
 `meta.timestamp` (via cascade), `patient.dateOfBirth`, `visit.admit/dischargeDateTime`,
 `observations.observedDateTime` + the `TS|DT` `TypedValue.value`, `allergies.onsetDate`,
-`diagnoses.dateTime`, `insurance.effective/expirationDate`, `immunizations.administered/expirationDate`.
+`diagnoses.dateTime`, `insurance.effectiveDate` / `expirationDate`,
+`immunizations.administeredDateTime` / `expirationDate`.
 
 ### Non-goals
 Fidelity only: **no** localization, timezone conversion, or arithmetic; a missing offset is **flagged

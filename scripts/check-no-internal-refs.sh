@@ -117,12 +117,18 @@
 #                          cannot be mistaken for a quiet edge case. `src/` JSDoc IS public:
 #                          it is compiled into `dist/index.d.ts` and `dist/index.d.cts`,
 #                          `dist` is the first entry in package.json's `files`, and it is
-#                          what a consumer's editor shows on hover. Measured on this tree:
-#                          `src/` carries 248 lines matching the phase rule and 32 matching
-#                          the identifier rule, and the built `dist/index.d.ts` carries 132
-#                          phase-rule lines, including doc comments on exported functions
-#                          that read "Build a `MISSING_EXPECTED_GROUP` warning (roadmap
-#                          Phase G)". Every `npm i @cosyte/hl7` gets those.
+#                          what a consumer's editor shows on hover.
+#                          Measured with THESE rules over the TRACKED `src/*.ts` files, so
+#                          the figure is reproducible from a clean checkout: 253 lines match
+#                          the phase rule, 39 the identifier rule, 5 the ADR rule and 1 the
+#                          jargon rule, including doc comments on exported functions that
+#                          read "Build a `MISSING_EXPECTED_GROUP` warning (roadmap Phase G)".
+#                          A local build of this commit carries 137 and 22 of those into
+#                          `dist/index.d.ts`, which every `npm i @cosyte/hl7` receives. Treat
+#                          the built figures as a snapshot rather than a fact this gate can
+#                          re-derive: `dist/` is untracked build output, so neither this
+#                          script nor CI can check it without building first, and that is
+#                          part of why the hole is real.
 #                          They are NOT swept and NOT gated here, deliberately: remediating
 #                          ~280 source doc comments is a change to every module in the
 #                          package, it wants its own review, and doing it inside a CI slice
@@ -169,6 +175,12 @@
 #         came to exist. Two of them were found by a refuter AFTER the sweep claimed to be
 #         complete, which is the honest measure of how much of this rule the gate carries.
 #         The gate raises the floor; it does not replace the reviewer's half of the rule.
+#   (vii) DETERMINER-PLUS-`phase` IS NOT CAUGHT. "the non-goals of this phase" and "the
+#         failure this phase guards against" carry no identifier, so nothing keys on them.
+#         A rule for it was written, measured, and REMOVED: see rule 3 for what it cost in
+#         clinical phrasing. Rule 1 still catches `phase X`; this construction is a
+#         reviewer's catch, and saying so is better than a rule that reds an HL7 page for
+#         using the word correctly.
 #   (vi)  `D-NN` INTERNAL DECISION NUMBERS ARE NOT CAUGHT, deliberately. This repo numbers
 #         its design decisions `D-01`, `D-02`, `D-18`, they appear across `src/` comments,
 #         and two of them reached `docs-content/spec-notes-differential.md` as public
@@ -279,15 +291,20 @@ RULE_PATTERN[2]='(?i)\bADR[ -]?\d{3,4}\b'
 # determiner and the noun ("the misfiling-prevention slice") but a preposition may not:
 # "the Number of Slices" is a DICOM attribute, not one of our units of work.
 #
-# `phase` is matched here as well as in rule 1, because "non-goals of this phase" and "the
-# failure this phase guards against" carry no identifier for rule 1 to key on and are just
-# as opaque to a reader. The clinical modifiers are excluded from the modifier slot for the
-# same reason rule 1 excludes them: "the study phase" and "the acute phase" are the
-# reader's words, not ours.
+# `phase` IS DELIBERATELY NOT MATCHED HERE, and it was, for one revision. A refuter pass
+# added it to catch "non-goals of this phase"; the next pass measured what it cost and the
+# answer was ordinary clinical English: "the phase of the clinical study", "the phase of
+# illness", "each phase of the trial", "the phase encoding direction" (a real DICOM MR
+# attribute). No modifier exclusion list rescues that, because the collision is with the
+# HEAD noun rather than the modifier. So this rule is back to the lifted `slice` form and
+# the determiner-plus-`phase` construction is a STATED RESIDUAL, not a covered case: rule 1
+# still catches `phase X`, and "of this phase" with no following identifier is a reviewer's
+# catch. That is the trade this file makes everywhere. When the collision is with clinical
+# reference material, the reference material wins, and a gate that is narrower than the rule
+# it enforces is worth more than one that quietly corrupts an HL7 page.
 IMAGING_NOUNS='thickness|location|spacing|position|interval|order|number|index|gap|count|data|pixel|orientation|plane|direction|width|vector|sensitivity|progression|factor'
-CLINICAL_MODIFIERS='study|clinical|trial|treatment|acute|chronic|luteal|follicular|liquid|gas|solid|stationary'
-RULE_NAME[3]='internal jargon ("slice", "phase")'
-RULE_PATTERN[3]='(?i)\b(?:this|that|the|each|another|previous|next|final|current)\s+(?:(?!(?:of|in|on|between|per|for|to|with|at|'"$CLINICAL_MODIFIERS"')\s)[\w-]+\s+){0,2}(?:slice|phase)s?\b(?!\s+(?:'"$IMAGING_NOUNS"'))'
+RULE_NAME[3]='internal jargon ("slice")'
+RULE_PATTERN[3]='(?i)\b(?:this|that|the|each|another|previous|next|final|current)\s+(?:(?!(?:of|in|on|between|per|for|to|with|at)\s)[\w-]+\s+){0,2}slices?\b(?!\s+(?:'"$IMAGING_NOUNS"'))'
 
 # Rule 5: internal repo paths. This is the ONE rule not present in release-notes.mjs, and
 # it is added rather than lifted because a release body is prose while a docs page carries
@@ -334,7 +351,7 @@ self_test_fail() {
 POSITIVE[0]='Item HL7-N is done, and CCDA-P7 with it'
 POSITIVE[1]='Phase 5b closes it (Phase W, Phase-L and the thirteenth slice landed earlier, in wave 2)'
 POSITIVE[2]='Decided in ADR 0015 and restated in ADR-0021'
-POSITIVE[3]='This slice adds the helper; the final slice removes it; non-goals of this phase'
+POSITIVE[3]='This slice adds the helper and the final slice removes it'
 POSITIVE[4]='Roadmap operations/roadmaps/hl7.md and documentation/decisions/0015-x.md'
 POSITIVE[5]='Repeating [S-NTE], and Open-question #12 resolves the direction'
 
@@ -343,7 +360,7 @@ POSITIVE[5]='Repeating [S-NTE], and Open-question #12 resolves the direction'
 NEGATIVE[0]='MSH-2 encoding characters, PID-3 identifier list, OBX-5 value, SCH-11 timing, TQ1-7 start, NM1-03 name, PKG-1 and PKG-4 packaging, ICD-10-CM P00-P96, FHIR-bridge stability, docs-content/ layout, HL7-defined tables, HL7-0396 and HL7-0003 and HL7-396, HL7-V2 and HL7-CDA, FHIR-R4, DICOM-SR and DICOM-RT, NCPDP-SCRIPT and NCPDP-D.0, X12-837P and X12-005010, 835 remittance'
 NEGATIVE[1]='CSP-1 Study Phase Identifier, CSP-2 Study Phase Start Date/Time, CSP-3 Study Phase End Date/Time, CSP-4 Study Phase Evaluability; a Phase III oncology trial and a Phase II study; the acute phase reactant; the adapter stays in phase with the source system and is out of phase'
 NEGATIVE[2]='ADR is not a segment, and 0015 alone is a value'
-NEGATIVE[3]='The slice thickness and the number of slices are DICOM attributes, each slice location is too, and the study phase, the acute phase and the treatment phase are the clinical senses'
+NEGATIVE[3]='The slice thickness and the number of slices are DICOM attributes, each slice location is too, and the phase of the clinical study, the phase of illness and the phase encoding direction are the reader words this rule must not touch'
 NEGATIVE[4]='Parser operations are documented in the README, and documentation for the API is generated'
 NEGATIVE[5]='A character range like [S-Z], a value set written [SNOMED], and open questions about the feed'
 
@@ -635,9 +652,21 @@ done
 # actually needs. It is additive, and its cost is a second grep per file per rule over a
 # handful of markdown files.
 while IFS= read -r -d '' f; do
+  # WHITESPACE IS SQUEEZED, and that is the whole difference between this pass working and
+  # this pass looking as though it works. The first version joined lines verbatim, which
+  # left the continuation line's own indentation in the joined text: an indented wrap
+  # produced `phase   may`, and every rule here is written with single spaces, so it did not
+  # match. Indented continuations are the DOMINANT wrap shape in this corpus (measured: 467
+  # of them across 21 files in docs-content/, because the pages are mostly bulleted), so the
+  # pass would have missed the very case it was added for while reporting that it had run.
+  # Squeezing runs of whitespace to one space is also what markdown itself does to a
+  # paragraph, so this models the rendered page rather than approximating it.
   : > "$ERRLOG"
-  awk '/^[[:space:]]*$/ { print ""; next } { printf "%s ", $0 } END { print "" }' "$f" \
-    > "$REFLOWBUF" 2>>"$ERRLOG"
+  awk '
+    /^[[:space:]]*$/ { print ""; next }
+    { line = $0; gsub(/[[:space:]]+/, " ", line); sub(/^ /, "", line); printf "%s ", line }
+    END { print "" }
+  ' "$f" > "$REFLOWBUF" 2>>"$ERRLOG"
   refuse_if_incomplete
 
   i=0
