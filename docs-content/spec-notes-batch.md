@@ -42,7 +42,7 @@ HL7 v2 Chapter 2, the batch protocol:
   report / ack-errored-only) on an **exception basis**. Batch ACK is **out of
   scope** for the splitter (see non-goals).
 
-Real-world grounding (all verified 3-0 in the Phase-L research pass):
+Real-world grounding:
 
 - **National CDC/APHL ELR** makes batching **optional**: the Lab-to-EHR
   profile defines no envelope. A bare message must therefore pass straight

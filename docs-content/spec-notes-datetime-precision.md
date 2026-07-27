@@ -9,19 +9,19 @@ sidebar_label: Datetime precision & timezone
 **Spec:** HL7 v2 Ch. 2A **DTM**: `YYYY[MM[DD[HH[MM[SS[.S[S[S[S]]]]]]]]][+/-ZZZZ]`; the number of
 characters populated (excluding the offset) sets the precision; a missing offset "defaults to that of
 the local time zone of the sender" (NOT UTC, NOT the parser's zone). TS→DTM moved precision from an
-explicit degree-of-precision component to the value's length (v2.5/v2.7). All verified against
-primary Ch. 2A and HAPI `CommonTS`/`DTM`. Eager `Date`+assume-UTC is an architectural defect, so the
-library exposes raw + parsed parts and builds a `Date` only on explicit caller request, never by
-default.
+explicit degree-of-precision component to the value's length (v2.5/v2.7).
 
-## The defect being fixed
+## Why there is no `Date` by default
 
-`parser/dates.ts::parseHl7TsDtm` zero-fills truncations (`|1970|` → `1970-01-01T00:00:00Z`) and coerces
-a missing offset to **UTC**. Helpers propagate that flat `Date`: a day-only DOB
-`|19880705|` becomes a UTC-midnight instant, which reads as **July 4** via `.getDate()` in any
-negative-offset zone, an off-by-a-day DOB. The parser replaces that coercion with fidelity.
+A JavaScript `Date` is an absolute instant, and most HL7 v2 timestamps are not. `|1970|` is a year,
+`|19880705|` is a calendar day, and a value with no offset is the *sender's* local time by the
+standard's own words. Materializing either as a `Date` means inventing a zone, and inventing UTC is
+how a day-only date of birth `|19880705|` becomes a UTC-midnight instant that reads back as
+**July 4** through `.getDate()` in any negative-offset zone. So this library parses DTM into typed
+parts, keeps the precision it was given, and builds a `Date` only when the caller explicitly asks
+for one.
 
-## Design (locked)
+## The API
 
 ### Core: `src/parser/dates.ts`
 - `type DtmPrecision = "year"|"month"|"day"|"hour"|"minute"|"second"|"fraction"`.
@@ -41,27 +41,16 @@ negative-offset zone, an off-by-a-day DOB. The parser replaces that coercion wit
 - `parseDtmCascade(raw, opts): DtmParts`: lenient wrapper for non-composite callers (`meta`): try
   `parseDtm`; else user/builtin fallback formats → parts from the matched tokens + `matchedFormat` +
   `TIMESTAMP_FALLBACK_FORMAT` warning. `BUILTIN_DATE_FALLBACKS`/`SUPPORTED_DATE_TOKENS` unchanged.
-- **Remove** the public `parseHl7Timestamp` (Date-returning, UTC-assuming, the defect's public face).
-  Breaking; deliberate; changeset + CHANGELOG breaking note.
 
 ### TS composite: `src/model/types/ts.ts`
-- `TS` = the `DtmParts` shape (raw, valid, precision?, parts, hasTimezone, offsetMinutes?). Frozen.
+- `TS` is the `DtmParts` shape (raw, valid, precision?, parts, hasTimezone, offsetMinutes?). Frozen.
   **No `.date`.** `parseTs(rep, enc)` = unescape → `parseDtm`.
-- `field.ts::asTs()` unchanged signature; JSDoc example updated (parts, not `.date`).
+- `field.ts::asTs()` returns it.
 
-### Helpers: flat `Date` fields → `TS` (fidelity reaches the consumer)
+### Helpers: `TS`-typed fields (the fidelity reaches the consumer)
 `meta.timestamp` (via cascade), `patient.dateOfBirth`, `visit.admit/dischargeDateTime`,
 `observations.observedDateTime` + the `TS|DT` `TypedValue.value`, `allergies.onsetDate`,
 `diagnoses.dateTime`, `insurance.effective/expirationDate`, `immunizations.administered/expirationDate`.
-Update `helpers/types.ts` defs + each helper test.
-
-### Tests / fixtures
-- `datetime/precision-year.hl7` (`|1970|` DOB stays year), `datetime/no-timezone-midnight.hl7`
-  (`|198807050000|` must not roll the day), `datetime/tz-offset.hl7`.
-- Property: `parseDtm→formatDtm` round-trips to exact input (no zero-fill); no-offset ⇒
-  `hasTimezone:false`; TS frozen/immutable.
-- Unit: precision levels 4/6/8/14/19; tz presence + signed offset; `dtmToDate` refuses no-tz without
-  `assumeOffsetMinutes`; invalid/short → `valid:false`.
 
 ### Non-goals
 Fidelity only: **no** localization, timezone conversion, or arithmetic; a missing offset is **flagged

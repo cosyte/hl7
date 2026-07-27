@@ -20,14 +20,23 @@ per the cosyte version ladder (`0.0.x` until first alpha).
   `PUBLIC-SURFACE-HYGIENE`).** Founder directive of 2026-07-27: no internal project bookkeeping on
   any surface a consumer reads. The remediation half of that directive was a sweep of 149 references
   across 11 repos, and a sweep regresses the first time someone writes `(CCDA-P8)` into a README, so
-  the deliverable here is the gate; the sweep rides along. **47 violating lines were removed from
-  `docs-content/`** (measured on this tree, against the backlog's markdown-only count of 44): phase
-  identifiers in 15 page titles and headings, `HL7-N` / `HL7-J` / `HL7-ESC` / `HL7-R` /
-  `VERIFY-AT-BUILD` item identifiers, a citation of `operations/roadmaps/hl7.md`, bracketed
-  spec-trace tags (`[S-NTE]`, `[S-DTM-IMPL]`), an "Open-question #12", and review-process commentary
-  ("All confirmed 3-0 (pass 5)", "Assumption logged"). Identifiers were translated at the boundary,
-  not merely deleted, and every head left behind by a front-of-line strip was repaired: a heading cut
-  to `: datetime precision` reads worse than the text it replaced. The detection rules are lifted
+  the deliverable here is the gate; the sweep rides along. **51 violating lines across 15
+  `docs-content/` pages were cleared** (measured with the shipped rules against the previous tree;
+  the backlog's count of 44 was markdown-only and predates two of the rules): phase identifiers in
+  page titles and headings, `HL7-N` / `HL7-J` / `HL7-ESC` / `HL7-R` / `VERIFY-AT-BUILD` item
+  identifiers, a citation of `operations/roadmaps/hl7.md`, bracketed spec-trace tags (`[S-NTE]`,
+  `[S-DTM-IMPL]`), an "Open-question #12", and review-process commentary ("All confirmed 3-0
+  (pass 5)", "all verified 3-0 in the research pass", "Assumption logged"). One more, in `README.md`,
+  was fixed by hand and is caught by no rule: a pointer to "the roadmap's known-limitations", a file
+  the reader does not have. Identifiers were translated at the boundary, not merely deleted, and
+  every head left behind by a front-of-line strip was repaired: a heading cut to `: datetime
+precision` reads worse than the text it replaced. The datetime page needed more than a strip: with
+  its phase framing gone it read as documentation of shipped behaviour while still describing, in the
+  present tense, a `parseHl7TsDtm` zero-fill defect that no longer exists in the library (the API it
+  planned has shipped). It is now written as what the package does, its unexecuted plan and test
+  bookkeeping are gone, and a provenance claim that survived the strip in a stronger form than the
+  original ("all verified against primary Ch. 2A") is removed rather than reworded. The detection
+  rules are lifted
   from `cosyte/.github` `scripts/release-notes.mjs`, which is already tested byte-for-byte against
   the 14 published release bodies, and they are **keyed on known project prefixes, never on the
   `WORD-N` shape**: `MSH-2`, `PID-3`, `OBX-5`, `TQ1-7`, `NM1-03`, `ICD-10-CM`, `FHIR-bridge` and
@@ -39,12 +48,18 @@ per the cosyte version ladder (`0.0.x` until first alpha).
   with stderr bound to all of it, no `sed -z`, no `-d skip`, no `-I`, `-e`/`--`, `-0 -r`, and a
   refusal to print OK from an empty list, an unreadable input, a non-regular-file entry, or any
   scanner stderr. Every one of those routes was checked RED against a seeded violation rather than
-  inherited. It scans the public surface only (`README.md`, `TRADEMARKS.md`, `LICENSE`,
-  `docs-content/`, and the npm `description` and `keywords`) because the same identifier is required
-  on the inside: `CHANGELOG.md`, `.changeset/`, commits and PRs are where it belongs. A tripwire
-  refuses the run if `package.json`'s `files` starts shipping prose the gate does not cover.
-  Documentation and CI only: no change to the published package surface, parser behavior, or warning
-  codes.
+  inherited. **Every rule is also applied a second time to paragraph-joined text**, because the rules
+  are multi-token and this repo hard-wraps markdown: a violation straddling a wrap was invisible to a
+  line scan and one was live (`A future phase` / `may add opt-in decode`, with the gate printing OK).
+  It scans the public surface only (`README.md`, `TRADEMARKS.md`, `LICENSE`, `docs-content/`, and the
+  npm `description` and `keywords`) because the same identifier is required on the inside:
+  `CHANGELOG.md`, `.changeset/`, commits and PRs are where it belongs. A tripwire refuses the run if
+  `package.json`'s `files` starts shipping anything the gate does not cover. **Two holes are measured
+  and disclosed rather than implied shut:** `dist/` ships the compiled JSDoc, and 132 lines of
+  `dist/index.d.ts` carry phase language a consumer sees in IntelliSense today, unswept and ungated
+  here because remediating ~280 source doc comments is its own reviewable change; and the rules catch
+  identifiers, not English sentences about our process. Documentation and CI only: no change to the
+  published package surface, parser behavior, or warning codes.
 - **Em-dash brand gate in CI (`scripts/check-no-emdash.sh`, `pnpm check:no-emdash`,
   `.github/workflows/no-emdash.yml`; `EMDASH-CONFORMANCE` part 1).** The founder directive of
   2026-07-24 (`knowledgebase/06-brand/voice-and-tone.md`) bans `U+2014` outright across every cosyte

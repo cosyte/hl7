@@ -111,14 +111,26 @@
 #                          parser has it), and it is not for one repo to settle alone.
 #                          Recorded here, and queued on PUBLIC-SURFACE-HYGIENE in the
 #                          meta-repo, rather than silently decided in either direction.
-#   * CLAUDE.md, .github/, .changeset/, scripts/, src/, test/, examples/, profile/
-#                          internal by definition, or code rather than prose. `src/` is
-#                          the one to keep an eye on: a JSDoc `@example` block reaches the
-#                          consumer through IntelliSense and the generated `.d.ts`. It is
-#                          left out here because the identifier rules would fire on
-#                          nothing today and the doc-comment surface wants its own rule
-#                          set, not this one. Stated so it reads as a known edge rather
-#                          than an oversight.
+#   * CLAUDE.md, .github/, .changeset/, scripts/, test/, examples/, profile/
+#                          internal by definition, or code rather than prose.
+#   * src/ AND dist/       THE BIGGEST HOLE IN THIS GATE, and the measurement is here so it
+#                          cannot be mistaken for a quiet edge case. `src/` JSDoc IS public:
+#                          it is compiled into `dist/index.d.ts` and `dist/index.d.cts`,
+#                          `dist` is the first entry in package.json's `files`, and it is
+#                          what a consumer's editor shows on hover. Measured on this tree:
+#                          `src/` carries 248 lines matching the phase rule and 32 matching
+#                          the identifier rule, and the built `dist/index.d.ts` carries 132
+#                          phase-rule lines, including doc comments on exported functions
+#                          that read "Build a `MISSING_EXPECTED_GROUP` warning (roadmap
+#                          Phase G)". Every `npm i @cosyte/hl7` gets those.
+#                          They are NOT swept and NOT gated here, deliberately: remediating
+#                          ~280 source doc comments is a change to every module in the
+#                          package, it wants its own review, and doing it inside a CI slice
+#                          is how a docs sweep turns into an unreviewed source-wide diff.
+#                          It is queued on PUBLIC-SURFACE-HYGIENE in the meta-repo. What is
+#                          NOT acceptable is to state it as covered, which an earlier draft
+#                          of this header did ("the identifier rules would fire on nothing
+#                          today"), and which was false by 280 lines.
 #
 # ---------------------------------------------------------------------------
 # NO STDIN / PR-TEXT MODE, deliberately, and this is the other difference from
@@ -149,13 +161,14 @@
 #         rule and scans a wider surface; duplicating it here would put the same red in
 #         two places with two wordings.
 #   (v)   IT CATCHES IDENTIFIERS, NOT PROSE ABOUT OUR PROCESS. The founder's rule bans
-#         both. "All confirmed 3-0 (pass 5) against primary Ch. 2A", "Spec facts taken
-#         from the roadmap's verified traceability rather than re-researching", and
-#         "Assumption logged" were all live on this repo's docs pages and were removed by
-#         hand in the same change that added this gate. No pattern would have found them:
-#         they are ordinary English sentences whose only fault is that they describe how
-#         the artifact came to exist. The gate raises the floor; it does not replace the
-#         reviewer's half of the rule.
+#         both. "All confirmed 3-0 (pass 5) against primary Ch. 2A", "all verified 3-0 in
+#         the research pass", "Assumption logged", and a README pointing the reader at "the
+#         roadmap's known-limitations" were all live on this repo's public pages and were
+#         removed by hand alongside this gate. No pattern would have found them: they are
+#         ordinary English sentences whose only fault is that they describe how the artifact
+#         came to exist. Two of them were found by a refuter AFTER the sweep claimed to be
+#         complete, which is the honest measure of how much of this rule the gate carries.
+#         The gate raises the floor; it does not replace the reviewer's half of the rule.
 #   (vi)  `D-NN` INTERNAL DECISION NUMBERS ARE NOT CAUGHT, deliberately. This repo numbers
 #         its design decisions `D-01`, `D-02`, `D-18`, they appear across `src/` comments,
 #         and two of them reached `docs-content/spec-notes-differential.md` as public
@@ -185,7 +198,24 @@ export LC_ALL=C.UTF-8
 # Known project and programme prefixes. THE KEYING IS ON THESE, NEVER ON THE `WORD-N`
 # SHAPE: see trap (1) above. Order matters only for readability. Kept in the same order as
 # the source list so a diff between the two is legible.
-PROJECT_PREFIXES='PARSERS-PUBLIC|DOCS-CONTENT|KNOWLEDGEBASE|TERMINOLOGY|PATHWAYS|TRANSFORM|WEBSITE|STAGING|SUPPLY|NCPDP|ASSETS|EMDASH|README|CONFIG|DICOM|SYNTH|DEID|CCDA|ASTM|MLLP|FHIR|CREW|DOCS|PERF|SYNC|VERSION|PUBLIC|HL7|X12|IAC|CLI|KB|PW|PUB|CI|REAL|TERM|PKG|WF|VERIFY'
+# `PKG` IS DELIBERATELY ABSENT from this list, and it is present in the source list. `PKG`
+# is HL7 v2's Chapter 17 Item Packaging segment, so `PKG-1` and `PKG-4` are segment-field
+# references a consumer of an HL7 parser can legitimately need. Guarding it would take a
+# second exclusion; dropping it costs one meta-repo prefix that has never been minted as an
+# hl7 item. When the collision is with clinical reference material, the reference material
+# wins: that is trap (1) applied to the list itself rather than to the pattern.
+PROJECT_PREFIXES='PARSERS-PUBLIC|DOCS-CONTENT|KNOWLEDGEBASE|TERMINOLOGY|PATHWAYS|TRANSFORM|WEBSITE|STAGING|SUPPLY|NCPDP|ASSETS|EMDASH|README|CONFIG|DICOM|SYNTH|DEID|CCDA|ASTM|MLLP|FHIR|CREW|DOCS|PERF|SYNC|VERSION|PUBLIC|HL7|X12|IAC|CLI|KB|PW|PUB|CI|REAL|TERM|WF|VERIFY'
+
+# STANDARDS DESIGNATIONS THAT COLLIDE WITH THE PREFIX LIST, excluded explicitly. Eight of
+# the prefixes above (`HL7`, `X12`, `DICOM`, `FHIR`, `NCPDP`, `CCDA`, `ASTM`, `MLLP`) are
+# the names of standards this ecosystem parses as well as the names of our projects, and a
+# consumer of an HL7 toolkit needs to read `HL7-V2`, `FHIR-R4`, `DICOM-SR`, `NCPDP-SCRIPT`,
+# `X12-837P` and an HL7 table number in the docs. Those are reference material; `HL7-N` and
+# `MLLP-10` are ours. There is no shape that separates them, so the separation is an
+# explicit, reviewable exclusion list, which is the same bargain as keying on prefixes in
+# the first place: it must be extended by hand, and that is the cheaper mistake. Every
+# entry here is asserted in this rule's NEGATIVE self-test sample.
+STANDARDS_DESIGNATION='HL7-(?:V2|V3|CDA|FHIR|OMG|\d{3,4}[A-Z]?)|FHIR-R\d[A-Z]?|DICOM-(?:SR|RT|SEG|DIR|PS\d)|NCPDP-(?:SCRIPT|TELECOM|D\.\d)|X12-\d{3}[A-Z]?|X12-\d{6}|CCDA-R\d(?:\.\d)?|ASTM-E\d+'
 
 # Rule 1: internal project identifier. CASE SENSITIVE, and the segment after the hyphen
 # must start with an uppercase letter or a digit, which is what lets `FHIR-bridge` and
@@ -196,26 +226,42 @@ PROJECT_PREFIXES='PARSERS-PUBLIC|DOCS-CONTENT|KNOWLEDGEBASE|TERMINOLOGY|PATHWAYS
 # to SNOMED CT" and truncated the code range "P00-P96". Corrupting a diagnosis code to
 # remove an internal label is not a trade worth making.
 #
-# THE ONE COLLISION THAT IS REAL IN THIS REPO, and it is not hypothetical: `HL7` is one of
-# our prefixes AND the name of the standards body whose TABLES this parser documents. An
-# HL7 v2 table reference is a four-digit number (Table 0396 code systems, Table 0003 event
-# types, Table 0076 message types), and written with a hyphen (`HL7-0396`) it is
-# typographically identical to one of our item identifiers. Our identifiers are letters or
-# short letter-words (`HL7-N`, `HL7-ESC`, `HL7-VALUE-REDECODE`), never a bare four-digit
-# number, so the lookahead below costs nothing and protects the reference material. The
-# docs happen to write "HL7 Table 0396" with a space today, so nothing in this tree relies
-# on it; it is here because the next author will not know, and the negative self-test
-# asserts it so a later "simplification" cannot quietly drop it.
+# The collisions this rule has to survive are not hypothetical, and both were found by a
+# refuter against an earlier draft of this file rather than by design. An HL7 v2 TABLE
+# reference is a three- or four-digit number (Table 0396 code systems, Table 0003 event
+# types, Table 0076 message types) and written with a hyphen it is typographically
+# identical to one of our item identifiers; and `HL7-V2`, `FHIR-R4`, `DICOM-SR`,
+# `NCPDP-SCRIPT` and `X12-837P` are standards designations a consumer needs. Both are
+# excluded by name above, and both are asserted in NEGATIVE[0] so a later "simplification"
+# cannot quietly drop them.
 RULE_NAME[0]='internal project identifier'
-RULE_PATTERN[0]='\b(?!HL7-\d{4}\b)(?:'"$PROJECT_PREFIXES"')(?:-[A-Z0-9][A-Z0-9.]*)+\b|\bP\d+ (?:safety|documentation)\b'
+RULE_PATTERN[0]='\b(?!(?:'"$STANDARDS_DESIGNATION"')\b)(?:'"$PROJECT_PREFIXES"')(?:-[A-Z0-9][A-Z0-9.]*)+\b|\bP\d+ (?:safety|documentation)\b'
 
 # Rule 2: phase and wave language. CASE INSENSITIVE via the inline `(?i)`, because the
 # rules do not share a case policy and one `grep -i` for all of them would break trap (3).
 # `Phase 5b` and `Phase W` are both covered (trap 4). The negative lookahead keeps ordinary
 # English off the list, so "in phase with the source system" and "out of phase" survive.
+#
+# TWO GUARDS THAT ARE NOT IN THE SOURCE RULE, both added because `phase` is real HL7 v2
+# clinical vocabulary and this is the repo where that bites. `CSP` is in this parser's own
+# `src/parser/known-segments.ts`: the Chapter 7 **Clinical Study Phase** segment, whose
+# field names are literally `CSP-1 Study Phase Identifier`, `CSP-2 Study Phase Start
+# Date/Time`, `CSP-3 Study Phase End Date/Time` and `CSP-4 Study Phase Evaluability`. A
+# rule that flags those tells the remediator to rewrite an HL7 field name, which is trap (1)
+# arriving through the phase rule instead of the identifier rule. So:
+#   * the lookbehinds drop `study|clinical|trial` and the ordinary clinical senses
+#     (`acute|chronic|luteal|follicular|liquid|gas`) before `phase`;
+#   * the lookahead drops the CSP field-name tails and the clinical-trial roman numerals
+#     when they are followed by trial vocabulary (`Phase III oncology trial`).
+# A BARE `Phase III` is still flagged, because it is genuinely ambiguous with our own
+# single-letter items and a loud red on a rare line beats a silent hole. `phase[ -]` rather
+# than `phase ` is the other change: `Phase-L` was live in this repo's own docs and slipped
+# a space-only rule.
 ORDINAL='(?:first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth|thirteenth|fourteenth|fifteenth|sixteenth|seventeenth|eighteenth|nineteenth|twentieth|twenty-first|twenty-second|twenty-third|twenty-fourth|\d+(?:st|nd|rd|th))'
+PHASE_NOT_CLINICAL='(?<!study )(?<!clinical )(?<!trial )(?<!acute )(?<!chronic )(?<!luteal )(?<!follicular )(?<!liquid )(?<!gas )'
+PHASE_NOT_FIELD='(?!of\b|with\b|in\b|out\b|the\b|and\b|is\b|for\b|to\b|identifier\b|start\b|end\b|evaluability\b|number\b|(?:I{1,3}|IV)\s+(?:trial|stud|clinical|oncolog))'
 RULE_NAME[1]='phase or wave language'
-RULE_PATTERN[1]='(?i)\b(?:roadmap phase\b[ ]?[A-Za-z0-9]*|phase (?!of\b|with\b|in\b|out\b|the\b|and\b|is\b|for\b|to\b)[A-Za-z0-9]+[a-z]?\b|wave \d+\b|the \w+ and final phase\b|documentation residual\b|'"$ORDINAL"' (?:slice|wave)\b)'
+RULE_PATTERN[1]='(?i)\b(?:roadmap phase\b[ ]?[A-Za-z0-9]*|'"$PHASE_NOT_CLINICAL"'phase[ -]'"$PHASE_NOT_FIELD"'[A-Za-z0-9]+[a-z]?\b|wave \d+\b|the \w+ and final phase\b|documentation residual\b|'"$ORDINAL"' (?:slice|wave)\b)'
 
 # Rule 3: ADR references. An ADR number is a pointer into a repo the reader cannot open.
 RULE_NAME[2]='ADR reference'
@@ -232,9 +278,16 @@ RULE_PATTERN[2]='(?i)\bADR[ -]?\d{3,4}\b'
 # SliceProgressionDirection, SliceSensitivityFactor). A modifier may sit between the
 # determiner and the noun ("the misfiling-prevention slice") but a preposition may not:
 # "the Number of Slices" is a DICOM attribute, not one of our units of work.
+#
+# `phase` is matched here as well as in rule 1, because "non-goals of this phase" and "the
+# failure this phase guards against" carry no identifier for rule 1 to key on and are just
+# as opaque to a reader. The clinical modifiers are excluded from the modifier slot for the
+# same reason rule 1 excludes them: "the study phase" and "the acute phase" are the
+# reader's words, not ours.
 IMAGING_NOUNS='thickness|location|spacing|position|interval|order|number|index|gap|count|data|pixel|orientation|plane|direction|width|vector|sensitivity|progression|factor'
-RULE_NAME[3]='internal jargon ("slice")'
-RULE_PATTERN[3]='(?i)\b(?:this|that|the|each|another|previous|next|final|current)\s+(?:(?!(?:of|in|on|between|per|for|to|with|at)\s)[\w-]+\s+){0,2}slices?\b(?!\s+(?:'"$IMAGING_NOUNS"'))'
+CLINICAL_MODIFIERS='study|clinical|trial|treatment|acute|chronic|luteal|follicular|liquid|gas|solid|stationary'
+RULE_NAME[3]='internal jargon ("slice", "phase")'
+RULE_PATTERN[3]='(?i)\b(?:this|that|the|each|another|previous|next|final|current)\s+(?:(?!(?:of|in|on|between|per|for|to|with|at|'"$CLINICAL_MODIFIERS"')\s)[\w-]+\s+){0,2}(?:slice|phase)s?\b(?!\s+(?:'"$IMAGING_NOUNS"'))'
 
 # Rule 5: internal repo paths. This is the ONE rule not present in release-notes.mjs, and
 # it is added rather than lifted because a release body is prose while a docs page carries
@@ -279,18 +332,18 @@ self_test_fail() {
 
 # rule index -> text that MUST match
 POSITIVE[0]='Item HL7-N is done, and CCDA-P7 with it'
-POSITIVE[1]='Phase 5b closes it (Phase W and the thirteenth slice landed earlier, in wave 2)'
+POSITIVE[1]='Phase 5b closes it (Phase W, Phase-L and the thirteenth slice landed earlier, in wave 2)'
 POSITIVE[2]='Decided in ADR 0015 and restated in ADR-0021'
-POSITIVE[3]='This slice adds the helper; the final slice removes it'
+POSITIVE[3]='This slice adds the helper; the final slice removes it; non-goals of this phase'
 POSITIVE[4]='Roadmap operations/roadmaps/hl7.md and documentation/decisions/0015-x.md'
 POSITIVE[5]='Repeating [S-NTE], and Open-question #12 resolves the direction'
 
 # rule index -> text that must NOT match. Every entry is real reference material from an
 # HL7, X12, DICOM or FHIR context, or ordinary English that collides with our jargon.
-NEGATIVE[0]='MSH-2 encoding characters, PID-3 identifier list, OBX-5 value, SCH-11 timing, TQ1-7 start, NM1-03 name, ICD-10-CM P00-P96, FHIR-bridge stability, docs-content/ layout, HL7-defined tables, HL7-0396 and HL7-0003, 835 remittance'
-NEGATIVE[1]='The adapter stays in phase with the source system and is out of phase for the second reconciliation'
+NEGATIVE[0]='MSH-2 encoding characters, PID-3 identifier list, OBX-5 value, SCH-11 timing, TQ1-7 start, NM1-03 name, PKG-1 and PKG-4 packaging, ICD-10-CM P00-P96, FHIR-bridge stability, docs-content/ layout, HL7-defined tables, HL7-0396 and HL7-0003 and HL7-396, HL7-V2 and HL7-CDA, FHIR-R4, DICOM-SR and DICOM-RT, NCPDP-SCRIPT and NCPDP-D.0, X12-837P and X12-005010, 835 remittance'
+NEGATIVE[1]='CSP-1 Study Phase Identifier, CSP-2 Study Phase Start Date/Time, CSP-3 Study Phase End Date/Time, CSP-4 Study Phase Evaluability; a Phase III oncology trial and a Phase II study; the acute phase reactant; the adapter stays in phase with the source system and is out of phase'
 NEGATIVE[2]='ADR is not a segment, and 0015 alone is a value'
-NEGATIVE[3]='The slice thickness and the number of slices are DICOM attributes, and each slice location is too'
+NEGATIVE[3]='The slice thickness and the number of slices are DICOM attributes, each slice location is too, and the study phase, the acute phase and the treatment phase are the clinical senses'
 NEGATIVE[4]='Parser operations are documented in the README, and documentation for the API is generated'
 NEGATIVE[5]='A character range like [S-Z], a value set written [SNOMED], and open questions about the feed'
 
@@ -317,7 +370,9 @@ ERRLOG=$(mktemp)
 FILELIST=$(mktemp)
 SCANLIST=$(mktemp)
 NPMBUF=$(mktemp)
-trap 'rm -f "$ERRLOG" "$FILELIST" "$SCANLIST" "$NPMBUF"' EXIT
+REFLOWBUF=$(mktemp)
+RAWBUF=$(mktemp)
+trap 'rm -f "$ERRLOG" "$FILELIST" "$SCANLIST" "$NPMBUF" "$REFLOWBUF" "$RAWBUF"' EXIT
 
 refuse_if_incomplete() {
   [ -s "$ERRLOG" ] || return 0
@@ -382,10 +437,17 @@ for p in "${SURFACE_PATHS[@]}"; do
 done
 
 # DRIFT TRIPWIRE on the npm tarball. `files` in package.json decides what a consumer
-# actually receives, so a new prose file added there is new public surface that this gate
-# would not know about. Rather than let that pass silently, refuse until someone puts it in
-# SURFACE_PATHS or names it here as deliberately excluded. CHANGELOG.md is the one standing
-# exclusion; see SCAN SURFACE above for why it is contested rather than settled.
+# actually receives, so anything added there is new public surface this gate would not know
+# about. Rather than let that pass silently, refuse until someone puts it in SURFACE_PATHS
+# or names it below as deliberately excluded.
+#
+# EVERY entry is checked, not just the prose-looking ones. An earlier version filtered
+# `files` down to `*.md`/`*.txt`/`LICENSE` first, which discarded `dist` before checking and
+# so structurally could not see the tarball's largest prose payload: the compiled JSDoc in
+# `dist/index.d.ts`. A tripwire that cannot see the thing it was built to catch is the
+# `CI-REQUIRED-CHECKS` defect in miniature. The two standing exclusions are named with their
+# reasons in SCAN SURFACE above: `CHANGELOG.md` (contested, queued) and `dist` (a real hole,
+# measured, queued).
 command -v node >/dev/null || {
   echo "ERROR: check-no-internal-refs - node is required (to read package.json) and is not" >&2
   echo "       on PATH. Refusing to skip the npm-surface half of this gate." >&2
@@ -393,13 +455,14 @@ command -v node >/dev/null || {
 }
 UNKNOWN_TARBALL_DOCS=$(node -e '
   const pkg = JSON.parse(require("fs").readFileSync("package.json", "utf8"));
-  const known = new Set(["README.md", "TRADEMARKS.md", "LICENSE", "CHANGELOG.md"]);
-  const docs = (pkg.files ?? []).filter((f) => /\.(md|txt)$/i.test(f) || f === "LICENSE");
-  process.stdout.write(docs.filter((f) => !known.has(f)).join(" "));
+  // Scanned by this gate:            README.md, TRADEMARKS.md, LICENSE
+  // Excluded deliberately, reasons in SCAN SURFACE: CHANGELOG.md, dist
+  const known = new Set(["README.md", "TRADEMARKS.md", "LICENSE", "CHANGELOG.md", "dist"]);
+  process.stdout.write((pkg.files ?? []).filter((f) => !known.has(f)).join(" "));
 ')
 if [ -n "$UNKNOWN_TARBALL_DOCS" ]; then
-  echo "ERROR: check-no-internal-refs - package.json 'files' ships prose this gate does not" >&2
-  echo "       cover: $UNKNOWN_TARBALL_DOCS" >&2
+  echo "ERROR: check-no-internal-refs - package.json 'files' ships something this gate does" >&2
+  echo "       not cover: $UNKNOWN_TARBALL_DOCS" >&2
   echo "       That is public surface a consumer receives in the tarball. Add it to" >&2
   echo "       SURFACE_PATHS, or record it as a deliberate exclusion in this script." >&2
   exit 1
@@ -463,6 +526,14 @@ fi
 #   (8) A SCAN THAT DIED PART WAY THROUGH AND REPORTED CLEAN. grep's exit status cannot
 #       distinguish that from no-match. Closed by capturing stderr and refusing on any of
 #       it; see refuse_if_incomplete.
+#   (9) A VIOLATION THAT STRADDLES A LINE WRAP. Not inherited from the em-dash family at
+#       all: that gate matches a single character, so line anchoring costs it nothing. Every
+#       rule here except the bare identifier is multi-token, and this repo hard-wraps its
+#       markdown, so `A future phase` / `may add ...` was live in `docs-content/` with the
+#       gate printing OK over it. Closed by the paragraph-joined second pass at the bottom
+#       of this file. Found by a refuter, against a version of this file whose own route
+#       list said it was complete, which is the reason route (6) above is written the way
+#       it is.
 #
 # Also, and not a route so much as a standing choice: NO `-I`. `-I` skips anything grep's
 # heuristic calls binary, which includes a genuine TEXT file with a broken encoding, so a
@@ -541,6 +612,59 @@ while [ "$i" -lt "$RULE_COUNT" ]; do
   i=$((i + 1))
 done
 
+# ---------------------------------------------------------------------------
+# Second pass: the same rules over PARAGRAPH-JOINED text
+# ---------------------------------------------------------------------------
+#
+# WHY THIS EXISTS, and it is the route that made the first version of this gate print OK
+# over a live violation. Every rule above except the bare identifier is MULTI-TOKEN
+# (`phase X`, `wave N`, `this slice`, `roadmap phase K`, `P3 safety`), grep matches within a
+# line, and this repo hard-wraps its markdown at ~100 columns by house style. So a violation
+# that happens to straddle a wrap is invisible to the line scan. It was not hypothetical:
+# `docs-content/spec-notes-charset.md` read "... A future phase" / "may add opt-in decode
+# ...", the gate printed `check-no-internal-refs: OK`, and a reader of the rendered page
+# sees "A future phase may add" because markdown folds a soft line break into a space.
+#
+# So the file is joined the way markdown renders it (consecutive non-blank lines in a
+# paragraph become one line, blank lines stay blank) and scanned again. Line numbers are
+# lost by construction, so this pass reports the FILE and the MATCHED TEXT, and it reports
+# only matches the line pass did not already produce, which keeps a wrapped hit from being
+# printed twice in the same run.
+#
+# It cannot replace the line pass: that one gives line numbers, which is what a remediator
+# actually needs. It is additive, and its cost is a second grep per file per rule over a
+# handful of markdown files.
+while IFS= read -r -d '' f; do
+  : > "$ERRLOG"
+  awk '/^[[:space:]]*$/ { print ""; next } { printf "%s ", $0 } END { print "" }' "$f" \
+    > "$REFLOWBUF" 2>>"$ERRLOG"
+  refuse_if_incomplete
+
+  i=0
+  while [ "$i" -lt "$RULE_COUNT" ]; do
+    : > "$ERRLOG"
+    grep -oP -e "${RULE_PATTERN[$i]}" -- "$f" > "$RAWBUF" 2>>"$ERRLOG" || true
+    refuse_if_incomplete
+
+    : > "$ERRLOG"
+    FLOW_HITS=$(grep -oP -e "${RULE_PATTERN[$i]}" -- "$REFLOWBUF" 2>>"$ERRLOG" || true)
+    refuse_if_incomplete
+
+    if [ -n "$FLOW_HITS" ]; then
+      # Only what the line pass could not see. An empty RAWBUF means no line-pass match, and
+      # `grep -f` with no patterns selects nothing, so -v then keeps every wrapped hit.
+      EXTRA=$(printf '%s\n' "$FLOW_HITS" | grep -Fxv -f "$RAWBUF" | sort -u || true)
+      if [ -n "$EXTRA" ]; then
+        while IFS= read -r m; do
+          [ -n "$m" ] || continue
+          ALL_HITS="${ALL_HITS}[${RULE_NAME[$i]} / wrapped across lines]"$'\n'"${f}: ${m}"$'\n'
+        done <<< "$EXTRA"
+      fi
+    fi
+    i=$((i + 1))
+  done
+done < "$SCANLIST"
+
 [ -n "$ALL_HITS" ] && fail_with_hits "the public surface listed above" "$ALL_HITS"
 
-echo "check-no-internal-refs: OK (${scanned} public-surface file(s) and the npm metadata scanned against ${RULE_COUNT} rules; ${gitlinks} gitlink(s) skipped)"
+echo "check-no-internal-refs: OK (${scanned} public-surface file(s) and the npm metadata scanned against ${RULE_COUNT} rules, line by line and paragraph-joined; ${gitlinks} gitlink(s) skipped)"

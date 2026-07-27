@@ -114,14 +114,14 @@ both are present and **disagree** (after canonicalization, so `UNICODE UTF-8` an
 `UTF-8` are treated as equal), an **`ENCODING_MISMATCH`** warning is raised and
 the override wins.
 
-## Known limitations (non-goals of this phase)
+## Known limitations (non-goals)
 
 - **Multibyte / ISO-2022 East-Asian decode.** The JIS (`ISO IR14/87/159`),
   GB 18030, KS X 1001, CNS 11643, and BIG-5 sets are **recognized and preserved
   verbatim**, not decoded. HL7 renders these through stateful `\Mxxyyzz\`
   switches from an ASCII default; stateless whole-buffer decoding would mis-render
-  switched content, so correctness is preferred over a lossy guess. A future phase
-  may add opt-in decode when such a set is the *declared default*.
+  switched content, so correctness is preferred over a lossy guess. Opt-in decode,
+  for the case where such a set is the *declared default*, may be added later.
 - **Multibyte framing on the verbatim path.** A recognized-but-undecoded set is
   read as `latin1` and still tokenized, so a content byte that equals an HL7
   structural byte (the segment terminator CR (`0x0D`) / LF (`0x0A`), or a
