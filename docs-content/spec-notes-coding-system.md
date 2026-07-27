@@ -1,10 +1,10 @@
 ---
 id: spec-notes-coding-system
-title: "Spec notes: coding-system provenance (Phase F)"
+title: "Spec notes: coding-system provenance"
 sidebar_label: Coding-system provenance
 ---
 
-# Spec notes: coding-system provenance (Phase F)
+# Spec notes: coding-system provenance
 
 `@cosyte/hl7` surfaces the coding-system a code **claims** (CWE.3 / CE.3, "Name
 of Coding System"), drawn from **HL7 Table 0396 (Coding System)**. This is
@@ -53,12 +53,12 @@ carry.
   (`"LOINC"` → `LN`, `"SNOMED"` → `SCT`, `"RxNorm"` → `RXN`) while preserving
   the original spelling in `claimed`.
 
-## Known limitations after Phase F
+## Known limitations
 
 - Provenance is the sender's claim, **not verified**. A registered system with
   a wrong/deleted code still reports `known: true`.
 - The map is a *provenance* map, not a *versioned codeset*: code-system versions
-  move (LOINC twice-yearly, RxNorm monthly, ICD-10-CM annually) and this slice
+  move (LOINC twice-yearly, RxNorm monthly, ICD-10-CM annually) and the map
   intentionally pins no version.
 - Subset, not the full Table 0396. An unlisted-but-registered system reports
   `known: false`; widening the subset is additive future work.

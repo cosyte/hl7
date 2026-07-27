@@ -251,7 +251,7 @@ for (const charge of parseHL7(raw).charges()) {
 }
 ```
 
-These are **breadth** helpers: they surface the common trigger events' core fields, not a scheduling-workflow state machine, signature verification, or a claims/pricing engine (see the roadmap's known-limitations).
+These are **breadth** helpers: they surface the common trigger events' core fields, not a scheduling-workflow state machine, signature verification, or a claims/pricing engine (see the known limitations in the docs).
 
 ### Order & medication timing
 

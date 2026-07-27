@@ -1,10 +1,10 @@
 ---
 id: spec-notes-batch
-title: "Spec notes: batch / file envelope splitting (Phase L)"
+title: "Spec notes: batch / file envelope splitting"
 sidebar_label: Batch & file envelopes
 ---
 
-# Spec notes: batch / file envelope splitting (Phase L)
+# Spec notes: batch / file envelope splitting
 
 `splitBatch(raw, optionsOrProfile?)` demarcates the individual `MSH`-led
 messages inside an HL7 v2 **batch / file** stream and hands each one back
@@ -42,7 +42,7 @@ HL7 v2 Chapter 2, the batch protocol:
   report / ack-errored-only) on an **exception basis**. Batch ACK is **out of
   scope** for the splitter (see non-goals).
 
-Real-world grounding (all verified 3-0 in the Phase-L research pass):
+Real-world grounding:
 
 - **National CDC/APHL ELR** makes batching **optional**: the Lab-to-EHR
   profile defines no envelope. A bare message must therefore pass straight

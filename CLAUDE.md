@@ -53,3 +53,12 @@ Mirrors the three disciplines in `documentation/conventions.md`. They bind here 
    `[Unreleased]` entry per meaningful change. Renaming a stable warning code is a breaking change.
 3. **Crew + knowledgebase loop**: if a parser's public API or warning codes change, flag/update the
    matching `crew` healthcare skill (`hl7v2-message-author`) + the KB product doc.
+4. **No internal project bookkeeping on a public surface** (founder directive, 2026-07-27). What a
+   consumer reads (`README.md`, `docs-content/`, the npm `description`, a release body) says what the
+   software does and what changed. Item identifiers (`HL7-N`), phase and wave language, ADR numbers,
+   meta-repo paths and "how this got built" commentary belong in the changeset, `CHANGELOG.md`, the
+   commit, the PR and the roadmap. It is a **translation** at the boundary, not a deletion, and when
+   you strip an identifier off the front of a line, repair the head: a fragment reads worse than the
+   text it replaced. Gated by `pnpm check:no-internal-refs`. The gate keys on known project prefixes,
+   so **a new programme prefix has to be added to it by hand**; and it catches identifiers, not
+   English sentences about our process, so the reviewer still owns half the rule.

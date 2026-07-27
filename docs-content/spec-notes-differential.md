@@ -1,10 +1,10 @@
 ---
 id: spec-notes-differential
-title: "Spec notes: differential testing against external oracles (HL7-J)"
+title: "Spec notes: differential testing against external oracles"
 sidebar_label: Differential testing
 ---
 
-# Spec notes: differential testing against external oracles (HL7-J)
+# Spec notes: differential testing against external oracles
 
 `test/differential/differential.test.ts` parses the canonical corpus
 (`test/fixtures/canonical/*.hl7`, 27 fixtures spanning ADT/ORU/ORM/SIU/MDM/DFT/RDE/RDS/VXU trigger

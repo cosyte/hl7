@@ -1,10 +1,10 @@
 ---
 id: spec-notes-charset
-title: "Spec notes: character-set / encoding decode (Phase O)"
+title: "Spec notes: character-set / encoding decode"
 sidebar_label: Character sets (MSH-18)
 ---
 
-# Spec notes: character-set / encoding decode (Phase O)
+# Spec notes: character-set / encoding decode
 
 `parseHL7` accepts a `Buffer` as well as a `string`. When you hand it bytes, it
 resolves the message's declared character set from **MSH-18** and decodes the
@@ -35,7 +35,7 @@ HL7 v2 Chapter 2:
   ASCII** (the default repertoire, ISO IR6).
 - **§2.7.4 (charset-switch escapes):** `\Cxxyy\` (single-byte) and
   `\Mxxyyzz\` (multi-byte; `zz` optional) name an alternate repertoire inline.
-  These are **recognized** (the escape layer, Phase A, preserves them verbatim:
+  These are **recognized** (the escape layer preserves them verbatim:
   no `UNKNOWN_ESCAPE_SEQUENCE`); full stateful ISO-2022 rendering of the switched
   bytes is a documented non-goal (see limitations).
 
@@ -114,14 +114,14 @@ both are present and **disagree** (after canonicalization, so `UNICODE UTF-8` an
 `UTF-8` are treated as equal), an **`ENCODING_MISMATCH`** warning is raised and
 the override wins.
 
-## Known limitations (non-goals of this phase)
+## Known limitations (non-goals)
 
 - **Multibyte / ISO-2022 East-Asian decode.** The JIS (`ISO IR14/87/159`),
   GB 18030, KS X 1001, CNS 11643, and BIG-5 sets are **recognized and preserved
   verbatim**, not decoded. HL7 renders these through stateful `\Mxxyyzz\`
   switches from an ASCII default; stateless whole-buffer decoding would mis-render
-  switched content, so correctness is preferred over a lossy guess. A future phase
-  may add opt-in decode when such a set is the *declared default*.
+  switched content, so correctness is preferred over a lossy guess. Opt-in decode,
+  for the case where such a set is the *declared default*, may be added later.
 - **Multibyte framing on the verbatim path.** A recognized-but-undecoded set is
   read as `latin1` and still tokenized, so a content byte that equals an HL7
   structural byte (the segment terminator CR (`0x0D`) / LF (`0x0A`), or a

@@ -1,15 +1,15 @@
 ---
 id: spec-notes-identity
-title: "Spec notes: patient-identity / merge events (Phase K)"
+title: "Spec notes: patient-identity / merge events"
 sidebar_label: Patient-identity & merge events
 ---
 
-# Spec notes: patient-identity / merge events (Phase K)
+# Spec notes: patient-identity / merge events
 
 `msg.identityEvents()` is the read-side surface for the ADT identity-management
 trigger events. It exists for one safety-critical reason: **a mis-applied
 patient merge conflates two patients or orphans clinical data under a retired
-MRN**, the highest-harm unmodelled ADT path before Phase K. The helper's job
+MRN**, the highest-harm ADT path the library previously left unmodelled. The helper's job
 is to hand the consumer both sides of the merge, *labelled by role*, so the
 consumer can never accidentally retire the survivor.
 
