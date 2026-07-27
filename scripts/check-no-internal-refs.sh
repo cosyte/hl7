@@ -130,7 +130,7 @@
 #                          script nor CI can check it without building first, and that is
 #                          part of why the hole is real.
 #                          They are NOT swept and NOT gated here, deliberately: remediating
-#                          ~280 source doc comments is a change to every module in the
+#                          ~290 source doc comments is a change to every module in the
 #                          package, it wants its own review, and doing it inside a CI slice
 #                          is how a docs sweep turns into an unreviewed source-wide diff.
 #                          It is queued on PUBLIC-SURFACE-HYGIENE in the meta-repo. What is
@@ -175,12 +175,6 @@
 #         came to exist. Two of them were found by a refuter AFTER the sweep claimed to be
 #         complete, which is the honest measure of how much of this rule the gate carries.
 #         The gate raises the floor; it does not replace the reviewer's half of the rule.
-#   (vii) DETERMINER-PLUS-`phase` IS NOT CAUGHT. "the non-goals of this phase" and "the
-#         failure this phase guards against" carry no identifier, so nothing keys on them.
-#         A rule for it was written, measured, and REMOVED: see rule 3 for what it cost in
-#         clinical phrasing. Rule 1 still catches `phase X`; this construction is a
-#         reviewer's catch, and saying so is better than a rule that reds an HL7 page for
-#         using the word correctly.
 #   (vi)  `D-NN` INTERNAL DECISION NUMBERS ARE NOT CAUGHT, deliberately. This repo numbers
 #         its design decisions `D-01`, `D-02`, `D-18`, they appear across `src/` comments,
 #         and two of them reached `docs-content/spec-notes-differential.md` as public
@@ -191,6 +185,32 @@
 #         widening away from corrupting a code. Retiring the convention, or renaming it to
 #         something a reader can use, is a separate deliberate change and is queued on
 #         PUBLIC-SURFACE-HYGIENE rather than smuggled in here.
+#   (vii) `phase` AT THE END OF A CLAUSE IS NOT CAUGHT. Measured rather than assumed: rule 1
+#         DOES catch the running-prose forms, because it keys on `phase` plus a following
+#         word, so `phase guards`, `phase are` and `phase adds` all red. What escapes is
+#         `phase` with nothing after it but punctuation or a line end, which is the shape of
+#         "the non-goals of this phase". A rule for the determiner form was written,
+#         measured and REMOVED (see rule 3) because of what it cost in clinical phrasing, so
+#         this one is a reviewer's catch.
+#  (viii) RULE 1 HAS A KNOWN FALSE POSITIVE ON DICOM MR VOCABULARY: `phase encoding`.
+#         `InPlanePhaseEncodingDirection` is a real DICOM attribute and "the phase encoding
+#         direction" is correct reference material, but rule 1 sees `phase` plus a following
+#         word and reds, telling the author to rewrite something that was right. It is not
+#         reachable in this repo today, and this package documents imaging orders and the
+#         FHIR bridge, so a future page on MR could hit it. It is NOT fixed here: adding
+#         `encoding` to the field-name lookahead is a mechanism change, and the pass that
+#         could have graded one has been spent. Queued on PUBLIC-SURFACE-HYGIENE with the
+#         same fix shape as the CSP guards.
+#   (ix)  A VIOLATION SPLIT BY INLINE MARKUP REJOINS IN NEITHER PASS. `phase **K**` and
+#         `phase [K](...)` put markup between the two tokens, and neither the line scan nor
+#         the paragraph join strips it, so a multi-token rule does not match. Closing it
+#         needs a markdown renderer, not a bigger regex. Stated because a reader of the
+#         second pass could otherwise assume it normalises markup as well as whitespace.
+#   (x)   A WRAP AFTER TRAILING WHITESPACE. A line ending in a space or two (a markdown hard
+#         break) joins with an extra separator that the squeeze removes, so this one is
+#         actually covered; but a line ending in a backslash hard break keeps the backslash
+#         in the joined text and would sit between the two tokens, like (ix). Zero instances
+#         in this corpus today.
 #
 # Run it locally with `pnpm check:no-internal-refs`.
 set -euo pipefail
@@ -294,8 +314,8 @@ RULE_PATTERN[2]='(?i)\bADR[ -]?\d{3,4}\b'
 # `phase` IS DELIBERATELY NOT MATCHED HERE, and it was, for one revision. A refuter pass
 # added it to catch "non-goals of this phase"; the next pass measured what it cost and the
 # answer was ordinary clinical English: "the phase of the clinical study", "the phase of
-# illness", "each phase of the trial", "the phase encoding direction" (a real DICOM MR
-# attribute). No modifier exclusion list rescues that, because the collision is with the
+# illness" and "each phase of the trial". No modifier exclusion list rescues that, because
+# the collision is with the
 # HEAD noun rather than the modifier. So this rule is back to the lifted `slice` form and
 # the determiner-plus-`phase` construction is a STATED RESIDUAL, not a covered case: rule 1
 # still catches `phase X`, and "of this phase" with no following identifier is a reviewer's
@@ -360,7 +380,7 @@ POSITIVE[5]='Repeating [S-NTE], and Open-question #12 resolves the direction'
 NEGATIVE[0]='MSH-2 encoding characters, PID-3 identifier list, OBX-5 value, SCH-11 timing, TQ1-7 start, NM1-03 name, PKG-1 and PKG-4 packaging, ICD-10-CM P00-P96, FHIR-bridge stability, docs-content/ layout, HL7-defined tables, HL7-0396 and HL7-0003 and HL7-396, HL7-V2 and HL7-CDA, FHIR-R4, DICOM-SR and DICOM-RT, NCPDP-SCRIPT and NCPDP-D.0, X12-837P and X12-005010, 835 remittance'
 NEGATIVE[1]='CSP-1 Study Phase Identifier, CSP-2 Study Phase Start Date/Time, CSP-3 Study Phase End Date/Time, CSP-4 Study Phase Evaluability; a Phase III oncology trial and a Phase II study; the acute phase reactant; the adapter stays in phase with the source system and is out of phase'
 NEGATIVE[2]='ADR is not a segment, and 0015 alone is a value'
-NEGATIVE[3]='The slice thickness and the number of slices are DICOM attributes, each slice location is too, and the phase of the clinical study, the phase of illness and the phase encoding direction are the reader words this rule must not touch'
+NEGATIVE[3]='The slice thickness and the number of slices are DICOM attributes, each slice location is too, and the phase of the clinical study, the phase of illness and each phase of the trial are the reader words this rule must not touch'
 NEGATIVE[4]='Parser operations are documented in the README, and documentation for the API is generated'
 NEGATIVE[5]='A character range like [S-Z], a value set written [SNOMED], and open questions about the feed'
 

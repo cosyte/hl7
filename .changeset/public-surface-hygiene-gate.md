@@ -25,7 +25,7 @@ Each rule therefore carries a negative self-test built from real HL7, X12 and DI
 as a positive one, so widening it into that shape reds the gate rather than corrupting a segment
 reference on the next sweep. Where a rule could not be guarded it was cut rather than hardened:
 `phase` after a determiner is not detected at all, because catching "the non-goals of this phase"
-also caught "the phase of the clinical study" and "the phase encoding direction".
+also caught "the phase of the clinical study" and "the phase of illness".
 
 The scan harness is the em-dash gate's, in mllp's single-command `./`-prefixed variant, and every
 silent-green route it closes was checked red against a seeded violation. Every rule is applied twice:

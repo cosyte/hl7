@@ -47,7 +47,7 @@ precision` reads worse than the text it replaced. The datetime page needed more 
   a rule into the `WORD-N` shape reds the gate instead of silently corrupting a segment reference on
   the next sweep. Where a rule could not be guarded it was **cut** instead: `phase` after a
   determiner ("the non-goals of this phase") is not detected at all, because catching it also caught
-  "the phase of the clinical study" and "the phase encoding direction", and when the collision is
+  "the phase of the clinical study" and "the phase of illness", and when the collision is
   with clinical reference material the reference material wins. The scan harness is the em-dash gate's,
   in mllp's variant: scan list built and `./`-prefixed in one loop so the scan stays a single command
   with stderr bound to all of it, no `sed -z`, no `-d skip`, no `-I`, `-e`/`--`, `-0 -r`, and a
@@ -57,8 +57,9 @@ precision` reads worse than the text it replaced. The datetime page needed more 
   are multi-token and this repo hard-wraps markdown: a violation straddling a wrap was invisible to a
   line scan and one was live (`A future phase` / `may add opt-in decode`, with the gate printing OK).
   The join squeezes whitespace the way markdown does, which is load-bearing rather than cosmetic: a
-  verbatim join leaves the continuation line's indentation in place, and 601 lines of `docs-content/`
-  start indented, so the pass would have missed the dominant wrap shape while reporting that it ran.
+  verbatim join leaves the continuation line's indentation in place, and about 600 lines of
+  `docs-content/` start indented, so the pass would have missed the dominant wrap shape while
+  reporting that it ran.
   It scans the public surface only (`README.md`, `TRADEMARKS.md`, `LICENSE`, `docs-content/`, and the
   npm `description` and `keywords`) because the same identifier is required on the inside:
   `CHANGELOG.md`, `.changeset/`, commits and PRs are where it belongs. A tripwire refuses the run if
