@@ -153,7 +153,7 @@ function dispatchValue(valueType: string, valueField: Field, common: Observation
 
 /**
  * Build a single `Observation` from one OBX `Segment`. Value is dispatched
- * by OBX-2 per D-13; common fields follow D-15. Exported so Plan 04's
+ * by OBX-2 per D-13; common fields follow D-15. Exported so
  * `orders()` can reuse this per-segment builder when grouping OBX under OBR
  * positionally (D-12): do NOT re-implement OBX → Observation construction
  * there.

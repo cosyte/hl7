@@ -1,5 +1,5 @@
 /**
- * Build the multi-line `describe()` output per Plan 06-01 D-04. Omits
+ * Build the multi-line `describe()` output per D-04. Omits
  * lines for absent fields (exactOptionalPropertyTypes idiom: mirrors
  * `src/helpers/meta.ts::buildMeta`); lineage rendered as `a → b → c`
  * when more than one name is present.

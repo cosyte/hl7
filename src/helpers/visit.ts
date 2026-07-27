@@ -8,7 +8,7 @@
  *   - D-04 nullable: returns `undefined` when no PV1 segment is present.
  *   - admit/discharge timestamps are the fidelity `TS` (precision +
  *     timezone preserved), not an eager `Date`.
- *   - D-24 option (a): attendingDoctor/referringDoctor use the Plan 01
+ *   - D-24 option (a): attendingDoctor/referringDoctor use the
  *     `Field.asXcn()` coercion (composite, not flat string).
  *   - D-01 freeze at boundary: the returned Visit is frozen.
  *   - D-22 never-throws: every field reaches a safe default when absent or

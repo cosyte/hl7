@@ -1,7 +1,7 @@
 /**
  * CWE: HL7 v2 Coded with Exceptions composite. 9-component coded-element
  * shape parsed from a `RawRepetition` on demand by `Field.asCwe()` (wired in
- * Plan 04). Fields are OMITTED when absent (exactOptionalPropertyTypes),
+ * `Field.asCwe()`). Fields are OMITTED when absent (exactOptionalPropertyTypes),
  * NEVER set to `undefined`.
  *
  * Note: full HL7 v2.6+ CWE has 22 components. v1 of this library ships the 9

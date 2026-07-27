@@ -125,7 +125,7 @@ function discriminateOptionsOrProfile(arg: ParseOptions | Profile | undefined): 
  * set of values `Hl7ParseError.code` can take without widening the
  * compile-time type: consumers narrow on `err.code` after catching.
  * See the `as unknown as` comment in the implementation for the
- * justification (Plan 06 decision (b)).
+ * justification.
  *
  * @internal
  */
@@ -300,7 +300,7 @@ function resolveBufferCharset(
 
 /**
  * Read MSH-12 (version) from the first tokenized segment. Per the unified
- * HL7 1-indexed convention locked in Plan 03, `fields[0]` is the
+ * HL7 1-indexed convention, `fields[0]` is the
  * separator/name placeholder, `fields[1]` is MSH-2 (encoding chars),
  * `fields[11]` is MSH-12 (version). Returns the empty string when the
  * first segment is absent, not an MSH, or MSH-12 has no content: the

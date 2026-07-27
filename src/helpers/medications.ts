@@ -233,7 +233,7 @@ function finalize(
 
 /**
  * Every RXO/RXE/RXD/RXA as a typed `Medication`, with RXR (route) and RXC
- * (component) segments grouped positionally under the preceding RX* parent
+ * (component) segments grouped positionally under the preceding RX* parent.
  * Document order. Returns `[]` when no RX* parent is present. NOT memoized:
  * each call re-walks `msg.allSegments()`. Never throws (HELPERS-07).
  *
@@ -241,7 +241,7 @@ function finalize(
  * (`giveCode.nameOfCodingSystem`). The give *amount* and the give *strength*
  * are surfaced as separate fields and are never reconciled: a strength a
  * coded drug implies is never used to validate or overwrite the explicit
- * RXE-25/26 strength .
+ * RXE-25/26 strength fields.
  *
  * @example
  * ```ts

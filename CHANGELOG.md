@@ -25,7 +25,9 @@ per the cosyte version ladder (`0.0.x` until first alpha).
   **164 distinct lines into `dist/index.d.ts`** (137 phase-rule, 22 identifier-rule, 5 ADR,
   1 jargon, 1 traceability). After: **0 on every rule, in `src/` doc comments and in both built
   declaration files.** A consumer hovering `parseHL7`, `defineProfile`, `Medication` or
-  `buildMessage` no longer reads which internal phase built it.
+  `buildMessage` no longer reads which internal phase built it. Eighteen `Plan N` build-order
+  lines were swept in the same pass, by hand: no rule catches them, and they contradicted the
+  `CLAUDE.md` sentence this change adds.
 
   **Identifiers were translated, never deleted, and no public export lost its documentation.**
   That is measured, not asserted: the built `dist/index.d.ts` carries **691 doc-comment blocks,
@@ -60,13 +62,20 @@ per the cosyte version ladder (`0.0.x` until first alpha).
   extractor that strips the comment leader before testing the terminator reporting 66 false hits
   on a clean tree; and an extractor that yields nothing refusing to report green.
 
-  **The ceiling is stated rather than implied shut.** `dist/` is untracked build output, so no
-  checked-in gate can read it: this gates dist's _source_, which holds only because the dts build
-  copies doc text verbatim. The `164` figure is a hand-taken snapshot. `D-NN` internal decision
-  numbers still ship in `dist/` and are deliberately not caught, for the same reason as in the
-  prose rules: legacy SNOMED RT codes are axis-prefixed in exactly that shape (`D-13000`,
-  `T-32000`, `M-80003`). Two "the per-X slice of Y" false positives, where `slice` means portion,
-  were fixed by rewording rather than by narrowing the rule.
+  **The ceiling is stated rather than implied shut, and "0 on all six rules" is a statement about
+  these rules, not about the founder's rule.** Measured on the built `dist/index.d.ts`, what still
+  ships is **144 lines carrying `D-NN` internal decision numbers** and **50 lines carrying item
+  identifiers from prefixes the list does not hold** (`HELPERS-07`, `PROF-07`, `MODEL-05`,
+  `BIP-01..09`, `SER-01/03/04/06`, `PARSE-02`, `WR-04`, `TOL-02`). `D-NN` is the deliberate
+  non-catch it has always been, because legacy SNOMED RT codes are axis-prefixed in exactly that
+  shape (`D-13000`, `T-32000`, `M-80003`). The item identifiers need new prefixes added to the
+  list, which is a **rule** change needing its own negative self-tests (`SER`, `WR`, `TOL` and
+  `BIP` are exactly the short generic tokens that made `PKG` unsafe), so it is not smuggled in on
+  the back of a prose sweep. Separately, `dist/` is untracked build output, so no checked-in gate
+  can read it: this gates dist's _source_, which holds only because the dts build copies doc text
+  verbatim, and the `164` figure is a hand-taken snapshot. Two "the per-X slice of Y" false
+  positives, where `slice` means portion, were fixed by rewording rather than by narrowing the
+  rule.
 
   Documentation, tooling and CI only. No change to the published package surface, parser
   behavior, or warning codes.

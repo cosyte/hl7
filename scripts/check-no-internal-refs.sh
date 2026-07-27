@@ -228,13 +228,25 @@
 #         clearer words anyway. If a third instance appears where no rewrite reads well,
 #         that is the signal to narrow the rule and assert the phrasing in SRC_NEGATIVE[3],
 #         not to widen an exclusion quietly.
-# (xiii)  `D-NN` INTERNAL DECISION NUMBERS SURVIVE IN `src/` DOC COMMENTS, and therefore in
-#         `dist/`, in some volume. They are the same deliberate non-catch as residual (vi):
-#         a single-letter prefix rule collides with legacy SNOMED RT axis codes (`D-13000`,
-#         `T-32000`, `M-80003`). So `dist/index.d.ts` still ships "D-05: returns `[]` when
-#         no RX* parent present" and its siblings. That is internal bookkeeping on a public
-#         surface by the founder's rule, it is NOT covered here, and it is the largest
-#         remaining gap on this surface. Queued on PUBLIC-SURFACE-HYGIENE, not decided here.
+# (xiii)  WHAT STILL SHIPS IN `dist/`, MEASURED, because "0 on all six rules" is a statement
+#         about THESE RULES and not about the founder's rule, and the difference is the
+#         honest part. Counted on the built `dist/index.d.ts` at the commit that added this
+#         pass:
+#           * 144 lines carrying `D-NN` INTERNAL DECISION NUMBERS. The same deliberate
+#             non-catch as residual (vi): a single-letter prefix rule collides with legacy
+#             SNOMED RT axis codes (`D-13000`, `T-32000`, `M-80003`).
+#           * 50 lines carrying ITEM IDENTIFIERS FROM PREFIXES THIS LIST DOES NOT HOLD:
+#             `HELPERS-07` (5), `PROF-07` (4), `HELPERS-06` (4), `MODEL-05` (3),
+#             `HELPERS-03` (3), `BIP-01..09`, `SER-01/03/04/06`, `PARSE-02`, `WR-04`,
+#             `TOL-02`. Catching them means ADDING PREFIXES, which is the documented
+#             by-hand mechanism in trap (1) -- and it is a RULE CHANGE, so it needs its own
+#             negative self-tests before it lands. `SER`, `WR`, `TOL` and `BIP` are exactly
+#             the short, generic-looking tokens that made `PKG` unsafe. Not smuggled in
+#             here on the back of a prose sweep. Queued on PUBLIC-SURFACE-HYGIENE.
+#         `Plan N` BUILD-ORDER FRAMING was in this list too, at 18 lines, and was SWEPT by
+#         hand rather than deferred: it is prose, not a rule change, and it contradicted
+#         the `CLAUDE.md` sentence this same change added. It remains ungated for the same
+#         reason the item identifiers are: `Plan \d+` has no safe prefix.
 #  (xiv)  THE THIRD PASS SWEEPS DOC COMMENTS THAT NEVER REACH AN EXPORTED DECLARATION, so it
 #         is broader than `dist/` strictly requires. Deliberate: which comments survive the
 #         dts rollup is a property of the BUILD, and a gate whose answer depends on tsup
@@ -895,13 +907,16 @@ fi
 : > "$ERRLOG"
 while IFS= read -r -d '' f; do
   awk -v file="$f" -v dl="$DOCLINES" -v dm="$DOCMAP" -v df="$DOCFLOW" -v dfm="$DOCFLOWMAP" '
-    function flush() {
-      if (blockstart > 0) {
-        gsub(/[[:space:]]+/, " ", joined); sub(/^ /, "", joined); sub(/ $/, "", joined)
-        if (joined != "") { print joined >> df; print file ":" blockstart >> dfm }
-      }
-      joined = ""; blockstart = 0
+    function emit() {
+      gsub(/[[:space:]]+/, " ", joined); sub(/^ /, "", joined); sub(/ $/, "", joined)
+      if (joined != "") { print joined >> df; print file ":" blockstart >> dfm }
+      joined = ""
     }
+    # End of a paragraph inside a block: emit it, keep the block open, keep reporting the
+    # location as the block start (a paragraph index would be a number no reader can use).
+    function flush2() { if (blockstart > 0) emit() }
+    # End of the block.
+    function flush() { if (blockstart > 0) emit(); blockstart = 0 }
     {
       line = $0
       if (!indoc) {
@@ -917,6 +932,16 @@ while IFS= read -r -d '' f; do
       # reported 60 violations that were all real bookkeeping sitting in `//` comments
       # this surface deliberately does not cover. A gate that over-reports is not "safe":
       # it would have forced a sweep of the wrong 61 lines.
+      # TESTING THE TERMINATOR AGAINST DOC TEXT IS CORRECT, NOT A SHORTCUT, and it was
+      # challenged: a doc comment whose prose contains `*/` (a glob like `src/**/*.ts`, a
+      # regex ending `*/`) would close the block early and drop the rest of it from the
+      # scan, printing OK over a violation below. THE CONSTRUCT IS UNREACHABLE IN VALID
+      # TYPESCRIPT: block comments do not nest and cannot contain `*/`, so the compiler
+      # ends the comment at exactly the same character this does. Checked rather than
+      # argued: a file with `src/**/*.ts` inside a doc comment is rejected by `tsc
+      # --noEmit --strict` with TS1109/TS1005 on the following lines, and `typecheck` runs
+      # ahead of this gate in the ladder. The extractor mirrors the language; it does not
+      # approximate it.
       closed = 0
       if (line ~ /\*\//) { closed = 1; sub(/\*\/.*$/, "", line) }
       # Exactly ONE leading asterisk, never `\*+`: a greedy leader would swallow the
@@ -925,8 +950,16 @@ while IFS= read -r -d '' f; do
       sub(/^[[:space:]]+/, "", line)
       # The LINE pass sees the doc text with its location beside it.
       print line >> dl; print file ":" FNR >> dm
-      # The FLOW pass accumulates the whole block, squeezed the way a tooltip reflows it.
-      joined = joined " " line
+      # The FLOW pass accumulates a PARAGRAPH, not the whole block, and squeezes it the way
+      # a tooltip reflows one. A BLANK doc line is a paragraph break and ends the run, for
+      # the same reason the markdown pass above prints an empty line rather than joining
+      # through it: a list item ending "(this module)" followed by a blank line and a new
+      # sentence starting "The ..." is not the text "(this module) The ...", and joining
+      # through the break invents adjacencies that no reader ever sees. Left unbroken, a
+      # doc line ending in "phase" followed by a blank line and a paragraph opening with a
+      # capital letter would red as "phase X". That is an over-report rather than a silent
+      # green, but a gate that reds on correct content is a gate someone deletes.
+      if (line ~ /^[[:space:]]*$/) { flush2() } else { joined = joined " " line }
       if (closed) { flush(); indoc = 0 }
     }
     END { if (indoc) flush() }
@@ -974,8 +1007,14 @@ while [ "$i" -lt "$SRC_RULE_COUNT" ]; do
       # Report only what the line pass could not see, so a wrapped hit is not printed
       # twice. A block whose violation is on one line is already reported above.
       blockloc=$(sed -n "${n}p" "$DOCFLOWMAP")
+      # DELIMITED, not a bare substring. An unanchored `*"$blockloc"*` makes
+      # `./src/x.ts:1` a substring of an existing hit at `./src/x.ts:12`, so a real wrapped
+      # violation in the block starting at line 1 is suppressed by an unrelated hit at
+      # line 12. It never loses the RED (SRC_HITS is non-empty either way) but it loses the
+      # REPORT, which is the line a remediator needs. The trailing ':' is what a location
+      # is always followed by in SRC_HITS.
       case "$SRC_HITS" in
-        *"$blockloc"*) continue ;;
+        *"${blockloc}: "*|*"${blockloc} (block): "*) continue ;;
       esac
       m=$(sed -n "${n}p" "$DOCFLOW" | grep -oP -e "${SRC_RULE_PATTERN[$i]}" | head -1)
       SRC_HITS="${SRC_HITS}[${SRC_RULE_NAME[$i]} / src doc comment, wrapped across lines]"$'\n'"${blockloc} (block): ${m}"$'\n'
@@ -987,4 +1026,4 @@ done
 [ -n "$ALL_HITS" ] && fail_with_hits "the public surface listed above" "$ALL_HITS"
 [ -n "$SRC_HITS" ] && fail_with_hits "src/ doc comments, which compile into dist/ and render in every consumer's editor" "$SRC_HITS"
 
-echo "check-no-internal-refs: OK (${scanned} public-surface file(s) and the npm metadata scanned against ${RULE_COUNT} rules, line by line and paragraph-joined; ${src_scanned} source file(s) scanned for doc-comment bookkeeping against ${SRC_RULE_COUNT} rules, line by line and block-reflowed; ${gitlinks} gitlink(s) skipped)"
+echo "check-no-internal-refs: OK (${scanned} public-surface file(s) and the npm metadata scanned against ${RULE_COUNT} rules, line by line and paragraph-joined; ${src_scanned} source file(s) scanned for doc-comment bookkeeping against ${SRC_RULE_COUNT} rules, line by line and paragraph-reflowed; ${gitlinks} gitlink(s) skipped)"

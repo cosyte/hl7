@@ -1,6 +1,6 @@
 /**
- * `appointments`: sIU
- * appointment extractor. Walks the message in document order and projects each
+ * `appointments`: SIU appointment extractor. Walks the message in document
+ * order and projects each
  * SCH (Scheduling Activity Information) segment into a typed {@link Appointment},
  * grouping the AIS/AIG/AIL/AIP resource segments that follow it positionally
  * under that SCH: the same open-a-group-on-the-anchor state machine

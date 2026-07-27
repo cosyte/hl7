@@ -408,7 +408,7 @@ export interface Order {
   readonly fillerOrderNumber?: string;
   /** OBR-4 universal service identifier (test code + description). */
   readonly universalServiceId?: CWE;
-  /** OBR-5 order status. */
+  /** OBR-25 result status (HL7 Table 0123, e.g. `"F"` final, `"P"` preliminary). */
   readonly orderStatus?: string;
   /** ORC-1 order control when an ORC precedes this OBR. */
   readonly orderControl?: string;
@@ -588,7 +588,7 @@ export interface MedicationStrength {
 }
 
 /**
- * One RXR (Pharmacy/Treatment Route) grouped under its parent RX* segment
+ * One RXR (Pharmacy/Treatment Route) grouped under its parent RX* segment.
  * `route` is HL7 Table 0162 (CWE); `site` is Table 0163 (CWE).
  * Provenance travels on the CWE (`route.nameOfCodingSystem`): a "PO" route is
  * only safe to act on when you know the system it was coded against.
@@ -680,7 +680,7 @@ export interface Medication {
   /** RXC children grouped under this RX* (compound components). Always present (possibly empty). */
   readonly components: readonly MedicationComponent[];
   /**
-   * TQ1 / legacy embedded-TQ (RXE-1) timing(s) grouped under this medication
+   * TQ1 / legacy embedded-TQ (RXE-1) timing(s) grouped under this medication.
    * Always present: empty when the medication carries no timing.
    * See {@link OrderTiming}.
    */

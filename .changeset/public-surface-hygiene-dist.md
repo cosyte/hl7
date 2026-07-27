@@ -2,8 +2,8 @@
 "@cosyte/hl7": patch
 ---
 
-**The published JSDoc no longer carries internal project bookkeeping, and `src/` doc comments are
-gated (`PUBLIC-SURFACE-HYGIENE`).** Doc comments compile into `dist/index.d.ts` and
+**The published JSDoc no longer carries phase language, item identifiers or ADR numbers, and
+`src/` doc comments are gated (`PUBLIC-SURFACE-HYGIENE`).** Doc comments compile into `dist/index.d.ts` and
 `dist/index.d.cts`, `dist` is the first entry in `files`, and every install receives them, so the
 text a consumer's editor renders on hover is public surface and the founder directive of 2026-07-27
 applies to it. Measured with the shipped rules before the change: 293 distinct lines across tracked
@@ -32,10 +32,17 @@ identifiers belong. Every claim was checked red against a seeded violation, incl
 across a wrap that a line-only grep scores 0 on, and including an extractor that strips the comment
 leader before testing the terminator, which reports 66 false hits on a clean tree.
 
-Two limits are stated rather than implied shut: `dist/` is untracked build output, so this gates
-dist's source and not dist itself, which holds only while the dts build copies doc text verbatim;
-and `D-NN` internal decision numbers still ship, deliberately uncaught, because legacy SNOMED RT
-codes are axis-prefixed in exactly that shape (`D-13000`, `T-32000`, `M-80003`).
+The limits are stated rather than implied shut, because "0 on all six rules" is a statement about
+those rules and not about the whole directive. Measured on the built `dist/index.d.ts`, what still
+ships is 144 lines carrying `D-NN` internal decision numbers and 50 lines carrying item identifiers
+from prefixes the rule set does not hold (`HELPERS-07`, `PROF-07`, `MODEL-05`, `BIP-01..09`,
+`SER-01/03/04/06`, `PARSE-02`, `WR-04`, `TOL-02`). `D-NN` stays uncaught deliberately, because
+legacy SNOMED RT codes are axis-prefixed in exactly that shape (`D-13000`, `T-32000`, `M-80003`);
+the item identifiers need new prefixes, which is a rule change owing its own negative self-tests,
+not something to smuggle in behind a prose sweep. Eighteen `Plan N` build-order lines were swept by
+hand in this change because that is prose rather than a rule. Separately, `dist/` is untracked
+build output, so this gates dist's source and not dist itself, which holds only while the dts build
+copies doc text verbatim.
 
 Documentation, tooling and CI only. No change to the published package surface, parser behavior, or
 warning codes.

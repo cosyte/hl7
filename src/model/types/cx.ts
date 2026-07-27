@@ -1,7 +1,7 @@
 /**
  * CX: HL7 v2 Extended Composite ID (with check digit) composite.
  * 10-component structured-identifier shape parsed from a `RawRepetition` on
- * demand by `Field.asCx()` (wired in Plan 04). Fields are OMITTED when
+ * demand by `Field.asCx()`. Fields are OMITTED when
  * absent (exactOptionalPropertyTypes): NEVER set to `undefined`.
  *
  * Component 4 (`assigningAuthority`) is the ONE nested-composite field in

@@ -175,7 +175,7 @@ export class Hl7Message {
 
   /**
    * Merged `customSegments` map from the applied profile, stored so
-   * `allSegments()` can hand per-segment slices to `Segment` constructors
+   * `allSegments()` can hand per-segment portions to `Segment` constructors
    * (D-16). Undefined when no profile was applied.
    * @internal
    */
@@ -185,14 +185,14 @@ export class Hl7Message {
    * Lazily built cache of Segment wrappers keyed by segment type. Built on
    * first `segments(type)` call and filtered from `_allSegments` so
    * individual Segment instances are identical across both caches (D-11).
-   * Plan 04 mutation methods drop this cache wholesale.
+   * The mutation methods drop this cache wholesale.
    * @internal
    */
   private _segmentsByType: Map<string, readonly Segment[]> | undefined;
 
   /**
    * Lazily built cache of every Segment wrapper in document order. Built on
-   * first `segments(type)` / `allSegments()` call. Plan 04 mutation methods
+   * first `segments(type)` / `allSegments()` call. The mutation methods
    * drop this cache wholesale.
    * @internal
    */
@@ -300,7 +300,7 @@ export class Hl7Message {
    * Return the cached array of `Segment` wrappers for `segmentType` in
    * document order. The returned array identity and the individual Segment
    * instances are both stable across calls (D-11). Invalidated wholesale
-   * by Plan 04 mutation methods.
+   * by the mutation methods.
    *
    * @example
    * ```ts
@@ -328,7 +328,7 @@ export class Hl7Message {
    * Iterate every `Segment` in document order (MSH first, then every
    * subsequent segment). Cached per-message; same array reference and same
    * Segment instances on repeat calls (D-11). Invalidated wholesale by
-   * Plan 04 mutation methods.
+   * the mutation methods.
    *
    * @example
    * ```ts

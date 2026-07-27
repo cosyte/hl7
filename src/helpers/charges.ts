@@ -1,6 +1,6 @@
 /**
- * `charges`: dFT charge
- * extractor. Walks the message in document order and projects each FT1
+ * `charges`: DFT charge extractor. Walks the message in document order and
+ * projects each FT1
  * (Financial Transaction) segment into a typed {@link Charge}. Flat, one FT1
  * per {@link Charge} (parity with `diagnoses()` / `allergies()`): DFT^P03 posts
  * a list of financial transactions, each self-contained. Covers the common

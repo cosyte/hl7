@@ -57,7 +57,7 @@ import type {
  * trailing whitespace (i.e. whitespace around non-whitespace content), a
  * `FIELD_WHITESPACE_TRIMMED` warning is emitted via `emit`. All-whitespace
  * fields and fields without surrounding whitespace do not emit. Escape
- * sequence expansion is deferred to Plan 04's on-access escape stage.
+ * sequence expansion is deferred to the on-access escape stage.
  *
  * @example
  * ```ts

@@ -109,7 +109,7 @@ export interface ParseOptions {
  * `Profile`) to keep the parser's type module the single source of truth;
  * `src/profiles/define.ts` re-exports this type so consumers can write
  * `import type { CustomSegmentDefinition } from "@cosyte/hl7"`
- * after Plan 06's barrel-sweep.
+ * after the barrel sweep.
  *
  * @example
  * ```ts
@@ -128,8 +128,8 @@ export interface CustomSegmentDefinition {
  * tolerances, date formats, custom segment definitions, and optional
  * callbacks. Profiles are built with the `defineProfile()` factory.
  *
- * `customSegments` is narrowed to the locked
- * `CustomSegmentDefinition` shape and adds an optional `describe?` method
+ * `customSegments` is narrowed to the locked `CustomSegmentDefinition` shape,
+ * and `Profile` carries an optional `describe?` method
  * so `defineProfile()`-produced profiles can be introspected without
  * consumers needing to narrow away from the `Profile` type. The `describe`
  * method is only populated by `defineProfile()`: hand-authored `Profile`

@@ -57,13 +57,13 @@ export class Field {
   /** Reference to the underlying `RawField.repetitions` (no defensive copy). */
   public readonly repetitions: readonly RawRepetition[];
 
-  /** The 5 encoding characters for this message. Exposed for composite parsers (Plan 04). @internal */
+  /** The 5 encoding characters for this message. Exposed for composite parsers. @internal */
   public readonly enc: EncodingCharacters;
 
   /** Position of this field in the parent message: used for position-aware error messages. @internal */
   public readonly position: Hl7Position;
 
-  /** The full `RawField` this wrapper wraps. Exposed for composite parsers (Plan 02/03/04). @internal */
+  /** The full `RawField` this wrapper wraps. Exposed for composite parsers. @internal */
   public readonly raw: RawField;
 
   /**

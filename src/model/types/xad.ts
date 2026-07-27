@@ -1,7 +1,7 @@
 /**
  * XAD: HL7 v2 Extended Address composite. 12-component structured address
  * shape parsed from a `RawRepetition` on demand by `Field.asXad()` (wired in
- * Plan 04). Fields are OMITTED when absent (exactOptionalPropertyTypes),
+ * `Field.asXad()`). Fields are OMITTED when absent (exactOptionalPropertyTypes),
  * NEVER set to `undefined`.
  *
  * Zero runtime deps: pure function over the raw positional tree + `unescape`.

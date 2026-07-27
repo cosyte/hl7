@@ -1,6 +1,6 @@
 /**
  * `interpretAck`: read-side helper that interprets an inbound HL7 v2
- * acknowledgment (ACK) message into a typed {@link Acknowledgment} view
+ * acknowledgment (ACK) message into a typed {@link Acknowledgment} view.
  * The mechanical inverse of `buildAck`: it reads MSA-1 (code),
  * MSA-2 (the correlated control id), and every ERR segment.
  *

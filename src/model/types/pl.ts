@@ -2,7 +2,7 @@
  * PL: HL7 v2 Person Location composite. 11-component structured-location
  * shape (v1 trimmed from the HL7 v2.5 full 12-component PL: slot 12
  * `entityIdentifier` is rarely used; v2 may restore the full shape) parsed
- * from a `RawRepetition` on demand by `Field.asPl()` (wired in Plan 04).
+ * from a `RawRepetition` on demand by `Field.asPl()`.
  * Fields are OMITTED when absent (exactOptionalPropertyTypes): NEVER set
  * to `undefined`.
  *

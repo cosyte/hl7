@@ -132,9 +132,7 @@ export interface BuildMessageInit {
  * // msg.toString() now emits MSH-3 as `""` (2 chars), not as absent.
  * ```
  *
- * The `BuildMessageInit` interface JSDoc (Plan 01) has the same note on
- * the input shape; this function-level doc reinforces it for developers
- * who land on the impl.
+ * `BuildMessageInit` carries the same note on the input shape.
  *
  * @example
  * ```ts
