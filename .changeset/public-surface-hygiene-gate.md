@@ -2,7 +2,8 @@
 "@cosyte/hl7": patch
 ---
 
-**Public-surface hygiene gate (`PUBLIC-SURFACE-HYGIENE`).** Adds
+**The documentation pages shipped with this package no longer carry internal project references,
+and a CI check keeps them out.** Adds
 `scripts/check-no-internal-refs.sh` (`pnpm check:no-internal-refs`) and a dedicated
 `.github/workflows/no-internal-refs.yml` job, and clears the 50 violating lines it finds across 15
 `docs-content/` pages, plus one in `README.md` that no rule catches.
