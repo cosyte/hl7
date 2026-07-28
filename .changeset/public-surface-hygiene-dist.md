@@ -2,8 +2,8 @@
 "@cosyte/hl7": patch
 ---
 
-**The published JSDoc no longer carries phase language, item identifiers or ADR numbers, and
-`src/` doc comments are gated (`PUBLIC-SURFACE-HYGIENE`).** Doc comments compile into `dist/index.d.ts` and
+**Doc comments that ship in the type declarations are cleaned of internal project references and
+gated against their return.** Doc comments compile into `dist/index.d.ts` and
 `dist/index.d.cts`, `dist` is the first entry in `files`, and every install receives them, so the
 text a consumer's editor renders on hover is public surface and the founder directive of 2026-07-27
 applies to it. Measured with the shipped rules before the change: 293 distinct lines across tracked
