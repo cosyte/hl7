@@ -39,8 +39,9 @@ from nine prefixes the rule set does not hold (`HELPERS`, `BIP`, `PROF`, `SER`, 
 `WR`, `TOL`, `TYPES`). `D-NN` stays uncaught deliberately, because
 legacy SNOMED RT codes are axis-prefixed in exactly that shape (`D-13000`, `T-32000`, `M-80003`);
 the item identifiers need new prefixes, which is a rule change owing its own negative self-tests,
-not something to smuggle in behind a prose sweep. The 18 `Plan N` build-order lines in the built
-declaration file were swept by hand in this change because that is prose rather than a rule. Separately, `dist/` is untracked
+not something to smuggle in behind a prose sweep. Every `Plan N` build-order reference was swept by hand in
+this change, because that is prose rather than a rule, and the built declaration file now carries
+none. Separately, `dist/` is untracked
 build output, so this gates dist's source and not dist itself, which holds only while the dts build
 copies doc text verbatim.
 

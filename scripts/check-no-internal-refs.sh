@@ -243,11 +243,17 @@
 #             `SER`, `WR`, `TOL` and `BIP` are exactly the short, generic-looking tokens
 #             that made `PKG` unsafe. Not smuggled in here on the back of a prose sweep.
 #             Queued on PUBLIC-SURFACE-HYGIENE.
-#         `Plan N` BUILD-ORDER FRAMING was in this list too, at 18 lines of the built
-#         `dist/index.d.ts` (33 doc-comment lines across 20 source files), and was SWEPT by
-#         hand rather than deferred: it is prose, not a rule change, and it contradicted
-#         the `CLAUDE.md` sentence this same change added. It is now 0. It remains UNGATED
-#         for the same reason the item identifiers are: `Plan \d+` has no safe prefix.
+#         `Plan N` BUILD-ORDER FRAMING was in this list too and was SWEPT by hand rather
+#         than deferred: it is prose, not a rule change, and it contradicted the `CLAUDE.md`
+#         sentence this same change added. THE BUILT DECLARATION FILE NOW CARRIES NONE,
+#         which is the only figure here worth quoting because it is the only one that stays
+#         true: build and `grep -cP '\bPlan \d+' dist/index.d.ts`. For scale, the base
+#         commit's build carried 28 such lines, from 61 doc-comment lines in `src/`.
+#         QUOTE A COUNT WITH THE TREE IT WAS TAKEN ON, OR NOT AT ALL. An earlier draft of
+#         this note said "18 lines", which was true of an intermediate commit and of nothing
+#         a reader can check out, and it survived two reviews before a third re-derived it.
+#         It remains UNGATED for the same reason the item identifiers are: `Plan \d+` has no
+#         safe prefix.
 #
 #         MEASURE THIS LIST ON THE REFLOWED TEXT, NOT LINE BY LINE. The `Plan N` sweep was
 #         done with a line scan and reported itself complete while one instance survived in

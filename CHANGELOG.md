@@ -25,10 +25,10 @@ per the cosyte version ladder (`0.0.x` until first alpha).
   **164 distinct lines into `dist/index.d.ts`** (137 phase-rule, 22 identifier-rule, 5 ADR,
   1 jargon, 1 traceability). After: **0 on every rule, in `src/` doc comments and in both built
   declaration files.** A consumer hovering `parseHL7`, `defineProfile`, `Medication` or
-  `buildMessage` no longer reads which internal phase built it. The 18 `Plan N` build-order lines
-  in the built declaration file (33 doc-comment lines across 20 source files) were swept in the
-  same pass, by hand: no rule catches them, and they contradicted the `CLAUDE.md` sentence this
-  change adds.
+  `buildMessage` no longer reads which internal phase built it. Every `Plan N` build-order
+  reference was swept in the same pass, by hand, and **the built declaration file now carries
+  none**: no rule catches them, and they contradicted the `CLAUDE.md` sentence this change adds.
+  For scale, the base commit's build carried 28 such lines, from 61 doc-comment lines in `src/`.
 
   **Identifiers were translated, never deleted, and no public export lost its documentation.**
   That is measured, not asserted: the built `dist/index.d.ts` carries **691 doc-comment blocks,
