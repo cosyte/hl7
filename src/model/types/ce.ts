@@ -1,8 +1,8 @@
 /**
  * CE: HL7 v2 Coded Element composite. 6-component coded-element shape
- * parsed from a `RawRepetition` on demand by `Field.asCe()` (wired in Plan
- * 04). Fields are OMITTED when absent (exactOptionalPropertyTypes): NEVER
- * set to `undefined`.
+ * parsed from a `RawRepetition` on demand by `Field.asCe()`. Fields are
+ * OMITTED when absent (exactOptionalPropertyTypes): NEVER set to
+ * `undefined`.
  *
  * CE is the older, simpler sibling of CWE: 6 components, no version ids,
  * no originalText. Still common in OBX.3 and similar observation-identifier

@@ -107,9 +107,8 @@ export interface ParseOptions {
  * (`defineProfile()`). `fields` maps a caller-visible field NAME to its
  * 1-indexed HL7 position within the segment. Declared here (alongside
  * `Profile`) to keep the parser's type module the single source of truth;
- * `src/profiles/define.ts` re-exports this type so consumers can write
- * `import type { CustomSegmentDefinition } from "@cosyte/hl7"`
- * after the barrel sweep.
+ * `src/profiles/define.ts` re-exports this type, so consumers can write
+ * `import type { CustomSegmentDefinition } from "@cosyte/hl7"`.
  *
  * @example
  * ```ts

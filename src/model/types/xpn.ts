@@ -1,8 +1,8 @@
 /**
  * XPN: HL7 v2 Extended Person Name composite. 14-component structured-name
- * shape parsed from a `RawRepetition` on demand by `Field.asXpn()` (wired in
- * `Field.asXpn()`). Fields are OMITTED when absent (exactOptionalPropertyTypes),
- * NEVER set to `undefined`.
+ * shape parsed from a `RawRepetition` on demand by `Field.asXpn()`. Fields
+ * are OMITTED when absent (exactOptionalPropertyTypes), NEVER set to
+ * `undefined`.
  *
  * Zero runtime deps: pure function over the raw positional tree + `unescape`.
  */

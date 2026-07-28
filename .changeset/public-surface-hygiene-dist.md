@@ -34,13 +34,13 @@ leader before testing the terminator, which reports 66 false hits on a clean tre
 
 The limits are stated rather than implied shut, because "0 on all six rules" is a statement about
 those rules and not about the whole directive. Measured on the built `dist/index.d.ts`, what still
-ships is 144 lines carrying `D-NN` internal decision numbers and 50 lines carrying item identifiers
-from prefixes the rule set does not hold (`HELPERS-07`, `PROF-07`, `MODEL-05`, `BIP-01..09`,
-`SER-01/03/04/06`, `PARSE-02`, `WR-04`, `TOL-02`). `D-NN` stays uncaught deliberately, because
+ships is 144 lines carrying `D-NN` internal decision numbers and 51 lines carrying item identifiers
+from nine prefixes the rule set does not hold (`HELPERS`, `BIP`, `PROF`, `SER`, `MODEL`, `PARSE`,
+`WR`, `TOL`, `TYPES`). `D-NN` stays uncaught deliberately, because
 legacy SNOMED RT codes are axis-prefixed in exactly that shape (`D-13000`, `T-32000`, `M-80003`);
 the item identifiers need new prefixes, which is a rule change owing its own negative self-tests,
-not something to smuggle in behind a prose sweep. Eighteen `Plan N` build-order lines were swept by
-hand in this change because that is prose rather than a rule. Separately, `dist/` is untracked
+not something to smuggle in behind a prose sweep. The 18 `Plan N` build-order lines in the built
+declaration file were swept by hand in this change because that is prose rather than a rule. Separately, `dist/` is untracked
 build output, so this gates dist's source and not dist itself, which holds only while the dts build
 copies doc text verbatim.
 

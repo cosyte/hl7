@@ -25,9 +25,10 @@ per the cosyte version ladder (`0.0.x` until first alpha).
   **164 distinct lines into `dist/index.d.ts`** (137 phase-rule, 22 identifier-rule, 5 ADR,
   1 jargon, 1 traceability). After: **0 on every rule, in `src/` doc comments and in both built
   declaration files.** A consumer hovering `parseHL7`, `defineProfile`, `Medication` or
-  `buildMessage` no longer reads which internal phase built it. Eighteen `Plan N` build-order
-  lines were swept in the same pass, by hand: no rule catches them, and they contradicted the
-  `CLAUDE.md` sentence this change adds.
+  `buildMessage` no longer reads which internal phase built it. The 18 `Plan N` build-order lines
+  in the built declaration file (33 doc-comment lines across 20 source files) were swept in the
+  same pass, by hand: no rule catches them, and they contradicted the `CLAUDE.md` sentence this
+  change adds.
 
   **Identifiers were translated, never deleted, and no public export lost its documentation.**
   That is measured, not asserted: the built `dist/index.d.ts` carries **691 doc-comment blocks,
@@ -64,9 +65,9 @@ per the cosyte version ladder (`0.0.x` until first alpha).
 
   **The ceiling is stated rather than implied shut, and "0 on all six rules" is a statement about
   these rules, not about the founder's rule.** Measured on the built `dist/index.d.ts`, what still
-  ships is **144 lines carrying `D-NN` internal decision numbers** and **50 lines carrying item
-  identifiers from prefixes the list does not hold** (`HELPERS-07`, `PROF-07`, `MODEL-05`,
-  `BIP-01..09`, `SER-01/03/04/06`, `PARSE-02`, `WR-04`, `TOL-02`). `D-NN` is the deliberate
+  ships is **144 lines carrying `D-NN` internal decision numbers** and **51 lines carrying item
+  identifiers from nine prefixes the list does not hold** (`HELPERS` 14, `BIP` 15, `PROF` 8,
+  `SER` 6, `MODEL` 4, `PARSE`, `WR`, `TOL`, `TYPES` 1 each). `D-NN` is the deliberate
   non-catch it has always been, because legacy SNOMED RT codes are axis-prefixed in exactly that
   shape (`D-13000`, `T-32000`, `M-80003`). The item identifiers need new prefixes added to the
   list, which is a **rule** change needing its own negative self-tests (`SER`, `WR`, `TOL` and

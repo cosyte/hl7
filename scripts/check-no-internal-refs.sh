@@ -235,18 +235,27 @@
 #           * 144 lines carrying `D-NN` INTERNAL DECISION NUMBERS. The same deliberate
 #             non-catch as residual (vi): a single-letter prefix rule collides with legacy
 #             SNOMED RT axis codes (`D-13000`, `T-32000`, `M-80003`).
-#           * 50 lines carrying ITEM IDENTIFIERS FROM PREFIXES THIS LIST DOES NOT HOLD:
-#             `HELPERS-07` (5), `PROF-07` (4), `HELPERS-06` (4), `MODEL-05` (3),
-#             `HELPERS-03` (3), `BIP-01..09`, `SER-01/03/04/06`, `PARSE-02`, `WR-04`,
-#             `TOL-02`. Catching them means ADDING PREFIXES, which is the documented
-#             by-hand mechanism in trap (1) -- and it is a RULE CHANGE, so it needs its own
-#             negative self-tests before it lands. `SER`, `WR`, `TOL` and `BIP` are exactly
-#             the short, generic-looking tokens that made `PKG` unsafe. Not smuggled in
-#             here on the back of a prose sweep. Queued on PUBLIC-SURFACE-HYGIENE.
-#         `Plan N` BUILD-ORDER FRAMING was in this list too, at 18 lines, and was SWEPT by
+#           * 51 lines carrying ITEM IDENTIFIERS FROM NINE PREFIXES THIS LIST DOES NOT
+#             HOLD: `HELPERS` (14), `BIP` (15), `PROF` (8), `SER` (6), `MODEL` (4),
+#             `PARSE` (1), `WR` (1), `TOL` (1), `TYPES` (1). Catching them means ADDING
+#             PREFIXES, which is the documented by-hand mechanism in trap (1) -- and it is
+#             a RULE CHANGE, so it needs its own negative self-tests before it lands.
+#             `SER`, `WR`, `TOL` and `BIP` are exactly the short, generic-looking tokens
+#             that made `PKG` unsafe. Not smuggled in here on the back of a prose sweep.
+#             Queued on PUBLIC-SURFACE-HYGIENE.
+#         `Plan N` BUILD-ORDER FRAMING was in this list too, at 18 lines of the built
+#         `dist/index.d.ts` (33 doc-comment lines across 20 source files), and was SWEPT by
 #         hand rather than deferred: it is prose, not a rule change, and it contradicted
-#         the `CLAUDE.md` sentence this same change added. It remains ungated for the same
-#         reason the item identifiers are: `Plan \d+` has no safe prefix.
+#         the `CLAUDE.md` sentence this same change added. It is now 0. It remains UNGATED
+#         for the same reason the item identifiers are: `Plan \d+` has no safe prefix.
+#
+#         MEASURE THIS LIST ON THE REFLOWED TEXT, NOT LINE BY LINE. The `Plan N` sweep was
+#         done with a line scan and reported itself complete while one instance survived in
+#         `src/model/types/ce.ts`, where `Plan` ended a line and `04` began the next. It
+#         shipped into `dist/` on the exported `CE` composite and was caught by a reviewer
+#         reflowing the built declaration file. That is the same wrap blindness this gate's
+#         second and third passes exist for, arriving in the REMEDIATION rather than in the
+#         detection: a hand sweep needs the paragraph view just as much as a rule does.
 #  (xiv)  THE THIRD PASS SWEEPS DOC COMMENTS THAT NEVER REACH AN EXPORTED DECLARATION, so it
 #         is broader than `dist/` strictly requires. Deliberate: which comments survive the
 #         dts rollup is a property of the BUILD, and a gate whose answer depends on tsup

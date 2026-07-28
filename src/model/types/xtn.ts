@@ -2,9 +2,9 @@
  * XTN: HL7 v2 Extended Telecommunication Number composite. 12-component
  * structured telecom shape (v1 trimmed from the HL7 v2.5 full 14-component
  * XTN: slots 13/14 are rarely-used legacy fields; v2 may restore the full
- * shape) parsed from a `RawRepetition` on demand by `Field.asXtn()` (wired
- * by `Field.asXtn()`). Fields are OMITTED when absent (exactOptionalPropertyTypes)
- *: NEVER set to `undefined`.
+ * shape) parsed from a `RawRepetition` on demand by `Field.asXtn()`. Fields
+ * are OMITTED when absent (exactOptionalPropertyTypes): NEVER set to
+ * `undefined`.
  *
  * Zero runtime deps: pure function over the raw positional tree + `unescape`.
  */
