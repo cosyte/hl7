@@ -4,7 +4,7 @@
  * a human (or a downstream display / FHIR `.text`) can read, instead of the
  * raw `\H\`/`\.br\` sentinels the lenient parser preserves.
  *
- * This is the read-projection half of Phase R: `renderText` never mutates the
+ * `renderText` is a read projection: it never mutates the
  * raw field value (rendering is opt-in on top of the tolerant parse), and it
  * **never fabricates**: an escape it cannot render is preserved as its literal
  * characters AND flagged in {@link RenderedText.unrenderedSequences}, never

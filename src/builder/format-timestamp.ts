@@ -4,8 +4,6 @@
  * `src/parser/dates.ts::parseDtm`; this side intentionally emits full
  * second-precision UTC for newly-constructed messages.
  *
- * Implementation lives in Phase 5 Plan 05 (build-message).
- *
  * Decisions:
  * - D-13: second precision only (no `.SSSS`); UTC via `getUTC*` methods.
  * - D-31: zero deps: stdlib `Date` only.

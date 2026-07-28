@@ -5,7 +5,7 @@
  * calls `new Segment(...)` directly.
  *
  * The wrapper does NOT copy `raw.fields`: it holds a reference so mutations
- * through Plan 04's `setField` / `addSegment` / `removeSegment` stay visible.
+ * through `setField` / `addSegment` / `removeSegment` stay visible.
  */
 
 import { Field } from "./field.js";
@@ -37,7 +37,7 @@ export class Segment {
   /** Absolute index of this segment in `Hl7Message.rawSegments[]`. Used for position tracking. @internal */
   public readonly absoluteIndex: number;
 
-  /** The full `RawSegment` this wrapper wraps. Exposed for mutation methods (Plan 04). @internal */
+  /** The full `RawSegment` this wrapper wraps. Exposed for mutation methods. @internal */
   public readonly raw: RawSegment;
 
   /**
@@ -57,7 +57,7 @@ export class Segment {
    * should obtain `Segment` instances via `msg.segments(type)` or
    * `msg.allSegments()`.
    *
-   * The optional `customFields` parameter is the per-segment slice of the
+   * The optional `customFields` parameter is the per-segment portion of the
    * applied profile's merged `customSegments` map (PROF-07 / D-16). When
    * supplied, `get(name)` resolves names against it; otherwise `get(name)`
    * always returns `undefined`.

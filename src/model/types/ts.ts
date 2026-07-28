@@ -1,11 +1,10 @@
 /**
- * TS/DTM: HL7 v2 Time Stamp composite. Delegates parsing to the Phase 2
+ * TS/DTM: HL7 v2 Time Stamp composite. Delegates parsing to the parser
  * helper `src/parser/dates.ts::parseDtm` (D-10 "zero duplicate date logic").
  *
- * Phase N (datetime precision + timezone fidelity) reshaped this composite from
- * the old `{ raw, date }` (which zero-filled truncations and assumed UTC for a
- * missing offset: an architectural defect) to the fidelity-preserving
- * {@link DtmParts}: raw string + typed parts + stated precision + timezone
+ * The composite is fidelity-preserving: rather than a `{ raw, date }` shape
+ * that would zero-fill truncations and assume UTC for a missing offset, it is
+ * a {@link DtmParts}: raw string + typed parts + stated precision + timezone
  * presence, with **no eager `Date`**. Callers that need an absolute instant
  * opt in explicitly via `dtmToDate(ts, opts)`: which refuses to guess a zone
  * for an offset-less value rather than silently defaulting to UTC.

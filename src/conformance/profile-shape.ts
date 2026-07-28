@@ -1,5 +1,5 @@
 /**
- * Profile-shape validation for the conformance engine (roadmap Phase U). A
+ * Profile-shape validation for the conformance engine. A
  * conformance profile is **consumer-authored configuration**, so it can be
  * malformed. Two entry points share one total defect collector:
  *
@@ -225,9 +225,9 @@ function checkFieldRule(rule: unknown, segment: string, index: number, out: Prof
 }
 
 /**
- * The **fail-fast authoring** gate for a conformance profile (roadmap Phase U's
- * "malformed profile → typed `ProfileDefinitionError`, build-time, before
- * validation"). Runs {@link collectProfileDefects}; on any defect, throws a
+ * The **fail-fast authoring** gate for a conformance profile: a malformed
+ * profile raises a typed `ProfileDefinitionError` at build time, before any
+ * validation runs. Runs {@link collectProfileDefects}; on any defect, throws a
  * single {@link ProfileDefinitionError} listing every defect. On success,
  * returns the profile typed as {@link ConformanceProfile}.
  *

@@ -1,6 +1,6 @@
 /**
  * `pickMrn`: pick the Medical Record Number string from a PID-3 identifier
- * list. Isolated from `patient.ts` so Phase 6 profile hooks can substitute
+ * list. Isolated from `patient.ts` so a profile hook can substitute
  * a profile-aware variant without patching the helper that calls it.
  *
  * Silent (D-21: helpers emit no warnings). Never throws (D-22).

@@ -111,7 +111,7 @@ function discriminateOptionsOrProfile(arg: ParseOptions | Profile | undefined): 
  * profile chain so a noisy caller handler cannot break the parser).
  * Strict mode: throw an `Hl7ParseError` whose `code` carries the warning
  * code; neither onWarning handler fires (preserves the existing
- * lenient-vs-strict split from Phase 2).
+ * lenient-vs-strict split).
  *
  * D-22 ordering: profile handlers are observers that run FIRST; caller
  * handler runs LAST. Preserves the "profile behavior, then caller
@@ -125,7 +125,7 @@ function discriminateOptionsOrProfile(arg: ParseOptions | Profile | undefined): 
  * set of values `Hl7ParseError.code` can take without widening the
  * compile-time type: consumers narrow on `err.code` after catching.
  * See the `as unknown as` comment in the implementation for the
- * justification (Plan 06 decision (b)).
+ * justification.
  *
  * @internal
  */
@@ -184,8 +184,8 @@ function makeEmitter(
 
 /**
  * Build a bounded snippet of the input for attaching to a strict-mode
- * `Hl7ParseError`. Phase 2 does not track character offsets: positions
- * are segment/field/component indices: so we return a leading excerpt
+ * `Hl7ParseError`. The parser does not track character offsets: positions
+ * are segment/field/component indices, so we return a leading excerpt
  * of the input bounded by `segments.snippet`.
  *
  * @internal
@@ -300,7 +300,7 @@ function resolveBufferCharset(
 
 /**
  * Read MSH-12 (version) from the first tokenized segment. Per the unified
- * HL7 1-indexed convention locked in Plan 03, `fields[0]` is the
+ * HL7 1-indexed convention, `fields[0]` is the
  * separator/name placeholder, `fields[1]` is MSH-2 (encoding chars),
  * `fields[11]` is MSH-12 (version). Returns the empty string when the
  * first segment is absent, not an MSH, or MSH-12 has no content: the
@@ -323,7 +323,7 @@ function extractVersion(msh: RawSegment | undefined): string {
 
 /**
  * Read MSH-9.1 (message code) and MSH-9.2 (trigger event) from the first
- * tokenized segment for the Phase G structure safety net. MSH-9 is
+ * tokenized segment for the structure safety net. MSH-9 is
  * `fields[8]` under the unified 1-indexed convention (`fields[0]` is the
  * name/separator placeholder). Returns empty strings when the first segment is
  * absent, not an MSH, or the components have no content: every intermediate

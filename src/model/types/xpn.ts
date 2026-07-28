@@ -1,8 +1,8 @@
 /**
  * XPN: HL7 v2 Extended Person Name composite. 14-component structured-name
- * shape parsed from a `RawRepetition` on demand by `Field.asXpn()` (wired in
- * Plan 04). Fields are OMITTED when absent (exactOptionalPropertyTypes),
- * NEVER set to `undefined`.
+ * shape parsed from a `RawRepetition` on demand by `Field.asXpn()`. Fields
+ * are OMITTED when absent (exactOptionalPropertyTypes), NEVER set to
+ * `undefined`.
  *
  * Zero runtime deps: pure function over the raw positional tree + `unescape`.
  */
@@ -57,8 +57,8 @@ export interface XPN {
 
 /**
  * Parse an HL7 v2 XPN repetition into a structured `XPN` object. Components
- * are returned verbatim (already decoded once by the tokenizer: never re-unescaped,
- * HL7-VALUE-REDECODE). Absent / empty components are OMITTED
+ * are returned verbatim (already decoded once by the tokenizer: never
+ * re-unescaped). Absent / empty components are OMITTED
  * from the result (exactOptionalPropertyTypes semantics).
  *
  * @example

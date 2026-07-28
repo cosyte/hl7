@@ -1,5 +1,5 @@
 /**
- * Internal barrel for the Phase 4 helpers. Re-exports the 9 helper type
+ * Internal barrel for the helpers. Re-exports the 9 helper type
  * interfaces and the 10 builder / walker functions (+ `pickMrn`). Consumed
  * by `src/model/message.ts` (for the getter / collection method wiring)
  * and indirectly by `src/index.ts` through selective named re-exports of

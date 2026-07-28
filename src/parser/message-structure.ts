@@ -1,5 +1,5 @@
 /**
- * Message-type & structure awareness (roadmap Phase G): a conservative
+ * Message-type & structure awareness: a conservative
  * **misroute / truncation safety net**, NOT an abstract-message-syntax
  * validator.
  *

@@ -1,5 +1,5 @@
 /**
- * `identityEvents`: roadmap Phase K read-side helper that recognizes the ADT
+ * `identityEvents`: read-side helper that recognizes the ADT
  * patient-identity management trigger events and surfaces the MRG segment's
  * *prior* (non-surviving) identifiers alongside the PID/PV1 *surviving*
  * identifiers, each labelled by role.
@@ -64,7 +64,7 @@ export type IdentityEventKind = "merge" | "move" | "link" | "unlink" | "add" | "
 /**
  * Role of one party in an identity event. `surviving` / `subject` / `linked`
  * parties are ONLY ever sourced from PID (+ PV1); `prior` parties are ONLY
- * ever sourced from MRG: the role-labelling invariant Phase K exists for.
+ * ever sourced from MRG. That is the role-labelling invariant.
  *
  * @example
  * ```ts

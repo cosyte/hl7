@@ -57,13 +57,13 @@ export class Field {
   /** Reference to the underlying `RawField.repetitions` (no defensive copy). */
   public readonly repetitions: readonly RawRepetition[];
 
-  /** The 5 encoding characters for this message. Exposed for composite parsers (Plan 04). @internal */
+  /** The 5 encoding characters for this message. Exposed for composite parsers. @internal */
   public readonly enc: EncodingCharacters;
 
   /** Position of this field in the parent message: used for position-aware error messages. @internal */
   public readonly position: Hl7Position;
 
-  /** The full `RawField` this wrapper wraps. Exposed for composite parsers (Plan 02/03/04). @internal */
+  /** The full `RawField` this wrapper wraps. Exposed for composite parsers. @internal */
   public readonly raw: RawField;
 
   /**
@@ -82,7 +82,7 @@ export class Field {
   /**
    * First-repetition, first-component, first-subcomponent value as a decoded
    * string: unescaped ONCE by the tokenizer on parse, returned verbatim here
-   * (never re-unescaped, HL7-VALUE-REDECODE). Returns `""` when the field is
+   * (never re-unescaped). Returns `""` when the field is
    * empty or HL7 null. Equivalent to `msg.get('SEG.N')` for a top-level access.
    *
    * @example
@@ -119,7 +119,7 @@ export class Field {
    * vendor-quirk control id containing an unescaped delimiter (`ID^X`) must
    * not be truncated to its first component.
    *
-   * **Byte-verbatim for parsed content (HL7-ESC).** The parse pipeline stores
+   * **Byte-verbatim for parsed content.** The parse pipeline stores
    * *decoded* content, but also records the original wire bytes of any escape
    * whose decode is not byte-faithful (`RawComponent.rawSubcomponents`), so
    * re-serialization preserves the sender's exact escape bytes: hex escapes

@@ -1,5 +1,5 @@
 /**
- * Frozen HL7 control-vocabulary tables for ACK generation (Phase C). These
+ * Frozen HL7 control-vocabulary tables for ACK generation. These
  * are read-only enums sourced from the HL7 v2 standard: `@cosyte/hl7` is the
  * single owner of this vocabulary; siblings (notably `@cosyte/mllp`) consume
  * `buildAck` rather than re-declaring these codes.

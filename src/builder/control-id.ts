@@ -3,8 +3,6 @@
  * messages. Shape: 17-char UTC timestamp `YYYYMMDDHHmmssSSS` + 6 random
  * alphanumeric chars = 23 chars total (D-12).
  *
- * Implementation lives in Phase 5 Plan 05 (build-message).
- *
  * Decisions:
  * - D-12: exact shape above; uniqueness via `Date.now()` + cryptographic
  *   random bytes from `node:crypto.randomBytes` (WR-03 hardening: was

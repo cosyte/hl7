@@ -6,8 +6,8 @@
  * via the `MLLP_FRAMING_STRIPPED` Tier-2 warning (TOL-06).
  *
  * Per CONTEXT.md D-03, MLLP stripping runs after BOM strip and before
- * line-ending normalization in the overall pipeline. Plan 06 composes the
- * full pipeline; this module stays standalone so Plan 06 can invoke it in the
+ * line-ending normalization in the overall pipeline. `parseHL7` composes the
+ * full pipeline; this module stays standalone so it can be invoked in the
  * exact right position.
  */
 

@@ -1,6 +1,6 @@
 /**
- * Typed-composite **encoders** for the `@cosyte/hl7` emit path (roadmap Phase
- * T): the conservative-emit mirror of the `src/model/types/*` read parsers.
+ * Typed-composite **encoders** for the `@cosyte/hl7` emit path: the
+ * conservative-emit mirror of the `src/model/types/*` read parsers.
  *
  * Each encoder takes one typed composite (an {@link XPN} name, a {@link CX}
  * identifier, a {@link TS} timestamp, …) and produces a `RawField` whose
@@ -9,7 +9,7 @@
  *
  * - **No delimiter injection.** Component values are stored **decoded** (the
  *   same surface `parseXxx` returns), and the serializer (`emit-field.ts`)
- *   runs every subcomponent through `reescape` (the HL7-R encode-safe codec)
+ *   runs every subcomponent through `reescape` (the encode-safe codec)
  *   on the way out. A `familyName` of `"Smith^Jr"` is therefore emitted as
  *   `Smith\S\Jr` (one component) and re-parses to the exact string `"Smith^Jr"`,
  *   never forging a component boundary. The caller never hand-assembles

@@ -1,11 +1,11 @@
 /**
- * `timing`: Phase M (order / medication timing) extraction. Projects the
+ * `timing`: order / medication timing extraction. Projects the
  * TQ1 segment (HL7 v2.5+, Ch. 4 §4.5.4) and the **legacy embedded TQ** data
  * type in ORC-7 / RXE-1 (pre-v2.5, Ch. 2A §2.A.81: retained backward-compat
  * only, detail withdrawn as of v2.7) into the typed {@link OrderTiming}
  * surfaced on `Order.timings` / `Medication.timings`.
  *
- * Safety rules enforced here (Phase M §Fail-safe):
+ * Safety rules enforced here:
  *   - The **repeat pattern** (TQ1-3 / legacy interval RI.1, HL7 Table 0335) is
  *     surfaced **verbatim**: never normalized, never resolved to clock times,
  *     never mapped to a different frequency. Reading `Q6H` as "daily" or losing

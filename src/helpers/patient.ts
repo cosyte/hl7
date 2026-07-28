@@ -1,18 +1,19 @@
 /**
  * `buildPatient`: compose PID-derived patient demographics into the frozen
  * `Patient` view exposed by `Hl7Message.patient` (HELPERS-02). Composition
- * happens through the Phase 3 public surface (`msg.segments("PID")[0].field(N)`
+ * happens through the public surface (`msg.segments("PID")[0].field(N)`
  * + composite coercions + `parseCx` / `parseXtn` for multi-rep walks),
  * never through `rawSegments` directly.
  *
  * Decisions honored here:
  * - D-01: `Object.freeze` the top-level object at the boundary.
  * - D-04: return `undefined` when no PID segment exists.
- * - D-07 / D-08 / D-10: MRN pick via `pickMrn` (isolated for Phase 6).
+ * - D-07 / D-08 / D-10: MRN pick via `pickMrn` (isolated so a profile hook
+ *   can substitute it).
  * - D-09: `identifiers` is a frozen `readonly CX[]`: always present.
  * - D-17: `fullName` is Western order "Given Middle Family, Suffix", omitted
  *   parts cleanly joined, absent when no usable parts.
- * - Phase N: `dateOfBirth` is the fidelity `TS` (day-only DOB keeps `precision:
+ * - `dateOfBirth` is the fidelity `TS` (day-only DOB keeps `precision:
  *   "day"`, never a UTC-midnight instant that shifts the day).
  * - D-19: flat `familyName` / `givenName` / `middleName` convenience fields
  *   mirror XPN, with `middleName` mapped from `XPN.secondName`.
@@ -71,7 +72,7 @@ function composeFullName(name: XPN): string | undefined {
  * const msg = parseHL7(raw);
  * console.log(msg.patient?.mrn);                        // first CX-5="MR" idNumber
  * console.log(msg.patient?.fullName);                   // "Jane Q Smith, Jr"
- * console.log(msg.patient?.dateOfBirth?.raw); // fidelity TS (Phase N): e.g. "19800115"
+ * console.log(msg.patient?.dateOfBirth?.raw); // fidelity TS: e.g. "19800115"
  * for (const phone of msg.patient?.phoneNumbers ?? []) {
  *   console.log(phone.telephoneNumber);
  * }

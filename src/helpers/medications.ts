@@ -1,7 +1,7 @@
 /**
- * `medications`: Phase D (P0 safety) implementation of the pharmacy/treatment
- * extractor. Walks the message in document order and projects each RXO / RXE /
- * RXD / RXA segment into a typed `Medication`, grouping the RXR (route) and
+ * `medications`: pharmacy/treatment extractor. Walks the message in document
+ * order and projects each RXO / RXE / RXD / RXA segment into a typed
+ * `Medication`, grouping the RXR (route) and
  * RXC (component) segments that follow it positionally under that parent,
  * the same state-machine pattern `orders()` uses for OBR → OBX (D-12).
  *
@@ -14,7 +14,7 @@
  *   - RXR (route, grouped): route RXR-1 (Table 0162), site RXR-2 (Table 0163)
  *   - RXC (component, grouped): type RXC-1, code RXC-2, amount RXC-3, units RXC-4
  *
- * Safety rules enforced here (Phase D §4):
+ * Safety rules enforced here:
  *   - Never throws: malformed RX* surface as omitted keys (matches the helper
  *     layer contract; HELPERS-07).
  *   - `amount` (how much) and `strength` (concentration) are surfaced as
@@ -183,7 +183,7 @@ function buildComponent(rxc: Segment): MedicationComponent {
 }
 
 /**
- * Build the frozen `timings` list for a medication group (Phase M). Every TQ1
+ * Build the frozen `timings` list for a medication group. Every TQ1
  * segment grouped under the RX* parent yields one `OrderTiming`
  * (`source: "TQ1"`). When the group carries no TQ1, the **legacy embedded TQ**
  * is read from RXE-1 (an encoded RXE order) or, failing that, from the preceding
@@ -233,16 +233,15 @@ function finalize(
 
 /**
  * Every RXO/RXE/RXD/RXA as a typed `Medication`, with RXR (route) and RXC
- * (component) segments grouped positionally under the preceding RX* parent
- * (Phase D, P0 safety). Document order. Returns `[]` when no RX* parent is
- * present. NOT memoized: each call re-walks `msg.allSegments()`. Never throws
- * (HELPERS-07).
+ * (component) segments grouped positionally under the preceding RX* parent.
+ * Document order. Returns `[]` when no RX* parent is present. NOT memoized:
+ * each call re-walks `msg.allSegments()`. Never throws (HELPERS-07).
  *
  * The give code carries its own coding-system provenance
  * (`giveCode.nameOfCodingSystem`). The give *amount* and the give *strength*
  * are surfaced as separate fields and are never reconciled: a strength a
  * coded drug implies is never used to validate or overwrite the explicit
- * RXE-25/26 strength (Phase D §4).
+ * RXE-25/26 strength fields.
  *
  * @example
  * ```ts

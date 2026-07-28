@@ -1,5 +1,5 @@
 /**
- * Finding factories for the conformance-profile engine (roadmap Phase U).
+ * Finding factories for the conformance-profile engine.
  * Every {@link ConformanceFinding} the engine emits is built here so that
  * message wording, severity, and (critically) **PHI safety** stay consistent
  * across the engine.

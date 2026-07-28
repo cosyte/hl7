@@ -1,5 +1,5 @@
 /**
- * Public types for the conformance-profile engine (roadmap Phase U). A
+ * Public types for the conformance-profile engine. A
  * **consumer authors** a declarative {@link ConformanceProfile}: a bounded
  * subset of the HL7 v2 Message-Profile / NIST-IGAMT model (usage codes,
  * cardinality, length, value-set binding against a consumer-supplied code
@@ -89,7 +89,7 @@ export interface Cardinality {
 }
 
 /**
- * A rule for one **field position** within a segment (roadmap Phase U). Every
+ * A rule for one **field position** within a segment. Every
  * constraint is optional; a rule with only a `field` index is a no-op.
  *
  * @remarks
@@ -136,7 +136,7 @@ export interface FieldRule {
 }
 
 /**
- * A rule for one **segment type** (roadmap Phase U). `usage` constrains whether
+ * A rule for one **segment type**. `usage` constrains whether
  * the segment must / must not appear; `cardinality` constrains how many times;
  * `fields` are the per-field rules, applied to **every** occurrence of the
  * segment.
@@ -159,7 +159,7 @@ export interface SegmentRule {
 }
 
 /**
- * A **user-authored, declarative** conformance profile (roadmap Phase U). The
+ * A **user-authored, declarative** conformance profile. The
  * consumer supplies this; hl7 ships none. It is a bounded subset of the HL7 v2
  * Message-Profile model: usage / cardinality / length / consumer-supplied
  * value set: with **no** conditional-predicate language, **no** bundled code

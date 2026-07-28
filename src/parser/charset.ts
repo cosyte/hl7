@@ -1,11 +1,11 @@
 /**
  * HL7 v2 **Table 0211 (Alternate Character Sets)** resolution for the parser's
- * `Buffer`-decode stage (Phase O). Mirrors the frozen read-only registries
+ * `Buffer`-decode stage. Mirrors the frozen read-only registries
  * `KNOWN_SEGMENTS` / `KNOWN_CODING_SYSTEMS`: a single source of truth mapping an
  * MSH-18 character-set code to how the parser treats it: **decode** (single-byte
  * ISO-8859 family + Unicode UTF-8) or **preserve-verbatim** (the multibyte /
  * ISO-2022-switched East-Asian sets and UTF-16/32, which HL7 renders through
- * stateful `\Mxxyyzz\` escapes this phase deliberately does not fully decode).
+ * stateful `\Mxxyyzz\` escapes the parser deliberately does not fully decode).
  *
  * Spec traceability: HL7 v2 Chapter 2, **MSH-18** (item 00692) + **Table 0211**
  * (OID 2.16.840.1.113883.18.116). MSH-18 is **repeating**: the first occurrence

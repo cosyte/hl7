@@ -11,7 +11,7 @@
  *   `reescape(sub, enc)`: the 5 active delimiters + `\n` (via `\.br\`) + a
  *   decoded CR (via `\X0D\`) are re-escaped; other already-decoded text passes
  *   through as plain characters. A subcomponent whose parse recorded original
- *   wire bytes in `RawComponent.rawSubcomponents` (HL7-ESC: a recognize-and-
+ *   wire bytes in `RawComponent.rawSubcomponents` (a recognize-and-
  *   preserve escape like `\H\`/`\Z..\`, or a hex escape like `\X41\`) is
  *   emitted from that overlay **verbatim**, so those families round-trip
  *   byte-for-byte instead of canonicalizing.
@@ -24,8 +24,8 @@
  *   silently corrupting wire output.
  * - D-07: pure for all non-MSH inputs: never warns, never throws.
  *
- * Not part of the public API (no re-export from `src/index.ts`). Phase 6
- * profile hooks may compose around `emitSegment` / `emitField`.
+ * Not part of the public API (no re-export from `src/index.ts`). Profile
+ * hooks may compose around `emitSegment` / `emitField`.
  * @internal
  */
 

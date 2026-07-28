@@ -107,9 +107,8 @@ export interface ParseOptions {
  * (`defineProfile()`). `fields` maps a caller-visible field NAME to its
  * 1-indexed HL7 position within the segment. Declared here (alongside
  * `Profile`) to keep the parser's type module the single source of truth;
- * `src/profiles/define.ts` re-exports this type so consumers can write
- * `import type { CustomSegmentDefinition } from "@cosyte/hl7"`
- * after Plan 06's barrel-sweep.
+ * `src/profiles/define.ts` re-exports this type, so consumers can write
+ * `import type { CustomSegmentDefinition } from "@cosyte/hl7"`.
  *
  * @example
  * ```ts
@@ -126,11 +125,10 @@ export interface CustomSegmentDefinition {
 /**
  * Structural placeholder for HL7 profiles. A profile bundles vendor-specific
  * tolerances, date formats, custom segment definitions, and optional
- * callbacks. Phase 2 ships only the type: the `defineProfile()` builder
- * and runtime effects land in Phase 6.
+ * callbacks. Profiles are built with the `defineProfile()` factory.
  *
- * Phase 6 Plan 01 tightens `customSegments` to the locked
- * `CustomSegmentDefinition` shape and adds an optional `describe?` method
+ * `customSegments` is narrowed to the locked `CustomSegmentDefinition` shape,
+ * and `Profile` carries an optional `describe?` method
  * so `defineProfile()`-produced profiles can be introspected without
  * consumers needing to narrow away from the `Profile` type. The `describe`
  * method is only populated by `defineProfile()`: hand-authored `Profile`

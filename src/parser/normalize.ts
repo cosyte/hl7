@@ -10,7 +10,7 @@
  *   3. MLLP strip
  *   4. Line-ending normalization (this module)
  *
- * Plan 06's `parseHL7` composition owns steps 1–3 explicitly so the ordering is
+ * The `parseHL7` composition owns steps 1–3 explicitly so the ordering is
  * inspectable at the pipeline site. This module is a pure string/Buffer
  * transform that does NOT throw and does NOT strip BOM.
  */
@@ -47,7 +47,7 @@ function preserveVerbatim(input: Buffer): string {
 }
 
 /**
- * Callback shape for warning emission during `normalizeBuffer`. Plan 06 wires
+ * Callback shape for warning emission during `normalizeBuffer`. `parseHL7` wires
  * the real chokepoint (push onto `Hl7Message.warnings`, invoke `onWarning`,
  * escalate in strict mode). This type is internal to the parser modules.
  *
@@ -61,8 +61,8 @@ type EmitFn = (warning: Hl7ParseWarning) => void;
  * Converts `\r\n` and standalone `\n` characters to `\r`; existing `\r`
  * characters are preserved. The replacement order matters: `\r\n` is handled
  * first so the sequence is not counted twice. Empty and whitespace-only input
- * is returned unchanged: the `EMPTY_INPUT` fatal is Plan 06's responsibility.
- * A leading UTF-8 BOM is preserved; BOM stripping is also Plan 06's job.
+ * is returned unchanged: the `EMPTY_INPUT` fatal is `parseHL7`'s
+ * responsibility, as is stripping a leading UTF-8 BOM, which is preserved here.
  *
  * @example
  * ```ts
@@ -100,7 +100,7 @@ export function normalize(input: string): string {
  * undeclared-UTF-8 feed); non-UTF-8 bytes under that default preserve verbatim +
  * warn rather than corrupt.
  *
- * Callers (Plan 06) remain responsible for the `EMPTY_INPUT` fatal check,
+ * Callers remain responsible for the `EMPTY_INPUT` fatal check,
  * BOM stripping, and MLLP framing removal on the returned text.
  *
  * @example

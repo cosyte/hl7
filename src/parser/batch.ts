@@ -1,6 +1,6 @@
 /**
- * Batch / file envelope splitting for the `@cosyte/hl7` parser (roadmap
- * Phase L). Real lab / ELR / IIS feeds ship many messages wrapped in the HL7
+ * Batch / file envelope splitting for the `@cosyte/hl7` parser. Real lab /
+ * ELR / IIS feeds ship many messages wrapped in the HL7
  * v2 batch protocol envelope (Ch. 2 §2.10.3):
  *
  * ```
@@ -57,8 +57,8 @@ export type BatchEnvelopeName = "FHS" | "BHS" | "BTS" | "FTS";
  * A raw batch-envelope segment (`FHS`/`BHS`/`BTS`/`FTS`) surfaced by
  * {@link splitBatch}. `fields` is the segment split on its own field separator
  * with `fields[0]` holding the segment name: deliberately the raw token
- * array, not a typed model: first-class FHS/BHS field helpers are deferred
- * (roadmap Phase L defers "typed FHS/BHS helpers beyond raw fields"). Note the
+ * array, not a typed model: typed FHS/BHS field helpers beyond the raw
+ * fields are not part of this surface. Note the
  * HL7 MSH-family indexing quirk: for `FHS`/`BHS`, `fields[1]` is the
  * encoding-characters field (FHS-2/BHS-2); for `BTS`/`FTS`, `fields[1]` is
  * field 1 (BTS-1 batch message count / FTS-1 file batch count).

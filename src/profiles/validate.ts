@@ -1,5 +1,5 @@
 /**
- * Validation helpers for `defineProfile()`. Implements the Plan 06-01
+ * Validation helpers for `defineProfile()`. Implements the
  * D-05..D-08 throw paths.
  *
  * Every validator returns `void` on success and throws
@@ -137,9 +137,9 @@ export function validateOptionKeys(opts: DefineProfileOptions): void {
  * Validate a pre-merge customSegments map (D-05): every key MUST be a
  * Z-segment matching `/^Z[A-Z0-9]{2}$/u`, and every field position MUST
  * be a positive integer. Duplicate field-name detection (D-06) is
- * deferred to post-merge validation in Plan 02; for Plan 01's
- * single-profile path, object-literal syntax already rules out literal
- * duplicate keys so a simple presence check is sufficient here.
+ * deferred to post-merge validation; on the single-profile path,
+ * object-literal syntax already rules out literal duplicate keys, so a
+ * simple presence check is sufficient here.
  *
  * @internal
  */

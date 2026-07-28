@@ -1,6 +1,6 @@
 /**
- * `charges`: Phase Q (financial breadth) implementation of the DFT charge
- * extractor. Walks the message in document order and projects each FT1
+ * `charges`: DFT charge extractor. Walks the message in document order and
+ * projects each FT1
  * (Financial Transaction) segment into a typed {@link Charge}. Flat, one FT1
  * per {@link Charge} (parity with `diagnoses()` / `allergies()`): DFT^P03 posts
  * a list of financial transactions, each self-contained. Covers the common
@@ -16,7 +16,7 @@
  *   - FT1-12 transaction amount, unit (CP): surfaced as canonical wire text
  *   - FT1-19 diagnosis code(s) (CE, repeating): billing diagnosis linkage
  *
- * Safety rules enforced here (Phase Q §Fail-safe):
+ * Safety rules enforced here:
  *   - Never throws: a malformed FT1 surfaces as omitted keys (HELPERS-07).
  *   - **No billing logic, no money-as-float.** The extended/unit amounts (CP)
  *     are surfaced as their canonical wire text (`amountExtended`/`amountUnit`),

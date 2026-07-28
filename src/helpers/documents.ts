@@ -1,7 +1,7 @@
 /**
- * `documents`: Phase Q (document breadth) implementation of the MDM
- * document extractor. Walks the message in document order and projects each
- * TXA (Transcription Document Header) segment into a typed
+ * `documents`: MDM clinical-document extractor. Walks the message in
+ * document order and projects each TXA (Transcription Document Header)
+ * segment into a typed
  * {@link ClinicalDocument}, grouping the OBX narrative body that follows it
  * positionally under that TXA: the same open-a-group-on-the-anchor state
  * machine `immunizations()` uses for RXA→[OBX]. Covers the common MDM trigger
@@ -16,7 +16,7 @@
  *   - TXA-19 document AVAILABILITY status (ID: Table 0273)
  *   - OBX    the transcribed narrative body, grouped under the TXA
  *
- * Safety rules enforced here (Phase Q §Fail-safe: the load-bearing one):
+ * Safety rules enforced here (the load-bearing one):
  *   - **TXA-17 completion status and TXA-19 availability status are surfaced as
  *     DISTINCT fields and NEVER conflated.** A document can be *available*
  *     (TXA-19 = `AV`) before it is *authenticated / legally authenticated*

@@ -7,7 +7,7 @@
  * Subcomponents are returned VERBATIM: the tokenizer (parser-02) already
  * unescaped each one on parse, so the stored value is decoded: a second
  * `unescape` here would double-decode a value whose own bytes look like an
- * escape (HL7-VALUE-REDECODE). The `enc` params are retained for signature
+ * escape. The `enc` params are retained for signature
  * uniformity across the composite read path.
  *
  * Not part of the public API: never re-exported from `src/index.ts`.

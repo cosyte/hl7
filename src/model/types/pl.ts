@@ -2,7 +2,7 @@
  * PL: HL7 v2 Person Location composite. 11-component structured-location
  * shape (v1 trimmed from the HL7 v2.5 full 12-component PL: slot 12
  * `entityIdentifier` is rarely used; v2 may restore the full shape) parsed
- * from a `RawRepetition` on demand by `Field.asPl()` (wired in Plan 04).
+ * from a `RawRepetition` on demand by `Field.asPl()`.
  * Fields are OMITTED when absent (exactOptionalPropertyTypes): NEVER set
  * to `undefined`.
  *
@@ -94,8 +94,8 @@ function parseFacility(comp: RawComponent | undefined, enc: EncodingCharacters):
 
 /**
  * Parse an HL7 v2 PL repetition into a structured `PL` object. Components
- * are returned verbatim (already decoded once by the tokenizer: never re-unescaped,
- * HL7-VALUE-REDECODE). Absent / empty components are OMITTED
+ * are returned verbatim (already decoded once by the tokenizer: never
+ * re-unescaped). Absent / empty components are OMITTED
  * from the result (exactOptionalPropertyTypes semantics). Component 4
  * (`facility`) is parsed as a nested `HD`; see component table in the `PL`
  * interface JSDoc for the v1 simplifications.

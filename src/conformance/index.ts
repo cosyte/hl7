@@ -1,5 +1,5 @@
 /**
- * Barrel for the conformance-profile engine (roadmap Phase U). Re-exports the
+ * Barrel for the conformance-profile engine. Re-exports the
  * engine, the fail-fast profile-authoring gate, and the public types. Also
  * available as the `conformance` namespace object from the package root.
  *

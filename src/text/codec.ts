@@ -8,7 +8,7 @@
  *   escapes preserved verbatim), with no warning plumbing to wire up.
  * - {@link encodeText} is the **encode-safe** direction: an arbitrary string in,
  *   a spec-clean field body out that can **never inject a delimiter or forge a
- *   component boundary**. This is the primitive Phase T (typed emit) builds on.
+ *   component boundary**. This is the primitive the typed emit path builds on.
  *
  * For a human-readable rendering (formatting commands → whitespace, highlight
  * dropped), use {@link renderText} instead of {@link decodeText}.

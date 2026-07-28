@@ -1,6 +1,6 @@
 /**
- * `appointments`: Phase Q (scheduling breadth) implementation of the SIU
- * appointment extractor. Walks the message in document order and projects each
+ * `appointments`: SIU appointment extractor. Walks the message in document
+ * order and projects each
  * SCH (Scheduling Activity Information) segment into a typed {@link Appointment},
  * grouping the AIS/AIG/AIL/AIP resource segments that follow it positionally
  * under that SCH: the same open-a-group-on-the-anchor state machine
@@ -17,7 +17,7 @@
  *   - AIL-3  location resource (PL / coded)  → resource kind "location"
  *   - AIP-3  personnel resource (XCN)        → resource kind "personnel" (provider)
  *
- * Safety rules enforced here (Phase Q §Fail-safe):
+ * Safety rules enforced here:
  *   - Never throws: a malformed SCH / AI* surfaces as omitted keys (HELPERS-07).
  *   - The filler status code (SCH-25) is surfaced VERBATIM (provenance-only): a
  *     mis-keyed status is echoed exactly, never normalized or validated.

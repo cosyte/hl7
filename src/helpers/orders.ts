@@ -1,5 +1,5 @@
 /**
- * `orders`: Phase 4 Plan 04 implementation of HELPERS-05. Walks the message
+ * `orders`: walks the message
  * in document order and groups OBX segments positionally under their
  * preceding OBR (D-12). An ORC segment that precedes an OBR contributes its
  * ORC-1 as the order's `orderControl` (D-16); unmatched trailing ORCs are
@@ -13,10 +13,10 @@
  *     NOT grouped here (but still surface via `msg.observations()`).
  *   - D-16: Order field contract (placerOrderNumber, fillerOrderNumber,
  *     universalServiceId, orderStatus, orderControl, orderedBy, observations).
- *   - D-18: `orderStatus` uses OBR-25 (resultStatus) for v1; Phase 7 may revisit.
+ *   - D-18: `orderStatus` uses OBR-25 (resultStatus).
  *   - D-22: never throws: malformed OBR/OBX surface as omitted keys.
  *   - D-24 (a): `orderedBy` is an XCN composite (not a flat string).
- *   - Reuses `buildObservation` from `./observations.ts` (Plan 03): never
+ *   - Reuses `buildObservation` from `./observations.ts`: never
  *     re-implement OBX → Observation construction here.
  *
  * State-machine shape: two ORC slots.
@@ -44,7 +44,7 @@ function stringOrUndefined(v: string): string | undefined {
 }
 
 /**
- * Build the frozen `timings` list for an order group (Phase M). Every TQ1
+ * Build the frozen `timings` list for an order group. Every TQ1
  * segment grouped under the OBR yields one `OrderTiming` (`source: "TQ1"`).
  * The legacy embedded TQ in the attached ORC's ORC-7 is read **only when the
  * group carries no TQ1**: so the same timing is never double-counted and a

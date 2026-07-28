@@ -1,6 +1,6 @@
 /**
  * `buildAck`: generate a spec-clean HL7 v2 acknowledgment (ACK) message from
- * an inbound message (Phase C). The boundary with `@cosyte/mllp` is resolved
+ * an inbound message. The boundary with `@cosyte/mllp` is resolved
  * (hl7 roadmap §10.1): **hl7 owns ACK *content*** (this file + the control
  * tables); mllp owns *policy/timing* (the commit contract) and *framing*.
  *
@@ -131,7 +131,7 @@ export function detectAckMode(inbound: Hl7Message): AckMode {
  * - **MSA**: MSA-1 = `code`; **MSA-2 echoes the full inbound MSH-10 field**
  *   (the raw field structure is carried over whole: a vendor-quirk id like
  *   `ID^X` is never truncated to its first component). The echo carries the
- *   inbound field's escape-fidelity overlay (HL7-ESC), so an id bearing a hex
+ *   inbound field's escape-fidelity overlay, so an id bearing a hex
  *   escape (`ID\X41\Q`) or a preserved escape (`\H\`) echoes **byte-verbatim**,
  *   not canonicalized: exactly the bytes the sender put on the wire, which is
  *   what MSA-2 correlation compares. The only structural transform is
@@ -146,7 +146,7 @@ export function detectAckMode(inbound: Hl7Message): AckMode {
  *   (when given), ERR-3 the Table 0357 condition code as a CWE
  *   (`code^text^HL70357`), ERR-4 the Table 0516 severity.
  *
- * **Fail-safe (roadmap §Phase C).** If the inbound message has no MSH-10, the
+ * **Fail-safe.** If the inbound message has no MSH-10, the
  * ACK cannot be correlated. `buildAck` then leaves MSA-2 empty and, if a
  * positive accept (`AA`/`CA`) was requested, **downgrades it** to the matching
  * error code (`AE`/`CE`): it never fabricates an unverifiable positive ACK.
@@ -358,7 +358,7 @@ function encodingsEqual(a: EncodingCharacters, b: EncodingCharacters): boolean {
 }
 
 /**
- * Return a copy of `field` with the HL7-ESC `rawSubcomponents` overlay dropped
+ * Return a copy of `field` with the `rawSubcomponents` escape-fidelity overlay dropped
  * from every component, so `emitField` re-escapes the DECODED value instead of
  * emitting the sender's raw wire bytes verbatim. Used when the ACK's encoding
  * differs from the inbound's: see the correlation caveat in {@link buildAck}.

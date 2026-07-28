@@ -19,8 +19,8 @@ import type { EncodingCharacters } from "./types.js";
 
 /**
  * The HL7 default 5-tuple of encoding characters used when a message does
- * not override them via MSH-1 / MSH-2. Re-used by downstream stages (Plan 04
- * escape map, Plan 06 `parseHL7`) as a synthetic-message fallback.
+ * not override them via MSH-1 / MSH-2. Re-used by downstream stages (the
+ * escape map, `parseHL7`) as a synthetic-message fallback.
  *
  * @example
  * ```ts
