@@ -1,3 +1,5 @@
+![@cosyte/hl7: parse real-world, vendor-quirky HL7 v2 messages and extract the fields you need in one line](https://cosyte.com/social/cosyte-banner-hl7-1200x300.png)
+
 # @cosyte/hl7
 
 > Parse real-world, vendor-quirky HL7 v2 messages and extract the fields you need in one line, without reading the spec.

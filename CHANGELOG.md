@@ -15,6 +15,23 @@ per the cosyte version ladder (`0.0.x` until first alpha).
 
 ### Added
 
+- **The cosyte brand banner heads `README.md` (`ASSETS-P8`, the consuming half).** A plain markdown
+  image on the first line of the file, above the H1, pointing at the absolute HTTPS URL published
+  for `hl7` in the `assets` repo's `published-urls.json` contract
+  (`https://cosyte.com/social/cosyte-banner-hl7-1200x300.png`, `status: live` on
+  `website#59 01f988b`). Re-verified `200 image/png`, 18316 bytes, immediately before the push.
+
+  **The shape is deliberate, and `hl7` sets it for the other thirteen consuming READMEs.** It is a
+  markdown image, **not `<img>` and not `<picture>`**: whether npm's markdown sanitizer preserves a
+  `<picture>` element is unverified, which is precisely why the banner artwork is self-grounded
+  (opaque ground, correct against a light or dark page) and depends on no such element. A markdown
+  image with an absolute HTTPS URL is the construct we are willing to assert renders on both npm and
+  GitHub, so it carries no width or height attributes either. **PNG only** is a bounded policy (the
+  format we assert renders on every README surface), not a demonstrated impossibility for others.
+  The **alt text is content, not decoration**: it names the package and its one-line purpose,
+  because it is what a screen reader on the npm page reads out, so "banner", "logo", or the file
+  name would all be a wasted line.
+
 - **The published JSDoc is swept, and `src/` doc comments are gated
   (`pnpm check:no-internal-refs` third pass; `PUBLIC-SURFACE-HYGIENE`).** Doc comments compile
   into `dist/index.d.ts` and `dist/index.d.cts`, `dist` is the first entry in `files`, and every
