@@ -212,6 +212,44 @@ describe("PHI-exec: documented snippet contract: bounded, not value-free (errors
     );
   });
 
+  it("strict-mode escalation never puts forged-segment content in .message or .stack", () => {
+    // The inversion this closes: `.snippet` is the field the docs tell a
+    // consumer to redact, and on this path it holds the (harmless) head of
+    // the message. `.message` is the field that carried the payload, and it
+    // is what a logger prints by default and what `.stack` embeds. A
+    // consumer following the documented mitigation EXACTLY still logged PHI.
+    //
+    // `.stack` is asserted separately from `.message` on purpose: most error
+    // reporters ship the stack to a third-party service, so a leak that only
+    // reaches `.stack` is still a leak off the box.
+    fc.assert(
+      fc.property(markerArb, (marker) => {
+        const raw = [
+          "MSH|^~\\&|SENDAPP|SENDFAC|RECVAPP|RECVFAC|20250101||ORU^R01|CTRL1|P|2.5",
+          `OBX|1|TX|IMP||Impression: unremarkable.\n${marker} continuation`,
+        ].join("\r");
+        try {
+          parseHL7(raw, { strict: true });
+          throw new Error("expected strict mode to escalate the forged segment to a throw");
+        } catch (err) {
+          if (!(err instanceof Hl7ParseError)) throw err;
+          // Pin the code. Without this the property passes if ANY earlier
+          // warning escalates first, proving nothing about the forged segment
+          // it was written to cover. Non-vacuous today (no whitespace trim in
+          // this fixture, and MISSING_EXPECTED_GROUP runs later), but that is
+          // an ordering accident and a future warning could silently take over.
+          expect(err.code).toBe("UNKNOWN_SEGMENT");
+          assertMessageNeverEchoesMarker(err, marker);
+          expect(
+            (err.stack ?? "").includes(marker),
+            `strict-mode error .stack leaked forged-segment content ${JSON.stringify(marker)}`,
+          ).toBe(false);
+        }
+      }),
+      RUN_CONFIG,
+    );
+  });
+
   it("strict-mode escalation snippet (index.ts::buildSnippet, a SEPARATE call site) is also bounded to 41 chars", () => {
     // Strict mode escalates the FIRST Tier-2 warning into an Hl7ParseError
     // via `buildSnippet`, a distinct code path from the direct-fatal

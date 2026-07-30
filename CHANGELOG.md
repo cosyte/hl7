@@ -450,6 +450,115 @@ kind, value)`** sets one at a field or `field[rep]` dot-path. Component values a
 
 ### Fixed
 
+- **A warning or error message could carry clinical text into a log line (`HL7-WARN-MSG-PHI`).**
+  No options were required to reach it: plain `parseHL7(raw)` on lenient defaults.
+
+  **The mechanism.** `normalize()` rewrites every `\r\n` and `\n` in the input to `\r` before
+  segment splitting, unconditionally and with no field awareness. HL7 v2 Ch. 2 fixes the segment
+  terminator as `<CR>` and provides `\.br\` (§2.7.6) precisely because a literal line break cannot
+  appear inside a field, but real senders emit raw breaks inside narrative fields (`OBX-5`, notes,
+  embedded documents), which is exactly the class of sender violation this parser exists to
+  tolerate. When one occurs, the remainder of that field becomes a forged segment, and `tokenize()`
+  takes the whole line as its segment identifier because a line with no field separator offers no
+  other candidate. `UNKNOWN_SEGMENT` then interpolated that "identifier" uncapped, putting synthetic
+  name, date of birth and medical record number into `Hl7ParseWarning.message`. Under
+  `{ strict: true }` the same text reached the thrown `Hl7ParseError.message`, and therefore
+  `.stack`.
+
+  **The disclosure was inverted, which is what made it consequential.** Guidance said to redact
+  `Hl7ParseError.snippet`. On the strict path `snippet` holds the head of the message (usually the
+  MSH header) while `message` held the payload, so a consumer following the documented mitigation
+  exactly still logged the data. `message` is also the field a logger prints by default and the one
+  `stack` embeds.
+
+  **The fix: bound at the factory, not at the call site.** A token taken from input is echoed only
+  when it matches the form the spec defines for it, and becomes `<withheld>` otherwise. A length cap
+  was rejected because truncating still emits the first N characters of a patient name. Segment
+  identifiers are held to exactly three alphanumerics (HL7 v2 Ch. 2 §2.5), with equivalent forms for
+  MSH-9 types and MSH-12 versions. Conforming tokens render byte-identically, so `PID`, `ZZZ` and
+  every legitimate Z-segment name are unchanged and well-formed input sees no behaviour change:
+  1653 existing tests pass untouched. Placing the check in the factories rather than at the one live
+  call site also covers the six factories currently exported but unreached, and consumers who
+  construct warnings themselves.
+
+  **Charset labels are bounded by registry membership, not by spelling, and that distinction was
+  earned the hard way.** The first version of this fix used a shape test for them too, and a refuter
+  broke it: the shape admitted all five of the PHI-shaped markers this repo's own property suite
+  defines, including an 18-character patient name. Table 0211 is a **closed** table and
+  `UNKNOWN_CHARSET` fires precisely when a label is absent from it, so at the moment of the warning
+  there is no spec-defined spelling left to test against, and `UNICODE UTF-8` and a patient name are
+  shape-siblings. No regex can separate them. A label is now echoed only when `resolveCharset`
+  recognises it.
+
+  **What is bounded, stated without overclaiming.** `snippet` is the only field carrying input
+  verbatim and unbounded, so it is the one to redact first. A message cannot carry a field's value,
+  but it can carry a residue of up to three characters when a malformed line happens to look like a
+  segment identifier. No absolute "never carries field content" claim is made anywhere in this
+  package, because the code cannot honour one.
+
+  **Two adjacent surfaces bounded in the same pass.** `UNKNOWN_CHARSET` and `ENCODING_MISMATCH`
+  interpolate a value read as MSH-18, which on a message carrying no segment terminators is not
+  MSH-18 at all but the 18th `|`-token of the flattened input, commonly a data field. That path is
+  Buffer-only, and `parseStream` and `splitBatch` re-encode each split message to a Buffer, which is
+  the ordinary MLLP and file ingestion shape, so it is not an exotic corner.
+  `MISSING_EXPECTED_GROUP` and `MERGE_MISSING_PRIOR_OR_SURVIVOR` interpolate MSH-9.
+
+  **The test gap is the real finding.** The PHI property suite could not reach this position: every
+  generated marker sat after a `|`, so it was always a field value to the tokenizer, while the only
+  position that leaks is a line's **leading** token. A green suite over an unreachable case is
+  indistinguishable from a correct one. New generators emit the real trigger (a field-internal `\n`
+  and `\r\n`) across the lenient and strict arms, asserting on `.stack` separately from `.message`
+  because most error reporters ship the stack off-box, and pinning the escalated code on both
+  strict properties so neither can pass vacuously if some other warning escalates first. A second
+  set covers the Buffer/MSH-18 path, which every string-input generator in the suite structurally
+  misses, and a third asserts the invariant on the parsed **model**. All ten new tests fail on the
+  code they were written against and pass on this one.
+
+  **The same lesson applied to this fix's own first draft, which is why it now bounds the model
+  too.** Bounding the warning message protected this package's diagnostics and nothing else.
+  `Segment.type` still carried the entire forged line, so a consumer that reads the model and builds
+  its own report from that "identifier" wrote clinical narrative into it, on lenient defaults, with
+  no options set. **A diagnostic-surface fix does not protect a downstream package that reads your
+  model and builds its own diagnostics from it. Bounding at the model protects both.**
+  `Segment.type`, `Hl7Message.version` and the unrecognized branch of `MessageStructure` now carry
+  bounded identifiers, and the shared primitive moved to `src/parser/tokens.ts` so the parser and the
+  model use one bound rather than two.
+
+  **One bound deliberately not taken, named rather than left implicit.** On the _recognized_ branch
+  of `MessageStructure`, `triggerEvent` is echoed verbatim, and a definition matching on message code
+  alone (`ACK`) accepts an arbitrary MSH-9.2. Left unbounded on purpose: no real sender putting
+  narrative in MSH-9.2 is grounded in a de-identified document, and widening the guard there is a
+  separate change, not a silent extension of this one. An earlier comment in that file asserted the
+  branch returned registry values and could not carry input, which was false; the claim is corrected
+  rather than the guard grown.
+
+  **What stays unbounded, deliberately, because bounding it would be a mis-parse.** The model
+  separates **identifiers** from **values**. `Meta.*` is the documented value view of the MSH header;
+  `Segment.fields`, `Segment.raw` and `Hl7Message.rawSegments` are the raw tokenization the
+  byte-verbatim round-trip serializes from; `toString()` / `toJSON()` / `prettyPrint()` are the
+  message itself. Those are content surfaces and say so. `meta.version` in particular keeps MSH-12
+  exactly as it arrived and is what the v2.7 MRG field-scoping reads, so bounding
+  `Hl7Message.version` changes no clinical field selection.
+
+  **Docs corrected in both directions.** `docs-content/troubleshooting.md` asserted that warning
+  messages never echo a field's value, an overclaim; it and the equivalent assurances in
+  `normalize.ts` and `warnings.ts` now state the check that makes it true. The `Hl7ParseError`
+  disclosure now says `snippet` is the field to redact first, rather than claiming a message is
+  clean. `README.md` called the snippet an excerpt of "the offending input" when it is always
+  taken from the start of the message; the wording is corrected rather than the behaviour, because
+  re-pointing the snippet at the deviation's own segment would move more clinical content into the
+  single unredacted field.
+
+  **Not a mis-parse.** Parsed values were always correct; this was a diagnostic-surface leak.
+  Consumers on any published version up to and including `0.0.3` should treat
+  `Hl7ParseWarning.message` and `Hl7ParseError.message` as potentially carrying field content for
+  feeds they do not control until they upgrade.
+
+- **Stale counts in `docs-content/`, found while correcting the PHI wording.** The warning-code
+  count was given as 19 in three places (it is 20), and two pages quoted a published npm version
+  that was two releases stale. Both now point at the registry rather than restating it, which is the
+  only way a doc page stops drifting from it.
+
 - **Four false claims in the README's feature list, each re-derived from source rather than from
   memory (`README-CLAIM-DRIFT`).** Every number and version below was measured against the thing it
   describes, in the order a consumer would have to trust it:

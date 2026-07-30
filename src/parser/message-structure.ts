@@ -34,6 +34,8 @@
  * Zero runtime deps: pure data + pure functions.
  */
 
+import { boundedIdentifier } from "./tokens.js";
+
 /**
  * One expected segment group for a recognized trigger event. The group is
  * considered **present** when at least one of its `anchorSegments` appears in
@@ -233,9 +235,19 @@ export interface StructureGroup {
 export interface MessageStructure {
   /** `true` when a `MESSAGE_STRUCTURE_DEFINITIONS` entry matched the type. */
   readonly recognized: boolean;
-  /** MSH-9.1 message code observed on the message (empty string if absent). */
+  /**
+   * MSH-9.1 message code observed on the message. `""` when absent, and
+   * `"<withheld>"` when `recognized` is `false` and the observed value is not
+   * identifier-shaped (MSH-9 can hold a data field on a malformed message).
+   */
   readonly messageCode: string;
-  /** MSH-9.2 trigger event observed on the message (empty string if absent). */
+  /**
+   * MSH-9.2 trigger event observed on the message. `""` when absent, and
+   * `"<withheld>"` when `recognized` is `false` and the observed value is not
+   * identifier-shaped. Note that on the `recognized` branch this is echoed
+   * verbatim, which for a definition matching on message code alone (`ACK`)
+   * means an arbitrary MSH-9.2.
+   */
   readonly triggerEvent: string;
   /** Per-expected-group presence verdicts (empty when unrecognized). */
   readonly expectedGroups: readonly StructureGroup[];
@@ -289,10 +301,25 @@ export function analyzeMessageStructure(
 ): MessageStructure {
   const def = findDefinition(messageCode, triggerEvent);
   if (def === undefined) {
+    // Bounded on the UNRECOGNIZED branch. These two fields are echoed straight
+    // back from MSH-9, and on a malformed message MSH-9 can hold a data field,
+    // so an unrecognized structure is where narrative reaches a field a
+    // consumer reads as an identifier.
+    //
+    // BE PRECISE ABOUT THE RECOGNIZED BRANCH, because an earlier version of
+    // this comment was wrong about it: that branch returns these same
+    // PARAMETERS, not `def.*`. `messageCode` is safe there by construction,
+    // since `findDefinition` skips any definition whose `messageCode` differs.
+    // `triggerEvent` is NOT: a definition with an empty `triggerEvents` list
+    // matches on message code alone (the `ACK` entry), so a recognized `ACK`
+    // echoes MSH-9.2 verbatim. It is left unbounded deliberately rather than
+    // by oversight: no real sender putting narrative in MSH-9.2 is grounded in
+    // a de-identified document, and bounding it is a separate change with its
+    // own backlog item, not a silent widening of this one.
     return Object.freeze({
       recognized: false,
-      messageCode,
-      triggerEvent,
+      messageCode: boundedIdentifier(messageCode, "segmentId"),
+      triggerEvent: boundedIdentifier(triggerEvent, "segmentId"),
       expectedGroups: Object.freeze([]),
       missingGroups: Object.freeze([]),
     });

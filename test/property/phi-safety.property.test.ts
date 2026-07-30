@@ -204,6 +204,90 @@ describe("property: PHI safety in warning paths", () => {
   });
 });
 
+describe("property: PHI safety when a field-internal line break forges a segment", () => {
+  /**
+   * The position the two generators above **structurally cannot reach**.
+   *
+   * Every marker they emit sits AFTER a `|` on its line, so it is always a
+   * field value in the tokenizer's eyes. The one position that leaks is a
+   * line's LEADING token: `tokenize.ts` takes the whole line as the segment
+   * `name` when the line contains no field separator, and `unknownSegment`
+   * interpolates that name into its message uncapped.
+   *
+   * This is not a contrived position. `normalize.ts` rewrites every `\r\n`
+   * and `\n` in the input to `\r` unconditionally and with no field
+   * awareness, BEFORE segment splitting. So an unescaped line break inside a
+   * narrative field (HL7 v2 Ch. 2 requires `\.br\` for exactly this reason,
+   * and real senders violate it) turns the remainder of that field into a
+   * forged segment whose "name" is free-text clinical content.
+   *
+   * A green suite over a generator that cannot produce this case is
+   * indistinguishable from a correct one, which is why it is generated here
+   * rather than asserted as a one-off.
+   */
+  function messageWithFieldInternalLineBreak(marker: string, breakSeq: string): string {
+    return [
+      "MSH|^~\\&|SENDAPP|SENDFAC|RECVAPP|RECVFAC|20250101||ORU^R01|CTRL1|P|2.5",
+      "PID|||X||Y||19800101|M",
+      // The unescaped break splits OBX-5; everything after it becomes a
+      // forged segment whose entire line is read as the segment identifier.
+      `OBX|1|TX|IMP||Impression: unremarkable.${breakSeq}${marker} continuation of the narrative`,
+    ].join("\r");
+  }
+
+  const BREAK_SEQUENCES = ["\n", "\r\n"] as const;
+
+  it("a forged segment name never reaches a warning message (fixed markers)", () => {
+    for (const marker of PHI_MARKERS) {
+      for (const breakSeq of BREAK_SEQUENCES) {
+        const raw = messageWithFieldInternalLineBreak(marker, breakSeq);
+        const msg = parseHL7(raw);
+
+        // Sanity: the forged segment must actually raise a warning, or the
+        // no-echo assertion below is vacuous.
+        expect(
+          msg.warnings.length,
+          "fixture did not trigger a warning; the no-echo check would be vacuous",
+        ).toBeGreaterThan(0);
+
+        for (const w of msg.warnings) {
+          expect(
+            w.message.includes(marker),
+            `warning ${w.code} leaked forged-segment content ${JSON.stringify(marker)}: ${w.message}`,
+          ).toBe(false);
+        }
+      }
+    }
+  });
+
+  it("property: arbitrary forged-segment content never reaches a warning message", () => {
+    const markerChar = fc.constantFrom(..."ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-, ".split(""));
+    const tokenArb = fc
+      .stringOf(markerChar, { minLength: 6, maxLength: 40 })
+      .filter((s) => s.trim().length >= 6);
+
+    fc.assert(
+      fc.property(tokenArb, fc.constantFrom(...BREAK_SEQUENCES), (token, breakSeq) => {
+        const raw = messageWithFieldInternalLineBreak(token, breakSeq);
+        let parsed: ReturnType<typeof parseHL7>;
+        try {
+          parsed = parseHL7(raw);
+        } catch (err) {
+          expect(err).toBeInstanceOf(Hl7ParseError);
+          return;
+        }
+        for (const w of parsed.warnings) {
+          expect(
+            w.message.includes(token),
+            `warning ${w.code} leaked forged-segment content ${JSON.stringify(token)}: ${w.message}`,
+          ).toBe(false);
+        }
+      }),
+      RUN_CONFIG,
+    );
+  });
+});
+
 describe("Hl7ParseError.snippet length bound", () => {
   it("snippet stays ≤ 41 chars (40 + ellipsis) for arbitrarily-large fatal inputs", () => {
     // Generate adversarially-sized inputs and check the snippet bound on any
@@ -252,5 +336,111 @@ describe("Hl7ParseError.snippet length bound", () => {
         expect(err.snippet.length).toBeLessThan(big.length);
       }
     }
+  });
+});
+
+describe("property: PHI safety on the Buffer / MSH-18 charset path", () => {
+  /**
+   * The second position a shape test cannot defend, and the one that evaded
+   * the first version of this guard.
+   *
+   * `extractMsh18FromTentativeDecode` reads MSH-18 as `parts[17]` of the text
+   * before the first `\r`/`\n`. On a message carrying no segment terminators
+   * (the flattened-feed corruption this parser exists to tolerate) that token
+   * is not MSH-18 at all but the 18th `|`-token of the whole message, which is
+   * routinely a data field. It reaches `UNKNOWN_CHARSET` as the "requested"
+   * label.
+   *
+   * A shape test is the wrong instrument here and no regex can fix it:
+   * Table 0211 is a CLOSED enumerated table, `UNKNOWN_CHARSET` fires precisely
+   * when the label is absent from it, and `UNICODE UTF-8` and `123 MAIN ST`
+   * are shape-siblings. The bound has to be registry membership, not spelling.
+   *
+   * This path is Buffer-only, so every string-input generator above misses it,
+   * and `parseStream`/`splitBatch` re-encode each split message to a Buffer,
+   * which is the ordinary MLLP and file ingestion shape.
+   */
+  function terminatorFreeBufferWithMarkerAtToken17(marker: string): Buffer {
+    const parts = [
+      "MSH",
+      "^~\\&",
+      "LAB",
+      "LF",
+      "EHR",
+      "HOSP",
+      "20250101120000",
+      "",
+      "ORU^R01",
+      "MSG1",
+      "P",
+      "2.5",
+      "",
+      "",
+      "",
+      "",
+      "",
+      marker, // index 17, misread as MSH-18
+    ];
+    return Buffer.from(parts.join("|"), "utf8");
+  }
+
+  it("a data field misread as MSH-18 never reaches a warning message (fixed markers)", () => {
+    for (const marker of PHI_MARKERS) {
+      const msg = parseHL7(terminatorFreeBufferWithMarkerAtToken17(marker));
+      expect(
+        msg.warnings.length,
+        "fixture did not trigger a warning; the no-echo check would be vacuous",
+      ).toBeGreaterThan(0);
+      for (const w of msg.warnings) {
+        expect(
+          w.message.includes(marker),
+          `warning ${w.code} leaked a data field read as MSH-18 ${JSON.stringify(marker)}: ${w.message}`,
+        ).toBe(false);
+      }
+    }
+  });
+
+  it("the same value never reaches .message or .stack under strict mode", () => {
+    for (const marker of PHI_MARKERS) {
+      try {
+        parseHL7(terminatorFreeBufferWithMarkerAtToken17(marker), { strict: true });
+        // Without this the whole body is skipped if escalation ever stops
+        // firing, and the test passes green having asserted nothing. That is
+        // the same vacuity mode pinned in the sibling strict property, and it
+        // was missed here when that fix was applied.
+        throw new Error("expected strict mode to escalate UNKNOWN_CHARSET to a throw");
+      } catch (err) {
+        if (!(err instanceof Hl7ParseError)) throw err;
+        expect(err.code).toBe("UNKNOWN_CHARSET");
+        expect(
+          err.message.includes(marker),
+          `strict-mode .message leaked ${JSON.stringify(marker)}: ${err.message}`,
+        ).toBe(false);
+        expect(
+          (err.stack ?? "").includes(marker),
+          `strict-mode .stack leaked ${JSON.stringify(marker)}`,
+        ).toBe(false);
+      }
+    }
+  });
+
+  it("property: arbitrary PHI-shaped values misread as MSH-18 never reach a message", () => {
+    const labelChar = fc.constantFrom(..."ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-/. ".split(""));
+    const labelArb = fc
+      .stringOf(labelChar, { minLength: 6, maxLength: 20 })
+      .filter((s) => s.trim().length >= 6 && !/^(ASCII|UNICODE|UTF-8)$/i.test(s.trim()));
+
+    fc.assert(
+      fc.property(labelArb, (label) => {
+        const msg = parseHL7(terminatorFreeBufferWithMarkerAtToken17(label));
+        for (const w of msg.warnings) {
+          expect(
+            w.message.includes(label),
+            `warning ${w.code} leaked a data field read as MSH-18 ${JSON.stringify(label)}: ${w.message}`,
+          ).toBe(false);
+        }
+      }),
+      RUN_CONFIG,
+    );
   });
 });

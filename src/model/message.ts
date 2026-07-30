@@ -18,6 +18,7 @@ import type {
   RawRepetition,
   RawSegment,
 } from "../parser/types.js";
+import { boundedIdentifier } from "../parser/tokens.js";
 import type { Hl7ParseWarning } from "../parser/warnings.js";
 import { allergies as walkAllergies } from "../helpers/allergies.js";
 import { appointments as walkAppointments } from "../helpers/appointments.js";
@@ -159,6 +160,16 @@ export class Hl7Message {
   public readonly rawSegments: readonly RawSegment[];
 
   public readonly encodingCharacters: EncodingCharacters;
+  /**
+   * HL7 version the model asserts for this message, from MSH-12.1.1, e.g.
+   * `"2.5"` or `"2.5.1"`.
+   *
+   * **Bounded, and it is `"<withheld>"` when MSH-12 does not hold a version.**
+   * Same reasoning as {@link Segment.type}: it presents as an identifier and
+   * consumers label with it. `meta.version` keeps MSH-12 exactly as it
+   * arrived, and is what version-scoped field selection reads, so this bound
+   * changes no parsing behaviour.
+   */
   public readonly version: string;
   public readonly warnings: readonly Hl7ParseWarning[];
   public readonly profile:
@@ -240,7 +251,11 @@ export class Hl7Message {
   public constructor(init: Hl7MessageInit) {
     this.rawSegments = init.segments;
     this.encodingCharacters = init.encodingCharacters;
-    this.version = init.version;
+    // Bounded for the same reason as `Segment.type`: this is the version the
+    // model ASSERTS, and consumers label with it. `meta.version` keeps MSH-12
+    // exactly as it arrived, and is what the v2.7 MRG scoping reads, so this
+    // bound cannot change any clinical field-selection behaviour.
+    this.version = boundedIdentifier(init.version, "version");
     // Freeze the warnings array at the model boundary so downstream phases
     // cannot mutate parser output after handoff. `slice()` first to avoid
     // sharing a reference the parser may still hold internally.

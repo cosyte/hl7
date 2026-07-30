@@ -25,7 +25,12 @@ import { normalize, normalizeBuffer } from "./normalize.js";
 import { snippet as segmentSnippet, splitSegments } from "./segments.js";
 import { tokenize } from "./tokenize.js";
 import { analyzeMessageStructure } from "./message-structure.js";
-import { encodingMismatch, missingExpectedGroup, unknownSegment } from "./warnings.js";
+import {
+  encodingMismatch,
+  missingExpectedGroup,
+  safeCharsetLabel,
+  unknownSegment,
+} from "./warnings.js";
 import type { Hl7ParseWarning } from "./warnings.js";
 import type {
   CustomSegmentDefinition,
@@ -283,7 +288,12 @@ function resolveBufferCharset(
       emit(
         encodingMismatch(
           { segmentIndex: 0 },
-          `options.charset="${override}" disagrees with MSH-18="${declared}"`,
+          // `declared` is MSH-18 read off the wire. On a message with no
+          // segment terminators it is not MSH-18 at all but the 18th
+          // `|`-token of the flattened message, commonly a data field, so it
+          // is shape-checked before it reaches a log surface. `override` is
+          // the caller's own `options.charset`, not input, and is left alone.
+          `options.charset="${override}" disagrees with MSH-18="${safeCharsetLabel(declared)}"`,
         ),
       );
     }

@@ -94,9 +94,23 @@ parser does not decode at all:
   it, or an ICU build lacking the label).
 - **`UNKNOWN_CHARSET`**: a value that is *not* an HL7 Table-0211 code at all.
 
-Both read the bytes as `latin1`; the distinction is diagnostic. Both warnings
-carry the **charset code only**, never a decoded field value, so no PHI is
-exposed.
+Both read the bytes as `latin1`; the distinction is diagnostic. Neither warning
+can carry a decoded field value: a label is echoed **only when the Table-0211
+registry recognises it**, and anything else is replaced with `<withheld>`.
+
+That bound is membership rather than spelling for a reason. `UNKNOWN_CHARSET`
+fires precisely *when* a label is absent from the closed table, so at that moment
+there is no spec-defined spelling left to test against, and a shape test cannot
+tell `UNICODE UTF-8` from a patient name. It matters because MSH-18 is read as
+the 18th `|`-token of the text before the first terminator, so on a message
+carrying no segment terminators that token is a data field.
+
+**The cost, stated plainly:** `UNKNOWN_CHARSET` now never reports the label it
+rejected, because by definition the registry does not recognise it. A sender
+declaring `WINDOWS-1252` (the classic non-Table-0211 value) yields
+`Unrecognized character set "<withheld>"`, and the observed label is on no field
+of the warning. To identify it, read MSH-18 off the message yourself. That is a
+deliberate trade of one diagnostic for a leak that reached a downstream report.
 
 **Recoverability is exact for single-byte content, best-effort for multibyte.**
 The HL7 structural bytes (the segment terminator CR (`0x0D`), LF, and the

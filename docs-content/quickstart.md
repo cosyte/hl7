@@ -58,7 +58,7 @@ msg.get("PID.5.1"); // => "Doe"
 ## Warnings carry stable codes
 
 Each tolerance warning carries a **stable code** you can branch on without it churning between
-releases (the 19 warning codes are a public, versioned contract):
+releases (the 20 warning codes are a public, versioned contract):
 
 ```ts
 import { parseHL7 } from "@cosyte/hl7";
