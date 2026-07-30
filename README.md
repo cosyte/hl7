@@ -7,7 +7,7 @@
 [![npm version](https://img.shields.io/npm/v/@cosyte/hl7.svg)](https://www.npmjs.com/package/@cosyte/hl7)
 [![CI](https://img.shields.io/github/actions/workflow/status/cosyte/hl7/ci.yml?branch=main&label=CI)](https://github.com/cosyte/hl7/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
-[![Node](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](https://nodejs.org)
+[![Node](https://img.shields.io/badge/node-%3E%3D22-brightgreen.svg)](https://nodejs.org)
 
 A developer-focused HL7 v2 parser and utility library for Node.js and TypeScript. Optimised for the 10% of HL7 you actually use, with the other 90% still one accessor away when you need it.
 
@@ -39,10 +39,10 @@ That's the whole pitch: no config, no schema upload, no spec lookup. The parser 
 
 - **One-line extraction**: `msg.patient.mrn`, `msg.meta.timestamp`, `msg.observations()`, and friends. No segment or field numbers to memorise.
 - **Three access patterns**: named helpers, dot-paths (`msg.get("PID.5.1")`), or structural traversal (`msg.segments("OBX")[0].field(3)`). Pick the level of ceremony you need.
-- **Real-world tolerance, four-tier**: lenient default parses vendor-quirky messages; 18 stable warning codes flag what was tolerated; strict mode escalates every deviation for CI validators; only 4 truly-structural failures are fatal.
+- **Real-world tolerance, four-tier**: lenient default parses vendor-quirky messages; 20 stable warning codes flag what was tolerated; strict mode escalates every deviation for CI validators; only 4 truly-structural failures are fatal.
 - **First-class profile system**: `defineProfile()` API, 8 built-in vendor profiles (Epic, Cerner, Meditech, athenahealth, generic lab, Visage 7 imaging/PACS, Philips Vue PACS, VA VistA Radiology/NucMed), plus a [publishable starter kit](./examples/profile-starter-kit/) you copy-and-ship.
 - **Round-trip safe, byte-verbatim escapes**: `parse -> modify -> toString()` emits spec-clean HL7 regardless of input quirks (Postel's Law: liberal parser, conservative emitter), and a parsed field's escape sequences (`\H\`, `\X41\`, charset/vendor escapes) re-emit **byte-for-byte**. See [Escapes & round-trip](./docs-content/spec-notes-escapes.md).
-- **Strict TypeScript, zero runtime deps**: ES2022, `noUncheckedIndexedAccess`, dual ESM + CJS, Node 18+. Every public export has JSDoc + `@example` that feeds your editor's IntelliSense.
+- **Strict TypeScript, zero runtime deps**: ES2023, `noUncheckedIndexedAccess`, dual ESM + CJS, Node 22+. Every public function and class has JSDoc + `@example` that feeds your editor's IntelliSense.
 - **Warnings carry stable codes + positional context**: react programmatically by `w.code`, with `segmentIndex`/`fieldIndex`/etc. attached.
 
 ---

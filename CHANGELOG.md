@@ -450,6 +450,44 @@ kind, value)`** sets one at a field or `field[rep]` dot-path. Component values a
 
 ### Fixed
 
+- **Four false claims in the README's feature list, each re-derived from source rather than from
+  memory (`README-CLAIM-DRIFT`).** Every number and version below was measured against the thing it
+  describes, in the order a consumer would have to trust it:
+  1. **Node 18+ to Node 22+**, in the badge (`node-%3E%3D18`) and in the prose. `engines.node` is
+     `>=22.0.0` in `package.json` and in the registry (`npm view @cosyte/hl7 engines`), and CI runs
+     the 22 + 24 matrix. This was the one with a consumer-visible consequence: `npm i @cosyte/hl7`
+     on Node 18 warns on engines while the package page says 18 is supported.
+  2. **ES2022 to ES2023.** `@cosyte/tsconfig/base.json` sets `"target": "ES2023"` and
+     `"lib": ["ES2023"]`, and this repo's `tsconfig.json` extends it without override.
+  3. **18 to 20 stable warning codes.** `WARNING_CODES` in `src/parser/warnings.ts` has 20 keys, and
+     `test/warning-codes.snapshot.test.ts` already asserted `toHaveLength(20)`. A green test suite
+     and a wrong package page coexisted. **No other surface says 18, but that is not the same as the
+     count now being consistent**: further down `README.md`, an inline prose list of 16 code names is
+     still introduced as "the full list of Tier-2 codes", and `docs-content/` says 19 in three
+     places. Those are pre-existing, outside this feature list, and left for their own change rather
+     than folded in here.
+  4. **"Every public export has JSDoc + `@example`" to "every public function and class."** Measured
+     over the 213 names in the built `dist/index.d.ts` export list: all **79 functions** and all
+     **5 classes** carry both, but of 17 value constants one (`ERR_CONDITION_CODE_SYSTEM`) has JSDoc
+     with no `@example`, and while all **109 type-only exports carry JSDoc, only 73 carry an
+     `@example`**. The three aliased namespace exports (`HL7`, `conformance`, `text`) fail the old
+     wording outright: two carry no JSDoc at all and the third has no `@example`. The narrowed
+     sentence is exactly true; the old one was not.
+
+  **The rest of the feature list was checked the same way and is correct**, so it is unchanged:
+  4 fatal codes (`FATAL_CODES` has exactly 4 keys), 8 built-in vendor profiles (the frozen `profiles`
+  namespace has 8, and the eight vendor names match), zero runtime dependencies (`dependencies` is
+  present and empty, and there is no `peerDependencies`), `noUncheckedIndexedAccess` (true in the
+  inherited base config), dual ESM + CJS (the `exports` map resolves `import` to `.mjs`/`.d.ts` and
+  `require` to `.cjs`/`.d.cts`, and `attw` passes node10, node16-CJS, node16-ESM and bundler), and
+  the two linked paths (`examples/profile-starter-kit/`, `docs-content/spec-notes-escapes.md`) both
+  resolve.
+
+  **`CLAUDE.md` already said Node >= 22 and Target ES2023, so the repo contradicted itself and
+  nothing caught it.** The two files drifted in opposite directions because only one of them is read
+  by a consumer, and it is the one that drifted. No gate compares a README claim to the config it
+  describes, which is why these were found by hand.
+
 - **`scripts/sync-version.mjs` hardened against two latent defects, and gated in CI
   (SYNC-VERSION-HARDENING).** Follow-up hardening on the VERSION-SYNC script; ported byte-identically
   across `hl7`, `x12`, and `mllp`. (1) The version was spliced into `src/index.ts` via
