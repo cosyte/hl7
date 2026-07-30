@@ -66,9 +66,31 @@ export type FatalCode = (typeof FATAL_CODES)[keyof typeof FATAL_CODES];
  * snippet of the offending input so consumers can log actionable errors.
  *
  * @remarks
- * Snippets may contain PHI when parsing real clinical messages: redact at
- * the call site if required by your compliance posture. The library does
- * not redact snippets itself.
+ * `snippet` may contain PHI when parsing real clinical messages, and the
+ * library does not redact it: redact at the call site if required by your
+ * compliance posture. **It is the only field carrying input verbatim and
+ * unfiltered** (capped at 40 characters plus an ellipsis, but not shape-checked
+ * in any way), so it is the one to redact first.
+ *
+ * `message` is bounded but not absolutely content-free, and the difference is
+ * worth stating because `message` is what a logger prints by default and what
+ * `stack` embeds. A token lifted from the input is echoed only when it matches
+ * the form the spec defines for it: a three-character segment identifier, an
+ * MSH-9 type, an MSH-12 version, or a charset label the closed Table 0211
+ * actually contains. Anything else becomes `<withheld>`. So a message cannot
+ * carry a field's value, but it can carry a residue of up to three characters
+ * when a malformed line happens to look like a segment identifier. The other
+ * shapes are narrower in practice than their patterns allow, because the
+ * library only ever feeds them registry-matched values, but the patterns
+ * themselves admit more (a message type up to 26 characters, a version up to
+ * 14), which matters if you construct warnings yourself.
+ *
+ * Under `{ strict: true }` an escalated Tier-2 warning is thrown as this
+ * error, carrying the warning's own bounded message and a `snippet` of the
+ * **first 40 characters of the input**. That snippet is the head of the
+ * message rather than the deviation's own segment, so it is usually the MSH
+ * header; it is deliberately not re-pointed at the offending segment, since
+ * doing so would move more clinical content into the unredacted field.
  *
  * @example
  * ```ts

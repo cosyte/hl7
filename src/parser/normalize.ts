@@ -21,8 +21,10 @@ import type { Hl7ParseWarning } from "./warnings.js";
 
 /**
  * Position attached to every charset warning: MSH (segment 0), field 18. The
- * message carries the charset code only, never a field value, so no PHI is
- * exposed.
+ * message carries the charset code only, never a field value. That holds
+ * because the code is shape-checked before it is interpolated: on a message
+ * carrying no segment terminators the value read here is not MSH-18 at all but
+ * the 18th `|`-token of the flattened input, which can be a data field.
  *
  * @internal
  */

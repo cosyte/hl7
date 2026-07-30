@@ -10,8 +10,10 @@ sidebar_position: 1
 builds with per-condition type declarations, so it works from either module system without
 configuration.
 
-> **Status:** published on npm at `0.0.1` and public, still pre-alpha on the
-> `0.0.x`-until-first-alpha ladder. The `npm install` command below is live, not aspirational.
+> **Status:** published on npm and public, still pre-alpha on the
+> `0.0.x`-until-first-alpha ladder. The `npm install` command below is live, not aspirational. For
+> the current published version, ask the registry (`npm view @cosyte/hl7 version`) rather than this
+> page.
 
 ## Prerequisites
 

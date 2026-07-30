@@ -9,6 +9,7 @@
  */
 
 import { Field } from "./field.js";
+import { boundedIdentifier } from "../parser/tokens.js";
 import type { EncodingCharacters, RawField, RawSegment } from "../parser/types.js";
 
 /**
@@ -25,7 +26,24 @@ import type { EncodingCharacters, RawField, RawSegment } from "../parser/types.j
  * ```
  */
 export class Segment {
-  /** Segment name (3 chars, e.g. `"PID"`, `"OBX"`, `"ZPI"`). */
+  /**
+   * Segment identifier: three characters with a leading letter, e.g. `"PID"`,
+   * `"OBX"`, `"ZPI"`.
+   *
+   * **Bounded, and it is `"<withheld>"` when the raw name is not that shape.**
+   * A line with no field separator has its whole content read as a segment
+   * name, so an unescaped line break inside a narrative field forges a
+   * "segment" whose name is clinical text. This field presents itself as a
+   * structural identifier and consumers interpolate it into labels, loci and
+   * reports, so it never carries that text. `""` still means absent, which is
+   * a different fact from withheld.
+   *
+   * Use {@link Segment.raw}`.name` when you need the verbatim text: it is the
+   * unbounded value, and it is what serialization emits, so the byte-verbatim
+   * round-trip is unaffected. One consequence worth knowing: a segment whose
+   * raw name fails the shape (a 4-character vendor Z-segment, which HL7 v2
+   * Ch. 2 §2.5 does not permit) is not matched by `msg.segments(name)`.
+   */
   public readonly type: string;
 
   /** Reference to the underlying `RawSegment.fields`: 1-indexed per HL7 convention. */
@@ -70,7 +88,13 @@ export class Segment {
     customFields?: Readonly<Record<string, number>>,
   ) {
     this.raw = raw;
-    this.type = raw.name;
+    // Bounded because a consumer reads `type` as a structural identifier and
+    // reasonably interpolates it into a label, a locus or a report. An
+    // unescaped line break inside a narrative field forges a segment whose
+    // "name" is the rest of that field, so this is the field that carried
+    // clinical prose into a downstream package's report. `raw.name` keeps the
+    // verbatim text for the byte-exact round-trip; see the `type` field JSDoc.
+    this.type = boundedIdentifier(raw.name, "segmentId");
     this.fields = raw.fields;
     this.enc = enc;
     this.absoluteIndex = absoluteIndex;

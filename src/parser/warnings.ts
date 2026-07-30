@@ -6,7 +6,33 @@
  * stay consistent across stages.
  */
 
+import { resolveCharset } from "./charset.js";
+import { WITHHELD, safeDerivedToken } from "./tokens.js";
+export { safeDerivedToken } from "./tokens.js";
+export type { DerivedTokenKind } from "./tokens.js";
 import type { Hl7Position } from "./types.js";
+
+/**
+ * Render a **charset label** for inclusion in a warning message.
+ *
+ * Separate from {@link safeDerivedToken} because a shape test is structurally
+ * the wrong instrument here, and no regex can be made right. Table 0211 is a
+ * **closed enumerated table**, and `UNKNOWN_CHARSET` fires precisely when a
+ * label is absent from it, so at the moment of the warning there is no
+ * spec-defined spelling left to test against: `UNICODE UTF-8` and a patient
+ * name are shape-siblings. The bound is therefore **membership**, not
+ * spelling. A label is echoed only when the registry recognises it.
+ *
+ * This is not hypothetical. `extractMsh18FromTentativeDecode` reads MSH-18 as
+ * the 18th `|`-token of the text before the first `\r`/`\n`; on a message
+ * carrying no segment terminators that token is a data field, and it arrives
+ * here as the "requested" label. A shape test admitted it.
+ *
+ * @internal
+ */
+export function safeCharsetLabel(value: string): string {
+  return resolveCharset(value).recognized ? value : WITHHELD;
+}
 
 /**
  * Stable string codes for every Tier-2 warning the parser may emit. The
@@ -271,7 +297,7 @@ export function timestampFallbackFormat(
 export function segmentCase(position: Hl7Position, observed: string): Hl7ParseWarning {
   return {
     code: WARNING_CODES.SEGMENT_CASE,
-    message: `Segment identifier "${observed}" is not uppercase; normalized to "${observed.toUpperCase()}".`,
+    message: `Segment identifier "${safeDerivedToken(observed, "segmentId")}" is not uppercase; normalized to "${safeDerivedToken(observed.toUpperCase(), "segmentId")}".`,
     position,
   };
 }
@@ -294,7 +320,7 @@ export function extraFields(
 ): Hl7ParseWarning {
   return {
     code: WARNING_CODES.EXTRA_FIELDS,
-    message: `Segment "${segmentName}" has ${String(extraCount)} more field(s) than the profile declares.`,
+    message: `Segment "${safeDerivedToken(segmentName, "segmentId")}" has ${String(extraCount)} more field(s) than the profile declares.`,
     position,
   };
 }
@@ -313,7 +339,7 @@ export function extraFields(
 export function unknownSegment(position: Hl7Position, segmentName: string): Hl7ParseWarning {
   return {
     code: WARNING_CODES.UNKNOWN_SEGMENT,
-    message: `Unknown segment "${segmentName}": not in HL7 spec and no profile claim.`,
+    message: `Unknown segment "${safeDerivedToken(segmentName, "segmentId")}": not in HL7 spec and no profile claim.`,
     position,
   };
 }
@@ -336,7 +362,7 @@ export function duplicateRequiredSegment(
 ): Hl7ParseWarning {
   return {
     code: WARNING_CODES.DUPLICATE_REQUIRED_SEGMENT,
-    message: `Required singleton segment "${segmentName}" appears more than once.`,
+    message: `Required singleton segment "${safeDerivedToken(segmentName, "segmentId")}" appears more than once.`,
     position,
   };
 }
@@ -379,7 +405,7 @@ export function missingRequiredField(
 ): Hl7ParseWarning {
   return {
     code: WARNING_CODES.MISSING_REQUIRED_FIELD,
-    message: `Required field ${segmentName}-${String(fieldIndex)} is missing or empty.`,
+    message: `Required field ${safeDerivedToken(segmentName, "segmentId")}-${String(fieldIndex)} is missing or empty.`,
     position,
   };
 }
@@ -392,7 +418,8 @@ export function missingRequiredField(
  * signature of a truncated or misrouted feed. Tier-2 and additive: lenient
  * parse never throws on it, `strict` mode may promote it. The message carries
  * only the structural fact (message type, group name, anchor segment names),
- * NEVER a field value, so no PHI is exposed. `position` references MSH-9.
+ * never a field value: the message type is shape-checked before it is
+ * interpolated, and withheld if it does not match. `position` references MSH-9.
  *
  * @example
  * ```ts
@@ -414,7 +441,7 @@ export function missingExpectedGroup(
   return {
     code: WARNING_CODES.MISSING_EXPECTED_GROUP,
     message:
-      `Message type "${messageType}" is missing its expected "${groupName}" segment group ` +
+      `Message type "${safeDerivedToken(messageType, "messageType")}" is missing its expected "${groupName}" segment group ` +
       `(no ${anchorSegments.join("/")}); message may be truncated or misrouted.`,
     position,
   };
@@ -434,7 +461,7 @@ export function missingExpectedGroup(
 export function outOfOrderSegment(position: Hl7Position, segmentName: string): Hl7ParseWarning {
   return {
     code: WARNING_CODES.OUT_OF_ORDER_SEGMENT,
-    message: `Segment "${segmentName}" appears out of the order declared by the active profile.`,
+    message: `Segment "${safeDerivedToken(segmentName, "segmentId")}" appears out of the order declared by the active profile.`,
     position,
   };
 }
@@ -457,7 +484,7 @@ export function versionMismatch(
 ): Hl7ParseWarning {
   return {
     code: WARNING_CODES.VERSION_MISMATCH,
-    message: `HL7 version mismatch: message declares "${declared}", expected "${expected}".`,
+    message: `HL7 version mismatch: message declares "${safeDerivedToken(declared, "version")}", expected "${expected}".`,
     position,
   };
 }
@@ -468,8 +495,8 @@ export function versionMismatch(
  * Table-0211 character set**. The parser never guesses an encoding: it reads the
  * raw bytes as `latin1` (a 1:1 byte mapping) so single-byte content stays
  * recoverable, rather than corrupting it with replacement characters. The
- * message carries the charset code only, never a decoded field value, so no
- * PHI is exposed.
+ * message carries the charset code only, never a decoded field value: the code
+ * is shape-checked before it is interpolated, and withheld if it does not match.
  *
  * @example
  * ```ts
@@ -480,7 +507,7 @@ export function versionMismatch(
 export function unknownCharset(position: Hl7Position, requested: string): Hl7ParseWarning {
   return {
     code: WARNING_CODES.UNKNOWN_CHARSET,
-    message: `Unrecognized character set "${requested}"; not decoded, bytes read as latin1.`,
+    message: `Unrecognized character set "${safeCharsetLabel(requested)}"; not decoded, bytes read as latin1.`,
     position,
   };
 }
@@ -498,8 +525,8 @@ export function unknownCharset(position: Hl7Position, requested: string): Hl7Par
  * coincide with a structural delimiter: see the parser's known-limitations).
  * The switch escapes (`\Cxxyy\` / `\Mxxyyzz\`) are recognized and preserved by
  * the escape layer; full stateful decoding is a documented non-goal. The message
- * carries the charset code only, never a decoded field value, so no PHI is
- * exposed.
+ * carries the charset code only, never a decoded field value: the code is
+ * shape-checked before it is interpolated, and withheld if it does not match.
  *
  * @example
  * ```ts
@@ -510,7 +537,7 @@ export function unknownCharset(position: Hl7Position, requested: string): Hl7Par
 export function unsupportedCharset(position: Hl7Position, code: string): Hl7ParseWarning {
   return {
     code: WARNING_CODES.UNSUPPORTED_CHARSET,
-    message: `Character set "${code}" was not decoded; bytes read as latin1.`,
+    message: `Character set "${safeCharsetLabel(code)}" was not decoded; bytes read as latin1.`,
     position,
   };
 }
@@ -577,7 +604,7 @@ export function mergeMissingPriorOrSurvivor(
   return {
     code: WARNING_CODES.MERGE_MISSING_PRIOR_OR_SURVIVOR,
     message:
-      `Identity event "${eventType}" is missing its ${missing} role: ${detail}. ` +
+      `Identity event "${safeDerivedToken(eventType, "messageType")}" is missing its ${missing} role: ${detail}. ` +
       "Surfacing what is present; the MRG->PID merge direction is not guessed.",
     position,
   };

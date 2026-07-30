@@ -26,7 +26,7 @@ const msg = parseHL7(raw);
 msg.warnings.some((w) => w.code === "UNKNOWN_SEGMENT"); // => true
 ```
 
-The 19 warning codes are a **public, versioned contract**. They won't be renamed under you without a
+The 20 warning codes are a **public, versioned contract**. They won't be renamed under you without a
 breaking change. See [Core Concepts](./spec-notes-primer) for what each one means.
 
 ## "I want failures, not warnings"
@@ -96,12 +96,22 @@ Design around these. They're deliberate scope choices, not bugs:
 - **Datetimes are fidelity values, not eager `Date`s.** `TS` fields preserve the raw string and a
   `precision` so timezone and precision are never silently lost; convert to a `Date` explicitly when
   you need one.
-- **Error `snippet`s may carry field content (PHI) by design.** Warning _messages_ never echo a
-  field's value (only positional context), but a fatal `Hl7ParseError.snippet` may include the
-  offending bytes. That's the documented consumer-redaction boundary: redact `snippet` at your
-  logging edge.
-- **Pre-alpha (`0.0.x`), published on npm at `0.0.1`.** The 19 warning codes are a stable contract,
-  but the broader surface may still evolve before a 1.0.
+- **`Hl7ParseError.snippet` is the field to redact first.** It carries up to 40 characters of raw
+  input verbatim and the library never redacts it, so scrub it at your logging edge. Under
+  `{ strict: true }` the escalated error carries a `snippet` of the first 40 characters of the input,
+  so it remains the field to redact on that path too.
+- **Warning and error _messages_ are bounded, but not absolutely content-free.** A token lifted from
+  the input is echoed **only when it matches the form the spec defines for it**: a three-character
+  segment identifier, an MSH-9 type, an MSH-12 version, or a charset label the closed Table 0211
+  actually contains. Anything else becomes `<withheld>`. That is what stops an unescaped line break
+  inside a narrative field, which HL7 v2 requires to be sent as `\.br\` and which real senders send
+  raw anyway, from forging a "segment identifier" out of a line of clinical text. A message cannot
+  carry a field's value, but it can carry a residue of up to three characters when a malformed line
+  happens to look like a segment identifier, so prefer logging `w.code` and `w.position` over
+  `w.message` if your posture is strict.
+- **Pre-alpha on the `0.0.x` ladder.** The 20 warning codes are a stable contract, but the broader
+  surface may still evolve before a 1.0. For the published version, ask the registry
+  (`npm view @cosyte/hl7 version`) rather than a doc page.
 
 ## Still stuck?
 
