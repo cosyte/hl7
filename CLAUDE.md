@@ -9,7 +9,7 @@
 ## Status
 
 - **v2.1 milestone shipped 2026-04-21**: all 12 phases archived (97 v1 requirements delivered). No active milestone; planning v2.2.
-- Milestone is a **git milestone, not an npm release**: package is still pre-alpha `0.0.x`, not published to npm.
+- Milestone is a **git milestone, not an npm release**: the package is published on npm and is still pre-alpha, on the `0.0.x`-until-first-alpha ladder. **Never quote a version here** (this line read "not published to npm" until 2026-07-31, several releases after first publish): `npm view @cosyte/hl7 version` is the only source of truth.
 
 ## Tech Stack (the shared `@cosyte/*` standard)
 

@@ -32,6 +32,28 @@ per the cosyte version ladder (`0.0.x` until first alpha).
   because it is what a screen reader on the npm page reads out, so "banner", "logo", or the file
   name would all be a wasted line.
 
+  **SUPERSEDED on 2026-07-31 by `1aee04b`, which replaced this banner with the shared Cosyte lockup
+  in a `<picture>` block.** The two paragraphs above are left exactly as they shipped rather than
+  corrected, because they were true of the tree and right on the evidence available when they were
+  written, and they record a real state the package passed through. This note says what changed
+  under them. It shipped verbatim inside the `@cosyte/hl7@0.0.4` tarball, so it is text a consumer
+  already has on disk.
+
+  **The claim the new evidence overturns is the second one: "whether npm's markdown sanitizer
+  preserves a `<picture>` element is unverified".** That is measured now. The first claim, that the
+  banner is a markdown image and "not `<img>` and not `<picture>`", was a consequence of the second
+  rather than an independent choice, so it went when its premise did; it is no longer true of the
+  tree either way, since `README.md` now opens with a `<picture>`. What was measured: **GitHub
+  honours the `prefers-color-scheme` switch**, verified on `@cosyte/astm` in dark mode, where the
+  rendered image's `currentSrc` resolves to the on-dark tile and its parent element is `PICTURE`.
+  **On the npm package page the `<img>` is hoisted out of its `<picture>` by the anchor wrapper**,
+  so the inner fallback renders rather than the element being stripped or broken; and **npmjs.com
+  has no dark mode** (founder-confirmed), so the light cut is the correct image there regardless.
+  The GitHub and npm measurements above were taken on `astm` and reported into this repo rather
+  than re-taken here; what was re-checked directly for `hl7` was that both tile URLs return
+  `200 image/png`. **PNG only** and **alt text is content, not decoration** are both unchanged and
+  still hold; only the element choice and its stated premise moved.
+
 - **The published JSDoc is swept, and `src/` doc comments are gated
   (`pnpm check:no-internal-refs` third pass; `PUBLIC-SURFACE-HYGIENE`).** Doc comments compile
   into `dist/index.d.ts` and `dist/index.d.cts`, `dist` is the first entry in `files`, and every
@@ -413,6 +435,29 @@ kind, value)`** sets one at a field or `field[rep]` dot-path. Component values a
   only: no runtime/API change; the published artifact is unchanged.
 
 ### Changed
+
+- **`README.md` now opens with the shared Cosyte lockup in a `<picture>` block, replacing the
+  per-package banner (`1aee04b`).** The dark-ground org tile sits behind a
+  `prefers-color-scheme: dark` media query with the light-ground tile as the inner `<img>`, so on a
+  renderer that honours the switch the mark sits on a ground matching the page it is read on. One
+  markdown image line out, four lines in: the `# @cosyte/hl7` H1, the blockquote tagline, the badge
+  row and everything below are untouched.
+
+  **Why the per-package banner goes.** It baked the package name and the one-line tagline into
+  pixels, and the two lines directly beneath it repeated both. The shared lockup reads "Cosyte"
+  while the H1 reads `@cosyte/hl7`, so the strings differ, the duplication goes away, and the
+  heading stays.
+
+  **The failure mode is safe**: a renderer that strips `<source>` renders the inner `<img>`, so the
+  worst case is a light-ground mark on a dark page, never a missing or broken image. The block was
+  copied out of `astm/README.md` rather than retyped and the two URLs then diffed byte for byte
+  against that file, because a transcription error in one of them is a broken image on a public
+  package page. Both were re-verified `200 image/png` (10513 and 10455 bytes) immediately before
+  the push: the `live` flag in the `assets` manifest is a declaration made on evidence from another
+  repo, not a fact checked here. The alt text describes the mark rather than the package, since it
+  is what a screen reader on the npm page reads out and what a reader gets when the image fails.
+  This supersedes the `ASSETS-P8` banner entry under **Added** above, which is annotated in place
+  rather than rewritten. Documentation only: no runtime, API or packaging change.
 
 - **Corrected stale "not yet published to npm / unpublished" language in the docs site
   (README-ORG-SWEEP).** `@cosyte/hl7` is now published on npm at `0.0.1` and public, so the
