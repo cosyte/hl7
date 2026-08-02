@@ -436,6 +436,106 @@ kind, value)`** sets one at a field or `field[rep]` dot-path. Component values a
 
 ### Changed
 
+- **The PHI gate's own enumeration no longer lets a vanished build transient refuse an entire sweep
+  (`PHI-SCAN-ENUMERATE-THEN-READ-CLASS`).** `scripts/phi-scan.ts` all-mode lists its roots and reads
+  each file afterwards; a file deleted inside that window threw `ENOENT` and the scanner refused with
+  exit 2. `@cosyte/ccda` is where that landed for real (`ccda#80`, `747ac20`): its walk starts at the
+  **repo root**, `tsup` writes and then removes `tsup.config.bundled_<hash>.mjs` there, and a
+  publish-time sweep refused, failing `prepublishOnly` and blocking a real publish.
+
+  **No CI or publish run in this repo was reachable through that window, so this is hardening, not
+  the repair of a live defect here.** Say so plainly, because the temptation is to claim the bigger
+  thing. The walk is rooted at `test/fixtures` and `src`, so the repo-root transient is never
+  enumerated. **Verified in both directions rather than assumed, and re-derived three times in three
+  separate runs:** a real `tsup` build was polled while it ran and the only transient observed each
+  time was a `tsup.config.bundled_<hash>.mjs` **at the repo root**, outside both walk roots, with
+  zero files appearing under either root; and the pre-fix scanner, driven against a throwaway repo
+  with an untracked decoy placed **inside** `src/`, refused the whole sweep with exit 2 on the first
+  read. The hash differs on every build, which is why no specific filename is quoted here. The
+  immunity is scope, not design. Nothing gitignores that name (`git check-ignore` exits 1 on it),
+  and `test/docs-content.test.ts` really does run a build from inside the suite while this scanner
+  sweeps in all mode from another worker, so the two halves already race. **Widening a walk root,
+  for any reason, reintroduces it verbatim.**
+
+  **A narrower case was already live on a developer box rather than in CI, and the review gate found
+  it. It is a class, not one filename.** `.gitignore` covers `*.swp` and `*.swo` and **nothing else
+  of the kind**, so editor and atomic-save transients create and remove un-ignored files **inside a
+  walk root**. Verified un-ignored: `src/index.ts~`, `src/.index.ts.swn`, `src/#index.ts#`,
+  `src/index.ts___jb_tmp___`, `src/.goutputstream-abc123`, `src/4913`, and `.tmp` / `.orig` / `.bak`
+  beside a source file. Before this change each is a spurious exit 2 on a developer's machine; none
+  reaches CI or a publish, which is why the claim above is scoped to those.
+
+  **The refusal was correct; the enumeration was unsound.** Refusing a scan it could not complete is
+  what makes this gate worth having and it is untouched. Exactly one case is now tolerated: a file
+  the walk enumerated **itself**, that git does **not track**, failing with **`ENOENT`**. It is
+  written to stderr as skipped, never dropped silently, and the clean line on **stdout** is
+  qualified to match (`OK: no hits (N untracked file(s) skipped, see stderr)`), so a reader watching
+  stdout alone cannot take an unqualified OK from a sweep that did not observe everything it
+  enumerated. A clean sweep still prints the bare line, and a test pins it exactly.
+
+  **Five of the six bounds are pinned by a test, and which five is measured, not asserted.** Each
+  was confirmed by a mutant that only its own test kills:
+  - a **tracked** file that cannot be read (mutant: tolerate tracked files too);
+  - any **non-`ENOENT`** failure, since `EACCES` / `EISDIR` is a scan that failed, not a file that
+    went away (mutant: tolerate any errno);
+  - a `git` that cannot report the tracked set, which switches the tolerance off rather than
+    guessing (mutant: return an empty set instead of `null`);
+  - a tracked set that comes back **empty**, the one state in which the tracked-file bound stops
+    existing (same mutant). A **removed** `.git/index` makes `git ls-files` exit 0 with no output,
+    which is what the `size > 0` guard catches; a **corrupt** one exits non-zero and was already
+    caught by the `catch`;
+  - an all-mode sweep that **observed no files at all** (mutant: drop the guard), so the tolerance
+    can never decay into a clean report of a tree nothing was read from.
+
+  **The sixth is UNPINNED and named as the gap it is:** a tolerated file that is **back on disk**
+  when the sweep ends still refuses, but no test drives it. The scanner calls `git` only before the
+  first read, so there is no deterministic post-read hook, and `walk()` enumerates regular files
+  only, so a FIFO cannot be used as a blocking one either (both measured). Reaching it needs a timed
+  re-create against a deliberately slowed sweep, and a load-sensitive sleep in a suite guarding a
+  load-dependent race is the failure that race teaches. Losing that branch would cost the re-check,
+  never the tolerance's bounds. **Unpinned is not unverified:** the review gate drove the branch by
+  hand against a deliberately slowed sweep and it refused correctly with exit 2, and deleting the
+  re-check outright still leaves all 29 tests green, which is what makes "unpinned" the accurate
+  word rather than an understatement.
+
+  **The test technique is the reusable part: no sleep and no real build.** The scanner runs
+  `git check-ignore` and `git ls-files` between the walk and the first read, so a `git` shim placed
+  first on `PATH` is a deterministic hook into exactly that gap. Every case runs against a throwaway
+  git repo, so no decoy is ever written into this one. As a negative control the same tolerance case
+  was replayed against all twelve sibling scanners, and every sibling that has not yet taken this
+  change refuses it with exit 2, so the new assertion is not one a sibling's code satisfies by
+  accident. **No count is quoted, deliberately:** the same command returned a different tally on
+  three consecutive runs while sibling repos landed the same change underneath it, so any number
+  written here would be wrong by the time it is read.
+
+  **Residual, stated rather than closed:** the post-sweep re-check is keyed on the enumerated path,
+  not on content, so the class is **content that survives at a path the walk did not enumerate**. An
+  untracked file **renamed** inside the window is the obvious instance and goes unscanned under a
+  clean report; a hard link followed by an unlink is the other. Both legs of the boundedness
+  argument were driven by the review gate rather than argued: after `git add` the all-mode sweep
+  catches the renamed file, and `--staged` reports the hit from the index **even with the file
+  deleted from disk**. Closing it needs a content-addressed sweep, which is a different design
+  rather than a wider bound. The `--staged` pre-commit path reads blobs from the git index
+  (`git show :path`) and never depended on any of this.
+
+  **Two PRE-EXISTING scope limits of the walk are now written down** so they are not confused with
+  the window above. Both were measured, and an earlier draft of this entry claimed `--staged` covers
+  the commit path in both cases; **the review gate refuted that and it is false, so read `--staged`
+  as a compensating control for neither.**
+  - **Regular files only**, the sharper of the two. A symlink under a walk root pointing at a
+    PHI-bearing file is not enumerated, so all-mode never reads it, **and** git stores a symlink as
+    its target string (mode `120000`), so `git show :path` hands `--staged` the path text rather
+    than the pointed-to bytes. **Both routes report clean, driven and reproduced independently.**
+    What lands in the commit is the link, not the capture, but an identifying _filename_ still
+    reaches the tree and gets only the shape pass, which has no name detection. A FIFO is skipped
+    rather than blocking the sweep.
+  - **Working tree only.** A tracked file absent from the worktree is never enumerated in all-mode.
+    `--staged` catches such a file when it is **added** (measured, exit 1), so that coverage is at
+    add time and past tense: once it is committed and removed from the worktree, both routes report
+    clean.
+
+  Neither limit is changed here, and widening the walk to close either is a separate slice.
+
 - **`README.md` now opens with the shared Cosyte lockup in a `<picture>` block, replacing the
   per-package banner (`1aee04b`).** The dark-ground org tile sits behind a
   `prefers-color-scheme: dark` media query with the light-ground tile as the inner `<img>`, so on a

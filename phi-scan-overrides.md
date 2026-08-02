@@ -72,6 +72,77 @@ parser stays tolerant. `src/` is never parsed as HL7 (even when a file embeds an
   of a token allow-list, shared by `@cosyte/x12`. The DOB / SSN / MRN / address
   gates remain the backstop. Flag for the ccda/ncpdp/mllp propagation.
 
+## Enumeration, and what a failed read does
+
+**A scan that could not read what it enumerated REFUSES (exit 2).** All-mode
+lists its roots (`test/fixtures` and `src`) first and reads each file
+afterwards, so a file can be deleted inside that window. `tsup` writes
+`tsup.config.bundled_<hash>.mjs` and removes it when a build ends, and
+`test/docs-content.test.ts` runs a build from inside the suite while this
+scanner sweeps from another worker, so the two really do race.
+
+**No CI or publish run in this repo is reachable through that window today, and
+the reason is scope, not design.** The transient lands at the repo root, which is
+outside both walk roots, so it is never enumerated here. `@cosyte/ccda`, whose
+walk starts at the repo root, is the sibling that took the hit: an entire
+publish-time sweep refused. Nothing gitignores that filename here either, so
+**widening a walk root, or any tool that drops a transient under one,
+reintroduces it verbatim.** A narrower case is already live on a developer box,
+and it is a class rather than one filename: `.gitignore` covers `*.swp` and
+`*.swo` and **nothing else of the kind**, so editor and atomic-save transients
+create and remove un-ignored files inside a walk root. Verified un-ignored here:
+`src/index.ts~`, `src/.index.ts.swn`, `src/#index.ts#`,
+`src/index.ts___jb_tmp___`, `src/.goutputstream-abc123`, `src/4913`, and
+`.tmp` / `.orig` / `.bak` beside a source file.
+
+The refusal was right and the enumeration was wrong, so exactly one case is
+tolerated: a file the walk enumerated **itself** that git does **not track** and
+that fails with `ENOENT`. It is reported on stderr as skipped, never dropped
+silently. A **tracked** file (the committed corpus is what the gate promises to
+have observed), any non-`ENOENT` failure (`EACCES`, `EISDIR`: a scan that
+failed, not a file that went away), a file that is back on disk when the sweep
+ends, a `git` that cannot say what is tracked, and a tracked set that comes back
+empty all still refuse. All-mode also refuses outright if it ended up observing
+no files at all. Pre-commit (`--staged`) reads blobs from the git index, so it
+never depends on any of this. The clean stdout line is **qualified** whenever a
+file was skipped (`OK: no hits (N untracked file(s) skipped, see stderr)`), so a
+reader watching stdout alone cannot take an unqualified OK from an incomplete
+sweep.
+
+**Residual:** the post-sweep re-check is keyed on the enumerated path, not on
+content, so the class is content that survives at a path the walk did not
+enumerate: an untracked file _renamed_ inside the window is the obvious
+instance, a hard link plus an unlink the other. It is bounded, because
+committing such a file means `git add`, after which it is tracked and
+untolerable, and `--staged` reports the hit from the index even with the file
+deleted from disk. Closing it needs a content-addressed sweep, a different
+design rather than a wider bound.
+
+**Pre-existing scope limits of the walk, unchanged and named so they are not
+confused with the above. Neither has a compensating control, so do not read
+`--staged` as one.** Both were measured.
+
+- **Regular files only**, and this is the sharper of the two. A symlink under a
+  walk root pointing at a PHI-bearing file is not enumerated, so all-mode never
+  reads it; and git stores a symlink as its **target string** (mode `120000`),
+  so `git show :path` hands `--staged` the path text rather than the pointed-to
+  bytes. **Both routes report clean.** What lands in the commit is the link, not
+  the capture, but an identifying _filename_ still reaches the tree, and what
+  reads it is only the shape pass: an SSN or email shape in the link target does
+  still fire, a person's name does not. Under `src/` even that is absent,
+  because `--staged`'s filter takes `src/` paths only when they end in `.ts`
+  (measured: the same SSN-shaped link target exits 1 under `test/fixtures/` and
+  0 under `src/`). A FIFO is skipped rather than blocking the sweep.
+- **Working tree only.** A tracked file absent from the worktree is never
+  enumerated in all-mode, so it is skipped rather than refused: the tracked-file
+  refusal governs a file the walk did list and then could not read, not one it
+  never saw. `--staged` catches such a file when it is **added**, so that
+  coverage is at add time and past tense: once it is committed and removed from
+  the worktree, both routes report clean.
+
+Widening the walk to close either one is a separate piece of work, and neither
+is a reason to soften anything above.
+
 ## Format
 
 Each entry is a markdown subsection:
