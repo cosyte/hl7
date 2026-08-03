@@ -118,27 +118,58 @@ untolerable, and `--staged` reports the hit from the index even with the file
 deleted from disk. Closing it needs a content-addressed sweep, a different
 design rather than a wider bound.
 
-**Pre-existing scope limits of the walk, unchanged and named so they are not
-confused with the above. Neither has a compensating control, so do not read
-`--staged` as one.** Both were measured.
+**An in-scope entry that is not a regular file REFUSES the scan (exit 2), on
+both routes.** It is never silently skipped, because both enumerating routes
+were blind to it in a way that read as clean. The walk enumerates
+`Dirent.isFile()`, an lstat answer, so a symbolic link is neither a file nor a
+directory and fell out of the loop; `isDirectory()` answers false for a linked
+directory too, so a whole subtree left with it. `--staged` reads content with
+`git show :path`, and git stores a link as its **target path** under mode
+`120000`, so that route was handed the path text and never the target's bytes.
+Measured before the fix: a link under a walk root pointing at a PHI-bearing file
+scanned clean on **both**.
 
-- **Regular files only**, and this is the sharper of the two. A symlink under a
-  walk root pointing at a PHI-bearing file is not enumerated, so all-mode never
-  reads it; and git stores a symlink as its **target string** (mode `120000`),
-  so `git show :path` hands `--staged` the path text rather than the pointed-to
-  bytes. **Both routes report clean.** What lands in the commit is the link, not
-  the capture, but an identifying _filename_ still reaches the tree, and what
-  reads it is only the shape pass: an SSN or email shape in the link target does
-  still fire, a person's name does not. Under `src/` even that is absent,
-  because `--staged`'s filter takes `src/` paths only when they end in `.ts`
-  (measured: the same SSN-shaped link target exits 1 under `test/fixtures/` and
-  0 under `src/`). A FIFO is skipped rather than blocking the sweep.
+Neither route is made to follow a link. Following would read bytes the
+enumeration does not control (outside the repo, a loop, a device, a FIFO that
+blocks the gate forever), and git does not carry those bytes anyway, so a hit on
+them would be a claim about something no commit contains. Refusing states the
+only true thing available: there is an entry here the scan cannot account for,
+so the scan is not clean. `--staged` reads `git diff --cached --raw -z` with
+`--diff-filter=AMT` so the destination mode is visible; the `T` is load-bearing,
+because replacing a **tracked** regular file with a link is neither an add nor a
+modify and `AM` deleted the record before any mode could be read.
+
+A refusal names the entry's own repo-relative path and an engine-owned kind
+token. **It never reports the link target**, which is working-tree text that can
+itself carry PHI.
+
+"In scope" is each route's own pre-existing boundary, not a new one: the walk
+still excludes a gitignored entry (the same rule that already excludes a
+gitignored file), and `--staged` still only looks at `test/fixtures/**` and
+`src/**.ts`. This narrows what those scopes admit; it does not widen them.
+
+**Consequences worth knowing before you port this**, both measured here: a FIFO
+under a walk root used to be skipped and now refuses, and an SSN or email shape
+in a link's target _path_ used to fire on the shape pass under `test/fixtures/`
+and now never runs, because the entry is refused before anything is read. Both
+are the intended trade: a refusal that names the entry is a better answer than a
+hit that describes a filename.
+
+**Two pre-existing scope limits are UNCHANGED and named so they are not confused
+with the refusal above.** Both were measured.
+
+- **`R` (rename) and `C` (copy) are not enumerated by `--staged` at all**, so a
+  staged rename that appends PHI passes that route. Admitting them needs the
+  two-path `--raw` record shape handled, which is a separate piece of work. If
+  such a record ever reached the parser the field stride would desync and the
+  route refuses, which is the safe outcome.
 - **Working tree only.** A tracked file absent from the worktree is never
   enumerated in all-mode, so it is skipped rather than refused: the tracked-file
   refusal governs a file the walk did list and then could not read, not one it
   never saw. `--staged` catches such a file when it is **added**, so that
   coverage is at add time and past tense: once it is committed and removed from
-  the worktree, both routes report clean.
+  the worktree, both routes report clean. Do not read the refusal above as
+  closing this one.
 
 Widening the walk to close either one is a separate piece of work, and neither
 is a reason to soften anything above.
