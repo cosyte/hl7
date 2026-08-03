@@ -81,7 +81,7 @@
     "clean": "rm -rf dist coverage",
     "examples": "tsx scripts/run-examples.ts",
     "pack:docs": "bash scripts/build-docs-artifacts.sh",
-    "attw": "attw --pack .",
+    "attw": "node scripts/attw.mjs",
     "version": "changeset version && node scripts/sync-version.mjs && prettier --write package.json src/index.ts",
     "release": "changeset publish",
     "prepublishOnly": "pnpm clean && pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm attw",
