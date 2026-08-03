@@ -23,6 +23,10 @@
  *     sweep, and five of the six ways it still refuses (the sixth, a tolerated
  *     file written back before the post-sweep re-check, is not reachable from a
  *     deterministic harness; see the block's own note)
+ *   - an in-scope entry that is not a regular file, on BOTH enumerating routes:
+ *     the refusal, the negative controls that keep ordinary files scanned, and
+ *     the rule that a refusal never echoes the link target (see that block's own
+ *     note)
  *
  * Violator fixtures are written to a throwaway temp dir so they never pollute
  * the committed corpus that `pnpm phi-scan` sweeps. The scanner is invoked via
@@ -44,6 +48,8 @@ import {
   rmSync,
   readFileSync,
   appendFileSync,
+  realpathSync,
+  symlinkSync,
 } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { tmpdir } from "node:os";
@@ -402,7 +408,10 @@ describe("phi-scan: --allow-fixture override gate", () => {
 const tempRoots: string[] = [];
 
 function tempDir(prefix: string): string {
-  const d = mkdtempSync(join(tmpdir(), prefix));
+  // `realpathSync` because the scanner roots everything at `process.cwd()`,
+  // which node reports resolved: on a host whose tmpdir is itself a symlink an
+  // unresolved root would make every repo-relative path come out wrong.
+  const d = realpathSync(mkdtempSync(join(tmpdir(), prefix)));
   tempRoots.push(d);
   return d;
 }
@@ -571,5 +580,348 @@ describe("phi-scan: enumeration TOCTOU", () => {
     const r = runScannerIn(repo, null);
     expect(r.code, `stderr: ${r.stderr}`).toBe(1);
     expect(r.stderr).toMatch(/Anderson/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Entries that are not regular files, on BOTH enumerating routes
+// ---------------------------------------------------------------------------
+//
+// The walk enumerates `Dirent.isFile()`, an lstat answer, so a symbolic link is
+// neither a file nor a directory; `--staged` (this repo's pre-commit hook) reads
+// content with `git show :<path>`, and git stores a link as its TARGET PATH
+// under mode 120000. A link under a scan root pointing at a PHI-bearing file
+// therefore used to scan CLEAN on both, reproduced before the fix. These cases
+// pin the refusal on each route, the negative controls that keep ordinary files
+// scanned on each route, and the rule that a refusal never echoes what is on the
+// other side of the link.
+//
+// Every case runs against a THROWAWAY GIT REPOSITORY (`makeScanRepo`), never
+// against this one: the scanner roots everything at `process.cwd()`, so no link
+// and no violator is ever written into the committed corpus.
+
+/**
+ * Synthetic sentinel SSN, built from parts by the same rule the OBX-5 case above
+ * uses, so no literal SSN-shaped string lives in this source file. The safety is
+ * the area number: the SSA has never issued a `9xx` area, so no such SSN exists.
+ */
+const SYMLINK_SSN = ["9", "00", "55", "01", "23"]
+  .join("")
+  .replace(/^(\d{3})(\d{2})(\d{4})$/, "$1-$2-$3");
+
+/** Synthetic sentinel email on the reserved `.invalid` TLD (RFC 2606), never routable. */
+const SYMLINK_EMAIL = "m.thistlewood@records.invalid";
+
+/**
+ * Synthetic, name-bearing payload. A payload with no name proves nothing about a
+ * claim that names do not leak, so this one carries a person name, a DOB, a
+ * street address, a bare-numeric MRN, a dashed SSN and a non-test email. Every
+ * value is invented: the surname and given name are made up rather than borrowed
+ * from anyone, and the two shape-check sentinels are reserved forms above.
+ */
+const SYMLINK_PHI = msg(
+  MSH,
+  "PID|1||987654321^^^HOSP^MR||Thistlewood^Marguerite^L||19660421|F|||42 Elmwood Ave^^Boston^MA^02101",
+  `NTE|1||SSN ${SYMLINK_SSN}, reachable at ${SYMLINK_EMAIL}`,
+);
+
+/** The link target's own filename carries a name, so an echo of it is visible. */
+const TARGET_NAME = "THISTLEWOOD-MARGUERITE-19660421.hl7";
+
+/** Tokens that must never appear in a refusal message. */
+const SYMLINK_PHI_TOKENS = [
+  "Thistlewood",
+  "THISTLEWOOD",
+  "Marguerite",
+  "19660421",
+  "987654321",
+  "42 Elmwood Ave",
+  SYMLINK_SSN,
+  SYMLINK_EMAIL,
+  TARGET_NAME,
+];
+
+function expectNoPhi(stderr: string): void {
+  for (const t of SYMLINK_PHI_TOKENS) expect(stderr).not.toContain(t);
+}
+
+/** `git` in a throwaway repo with a committer identity that is not the box's. */
+function gitCommit(cwd: string, message: string): void {
+  gitIn(cwd, ["-c", "user.email=t@example.com", "-c", "user.name=t", "commit", "-qm", message]);
+}
+
+function gitOut(cwd: string, args: string[]): string {
+  const r = spawnSync("git", args, { cwd, encoding: "utf8", shell: false });
+  return r.stdout ?? "";
+}
+
+/** Run the scanner in a throwaway repo with arbitrary argv (no `git` shim). */
+function runScannerArgsIn(cwd: string, args: string[]): RunResult {
+  const r = spawnSync(TSX_BIN, [SCANNER_PATH, ...args], { cwd, encoding: "utf8", shell: false });
+  return { code: r.status ?? -1, stdout: r.stdout ?? "", stderr: r.stderr ?? "" };
+}
+
+/** Write the payload at the repo root, OUTSIDE both walk roots, and return its path. */
+function writePayloadOutsideRoots(repo: string): string {
+  const p = join(repo, TARGET_NAME);
+  writeFileSync(p, SYMLINK_PHI);
+  return p;
+}
+
+describe("phi-scan: the harness is pointed at THIS package's scanner", () => {
+  // A negative control on the harness itself, not on the scanner. These cases
+  // assert what a sibling repo's scanner does NOT do, so a scanner or a fixture
+  // that arrived from another package cannot be what is graded here.
+  it("the repo under test is @cosyte/hl7 and the scanner is its own", () => {
+    const manifest: unknown = JSON.parse(readFileSync(join(REPO_ROOT, "package.json"), "utf8"));
+    const name: unknown =
+      typeof manifest === "object" && manifest !== null && "name" in manifest
+        ? manifest.name
+        : undefined;
+    expect(name).toBe("@cosyte/hl7");
+    expect(name).not.toBe("@cosyte/terminology");
+    expect(SCANNER_PATH.startsWith(REPO_ROOT)).toBe(true);
+  });
+
+  it("the payload is caught by HL7 SEGMENT-AWARE detection, not just the shared floor", () => {
+    // `segment=PID-5` is the HL7 field model. A starter-floor scanner (the shape
+    // every non-parser sibling ships) reports only `(ssn)` / `(email)`, so this
+    // assertion fails against one.
+    const repo = makeScanRepo({ git: true });
+    writeFileSync(join(repo, "test", "fixtures", "violator.hl7"), SYMLINK_PHI);
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(1);
+    expect(r.stderr).toContain("segment=PID-5");
+    expect(r.stderr).toContain("Thistlewood");
+  });
+});
+
+describe("phi-scan: the synthetic payload is genuinely detectable", () => {
+  // Guards against proving nothing by fixture: every refusal case below rests on
+  // this payload being something the scanner would otherwise catch.
+  it("as a plain regular file under a walk root it is a hit (exit 1)", () => {
+    const repo = makeScanRepo({ git: true });
+    writeFileSync(join(repo, "test", "fixtures", "violator.hl7"), SYMLINK_PHI);
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(1);
+    expect(r.stderr).toContain(SYMLINK_SSN);
+    expect(r.stderr).toContain(SYMLINK_EMAIL);
+  });
+
+  it("a repo with no link and no violator scans clean (exit 0)", () => {
+    const repo = makeScanRepo({ git: true });
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(0);
+    expect(r.stdout).toMatch(/OK: no hits/);
+  });
+});
+
+describe("phi-scan: the all-mode walk refuses a non-regular entry", () => {
+  it("refuses a symlink under a walk root pointing at PHI (exit 2), and reports no PHI", () => {
+    const repo = makeScanRepo({ git: true });
+    writePayloadOutsideRoots(repo);
+    symlinkSync(join("..", "..", TARGET_NAME), join(repo, "test", "fixtures", "leak.hl7"));
+
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(2);
+    expect(r.stderr).toContain("test/fixtures/leak.hl7");
+    expect(r.stderr).toContain("a symbolic link");
+    expectNoPhi(r.stderr);
+    expect(r.stdout).not.toMatch(/OK/);
+  });
+
+  it("refuses a symlinked DIRECTORY too, which isDirectory() also answers false for", () => {
+    // A linked directory took a whole subtree with it, silently.
+    const repo = makeScanRepo({ git: true });
+    mkdirSync(join(repo, "elsewhere"));
+    writeFileSync(join(repo, "elsewhere", TARGET_NAME), SYMLINK_PHI);
+    symlinkSync(join("..", "..", "elsewhere"), join(repo, "test", "fixtures", "linked-dir"));
+
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(2);
+    expect(r.stderr).toContain("test/fixtures/linked-dir");
+    expect(r.stderr).toContain("a symbolic link");
+    expectNoPhi(r.stderr);
+  });
+
+  it("names EVERY offender, not just the first", () => {
+    const repo = makeScanRepo({ git: true });
+    writePayloadOutsideRoots(repo);
+    symlinkSync(join("..", "..", TARGET_NAME), join(repo, "test", "fixtures", "one.hl7"));
+    symlinkSync(join("..", TARGET_NAME), join(repo, "src", "two.ts"));
+
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(2);
+    expect(r.stderr).toContain("test/fixtures/one.hl7");
+    expect(r.stderr).toContain("src/two.ts");
+    expect(r.stderr).toContain("2 entries");
+    expectNoPhi(r.stderr);
+  });
+
+  it("an ignored link is out of scope, by the same rule that already excludes an ignored file", () => {
+    const repo = makeScanRepo({ git: true });
+    writePayloadOutsideRoots(repo);
+    symlinkSync(join("..", "..", TARGET_NAME), join(repo, "test", "fixtures", "leak.hl7"));
+    writeFileSync(join(repo, ".gitignore"), "test/fixtures/leak.hl7\n");
+
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(0);
+    expect(r.stdout).toMatch(/OK: no hits/);
+  });
+
+  it("but an entry already in the index cannot be excused that way", () => {
+    // `git check-ignore` never reports a TRACKED path as ignored, so a link that
+    // is in the index is refused whatever .gitignore says.
+    const repo = makeScanRepo({ git: true });
+    writePayloadOutsideRoots(repo);
+    symlinkSync(join("..", "..", TARGET_NAME), join(repo, "test", "fixtures", "leak.hl7"));
+    writeFileSync(join(repo, ".gitignore"), "test/fixtures/leak.hl7\n");
+    gitIn(repo, ["add", "-f", "test/fixtures/leak.hl7"]);
+
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(2);
+    expect(r.stderr).toContain("test/fixtures/leak.hl7");
+    expectNoPhi(r.stderr);
+  });
+
+  it("still scans the ordinary files in the same walk root when nothing is a link", () => {
+    // The refusal is not the only outcome: an ordinary violator beside the roots
+    // is still reported normally.
+    const repo = makeScanRepo({ git: true });
+    writeFileSync(join(repo, "test", "fixtures", "violator.hl7"), SYMLINK_PHI);
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(1);
+  });
+});
+
+describe("phi-scan: the --staged route refuses a staged non-regular entry", () => {
+  it("git really does store the link as its target path, not the target's bytes", () => {
+    // The measurement the refusal rests on. If git ever changed this, the
+    // refusal below would be arguing from a premise that no longer holds.
+    const repo = makeScanRepo({ git: true });
+    writePayloadOutsideRoots(repo);
+    symlinkSync(join("..", "..", TARGET_NAME), join(repo, "test", "fixtures", "leak.hl7"));
+    gitIn(repo, ["add", "test/fixtures/leak.hl7"]);
+
+    expect(gitOut(repo, ["ls-files", "--stage", "test/fixtures/leak.hl7"])).toMatch(/^120000 /);
+    const shown = gitOut(repo, ["show", ":test/fixtures/leak.hl7"]);
+    expect(shown.trim()).toBe(`../../${TARGET_NAME}`);
+    expect(shown).not.toContain(SYMLINK_SSN);
+  });
+
+  it("refuses a staged symlink (exit 2), and reports no PHI", () => {
+    const repo = makeScanRepo({ git: true });
+    writePayloadOutsideRoots(repo);
+    symlinkSync(join("..", "..", TARGET_NAME), join(repo, "test", "fixtures", "leak.hl7"));
+    gitIn(repo, ["add", "test/fixtures/leak.hl7"]);
+
+    const r = runScannerArgsIn(repo, ["--staged"]);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(2);
+    expect(r.stderr).toContain("test/fixtures/leak.hl7");
+    expect(r.stderr).toContain("a symbolic link");
+    expectNoPhi(r.stderr);
+  });
+
+  it("refuses a TYPECHANGE, a tracked regular file replaced by a link (exit 2)", () => {
+    // The shape `--diff-filter=AM` used to delete before any mode could be read.
+    // Replacing a TRACKED file with a link is neither an add nor a modify: git
+    // raises `:100644 120000 <sha> <sha> T`, and without `T` in the filter the
+    // record never existed, so the pre-commit hook passed the link green.
+    const repo = makeScanRepo({ git: true });
+    gitCommit(repo, "base");
+
+    writePayloadOutsideRoots(repo);
+    rmSync(join(repo, "src", "index.ts"));
+    symlinkSync(join("..", TARGET_NAME), join(repo, "src", "index.ts"));
+    gitIn(repo, ["add", "src/index.ts"]);
+
+    // The premise: git really does raise this as a typechange, not A or M.
+    expect(gitOut(repo, ["diff", "--cached", "--raw", "--diff-filter=AM"]).trim()).toBe("");
+    expect(gitOut(repo, ["diff", "--cached", "--raw"])).toContain(" 120000 ");
+
+    const r = runScannerArgsIn(repo, ["--staged"]);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(2);
+    expect(r.stderr).toContain("src/index.ts");
+    expect(r.stderr).toContain("a symbolic link");
+    expectNoPhi(r.stderr);
+  });
+
+  it("scans the other direction of a typechange, a link replaced by a real file (exit 1)", () => {
+    // Admitting `T` also closes the reverse case: the bytes that arrive when a
+    // link becomes a real file are scanned as the file it became.
+    const repo = makeScanRepo({ git: true });
+    symlinkSync(join("..", "..", "src", "index.ts"), join(repo, "test", "fixtures", "link.hl7"));
+    gitIn(repo, ["add", "test/fixtures/link.hl7"]);
+    gitCommit(repo, "base");
+
+    rmSync(join(repo, "test", "fixtures", "link.hl7"));
+    writeFileSync(join(repo, "test", "fixtures", "link.hl7"), SYMLINK_PHI);
+    gitIn(repo, ["add", "test/fixtures/link.hl7"]);
+
+    const r = runScannerArgsIn(repo, ["--staged"]);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(1);
+    expect(r.stderr).toContain("segment=PID-5");
+    expect(r.stderr).toContain("Thistlewood");
+  });
+
+  it("refuses a staged gitlink under a scanned prefix (exit 2)", () => {
+    const repo = makeScanRepo({ git: true });
+    const nested = join(repo, "test", "fixtures", "nested");
+    mkdirSync(nested);
+    gitIn(nested, ["init", "-q"]);
+    writeFileSync(join(nested, "payload.hl7"), SYMLINK_PHI);
+    gitIn(nested, ["add", "payload.hl7"]);
+    gitCommit(nested, "n");
+    gitIn(repo, ["add", "test/fixtures/nested"]);
+
+    const r = runScannerArgsIn(repo, ["--staged"]);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(2);
+    expect(r.stderr).toContain("test/fixtures/nested");
+    expect(r.stderr).toContain("a gitlink");
+    expectNoPhi(r.stderr);
+  });
+
+  it("still catches a staged ORDINARY file carrying the same payload (exit 1)", () => {
+    // The regression control on the `--raw -z` reparse: reading the mode must not
+    // cost the route the ordinary files it was already enumerating.
+    const repo = makeScanRepo({ git: true });
+    writeFileSync(join(repo, "test", "fixtures", "violator.hl7"), SYMLINK_PHI);
+    gitIn(repo, ["add", "test/fixtures/violator.hl7"]);
+
+    const r = runScannerArgsIn(repo, ["--staged"]);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(1);
+    expect(r.stderr).toContain("test/fixtures/violator.hl7");
+    expect(r.stderr).toContain(SYMLINK_SSN);
+  });
+
+  it("passes a staged ordinary clean file (exit 0)", () => {
+    const repo = makeScanRepo({ git: true });
+    const r = runScannerArgsIn(repo, ["--staged"]);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(0);
+    expect(r.stdout).toMatch(/OK: no hits/);
+  });
+
+  it("a staged link OUTSIDE the route's scope is left alone (the scope is unchanged)", () => {
+    // `--staged` only ever covered `test/fixtures/**` and `src/**.ts`. The mode
+    // check narrows what that scope admits; it does not widen the scope, and
+    // saying otherwise would overstate what this closes.
+    const repo = makeScanRepo({ git: true });
+    writePayloadOutsideRoots(repo);
+    symlinkSync(TARGET_NAME, join(repo, "docs-link.md"));
+    gitIn(repo, ["add", "docs-link.md"]);
+
+    const r = runScannerArgsIn(repo, ["--staged"]);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(0);
+  });
+
+  it("a staged src/ link that is not a .ts file is out of scope too", () => {
+    // The `.ts` suffix is part of the pre-existing scope, and it is unchanged.
+    const repo = makeScanRepo({ git: true });
+    writePayloadOutsideRoots(repo);
+    symlinkSync(join("..", TARGET_NAME), join(repo, "src", "notes.txt"));
+    gitIn(repo, ["add", "src/notes.txt"]);
+
+    const r = runScannerArgsIn(repo, ["--staged"]);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(0);
   });
 });

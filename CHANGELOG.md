@@ -536,6 +536,16 @@ kind, value)`** sets one at a field or `field[rep]` dot-path. Component values a
 
   Neither limit is changed here, and widening the walk to close either is a separate slice.
 
+  **CLOSED for the first bullet by the "not a regular file" entry below; the second bullet still
+  stands.** The paragraphs above are left exactly as they shipped rather than rewritten, because
+  they described a real state the package passed through and they shipped inside a published
+  tarball, so they are text a consumer already has on disk. What is no longer true of the current
+  code is the whole of the first bullet, in three places rather than one: a symbolic link under a
+  walk root, or staged into `test/fixtures/**` or `src/**.ts`, now **refuses the scan** on both
+  routes instead of reading clean on both; **a FIFO refuses too** rather than being skipped; and the
+  shape pass no longer runs on a link's target _path_, because the entry is refused before anything
+  is read. The second bullet, working-tree-only, still stands exactly as written.
+
 - **`README.md` now opens with the shared Cosyte lockup in a `<picture>` block, replacing the
   per-package banner (`1aee04b`).** The dark-ground org tile sits behind a
   `prefers-color-scheme: dark` media query with the light-ground tile as the inner `<img>`, so on a
@@ -594,6 +604,67 @@ kind, value)`** sets one at a field or `field[rep]` dot-path. Component values a
   ships inside the published tarball, so this is a user-visible docs change. No runtime/API change.
 
 ### Fixed
+
+- **The PHI scan read a symbolic link as clean on BOTH of its enumerating routes
+  (`PHI-SCAN-SYMLINK-BLIND-ON-BOTH-ROUTES`).** A link under a scan root pointing at a PHI-bearing
+  file passed the gate twice over. **Reproduced on `5debd18` before the fix**, in a throwaway repo,
+  with a synthetic name-bearing HL7 message placed outside the walk roots and a link to it at
+  `test/fixtures/leak.hl7`: all-mode printed `OK: no hits` and exited **0**, `--staged` after
+  `git add` did the same, and naming the target file explicitly exited **1** with seven hits
+  (`PID-5` twice, `PID-7`, `PID-11`, `PID-3`, and the shape pass's `(ssn)` and `(email)`). The
+  payload was always detectable; the two routes never looked at it.
+
+  **Two mechanisms, two fixes, and neither route is made to follow the link.** `walk()` enumerates
+  `Dirent.isFile()`, which is an lstat answer, so a link is neither a file nor a directory and fell
+  out of the loop silently; `isDirectory()` answers false for a **linked directory** too, so a whole
+  subtree left the same way. `--staged` reads content with `git show :<path>`, and git stores a link
+  as its **target path** under mode `120000`, so that route was handed the path text and never the
+  target's bytes. That route is this package's pre-commit hook. Following a link would read bytes
+  the enumeration does not control (outside the repo, a loop, a device, a FIFO that blocks the gate
+  forever), and git does not carry those bytes anyway, so a hit on them would be a claim about
+  something no commit contains. **The enumeration is narrowed instead:** an in-scope entry that is
+  not a regular file **refuses the scan** (exit 2), naming every offender rather than the first.
+  `--staged` reads `git diff --cached --raw -z` so the destination mode is visible, and refuses
+  `120000` and `160000`; an unparseable `--raw` record refuses too, rather than scanning a list that
+  may be short.
+
+  **`--diff-filter=AMT`, and the `T` is load-bearing.** Replacing a **tracked** regular file with a
+  link is neither an add nor a modify: git raises it as a typechange
+  (`:100644 120000 <sha> <sha> T`), so `--diff-filter=AM` deleted the record before any mode could
+  be read and the mode check was unreachable for exactly the files the repo already had. Measured
+  here: with `AM` the raw output for that stage is empty. Admitting `T` also scans the **reverse**
+  typechange, a link replaced by a real file carrying PHI, as the file it became.
+
+  **A refusal names the entry's own repo-relative path and an engine-owned kind token, never the
+  link target**, which is working-tree text that can itself carry PHI. The scanner's docblock states
+  the risky target shape in the abstract rather than showing one, because a diagnostic about a PHI
+  leak is itself a PHI surface and that applies to the prose explaining it.
+
+  **Two behaviour changes that fall out of the same narrowing, both measured, both intended.** A
+  FIFO under a walk root used to be skipped (base exit 0) and now refuses (exit 2, named as
+  `a FIFO`). And an SSN or email shape sitting in a link's target _path_ used to fire on the shape
+  pass under `test/fixtures/` and now never runs, because the entry is refused before anything is
+  read. A refusal that names the entry is a better answer than a hit that only describes a filename,
+  so both are the intended trade rather than a loss.
+
+  **What this does NOT close, stated so it is not read as wider than it is.** `R` (rename) and `C`
+  (copy) are still not enumerated by `--staged` at all, so a staged rename that appends PHI passes
+  that route; admitting them needs the two-path `--raw` record shape handled, which is a scope
+  decision rather than this one. If such a record ever reached the parser the field stride would
+  desync and it refuses, which is the safe outcome. `--staged`'s path scope is unchanged
+  (`test/fixtures/**` and `src/**.ts`), and the walk's gitignore exemption is unchanged: an ignored
+  link is out of scope by the same rule that already excludes an ignored file, though an entry in
+  the index cannot be excused that way. That prefix is literal, so a link staged at exactly
+  `test/fixtures` (the root itself, not an entry under it) is outside the `--staged` filter and is
+  unchanged here; it is not both-routes-blind, because `readdirSync` resolves a symlinked walk root
+  and all-mode reads straight through it (measured, exit 1 on the PHI). A tracked file absent from
+  the worktree is still caught at `git add` time only. The enumerate-then-read tolerance and the
+  refuse-a-sweep-that-observed-nothing rule are untouched.
+
+  Pinned by 19 cases in `test/scripts/phi-scan.test.ts`, **8 of them red on `5debd18`**, all against
+  throwaway git repositories so no link and no violator is ever written into the committed corpus.
+  The payload is name-bearing and the link target's own filename carries a name, so the
+  "never echo the target" assertions are not vacuous.
 
 - **The `attw` publish gate reported a pass on a tarball that carried no types (`ATTW-FALSE-GREEN-PORT`).**
   `package.json` ran `attw --pack .`, and that command prints "This package does not contain types."
