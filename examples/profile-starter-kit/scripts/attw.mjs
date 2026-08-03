@@ -49,11 +49,15 @@
  * `-q`, `--format json`, `-f json`, `--format=json` and a `.attw.json` setting
  * `quiet` or `format` each hide that sentence and hand back exit 0 over an
  * untyped pack, so all of them are refused below, along with `--config-path`,
- * which would move the config file out of view. The refusal is by option name,
- * wholesale, not by value: value-parsing them would be a third moving part in
- * the guard, and being over-strict about an argument nobody passes to a publish
- * gate costs less than a route back to a silent pass. Other arguments are
- * forwarded, so `--profile node16` and friends still work.
+ * which would move the config file out of view. Short options are refused BY
+ * LETTER ANYWHERE IN THE CLUSTER rather than by whole token, because `commander`
+ * bundles them and lets a value ride on the end: `-fjson`, `-qP` and `-Pf json`
+ * are `--format json` and `--quiet` in a different spelling, and a token-matching
+ * guard was measured to hand back exit 0 on the first and the third. The refusal
+ * is by option name, wholesale, not by value: value-parsing them would be a third
+ * moving part in the guard, and being over-strict about an argument nobody passes
+ * to a publish gate costs less than a route back to a silent pass. Other
+ * arguments are forwarded, so `--profile node16` and friends still work.
  *
  * If a future `attw` fixes the exit code or rewords that sentence, net 2 goes
  * quietly slack while net 1 keeps working. Re-read this file when you upgrade.
@@ -74,13 +78,24 @@ const die = (msg) => {
 };
 
 // ---- Refuse what would blind the post-check --------------------------------
-const BLINDING = new Set(["-q", "--quiet", "-f", "--format", "--config-path"]);
-const blinding = args.filter((a) => BLINDING.has(a.split("=")[0]));
+// Long options are matched by name, with any `=value` stripped. Short options are
+// matched by LETTER ANYWHERE IN THE CLUSTER, because commander bundles them and
+// lets a value ride on the end: `-fjson`, `-qP` and `-Pf json` all hide the
+// untyped sentence, and an exact-token set matches none of them.
+const BLINDING_LONG = new Set(["--quiet", "--format", "--config-path"]);
+const BLINDING_SHORT = /[qf]/;
+const blinds = (a) =>
+  a.startsWith("--")
+    ? BLINDING_LONG.has(a.split("=")[0])
+    : a.startsWith("-") && a.length > 1 && BLINDING_SHORT.test(a);
+const blinding = args.filter(blinds);
 if (blinding.length > 0) {
   die(
     `${blinding.join(", ")} is refused wholesale, by option name and not by value.\n` +
       `  This gate reads attw's printed output, attw exits 0 on an untyped package,\n` +
-      `  and some values of these options hide that output. Run it without them.`,
+      `  and some values of these options hide that output. Any short-option cluster\n` +
+      `  naming -q or -f is refused with them, because commander bundles them.\n` +
+      `  Run it without them.`,
   );
 }
 try {

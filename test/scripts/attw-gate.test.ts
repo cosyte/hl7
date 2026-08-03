@@ -284,13 +284,21 @@ describe("scripts/attw.mjs", () => {
 
 describe("the refusals that keep the post-check readable", () => {
   // Each of these was measured against this package's own untyped tree to make
-  // bare attw exit 0 with the untyped sentence unreadable.
+  // bare attw exit 0 with the untyped sentence unreadable. The three bundled
+  // short forms are `--format json` and `--quiet` in another spelling:
+  // `commander` lets short options cluster and lets a value ride on the end. A
+  // guard that matched whole tokens let `-fjson` and `-Pf json` through to exit 0
+  // on the fixture below, which is why short options are matched by LETTER
+  // ANYWHERE IN THE CLUSTER rather than by token.
   it.each([
     ["--quiet", ["--quiet"]],
     ["-q", ["-q"]],
     ["--format json", ["--format", "json"]],
     ["-f json", ["-f", "json"]],
     ["--format=json", ["--format=json"]],
+    ["-fjson", ["-fjson"]],
+    ["-qP", ["-qP"]],
+    ["-Pf json", ["-Pf", "json"]],
     ["--config-path", ["--config-path", "other.json"]],
   ])("refuses %s", (_name, extra) => {
     const r = runWrapper(typesNotPacked, [...OFFLINE, ...extra]);
@@ -298,6 +306,40 @@ describe("the refusals that keep the post-check readable", () => {
     expect(r.out).toContain("attw gate");
     expect(r.out).not.toContain("🌟");
   });
+
+  it(
+    "was right to refuse the bundled short forms: bare attw hides the sentence and exits 0 on one",
+    () => {
+      // The refusals are only worth their over-strictness if the routes are real.
+      // This asserts the route rather than the guard: on the fixture whose tarball
+      // carries no types, `-fjson` gets exit 0 with nothing for the post-check to
+      // read.
+      const r = run(ATTW_BIN, ["--pack", ".", ...OFFLINE, "-fjson"], typesNotPacked);
+      expect(r.code).toBe(0);
+      expect(r.out).not.toContain(UNTYPED);
+    },
+    SPAWN_TIMEOUT,
+  );
+
+  it(
+    "does not refuse the option forms that blind nothing",
+    () => {
+      // The control on a wholesale refusal: it would be a false-red generator if it
+      // reached past the options that actually hide the sentence. Measured on this
+      // package's own untyped tree, each of these still prints it.
+      const r = runWrapper(wellFormed, [
+        ...OFFLINE,
+        "--no-summary",
+        "--no-emoji",
+        "--no-color",
+        "--profile",
+        "node16",
+      ]);
+      expect(r.out).not.toContain("attw gate");
+      expect(r.code).toBe(0);
+    },
+    SPAWN_TIMEOUT,
+  );
 
   it(
     "refuses a .attw.json that sets quiet or format",

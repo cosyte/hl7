@@ -56,7 +56,11 @@ hl7 is the reference parser; it inherits the canonical toolchain by depending on
   and a post-check on the untyped sentence (catches declarations on disk but excluded from the
   tarball by `files`/`.npmignore`, which the preflight structurally cannot see). The post-check reads
   a string, so `--quiet`, `-f/--format`, `--config-path` and a `.attw.json` setting `quiet`/`format`
-  are **refused by option name, wholesale, not by value**. `test/scripts/attw-gate.test.ts` pins both
+  are **refused by option name, wholesale, not by value**. **Short options are refused by LETTER
+  ANYWHERE IN THE CLUSTER, not by whole token**, because `commander` bundles them and lets a value
+  ride on the end: a token-matching guard was measured here to hand back **exit 0** on `-fjson` and
+  `-Pf json`, which are `--format json` in another spelling. Do not "tidy" that back to a `Set` of
+  exact tokens. `test/scripts/attw-gate.test.ts` pins both
   nets and the upstream exit-0 itself against the real binary, plus a negative control on a
   well-formed package, so an `attw` upgrade reds the suite rather than letting the net go slack.
   **THE CENSUS IS MANIFESTS, NOT REPO ROOTS.** This repo has two: `package.json` and

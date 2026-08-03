@@ -623,11 +623,18 @@ dist/index.d.cts && pnpm attw` and `rm -rf dist && pnpm attw` both printed the s
   declarations present on disk but excluded from the tarball by `files` or `.npmignore`. **No
   instance of that second case is on record in this repo.** The post-check reads a printed sentence,
   so the routes that would hide it are refused rather than tolerated: `--quiet`, `-q`,
-  `--format json`, `-f json`, `--format=json`, a `.attw.json` setting `quiet` or `format`, and
-  `--config-path`. Each of the first six was measured against this package's own untyped tree to
-  return exit 0 with the sentence absent; `--config-path` is refused by inference, not measurement.
-  The refusal is by option name, wholesale, not by value. Other arguments are still forwarded, so
-  `--profile node16` works.
+  `--format json`, `-f json`, `--format=json`, `-fjson`, `-qP`, `-Pf json`, a `.attw.json` setting
+  `quiet` or `format`, and `--config-path`. Each of the first nine was measured against this
+  package's own untyped tree to return exit 0 with the sentence absent; `--config-path` is refused by
+  inference, not measurement. The refusal is by option name, wholesale, not by value. Other arguments
+  are still forwarded, so `--profile node16`, `--no-summary`, `--no-emoji` and `--no-color` work.
+
+  **Short options are matched by letter anywhere in the cluster, not by whole token, and that is not
+  cosmetic.** `commander` bundles short options and lets a value ride on the end, so `-fjson`, `-qP`
+  and `-Pf json` are `--format json` and `--quiet` in another spelling. Measured against a package
+  whose declarations sit on disk but are excluded from `files`, which is the one shape only the
+  post-check can see, a token-matching guard returned **exit 0** on `-fjson` and on `-Pf json`.
+  `-qP` was caught, but only by the empty-transcript net rather than by the refusal.
 
   **Both of this repo's manifests are fixed, because the census that matters is manifests rather
   than repo roots.** `package.json` and `examples/profile-starter-kit/package.json` each ran the

@@ -59,21 +59,35 @@
  * suite reds and tells you to revisit this file rather than letting the net go
  * quietly slack.
  *
- * BLINDING. Five argument forms and one config route were measured here, on this
- * package's own untyped tree, each restoring the exact false green by making the
- * untyped sentence absent from what this script can read: `--quiet`, `-q`,
- * `--format json`, `-f json`, `--format=json`, and a `.attw.json` setting
- * `quiet` or `format`. The config route works because the CLI calls
- * `readConfig()` inside its action handler, after `program.parse(process.argv)`,
- * so the file's settings land on top of the command line. All are refused below,
- * along with `--config-path`, which would move the config file out of view. That
- * last one is refused by inference, not by measurement.
+ * BLINDING. Eight argument forms and one config route were measured here, on this
+ * package's own untyped tree, each making the untyped sentence absent from what
+ * this script can read while `attw` still exited 0: `--quiet`, `-q`,
+ * `--format json`, `-f json`, `--format=json`, `-fjson`, `-qP`, `-Pf json`, and
+ * a `.attw.json` setting `quiet` or `format`. The config route works because the
+ * CLI calls `readConfig()` inside its action handler, after
+ * `program.parse(process.argv)`, so the file's settings land on top of the
+ * command line. All are refused below, along with `--config-path`, which would
+ * move the config file out of view. That last one is refused by inference, not by
+ * measurement.
+ *
+ * THE LAST THREE ARE WHY SHORT OPTIONS ARE MATCHED BY LETTER RATHER THAN BY
+ * TOKEN, and an exact-token set is not enough. `commander` bundles short options
+ * and lets a value ride on the end, so `-fjson`, `-qP` and `-Pf json` are all
+ * `--format json` or `--quiet` wearing a different spelling. Measured against a
+ * fixture whose declarations sit on disk but are excluded from `files` (the one
+ * shape only the post-check can see), a token-matching guard handed back exit 0
+ * on `-fjson` and on `-Pf json`. `-qP` was caught, but only by the
+ * empty-transcript net below and not by the refusal, which is a weaker place to
+ * catch it.
  *
  * The refusal is BY OPTION NAME, WHOLESALE, not by value. `--format table-flipped`
- * still prints the sentence and blinds nothing, and is refused anyway. That is
- * the deliberate trade: value-parsing these would be a third moving part in the
- * guard, and being over-strict about an argument nobody passes to a repo's own
- * publish gate costs less than a route back to a false green.
+ * still prints the sentence and blinds nothing, and is refused anyway; so does
+ * every other `--format` value measured (`auto`, `ascii`, `table`), along with
+ * `--no-summary`, `--no-emoji` and `--no-color`, which are not refused because
+ * they do not name a refused option. That is the deliberate trade:
+ * value-parsing these would be a third moving part in the guard, and being
+ * over-strict about an argument nobody passes to a repo's own publish gate costs
+ * less than a route back to a false green.
  *
  * Other arguments are forwarded, so `--profile node16` and friends still work.
  */
@@ -93,13 +107,24 @@ const die = (msg) => {
 };
 
 // ---- Refuse what would blind the post-check --------------------------------
-const BLINDING = new Set(["-q", "--quiet", "-f", "--format", "--config-path"]);
-const blinding = args.filter((a) => BLINDING.has(a.split("=")[0]));
+// Long options are matched by name, with any `=value` stripped. Short options are
+// matched by LETTER ANYWHERE IN THE CLUSTER, because commander bundles them and
+// lets a value ride on the end: `-fjson`, `-qP` and `-Pf json` were each measured
+// here to hide the untyped sentence, and an exact-token set matches none of them.
+const BLINDING_LONG = new Set(["--quiet", "--format", "--config-path"]);
+const BLINDING_SHORT = /[qf]/;
+const blinds = (a) =>
+  a.startsWith("--")
+    ? BLINDING_LONG.has(a.split("=")[0])
+    : a.startsWith("-") && a.length > 1 && BLINDING_SHORT.test(a);
+const blinding = args.filter(blinds);
 if (blinding.length > 0) {
   die(
     `${blinding.join(", ")} is refused wholesale, by option name and not by value.\n` +
       `  This gate reads attw's printed output, attw exits 0 on an untyped package,\n` +
-      `  and some values of these options hide that output. Run it without them.`,
+      `  and some values of these options hide that output. Any short-option cluster\n` +
+      `  naming -q or -f is refused with them, because commander bundles them.\n` +
+      `  Run it without them.`,
   );
 }
 try {

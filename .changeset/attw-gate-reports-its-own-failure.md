@@ -34,12 +34,20 @@ gate has to be able to say its own inputs were missing, whatever removed them.
   record in this repo.**
 
 The post-check reads a printed sentence, so what would hide that sentence is refused rather than
-tolerated: `--quiet`, `-q`, `--format json`, `-f json`, `--format=json`, a `.attw.json` setting
-`quiet` or `format`, and `--config-path`. Each of the first six was measured against this package's
-own untyped tree to hand back exit 0 with the sentence absent. `--config-path` is refused by
-inference, not by measurement. The refusal is by option name, wholesale, not by value, which is a
-deliberate trade against making the guard parse values. Other arguments are still forwarded, so
-`--profile node16` works.
+tolerated: `--quiet`, `-q`, `--format json`, `-f json`, `--format=json`, `-fjson`, `-qP`,
+`-Pf json`, a `.attw.json` setting `quiet` or `format`, and `--config-path`. Each of the first nine
+was measured against this package's own untyped tree to hand back exit 0 with the sentence absent.
+`--config-path` is refused by inference, not by measurement. The refusal is by option name,
+wholesale, not by value, which is a deliberate trade against making the guard parse values. Other
+arguments are still forwarded, so `--profile node16`, `--no-summary`, `--no-emoji` and `--no-color`
+work.
+
+**Short options are matched by letter anywhere in the cluster rather than by whole token, and that is
+not cosmetic.** `commander` bundles short options and lets a value ride on the end, so `-fjson`,
+`-qP` and `-Pf json` are `--format json` and `--quiet` in another spelling. Measured against a
+package whose declarations sit on disk but are excluded from `files`, which is the one shape only the
+post-check can see, a token-matching guard returned exit 0 on `-fjson` and on `-Pf json`. `-qP` was
+caught, but only by the fallback that refuses an empty transcript rather than by the refusal itself.
 
 **Both of this repository's manifests are fixed, because the census that matters is manifests rather
 than repository roots.** `package.json` and `examples/profile-starter-kit/package.json` each ran the
