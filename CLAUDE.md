@@ -20,7 +20,8 @@ hl7 is the reference parser; it inherits the canonical toolchain by depending on
 - **Language:** TypeScript (strict, full rigor set incl. `noUncheckedIndexedAccess`) via
   `@cosyte/tsconfig`. **Target ES2023**, `NodeNext`.
 - **Build:** dual ESM + CJS + `.d.ts` via `tsup` (`@cosyte/tsup-config`); `attw` is a publish gate
-  (per-condition types: `.d.ts` for `import`, `.d.cts` for `require`).
+  (per-condition types: `.d.ts` for `import`, `.d.cts` for `require`). The `attw` script is
+  **`node scripts/attw.mjs`, not the bare CLI**: see the guardrail below.
 - **Node:** **>= 22** (CI matrix 22 + 24).
 - **Package manager:** `pnpm@10`.
 - **Lint/format:** **ESLint 10** + unified `typescript-eslint` (type-checked) via
@@ -41,6 +42,26 @@ hl7 is the reference parser; it inherits the canonical toolchain by depending on
 - Fatal errors only for unrecoverable structural corruption (4 Tier-3 codes). Everything else is a warning.
 - Coverage: per-directory >= 90% (lines/branches/functions/statements) on `src/parser/`, `src/model/`,
   `src/helpers/`, `src/serialize/`, `src/builder/`, enforced by `pnpm test:coverage`.
+- **`attw` SAYS "does not contain types" AND EXITS 0, SO THE `attw` SCRIPT IS A WRAPPER, NOT THE BARE
+  CLI.** `getExitCode.js` in `@arethetypeswrong/cli` opens with `if (!analysis.types) return 0`, so
+  the problem list is never consulted and no `--profile`, `--ignore-rules` or config setting reaches
+  it. For a package that ships types it means the declarations were **not in the tarball**, which is
+  a broken publish reported as a pass. **The race only supplies the condition**: reproduced here with
+  zero concurrency (`rm -f dist/index.d.*ts && pnpm attw`, and `rm -rf dist && pnpm attw`), and
+  `tsup` writes JS before declarations, so **every** build has a window (2.07s and 2.24s on two clean
+  builds here) where `dist/` holds `.mjs`/`.cjs` and no `.d.ts`. So the answer is **not** a lock, a
+  lease or a build queue: the gate must be able to say its own inputs were missing, whatever removed
+  them. `scripts/attw.mjs` carries **two nets that catch different things**: a preflight that every
+  relative path `package.json` promises exists and is non-empty (catches the window, names the file),
+  and a post-check on the untyped sentence (catches declarations on disk but excluded from the
+  tarball by `files`/`.npmignore`, which the preflight structurally cannot see). The post-check reads
+  a string, so `--quiet`, `-f/--format`, `--config-path` and a `.attw.json` setting `quiet`/`format`
+  are **refused by option name, wholesale, not by value**. `test/scripts/attw-gate.test.ts` pins both
+  nets and the upstream exit-0 itself against the real binary, plus a negative control on a
+  well-formed package, so an `attw` upgrade reds the suite rather than letting the net go slack.
+  **THE CENSUS IS MANIFESTS, NOT REPO ROOTS.** This repo has two: `package.json` and
+  `examples/profile-starter-kit/package.json`, which is a template a consumer publishes from. Derive
+  it, do not recall it: `/usr/bin/grep -rl '"attw":' --include=package.json --exclude-dir=node_modules .`
 
 ## Standing disciplines (every change)
 

@@ -595,6 +595,54 @@ kind, value)`** sets one at a field or `field[rep]` dot-path. Component values a
 
 ### Fixed
 
+- **The `attw` publish gate reported a pass on a tarball that carried no types (`ATTW-FALSE-GREEN-PORT`).**
+  `package.json` ran `attw --pack .`, and that command prints "This package does not contain types."
+  and **exits 0**. Every caller that reads the status, including `prepublishOnly` and the shared CI
+  pipeline, read the 0. A false red costs an hour; a false green merges.
+
+  **The defect is `attw`'s exit code, not the invocation and not concurrency.** In this repo's own
+  `@arethetypeswrong/cli@0.18.4`, `dist/getExitCode.js` opens with `if (!analysis.types) return 0`,
+  so the problem list is never consulted. No `--profile`, `--ignore-rules` or config setting reaches
+  that early return. For a package that ships types, "does not contain types" does not mean "fine,
+  untyped"; it means the declarations were not in the tarball, which is a broken publish.
+
+  **Reproduced here with no concurrency at all** (2026-08-03, Node 22): `rm -f dist/index.d.ts
+dist/index.d.cts && pnpm attw` and `rm -rf dist && pnpm attw` both printed the sentence and exited 0. A race only supplies the condition. `tsup` emits the JS bundles in one pass and the declaration
+  files in a later one, so there is a window in every build of this package where `dist/` holds
+  `.mjs`/`.cjs` and no `.d.ts`: timed on two clean builds here, `dist/index.mjs` appeared at 3.57s
+  and 3.58s and `dist/index.d.ts` at 5.81s and 5.65s, a window of 2.24s and 2.07s. A concurrent
+  build or `pnpm clean` in the same working tree lands `attw` in it. **That is deliberately not
+  answered with a lock, a lease or a build queue**: the gate has to be able to say its own inputs
+  were missing, whatever removed them.
+
+  **The fix is `scripts/attw.mjs`, and it carries two nets that catch different things.** A
+  **preflight** checks that every relative artifact path `package.json` promises (`main`, `module`,
+  `types`, `typings`, and every string leaf of `exports`) exists and is non-empty before `attw` runs;
+  it is structural, does no string matching, and names the missing file. A **post-check** fails when
+  `attw` still reports an untyped package, which is the case the preflight structurally cannot see:
+  declarations present on disk but excluded from the tarball by `files` or `.npmignore`. **No
+  instance of that second case is on record in this repo.** The post-check reads a printed sentence,
+  so the routes that would hide it are refused rather than tolerated: `--quiet`, `-q`,
+  `--format json`, `-f json`, `--format=json`, a `.attw.json` setting `quiet` or `format`, and
+  `--config-path`. Each of the first six was measured against this package's own untyped tree to
+  return exit 0 with the sentence absent; `--config-path` is refused by inference, not measurement.
+  The refusal is by option name, wholesale, not by value. Other arguments are still forwarded, so
+  `--profile node16` works.
+
+  **Both of this repo's manifests are fixed, because the census that matters is manifests rather
+  than repo roots.** `package.json` and `examples/profile-starter-kit/package.json` each ran the
+  bare CLI, and the kit is a template a consumer copies out and publishes from, so leaving it would
+  have re-minted the false green in every generated package. The kit gets its own self-contained
+  copy of the wrapper.
+
+  `test/scripts/attw-gate.test.ts` pins the defect and the remedy against the real binary: that bare
+  `attw` exits 0 on both shapes (declarations unpacked, and declarations never built), that the
+  wrapper reds each of them, that the preflight names the missing or empty file, that a real `attw`
+  failure still propagates `attw`'s own status, that the wrapper is transparent on a well-formed
+  package, and that each refusal holds. If a future `attw` fixes the exit code or rewords the
+  sentence, the suite reds and sends the reader to the wrapper rather than letting the net go
+  quietly slack. No runtime or API change; this is a build and publish gate only.
+
 - **A warning or error message could carry clinical text into a log line (`HL7-WARN-MSG-PHI`).**
   No options were required to reach it: plain `parseHL7(raw)` on lenient defaults.
 
