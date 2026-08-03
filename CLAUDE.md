@@ -52,9 +52,12 @@ hl7 is the reference parser; it inherits the canonical toolchain by depending on
   builds here) where `dist/` holds `.mjs`/`.cjs` and no `.d.ts`. So the answer is **not** a lock, a
   lease or a build queue: the gate must be able to say its own inputs were missing, whatever removed
   them. `scripts/attw.mjs` carries **two nets that catch different things**: a preflight that every
-  relative path `package.json` promises exists and is non-empty (catches the window, names the file),
-  and a post-check on the untyped sentence (catches declarations on disk but excluded from the
-  tarball by `files`/`.npmignore`, which the preflight structurally cannot see). The post-check reads
+  relative path `package.json` promises exists and is non-empty (catches the window, names the file;
+  a path with no leading `./` is normalized, not skipped, and a manifest declaring nothing is refused
+  rather than passed), and a post-check on the untyped sentence (catches declarations on disk but
+  excluded from the tarball by `files`/`.npmignore`, which the preflight structurally cannot see).
+  `--help`/`-h`/`--version`/`-V` are refused too, for a different reason: they exit 0 with a
+  non-empty transcript and no sentence, so neither net can tell them from a pass. The post-check reads
   a string, so `--quiet`, `-f/--format`, `--config-path` and a `.attw.json` setting `quiet`/`format`
   are **refused by option name, wholesale, not by value**. **Short options are refused by LETTER
   ANYWHERE IN THE CLUSTER, not by whole token**, because `commander` bundles them and lets a value
@@ -66,6 +69,8 @@ hl7 is the reference parser; it inherits the canonical toolchain by depending on
   **THE CENSUS IS MANIFESTS, NOT REPO ROOTS.** This repo has two: `package.json` and
   `examples/profile-starter-kit/package.json`, which is a template a consumer publishes from. Derive
   it, do not recall it: `/usr/bin/grep -rl '"attw":' --include=package.json --exclude-dir=node_modules .`
+  The kit's copy is **byte-identical below the docblock** and pinned that way by a test, because
+  nothing in CI executes it; keep them identical rather than editing one.
 
 ## Standing disciplines (every change)
 

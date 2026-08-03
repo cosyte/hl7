@@ -618,7 +618,13 @@ dist/index.d.cts && pnpm attw` and `rm -rf dist && pnpm attw` both printed the s
   **The fix is `scripts/attw.mjs`, and it carries two nets that catch different things.** A
   **preflight** checks that every relative artifact path `package.json` promises (`main`, `module`,
   `types`, `typings`, and every string leaf of `exports`) exists and is non-empty before `attw` runs;
-  it is structural, does no string matching, and names the missing file. A **post-check** fails when
+  it is structural, does no string matching, and names the missing file. A path written **without** a
+  leading `./` counts: `"types": "dist/index.d.ts"` is legal for those four fields and is normalized
+  rather than skipped, since skipping it would leave the preflight quietly narrower than every
+  sentence describing it. Wildcard `exports` patterns (they name a set, not a file), absolute paths
+  and `package.json` itself are skipped. A manifest that declares **nothing** is refused rather than
+  passed, because a preflight with no inputs is not a preflight that succeeded. A **post-check** fails
+  when
   `attw` still reports an untyped package, which is the case the preflight structurally cannot see:
   declarations present on disk but excluded from the tarball by `files` or `.npmignore`. **No
   instance of that second case is on record in this repo.** The post-check reads a printed sentence,
@@ -636,19 +642,35 @@ dist/index.d.cts && pnpm attw` and `rm -rf dist && pnpm attw` both printed the s
   post-check can see, a token-matching guard returned **exit 0** on `-fjson` and on `-Pf json`.
   `-qP` was caught, but only by the empty-transcript net rather than by the refusal.
 
+  **A second class of argument is refused for a different reason, and calling it blinding would be
+  wrong.** `--help`, `-h`, `--version` and `-V` print and exit 0 without analysing anything: measured
+  on the untyped fixture at 2766 and 48 bytes of output, exit 0, no untyped sentence. The transcript
+  is non-empty, so the empty-transcript net does not fire either, and the gate would have read a pass
+  off a run that checked nothing. `--definitely-typed` is refused alongside them **by inference, not
+  by measurement**, and the distinction is kept because the measurement was attempted and did not
+  reproduce: with a version range the untyped sentence still printed. It is refused on a reading of
+  the CLI, where a value that looks like a path merges external declarations into the analysis, which
+  would let a package that ships none come back typed. `--no-definitely-typed` is a distinct option
+  name and is deliberately not refused.
+
   **Both of this repo's manifests are fixed, because the census that matters is manifests rather
   than repo roots.** `package.json` and `examples/profile-starter-kit/package.json` each ran the
   bare CLI, and the kit is a template a consumer copies out and publishes from, so leaving it would
-  have re-minted the false green in every generated package. The kit gets its own self-contained
-  copy of the wrapper.
+  have re-minted the false green in every generated package. The kit gets its own copy, whose code is
+  **byte-identical** to the root one below the docblock and is pinned that way by a test; only the
+  comment differs, because one is written for a maintainer here and the other for a consumer who
+  copied the kit out. Two copies of a gate drift, and the kit's copy is executed by nothing in this
+  repo's CI, so the identity pin is what makes the behavioural tests true of both.
 
   `test/scripts/attw-gate.test.ts` pins the defect and the remedy against the real binary: that bare
-  `attw` exits 0 on both shapes (declarations unpacked, and declarations never built), that the
-  wrapper reds each of them, that the preflight names the missing or empty file, that a real `attw`
-  failure still propagates `attw`'s own status, that the wrapper is transparent on a well-formed
-  package, and that each refusal holds. If a future `attw` fixes the exit code or rewords the
-  sentence, the suite reds and sends the reader to the wrapper rather than letting the net go
-  quietly slack. No runtime or API change; this is a build and publish gate only.
+  `attw` exits 0 on both shapes (declarations unpacked, and declarations never built) and on
+  `-fjson`, that the wrapper reds each of them, that the preflight names a missing, an empty and a
+  `./`-less artifact and refuses a manifest that declares none, that a real `attw` failure still
+  propagates `attw`'s own status, that the wrapper is transparent on a well-formed package and does
+  not refuse the options that blind nothing, and that each refusal holds. If a future `attw` fixes
+  the exit code or rewords the sentence, the suite reds and sends the reader to the wrapper rather
+  than letting the net go quietly slack. No runtime or API change; this is a build and publish gate
+  only.
 
 - **A warning or error message could carry clinical text into a log line (`HL7-WARN-MSG-PHI`).**
   No options were required to reach it: plain `parseHL7(raw)` on lenient defaults.

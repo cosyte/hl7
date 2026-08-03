@@ -27,7 +27,11 @@ gate has to be able to say its own inputs were missing, whatever removed them.
 - A **preflight**: every relative artifact path `package.json` promises (`main`, `module`, `types`,
   `typings`, and every string leaf of `exports`) must exist and be non-empty before `attw` runs. It
   is structural, does no string matching, and names the missing file rather than leaving the reader
-  to infer it. This is the net that catches the build window above.
+  to infer it. This is the net that catches the build window above. A path written without a leading
+  `./` counts: `"types": "dist/index.d.ts"` is legal for those four fields and is normalized rather
+  than skipped. Wildcard `exports` patterns, absolute paths and `package.json` itself are skipped, and
+  a manifest that declares nothing at all is refused rather than passed, because a preflight with no
+  inputs is not a preflight that succeeded.
 - A **post-check**: if `attw` still reports an untyped package, fail. The preflight structurally
   cannot see this case, because the declarations can be present on disk and still be absent from the
   tarball when `files` or `.npmignore` leaves them out. **No instance of that second case is on
@@ -49,11 +53,23 @@ package whose declarations sit on disk but are excluded from `files`, which is t
 post-check can see, a token-matching guard returned exit 0 on `-fjson` and on `-Pf json`. `-qP` was
 caught, but only by the fallback that refuses an empty transcript rather than by the refusal itself.
 
+**A second class of argument is refused for a different reason, and calling it blinding would be
+wrong.** `--help`, `-h`, `--version` and `-V` print and exit 0 without analysing anything, with a
+non-empty transcript and no untyped sentence, so neither net can tell the result from a pass.
+`--definitely-typed` is refused with them by inference rather than by measurement, and the
+distinction is kept because the measurement was attempted and did not reproduce: with a version range
+the untyped sentence still printed. It is refused on a reading of the CLI, where a value that looks
+like a path merges external declarations into the analysis, which would let a package that ships none
+come back typed. `--no-definitely-typed` is a distinct option name and is deliberately not refused.
+
 **Both of this repository's manifests are fixed, because the census that matters is manifests rather
 than repository roots.** `package.json` and `examples/profile-starter-kit/package.json` each ran the
 bare CLI. The starter kit is a template a consumer copies out and publishes from, so leaving it alone
-would have re-minted the same silent pass in every package generated from it; the kit now carries its
-own self-contained copy of the wrapper.
+would have re-minted the same silent pass in every package generated from it. The kit now carries its
+own copy, whose code is byte-identical to the root one below the docblock and is pinned that way by a
+test; only the comment differs, because one is written for a maintainer here and the other for a
+consumer who copied the kit out. Two copies of a gate drift, and the kit's copy is executed by nothing
+in this repository's CI, so the identity pin is what makes the behavioural tests true of both.
 
 `test/scripts/attw-gate.test.ts` pins the defect and the remedy against the real binary rather than a
 mock: that bare `attw` exits 0 on both shapes (declarations left out of the tarball, and declarations

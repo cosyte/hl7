@@ -241,6 +241,46 @@ describe("scripts/attw.mjs", () => {
   );
 
   it(
+    "catches a declared artifact written WITHOUT a leading ./, which is legal and is the npm docs' spelling",
+    () => {
+      // `exports` targets must start with `./`, but main/module/types/typings are
+      // relative to the package root either way. A guard that skipped a bare path
+      // dropped exactly those four fields with no output at all, which would leave
+      // the preflight narrower than every sentence describing it.
+      const dir = join(root, "bare-relative-paths");
+      writePkg(
+        dir,
+        {
+          name: "attw-gate-fixture-barepaths",
+          version: "1.0.0",
+          main: "dist/index.js",
+          types: "dist/index.d.ts",
+          files: ["dist"],
+        },
+        {},
+      );
+      const r = runWrapper(dir);
+      expect(r.code).not.toBe(0);
+      expect(r.out).toContain("./dist/index.d.ts");
+      expect(r.out).toContain("./dist/index.js");
+      expect(r.out).toContain("missing");
+    },
+    SPAWN_TIMEOUT,
+  );
+
+  it(
+    "refuses a manifest that declares no artifacts at all, rather than passing a preflight that checked nothing",
+    () => {
+      const dir = join(root, "declares-nothing");
+      writePkg(dir, { name: "attw-gate-fixture-nothing", version: "1.0.0" }, {});
+      const r = runWrapper(dir);
+      expect(r.code).not.toBe(0);
+      expect(r.out).toContain("checked nothing");
+    },
+    SPAWN_TIMEOUT,
+  );
+
+  it(
     "does not claim attw would have said 'untyped' when only JS is missing",
     () => {
       // Measured: with the declarations intact, bare attw reports no problems and
@@ -300,6 +340,14 @@ describe("the refusals that keep the post-check readable", () => {
     ["-qP", ["-qP"]],
     ["-Pf json", ["-Pf", "json"]],
     ["--config-path", ["--config-path", "other.json"]],
+    // Not blinding: these exit 0 with a non-empty transcript and no untyped
+    // sentence, either without analysing anything at all or by merging external
+    // declarations into the analysis. Neither net can tell that from a pass.
+    ["--help", ["--help"]],
+    ["-h", ["-h"]],
+    ["--version", ["--version"]],
+    ["-V", ["-V"]],
+    ["--definitely-typed", ["--definitely-typed", "4.9"]],
   ])("refuses %s", (_name, extra) => {
     const r = runWrapper(typesNotPacked, [...OFFLINE, ...extra]);
     expect(r.code).not.toBe(0);
@@ -388,5 +436,25 @@ describe("the starter kit ships the same gate", () => {
       const wrapper = join(REPO_ROOT, rel.replace(/package\.json$/, "scripts/attw.mjs"));
       expect(existsSync(wrapper), `${wrapper} is missing`).toBe(true);
     }
+  });
+
+  it("carries a byte-identical implementation, so the tests above cover both copies", () => {
+    // Two copies of a gate drift, and the kit's copy is executed by nothing in
+    // this repo's CI: the kit job runs typecheck/lint/test/build, and installing
+    // its dependencies inside the unit-test job to run its wrapper directly would
+    // cost more than it proves. Pinning the code identical is what makes every
+    // behavioural test above true of the kit as well. Only the docblock differs,
+    // because one is written for a maintainer here and the other for a consumer
+    // who copied the kit out.
+    const MARKER = 'import { spawnSync } from "node:child_process";';
+    const bodyOf = (rel: string): string => {
+      const src = readFileSync(join(REPO_ROOT, rel), "utf8");
+      const at = src.indexOf(MARKER);
+      expect(at, `${rel} does not contain the import marker`).toBeGreaterThan(-1);
+      return src.slice(at);
+    };
+    expect(bodyOf("examples/profile-starter-kit/scripts/attw.mjs")).toBe(
+      bodyOf("scripts/attw.mjs"),
+    );
   });
 });

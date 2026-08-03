@@ -36,7 +36,12 @@
  *      string leaf of `exports`) must exist and be non-empty before `attw` runs.
  *      This is the net that catches the build window above, and it names the
  *      missing file instead of leaving you to infer it. It follows whatever your
- *      `package.json` declares, so it keeps working after you rename things.
+ *      `package.json` declares, so it keeps working after you rename things: a
+ *      path with no leading `./` counts too (`"types": "dist/index.d.ts"` is
+ *      legal, and is normalized rather than skipped), while wildcard `exports`
+ *      patterns, absolute paths and `package.json` itself are skipped. If your
+ *      manifest ends up declaring nothing at all, the gate refuses rather than
+ *      passes: a preflight with no inputs is not a preflight that succeeded.
  *
  *   2. POST-CHECK. If `attw` still reports an untyped package, fail. The
  *      preflight cannot see this case: the declaration files can be present on
@@ -56,11 +61,25 @@
  * guard was measured to hand back exit 0 on the first and the third. The refusal
  * is by option name, wholesale, not by value: value-parsing them would be a third
  * moving part in the guard, and being over-strict about an argument nobody passes
- * to a publish gate costs less than a route back to a silent pass. Other
- * arguments are forwarded, so `--profile node16` and friends still work.
+ * to a publish gate costs less than a route back to a silent pass.
+ *
+ * A second class is refused for a different reason, and calling it "blinding"
+ * would be wrong. `--help`, `-h`, `--version` and `-V` print and exit 0 without
+ * analysing anything: the output is non-empty and carries no untyped sentence, so
+ * neither net can tell the result from a pass. `--definitely-typed` is refused
+ * with them by inference rather than by measurement, because a value that looks
+ * like a path merges EXTERNAL declarations into the analysis, which would let a
+ * package that ships none come back typed. `--no-definitely-typed` is a distinct
+ * option name and is deliberately not refused. Everything else is forwarded, so
+ * `--profile node16` and friends still work.
  *
  * If a future `attw` fixes the exit code or rewords that sentence, net 2 goes
  * quietly slack while net 1 keeps working. Re-read this file when you upgrade.
+ *
+ * THE CODE BELOW THE DOCBLOCK IS BYTE-IDENTICAL to `scripts/attw.mjs` in the
+ * `@cosyte/hl7` repository this kit ships from, and a test there pins that. Only
+ * this comment differs, because it is written for you rather than for a
+ * maintainer of that package. If you change the code, you are on your own copy.
  */
 
 import { spawnSync } from "node:child_process";
@@ -77,25 +96,49 @@ const die = (msg) => {
   process.exit(1);
 };
 
-// ---- Refuse what would blind the post-check --------------------------------
+// ---- Refuse the arguments that would make a 0 mean nothing ------------------
+// Two classes, and they fail for different reasons.
+//
+//   BLINDING: the analysis still runs, but the untyped sentence never reaches
+//   this script, so the post-check reads a clean transcript over a broken pack.
+//
+//   NOT_AN_ANALYSIS: attw prints something and exits 0 without analysing the
+//   package at all. Measured: `--help`/`-h` and `--version`/`-V` exit 0 with a
+//   non-empty transcript and no untyped sentence, so neither the post-check nor
+//   the empty-transcript net below can tell them from a pass. Inferred, not
+//   measured: `--definitely-typed <path>` takes the CLI's `dtIsPath` branch and
+//   merges EXTERNAL declarations, which would let a package that ships none come
+//   back typed. With a version range it did NOT reproduce, so it sits with
+//   `--config-path` as a refusal on a reading rather than on a measurement.
+//
 // Long options are matched by name, with any `=value` stripped. Short options are
 // matched by LETTER ANYWHERE IN THE CLUSTER, because commander bundles them and
-// lets a value ride on the end: `-fjson`, `-qP` and `-Pf json` all hide the
-// untyped sentence, and an exact-token set matches none of them.
-const BLINDING_LONG = new Set(["--quiet", "--format", "--config-path"]);
-const BLINDING_SHORT = /[qf]/;
-const blinds = (a) =>
+// lets a value ride on the end: `-fjson`, `-qP` and `-Pf json` were each measured
+// here to hide the untyped sentence, and an exact-token set matches none of them.
+// `--no-definitely-typed` is a distinct option name and is NOT refused, which is
+// what keeps the offline test runs working.
+const REFUSED_LONG = new Set([
+  "--quiet",
+  "--format",
+  "--config-path",
+  "--help",
+  "--version",
+  "--definitely-typed",
+]);
+const REFUSED_SHORT = /[qfhV]/;
+const refused = (a) =>
   a.startsWith("--")
-    ? BLINDING_LONG.has(a.split("=")[0])
-    : a.startsWith("-") && a.length > 1 && BLINDING_SHORT.test(a);
-const blinding = args.filter(blinds);
+    ? REFUSED_LONG.has(a.split("=")[0])
+    : a.startsWith("-") && a.length > 1 && REFUSED_SHORT.test(a);
+const blinding = args.filter(refused);
 if (blinding.length > 0) {
   die(
     `${blinding.join(", ")} is refused wholesale, by option name and not by value.\n` +
-      `  This gate reads attw's printed output, attw exits 0 on an untyped package,\n` +
-      `  and some values of these options hide that output. Any short-option cluster\n` +
-      `  naming -q or -f is refused with them, because commander bundles them.\n` +
-      `  Run it without them.`,
+      `  attw exits 0 on an untyped package and this gate reads its printed output,\n` +
+      `  so an option that hides that output, or that exits 0 without analysing this\n` +
+      `  package's own types, would turn the gate back into a gate-shaped thing. Any\n` +
+      `  short-option cluster naming -q, -f, -h or -V is refused with them, because\n` +
+      `  commander bundles short options. Run it without them.`,
   );
 }
 try {
@@ -112,15 +155,29 @@ try {
   // No .attw.json, or unreadable/invalid. attw itself reports the latter.
 }
 
-/** Every relative path `package.json` promises to ship, deduped. */
+/**
+ * Every relative path `package.json` promises to ship, deduped and normalized to
+ * a leading `./`.
+ *
+ * NORMALIZING RATHER THAN SKIPPING IS LOAD-BEARING. `exports` targets must start
+ * with `./` and Node rejects them otherwise, but `main`, `module`, `types` and
+ * `typings` are relative to the package root either way: `"types": "dist/index.d.ts"`
+ * is legal and is the spelling npm's and TypeScript's own documentation uses. A
+ * guard that skipped a value with no leading `./` dropped exactly those four
+ * fields, silently, and left every sentence describing this preflight broader
+ * than the code.
+ */
 function declaredArtifacts(pkg) {
   const found = new Set();
   const add = (v) => {
     if (typeof v !== "string") return;
-    // Skip wildcard subpath patterns (they name a set, not a file) and the
-    // manifest itself, which is always in the tarball by definition.
-    if (!v.startsWith(".") || v.includes("*") || v === "./package.json") return;
-    found.add(v);
+    // Skip wildcard subpath patterns (they name a set, not a file), the manifest
+    // itself, which is in the tarball by definition, and absolute paths, which are
+    // not this package's to promise.
+    if (v.includes("*") || v.startsWith("/")) return;
+    const rel = v.startsWith("./") || v.startsWith("../") ? v : `./${v}`;
+    if (rel === "./package.json") return;
+    found.add(rel);
   };
   for (const key of ["main", "module", "types", "typings"]) add(pkg[key]);
   const walk = (node) => {
@@ -139,8 +196,21 @@ try {
 }
 
 // ---- Net 1: preflight -------------------------------------------------------
+const declared = declaredArtifacts(pkg);
+// A preflight with nothing to check is not a preflight that passed. Refusing here
+// is the same discipline the repo's other scanners apply to themselves, and the
+// same one net 2 applies below when the transcript comes back empty: this gate
+// does not report from a check that read nothing.
+if (declared.length === 0) {
+  die(
+    `package.json declares no artifact paths, so the preflight checked nothing.\n` +
+      `  main, module, types and typings are absent or unusable, and exports has no\n` +
+      `  usable string leaf either. Declare the package's entry points, or this gate\n` +
+      `  is reduced to attw's own exit code, which is 0 on an untyped package.`,
+  );
+}
 const broken = [];
-for (const rel of declaredArtifacts(pkg)) {
+for (const rel of declared) {
   let size;
   try {
     size = statSync(rel).size;
