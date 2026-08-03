@@ -340,13 +340,18 @@ describe("the refusals that keep the post-check readable", () => {
     ["-qP", ["-qP"]],
     ["-Pf json", ["-Pf", "json"]],
     ["--config-path", ["--config-path", "other.json"]],
-    // Not blinding: these exit 0 with a non-empty transcript and no untyped
-    // sentence, either without analysing anything at all or by merging external
-    // declarations into the analysis. Neither net can tell that from a pass.
+    // Not blinding: the four below exit 0 with a non-empty transcript and no
+    // untyped sentence, without analysing anything at all, so neither net can tell
+    // that from a pass. Measured on the untyped fixture.
     ["--help", ["--help"]],
     ["-h", ["-h"]],
     ["--version", ["--version"]],
     ["-V", ["-V"]],
+    // `--definitely-typed` is refused BY INFERENCE, not by measurement, and this
+    // row's own value is why the distinction is kept: with a version range the
+    // untyped sentence still printed, because the CLI's `dtIsPath` branch needs a
+    // value that looks like a path before it merges external declarations. The
+    // refusal is by option NAME, so this row pins the refusal, not the route.
     ["--definitely-typed", ["--definitely-typed", "4.9"]],
   ])("refuses %s", (_name, extra) => {
     const r = runWrapper(typesNotPacked, [...OFFLINE, ...extra]);
