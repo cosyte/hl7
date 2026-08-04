@@ -605,6 +605,68 @@ kind, value)`** sets one at a field or `field[rep]` dot-path. Component values a
 
 ### Fixed
 
+- **A staged RENAME bypassed the PHI scan's pre-commit route entirely
+  (`PHI-SCAN-RENAME-BLIND-AT-PRECOMMIT`).** `git diff --cached --raw --diff-filter=AMT` returns
+  neither `R` (rename) nor `C` (copy), and rename detection is on by git's default, so
+  `git mv <link> test/fixtures/<name>` staged as `:120000 120000 <sha> <sha> R100` with **two**
+  paths and the filter deleted the record outright. **Reproduced on `ae4a35f` before the fix**, in
+  a throwaway repo: an ordinary `git mv` put a mode-`120000` entry under a scan root and
+  `pnpm phi-scan --staged` printed `OK: no hits` and exited **0**. A rename that also
+  **substitutes a real name** into the moved file passed the same way (measured at `R098`, mode
+  `100644`, a real-looking surname in the staged blob). The gap is at **pre-commit**; the all-mode
+  sweep is the backstop, and it saw both.
+
+  **The remedy is `--no-renames`, and it needs no stride work and no scope decision.** An earlier
+  reading of this gap said admitting `R`/`C` required the two-path `--raw` record shape handled;
+  that reading was wrong, and the previous entry in this file repeated it. Turning detection off
+  makes the destination arrive as an ordinary single-path `A`
+  (`:000000 120000 0000000 <sha> A`) and the source a `D` the filter already drops. Verified under
+  `diff.renames=true|copies|false|1` and `diff.renameLimit=1`: every one yields the same
+  single-path `A`, so the two-field stride is **structural** rather than conditional on the
+  caller's git config, and the new enumeration **contains** the old one (pinned by
+  a test that compares the two path sets under each of those settings).
+
+- **A staged COPY bypassed the same route, and no rename fixture reaches it.** With
+  `diff.renames=copies`, copying an out-of-scope PHI-bearing file INTO a scan root stages as a
+  genuine `C100` two-path record and was dropped exactly as a rename was: measured **exit 0**
+  before and **exit 1** after. One precondition is
+  recorded because it is easy to state this too broadly: config-only copy detection also needs the
+  COPY SOURCE modified in the same staged diff. Without that, git finds no copy source, the record
+  arrives as an ordinary `A` that even the old argv enumerated, and a naive copy fixture passes on
+  both scanners while proving nothing.
+
+- **A scan ROOT'S OWN path was outside the `--staged` filter, on both roots.** An index entry at
+  exactly `test/fixtures` or exactly `src` is never a directory, because git records no entry for
+  one, so it is a scan root REPLACED by a blob, a link or a gitlink. The prefix test alone let that
+  through: measured **exit 0** over a staged mode-`120000` `test/fixtures`, and again over `src`.
+  The filter now matches each root's own path as well as the prefix. This is the one **addition to
+  the path scope** in this change, and it is stated as such rather than filed under "narrowing".
+  The `.ts` suffix rule is deliberately not applied to `src`'s own name: that rule is a judgement
+  about bytes the route could have read, and the name of an entry that replaced a walk root is no
+  evidence about what is on the other side of it.
+
+- **The PHI scan reported clean over an UNMERGED path.** `U` is returned by neither `AM` nor
+  `AMT`, so a conflicted in-scope path made `--staged` print `OK: no hits` and exit **0** over an
+  index it structurally cannot read (measured, with a real-looking surname in one of the stages).
+  Such a path is recorded at one or more of stages 1/2/3 and never at stage 0, so `git show :<path>`
+  fails outright
+  and there is no one staged blob to scan. It is now enumerated and **refused** (exit 2), with its
+  own message: a `U` record's destination mode is `000000`, and the existing mode refusal's
+  sentence about `git show` handing back a target path is false for an unmerged regular file.
+  **The bound, stated precisely:** git itself refuses to commit while a path is unmerged, so this
+  was never a route to a committed leak. What it was is the gate attesting clean over a state it
+  never observed, and `pnpm phi-scan --staged` is run by hand and from scripts as well as from the
+  hook.
+
+- **The PHI scan exited 1, its code for HITS FOUND, when it had not scanned anything.** A missing
+  or unreadable `scripts/phi-allow-list.txt` and a walk root `readdirSync` could not list both
+  threw out of `main` uncaught, and node reports an uncaught throw as exit **1**, with a v8 stack
+  trace in place of the scanner's own diagnostic. Both now refuse with exit **2** and a named
+  `[phi-scan]` line, and a top-level backstop catches whatever else throws so nothing can reach
+  node's default handler again. Nothing downstream reads the difference today (both codes are
+  non-zero and the gate blocks either way); a caller that ever split them would have read a scan
+  that never started as a scan that found PHI.
+
 - **The PHI scan read a symbolic link as clean on BOTH of its enumerating routes
   (`PHI-SCAN-SYMLINK-BLIND-ON-BOTH-ROUTES`).** A link under a scan root pointing at a PHI-bearing
   file passed the gate twice over. **Reproduced on `5debd18` before the fix**, in a throwaway repo,
@@ -651,14 +713,27 @@ kind, value)`** sets one at a field or `field[rep]` dot-path. Component values a
   (copy) are still not enumerated by `--staged` at all, so a staged rename that appends PHI passes
   that route; admitting them needs the two-path `--raw` record shape handled, which is a scope
   decision rather than this one. If such a record ever reached the parser the field stride would
-  desync and it refuses, which is the safe outcome. `--staged`'s path scope is unchanged
+  desync and it refuses, which is the safe outcome.
+  **CORRECTED 2026-08-04, ON BOTH CLAUSES, and left in place rather than edited because it
+  shipped. Read this note before acting on the paragraph above it: the paragraph now describes a
+  hole that is CLOSED.** (a) `R` and `C` really were not enumerated by `--staged`, and a staged
+  rename into a scan root really did pass that route, but that is no longer true: the route reads
+  `--no-renames`, so the destination arrives as an ordinary single-path `A` and is scanned. (b)
+  Closing it needed neither the two-path `--raw` record shape nor a scope decision, which is what
+  the second clause asserted; `--no-renames` does it under every `diff.renames` and
+  `diff.renameLimit` setting, with the record stride untouched. A first draft of this note rebutted
+  only (b) and left (a) reading as a live hole under a "What this does NOT close" heading, which a
+  reviewer caught. See the `PHI-SCAN-RENAME-BLIND-AT-PRECOMMIT` entry at the top of this section
+  for the measurement.
+  `--staged`'s path scope is unchanged
   (`test/fixtures/**` and `src/**.ts`), and the walk's gitignore exemption is unchanged: an ignored
   link is out of scope by the same rule that already excludes an ignored file, though an entry in
   the index cannot be excused that way. That prefix is literal, so a link staged at exactly
   `test/fixtures` (the root itself, not an entry under it) is outside the `--staged` filter and is
   unchanged here; it is not both-routes-blind, because `readdirSync` resolves a symlinked walk root
-  and all-mode reads straight through it (measured, exit 1 on the PHI). A tracked file absent from
-  the worktree is still caught at `git add` time only. The enumerate-then-read tolerance and the
+  and all-mode reads straight through it (measured, exit 1 on the PHI). **(c) CLOSED 2026-08-04:
+  the `--staged` filter now matches each root's own path as well as the prefix, on both roots.**
+  A tracked file absent from the worktree is still caught at `git add` time only. The enumerate-then-read tolerance and the
   refuse-a-sweep-that-observed-nothing rule are untouched.
 
   Pinned by 19 cases in `test/scripts/phi-scan.test.ts`, **8 of them red on `5debd18`**, all against

@@ -74,6 +74,17 @@ parser stays tolerant. `src/` is never parsed as HL7 (even when a file embeds an
 
 ## Enumeration, and what a failed read does
 
+**Exit 1 is reserved for HITS, so nothing reaches node's default handler.** A
+scan that never ran is not a scan that found PHI, and an uncaught throw exits 1,
+which is this gate's code for "PHI found". Two failures used to do exactly that,
+with a v8 stack trace in place of the scanner's own diagnostic: a missing or
+unreadable `scripts/phi-allow-list.txt` (`loadAllowList()` ran outside every
+`try`), and a walk root `readdirSync` could not list. Both now refuse with exit 2
+and a named `[phi-scan]` line, and a top-level backstop catches whatever else
+throws. Nothing downstream reads the difference today, since both codes are
+non-zero and the gate blocks either way; a caller that ever split them would have
+read it exactly backwards.
+
 **A scan that could not read what it enumerated REFUSES (exit 2).** All-mode
 lists its roots (`test/fixtures` and `src`) first and reads each file
 afterwards, so a file can be deleted inside that window. `tsup` writes
@@ -135,9 +146,9 @@ blocks the gate forever), and git does not carry those bytes anyway, so a hit on
 them would be a claim about something no commit contains. Refusing states the
 only true thing available: there is an entry here the scan cannot account for,
 so the scan is not clean. `--staged` reads `git diff --cached --raw -z` with
-`--diff-filter=AMT` so the destination mode is visible; the `T` is load-bearing,
-because replacing a **tracked** regular file with a link is neither an add nor a
-modify and `AM` deleted the record before any mode could be read.
+`--no-renames --diff-filter=AMTU` so the destination mode is visible; the `T` is
+load-bearing, because replacing a **tracked** regular file with a link is neither
+an add nor a modify and `AM` deleted the record before any mode could be read.
 
 A refusal names the entry's own repo-relative path and an engine-owned kind
 token. **It never reports the link target**, which is working-tree text that can
@@ -145,8 +156,11 @@ itself carry PHI.
 
 "In scope" is each route's own pre-existing boundary, not a new one: the walk
 still excludes a gitignored entry (the same rule that already excludes a
-gitignored file), and `--staged` still only looks at `test/fixtures/**` and
-`src/**.ts`. This narrows what those scopes admit; it does not widen them.
+gitignored file), and `--staged` looks at `test/fixtures/**` and `src/**.ts`
+plus each root's own path. That last part IS an addition to the path scope, and
+it is the only one: an index entry at exactly `test/fixtures` or exactly `src`
+is never a directory, so it is a scan root replaced by a blob, a link or a
+gitlink, and the prefix test alone let it through (measured, exit 0 on both).
 
 **Consequences worth knowing before you port this**, both measured here: a FIFO
 under a walk root used to be skipped and now refuses, and an SSN or email shape
@@ -155,14 +169,45 @@ and now never runs, because the entry is refused before anything is read. Both
 are the intended trade: a refusal that names the entry is a better answer than a
 hit that describes a filename.
 
-**Two pre-existing scope limits are UNCHANGED and named so they are not confused
-with the refusal above.** Both were measured.
+**A staged RENAME used to bypass `--staged` entirely, and `--no-renames` closes
+it with no stride work at all.** Rename detection is on by default and the status
+filter returns neither `R` nor `C`, so `git mv <link> test/fixtures/<name>` staged
+as `:120000 120000 <sha> <sha> R100` with **two** paths and the filter deleted the
+record outright: an ordinary `git mv` put a mode-`120000` entry under a scan root
+and the route printed `OK: no hits` (measured, exit 0). A rename that also
+**substitutes a real name** into the moved file passed the same way (measured at
+`R098`, mode `100644`, a real-looking surname in the staged blob). The earlier
+reading of this gap said closing it needed the two-path record shape handled and a
+scope decision. **That reading was wrong.** Turning detection off makes the
+destination arrive as an ordinary single-path `A` and the source a `D` the filter
+drops, which needs no new record shape and no new scope. Verified under
+`diff.renames=true|copies|false|1` and `diff.renameLimit=1`: every one yields the
+same single-path `A`, so the two-field stride is **structural** rather than
+conditional on the caller's git config, and the new enumeration contains the
+previous one: equal whenever nothing is renamed or copied, larger only when
+something is.
 
-- **`R` (rename) and `C` (copy) are not enumerated by `--staged` at all**, so a
-  staged rename that appends PHI passes that route. Admitting them needs the
-  two-path `--raw` record shape handled, which is a separate piece of work. If
-  such a record ever reached the parser the field stride would desync and the
-  route refuses, which is the safe outcome.
+**An UNMERGED path is now refused rather than passed over.** `U` was returned by
+neither `AM` nor `AMT`, so a conflicted in-scope path made the route print
+`OK: no hits` over an index it structurally cannot read (measured, exit 0, with a
+real-looking surname in one of the stages). Such a path is recorded at one or
+more of stages 1/2/3 and never at stage 0, so `git show :path` fails outright and
+there is no one staged blob to scan. **Which** of the three are present varies by
+conflict shape and is not worth asserting: a modify/delete leaves stages 1 and 2,
+its mirror leaves 1 and 3, and a rename/rename can leave a single stage. The
+`never at stage 0` half is the load-bearing one, and it holds in every shape
+measured. Be precise about the bound: **git itself refuses to commit
+while a path is unmerged**, so this was never a route to a committed leak. What it
+was is the gate attesting clean over a state it never observed, and
+`pnpm phi-scan --staged` is run by hand and from scripts as well as from the hook.
+`U` carries a single path like `A`/`M`/`T`, so admitting it costs the stride
+nothing, and it is refused with its own message: a `U` record's destination mode
+is `000000`, and the mode refusal's sentence about `git show` handing back a
+target path is false for an unmerged regular file.
+
+**One pre-existing scope limit is UNCHANGED and named so it is not confused with
+the refusals above.** It was measured.
+
 - **Working tree only.** A tracked file absent from the worktree is never
   enumerated in all-mode, so it is skipped rather than refused: the tracked-file
   refusal governs a file the walk did list and then could not read, not one it
