@@ -73,8 +73,17 @@
  * "In scope" is each route's own existing boundary, not a new one: the walk
  * still excludes a gitignored entry (the same rule that already excludes a
  * gitignored file, so links do not get a second, stricter boundary of their
- * own), and `--staged` still only looks at `test/fixtures/**` and `src/**.ts`.
- * This narrows what those scopes ADMIT; it does not widen the scopes.
+ * own), and `--staged` looks at `test/fixtures/**` and `src/**.ts` PLUS each
+ * root's own path (`test/fixtures` and `src`), which is the one addition to the
+ * path scope and is explained at `buildTargetsForStaged`.
+ *
+ * THREE PLACES `--staged` NOW ADMITS **MORE** THAN IT DID, called out rather
+ * than folded into "narrowing", because all three change what it enumerates:
+ * rename detection is OFF, so a rename destination arrives as an ordinary add
+ * instead of vanishing with its two-path record; and an UNMERGED path is
+ * enumerated so it can be refused instead of passed over in silence; and a scan
+ * ROOT'S OWN path is in scope, so an entry that REPLACES a root is judged
+ * instead of skipped. See `buildTargetsForStaged` for the measurements.
  *
  * A refusal names the entry's own repo-relative path and an engine-owned token
  * for its kind. IT NEVER REPORTS THE LINK TARGET, which is text off the working
@@ -568,7 +577,19 @@ function direntKind(e: Dirent): string {
  */
 function walk(dir: string, out: string[], unscannable: Unscannable[]): void {
   if (!existsSync(dir)) return;
-  for (const e of readdirSync(dir, { withFileTypes: true })) {
+  let entries: Dirent[];
+  try {
+    entries = readdirSync(dir, { withFileTypes: true });
+  } catch (err) {
+    // A directory the walk cannot list is an incomplete enumeration, so it
+    // refuses (exit 2) rather than reporting clean over whatever is inside it.
+    // Named as an InvocationError so it reaches the scanner's own diagnostic
+    // channel: an uncaught fs error exits 1, which this gate reserves for HITS.
+    throw new InvocationError(
+      `could not enumerate ${normalizePath(dir)}: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+  for (const e of entries) {
     const full = join(dir, e.name);
     if (e.isDirectory()) {
       walk(full, out, unscannable);
@@ -699,7 +720,26 @@ function gitModeKind(mode: string): string {
 }
 
 /** `:<srcmode> <dstmode> <srcsha> <dstsha> <status>`: the info half of a `--raw -z` record. */
-const RAW_RECORD = /^:(?:\d{6}) (\d{6}) [0-9a-f]+ [0-9a-f]+ [A-Z]\d*$/;
+const RAW_RECORD = /^:(?:\d{6}) (\d{6}) [0-9a-f]+ [0-9a-f]+ ([A-Z])\d*$/;
+
+/**
+ * Refuse (exit 2) over in-scope paths git reports as UNMERGED. Separate from
+ * `refuseUnscannable` because the reason is different in kind: such a path is
+ * usually a perfectly ordinary regular file, and what it lacks is a SINGLE
+ * staged blob rather than a readable type.
+ */
+function refuseUnmerged(paths: string[]): void {
+  if (paths.length === 0) return;
+  const lines = paths.map((p) => `  - ${p}`).join("\n");
+  const noun = paths.length === 1 ? "path is unmerged" : "paths are unmerged";
+  throw new InvocationError(
+    `refusing the scan: ${String(paths.length)} in-scope ${noun}:\n${lines}\n` +
+      "An unmerged path is recorded at one or more of stages 1/2/3 and never at stage 0, so " +
+      "`git show :<path>` " +
+      "fails outright and there is no one staged blob for the scan to read. " +
+      "Resolve the conflict and `git add` the result.",
+  );
+}
 
 function buildTargetsForStaged(): Target[] {
   let listBuf: Buffer;
@@ -718,10 +758,55 @@ function buildTargetsForStaged(): Target[] {
     // and `M`, so admitting it costs the two-field stride below nothing, and it
     // also scans the REVERSE typechange (a link replaced by a real file bearing
     // PHI) as the file it became.
-    listBuf = execFileSync("git", ["diff", "--cached", "--raw", "-z", "--diff-filter=AMT"], {
-      encoding: "buffer",
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+    //
+    // `--no-renames` FOR THE SAME REASON, AND THE FILTER ALONE WAS NOT ENOUGH.
+    // Rename detection is on by default, and neither `AM` nor `AMT` returns `R`
+    // or `C`, so `git mv <link> test/fixtures/<name>` staged as
+    // `:120000 120000 <sha> <sha> R100` with TWO paths and the filter deleted the
+    // record outright: an ordinary `git mv` put a mode-120000 entry under a scan
+    // root and this route printed "OK: no hits" (measured, exit 0). A rename that
+    // also SUBSTITUTES a real name into the moved file passed identically
+    // (measured at `R098`, mode 100644, a real-looking surname in the staged
+    // blob). Turning detection off makes the destination arrive as an ordinary
+    // single-path `A` (`:000000 120000 0000000 <sha> A`) and the source a `D` the
+    // filter drops, which costs the two-field stride below nothing and needs no
+    // two-path record shape. Verified under `diff.renames=true|copies|false|1`
+    // and `diff.renameLimit=1`: every one yields the same single-path `A`, so the
+    // stride is STRUCTURAL rather than conditional on the caller's git config,
+    // and the new enumeration CONTAINS the old one. Be exact about that
+    // relation, because the loose form of it was itself refuted in review: the
+    // two enumerations are EQUAL whenever nothing is renamed or copied, and
+    // larger only when something is. It is a superset, not a strictly larger
+    // set, and nothing the old argv enumerated stops being enumerated.
+    //
+    // `U` (UNMERGED) IS IN THE FILTER SO IT CAN BE REFUSED, NOT SCANNED. Such a
+    // path carries one or more of stages 1/2/3 and never stage 0, so `git show`
+    // fails on the `:<path>` form; it
+    // was returned by neither `AM` nor `AMT`, and this route reported
+    // "OK: no hits" over an index it could not read (measured, exit 0, with a
+    // real-looking surname in one of the stages). Git itself refuses to commit
+    // while a path is unmerged, so this was never a route to a committed leak;
+    // what it was is a gate attesting clean over a state it never observed, and
+    // `pnpm phi-scan --staged` is run by hand and from scripts as well as from
+    // the hook. `U` carries a single path like `A`/`M`/`T`, so it costs the
+    // stride nothing either.
+    //
+    // THE STRIDE BELOW IS COUPLED TO THIS ARGV, so read the coupling before
+    // editing it. `--no-renames` is what makes a two-path record impossible, and
+    // `-M`, `-C` and `--find-copies-harder` each turn detection back on over the
+    // top of it: measured on a real rename stage, every one of the three empties
+    // this route again. Do not add them. `-B` is INERT here and is not one of
+    // them. If a two-path record ever did arrive the stride
+    // desyncs and the run REFUSES rather than scanning a short list, which is the
+    // safe direction, but that is a backstop and not the guarantee.
+    listBuf = execFileSync(
+      "git",
+      ["diff", "--cached", "--raw", "-z", "--no-renames", "--diff-filter=AMTU"],
+      {
+        encoding: "buffer",
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    );
   } catch (err) {
     throw new InvocationError(
       `git diff --cached failed: ${err instanceof Error ? err.message : String(err)}`,
@@ -729,18 +814,24 @@ function buildTargetsForStaged(): Target[] {
   }
 
   // `--raw -z` emits `<info>\0<path>\0` per record. `R` (rename) and `C` (copy)
-  // are the only statuses carrying a SECOND path, and the filter excludes both,
-  // so the stride is two fields. If one ever reached here the stride would
-  // desync and the next record would fail to parse, which REFUSES: the same
-  // outcome as any other unparseable record, and the safe one.
+  // are the only statuses carrying a SECOND path, and `--no-renames` above means
+  // git cannot emit either, whatever the caller's `diff.renames` says, so the
+  // stride is two fields STRUCTURALLY rather than by the filter's leave. The
+  // regex still admits a score-suffixed status: if one ever reached here the
+  // stride would desync and the next record would fail to parse, which REFUSES,
+  // the same outcome as any other unparseable record and the safe one. A record
+  // that does not parse REFUSES rather than being skipped: a silently shortened
+  // list is exactly the shape this scan must never report clean over.
   //
-  // Excluding `R`/`C` also means this route does not enumerate a staged rename
-  // at all. That is PRE-EXISTING and is not narrowed here: admitting them needs
-  // the two-path record shape handled, which is a scope decision, not this one.
-  // A record that does not parse REFUSES rather than being skipped: a silently
-  // shortened list is exactly the shape this scan must never report clean over.
+  // What this route still does NOT enumerate, stated because the boundary is
+  // narrower than the path prefix alone: the filter drops `D`, a deletion, which
+  // has no staged blob to scan. That is PRE-EXISTING and deliberate. The only
+  // other statuses git documents are `R`/`C` (which `--no-renames` makes
+  // unemittable), `B` (a broken pairing, which needs `-B` and is not passed) and
+  // `X` (git's own "this is a bug" marker), so `A`/`M`/`T`/`U` plus `D` accounts
+  // for every record this invocation can produce.
   const fields = listBuf.toString("utf8").split("\0");
-  const staged: { path: string; mode: string }[] = [];
+  const staged: { path: string; mode: string; status: string }[] = [];
   let i = 0;
   while (i < fields.length) {
     const info = fields[i];
@@ -750,21 +841,43 @@ function buildTargetsForStaged(): Target[] {
     }
     const m = RAW_RECORD.exec(info);
     const mode = m?.[1];
+    const status = m?.[2];
     const path = fields[i + 1];
-    if (mode === undefined || path === undefined || path.length === 0) {
+    if (mode === undefined || status === undefined || path === undefined || path.length === 0) {
       throw new InvocationError(
         "could not read the output of `git diff --cached --raw -z`: unrecognized record. " +
           "Refusing rather than scanning a list that may be short.",
       );
     }
-    staged.push({ path, mode });
+    staged.push({ path, mode, status });
     i += 2;
   }
 
-  const list = staged.filter(
+  // A SCAN ROOT'S OWN PATH IS IN SCOPE AS WELL AS ITS CONTENTS, on both roots.
+  // An index entry at exactly `test/fixtures` or exactly `src` is never a
+  // directory, so it is a scan root REPLACED by a blob, a link or a gitlink.
+  // The prefix test alone let that through: measured, exit 0 over a staged
+  // mode-120000 `test/fixtures`, and
+  // again over `src`. Every mode other than a regular blob is refused below.
+  //
+  // The `.ts` suffix rule is deliberately NOT applied to `src`'s own name. That
+  // rule is a judgement about bytes this route could have read, and the name of
+  // an entry that replaced a walk root is no evidence at all about what is on
+  // the other side of it, exactly as for a link.
+  const inScope = staged.filter(
     (s) =>
-      s.path.startsWith("test/fixtures/") || (s.path.startsWith("src/") && s.path.endsWith(".ts")),
+      s.path === "test/fixtures" ||
+      s.path === "src" ||
+      s.path.startsWith("test/fixtures/") ||
+      (s.path.startsWith("src/") && s.path.endsWith(".ts")),
   );
+
+  // Unmerged first: such a record's destination mode is `000000`, which the mode
+  // test below would otherwise refuse with a sentence about symbolic links and
+  // gitlinks that is false for it.
+  refuseUnmerged(inScope.filter((s) => s.status === "U").map((s) => s.path));
+
+  const list = inScope.filter((s) => s.status !== "U");
 
   refuseUnscannable(
     list
@@ -1284,11 +1397,18 @@ function main(): number {
     throw err;
   }
 
-  const allow = loadAllowList();
   const allowed = new Set<string>(args.allowFixtures.map(normalizePath));
 
+  // `loadAllowList()` is INSIDE this try. It used to sit outside every one of
+  // them, so a missing or unreadable allow-list threw all the way out of `main`
+  // and node exited 1, which is this gate's code for HITS FOUND: a scan that
+  // never started reported as a scan that found PHI. Nothing downstream reads
+  // the difference today (both are non-zero, so the gate still blocks), but a
+  // caller that ever splits them would read it exactly backwards.
+  let allow: AllowList;
   let targets: Target[];
   try {
+    allow = loadAllowList();
     if (args.mode === "staged") targets = buildTargetsForStaged();
     else if (args.mode === "paths") targets = buildTargetsForPaths(args.paths);
     else targets = buildTargetsForAll();
@@ -1355,4 +1475,19 @@ function main(): number {
   return hits.length === 0 ? 0 : 1;
 }
 
-process.exit(main());
+// EXIT 1 IS RESERVED FOR HITS, so nothing may reach node's default handler: an
+// uncaught throw exits 1, and this gate's 1 means "PHI found". Every anticipated
+// failure is already an `InvocationError` returning 2 from `main`; this is the
+// backstop for the rest (an `EACCES` on the allow-list, a git binary that is not
+// there), so an unexpected failure is reported as the invocation error it is
+// rather than impersonating a finding.
+let exitCode: number;
+try {
+  exitCode = main();
+} catch (err) {
+  process.stderr.write(
+    `[phi-scan] the scan failed and did not complete: ${err instanceof Error ? err.message : String(err)}\n`,
+  );
+  exitCode = 2;
+}
+process.exit(exitCode);
