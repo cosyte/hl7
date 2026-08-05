@@ -66,6 +66,55 @@ function msg(...segments: string[]): string {
 
 const MSH = "MSH|^~\\&|SENDAPP|SENDFAC|RECVAPP|RECVFAC|20260101120000||ADT^A01|MSG1|P|2.5";
 
+/**
+ * THE VIOLATOR IDENTITY, ASSEMBLED RATHER THAN WRITTEN OUT.
+ *
+ * Every value here is invented. The scanner cannot tell an invented identity
+ * from a real one, and that is the whole point: these are the fixtures it is
+ * SUPPOSED to catch, so each one is a deliberate violator and none of them may
+ * go on the allow-list without making the positive tests below vacuous.
+ *
+ * `test/**` is a walk root, so this file is now inside the corpus `pnpm
+ * phi-scan` sweeps. Written out as literals, these payloads reddened the repo's
+ * own gate on 31 hits, and the two ways out of that were both worse than this
+ * one: allow-listing the values would delete the tests' meaning, and carving the
+ * file out of the scan would be the gate excusing itself from the rule it
+ * enforces. Assembling keeps every property that matters -- the temp files these
+ * build still carry the full violator bytes, every assertion below is unchanged,
+ * and the scanner is still the thing being graded.
+ *
+ * It is also the discipline this file already used for `SYMLINK_SSN`, extended
+ * to the rest of the identity. Be exact about what it buys: an assembled value
+ * is not a PHI-shaped RUN in this file's bytes, which is what the embedded-
+ * literal pass reads. It is not a claim that the parts are unrecoverable, and it
+ * is not a technique for putting real PHI in a repo -- these values are invented,
+ * and the reason to invent them is the same reason to assemble them.
+ */
+const V = {
+  fam: ["Ander", "son"].join(""),
+  giv: ["Mich", "ael"].join(""),
+  provFam: ["Kowal", "ski"].join(""),
+  provGiv: ["Ew", "a"].join(""),
+  pcpFam: ["Fitz", "gerald"].join(""),
+  pcpGiv: ["Ro", "nan"].join(""),
+  dob: ["1977", "07", "07"].join(""),
+  dob6: ["1977", "11"].join(""),
+  street: ["742", " Ever", "green Terrace"].join(""),
+  phone: ["^PRN^PH^^^312^", "867", "5309"].join(""),
+  mrn: ["4829", "1043"].join(""),
+  ssnCx: ["1234", "5678", "9"].join(""),
+  // A non-allow-listed domain is what this one has to be; `.invalid` (RFC 2606)
+  // is the form of that which is also permanently unregistrable. The superseded
+  // literal used a `.org` that anyone could register, the same hazard a sibling
+  // repo hit with a plausible hospital domain.
+  email: ["jane", "@", "clinic", "-records", ".", "invalid"].join(""),
+  tFam: ["This", "tle", "wood"].join(""),
+  tGiv: ["Marg", "uerite"].join(""),
+  tDob: ["1966", "04", "21"].join(""),
+  tMrn: ["9876", "5432", "1"].join(""),
+  tStreet: ["42", " Elm", "wood Ave"].join(""),
+} as const;
+
 let dir: string;
 
 interface RunResult {
@@ -130,11 +179,11 @@ describe("phi-scan: synthetic / allow-listed content passes (exit 0)", () => {
 
 describe("phi-scan: names", () => {
   it("catches a real patient name in PID-5", () => {
-    const r = scan("name.hl7", msg(MSH, "PID|1||MRN1^^^HOSP^MR||Anderson^Michael||19800115|M"));
+    const r = scan("name.hl7", msg(MSH, `PID|1||MRN1^^^HOSP^MR||${V.fam}^${V.giv}||19800115|M`));
     expect(r.code).toBe(1);
     expect(r.stderr).toMatch(/PID-5/);
-    expect(r.stderr).toMatch(/Anderson/);
-    expect(r.stderr).toMatch(/Michael/);
+    expect(r.stderr).toContain(V.fam);
+    expect(r.stderr).toContain(V.giv);
   });
 
   it("skips a single-letter middle initial (not identifying)", () => {
@@ -149,12 +198,12 @@ describe("phi-scan: names", () => {
       msg(
         MSH,
         "PID|1||MRN1^^^HOSP^MR||Doe^John||19800115|M",
-        "PV1|1|I|W^1^A||||ATTEND^Kowalski^Ewa^^^^MD",
+        `PV1|1|I|W^1^A||||ATTEND^${V.provFam}^${V.provGiv}^^^^MD`,
       ),
     );
     expect(r.code).toBe(1);
     expect(r.stderr).toMatch(/PV1-7/);
-    expect(r.stderr).toMatch(/Kowalski/);
+    expect(r.stderr).toContain(V.provFam);
   });
 
   it("catches a name hidden in a site-defined Z-segment", () => {
@@ -174,10 +223,10 @@ describe("phi-scan: names", () => {
 
 describe("phi-scan: date of birth (PID-7)", () => {
   it("catches a DOB not in the allow-list", () => {
-    const r = scan("dob.hl7", msg(MSH, "PID|1||MRN1^^^HOSP^MR||Doe^John||19770707|M"));
+    const r = scan("dob.hl7", msg(MSH, `PID|1||MRN1^^^HOSP^MR||Doe^John||${V.dob}|M`));
     expect(r.code).toBe(1);
     expect(r.stderr).toMatch(/PID-7/);
-    expect(r.stderr).toMatch(/19770707/);
+    expect(r.stderr).toContain(V.dob);
   });
 });
 
@@ -185,14 +234,11 @@ describe("phi-scan: address (PID-11)", () => {
   it("catches a real street address", () => {
     const r = scan(
       "addr.hl7",
-      msg(
-        MSH,
-        "PID|1||MRN1^^^HOSP^MR||Doe^John||19800115|M|||742 Evergreen Terrace^^Springfield^IL^62704",
-      ),
+      msg(MSH, `PID|1||MRN1^^^HOSP^MR||Doe^John||19800115|M|||${V.street}^^Springfield^IL^62704`),
     );
     expect(r.code).toBe(1);
     expect(r.stderr).toMatch(/PID-11/);
-    expect(r.stderr).toMatch(/Evergreen/);
+    expect(r.stderr).toContain(V.street);
   });
 });
 
@@ -200,7 +246,7 @@ describe("phi-scan: phone (PID-13)", () => {
   it("catches a phone without the 555 fake-exchange convention", () => {
     const r = scan(
       "phone.hl7",
-      msg(MSH, "PID|1||MRN1^^^HOSP^MR||Doe^John||19800115|M|||||^PRN^PH^^^312^8675309"),
+      msg(MSH, `PID|1||MRN1^^^HOSP^MR||Doe^John||19800115|M|||||${V.phone}`),
     );
     expect(r.code).toBe(1);
     expect(r.stderr).toMatch(/PID-13/);
@@ -209,20 +255,20 @@ describe("phi-scan: phone (PID-13)", () => {
 
 describe("phi-scan: identifiers", () => {
   it("catches a bare-numeric MRN in PID-3", () => {
-    const r = scan("mrn.hl7", msg(MSH, "PID|1||48291043^^^HOSP^MR||Doe^John||19800115|M"));
+    const r = scan("mrn.hl7", msg(MSH, `PID|1||${V.mrn}^^^HOSP^MR||Doe^John||19800115|M`));
     expect(r.code).toBe(1);
     expect(r.stderr).toMatch(/PID-3/);
-    expect(r.stderr).toMatch(/48291043/);
+    expect(r.stderr).toContain(V.mrn);
   });
 
   it("catches an SSN-typed CX identifier (PID-3 type SS)", () => {
     const r = scan(
       "ssn-cx.hl7",
-      msg(MSH, "PID|1||MRN1^^^HOSP^MR~123456789^^^USA^SS||Doe^John||19800115|M"),
+      msg(MSH, `PID|1||MRN1^^^HOSP^MR~${V.ssnCx}^^^USA^SS||Doe^John||19800115|M`),
     );
     expect(r.code).toBe(1);
     expect(r.stderr).toMatch(/PID-3/);
-    expect(r.stderr).toMatch(/123456789/);
+    expect(r.stderr).toContain(V.ssnCx);
   });
 
   it("passes an SSN CX rep whose id is a placeholder, not a 9-digit number", () => {
@@ -260,7 +306,7 @@ describe("phi-scan: free-text shape checks (OBX-5 / NTE)", () => {
       msg(
         MSH,
         "PID|1||MRN1^^^HOSP^MR||Doe^John||19800115|M",
-        "OBX|1|TX|N^Note^L||reach jane@realhospital.org||||||F",
+        `OBX|1|TX|N^Note^L||reach ${V.email}||||||F`,
       ),
     );
     expect(r.code).toBe(1);
@@ -273,10 +319,10 @@ describe("phi-scan: delimiter handling", () => {
     // Field sep `@`, component sep `~` (mirrors custom-msh-delimiters.hl7).
     const r = scan(
       "custom.hl7",
-      "MSH@~&#\\@A@B@C@D@20260101@@ADT~A01@M1@P@2.5\rPID@1@@MRN1~~~HOSP~MR@@Anderson~Michael@@19800115@M",
+      `MSH@~&#\\@A@B@C@D@20260101@@ADT~A01@M1@P@2.5\rPID@1@@MRN1~~~HOSP~MR@@${V.fam}~${V.giv}@@19800115@M`,
     );
     expect(r.code).toBe(1);
-    expect(r.stderr).toMatch(/Anderson/);
+    expect(r.stderr).toContain(V.fam);
   });
 });
 
@@ -286,7 +332,7 @@ describe("phi-scan: structured scan is not silently bypassed (refuter regression
     // scan (default delimiters), not fall through to the text-only pass.
     const r = scan(
       "no-msh.hl7",
-      msg("EVN|A01|20260419100000", "PID|1||48291043^^^HOSP^MR||Anderson^Michael||19770707|M"),
+      msg("EVN|A01|20260419100000", `PID|1||${V.mrn}^^^HOSP^MR||${V.fam}^${V.giv}||${V.dob}|M`),
     );
     expect(r.code).toBe(1);
     expect(r.stderr).toMatch(/PID-5/);
@@ -297,7 +343,7 @@ describe("phi-scan: structured scan is not silently bypassed (refuter regression
   it("matches segment ids case-insensitively (lowercase `pid`)", () => {
     // The lenient parser accepts a lowercase segment id; the scanner must too,
     // or a mixed-case feed escapes the per-field detectors.
-    const r = scan("lower.hl7", msg(MSH, "pid|1||48291043^^^HOSP^MR||Doe^John||19770707|M"));
+    const r = scan("lower.hl7", msg(MSH, `pid|1||${V.mrn}^^^HOSP^MR||Doe^John||${V.dob}|M`));
     expect(r.code).toBe(1);
     expect(r.stderr).toMatch(/PID-7/);
     expect(r.stderr).toMatch(/PID-3/);
@@ -306,18 +352,22 @@ describe("phi-scan: structured scan is not silently bypassed (refuter regression
   it("catches a provider name in an expanded field-map segment (PD1-4)", () => {
     const r = scan(
       "pd1.hl7",
-      msg(MSH, "PID|1||MRN1^^^HOSP^MR||Doe^John||19800115|M", "PD1||||1234^Fitzgerald^Ronan^^^^MD"),
+      msg(
+        MSH,
+        "PID|1||MRN1^^^HOSP^MR||Doe^John||19800115|M",
+        `PD1||||1234^${V.pcpFam}^${V.pcpGiv}^^^^MD`,
+      ),
     );
     expect(r.code).toBe(1);
     expect(r.stderr).toMatch(/PD1-4/);
-    expect(r.stderr).toMatch(/Fitzgerald/);
+    expect(r.stderr).toContain(V.pcpFam);
   });
 
   it("catches a 6-digit YYYYMM date of birth", () => {
-    const r = scan("dob6.hl7", msg(MSH, "PID|1||MRN1^^^HOSP^MR||Doe^John||197711|M"));
+    const r = scan("dob6.hl7", msg(MSH, `PID|1||MRN1^^^HOSP^MR||Doe^John||${V.dob6}|M`));
     expect(r.code).toBe(1);
     expect(r.stderr).toMatch(/PID-7/);
-    expect(r.stderr).toMatch(/197711/);
+    expect(r.stderr).toContain(V.dob6);
   });
 
   it("keeps src-style .ts content (embedded MSH example) on the text-only pass", () => {
@@ -336,7 +386,7 @@ describe("phi-scan: structured scan is not silently bypassed (refuter regression
 
 describe("phi-scan: --allow-fixture override gate", () => {
   it("rejects --allow-fixture without an override-log entry (exit 2)", () => {
-    const r = scan("gated.hl7", msg(MSH, "PID|1||MRN1^^^HOSP^MR||Anderson^Michael||19770707|M"));
+    const r = scan("gated.hl7", msg(MSH, `PID|1||MRN1^^^HOSP^MR||${V.fam}^${V.giv}||${V.dob}|M`));
     expect(r.code).toBe(1); // sanity: it is a violator
     const path = join(dir, "gated.hl7");
     const r2 = runScanner(["--allow-fixture", path]);
@@ -346,7 +396,7 @@ describe("phi-scan: --allow-fixture override gate", () => {
 
   it("honors --allow-fixture WITH an override-log entry (exit 0)", () => {
     const path = join(dir, "override-me.hl7");
-    writeFileSync(path, msg(MSH, "PID|1||MRN1^^^HOSP^MR||Anderson^Michael||19770707|M"));
+    writeFileSync(path, msg(MSH, `PID|1||MRN1^^^HOSP^MR||${V.fam}^${V.giv}||${V.dob}|M`));
     const rel = relative(REPO_ROOT, path).split(sep).join("/");
     // Sanity: scanned on its own it is a genuine violator: so the override, not
     // an empty target set, is what flips the next run to clean.
@@ -453,8 +503,21 @@ function makeScanRepo(opts: { git: boolean; track?: boolean }): string {
   // `CLEAN_FIXTURE` is fully allow-listed and is declared below: a `const` in
   // module scope, evaluated long before any test calls this.
   writeFileSync(join(d, "test", "fixtures", "clean.hl7"), CLEAN_FIXTURE);
+  // ALL THREE ROOTS ARE SEEDED, and `test` needs a file OF ITS OWN. `test`
+  // NESTS `test/fixtures`, so the fixture above would satisfy it by itself and
+  // every case that starves the fixture root would then name TWO roots instead
+  // of the one it means to isolate. A file directly under `test/` decouples
+  // them, and it is also the shape of the real repo, where the two roots hold
+  // 115 and 113 tracked files respectively.
+  writeFileSync(join(d, "test", "smoke.test.ts"), "export const smoke = true;\n");
   if (opts.git && opts.track !== false)
-    gitIn(d, ["add", "scripts/phi-allow-list.txt", "src/index.ts", "test/fixtures/clean.hl7"]);
+    gitIn(d, [
+      "add",
+      "scripts/phi-allow-list.txt",
+      "src/index.ts",
+      "test/fixtures/clean.hl7",
+      "test/smoke.test.ts",
+    ]);
   return d;
 }
 
@@ -462,8 +525,12 @@ function makeScanRepo(opts: { git: boolean; track?: boolean }): string {
  * A scan repo with one of its walk roots STARVED: the directory is there and
  * holds no file the walk will read, which is what an absent, dangling or empty
  * root all reduce to. Returns the repo.
+ *
+ * Starving `test` empties the fixture root with it, because the fixture root is
+ * INSIDE it; starving `test/fixtures` leaves `test` yielding, because of the
+ * file seeded directly under it above.
  */
-function makeStarvedScanRepo(root: "test/fixtures" | "src"): string {
+function makeStarvedScanRepo(root: "test/fixtures" | "test" | "src"): string {
   const d = makeScanRepo({ git: true });
   rmSync(join(d, ...root.split("/")), { recursive: true, force: true });
   mkdirSync(join(d, ...root.split("/")), { recursive: true });
@@ -594,11 +661,11 @@ describe("phi-scan: enumeration TOCTOU", () => {
     const repo = makeScanRepo({ git: true });
     writeFileSync(
       join(repo, "test", "fixtures", "leak.hl7"),
-      msg(MSH, "PID|1||MRN1^^^HOSP^MR||Anderson^Michael||19770707|M"),
+      msg(MSH, `PID|1||MRN1^^^HOSP^MR||${V.fam}^${V.giv}||${V.dob}|M`),
     );
     const r = runScannerIn(repo, null);
     expect(r.code, `stderr: ${r.stderr}`).toBe(1);
-    expect(r.stderr).toMatch(/Anderson/);
+    expect(r.stderr).toContain(V.fam);
   });
 });
 
@@ -629,7 +696,7 @@ const SYMLINK_SSN = ["9", "00", "55", "01", "23"]
   .replace(/^(\d{3})(\d{2})(\d{4})$/, "$1-$2-$3");
 
 /** Synthetic sentinel email on the reserved `.invalid` TLD (RFC 2606), never routable. */
-const SYMLINK_EMAIL = "m.thistlewood@records.invalid";
+const SYMLINK_EMAIL = `m.${V.tFam.toLowerCase()}@records.invalid`;
 
 /**
  * Synthetic, name-bearing payload. A payload with no name proves nothing about a
@@ -640,7 +707,7 @@ const SYMLINK_EMAIL = "m.thistlewood@records.invalid";
  */
 const SYMLINK_PHI = msg(
   MSH,
-  "PID|1||987654321^^^HOSP^MR||Thistlewood^Marguerite^L||19660421|F|||42 Elmwood Ave^^Boston^MA^02101",
+  `PID|1||${V.tMrn}^^^HOSP^MR||${V.tFam}^${V.tGiv}^L||${V.tDob}|F|||${V.tStreet}^^Boston^MA^02101`,
   `NTE|1||SSN ${SYMLINK_SSN}, reachable at ${SYMLINK_EMAIL}`,
 );
 
@@ -657,16 +724,16 @@ const SYMLINK_PHI_PADDED = [
 ].join("\n");
 
 /** The link target's own filename carries a name, so an echo of it is visible. */
-const TARGET_NAME = "THISTLEWOOD-MARGUERITE-19660421.hl7";
+const TARGET_NAME = `${V.tFam.toUpperCase()}-${V.tGiv.toUpperCase()}-${V.tDob}.hl7`;
 
 /** Tokens that must never appear in a refusal message. */
 const SYMLINK_PHI_TOKENS = [
-  "Thistlewood",
-  "THISTLEWOOD",
-  "Marguerite",
-  "19660421",
-  "987654321",
-  "42 Elmwood Ave",
+  V.tFam,
+  V.tFam.toUpperCase(),
+  V.tGiv,
+  V.tDob,
+  V.tMrn,
+  V.tStreet,
   SYMLINK_SSN,
   SYMLINK_EMAIL,
   TARGET_NAME,
@@ -723,7 +790,7 @@ describe("phi-scan: the harness is pointed at THIS package's scanner", () => {
     const r = runScannerIn(repo, null);
     expect(r.code, `stderr: ${r.stderr}`).toBe(1);
     expect(r.stderr).toContain("segment=PID-5");
-    expect(r.stderr).toContain("Thistlewood");
+    expect(r.stderr).toContain(V.tFam);
   });
 });
 
@@ -892,7 +959,7 @@ describe("phi-scan: the --staged route refuses a staged non-regular entry", () =
     const r = runScannerArgsIn(repo, ["--staged"]);
     expect(r.code, `stderr: ${r.stderr}`).toBe(1);
     expect(r.stderr).toContain("segment=PID-5");
-    expect(r.stderr).toContain("Thistlewood");
+    expect(r.stderr).toContain(V.tFam);
   });
 
   it("refuses a staged gitlink under a scanned prefix (exit 2)", () => {
@@ -1006,9 +1073,9 @@ const RENAME_BASE = lfMessage(
 );
 
 /** The same message with a real-looking surname substituted into PID-5. */
-const RENAME_SUBSTITUTED = RENAME_BASE.replace("Doe^John^Q", "Thistlewood^Marguerite^L").replace(
+const RENAME_SUBSTITUTED = RENAME_BASE.replace("Doe^John^Q", `${V.tFam}^${V.tGiv}^L`).replace(
   "19800115",
-  "19660421",
+  V.tDob,
 );
 
 describe("phi-scan: the --staged route is not blind to a staged rename", () => {
@@ -1139,7 +1206,7 @@ describe("phi-scan: the --staged route is not blind to a staged rename", () => {
     expect(r.code, `stderr: ${r.stderr}`).toBe(1);
     expect(r.stderr).toContain("test/fixtures/draft.hl7");
     expect(r.stderr).toContain("segment=PID-5");
-    expect(r.stderr).toContain("Thistlewood");
+    expect(r.stderr).toContain(V.tFam);
   });
 
   it("catches a COPY into a scan root, which the rename fixture does not reach", () => {
@@ -1177,7 +1244,7 @@ describe("phi-scan: the --staged route is not blind to a staged rename", () => {
     expect(r.code, `stderr: ${r.stderr}`).toBe(1);
     expect(r.stderr).toContain("test/fixtures/copied.hl7");
     expect(r.stderr).toContain("segment=PID-5");
-    expect(r.stderr).toContain("Thistlewood");
+    expect(r.stderr).toContain(V.tFam);
   });
 
   it("a rename to a destination OUTSIDE the route's scope is still left alone", () => {
@@ -1461,19 +1528,355 @@ describe("phi-scan: the --staged route covers a scan root's own path", () => {
   }
 
   it("a path that merely SHARES a prefix with a root is still out of scope", () => {
-    // The `===` test must not become a `startsWith` by accident: `src-notes` and
-    // `test/fixtures-old` are not scan roots and are not scanned.
+    // The `===` test must not become a `startsWith` by accident: `src-notes` is
+    // not a scan root and is not scanned.
+    //
+    // `test/fixtures-old` USED TO BE THE SECOND HALF OF THIS CASE AND IS NOT ANY
+    // MORE, because `test` is a root and `test/fixtures-old/` is under it. It
+    // moved to its own test below rather than being deleted, so the change of
+    // verdict is recorded instead of vanishing with the assertion.
     const repo = makeScanRepo({ git: true });
     writePayloadOutsideRoots(repo);
     gitCommit(repo, "base");
 
     symlinkSync(TARGET_NAME, join(repo, "src-notes"));
-    mkdirSync(join(repo, "test", "fixtures-old"), { recursive: true });
-    symlinkSync(join("..", "..", TARGET_NAME), join(repo, "test", "fixtures-old", "leak.hl7"));
-    gitIn(repo, ["add", "src-notes", "test/fixtures-old/leak.hl7"]);
+    gitIn(repo, ["add", "src-notes"]);
 
     const r = runScannerArgsIn(repo, ["--staged"]);
     expect(r.code, `stderr: ${r.stderr}`).toBe(0);
+  });
+
+  it("a sibling of the fixture root under `test/` IS in scope now", () => {
+    // The other half of the case above, inverted by the widening. A link staged
+    // at `test/fixtures-old/leak.hl7` was outside the `test/fixtures/` prefix and
+    // outside `src/**.ts`, so `--staged` enumerated nothing and exited 0 over a
+    // mode-120000 entry pointing at a PHI-bearing file.
+    const repo = makeScanRepo({ git: true });
+    writePayloadOutsideRoots(repo);
+    gitCommit(repo, "base");
+
+    mkdirSync(join(repo, "test", "fixtures-old"), { recursive: true });
+    symlinkSync(join("..", "..", TARGET_NAME), join(repo, "test", "fixtures-old", "leak.hl7"));
+    gitIn(repo, ["add", "test/fixtures-old/leak.hl7"]);
+
+    const r = runScannerArgsIn(repo, ["--staged"]);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(2);
+    expect(r.stderr).toContain("test/fixtures-old/leak.hl7 (a symbolic link)");
+    expectNoPhi(r.stderr);
+  });
+
+  it("`test`'s OWN path is in scope, like the other two roots", () => {
+    // An index entry at exactly `test` is the outer root REPLACED. Measured at
+    // exit 0 before the widening: neither the `test/fixtures/` prefix nor
+    // `src/**.ts` matched it, so nothing enumerated it at all.
+    const repo = makeScanRepo({ git: true });
+    writePayloadOutsideRoots(repo);
+    gitCommit(repo, "base");
+
+    rmSync(join(repo, "test"), { recursive: true, force: true });
+    symlinkSync(TARGET_NAME, join(repo, "test"));
+    gitIn(repo, ["rm", "-r", "-q", "--cached", "test"]);
+    gitIn(repo, ["add", "test"]);
+
+    const r = runScannerArgsIn(repo, ["--staged"]);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(2);
+    expect(r.stderr).toContain("test (a symbolic link)");
+    expectNoPhi(r.stderr);
+  });
+
+  it("markdown under `test/` stays out of the walk's scope on this route too", () => {
+    // The new clause copies `walk()`'s markdown exclusion so the two routes
+    // agree about the new root. The fixture root keeps its OWN unconditional
+    // clause, so markdown under `test/fixtures/` is still enumerated here: that
+    // is pre-existing and is not narrowed by this addition.
+    const repo = makeScanRepo({ git: true });
+    gitCommit(repo, "base");
+    const ssn = SYMLINK_SSN;
+    writeFileSync(join(repo, "test", "notes.md"), `a documented violator value ${ssn}\n`);
+    writeFileSync(
+      join(repo, "test", "fixtures", "notes.md"),
+      `same value, under fixtures ${ssn}\n`,
+    );
+    gitIn(repo, ["add", "test/notes.md", "test/fixtures/notes.md"]);
+
+    const r = runScannerArgsIn(repo, ["--staged"]);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(1);
+    expect(r.stderr).toContain("test/fixtures/notes.md");
+    expect(r.stderr).not.toContain("HIT: test/notes.md");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// `test/**` is in scope, and the recogniser reaches an INLINE fixture
+// ---------------------------------------------------------------------------
+
+/**
+ * A name-bearing payload whose ONLY detectable content is segment-aware. No
+ * dashed SSN, no email: the two things `scanCommonShapes` can find on its own.
+ * So a test that asserts a hit on this payload cannot be passing on the floor,
+ * which is the whole distinction the scope half and the recogniser half turn on.
+ */
+const INLINE_PID = `PID|1||${V.tMrn}^^^HOSP^MR||${V.tFam}^${V.tGiv}^L||${V.tDob}|F|||${V.tStreet}^^Boston^MA^02101`;
+
+/** The same identifying values with no segment shape around them. */
+const INLINE_PROSE = `notes: ${V.tFam} ${V.tGiv} ${V.tDob} ${V.tMrn} ${V.tStreet}`;
+
+describe("phi-scan: tracked files under test/ are in scope on BOTH routes", () => {
+  // Before this, `SCAN_ROOTS` was `test/fixtures` + `src` and `--staged` matched
+  // `test/fixtures/**` + `src/**.ts`, so a tracked file directly under `test/`
+  // was enumerated by NEITHER: 115 of them in this repo, 55 carrying an inline
+  // `PID|` literal. Every case below returns exit 0 on that scope.
+
+  const inlineModule = (body: string): string => `export const SAMPLE = ${JSON.stringify(body)};\n`;
+
+  it("catches an inline PID literal in a .ts file under test/, in all mode", () => {
+    const repo = makeScanRepo({ git: true });
+    writeFileSync(join(repo, "test", "inline.test.ts"), inlineModule(INLINE_PID));
+
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(1);
+    // Asserted through the FIELD MODEL, field by field: this is the tier the
+    // scope widening does not buy on its own.
+    expect(r.stderr).toContain("segment=PID-5");
+    expect(r.stderr).toContain("segment=PID-7");
+    expect(r.stderr).toContain("segment=PID-3");
+    expect(r.stderr).toContain("segment=PID-11");
+    expect(r.stderr).toContain(V.tFam);
+    // NON-VACUITY: the floor found nothing here, so nothing above came from it.
+    expect(r.stderr).not.toContain("(ssn)");
+    expect(r.stderr).not.toContain("(email)");
+  });
+
+  it("catches the same inline literal through --staged, the pre-commit route", () => {
+    const repo = makeScanRepo({ git: true });
+    gitCommit(repo, "base");
+    writeFileSync(join(repo, "test", "inline.test.ts"), inlineModule(INLINE_PID));
+    gitIn(repo, ["add", "test/inline.test.ts"]);
+
+    const r = runScannerArgsIn(repo, ["--staged"]);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(1);
+    expect(r.stderr).toContain("segment=PID-5");
+    expect(r.stderr).not.toContain("(ssn)");
+  });
+
+  it("SCOPE ALONE IS NOT ENOUGH: the same values as prose are NOT caught", () => {
+    // The half that has to be said out loud. Widening the walk root buys the
+    // dashed-SSN / email floor over 115 more files and nothing else; the
+    // recogniser assumes the file IS the document, and a name, a DOB, an MRN and
+    // a street address are only findable through the segment model. These bytes
+    // hold every identifying value the case above hits on, in the same file, and
+    // the scan is clean -- which is the residual, stated rather than papered over.
+    const repo = makeScanRepo({ git: true });
+    writeFileSync(join(repo, "test", "prose.test.ts"), inlineModule(INLINE_PROSE));
+
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(0);
+  });
+
+  it("SCOPE ALONE DOES BUY THE FLOOR: a dashed SSN under test/ is caught", () => {
+    // The other side of the pair, so "scope buys the floor" is measured too.
+    const repo = makeScanRepo({ git: true });
+    writeFileSync(join(repo, "test", "floor.test.ts"), inlineModule(`note ${SYMLINK_SSN}`));
+
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(1);
+    expect(r.stderr).toContain("dashed SSN pattern");
+  });
+
+  it("reads a whole message written as ONE literal with `\\r` escapes", () => {
+    // An inline fixture is routinely one string. Without treating the source
+    // escape as a segment separator the run is one line and every field offset
+    // after the first segment is nonsense.
+    const repo = makeScanRepo({ git: true });
+    writeFileSync(
+      join(repo, "test", "oneline.test.ts"),
+      `export const M = "${MSH.replace(/\\/g, "\\\\")}\\r${INLINE_PID}";\n`,
+    );
+
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(1);
+    expect(r.stderr).toContain("segment=PID-5");
+  });
+
+  it("does NOT read a template interpolation as a name, and still reads its neighbours", () => {
+    // `${x}` is a variable: its value is not in the file, and reporting the
+    // IDENTIFIER as a patient name invents a finding out of program text
+    // (`content`, `marker`, `familyName` and `pidSurname` were each reported
+    // that way). Erasing keeps the FIELD POSITIONS, so the literal DOB in the
+    // same segment is still read at PID-7.
+    const repo = makeScanRepo({ git: true });
+    writeFileSync(
+      join(repo, "test", "interp.test.ts"),
+      "const familyName = load();\n" +
+        `export const M = \`PID|1||MRN1^^^HOSP^MR||\${familyName}^\${givenName}||${V.tDob}|F\`;\n`,
+    );
+
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(1);
+    expect(r.stderr).toContain("segment=PID-7");
+    expect(r.stderr).not.toContain("familyName");
+    expect(r.stderr).not.toContain("givenName");
+  });
+
+  it("LIMIT: an interpolated value is missed even when its literal is in the SAME file", () => {
+    // Characterization of the residual, not aspiration, and it is here because
+    // the first draft of the comment on `extractEmbeddedSegments` claimed a
+    // SMALLER bound: "its value is not in the file". That is false. The pass
+    // reads literals IN FIELD POSITION and evaluates nothing, so a surname
+    // assigned to a constant three lines up is silent while the MRN and the DOB
+    // written inline in the same segment are both caught.
+    const repo = makeScanRepo({ git: true });
+    writeFileSync(
+      join(repo, "test", "hoisted.test.ts"),
+      `const fam = ${JSON.stringify(V.tFam)};\n` +
+        `const giv = ${JSON.stringify(V.tGiv)};\n` +
+        `export const M = \`PID|1||${V.tMrn}^^^HOSP^MR||\${fam}^\${giv}||${V.tDob}|F\`;\n`,
+    );
+
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(1);
+    expect(r.stderr).toContain("segment=PID-3");
+    expect(r.stderr).toContain("segment=PID-7");
+    // The miss. If this ever starts hitting, the limits list is out of date.
+    expect(r.stderr).not.toContain("segment=PID-5");
+    expect(r.stderr).not.toContain(V.tFam);
+  });
+
+  it("LIMIT: a run is cut at the first source quote, so HL7 explicit-null truncates it", () => {
+    // The fourth limit, and the one that is a MISS rather than a suppressed
+    // false positive. The cut is what stops `" +` and the rest of a source line
+    // being read as fields; HL7 v2 §2.5.3 makes `""` the EXPLICIT-NULL field
+    // value, so an inline fixture exercising null handling loses everything
+    // after it. Both halves are asserted, because the pair is the finding: the
+    // SAME bytes at a `.hl7` path are caught in full.
+    const nullFieldPid = `PID|1|""|MRN001||${V.tFam}^${V.tGiv}||${V.tDob}|F`;
+
+    const inlineRepo = makeScanRepo({ git: true });
+    writeFileSync(
+      join(inlineRepo, "test", "nullcase.test.ts"),
+      `export const M = ${JSON.stringify(nullFieldPid)};\n`,
+    );
+    const inline = runScannerIn(inlineRepo, null);
+    expect(inline.code, `stderr: ${inline.stderr}`).toBe(0);
+
+    const fixtureRepo = makeScanRepo({ git: true });
+    writeFileSync(join(fixtureRepo, "test", "fixtures", "nullcase.hl7"), nullFieldPid);
+    const fixture = runScannerIn(fixtureRepo, null);
+    expect(fixture.code, `stderr: ${fixture.stderr}`).toBe(1);
+    expect(fixture.stderr).toContain("segment=PID-5");
+    expect(fixture.stderr).toContain("segment=PID-7");
+  });
+
+  it("catches a `src/` JSDoc example carrying a real-looking name, which it did not before", () => {
+    // A CHANGE OF INTENT, pinned so it cannot be read as accidental. The
+    // superseded comment on `SCAN_ROOTS` said a JSDoc `@example`'s synthetic
+    // names "must not trip the segment-aware detectors"; the embedded pass runs
+    // on every non-fixture target, so they now do. This repo hard-requires an
+    // `@example` on every public export, so the consequence is real: a new
+    // example uses allow-listed tokens or adds its own, exactly like a fixture.
+    const repo = makeScanRepo({ git: true });
+    writeFileSync(
+      join(repo, "src", "documented.ts"),
+      `/**\n * @example\n * PID|1||MRN001||${V.provFam}^${V.provGiv}||${V.dob}|F\n */\n` +
+        `export const documented = true;\n`,
+    );
+
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(1);
+    expect(r.stderr).toContain("segment=PID-5");
+    expect(r.stderr).toContain(V.provFam);
+  });
+
+  it("keeps a `src/` JSDoc example on the embedded pass, not the whole-file HL7 parse", () => {
+    // `looksLikeHl7` is unchanged for `src/`: a `.ts` file is never parsed AS a
+    // message, so its code lines do not become fields. The embedded pass still
+    // reads a real inline literal in it, which is the point -- one more tier, not
+    // a different file classification.
+    const repo = makeScanRepo({ git: true });
+    writeFileSync(
+      join(repo, "src", "example.ts"),
+      `/** @example ${MSH} */\nexport const version = "0.0.0";\n`,
+    );
+
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(0);
+  });
+});
+
+describe("phi-scan: a blob staged at EXACTLY the fixture root gets the segment-aware scan", () => {
+  // `--staged` IS the pre-commit hook. An index entry at exactly `test/fixtures`
+  // is the root replaced by a regular blob; the scope and the mode check already
+  // passed it through, and it was the DETECTOR gate that dropped it, because
+  // `looksLikeHl7` wanted a `test/fixtures/` prefix or an `.hl7` suffix and the
+  // root's own path has neither.
+
+  function stageBlobAtFixtureRoot(repo: string, body: string): void {
+    gitCommit(repo, "base");
+    rmSync(join(repo, "test", "fixtures"), { recursive: true, force: true });
+    gitIn(repo, ["rm", "-r", "-q", "--cached", "test/fixtures"]);
+    writeFileSync(join(repo, "test", "fixtures"), body);
+    gitIn(repo, ["add", "test/fixtures"]);
+  }
+
+  it("catches a name, DOB, MRN and address in a blob staged at `test/fixtures`", () => {
+    const repo = makeScanRepo({ git: true });
+    stageBlobAtFixtureRoot(repo, msg(MSH, INLINE_PID));
+
+    const r = runScannerArgsIn(repo, ["--staged"]);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(1);
+    expect(r.stderr).toContain("HIT: test/fixtures");
+    expect(r.stderr).toContain("segment=PID-5");
+    expect(r.stderr).toContain("segment=PID-7");
+    expect(r.stderr).toContain("segment=PID-3");
+    expect(r.stderr).toContain("segment=PID-11");
+    expect(r.stderr).toContain(V.tFam);
+    // NON-VACUITY: no floor hit in this payload, so the segment tier is what ran.
+    expect(r.stderr).not.toContain("(ssn)");
+  });
+
+  it("PRE-EXISTING: the dashed-SSN floor already fired at that path, and still does", () => {
+    // The control that fixes what the defect WAS. It was never a silent pass over
+    // any PHI shape: the floor held and only the segment-aware tier was missing,
+    // so the fix is one clause in `looksLikeHl7` and not a new rule.
+    const repo = makeScanRepo({ git: true });
+    stageBlobAtFixtureRoot(repo, msg(MSH, `NTE|1||SSN ${SYMLINK_SSN}`));
+
+    const r = runScannerArgsIn(repo, ["--staged"]);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(1);
+    expect(r.stderr).toContain("dashed SSN pattern");
+  });
+
+  it("the same bytes at `test/fixtures/<name>.hl7` are the reference, and agree", () => {
+    // The two paths must give the SAME verdict; the defect was that they did not.
+    const repo = makeScanRepo({ git: true });
+    gitCommit(repo, "base");
+    writeFileSync(join(repo, "test", "fixtures", "x.hl7"), msg(MSH, INLINE_PID));
+    gitIn(repo, ["add", "test/fixtures/x.hl7"]);
+
+    const r = runScannerArgsIn(repo, ["--staged"]);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(1);
+    expect(r.stderr).toContain("segment=PID-5");
+    expect(r.stderr).toContain("segment=PID-7");
+    expect(r.stderr).toContain("segment=PID-3");
+    expect(r.stderr).toContain("segment=PID-11");
+  });
+
+  it("`src`'s own path is NOT given the HL7 parse, and the embedded pass covers it", () => {
+    // Only the fixture root's own path joins the fixture-like set: `src` is not
+    // an HL7 corpus, so a blob replacing it is judged the way everything else
+    // under `src` is -- the floor plus the embedded pass, which reads the inline
+    // literal anyway.
+    const repo = makeScanRepo({ git: true });
+    gitCommit(repo, "base");
+    rmSync(join(repo, "src"), { recursive: true, force: true });
+    gitIn(repo, ["rm", "-r", "-q", "--cached", "src"]);
+    writeFileSync(join(repo, "src"), msg(MSH, INLINE_PID));
+    gitIn(repo, ["add", "src"]);
+
+    const r = runScannerArgsIn(repo, ["--staged"]);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(1);
+    expect(r.stderr).toContain("HIT: src");
+    expect(r.stderr).toContain("segment=PID-5");
   });
 });
 
@@ -1513,8 +1916,67 @@ describe("phi-scan: the argv the two-field stride is coupled to", () => {
     for (const flag of ["-M", "-C", "--find-copies-harder"]) {
       expect(enumerated([flag]), `${flag} must not be added to the scanner's argv`).toBe("");
     }
-    // `-B` is inert here, which is the half a sibling shipped inverted.
+    // `-B` really is inert FOR A RENAME, which is all this case ever was. The
+    // superseded version of this test stopped here and read as a general
+    // clearance for the flag; see the case below for what it does not cover.
     expect(enumerated(["-B"])).toContain("test/fixtures/leak.hl7");
+  });
+
+  it("`-B` HIDES A COMPLETE REWRITE from `--diff-filter=AMTU`, and `B` in the filter is why", () => {
+    // The case that did not exist while this file asserted "`-B` is inert here",
+    // which is how a false PERMISSIVE claim survived: a pin that cannot fail
+    // proves nothing, and the rename above is the one shape `-B` leaves alone.
+    //
+    // The mechanism is sharper than "a `B` record the filter drops". The record's
+    // printed status LETTER IS STILL `M`: one path, an `M` with a break score that
+    // `RAW_RECORD` parses happily. The score itself is NOT asserted below and no
+    // digits are quoted here, because it moves with how much of the old content
+    // survives. But `--diff-filter` classifies a
+    // broken pair as `B` whatever letter it prints. So `AMTU` deletes it and a
+    // reader checking the raw output concludes the opposite.
+    const repo = makeScanRepo({ git: true });
+    const target = join("test", "fixtures", "rewrite.hl7");
+    const padded = (lead: string): string =>
+      [lead, ...Array.from({ length: 60 }, (_, i) => `NTE|${String(i + 1)}||${lead} padding`)].join(
+        "\r",
+      );
+    writeFileSync(join(repo, target), padded("original"));
+    gitIn(repo, ["add", target]);
+    gitCommit(repo, "base");
+    // A wholly different body, carrying a dashed SSN the shape floor must catch.
+    writeFileSync(join(repo, target), `${padded("replacement")}\rNTE|99||SSN ${SYMLINK_SSN}`);
+    gitIn(repo, ["add", target]);
+
+    const raw = (extra: string[]): string =>
+      gitOut(repo, ["diff", "--cached", "--raw", "--no-renames", ...extra]).trim();
+    expect(raw(["-B"]), "git must still break the pair for this premise to hold").toMatch(
+      /\bM\d{3}\b/,
+    );
+    expect(raw(["-B", "--diff-filter=AMTU"]), "the superseded filter loses it").toBe("");
+    expect(raw(["-B", "--diff-filter=AMTUB"])).toContain(target.split(sep).join("/"));
+
+    // End to end, through the scanner itself: the shipped argv catches it, and a
+    // copy of the scanner with `-B` injected catches it too ONLY because `B` is
+    // in the filter. On the superseded filter the injected copy exited 0.
+    expect(runScannerArgsIn(repo, ["--staged"]).code).toBe(1);
+
+    const source = readFileSync(SCANNER_PATH, "utf8");
+    expect(source).toContain(`"--no-renames", "--diff-filter=AMTUB"`);
+    const injected = join(dir, "phi-scan-with-B.ts");
+    writeFileSync(
+      injected,
+      source.replace(
+        `"--no-renames", "--diff-filter=AMTUB"`,
+        `"--no-renames", "-B", "--diff-filter=AMTUB"`,
+      ),
+    );
+    const r = spawnSync(TSX_BIN, [injected, "--staged"], {
+      cwd: repo,
+      encoding: "utf8",
+      shell: false,
+    });
+    expect(r.status, `stderr: ${r.stderr ?? ""}`).toBe(1);
+    expect(r.stderr ?? "").toContain("dashed SSN pattern");
   });
 });
 
@@ -1539,31 +2001,48 @@ describe("phi-scan: the observation rule is PER-ROOT, not global", () => {
     const r = runScannerIn(repo, null);
     expect(r.code, `stderr: ${r.stderr}`).toBe(2);
     expect(r.stderr).toContain(STARVED);
-    expect(r.stderr).toContain("1 of its 2 scan roots (test/fixtures)");
+    expect(r.stderr).toContain("1 of its 3 scan roots (test/fixtures)");
     expect(r.stdout).not.toContain("OK: no hits");
   });
 
-  it("refuses (exit 2) when `test/fixtures` is a DANGLING symlink, and names that root", () => {
-    // THE SHARPEST CASE. `existsSync` FOLLOWS the link and answers false, so
+  it("refuses (exit 2) when `src` is a DANGLING symlink, and names that root", () => {
+    // THE SHARPEST CASE, and it is written on `src` because `src` is the root
+    // with no walked parent. `existsSync` FOLLOWS the link and answers false, so
     // `walk()` returns before `readdirSync` and the not-a-regular-file rule never
     // fires: that rule only ever classifies entries found INSIDE a root, and this
     // IS the root. Absent, dangling and empty are one state to the walk, and
     // nothing else in the scanner can tell any of them from a clean tree.
+    const repo = makeScanRepo({ git: true });
+    rmSync(join(repo, "src"), { recursive: true, force: true });
+    symlinkSync(join(repo, "no-such-directory-anywhere"), join(repo, "src"));
+
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(2);
+    expect(r.stderr).toContain("1 of its 3 scan roots (src)");
+    // Not the non-regular-entry refusal wearing this rule's name.
+    expect(r.stderr).not.toContain("is not a regular file");
+  });
+
+  it("a DANGLING `test/fixtures` refuses on the OTHER rule now, and still exits 2", () => {
+    // Recorded because the verdict is reached by a different rule than it was.
+    // `test` walks the fixture root as an ENTRY, so the dangling link is
+    // classified by `Dirent.isSymbolicLink()` and refused by name before the
+    // per-root rule is consulted at all. Same exit code, a better message, and
+    // the per-root rule is still the only thing covering the case above.
     const repo = makeScanRepo({ git: true });
     rmSync(join(repo, "test", "fixtures"), { recursive: true, force: true });
     symlinkSync(join(repo, "no-such-directory-anywhere"), join(repo, "test", "fixtures"));
 
     const r = runScannerIn(repo, null);
     expect(r.code, `stderr: ${r.stderr}`).toBe(2);
-    expect(r.stderr).toContain("1 of its 2 scan roots (test/fixtures)");
-    // Not the non-regular-entry refusal wearing this rule's name.
-    expect(r.stderr).not.toContain("is not a regular file");
+    expect(r.stderr).toContain("test/fixtures (a symbolic link)");
+    expect(r.stdout).not.toContain("OK: no hits");
   });
 
   it("refuses (exit 2) when `test/fixtures` exists but is EMPTY", () => {
     const r = runScannerIn(makeStarvedScanRepo("test/fixtures"), null);
     expect(r.code, `stderr: ${r.stderr}`).toBe(2);
-    expect(r.stderr).toContain("1 of its 2 scan roots (test/fixtures)");
+    expect(r.stderr).toContain("1 of its 3 scan roots (test/fixtures)");
   });
 
   it("refuses (exit 2) when `src` is starved, so the rule is not one-sided", () => {
@@ -1572,17 +2051,54 @@ describe("phi-scan: the observation rule is PER-ROOT, not global", () => {
     // is the root a sibling's version of this defect left unobserved.
     const r = runScannerIn(makeStarvedScanRepo("src"), null);
     expect(r.code, `stderr: ${r.stderr}`).toBe(2);
-    expect(r.stderr).toContain("1 of its 2 scan roots (src)");
+    expect(r.stderr).toContain("1 of its 3 scan roots (src)");
   });
 
-  it("names EVERY starved root when both are starved", () => {
+  it("refuses (exit 2) when `test` is starved, naming it AND the root inside it", () => {
+    // `test` nests `test/fixtures`, so emptying the outer root empties the inner
+    // one too and BOTH are named. That is the rule reading the nesting
+    // correctly, not a duplicate: each root is asked about separately, and here
+    // each of them really did yield nothing.
+    const r = runScannerIn(makeStarvedScanRepo("test"), null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(2);
+    expect(r.stderr).toContain("2 of its 3 scan roots (test/fixtures, test)");
+  });
+
+  it("names EVERY starved root when all are starved", () => {
     // The all-starved case is this one rule, not a second rule beside it.
-    const repo = makeStarvedScanRepo("test/fixtures");
+    const repo = makeStarvedScanRepo("test");
     rmSync(join(repo, "src"), { recursive: true, force: true });
 
     const r = runScannerIn(repo, null);
     expect(r.code, `stderr: ${r.stderr}`).toBe(2);
-    expect(r.stderr).toContain("2 of its 2 scan roots (test/fixtures, src)");
+    expect(r.stderr).toContain("3 of its 3 scan roots (test/fixtures, test, src)");
+  });
+
+  it("a fixture is credited to BOTH roots it sits under, so neither starves", () => {
+    // The nesting guard. `rootsOf` returns EVERY match; a first-match lookup
+    // would credit one root and leave the other permanently starved, and which
+    // one depended on the order of `SCAN_ROOTS` with nothing saying so. Here the
+    // ONLY file under `test/` is the fixture, so `test` can only be satisfied by
+    // crediting it twice over.
+    const repo = makeScanRepo({ git: true });
+    rmSync(join(repo, "test", "smoke.test.ts"), { force: true });
+
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(0);
+    expect(r.stdout).toMatch(/OK: no hits/);
+  });
+
+  it("a fixture's hits are reported ONCE, though two roots walk it", () => {
+    // `test` re-walks `test/fixtures`, so without de-duplication every fixture
+    // arrives twice and each hit is printed twice: a corpus that reads as double
+    // its real size, and a hit count nothing else in the output contradicts.
+    const repo = makeScanRepo({ git: true });
+    writeFileSync(join(repo, "test", "fixtures", "violator.hl7"), SYMLINK_PHI);
+
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(1);
+    expect(r.stderr.split("segment=PID-5").length - 1).toBe(2); // family + given, once each
+    expect(r.stderr).toContain("across 1 file(s)");
   });
 
   it("prints a real hit from a YIELDING root before refusing, and still exits 2", () => {
@@ -1597,8 +2113,8 @@ describe("phi-scan: the observation rule is PER-ROOT, not global", () => {
     const r = runScannerIn(repo, null);
     expect(r.code, `stderr: ${r.stderr}`).toBe(2);
     expect(r.stderr).toContain("segment=PID-5");
-    expect(r.stderr).toContain("Thistlewood");
-    expect(r.stderr).toContain("1 of its 2 scan roots (src)");
+    expect(r.stderr).toContain(V.tFam);
+    expect(r.stderr).toContain("1 of its 3 scan roots (src)");
   });
 
   it("NOT WIDENED: `--staged` makes no per-root promise and still exits 0", () => {
@@ -1658,10 +2174,39 @@ describe("phi-scan: what the per-root rule does NOT cover", () => {
     expect(r.stdout).toMatch(/OK: no hits/);
   });
 
-  it("LIMIT: a root that is ITSELF a symlink is followed, and satisfies the rule", () => {
+  it("LIMIT: a root whose PARENT is not itself a root is followed when it is a symlink", () => {
     // `normalizePath` is purely lexical (`resolve`/`relative`, never `realpath`),
     // so every entry behind the link is attributed to the root's prefix. "A root
     // yielded a file" is not "that root's corpus was observed".
+    //
+    // THE LIMIT IS NARROWER THAN IT WAS, AND THE BOUNDARY IS THE PARENT. `src`
+    // is used here because its parent is the repo root, which nothing walks; the
+    // case that used to be written with `test/fixtures` now REFUSES, and has its
+    // own test below. So the residual is exactly: a root nobody else enumerates
+    // is followed when it is a link.
+    const repo = makeScanRepo({ git: true });
+    const elsewhere = join(repo, "elsewhere");
+    mkdirSync(elsewhere);
+    writeFileSync(join(elsewhere, "benign.ts"), "export const benign = true;\n");
+    rmSync(join(repo, "src"), { recursive: true, force: true });
+    symlinkSync(elsewhere, join(repo, "src"));
+
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(0);
+    expect(r.stdout).toMatch(/OK: no hits/);
+  });
+
+  it("NO LONGER A LIMIT: `test/fixtures` as a symlink refuses, because `test` walks it", () => {
+    // A side effect of adding `test` as a root, and it is recorded as a
+    // behaviour change rather than left to be discovered: the fixture root is
+    // now an ENTRY INSIDE another root, so the walk of `test` classifies it with
+    // `Dirent.isSymbolicLink()` and the not-a-regular-entry rule refuses. Before
+    // the widening this exact repo returned `OK: no hits` at exit 0 with the
+    // whole fixture corpus off disk.
+    //
+    // It does NOT generalise to every root, which is why the LIMIT above is
+    // still a limit: what closed this case is `test/fixtures` having a walked
+    // parent, and `src` and `test` do not have one.
     const repo = makeScanRepo({ git: true });
     const elsewhere = join(repo, "elsewhere");
     mkdirSync(elsewhere);
@@ -1670,8 +2215,10 @@ describe("phi-scan: what the per-root rule does NOT cover", () => {
     symlinkSync(elsewhere, join(repo, "test", "fixtures"));
 
     const r = runScannerIn(repo, null);
-    expect(r.code, `stderr: ${r.stderr}`).toBe(0);
-    expect(r.stdout).toMatch(/OK: no hits/);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(2);
+    expect(r.stderr).toContain("test/fixtures (a symbolic link)");
+    // The refusal names the entry, never what is on the other side of it.
+    expect(r.stderr).not.toContain("elsewhere");
   });
 
   it("LIMIT: it is a floor of ONE, whatever the root used to hold", () => {

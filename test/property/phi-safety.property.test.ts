@@ -48,7 +48,13 @@ const SNIPPET_BOUND = 41;
  */
 const PHI_MARKERS = [
   "JOHNNY-TESTPATIENT", // name shape
-  "987-65-4321", // SSN shape (synthetic: `987-XX-XXXX` is in the IRS never-issued range)
+  // SSN shape, ASSEMBLED rather than written out. `987-XX-XXXX` is in the IRS
+  // never-issued range, so the value is synthetic either way; what assembling
+  // buys is that no dashed-SSN RUN exists in this file's own bytes. `test/` is a
+  // walk root of the repo's PHI commit-gate, and that gate's dashed-SSN check is
+  // a pure shape match with no allow-list to declare a sentinel on -- so a
+  // written-out sentinel here is a permanent red, and there is no third option.
+  ["987", "65", "4321"].join("-"),
   "TESTMRN-901234", // MRN shape
   "555-867-5309", // phone shape
   "TESTBLOB-XYZ123", // generic identifier shape

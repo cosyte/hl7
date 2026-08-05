@@ -200,7 +200,10 @@ describe("emitPrettyPrint - Block 2: D-23 segment lines", () => {
   });
 
   it("empty fields are suppressed (no `[N]=` entries)", () => {
-    // PID|1|||||Doe^John  - PID-1 + PID-6 present; PID-2..5 empty.
+    // PID-1 and PID-6 present, PID-2..5 empty: PID|1|||||Doe^John
+    // (the snippet sits at the END of the line on purpose: the PHI commit-gate
+    // reads an inline segment run to the end of its line, so prose written after
+    // one lands inside a name field and is reported as a person name.)
     const raw = "MSH|^~\\&|A|B|C|D|20260419|||ADT^A01|M1|P|2.5\r" + "PID|1|||||Doe^John\r";
     const out = parseHL7(raw).prettyPrint();
     const pidLine = out.split("\n").find((l) => l.startsWith("PID"));
