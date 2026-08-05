@@ -2,9 +2,11 @@
 /**
  * `@cosyte/hl7` PHI scanner: the CI / pre-commit half of the PHI commit-gate.
  *
- * Pure Node. Zero runtime deps. Walks the synthetic HL7 v2 test fixtures (and a
- * conservative text pass over `src/`) and REFUSES anything that looks like real
- * PHI, so a developer cannot commit a real-looking HL7 v2 fixture by accident.
+ * Pure Node. Zero runtime deps. Walks the synthetic HL7 v2 test fixtures, the
+ * rest of `test/`, and `src/`, and REFUSES anything that looks like real PHI, so
+ * a developer cannot commit a real-looking HL7 v2 fixture by accident. HOW each
+ * file is read differs by scope and WHAT is looked for does not: see the three
+ * tiers below.
  *
  * HL7 v2 carries PHI by design (patient names, dates of birth, SSNs, MRNs /
  * account numbers, addresses, phones / emails, and free-text observations).
@@ -26,6 +28,20 @@
  * on coded values like `CBC^Complete Blood Count^LN` or `Boston^MA`, giving
  * false confidence. See `phi-scan-overrides.md` for the category → field map and
  * the documented limitations.
+ *
+ * THERE ARE THREE TIERS, AND THE SCOPE A FILE IS IN DECIDES ONLY WHETHER IT IS
+ * READ, NEVER HOW WELL. Getting that backwards is the trap this scanner has now
+ * been bitten by twice, so it is written at the top:
+ *   1. the whole-file HL7 parse, for a file that IS a message (`test/fixtures`
+ *      and `.hl7`, plus the fixture root's own path);
+ *   2. the EMBEDDED-LITERAL pass (`scanEmbeddedHl7`), which pulls `PID|…` runs
+ *      out of hand-written source and gives them the same field map. An inline
+ *      fixture is a TypeScript string literal, so tier 1 never sees it;
+ *   3. the conservative shape floor (`scanCommonShapes`): a dashed SSN and a
+ *      non-test email domain, over every file, always.
+ * Tier 3 alone is what a scope widening buys. Bringing a directory into scope
+ * without bringing the recogniser with it means the gate reads 115 more files
+ * for two shapes and calls it coverage.
  *
  * SECURITY: every subprocess is `git`, invoked via `execFileSync` with array
  * args only. Never shell-form spawn.
@@ -82,9 +98,9 @@
  * "In scope" is each route's own existing boundary, not a new one: the walk
  * still excludes a gitignored entry (the same rule that already excludes a
  * gitignored file, so links do not get a second, stricter boundary of their
- * own), and `--staged` looks at `test/fixtures/**` and `src/**.ts` PLUS each
- * root's own path (`test/fixtures` and `src`), which is the one addition to the
- * path scope and is explained at `buildTargetsForStaged`.
+ * own), and `--staged` looks at `test/fixtures/**`, `test/**` (except markdown)
+ * and `src/**.ts` PLUS each root's own path (`test/fixtures`, `test` and `src`),
+ * both explained at `buildTargetsForStaged`.
  *
  * THREE PLACES `--staged` NOW ADMITS **MORE** THAN IT DID, called out rather
  * than folded into "narrowing", because all three change what it enumerates:
@@ -115,15 +131,21 @@
  *     never opened"; it is a whole SCAN ROOT that can no longer go unobserved.
  *     Closing the sub-tree case needs a floor derived from what git tracks under
  *     each root, which is a second moving part and a separate decision.
- *   - A ROOT THAT IS ITSELF A SYMLINK IS FOLLOWED, and the rule is then satisfied
- *     by whatever is on the other side of it. `rm -rf test/fixtures && ln -s
- *     <dir holding one file> test/fixtures` prints `[phi-scan] OK: no hits` and
- *     exits 0 with the whole 106-file fixture corpus absent from disk, because
- *     `normalizePath` is purely lexical (`resolve`/`relative`, never `realpath`)
- *     so every entry behind the link is attributed to the root's prefix. "A root
- *     yielded a file" is not "that root's corpus was observed". Adversarial
- *     rather than accidental, and the residual note under NON-REGULAR ENTRIES
- *     already says such a root is followed.
+ *   - A ROOT WITH NO WALKED PARENT IS FOLLOWED WHEN IT IS ITSELF A SYMLINK, and
+ *     the rule is then satisfied by whatever is on the other side of it.
+ *     `rm -rf src && ln -s <dir holding one file> src` prints
+ *     `[phi-scan] OK: no hits` and exits 0 with all 95 source files absent from
+ *     disk, because `normalizePath` is purely lexical (`resolve`/`relative`,
+ *     never `realpath`) so every entry behind the link is attributed to the
+ *     root's prefix. "A root yielded a file" is not "that root's corpus was
+ *     observed". Adversarial rather than accidental.
+ *     THE BOUNDARY IS THE PARENT, and it moved when `test` became a root:
+ *     `test/fixtures` is now an ENTRY INSIDE a walked root, so a link there is
+ *     classified by `Dirent.isSymbolicLink()` and REFUSED by name at exit 2,
+ *     dangling or not. `src` and `test` have no walked parent (the repo root is
+ *     not a root), so both are still followed. Do not read the narrower residual
+ *     as closed, and do not port the old sentence: it named the one root where
+ *     it is no longer true.
  *   - IT IS A FLOOR OF ONE. A `test/fixtures` reduced to a single clean fixture
  *     prints `[phi-scan] OK: no hits` and exits 0. The rule asks whether a root
  *     was observed at all, never whether it was observed in full. This reporter
@@ -163,41 +185,64 @@ const REPO_ROOT = process.cwd();
 const ALLOW_LIST_PATH = join(REPO_ROOT, "scripts", "phi-allow-list.txt");
 const OVERRIDE_LOG_PATH = join(REPO_ROOT, "phi-scan-overrides.md");
 
-// Roots walked in "all" mode, repo-relative and forward-slashed. test/fixtures
-// gets the full HL7-aware scan; src gets a conservative text pass (dashed-SSN +
-// non-test email only) because it is hand-written code, not data: JSDoc
-// `@example` HL7 snippets carry synthetic names/MRNs that must not trip the
-// segment-aware detectors.
+// Roots walked in "all" mode, repo-relative and forward-slashed. `test/fixtures`
+// gets the whole-file HL7 parse; `test` and `src` are hand-written code, not
+// data, so a file under them is never parsed AS a message and gets the shape
+// floor plus the embedded-literal pass instead.
+//
+// THAT IS A CHANGE OF INTENT FOR `src`, NOT JUST OF SCOPE, AND IT IS RECORDED
+// RATHER THAN LEFT IN THE COMMENT IT REPLACES. The superseded sentence said a
+// JSDoc `@example` snippet's synthetic names and MRNs "must not trip the
+// segment-aware detectors", and the embedded pass runs on every non-fixture
+// target, so they now do: measured, a `src/` `@example` carrying a PID line with
+// a non-allow-listed name exits 0 on the previous commit and 1 here. That is the
+// gate working, not a regression, and this repo hard-requires an `@example` on
+// every public export, so the consequence is real: a new example has to use
+// allow-listed tokens or add its own, exactly like a fixture. The committed
+// corpus is green as it stands.
 //
 // ONE DECLARATION, TWO READERS: `buildTargetsForAll` walks it, and the per-root
 // observation rule at the end of `main` decides coverage against it through
-// `rootOf`. They were two absolute-path constants and a separate literal; keeping
+// `rootsOf`. They were two absolute-path constants and a separate literal; keeping
 // them one list is what stops a root being walked but never required to yield,
 // which is the shape of the defect the per-root rule closes.
 //
 // TWO READERS, NOT THREE, AND ADDING A ROOT HERE DOES NOT REACH EITHER OF THE
 // OTHER TWO. `buildTargetsForStaged` has its own scope predicate and `looksLikeHl7`
 // has its own `test/fixtures/` literal, both deliberately (see their own notes).
-// So a root added to this list is walked and is required to yield, and every
-// non-`.hl7` file under it still gets the conservative shape pass ONLY, with no
-// name, DOB or MRN detection: partial coverage arrived at by following this list.
-// Adding a root means visiting all three, not just this one.
-const SCAN_ROOTS: readonly string[] = ["test/fixtures", "src"];
+// So a root added to this list is walked and is required to yield. Adding a root
+// means visiting all three, not just this one.
+//
+// `test` IS A ROOT AND IT NESTS `test/fixtures`, DELIBERATELY, AND BOTH ARE
+// LISTED. The walk used to start at `test/fixtures` and `src`, so a TRACKED file
+// directly under `test/` was enumerated by NEITHER route: measured on `d8d3be3`,
+// **115 tracked files** (none of them markdown), of which **55 carry an inline
+// `PID|` literal**. A PHI-bearing `test/<name>.ts` scanned `OK: no hits` at exit
+// 0 in all mode and at exit 0 on `--staged`, over the same bytes that give six
+// segment-aware hits when they sit at a `.hl7` path.
+//
+// The nesting is why `rootsOf` below returns EVERY match rather than the first.
+// Collapsing the two into a single `test` root would have been simpler and is
+// WRONG: it would let one `test/*.test.ts` vouch for an absent fixture corpus,
+// which is exactly the per-root defect this scanner already closed. Both roots
+// are declared, so `test/fixtures` still has to yield a file of its own.
+const SCAN_ROOTS: readonly string[] = ["test/fixtures", "test", "src"];
 
 /**
- * WHICH scan root a repo-relative path sits under, or `undefined` for none. The
- * single definition of the root-prefix rule for COVERAGE: the per-root
+ * EVERY scan root a repo-relative path sits under, innermost matches included.
+ * The single definition of the root-prefix rule for COVERAGE: the per-root
  * observation rule attributes every file it read through this, so no second copy
  * of `rel === root || rel.startsWith(root + "/")` decides who vouched for what.
  *
- * IT RETURNS THE FIRST MATCH, which is exactly right while the roots are
- * DISJOINT (they are: `test/fixtures` and `src`) and wrong the moment one nests
- * inside another, because scope wants ANY match and coverage wants EVERY match.
- * With the outer root listed first the inner one would never be attributed and
- * all-mode would refuse forever; listed inner-first it happens to work, which is
- * worse, because the ordering becomes load-bearing and nothing says so. Nesting a
- * root means revisiting this function, not just the list. Not hypothetical: the
- * fixture root is already two segments deep under a `test/` that is not a root.
+ * IT RETURNS EVERY MATCH, NOT THE FIRST, AND THAT IS LOAD-BEARING NOW THAT THE
+ * ROOTS NEST. Scope wants ANY match and coverage wants EVERY match; while the
+ * roots were disjoint the two agreed and a first-match lookup was correct. They
+ * no longer are: `test/fixtures` sits inside `test`. Under a first-match lookup
+ * with the outer root listed first, the inner one is never attributed and
+ * all-mode refuses forever; listed inner-first it happens to work, which is
+ * worse, because the list's ORDER becomes load-bearing and nothing says so.
+ * Returning every match makes the order irrelevant again, which is the only form
+ * of this that a later edit to `SCAN_ROOTS` cannot silently break.
  *
  * THIS IS NOT `--staged`'s SCOPE PREDICATE AND MUST NOT BE UNIFIED WITH IT. That
  * one (see `buildTargetsForStaged`) admits `src/**` only at the `.ts` suffix and
@@ -206,8 +251,8 @@ const SCAN_ROOTS: readonly string[] = ["test/fixtures", "src"];
  * and `--staged` makes no per-root promise at all. Folding the two together would
  * silently change what the pre-commit hook enumerates.
  */
-function rootOf(rel: string): string | undefined {
-  return SCAN_ROOTS.find((root) => rel === root || rel.startsWith(`${root}/`));
+function rootsOf(rel: string): string[] {
+  return SCAN_ROOTS.filter((root) => rel === root || rel.startsWith(`${root}/`));
 }
 
 // Person-name fields keyed by segment id. XPN fields carry family in component 1
@@ -595,12 +640,23 @@ interface Target {
    * REPO ROOT and removes it when the build ends, and `test/docs-content.test.ts`
    * runs a build from inside the suite while this scanner sweeps in all mode
    * from another worker; the two really do race. But the walk is rooted at
-   * `test/fixtures` and `src`, so a repo-root transient is never enumerated
-   * here, and `@cosyte/ccda` (whose walk starts at the repo root) is the sibling
+   * `test/fixtures`, `test` and `src`, so a repo-root transient is never
+   * enumerated here, and `@cosyte/ccda` (whose walk starts at the repo root) is the sibling
    * that took the hit: an entire publish-time sweep refused with exit 2. Nothing
    * gitignores that filename in this repo either, so WIDENING A WALK ROOT, or
    * any tool that drops a transient under one, reintroduces it verbatim. This is
    * hardening ahead of that, not the repair of a live defect.
+   *
+   * A WALK ROOT WAS WIDENED SINCE THAT WAS WRITTEN (`test`), so it is worth
+   * being exact about what changed and what did not. The `tsup` transient is
+   * still at the REPO ROOT, which is outside every root, so that specific race
+   * is still unreachable here. What did grow is the surface: the editor and
+   * atomic-save transients this repo's `.gitignore` does not cover (`*~`,
+   * `.#*`, `*___jb_tmp___`, `4913`, `.goutputstream-*`) now land inside a walk
+   * root when they land beside a TEST file as well as beside a source file, and
+   * the suite itself runs from there. Every one of them is UNTRACKED, which is
+   * exactly the case this tolerance exists for, so the widening moves traffic
+   * onto this path rather than past it.
    *
    * Only the ENUMERATION was ever unsound, never the refusal, so the fix is
    * scoped hard rather than by relaxing what a failed read means:
@@ -768,9 +824,21 @@ function gitTracked(): Set<string> | null {
 }
 
 function buildTargetsForAll(): Target[] {
-  const files: string[] = [];
-  const unscannable: Unscannable[] = [];
-  for (const root of SCAN_ROOTS) walk(resolve(REPO_ROOT, root), files, unscannable);
+  const walked: string[] = [];
+  const unscannableAll: Unscannable[] = [];
+  for (const root of SCAN_ROOTS) walk(resolve(REPO_ROOT, root), walked, unscannableAll);
+
+  // DE-DUPLICATE, because the roots NEST: `test/fixtures` is walked once on its
+  // own account and again as a subtree of `test`, so every fixture arrives
+  // twice. Left in, each hit under it would be REPORTED twice, which reads as a
+  // corpus twice the size it is. Keyed on the absolute path the walk produced,
+  // which is what both passes emit for the same entry.
+  const seen = new Set<string>();
+  const files = walked.filter((abs) => (seen.has(abs) ? false : (seen.add(abs), true)));
+  const seenUnscannable = new Set<string>();
+  const unscannable = unscannableAll.filter((u) =>
+    seenUnscannable.has(u.path) ? false : (seenUnscannable.add(u.path), true),
+  );
 
   // One `git check-ignore` over both lists. An ignored entry is already out of
   // scope for the file route, so applying the same rule to a link keeps a single
@@ -887,17 +955,49 @@ function buildTargetsForStaged(): Target[] {
     // the hook. `U` carries a single path like `A`/`M`/`T`, so it costs the
     // stride nothing either.
     //
+    // `B` (BROKEN PAIR) IS IN THE FILTER BECAUSE `-B` IS NOT INERT, AND THIS
+    // FILE ASSERTED THAT IT WAS. The superseded sentence read "`-B` is INERT
+    // here", which is the PERMISSIVE half of a "do not add these flags"
+    // paragraph, so it told the next porter that injecting `-B` was safe. It is
+    // not, and the mechanism is sharper than "a `B` record the filter drops":
+    //
+    //   - the raw record's printed status LETTER IS STILL `M`. A complete
+    //     rewrite under `-B` prints `:100644 100644 <sha> <sha> M<score> <path>`,
+    //     one path, an `M` with a break score. THE SCORE IS NOT PINNED AND NO
+    //     DIGITS ARE QUOTED HERE: it moves with how much of the old content
+    //     survives (0 lines kept reads `M100`, 1 reads `M099`, 2 reads `M098`),
+    //     so a number copied out of one fixture is wrong in the next. What is
+    //     load-bearing is the LETTER, and it is `M`. `RAW_RECORD` below parses it
+    //     happily, and a reader checking the raw output would conclude the
+    //     record is an `M` and that `AMTU` therefore keeps it;
+    //   - but `--diff-filter` classifies a broken pair as `B` REGARDLESS OF THE
+    //     LETTER IT PRINTS, so `AMTU` deletes the record before anything sees
+    //     it. Measured on this checkout at `d8d3be3`, same index both ways:
+    //     `--diff-filter=AMTU` returns EMPTY, `--diff-filter=B` and
+    //     `--diff-filter=AMTUB` each return the same record. Run through the
+    //     scanner over a staged dashed SSN in a wholly rewritten in-scope file:
+    //     the shipped argv exits 1 with the hit, the same argv plus `-B` prints
+    //     `OK: no hits` and exits 0.
+    //
+    // Adding `B` costs the enumeration NOTHING today, which is why it is the
+    // remedy rather than a warning: git only breaks a pair when `-B` is given,
+    // so with the flag absent no `B` record can exist and the two filters
+    // enumerate identically. It is there so the flag stops being a silent
+    // blindfold if it is ever added. A broken pair carries a SINGLE path, so it
+    // costs the two-field stride below nothing either.
+    //
     // THE STRIDE BELOW IS COUPLED TO THIS ARGV, so read the coupling before
     // editing it. `--no-renames` is what makes a two-path record impossible, and
     // `-M`, `-C` and `--find-copies-harder` each turn detection back on over the
     // top of it: measured on a real rename stage, every one of the three empties
-    // this route again. Do not add them. `-B` is INERT here and is not one of
-    // them. If a two-path record ever did arrive the stride
+    // this route again. Do not add them, and do not add `-B` either: with `B` in
+    // the filter it is no longer a blindfold, but it still buys nothing.
+    // If a two-path record ever did arrive the stride
     // desyncs and the run REFUSES rather than scanning a short list, which is the
     // safe direction, but that is a backstop and not the guarantee.
     listBuf = execFileSync(
       "git",
-      ["diff", "--cached", "--raw", "-z", "--no-renames", "--diff-filter=AMTU"],
+      ["diff", "--cached", "--raw", "-z", "--no-renames", "--diff-filter=AMTUB"],
       {
         encoding: "buffer",
         stdio: ["ignore", "pipe", "pipe"],
@@ -923,9 +1023,10 @@ function buildTargetsForStaged(): Target[] {
   // narrower than the path prefix alone: the filter drops `D`, a deletion, which
   // has no staged blob to scan. That is PRE-EXISTING and deliberate. The only
   // other statuses git documents are `R`/`C` (which `--no-renames` makes
-  // unemittable), `B` (a broken pairing, which needs `-B` and is not passed) and
-  // `X` (git's own "this is a bug" marker), so `A`/`M`/`T`/`U` plus `D` accounts
-  // for every record this invocation can produce.
+  // unemittable) and `X` (git's own "this is a bug" marker), so `A`/`M`/`T`/`U`/
+  // `B` plus `D` accounts for every record this invocation can produce. `B` is
+  // in the filter and unreachable without `-B`; see the argv's own note for the
+  // measurement that put it there.
   const fields = listBuf.toString("utf8").split("\0");
   const staged: { path: string; mode: string; status: string }[] = [];
   let i = 0;
@@ -949,22 +1050,36 @@ function buildTargetsForStaged(): Target[] {
     i += 2;
   }
 
-  // A SCAN ROOT'S OWN PATH IS IN SCOPE AS WELL AS ITS CONTENTS, on both roots.
-  // An index entry at exactly `test/fixtures` or exactly `src` is never a
-  // directory, so it is a scan root REPLACED by a blob, a link or a gitlink.
-  // The prefix test alone let that through: measured, exit 0 over a staged
-  // mode-120000 `test/fixtures`, and
-  // again over `src`. Every mode other than a regular blob is refused below.
+  // A SCAN ROOT'S OWN PATH IS IN SCOPE AS WELL AS ITS CONTENTS, on every root.
+  // An index entry at exactly `test/fixtures`, exactly `test` or exactly `src`
+  // is never a directory, so it is a scan root REPLACED by a blob, a link or a
+  // gitlink. The prefix test alone let that through: measured, exit 0 over a
+  // staged mode-120000 `test/fixtures`, and again over `src`. Every mode other
+  // than a regular blob is refused below.
   //
   // The `.ts` suffix rule is deliberately NOT applied to `src`'s own name. That
   // rule is a judgement about bytes this route could have read, and the name of
   // an entry that replaced a walk root is no evidence at all about what is on
   // the other side of it, exactly as for a link.
+  //
+  // `test/**` (EXCEPT MARKDOWN) IS THE ADDITION HERE, AND IT IS PURELY ADDITIVE.
+  // The clause list is a UNION and no clause was narrowed: `test/fixtures/**`
+  // keeps its own unconditional clause, so the markdown the walk skips under the
+  // fixture root is still enumerated here exactly as it was (there are seven
+  // such files). What changes is a TRACKED file directly under `test/`: 115 of
+  // them, previously enumerated by neither route, measured at exit 0 on
+  // `--staged` over a live `PID-3`/`PID-5`/`PID-7`/`PID-11`/`PID-13`.
+  //
+  // The markdown exclusion is copied from `walk()` rather than invented, so the
+  // two routes agree about the new root: a README describing a violator value is
+  // documentation, not a fixture. It is applied to the NEW clause only.
   const inScope = staged.filter(
     (s) =>
       s.path === "test/fixtures" ||
+      s.path === "test" ||
       s.path === "src" ||
       s.path.startsWith("test/fixtures/") ||
+      (s.path.startsWith("test/") && !s.path.toLowerCase().endsWith(".md")) ||
       (s.path.startsWith("src/") && s.path.endsWith(".ts")),
   );
 
@@ -1034,13 +1149,36 @@ function findHeaderLine(text: string): string | undefined {
  * segment line. The fixture gate is load-bearing in BOTH directions:
  *   - it lets a header-less message (the repo ships `malformed/no-msh-segment`)
  *     still get the full structured scan rather than the text-only pass; and
- *   - it keeps hand-written `src/` code on the conservative pass even when a file
- *     embeds an `MSH|…` example string in a comment or test literal: parsing a
- *     `.ts` file as HL7 segments produces only noise.
- * `src/` is scanned (dashed-SSN + email) via the conservative branch instead.
+ *   - it keeps hand-written `src/` and `test/` code off the whole-file parse even
+ *     when a file embeds an `MSH|…` example string in a comment or test literal:
+ *     parsing a `.ts` file as HL7 segments produces only noise.
+ * WHAT SUCH A FILE GETS INSTEAD IS NOT "the conservative pass" ANY MORE. It is
+ * the shape floor PLUS `scanEmbeddedHl7`, which reads an inline `PID|…` literal
+ * with the same field map. This gate decides HOW a file is read, never WHETHER
+ * a category is looked for.
  */
 function looksLikeHl7(text: string, path: string): boolean {
-  const isFixtureLike = path.startsWith("test/fixtures/") || path.endsWith(".hl7");
+  // `path === "test/fixtures"` IS THE FIXTURE ROOT'S OWN PATH, and it is here
+  // because `--staged` IS THE PRE-COMMIT HOOK. An index entry at exactly
+  // `test/fixtures` is never a directory, so it is the fixture root REPLACED by
+  // a regular blob; `buildTargetsForStaged` already enumerates it and the mode
+  // check already passes it through as a readable file. It was then the DETECTOR
+  // gate that dropped it: the prefix wants a trailing slash and the root's own
+  // path has neither that nor an `.hl7` suffix, so the bytes fell to the
+  // conservative shape pass. Measured twice on `d8d3be3`: the same payload gives
+  // six segment-aware hits staged at `test/fixtures/<name>.hl7` and exit 0
+  // staged at `test/fixtures`, over a live `PID-3`/`PID-5`/`PID-7`/`PID-11`/
+  // `PID-13`. A dashed SSN in the same blob still exited 1, so the floor held
+  // and only the segment-aware tier was missing: NOT both-routes-blind, and not
+  // a silent pass either, which is why it is one clause and not a new rule.
+  //
+  // `test` and `src`, the other two roots' own paths, are deliberately NOT here.
+  // Neither root is an HL7 corpus, so an entry replacing one is judged the way
+  // everything else under it is judged: the conservative shape pass plus the
+  // embedded-segment pass in `scanEmbeddedHl7`, which reads an inline `PID|…`
+  // wherever it sits.
+  const isFixtureLike =
+    path === "test/fixtures" || path.startsWith("test/fixtures/") || path.endsWith(".hl7");
   if (!isFixtureLike) return false;
   if (findHeaderLine(text) !== undefined) return true;
   return stripFraming(text)
@@ -1358,6 +1496,179 @@ function scanCommonShapes(path: string, content: string, allow: AllowList, hits:
 }
 
 // ---------------------------------------------------------------------------
+// Known-segment field detectors, shared by the whole-file and embedded scans
+// ---------------------------------------------------------------------------
+
+/**
+ * Run every category detector this scanner models over ONE segment's fields.
+ * Factored out of `scanHl7` so the embedded-literal pass below runs the SAME
+ * detectors rather than a second, drifting copy of the field map: a category
+ * added to one of the maps above must reach both callers or the inline half
+ * quietly stops covering it.
+ */
+function checkKnownSegmentFields(
+  path: string,
+  segId: string,
+  elems: string[],
+  d: Delimiters,
+  allow: AllowList,
+  hits: Hit[],
+): void {
+  for (const f of XPN_NAME_FIELDS[segId] ?? []) {
+    checkNameField(path, segId, f, fieldAt(elems, f), 0, d, allow, hits);
+  }
+  for (const f of XCN_NAME_FIELDS[segId] ?? []) {
+    checkNameField(path, segId, f, fieldAt(elems, f), 1, d, allow, hits);
+  }
+  for (const f of DOB_FIELDS[segId] ?? []) {
+    checkDobField(path, segId, f, fieldAt(elems, f), d, allow, hits);
+  }
+  for (const f of ADDRESS_FIELDS[segId] ?? []) {
+    checkAddressField(path, segId, f, fieldAt(elems, f), d, allow, hits);
+  }
+  for (const f of PHONE_FIELDS[segId] ?? []) {
+    checkPhoneField(path, segId, f, fieldAt(elems, f), d, hits);
+  }
+  for (const f of CX_ID_FIELDS[segId] ?? []) {
+    checkCxField(path, segId, f, fieldAt(elems, f), d, allow, hits);
+  }
+  for (const f of SSN_ST_FIELDS[segId] ?? []) {
+    checkSsnStField(path, segId, f, fieldAt(elems, f), allow, hits);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Embedded-literal HL7 scanner (inline fixtures in hand-written source)
+// ---------------------------------------------------------------------------
+
+/**
+ * The segment ids this scanner has a PHI field map for. Derived from the maps
+ * themselves rather than re-listed, so it cannot drift from them.
+ */
+const PHI_FIELD_SEGMENTS: ReadonlySet<string> = new Set<string>([
+  ...Object.keys(XPN_NAME_FIELDS),
+  ...Object.keys(XCN_NAME_FIELDS),
+  ...Object.keys(DOB_FIELDS),
+  ...Object.keys(ADDRESS_FIELDS),
+  ...Object.keys(PHONE_FIELDS),
+  ...Object.keys(CX_ID_FIELDS),
+  ...Object.keys(SSN_ST_FIELDS),
+]);
+
+/**
+ * A PHI-field segment id at a token boundary, followed by the default HL7 field
+ * separator. The lookbehind keeps `RAPID|` and `helperGT1|` from matching; the
+ * ids are anchored to the map above so a segment with no field map never starts
+ * a run.
+ */
+const EMBEDDED_SEGMENT_RE = new RegExp(
+  `(?<![A-Za-z0-9_])(${[...PHI_FIELD_SEGMENTS].join("|")})\\|`,
+  "g",
+);
+
+/**
+ * Pull HL7 segment runs out of text that is NOT itself an HL7 message.
+ *
+ * WHY THIS EXISTS, and it is the half that a widened walk root does NOT buy:
+ * `looksLikeHl7` assumes THE FILE IS THE DOCUMENT, and an inline fixture is a
+ * TypeScript string literal. Bringing `test/**` into scope therefore bought the
+ * conservative shape pass over 115 more files and nothing else: a dashed SSN and
+ * a non-test email domain, with no name, DOB, MRN, address or phone detection at
+ * all. 55 of those 115 files carry an inline `PID|` literal (measured on
+ * `d8d3be3`). Widening the SCOPE and widening the RECOGNISER are two changes and
+ * this is the second one; neither substitutes for the other.
+ *
+ * WHAT IT DOES. Source-level `\r` / `\n` ESCAPE SEQUENCES are treated as segment
+ * separators, because a whole message is routinely one literal
+ * (`` `${MSH}\r` + "PID|1||…" ``) and without that the run would be one line and
+ * the field offsets would be nonsense. Each physical line is then searched for a
+ * segment id from `PHI_FIELD_SEGMENTS` followed by `|`, and the run is taken to
+ * the end of the line or to the first source quote after it, whichever comes
+ * first: the tail of `"PID|…|F|||" +` is TypeScript, not HL7, and reading it as
+ * a field would invent values that are not in the fixture.
+ *
+ * WHAT IT DELIBERATELY DOES NOT DO, stated rather than discovered later:
+ *   - DEFAULT DELIMITERS ONLY (`|^~\&`). An embedded run has no reachable
+ *     `MSH-2`: the encoding characters are themselves source-escaped
+ *     (`MSH|^~\\&|`), and a run is matched per line with no header in hand. A
+ *     custom-delimiter message written inline is therefore covered at the
+ *     dashed-SSN / email floor only. The committed corpus keeps its
+ *     custom-delimiter cases as real `.hl7` fixtures, which get the full scan.
+ *   - NO UNKNOWN-SEGMENT BACKSTOP. `checkUnknownSegment` flags any adjacent pair
+ *     of name-shaped components in ANY field, which is the right backstop for a
+ *     file that is known to be a message and a noise cannon over TypeScript. So
+ *     an inline `Z…` site-defined segment carrying a name is NOT detected here.
+ *   - IT IS ADDITIVE TO `scanCommonShapes`, NEVER INSTEAD OF IT. Both run on
+ *     every non-fixture target.
+ *   - A TEMPLATE-LITERAL INTERPOLATION IS ERASED, NOT READ, AND THE RESIDUAL IS
+ *     BIGGER THAN "a runtime-only value". Reading the IDENTIFIER in
+ *     `` `PID|…||${x}` `` as a person-name token invents a finding out of
+ *     program text (measured: `content`, `marker`, `familyName` and
+ *     `pidSurname` were each reported as a patient name), so it is erased.
+ *     BE EXACT ABOUT WHAT THAT COSTS, because the loose form of this sentence
+ *     was refuted in review: the bound is ANY value reached through an
+ *     interpolation, INCLUDING one whose literal sits in the same file.
+ *     Measured: `const fam = "<surname>"` followed by
+ *     `` `PID|1||<mrn>^^^HOSP^MR||${fam}^${giv}||<dob>|F` `` exits 1 on the
+ *     MRN and the DOB and is SILENT ON THE NAME. It is not "the value is not in
+ *     the file"; it is that this pass reads LITERALS IN FIELD POSITION and does
+ *     not evaluate anything. `scanCommonShapes` still reads the whole file, so a
+ *     dashed SSN or a non-test email in such a constant is caught either way.
+ *     Erasing rather than skipping the run keeps the FIELD POSITIONS intact, so
+ *     a real literal elsewhere in the same segment is still read at its own
+ *     field number.
+ *   - A RUN IS CUT AT THE FIRST SOURCE QUOTE, AND THAT CUTS HL7 DATA TOO. The
+ *     cut is what stops `" +` and the rest of the line being read as fields, and
+ *     it is not free: the two-character literal `""` is HL7 v2's EXPLICIT-NULL
+ *     field value (no clause number is quoted here, deliberately: an unverified
+ *     citation in a porting source is the same species as a drifting score. The
+ *     behaviour is grounded in this repo's own parser, `src/model/field.ts`,
+ *     whose `isNull` is true iff the field was exactly those two characters), so
+ *     an inline fixture testing null handling loses everything after it.
+ *     Measured, same bytes both ways: `PID|1|""|MRN001||<surname>^<given>||<dob>|F`
+ *     exits 1 with `PID-5` and `PID-7` at a `.hl7` path and exits 0 as an inline
+ *     literal, because the extracted run is `PID|1|`. An apostrophe inside a
+ *     name (`O'Brien`) truncates identically. This is a MISS, not a false
+ *     positive, and it is not repaired by teaching the cut about quoting: the
+ *     enclosing quote style is not knowable from a single line, and a wrong
+ *     guess reads program text as patient data. Stated so nobody reads the pass
+ *     as complete.
+ */
+function extractEmbeddedSegments(text: string): string[] {
+  const out: string[] = [];
+  // A source-level `\r`, `\n` or `\r\n` escape stands in for the wire segment
+  // separator. Two characters in the file's bytes, so this is a text
+  // substitution and not `stripFraming`'s real-control-character handling.
+  // `${…}` goes first and collapses to nothing, so an interpolated field stays
+  // an EMPTY field rather than shifting every field after it.
+  const lines = text
+    .replace(/\$\{[^{}]*\}/g, "")
+    .replace(/\\r\\n|\\r|\\n/g, "\n")
+    .split(/\r\n|\r|\n/);
+  for (const line of lines) {
+    for (const m of line.matchAll(EMBEDDED_SEGMENT_RE)) {
+      const start = m.index;
+      const rest = line.slice(start);
+      // Cut at the first source quote: everything after it is program text.
+      const q = rest.search(/["'`]/);
+      const run = (q < 0 ? rest : rest.slice(0, q)).trimEnd();
+      if (run.length > 0) out.push(run);
+    }
+  }
+  return out;
+}
+
+function scanEmbeddedHl7(path: string, text: string, allow: AllowList, hits: Hit[]): void {
+  const d: Delimiters = { field: "|", component: "^", repetition: "~", escape: "\\" };
+  for (const run of extractEmbeddedSegments(text)) {
+    const elems = run.split(d.field);
+    const segId = (elems[0] ?? "").toUpperCase();
+    if (!PHI_FIELD_SEGMENTS.has(segId)) continue;
+    checkKnownSegmentFields(path, segId, elems, d, allow, hits);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // HL7 message scanner
 // ---------------------------------------------------------------------------
 
@@ -1378,27 +1689,7 @@ function scanHl7(target: Target, text: string, allow: AllowList, hits: Hit[]): v
       continue;
     }
 
-    for (const f of XPN_NAME_FIELDS[segId] ?? []) {
-      checkNameField(target.path, segId, f, fieldAt(elems, f), 0, d, allow, hits);
-    }
-    for (const f of XCN_NAME_FIELDS[segId] ?? []) {
-      checkNameField(target.path, segId, f, fieldAt(elems, f), 1, d, allow, hits);
-    }
-    for (const f of DOB_FIELDS[segId] ?? []) {
-      checkDobField(target.path, segId, f, fieldAt(elems, f), d, allow, hits);
-    }
-    for (const f of ADDRESS_FIELDS[segId] ?? []) {
-      checkAddressField(target.path, segId, f, fieldAt(elems, f), d, allow, hits);
-    }
-    for (const f of PHONE_FIELDS[segId] ?? []) {
-      checkPhoneField(target.path, segId, f, fieldAt(elems, f), d, hits);
-    }
-    for (const f of CX_ID_FIELDS[segId] ?? []) {
-      checkCxField(target.path, segId, f, fieldAt(elems, f), d, allow, hits);
-    }
-    for (const f of SSN_ST_FIELDS[segId] ?? []) {
-      checkSsnStField(target.path, segId, f, fieldAt(elems, f), allow, hits);
-    }
+    checkKnownSegmentFields(target.path, segId, elems, d, allow, hits);
   }
   // Cross-cutting shape checks over the whole payload (catches free-text PHI in
   // OBX-5 / NTE that the field map does not model).
@@ -1433,9 +1724,14 @@ function scanTarget(target: Target, allow: AllowList, hits: Hit[]): boolean {
   if (looksLikeHl7(text, target.path)) {
     scanHl7(target, text, allow, hits);
   } else {
-    // Non-HL7 target (hand-written src, plain-text notes): conservative shape
-    // pass only: no segment model to lean on.
+    // Non-HL7 target (hand-written src, a test module, plain-text notes). TWO
+    // passes, and the second is IN ADDITION to the first, never instead of it:
+    // the conservative shape floor over the whole file, plus the embedded pass
+    // that reads an inline `PID|…` literal with the same field map a real
+    // fixture gets. On its own the floor is a dashed SSN and a non-test email
+    // domain, which is not what "this file is scanned" sounds like.
     scanCommonShapes(target.path, text, allow, hits);
+    scanEmbeddedHl7(target.path, text, allow, hits);
   }
   return true;
 }
@@ -1527,9 +1823,10 @@ function main(): number {
         // Attributed through the SAME predicate the walk's roots are declared
         // by, never a second copy of the prefix rule. A `paths`-mode target can
         // sit outside every root and contribute nothing here; that mode makes no
-        // per-root promise.
-        const root = rootOf(t.path);
-        if (root !== undefined) observedRoots.add(root);
+        // per-root promise. EVERY matching root is credited, not just one: a
+        // fixture sits under `test/fixtures` AND under `test`, and crediting one
+        // of the two would starve the other forever.
+        for (const root of rootsOf(t.path)) observedRoots.add(root);
       } else vanished.push(t);
     } catch (err) {
       if (err instanceof InvocationError) {

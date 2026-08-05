@@ -88,6 +88,47 @@ NAME TARGET
 NAME SOURCE
 NAME PARTYONE
 NAME PARTYTWO
+
+# --- Tokens the INLINE fixtures under test/ use as names -------------------
+# These arrived with the walk root widening: `test/**` is swept now, so the
+# HL7 literals embedded in the unit tests are read with the same field map a
+# `.hl7` fixture gets. Everything below is a story-role or scaffolding token
+# standing in for a surname or given name in a hand-written test message --
+# the same species as the MERGETEST / LINKTEST / MOVETEST block above, and
+# every one was surfaced by the gate rather than guessed at.
+# The real given/family names among them (BRIEN, PATRICK, BOB, WANG, AL) are
+# invented stand-ins, listed here for the same reason JOHN and JANE are.
+NAME TRIGTEST
+NAME EVNTEST
+NAME GATETEST
+NAME PHITEST
+NAME ACCTTEST
+NAME PERSONTEST
+NAME PROPTEST
+NAME CASE
+NAME FALLBACK
+NAME FAILSAFE
+NAME NOMRG
+NAME NOID
+NAME WARNING
+NAME ONLY
+NAME MULTI
+NAME GROUPONE
+NAME GROUPTWO
+NAME SUBJECT
+NAME ONE
+NAME TWO
+NAME EXTRA
+NAME TESTFIRSTNAME
+NAME BRIEN
+NAME PATRICK
+NAME BOB
+NAME WANG
+NAME AL
+# `\M2442\ABC\M2842\`: the payload of an ISO-2022 charset escape test, read as
+# a PID-5 token once the escape sequences are stripped.
+NAME ABC
+
 # Batch per-message uniqueness tags placed in the PID-5 middle-name slot
 # (test/fixtures/batch/*.hl7, `Test^Patient^MSGA0001`)
 NAME MSGA
@@ -109,6 +150,7 @@ DOB 19720202
 DOB 19720310
 DOB 19750220
 DOB 19750301
+DOB 19750615
 DOB 19750701
 DOB 19771120
 DOB 19800101
@@ -131,6 +173,13 @@ DOB 20200101
 ADDR 123 Main St
 ADDR 456 Elm St
 ADDR 789 Oak St
+# Inline fixture under test/ (NK1-4 next-of-kin address).
+ADDR 456 Oak St
+
+# --- Synthetic bare-numeric identifiers (PID-3 / PID-18 / PID-19) ---
+# `123456`: the CX id in the field-coercion fixture's PID-3
+# (`123456^1^M11^AUTH&1.2.3&UUID^MR`), an inline fixture under test/.
+ID 123456
 
 # --- Reserved / test email domains ---
 EMAILDOMAIN example.com

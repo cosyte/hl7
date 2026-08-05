@@ -24,7 +24,60 @@ line is parsed, not just one whose first byte is `MSH`; and segment ids are
 matched **case-insensitively** (`pid` is normalized to `PID`), because the lenient
 parser accepts lowercase segment ids and the scanner must not go blind where the
 parser stays tolerant. `src/` is never parsed as HL7 (even when a file embeds an
-`MSH|…` example string): it gets the conservative dashed-SSN + email pass only.
+`MSH|…` example string): parsing a `.ts` file as a message produces only noise.
+
+**There are three tiers, and scope decides only whether a file is READ, never
+how well.** Getting that backwards is this class's recurring trap, so port the
+distinction, not just the root list. (1) The whole-file HL7 parse, for a file
+that IS a message: `test/fixtures/**`, any `.hl7`, and the fixture root's own
+path. (2) The **embedded-literal** pass, which pulls `PID|…` runs out of
+hand-written source and hands them the same field map: an inline fixture is a
+TypeScript string literal, so tier 1 structurally cannot see it. (3) The
+conservative shape floor over every file: a dashed SSN and a non-test email
+domain, and **nothing else**. Tier 3 alone is what widening a walk root buys.
+Measured here: `test/` holds **115** tracked files the walk did not reach, **55**
+of them carrying an inline `PID|` literal, and on tier 3 alone a name, a DOB, an
+MRN, an address and a phone in those files are all invisible.
+
+**What the embedded pass deliberately does not do**, so a port does not claim
+more than it delivers. All four were measured, and the last two were added after
+review refuted the first draft of this paragraph, which is the reason to read
+them rather than the summary above.
+
+1. **Default delimiters only.** An embedded run has no reachable `MSH-2`: the
+   encoding characters are themselves source-escaped and a run is matched per
+   line with no header in hand. A custom-delimiter message written inline is
+   covered at the shape floor only.
+2. **No unknown-segment backstop.** That backstop flags any adjacent pair of
+   name-shaped components in **any** field, which is right for a file known to be
+   a message and a noise cannon over program text. So an inline `Z…`
+   site-defined segment carrying a name is **not** detected.
+3. **A `${…}` interpolation is erased, not read** -- and the residual is bigger
+   than "a value that only exists at runtime". Reading the identifier as a name
+   invents findings out of program text (`familyName`, `content`, `marker` and
+   `pidSurname` were each reported as a patient name), so it is erased. But the
+   bound is **any value reached through an interpolation, including one whose
+   literal sits in the same file**: measured, `const fam = "<surname>"` followed
+   by `` `PID|1||<mrn>^^^HOSP^MR||${fam}^${giv}||<dob>|F` `` exits 1 on the MRN
+   and the DOB and is **silent on the name**. This pass reads literals in field
+   position; it evaluates nothing. The shape floor still reads the whole file, so
+   a dashed SSN or a non-test email in such a constant is caught either way.
+4. **A run is cut at the first source quote, and that cuts HL7 data too.** The
+   cut is what stops `" +` and the rest of the source line being read as fields.
+   It is not free: the two-character literal `""` is HL7 v2's **explicit-null**
+   field value, so an inline fixture exercising null handling loses everything
+   after it. **No clause number is quoted**, deliberately: an unverified citation
+   in a porting source is the same species as a drifting score, and this one was
+   not verified against the primary. The behaviour is grounded in this repo's own
+   parser instead (`src/model/field.ts`, whose `isNull` is true iff the field was
+   exactly those two characters). Measured
+   on the same bytes both ways: `PID|1|""|MRN001||<surname>^<given>||<dob>|F`
+   exits **1** with `PID-5` and `PID-7` at a `.hl7` path and exits **0** as an
+   inline literal, because the extracted run is `PID|1|`. An apostrophe inside a
+   name (`O'Brien`) truncates identically. **Do not "fix" this by teaching the
+   cut about quoting**: the enclosing quote style is not knowable from a single
+   line, and a wrong guess reads program text as patient data. It is a MISS, and
+   the point of writing it down is that the pass is not complete.
 
 | Category                     | Where it looks                                                                                                                                                                                                   | Rule                                                                                                                                                                                                                                             |
 | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -86,7 +139,7 @@ non-zero and the gate blocks either way; a caller that ever split them would hav
 read it exactly backwards.
 
 **A scan that could not read what it enumerated REFUSES (exit 2).** All-mode
-lists its roots (`test/fixtures` and `src`) first and reads each file
+lists its roots (`test/fixtures`, `test` and `src`) first and reads each file
 afterwards, so a file can be deleted inside that window. `tsup` writes
 `tsup.config.bundled_<hash>.mjs` and removes it when a build ends, and
 `test/docs-content.test.ts` runs a build from inside the suite while this
@@ -94,7 +147,7 @@ scanner sweeps from another worker, so the two really do race.
 
 **No CI or publish run in this repo is reachable through that window today, and
 the reason is scope, not design.** The transient lands at the repo root, which is
-outside both walk roots, so it is never enumerated here. `@cosyte/ccda`, whose
+outside every walk root, so it is never enumerated here. `@cosyte/ccda`, whose
 walk starts at the repo root, is the sibling that took the hit: an entire
 publish-time sweep refused. Nothing gitignores that filename here either, so
 **widening a walk root, or any tool that drops a transient under one,
@@ -148,7 +201,7 @@ blocks the gate forever), and git does not carry those bytes anyway, so a hit on
 them would be a claim about something no commit contains. Refusing states the
 only true thing available: there is an entry here the scan cannot account for,
 so the scan is not clean. `--staged` reads `git diff --cached --raw -z` with
-`--no-renames --diff-filter=AMTU` so the destination mode is visible; the `T` is
+`--no-renames --diff-filter=AMTUB` so the destination mode is visible; the `T` is
 load-bearing, because replacing a **tracked** regular file with a link is neither
 an add nor a modify and `AM` deleted the record before any mode could be read.
 
@@ -158,11 +211,26 @@ itself carry PHI.
 
 "In scope" is each route's own pre-existing boundary, not a new one: the walk
 still excludes a gitignored entry (the same rule that already excludes a
-gitignored file), and `--staged` looks at `test/fixtures/**` and `src/**.ts`
-plus each root's own path. That last part IS an addition to the path scope, and
-it is the only one: an index entry at exactly `test/fixtures` or exactly `src`
-is never a directory, so it is a scan root replaced by a blob, a link or a
-gitlink, and the prefix test alone let it through (measured, exit 0 on both).
+gitignored file), and `--staged` looks at `test/fixtures/**`, `test/**`
+(markdown excluded, copying `walk()`'s own rule) and `src/**.ts` plus each root's
+own path. The root's-own-path part IS an addition to the path scope: an index
+entry at exactly `test/fixtures`, `test` or `src` is never a directory, so it is
+a scan root replaced by a blob, a link or a gitlink, and the prefix test alone
+let it through (measured, exit 0 on each). The clause list is a **union** and no
+clause was narrowed, so markdown under `test/fixtures/` is still enumerated on
+this route exactly as it was.
+
+**A regular blob staged at exactly the fixture root got only the shape floor, and
+`--staged` is the pre-commit hook.** `looksLikeHl7` keyed on the
+`test/fixtures/` prefix or an `.hl7` suffix and the root's own path has neither,
+so the scope and the mode check passed the blob through and the **detector gate**
+dropped it. Measured twice independently: the same payload gives six
+segment-aware hits at `test/fixtures/<name>.hl7` and exit **0** at
+`test/fixtures`, over a live `PID-3`/`PID-5`/`PID-7`/`PID-11`/`PID-13`; a dashed
+SSN in the same blob exits 1 either way. So the floor held and only the
+segment-aware tier was missing, which is why the fix is one clause and not a new
+rule. Note the mechanism differs from the sibling shape where the blob was
+outside the _read_ set: here it was read and then mis-classified.
 
 **Consequences worth knowing before you port this**, both measured here: a FIFO
 under a walk root used to be skipped and now refuses, and an SSN or email shape
@@ -170,6 +238,26 @@ in a link's target _path_ used to fire on the shape pass under `test/fixtures/`
 and now never runs, because the entry is refused before anything is read. Both
 are the intended trade: a refusal that names the entry is a better answer than a
 hit that describes a filename.
+
+**`-B` IS NOT INERT, AND THIS FILE'S SOURCE ASSERTED THAT IT WAS.** That was the
+permissive half of a "do not add these flags" paragraph, so it told the next
+porter that injecting `-B` was safe. The mechanism is sharper than "a `B` record
+the filter drops": under `-B` a complete rewrite prints
+`:100644 100644 <sha> <sha> M<score> <path>`: status letter **`M`**, one path, a
+break score the raw-record regex parses happily. **No digits are quoted, on
+purpose** -- the score moves with how much of the old content survives (0 lines
+kept reads `M100`, 1 reads `M099`), so a number copied from one repo's fixture is
+wrong in the next. The **letter** is the load-bearing part. But `--diff-filter` classifies a
+broken pair as **`B`** whatever letter it prints, so `AMTU` deletes the record
+before anything sees it. Measured on one index, three ways:
+`--diff-filter=AMTU` returns empty, `--diff-filter=B` and `--diff-filter=AMTUB`
+each return the record; through the scanner, the shipped argv exits **1** on a
+staged dashed SSN in a wholly rewritten in-scope file and the same argv plus
+`-B` prints `OK: no hits` and exits **0**. `B` is now in the filter, which costs
+the enumeration nothing (git cannot emit a broken pair without `-B`) and stops
+the flag being a silent blindfold if it is ever added. **The pin that let the
+false claim survive was a pin on a RENAME**, the one shape `-B` really does leave
+alone: a case that cannot fail proves nothing.
 
 **A staged RENAME used to bypass `--staged` entirely, and `--no-renames` closes
 it with no stride work at all.** Rename detection is on by default and the status
@@ -241,6 +329,14 @@ itself. Absent, dangling and empty are one state to the walk. This reporter
 prints no file count, so there is not even a suspicious denominator to notice;
 a sibling that does print one reported a plausible-looking number instead.
 
+**Since `test` became a root, the dangling case is reachable on `src` and `test`
+but no longer on `test/fixtures`,** and the reason is worth porting because it is
+the general rule: the fixture root is now an **entry inside** a walked root, so a
+link there is classified by `Dirent.isSymbolicLink()` and refused by name before
+this rule is consulted. Same exit code, a better message, a different rule. A
+root whose parent nothing walks (here `src` and `test`, whose parent is the repo
+root) is still the case this rule alone covers.
+
 Observing nothing at all is the **all-starved case of this one rule**, not a
 second rule beside it. `--staged` and named-path mode enumerate no root, so
 neither makes a per-root promise and neither is subject to it.
@@ -249,9 +345,10 @@ neither makes a per-root promise and neither is subject to it.
 bound. Three states still exit 0, each measured with the rule in place and each
 pinned by a characterization test: a directory missing from **inside** a root
 (`mv test/fixtures/canonical ..` still prints `OK: no hits`, 27 fixtures
-unread); a root that is **itself a symlink**, which is followed, so the rule is
-satisfied by whatever is on the other side of it; and the rule is a **floor of
-one** file. Closing the sub-tree case needs a floor derived from what git tracks
+unread); a root **with no walked parent** that is itself a symlink, which is
+followed, so the rule is satisfied by whatever is on the other side of it
+(measured on `src`; `test/fixtures` now refuses, see above); and the rule is a
+**floor of one** file. Closing the sub-tree case needs a floor derived from what git tracks
 under each root, which is a second moving part and a separate decision.
 
 **One shape often listed beside those is NOT open here, and porting it in as

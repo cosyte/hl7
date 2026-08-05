@@ -605,6 +605,89 @@ kind, value)`** sets one at a field or `field[rep]` dot-path. Component values a
 
 ### Fixed
 
+- **The PHI scan reached neither `test/**` nor an inline fixture, and dropped to a shape-only pass
+at a scan root's own path (`PHI-SCAN-WALK-ROOT-SCOPE`, plus `PHI-SCAN-RENAME-BLIND-AT-PRECOMMIT`▶(b)).** Four`PRE-EXISTING`holes, each measured on`d8d3be3` before the change.
+
+  **1. A tracked file directly under `test/` was enumerated by NEITHER route.** The walk was rooted
+  at `test/fixtures` + `src`; `--staged` matched `test/fixtures/**` + `src/**.ts`. That left **115
+  tracked files** scanned by nothing. A `test/<name>.ts` carrying a live
+  `PID-3`/`PID-5`/`PID-7`/`PID-11`/`PID-13` printed `OK: no hits` and exited **0** on both routes,
+  over bytes that give six segment-aware hits at a `.hl7` path. `SCAN_ROOTS` is now
+  `test/fixtures` + `test` + `src`, and `--staged` adds `test/**` (markdown excluded, copying
+  `walk()`'s rule) as a **union** clause, so nothing it enumerated before stops being enumerated.
+
+  **2. THE HALF A WIDER ROOT DOES NOT BUY: the recogniser assumes the file IS the document, and an
+  inline fixture is a `.ts` string literal.** Scope alone bought the dashed-SSN + email floor over
+  those 115 files and nothing else: no name, DOB, MRN, address or phone. **55 of the 115 carry an
+  inline `PID|` literal.** So there is now an embedded-literal pass (`scanEmbeddedHl7`) that pulls
+  `PID|…` runs out of source and hands them the **same field map** the whole-file parse uses; the
+  detectors are one shared function, not a second copy. Both halves are pinned RED-before /
+  GREEN-after, **and so is the residual**: the same values written as PROSE in the same file are
+  still not found. The pass is deliberately narrower than the whole-file parse and each limit is
+  stated, and two of them only after review refuted the first draft. Default delimiters only (an
+  embedded run has no reachable `MSH-2`); no unknown-segment backstop (a noise cannon over program
+  text, so an inline `Z…` name is missed); a `${…}` interpolation is **erased, not read**
+  (`familyName`, `content`, `marker` and `pidSurname` were each reported as a patient name), and the
+  bound there is **any value reached through an interpolation, including one whose literal is in the
+  same file** (measured: `const fam = "<surname>"` interpolated into a PID line exits 1 on the MRN
+  and DOB and is **silent on the name**); and **a run is cut at the first source quote, which cuts
+  HL7 data too** (the two-character literal `""` is HL7 v2's explicit-null field value, grounded in
+  this repo's own parser rather than a clause number nobody verified, so
+  `PID|1|""|MRN001||<surname>^<given>||<dob>|F` exits **1** at a `.hl7` path and **0** inline,
+  because the extracted run is `PID|1|`; `O'Brien` truncates identically). The last one is a MISS
+  and is written down rather than patched: the enclosing quote style is not knowable from one line,
+  and a wrong guess reads program text as patient data.
+
+  **`src/` changed intent, not just scope**, and the comment that said otherwise is corrected: the
+  embedded pass runs on **every** non-fixture target, so a JSDoc `@example` carrying a PID line with
+  a non-allow-listed name now reds (measured: exit 0 on `d8d3be3`, exit 1 here). This repo
+  hard-requires an `@example` on every public export, so a new example must use allow-listed tokens
+  or add its own, exactly like a fixture. The committed corpus is green as it stands.
+
+  **3. ▶(b): a regular blob staged at exactly `test/fixtures` got the shape floor only, and
+  `--staged` IS the pre-commit hook.** Scope and the mode check passed it through; the **detector
+  gate** dropped it, because `looksLikeHl7` wanted a `test/fixtures/` prefix or an `.hl7` suffix and
+  the root's own path has neither. Measured twice: six segment-aware hits at
+  `test/fixtures/<name>.hl7`, exit **0** at `test/fixtures`; a dashed SSN in the same blob exited
+  **1** either way, so the floor held and only the segment-aware tier was missing, so it is one clause, not
+  a new rule.
+
+  **4. `-B` IS NOT INERT, AND THIS SCANNER SAID IT WAS** (found by `terminology#45`, reproduced
+  here). The permissive half of a "do not add these flags" paragraph. The mechanism is sharper than
+  "a `B` record `AMTU` drops": a complete rewrite under `-B` prints status letter **`M`** with a
+  break score (the digits move with how much old content survives, so none are quoted here), one
+  path, which `RAW_RECORD` parses happily. But `--diff-filter`
+  classifies a broken pair as **`B`** whatever letter it prints. `--diff-filter=AMTU` returns empty;
+  `B` and `AMTUB` return the record. Through the scanner over a staged dashed SSN in a wholly
+  rewritten in-scope file: shipped argv exit **1**, same argv plus `-B` exit **0**. The filter is
+  now `AMTUB`, which costs the enumeration nothing (git cannot emit a broken pair without the flag).
+  **The pin that let the false claim live was a pin on a RENAME**, the one shape `-B` leaves alone.
+
+  **Two behaviour changes from `test` becoming a root.** `test/fixtures` is now an ENTRY INSIDE a
+  walked root, so a symlink there is refused by name at exit **2**, dangling or not: that closes,
+  **for `test/fixtures` only**, the "a root that is itself a symlink is followed" residual below.
+  It does not generalise: `src` and `test` have no walked parent, so both are still followed, and
+  the boundary is the PARENT, not the root. And the roots now NEST, so coverage credits **every**
+  root a file sits under rather than the first (crediting one would starve the other permanently,
+  and which one depended on list order with nothing saying so); walked entries are de-duplicated
+  for the same reason.
+
+  **The scanner's own test file could not be resolved with the allow-list**, and that is the
+  interesting part: it holds deliberate violators, every one asserted on, so allow-listing them
+  would make the positive tests vacuous and carving it out of the scan would be the gate excusing
+  itself from its own rule. Its violator identities are **assembled at runtime** instead (the
+  discipline the file already used for its SSN sentinel), so the temp files it builds still carry
+  the full violator bytes and the tracked file holds no PHI-shaped run. One registrable `.org`
+  email in it became a permanently unregistrable `.invalid` one on the way past. Every other new
+  allow-list token was **surfaced by the gate**, not guessed at. **23 net new tests** in
+  `test/scripts/phi-scan.test.ts` (78 to 101), plus several existing ones rewritten where the
+  widening inverted their verdict, each change of verdict recorded rather than deleted.
+
+  **Two `PRE-EXISTING` minors folded in with this item are ALREADY CLOSED here and were not
+  reopened**, measured rather than assumed: a missing or unreadable allow-list exits **2** (not the
+  **1** reserved for hits), `readdirSync` failing on a root exits **2**, and unmerged (`U`) entries
+  are already in the filter.
+
 - **The PHI scan's observation rule was GLOBAL, so one root vouched for the other
   (`PHI-SCAN-OBSERVED-NOTHING-IS-GLOBAL`).** `pnpm phi-scan` with no arguments (what CI runs) walks
   two roots, `test/fixtures` and `src`, and refused a sweep only when it had read **zero files in

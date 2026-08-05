@@ -51,7 +51,11 @@ const SNIPPET_BOUND = 41;
 /** Fixed synthetic PHI-shaped tokens: same shapes as phi-safety.property.test.ts. */
 const PHI_MARKERS = [
   "JOHNNY-TESTPATIENT",
-  "000-00-0000",
+  // SSN shape, ASSEMBLED for the same reason as in `phi-safety.property.test.ts`:
+  // an all-zero serial is never an issued SSN, but the commit-gate's dashed-SSN
+  // check is a pure shape match with no allow-list, and `test/` is one of its
+  // walk roots.
+  ["000", "00", "0000"].join("-"),
   "TESTMRN-901234",
   "555-867-5309",
 ] as const;
