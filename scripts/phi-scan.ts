@@ -37,7 +37,16 @@
  * UNTRACKED file the walk listed itself and that is gone by the time we read it
  * (a build tool's transient) is reported as skipped instead of refusing. A
  * tracked file, a non-`ENOENT` failure, and a file that reappears all still
- * refuse, and `all` mode refuses outright if it ended up observing nothing.
+ * refuse.
+ *
+ * THE OBSERVATION RULE IS PER-ROOT, NOT GLOBAL: `all` mode refuses (exit 2)
+ * unless EVERY member of `SCAN_ROOTS` yielded at least one file that was
+ * actually READ, and the refusal names the starved roots. Observing nothing at
+ * all is the all-starved case of that one rule, not a second rule beside it. ITS
+ * GRANULARITY IS THE DECLARED ROOT AND NOTHING FINER, which is a real bound and
+ * not a slogan: see the limits list below, each entry with the reading that
+ * produced it. The rule, its cause and its measurements live at the end of
+ * `main()`.
  *
  * Modes:
  *   --staged                 - scan only files staged in `git diff --cached`
@@ -92,6 +101,54 @@
  * written out rather than an example, because a diagnostic ABOUT a PHI leak is
  * itself a PHI surface, and that applies to the prose explaining it too.
  * ---------------------------------------------------------------------------
+ * WHAT THE PER-ROOT OBSERVATION RULE DOES NOT COVER. Every reading below was
+ * taken on this checkout WITH the rule in place, because a bound asserted without
+ * one is the failure this scanner already keeps a paragraph about. The commands
+ * are here so the next reader re-measures rather than trusting the sentence:
+ *
+ *   - ITS GRANULARITY IS THE DECLARED ROOT, NOT A SUB-TREE, so a directory
+ *     missing from INSIDE a root is still unobserved at exit 0.
+ *     `mv test/fixtures/canonical ..` then `pnpm phi-scan` prints
+ *     `[phi-scan] OK: no hits` and exits 0 with 27 fixtures unread: the same
+ *     shape as the defect the per-root rule closed, one level down. Do NOT read
+ *     the rule as "the scanner can no longer report clean over a directory it
+ *     never opened"; it is a whole SCAN ROOT that can no longer go unobserved.
+ *     Closing the sub-tree case needs a floor derived from what git tracks under
+ *     each root, which is a second moving part and a separate decision.
+ *   - A ROOT THAT IS ITSELF A SYMLINK IS FOLLOWED, and the rule is then satisfied
+ *     by whatever is on the other side of it. `rm -rf test/fixtures && ln -s
+ *     <dir holding one file> test/fixtures` prints `[phi-scan] OK: no hits` and
+ *     exits 0 with the whole 106-file fixture corpus absent from disk, because
+ *     `normalizePath` is purely lexical (`resolve`/`relative`, never `realpath`)
+ *     so every entry behind the link is attributed to the root's prefix. "A root
+ *     yielded a file" is not "that root's corpus was observed". Adversarial
+ *     rather than accidental, and the residual note under NON-REGULAR ENTRIES
+ *     already says such a root is followed.
+ *   - IT IS A FLOOR OF ONE. A `test/fixtures` reduced to a single clean fixture
+ *     prints `[phi-scan] OK: no hits` and exits 0. The rule asks whether a root
+ *     was observed at all, never whether it was observed in full. This reporter
+ *     prints no denominator either, so nothing on stdout distinguishes 1 file
+ *     from 106: adding one would be a real improvement and is not this rule.
+ *
+ * ONE CONSEQUENCE THIS RULE LOOKS LIKE IT HAS AND DOES NOT, recorded because it
+ * is the obvious worry and it is WRONG: `--allow-fixture` subtracts its path from
+ * the target list before anything is read, so allow-fixturing the last remaining
+ * file under a root reads like a new way to starve one. It is unreachable.
+ * `parseArgs` seeds the positional path set from `allowFixtures` when no path is
+ * given, so `--allow-fixture` always resolves to `paths` mode and never to `all`.
+ * Measured on a throwaway repo whose `test/fixtures` held exactly one violator:
+ * `--allow-fixture test/fixtures/<name>` returns `OK: no hits` at exit 0 here and
+ * at exit 0 on the superseded rule, identically. Do not add a guard for it.
+ *
+ * AND ONE SHAPE THAT IS OFTEN LISTED WITH THOSE AND IS NOT OPEN HERE, recorded so
+ * it is not ported in from a sibling as an open residual: A ROOT THAT IS A
+ * REGULAR FILE, OR A LINK TO ONE, REFUSES AT EXIT 2, NOT 1. `walk()` wraps
+ * `readdirSync` in a `try` and rethrows as an `InvocationError`, so the `ENOTDIR`
+ * is reported on this scanner's own channel; there is a process-level catch under
+ * `main()` besides. Measured both ways: `test/fixtures` replaced by a regular
+ * file, and `test/fixtures` a symlink to one, each
+ * `[phi-scan] could not enumerate test/fixtures: ENOTDIR ...` at exit 2.
+ * ---------------------------------------------------------------------------
  */
 
 import { readFileSync, statSync, existsSync, readdirSync, type Dirent } from "node:fs";
@@ -106,12 +163,52 @@ const REPO_ROOT = process.cwd();
 const ALLOW_LIST_PATH = join(REPO_ROOT, "scripts", "phi-allow-list.txt");
 const OVERRIDE_LOG_PATH = join(REPO_ROOT, "phi-scan-overrides.md");
 
-// Roots walked in "all" mode. test/fixtures gets the full HL7-aware scan; src
-// gets a conservative text pass (dashed-SSN + non-test email only) because it is
-// hand-written code, not data: JSDoc `@example` HL7 snippets carry synthetic
-// names/MRNs that must not trip the segment-aware detectors.
-const FIXTURE_ROOT = join(REPO_ROOT, "test", "fixtures");
-const SRC_ROOT = join(REPO_ROOT, "src");
+// Roots walked in "all" mode, repo-relative and forward-slashed. test/fixtures
+// gets the full HL7-aware scan; src gets a conservative text pass (dashed-SSN +
+// non-test email only) because it is hand-written code, not data: JSDoc
+// `@example` HL7 snippets carry synthetic names/MRNs that must not trip the
+// segment-aware detectors.
+//
+// ONE DECLARATION, TWO READERS: `buildTargetsForAll` walks it, and the per-root
+// observation rule at the end of `main` decides coverage against it through
+// `rootOf`. They were two absolute-path constants and a separate literal; keeping
+// them one list is what stops a root being walked but never required to yield,
+// which is the shape of the defect the per-root rule closes.
+//
+// TWO READERS, NOT THREE, AND ADDING A ROOT HERE DOES NOT REACH EITHER OF THE
+// OTHER TWO. `buildTargetsForStaged` has its own scope predicate and `looksLikeHl7`
+// has its own `test/fixtures/` literal, both deliberately (see their own notes).
+// So a root added to this list is walked and is required to yield, and every
+// non-`.hl7` file under it still gets the conservative shape pass ONLY, with no
+// name, DOB or MRN detection: partial coverage arrived at by following this list.
+// Adding a root means visiting all three, not just this one.
+const SCAN_ROOTS: readonly string[] = ["test/fixtures", "src"];
+
+/**
+ * WHICH scan root a repo-relative path sits under, or `undefined` for none. The
+ * single definition of the root-prefix rule for COVERAGE: the per-root
+ * observation rule attributes every file it read through this, so no second copy
+ * of `rel === root || rel.startsWith(root + "/")` decides who vouched for what.
+ *
+ * IT RETURNS THE FIRST MATCH, which is exactly right while the roots are
+ * DISJOINT (they are: `test/fixtures` and `src`) and wrong the moment one nests
+ * inside another, because scope wants ANY match and coverage wants EVERY match.
+ * With the outer root listed first the inner one would never be attributed and
+ * all-mode would refuse forever; listed inner-first it happens to work, which is
+ * worse, because the ordering becomes load-bearing and nothing says so. Nesting a
+ * root means revisiting this function, not just the list. Not hypothetical: the
+ * fixture root is already two segments deep under a `test/` that is not a root.
+ *
+ * THIS IS NOT `--staged`'s SCOPE PREDICATE AND MUST NOT BE UNIFIED WITH IT. That
+ * one (see `buildTargetsForStaged`) admits `src/**` only at the `.ts` suffix and
+ * admits each root's OWN path as an entry that replaced it. Both are deliberate
+ * judgements about what git hands back, they do not describe coverage of a walk,
+ * and `--staged` makes no per-root promise at all. Folding the two together would
+ * silently change what the pre-commit hook enumerates.
+ */
+function rootOf(rel: string): string | undefined {
+  return SCAN_ROOTS.find((root) => rel === root || rel.startsWith(`${root}/`));
+}
 
 // Person-name fields keyed by segment id. XPN fields carry family in component 1
 // (`Doe^John`); XCN fields carry an id in component 1 and the family/given in
@@ -673,8 +770,7 @@ function gitTracked(): Set<string> | null {
 function buildTargetsForAll(): Target[] {
   const files: string[] = [];
   const unscannable: Unscannable[] = [];
-  walk(FIXTURE_ROOT, files, unscannable);
-  walk(SRC_ROOT, files, unscannable);
+  for (const root of SCAN_ROOTS) walk(resolve(REPO_ROOT, root), files, unscannable);
 
   // One `git check-ignore` over both lists. An ignored entry is already out of
   // scope for the file route, so applying the same rule to a link keeps a single
@@ -1424,11 +1520,17 @@ function main(): number {
 
   const hits: Hit[] = [];
   const vanished: Target[] = [];
-  let observed = 0;
+  const observedRoots = new Set<string>();
   for (const t of targets) {
     try {
-      if (scanTarget(t, allow, hits)) observed += 1;
-      else vanished.push(t);
+      if (scanTarget(t, allow, hits)) {
+        // Attributed through the SAME predicate the walk's roots are declared
+        // by, never a second copy of the prefix rule. A `paths`-mode target can
+        // sit outside every root and contribute nothing here; that mode makes no
+        // per-root promise.
+        const root = rootOf(t.path);
+        if (root !== undefined) observedRoots.add(root);
+      } else vanished.push(t);
     } catch (err) {
       if (err instanceof InvocationError) {
         process.stderr.write(`[phi-scan] ${err.message}\n`);
@@ -1459,16 +1561,59 @@ function main(): number {
     );
   }
 
-  // Refuse a sweep that observed nothing. `all` mode walks `test/fixtures` and
-  // `src`, both of which always hold committed files, so zero reads means the
-  // enumeration or the tree is wrong, never a clean repo. (`staged` legitimately
-  // has nothing to scan when a commit touches only markdown, and `paths` is
-  // bounded by the caller's argv.)
-  if (args.mode === "all" && observed === 0) {
-    process.stderr.write(
-      "[phi-scan] refusing: the all-mode sweep observed no files, so it proves nothing.\n",
-    );
-    return 2;
+  // Refuse a sweep that observed nothing UNDER ANY ONE OF ITS ROOTS.
+  //
+  // PER-ROOT, NOT GLOBAL, AND THAT IS THE WHOLE POINT OF THIS BLOCK. The global
+  // form was satisfied by ANY ONE surviving file, so a single `src/` module
+  // vouched for the entire fixture corpus and vice versa. Measured on this repo
+  // at `04e4bc6`, three ways, each printing `[phi-scan] OK: no hits` at exit 0:
+  // with `test/fixtures` moved away, with `test/fixtures` replaced by a DANGLING
+  // symlink, and with `src` moved away. The first two leave all 106 non-markdown
+  // fixtures unread; the third leaves all 95 source files unread.
+  //
+  // NEITHER STARVED STATE IS EVEN AN ENUMERATION ERROR HERE, which is why nothing
+  // else caught it: `walk()` returns early on a root `existsSync` cannot resolve,
+  // and `existsSync` FOLLOWS a link, so absent, dangling and empty are one thing
+  // to it. The not-a-regular-entry refusal never sees a root at all, because
+  // `walk` is entered AT a root and only ever classifies entries found INSIDE
+  // one. And this reporter prints no denominator, so unlike the sibling this rule
+  // was ported from there was not even a suspicious file count to notice.
+  //
+  // THE SUPERSEDED JUSTIFICATION ASSERTED THE CONCLUSION, which is how the global
+  // shape survived review here: "both of which always hold committed files" is a
+  // statement about the repo at rest, and the two states above are exactly the
+  // states in which it stops being true.
+  //
+  // THE ALL-STARVED CASE IS THE OLD GLOBAL RULE, so this REPLACES it rather than
+  // sitting beside it: observing zero files names every root, and the same
+  // refusal carries.
+  //
+  // AND THE GRANULARITY IS THE DECLARED ROOT, NOTHING FINER. A missing directory
+  // INSIDE a root still goes unobserved, a root that is itself a symlink is still
+  // followed, and one file is enough to satisfy a root of 106. All of that is
+  // measured in the limits list in the header. Do not read this rule as more than
+  // a per-ROOT floor of one, and do not answer any of those by growing this block.
+  //
+  // (`staged` legitimately has nothing to scan when a commit touches only
+  // markdown, and `paths` is bounded by the caller's argv. Neither enumerates a
+  // root, so neither can make a per-root promise, and neither is subject to this.)
+  if (args.mode === "all") {
+    const starved = SCAN_ROOTS.filter((root) => !observedRoots.has(root));
+    if (starved.length > 0) {
+      // A REFUSAL MUST NOT SWALLOW A REAL HIT. Whatever the yielding roots turned
+      // up is printed first; the exit code is still 2, because an incomplete
+      // sweep is not a verdict whatever it found on the way.
+      if (hits.length > 0) report(hits, vanished.length);
+      process.stderr.write(
+        `[phi-scan] refusing: the all-mode sweep observed no files under ` +
+          `${String(starved.length)} of its ${String(SCAN_ROOTS.length)} scan roots ` +
+          `(${starved.join(", ")}), so it proves nothing about them. The observation rule ` +
+          `is PER-ROOT: a clean result earned under the other roots says nothing about a ` +
+          `root that yielded nothing, and an absent, dangling or empty root yields nothing ` +
+          `silently. Restore it, or change SCAN_ROOTS in scripts/phi-scan.ts.\n`,
+      );
+      return 2;
+    }
   }
 
   report(hits, vanished.length);

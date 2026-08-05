@@ -440,14 +440,33 @@ function makeScanRepo(opts: { git: boolean; track?: boolean }): string {
   mkdirSync(join(d, "test", "fixtures"), { recursive: true });
   // The scanner needs its allow-list + override log relative to REPO_ROOT. Note
   // that `scripts/` is NOT a walk root in this repo, so unlike the sibling this
-  // was ported from, the allow-list is not what a sweep observes: `src/index.ts`
-  // below is, and it is what keeps "observed nothing" from firing by accident.
+  // was ported from, the allow-list is not what a sweep observes.
   const allowList = join("scripts", "phi-allow-list.txt");
   copyFileSync(join(REPO_ROOT, allowList), join(d, allowList));
   copyFileSync(OVERRIDES_PATH, join(d, "phi-scan-overrides.md"));
   writeFileSync(join(d, "src", "index.ts"), "export const version = '0.0.0';\n");
+  // BOTH WALK ROOTS ARE SEEDED, and that is load-bearing rather than tidiness.
+  // The observation rule is PER-ROOT, so a scratch repo with an EMPTY
+  // `test/fixtures` is a starved repo and every case built on it would refuse at
+  // exit 2 before reaching what it meant to assert. It also makes the harness the
+  // shape of the real repo, where both roots always hold committed files.
+  // `CLEAN_FIXTURE` is fully allow-listed and is declared below: a `const` in
+  // module scope, evaluated long before any test calls this.
+  writeFileSync(join(d, "test", "fixtures", "clean.hl7"), CLEAN_FIXTURE);
   if (opts.git && opts.track !== false)
-    gitIn(d, ["add", "scripts/phi-allow-list.txt", "src/index.ts"]);
+    gitIn(d, ["add", "scripts/phi-allow-list.txt", "src/index.ts", "test/fixtures/clean.hl7"]);
+  return d;
+}
+
+/**
+ * A scan repo with one of its walk roots STARVED: the directory is there and
+ * holds no file the walk will read, which is what an absent, dangling or empty
+ * root all reduce to. Returns the repo.
+ */
+function makeStarvedScanRepo(root: "test/fixtures" | "src"): string {
+  const d = makeScanRepo({ git: true });
+  rmSync(join(d, ...root.split("/")), { recursive: true, force: true });
+  mkdirSync(join(d, ...root.split("/")), { recursive: true });
   return d;
 }
 
@@ -1496,5 +1515,171 @@ describe("phi-scan: the argv the two-field stride is coupled to", () => {
     }
     // `-B` is inert here, which is the half a sibling shipped inverted.
     expect(enumerated(["-B"])).toContain("test/fixtures/leak.hl7");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The observation rule is PER-ROOT, not global
+// ---------------------------------------------------------------------------
+
+describe("phi-scan: the observation rule is PER-ROOT, not global", () => {
+  // The superseded rule refused only a sweep that had read ZERO files IN TOTAL,
+  // which any one surviving file satisfied: a single `src/` module vouched for
+  // the whole fixture corpus and vice versa. Every case below that expects a
+  // refusal returns exit 0 with `OK: no hits` against that rule, so each is red
+  // on it; the three marked NOT WIDENED are green on both, and are here to hold
+  // the rule where it is.
+
+  const STARVED = "the all-mode sweep observed no files under";
+
+  it("refuses (exit 2) when `test/fixtures` is ABSENT, and names that root", () => {
+    const repo = makeScanRepo({ git: true });
+    rmSync(join(repo, "test", "fixtures"), { recursive: true, force: true });
+
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(2);
+    expect(r.stderr).toContain(STARVED);
+    expect(r.stderr).toContain("1 of its 2 scan roots (test/fixtures)");
+    expect(r.stdout).not.toContain("OK: no hits");
+  });
+
+  it("refuses (exit 2) when `test/fixtures` is a DANGLING symlink, and names that root", () => {
+    // THE SHARPEST CASE. `existsSync` FOLLOWS the link and answers false, so
+    // `walk()` returns before `readdirSync` and the not-a-regular-file rule never
+    // fires: that rule only ever classifies entries found INSIDE a root, and this
+    // IS the root. Absent, dangling and empty are one state to the walk, and
+    // nothing else in the scanner can tell any of them from a clean tree.
+    const repo = makeScanRepo({ git: true });
+    rmSync(join(repo, "test", "fixtures"), { recursive: true, force: true });
+    symlinkSync(join(repo, "no-such-directory-anywhere"), join(repo, "test", "fixtures"));
+
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(2);
+    expect(r.stderr).toContain("1 of its 2 scan roots (test/fixtures)");
+    // Not the non-regular-entry refusal wearing this rule's name.
+    expect(r.stderr).not.toContain("is not a regular file");
+  });
+
+  it("refuses (exit 2) when `test/fixtures` exists but is EMPTY", () => {
+    const r = runScannerIn(makeStarvedScanRepo("test/fixtures"), null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(2);
+    expect(r.stderr).toContain("1 of its 2 scan roots (test/fixtures)");
+  });
+
+  it("refuses (exit 2) when `src` is starved, so the rule is not one-sided", () => {
+    // The fixture root yields 1 file here, which satisfied the global rule
+    // outright. Both directions matter: `src` carries the hand-written code and
+    // is the root a sibling's version of this defect left unobserved.
+    const r = runScannerIn(makeStarvedScanRepo("src"), null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(2);
+    expect(r.stderr).toContain("1 of its 2 scan roots (src)");
+  });
+
+  it("names EVERY starved root when both are starved", () => {
+    // The all-starved case is this one rule, not a second rule beside it.
+    const repo = makeStarvedScanRepo("test/fixtures");
+    rmSync(join(repo, "src"), { recursive: true, force: true });
+
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(2);
+    expect(r.stderr).toContain("2 of its 2 scan roots (test/fixtures, src)");
+  });
+
+  it("prints a real hit from a YIELDING root before refusing, and still exits 2", () => {
+    // A refusal must not swallow a finding. The payload is the name-bearing
+    // synthetic one, and it is asserted through the HL7 FIELD MODEL (`PID-5`),
+    // not the shared shape floor, so this cannot pass over a payload the scanner
+    // never really read.
+    const repo = makeScanRepo({ git: true });
+    writeFileSync(join(repo, "test", "fixtures", "violator.hl7"), SYMLINK_PHI);
+    rmSync(join(repo, "src"), { recursive: true, force: true });
+
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(2);
+    expect(r.stderr).toContain("segment=PID-5");
+    expect(r.stderr).toContain("Thistlewood");
+    expect(r.stderr).toContain("1 of its 2 scan roots (src)");
+  });
+
+  it("NOT WIDENED: `--staged` makes no per-root promise and still exits 0", () => {
+    // `staged` legitimately has nothing to scan when a commit touches only
+    // markdown, and it enumerates no root at all. Widening the rule to it reds
+    // this case, which was checked by running that mutation rather than arguing
+    // it. Nothing is pre-staged (`track: false`): a repo built the usual way
+    // still has the seeded fixture sitting in the index as an add, so `--staged`
+    // would READ it and the widened rule would be satisfied by accident. Getting
+    // that wrong makes this test green against the mutation it exists to kill.
+    const repo = makeScanRepo({ git: true, track: false });
+    rmSync(join(repo, "test", "fixtures"), { recursive: true, force: true });
+    mkdirSync(join(repo, "test", "fixtures"), { recursive: true });
+    writeFileSync(join(repo, "src", "clean.ts"), "export const a = 1;\n");
+    gitIn(repo, ["add", "src/clean.ts"]);
+
+    const r = runScannerArgsIn(repo, ["--staged"]);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(0);
+    expect(r.stdout).toMatch(/OK: no hits/);
+  });
+
+  it("NOT WIDENED: named-path mode is bounded by argv and still exits 0", () => {
+    const repo = makeStarvedScanRepo("test/fixtures");
+    const p = join(repo, "outside.hl7");
+    writeFileSync(p, CLEAN_FIXTURE);
+
+    const r = runScannerArgsIn(repo, [p]);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(0);
+    expect(r.stdout).toMatch(/OK: no hits/);
+  });
+
+  it("NOT WIDENED: a repo whose roots both yield still scans clean (exit 0)", () => {
+    const r = runScannerIn(makeScanRepo({ git: true }), null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(0);
+    expect(r.stdout).toMatch(/OK: no hits/);
+  });
+});
+
+describe("phi-scan: what the per-root rule does NOT cover", () => {
+  // Characterization, not aspiration. These make the header's limits list
+  // executable: each is a state the rule leaves at exit 0, and a change that
+  // closed one would red here and have to say so rather than arrive silently.
+
+  it("LIMIT: a directory missing from INSIDE a root is still unobserved at exit 0", () => {
+    // The granularity is the DECLARED root and nothing finer. The sibling
+    // sub-tree here is the same shape as the defect the rule closed, one level
+    // down: closing it needs a floor derived from what git tracks under each
+    // root, which is a second moving part and a separate decision.
+    const repo = makeScanRepo({ git: true });
+    mkdirSync(join(repo, "test", "fixtures", "adt"));
+    writeFileSync(join(repo, "test", "fixtures", "adt", "a01.hl7"), CLEAN_FIXTURE);
+    gitIn(repo, ["add", "test/fixtures/adt/a01.hl7"]);
+    rmSync(join(repo, "test", "fixtures", "adt"), { recursive: true, force: true });
+
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(0);
+    expect(r.stdout).toMatch(/OK: no hits/);
+  });
+
+  it("LIMIT: a root that is ITSELF a symlink is followed, and satisfies the rule", () => {
+    // `normalizePath` is purely lexical (`resolve`/`relative`, never `realpath`),
+    // so every entry behind the link is attributed to the root's prefix. "A root
+    // yielded a file" is not "that root's corpus was observed".
+    const repo = makeScanRepo({ git: true });
+    const elsewhere = join(repo, "elsewhere");
+    mkdirSync(elsewhere);
+    writeFileSync(join(elsewhere, "benign.txt"), "nothing to see here\n");
+    rmSync(join(repo, "test", "fixtures"), { recursive: true, force: true });
+    symlinkSync(elsewhere, join(repo, "test", "fixtures"));
+
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(0);
+    expect(r.stdout).toMatch(/OK: no hits/);
+  });
+
+  it("LIMIT: it is a floor of ONE, whatever the root used to hold", () => {
+    // `makeScanRepo` seeds exactly one fixture, so this repo IS the floor case:
+    // a root of one file is indistinguishable, on stdout, from a root of a
+    // hundred. This reporter prints no denominator at all.
+    const r = runScannerIn(makeScanRepo({ git: true }), null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(0);
+    expect(r.stdout).toMatch(/^\[phi-scan] OK: no hits\n$/);
   });
 });

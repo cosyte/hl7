@@ -605,6 +605,45 @@ kind, value)`** sets one at a field or `field[rep]` dot-path. Component values a
 
 ### Fixed
 
+- **The PHI scan's observation rule was GLOBAL, so one root vouched for the other
+  (`PHI-SCAN-OBSERVED-NOTHING-IS-GLOBAL`).** `pnpm phi-scan` with no arguments (what CI runs) walks
+  two roots, `test/fixtures` and `src`, and refused a sweep only when it had read **zero files in
+  total**. Any one surviving file satisfied that, so a single `src/` module vouched for the whole
+  fixture corpus and vice versa. **Reproduced on `04e4bc6` before the fix, three ways**, each
+  printing `[phi-scan] OK: no hits` and exiting **0**: `test/fixtures` moved aside, `test/fixtures`
+  replaced by a **dangling symlink**, and `src` moved aside. The first two leave all 106
+  non-markdown fixtures unread; the third leaves all 95 source files unread.
+
+  **The dangling case is the sharpest, and nothing else in the scanner can see it.** `existsSync`
+  **follows** the link and answers false, so `walk()` returns before `readdirSync` and the
+  not-a-regular-file refusal never fires: that rule only ever classifies entries found **inside** a
+  root, and this is the root itself. Absent, dangling and empty are one state to the walk. This
+  reporter prints no file count either, so there was not even a suspicious denominator to notice.
+
+  **The rule is now per-root.** All-mode refuses (exit **2**) unless **every** declared root
+  yielded at least one file that was actually read, and the refusal names the starved roots.
+  Observing nothing at all is the all-starved case of that one rule, not a second rule beside it,
+  so the previous wording carries. Hits found under the roots that **did** yield are printed before
+  the refusal, so an incomplete sweep never swallows a real finding; the exit code is still 2.
+
+  **Deliberately unchanged:** `--staged` and named-path mode make no per-root promise, because
+  neither enumerates a root. `--staged` legitimately has nothing to scan when a commit touches only
+  markdown, and named-path mode is bounded by the caller's argv. Both boundaries are pinned by
+  tests, and widening the rule to either was run as a mutation rather than argued.
+
+  **The granularity is the declared root and nothing finer, which is a real bound, not a slogan.**
+  Three states still exit **0**, each measured with the rule in place and each now recorded in the
+  scanner's own limits list with the command that produced it and pinned by a characterization
+  test: a directory missing from **inside** a root (`mv test/fixtures/canonical ..` still prints
+  `OK: no hits`, 27 fixtures unread); a root that is **itself a symlink**, which is followed, so
+  the rule is satisfied by whatever is on the other side of it; and the floor is **one file**,
+  whatever the root used to hold. One shape often listed with those is **not** open here and is
+  written down so it is not ported in as if it were: a root that is a regular file, or a link to
+  one, refuses at exit **2** rather than the 1 this gate reserves for hits, because `walk()`
+  already wraps `readdirSync` and rethrows the `ENOTDIR` on the scanner's own channel.
+
+  Repository commit-gate only. No runtime or API change.
+
 - **A staged RENAME bypassed the PHI scan's pre-commit route entirely
   (`PHI-SCAN-RENAME-BLIND-AT-PRECOMMIT`).** `git diff --cached --raw --diff-filter=AMT` returns
   neither `R` (rename) nor `C` (copy), and rename detection is on by git's default, so

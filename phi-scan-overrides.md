@@ -114,7 +114,9 @@ have observed), any non-`ENOENT` failure (`EACCES`, `EISDIR`: a scan that
 failed, not a file that went away), a file that is back on disk when the sweep
 ends, a `git` that cannot say what is tracked, and a tracked set that comes back
 empty all still refuse. All-mode also refuses outright if it ended up observing
-no files at all. Pre-commit (`--staged`) reads blobs from the git index, so it
+no files at all; **that rule is now PER-ROOT and the sentence is kept as the
+special case it became, not as the whole rule** (see "The observation rule is
+per-root" below). Pre-commit (`--staged`) reads blobs from the git index, so it
 never depends on any of this. The clean stdout line is **qualified** whenever a
 file was skipped (`OK: no hits (N untracked file(s) skipped, see stderr)`), so a
 reader watching stdout alone cannot take an unqualified OK from an incomplete
@@ -218,6 +220,53 @@ the refusals above.** It was measured.
 
 Widening the walk to close either one is a separate piece of work, and neither
 is a reason to soften anything above.
+
+### The observation rule is per-root
+
+**All-mode refuses (exit 2) unless EVERY declared root yielded at least one file
+that was actually READ**, and the refusal names the starved roots. It used to
+refuse only on zero files **in total**, which any one surviving file satisfied,
+so a single `src/` module vouched for the entire fixture corpus and one fixture
+vouched for the whole of `src`. Measured before the change, three ways, each
+printing `[phi-scan] OK: no hits` at exit **0**: `test/fixtures` moved aside,
+`test/fixtures` replaced by a **dangling symlink**, and `src` moved aside. The
+first two leave all 106 non-markdown fixtures unread; the third leaves all 95
+source files unread.
+
+**The dangling case is the sharpest, and it is the one to carry when porting
+this.** `existsSync` **follows** the link and answers false, so `walk()` returns
+before `readdirSync` and the not-a-regular-file refusal never fires: that rule
+only ever classifies entries found **inside** a root, and this is the root
+itself. Absent, dangling and empty are one state to the walk. This reporter
+prints no file count, so there is not even a suspicious denominator to notice;
+a sibling that does print one reported a plausible-looking number instead.
+
+Observing nothing at all is the **all-starved case of this one rule**, not a
+second rule beside it. `--staged` and named-path mode enumerate no root, so
+neither makes a per-root promise and neither is subject to it.
+
+**Its granularity is the declared root and nothing finer**, which is a real
+bound. Three states still exit 0, each measured with the rule in place and each
+pinned by a characterization test: a directory missing from **inside** a root
+(`mv test/fixtures/canonical ..` still prints `OK: no hits`, 27 fixtures
+unread); a root that is **itself a symlink**, which is followed, so the rule is
+satisfied by whatever is on the other side of it; and the rule is a **floor of
+one** file. Closing the sub-tree case needs a floor derived from what git tracks
+under each root, which is a second moving part and a separate decision.
+
+**One shape often listed beside those is NOT open here, and porting it in as
+though it were would be wrong.** A root that is a **regular file**, or a link to
+one, refuses at exit **2**, not the **1** this gate reserves for hits: `walk()`
+already wraps `readdirSync` in a `try` and rethrows the `ENOTDIR` as an
+invocation error on the scanner's own channel, and there is a process-level
+backstop besides. Measured both ways.
+
+**And one worry that looks real and is not.** Allow-fixturing the last file
+under a root cannot starve it: `parseArgs` seeds the positional path set from
+the `--allow-fixture` paths when no path is given, so the flag always resolves
+to **paths** mode and never to all-mode. Measured on a throwaway repo holding
+exactly one violator: exit 0 under this rule and exit 0 under the superseded
+one, identically. Do not add a guard for it.
 
 ## Format
 
