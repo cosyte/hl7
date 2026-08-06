@@ -1,5 +1,206 @@
 # Changelog
 
+## 0.0.9
+
+### Patch Changes
+
+- 3ac0c28: `CHANGELOG.md`, which ships inside the tarball, is now written by the release instead of by hand, so it stops describing already-published code as unreleased.
+
+  `.changeset/config.json` set `"changelog": false`, so no release ever wrote a version heading
+  into `CHANGELOG.md` and nothing ever rolled `[Unreleased]` over. Every published version of this
+  package therefore carried a changelog with **no version headings at all**: one `[Unreleased]`
+  heading over the whole history, and a preamble stating that the first pre-alpha release "will
+  ship" the API surface listed below it, in a tarball that had shipped that surface several
+  versions earlier. `CHANGELOG.md` is listed in `package.json` `files`, so this was text on the
+  disk of everyone who installed the package, not internal bookkeeping.
+
+  **The flag is what changed, not the prose.** Correcting the sentence by hand would have left the
+  mechanism that wrote it, and the next release would have drifted the same way. `changelog` now
+  names the generator that ships with Changesets, so a release writes its own version heading and
+  its own entry from the changesets it consumed, and **the changeset summary is now the changelog
+  entry**. Nothing new is depended on: the generator is an entry point of `@changesets/cli`, which
+  was already a dev dependency.
+
+  **The file's shape changed with it, deliberately.** Changesets prepends a release by replacing
+  the first newline in the file, so exactly one line can sit above generated output. The
+  hand-written preamble sat on line 3, which means a release would have inserted itself between the
+  heading and the preamble and split the header in two. The hand-maintained history has therefore
+  moved under a `## Released before this file was generated` heading, with the false preamble
+  replaced by an accurate one. Three pieces of hand-workflow scaffolding were dropped and no entry
+  was reworded: the `[Unreleased]` heading, its link definition at the foot of the file, and the
+  five empty section stubs waiting for the next hand-written entry. The history itself is left as
+  it was written rather than re-sorted into version sections, because the file never recorded which
+  release each entry went out in and the text is already on disk in published copies.
+
+  Pinned by `test/scripts/changelog-generation.test.ts`, which runs the real `changeset version`
+  against the real `CHANGELOG.md` and the real config in a throwaway package rather than
+  reimplementing where the tool inserts text. Eight of its ten cases are red against the previous
+  state, measured on the tree this change was written against rather than recalled. **The rule it enforces is that nothing but the H1 sits above the first heading, and it is
+  asserted on the released document as well as the committed one**: a rule phrased as "the archive
+  heading comes second" holds only until the first release writes its own version heading there,
+  which would have redded the first Version PR this configuration ever opened. The archived history
+  is asserted byte identical across a release, so the run exercises this repo's own Prettier rather
+  than the one Changesets bundles as a fallback. Two further controls: the same inputs with
+  `"changelog": false` must write no version heading at all, so the flag is proved load-bearing
+  rather than incidental; and the old file shape must reproduce the split header, so the rule is
+  demonstrated rather than asserted.
+
+  One upstream behaviour is worth knowing before debugging a release, and is recorded in that
+  file: Changesets wraps the changelog write in a try/catch that only warns. A tree whose declared
+  Prettier config cannot be resolved bumps the version, consumes the changeset, and writes no
+  changelog at all. Reproduced here on this repo's inputs. A release that publishes with an
+  unchanged changelog is that failure, not a setting that quietly reverted.
+
+  `CONTRIBUTING.md` and `.changeset/README.md` said to add the entry to `CHANGELOG.md` by hand and
+  now say to write it in the changeset. No runtime code, no public API, no warning code and no
+  parse behaviour changed.
+
+- d8d3be3: Repository PHI commit-gate only, with no runtime impact: the gate no longer reports a clean sweep over a scan root it never opened, where an absent or dangling `test/fixtures` used to print `OK: no hits` and exit 0 on the strength of `src/` alone.
+
+  `pnpm phi-scan` with no arguments is what CI runs. It walks two roots, `test/fixtures` and `src`,
+  and refused a sweep only when it had read **zero files in total**. That global rule is satisfied by
+  any one surviving file, so a single `src/` module vouched for the entire fixture corpus, and one
+  fixture vouched for the whole of `src`.
+
+  Reproduced before the fix, on this checkout, three ways, each printing `[phi-scan] OK: no hits` and
+  exiting **0**: with `test/fixtures` moved aside, with `test/fixtures` replaced by a **dangling
+  symlink**, and with `src` moved aside. The first two leave all 106 non-markdown fixtures unread;
+  the third leaves all 95 source files unread.
+
+  **The dangling case is the sharpest, and nothing else in the scanner can see it.** `existsSync`
+  **follows** the link and answers false, so `walk()` returns before `readdirSync` and the
+  not-a-regular-file refusal never fires. That rule only ever classifies entries found INSIDE a root,
+  and this is the root itself, so absent, dangling and empty are one state to the walk. This reporter
+  prints no file count either, so unlike the sibling this remedy was ported from there was not even a
+  suspicious denominator to notice.
+
+  **The rule is now per-root.** All-mode refuses (exit 2) unless every declared root yielded at least
+  one file that was actually READ, and the refusal names the starved roots. Observing nothing at all
+  is the all-starved case of that one rule rather than a second rule beside it, so the existing
+  wording carries. Hits found under the roots that DID yield are printed before the refusal, so an
+  incomplete sweep never swallows a real finding, and the exit code is still 2 regardless.
+
+  **Deliberately unchanged, and pinned:** `--staged` and named-path mode make no per-root promise,
+  because neither enumerates a root. `--staged` legitimately has nothing to scan when a commit
+  touches only markdown, and named-path mode is bounded by the caller's argv. Widening the rule to
+  either was run as a mutation rather than argued: widening it to `--staged` reds 7 cases, and
+  dropping the mode guard altogether reds 29.
+
+  **The granularity is the declared root and nothing finer**, which is a real bound and is recorded
+  rather than glossed. Three states still exit 0, each measured with the rule in place, each now in
+  the scanner's limits list with the command that produced it, and each pinned by a characterization
+  test so a change that closed one would have to say so: a directory missing from INSIDE a root
+  (`mv test/fixtures/canonical ..` still prints `OK: no hits` with 27 fixtures unread); a root that
+  is ITSELF a symlink, which is followed, so the rule is satisfied by whatever is on the other side
+  of it; and the rule is a floor of ONE file, whatever the root used to hold.
+
+  One shape often listed beside those is NOT open here, and it is written down so it is not ported in
+  from elsewhere as though it were: a root that is a regular file, or a link to one, refuses at exit
+  **2**, not the **1** this gate reserves for hits. `walk()` already wraps `readdirSync` and rethrows
+  the `ENOTDIR` as an invocation error on the scanner's own channel, and an existing test pins it.
+
+  Twelve tests added, on a throwaway repository so no starved root, no dangling link and no violator
+  is ever written into the committed corpus. Five are red against the superseded global rule; the
+  all-starved case is green on both, because it asserts the new rule SUBSUMES the old one rather than
+  sitting beside it; three assert the rule did not widen; three are characterizations of the limits
+  above. The scratch-repo helper now seeds both walk roots, which is load-bearing rather than
+  tidiness: with an empty `test/fixtures` every case built on it would refuse before reaching what it
+  meant to assert.
+
+- be842bd: Repository PHI commit-gate only, with no runtime impact: the gate now reads tracked files directly under `test/`, reads an inline `PID|...` literal in hand-written source with the same field map a `.hl7` fixture gets, and no longer drops to a shape-only pass over a blob staged at exactly a scan root.
+
+  `pnpm phi-scan` with no arguments is what CI runs; `pnpm phi-scan --staged` is the pre-commit hook.
+  Four separate holes, each pre-existing and each measured on this checkout before the change.
+
+  **One: a tracked file directly under `test/` was enumerated by neither route.** The walk was rooted
+  at `test/fixtures` and `src`, and `--staged` matched `test/fixtures/**` plus `src/**.ts`. That
+  leaves **115 tracked files** in this repo scanned by nothing at all. A file at `test/<name>.ts`
+  carrying a live `PID-3`/`PID-5`/`PID-7`/`PID-11`/`PID-13` printed `OK: no hits` and exited **0** on
+  both routes, over the same bytes that give six segment-aware hits at a `.hl7` path.
+
+  **Two, and it is the half that a wider walk root does NOT buy: the recogniser assumes the file IS
+  the document, and an inline fixture is a TypeScript string literal.** Bringing `test/**` into scope
+  bought the conservative shape floor -- a dashed SSN and a non-test email domain -- over those 115
+  files and nothing else: no name, DOB, MRN, address or phone detection. **55 of the 115 carry an
+  inline `PID|` literal.** Widening the scope and widening the recogniser are two changes, and the
+  second is in addition to the first, never instead of it. So there is now an embedded-literal pass
+  that pulls `PID|...` runs out of source and hands them the same field map the whole-file parse uses.
+  Both halves are pinned with a case that is red before and green after, and the residual is pinned
+  too: the same identifying values written as PROSE in the same file are still not found, because a
+  name in narrative is not separable from clinical vocabulary without NLP.
+
+  The embedded pass is deliberately narrower than the whole-file parse, and each of its four limits
+  is stated rather than left to be discovered. Two of them are here because review refuted the first
+  draft of this paragraph, which is the reason to read them rather than trust the summary.
+
+  It uses the default delimiters only, because an embedded run has no reachable `MSH-2`: the encoding
+  characters are themselves source-escaped. It runs no unknown-segment backstop, which is right for a
+  known message and a noise cannon over program text, so an inline `Z...` segment carrying a name is
+  missed. It erases a `${...}` interpolation rather than reading the variable's identifier as a
+  person's name, and the bound there is any value reached through an interpolation, INCLUDING one
+  whose literal sits in the same file: measured, a surname in a same-file constant interpolated into a
+  PID line exits 1 on the MRN and the DOB and is silent on the name. This pass reads literals in field
+  position and evaluates nothing; the shape floor still reads the whole file, so a dashed SSN or a
+  non-test email in such a constant is caught either way. And a run is cut at the first source quote,
+  which cuts HL7 data as well as program text: the two-character literal `""` is HL7 v2's
+  explicit-null field value, so an inline fixture exercising null handling loses everything after it,
+  and an apostrophe inside a name truncates identically. No clause number is quoted for that, on
+  purpose: the behaviour is grounded in this package's own parser, whose null indicator is true iff
+  the field was exactly those two characters. That last one is a MISS, and it is written down rather than
+  patched, because the enclosing quote style is not knowable from a single line and a wrong guess
+  reads program text as patient data.
+
+  `src/` changed intent and not only scope, so the comment that said otherwise is corrected rather
+  than left standing: the embedded pass runs on EVERY non-fixture target, so a JSDoc `@example`
+  carrying a PID line with a non-allow-listed name now reds where it did not before. This package
+  requires an `@example` on every public export, so a new example must use allow-listed tokens or add
+  its own, exactly as a fixture does. The committed corpus is green as it stands.
+
+  **Three: a regular blob staged at exactly `test/fixtures` got the shape floor only, and `--staged`
+  is the pre-commit hook.** The scope and the mode check already passed it through; the DETECTOR gate
+  dropped it, because the fixture test wanted a `test/fixtures/` prefix or an `.hl7` suffix and the
+  root's own path has neither. Measured twice independently: the same payload gives six segment-aware
+  hits at `test/fixtures/<name>.hl7` and exit **0** at `test/fixtures`. A dashed SSN in that blob
+  exited **1** either way, so the floor held and only the segment-aware tier was missing -- which is
+  why the remedy is one clause and not a new rule.
+
+  **And a fourth, found by a sibling and reproduced here: `-B` is not inert, and this scanner's own
+  comment said it was.** That was the permissive half of a "do not add these flags" paragraph, so it
+  told the next reader that injecting `-B` was safe. The mechanism is sharper than "a `B` record the
+  filter drops": under `-B` a complete rewrite prints status letter **`M`** with a break score, one
+  path, which the raw-record parser handles happily -- but `--diff-filter` classifies a broken pair as
+  **`B`** whatever letter it prints, so `AMTU` deleted the record before anything saw it. Through the
+  scanner, over a staged dashed SSN in a wholly rewritten in-scope file: the shipped argv exits 1, the
+  same argv plus `-B` printed `OK: no hits` and exited 0. `B` is now in the filter. It costs the
+  enumeration nothing, because git cannot emit a broken pair without the flag. **The pin that let the
+  false claim survive was a pin on a rename**, the one shape `-B` really does leave alone: a case that
+  cannot fail proves nothing.
+
+  **Two behaviour changes that follow from `test` being a walk root, recorded rather than left to be
+  found.** The fixture root is now an ENTRY INSIDE another root, so a symlink there is classified by
+  `Dirent.isSymbolicLink()` and refused by name at exit 2, dangling or not: that closes, for
+  `test/fixtures` only, the residual the previous entry recorded as "a root that is itself a symlink
+  is followed". It does not generalise -- `src` and `test` have no walked parent, so both are still
+  followed, and the general rule is the parent, not the root. And the two roots nest, so coverage now
+  credits EVERY root a file sits under rather than the first: crediting one would leave the other
+  permanently starved, and which one depended on list order with nothing saying so. Walked entries are
+  de-duplicated for the same reason, or every fixture would be reported twice.
+
+  The scanner's own test file was the one place this could not be resolved with the allow-list, and it
+  is worth saying why: it holds deliberate violators, every one of them asserted on, so allow-listing
+  them would have made the positive tests vacuous and carving the file out of the scan would have been
+  the gate excusing itself from the rule it enforces. Its violator identities are assembled at runtime
+  instead -- the discipline the file already used for its SSN sentinel -- so the temp files it builds
+  still carry the full violator bytes and nothing in the tracked file is a PHI-shaped run. One
+  registrable `.org` email in it became a permanently unregistrable `.invalid` one on the way past.
+  Every other new allow-list token was surfaced by the gate rather than guessed at, and they are the
+  same species as the placeholder surnames already listed.
+
+  Twenty-three net new tests in the scanner's own suite (78 to 101), plus several existing ones
+  rewritten where the widening inverted their verdict, each change of verdict recorded rather than
+  deleted. All of them run on throwaway repositories, so no violator is ever written into the
+  committed corpus. Nothing here changes a single byte of the published package.
+
 ## Released before this file was generated
 
 Every release section above this heading is written by
