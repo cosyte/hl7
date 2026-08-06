@@ -11,13 +11,16 @@ Everything below this heading was maintained by hand. It sat under a single `[Un
 that no release ever rolled over, which is why it went on describing already-shipped code as
 unreleased, inside the published tarball, for as long as it did. It is left as it was written
 rather than re-sorted into version sections: the file never recorded which release each entry went
-out in, and this is the text that installed copies already carry on disk. The only lines dropped
-are the empty section stubs that existed to receive the next hand-written entry.
+out in, and this is the text that installed copies already carry on disk. Only three things were
+dropped, all of them scaffolding for the hand-written workflow that no longer runs: the
+`[Unreleased]` heading itself, its link definition at the foot of the file, and the five empty
+section stubs that existed to receive the next hand-written entry. No entry was reworded.
 
-The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow the
-cosyte pre-alpha ladder, `0.0.x` until first alpha, rather than
-[Semantic Versioning](https://semver.org/spec/v2.0.0.html) alone. An earlier `0.1.0` tag was
-prepared but never published, which is why the public history begins at `0.0.x`.
+The entries below follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the generated
+sections above use the format Changesets writes, which is a version heading and a list of the
+changes that release consumed. Versions follow the cosyte pre-alpha ladder, `0.0.x` until first
+alpha, rather than [Semantic Versioning](https://semver.org/spec/v2.0.0.html) alone. An earlier
+`0.1.0` tag was prepared but never published, which is why the public history begins at `0.0.x`.
 
 ### Added
 

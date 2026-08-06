@@ -31,20 +31,39 @@
  *     `.changeset/config.json` are copied into a throwaway package, a synthetic
  *     changeset is added, and the real `changeset version` is run. A test that
  *     reimplements where Changesets inserts text proves only that the test agrees
- *     with itself, and would keep passing through the upgrade that moved it.
+ *     with itself, and would keep passing through the upgrade that moved it. The
+ *     released document must satisfy the shape rule TOO, and the archived history
+ *     must come through byte identical: a rule that only held before the first
+ *     release would wedge this repo the first time this configuration worked.
  *  5. A CONTROL PROVING THE FLAG IS LOAD-BEARING. The same inputs with
  *     `"changelog": false` must produce NO version heading. Without this, test 4
  *     would pass on a config change that did nothing.
- *  6. THE SHAPE INVARIANT, and the negative control that explains it. Changesets
+ *  6. THE SHAPE RULE, and the negative control that explains it. Changesets
  *     prepends by replacing the FIRST newline in the file, so exactly one line can
- *     sit above generated output. Prose on line 3 does not stay at the top of the
- *     document; it is pushed below the newest release, splitting the header. The
- *     control reproduces that on the shape this file used to have, so the rule is
- *     demonstrated rather than asserted.
+ *     sit above generated output. The rule is that NOTHING BUT THE H1 sits above
+ *     the first heading, which is what makes the splice land between two headings
+ *     instead of cutting a paragraph in half. It is deliberately not "the archive
+ *     heading comes second": a release puts its own version heading there. The
+ *     control reproduces the damage on the shape this file used to have, so the
+ *     rule is demonstrated rather than asserted.
  *
- * Every case runs in a temp directory built from scratch. Nothing here writes to
- * the repo, bumps its version, or consumes a real changeset: the copies are read
- * only on this side and the mutation happens in the temp tree.
+ * Every case runs in a temp directory built from scratch, and every mutation
+ * happens there: nothing here writes into the repo, bumps its version, or consumes
+ * a real changeset. The temp tree links this repo's Prettier and Prettier config in
+ * because Changesets reformats the whole document it writes and falls back to its
+ * own bundled Prettier 2 when it finds none, which is not the formatter any release
+ * of this package uses.
+ *
+ * MEASURED WHILE BUILDING THIS, AND WORTH KNOWING BEFORE DEBUGGING A RELEASE:
+ * Changesets wraps the changelog write in a try/catch that only `console.warn`s.
+ * A tree where `package.json` declares a Prettier config that cannot be resolved
+ * bumps the version, consumes the changeset, and writes NO changelog at all, with
+ * a warning as the only signal. Reproduced here on this repo's own inputs by
+ * declaring `"prettier": "@cosyte/prettier-config"` with no `node_modules`: the
+ * version went to `0.0.1` and `CHANGELOG.md` came back byte identical. Nothing in
+ * this repo can prevent that (it is upstream, and it is why the temp trees below
+ * link the config in rather than only naming it), but a release that publishes
+ * with an unchanged changelog is that failure, not a config that quietly reverted.
  *
  * SECURITY: every subprocess call uses spawnSync with array args. No exec, no
  * shell-form.
@@ -52,7 +71,7 @@
 
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -113,9 +132,28 @@ function runVersion(opts: { changelogBody: string; changelogSetting: unknown }):
     `---\n"@cosyte/hl7": patch\n---\n\n${PROBE_SUMMARY}\n`,
   );
   // `private` keeps the throwaway package unpublishable even if it escaped the temp dir.
+  // `prettier` is declared because Changesets reformats the whole document it writes, and
+  // it must be reformatted the way THIS repo formats it or the run proves nothing about
+  // what lands on the Version PR.
   writeFileSync(
     join(dir, "package.json"),
-    JSON.stringify({ name: "@cosyte/hl7", version: "0.0.0", private: true }),
+    JSON.stringify({
+      name: "@cosyte/hl7",
+      version: "0.0.0",
+      private: true,
+      prettier: "@cosyte/prettier-config",
+    }),
+  );
+  // Changesets resolves Prettier from the tree it is writing into (`require.resolve` with
+  // `paths: [cwd]`) and falls back to its own BUNDLED Prettier 2 when it finds none. That
+  // fallback ignores this repo's config and reflows the archived history, so a temp tree
+  // without these two links would exercise a formatter no release ever uses. Links rather
+  // than copies: pnpm's own `node_modules` entries are links already.
+  mkdirSync(join(dir, "node_modules", "@cosyte"), { recursive: true });
+  symlinkSync(join(REPO_ROOT, "node_modules", "prettier"), join(dir, "node_modules", "prettier"));
+  symlinkSync(
+    join(REPO_ROOT, "node_modules", "@cosyte", "prettier-config"),
+    join(dir, "node_modules", "@cosyte", "prettier-config"),
   );
 
   const r = spawnSync(process.execPath, [CHANGESET_BIN, "version"], {
@@ -132,6 +170,37 @@ function runVersion(opts: { changelogBody: string; changelogSetting: unknown }):
 /** Every ATX heading in a markdown document, in document order. */
 const headings = (text: string): string[] =>
   text.split("\n").filter((line) => /^#{1,6} /.test(line));
+
+/**
+ * The one structural rule this file has to keep, stated so that it survives a release.
+ *
+ * Changesets prepends a release by replacing the FIRST newline in the document, so exactly
+ * one line can sit above generated output and everything else is pushed below the newest
+ * release section. The rule is therefore NOT "the archive heading comes second": a release
+ * legitimately puts its own `## <version>` heading there, and asserting the pre-release
+ * neighbour would red the first Version PR that this configuration ever opens. The rule is
+ * that nothing but the H1 sits above the first heading, so whatever the release splices in
+ * lands between two headings and can never cut a paragraph in half.
+ *
+ * Returns a description of the violation, or `undefined` if the document is well shaped.
+ */
+function shapeViolation(text: string): string | undefined {
+  const lines = text.split("\n");
+  if (lines[0] !== "# Changelog") return `line 1 is ${JSON.stringify(lines[0])}, not the H1`;
+  const next = lines.slice(1).find((line) => line.trim() !== "");
+  if (next === undefined) return "the document has no content below the H1";
+  if (!/^## /.test(next)) return `prose above the first heading: ${JSON.stringify(next)}`;
+  if (!text.includes(ARCHIVE_HEADING)) return "the archived history heading is gone";
+  return undefined;
+}
+
+/** The header block of the archived half: from its heading down to its first entry section. */
+function archivePreamble(text: string): string {
+  const start = text.indexOf(ARCHIVE_HEADING);
+  if (start === -1) return "";
+  const end = text.indexOf("\n### ", start);
+  return end === -1 ? text.slice(start) : text.slice(start, end);
+}
 
 describe("changelog generation is on", () => {
   it("names a changelog generator that resolves and exports what Changesets calls", () => {
@@ -167,24 +236,23 @@ describe("CHANGELOG.md carries no hand-maintained Unreleased section", () => {
     expect(changelog).not.toMatch(/^\[Unreleased\]:/m);
   });
 
-  it("makes no future-tense promise about a release in its header", () => {
+  it("makes no future-tense promise about a release in its preamble", () => {
     // The published preamble read: the first pre-alpha release "will ship" the API
     // surface below. It had shipped, several versions earlier, in this same file.
-    const header = changelog.slice(0, changelog.indexOf("### "));
-    expect(header).not.toMatch(/will ship/i);
+    //
+    // The block is located by the ARCHIVE HEADING, not by the first `### ` in the
+    // document. Anchoring on the first `### ` measures the whole header today and
+    // 23 bytes of generated output after the first release, at which point this
+    // assertion would silently stop reading the preamble it exists to guard.
+    const preamble = archivePreamble(changelog);
+    expect(preamble.length).toBeGreaterThan(200);
+    expect(preamble).not.toMatch(/will ship/i);
   });
 });
 
 describe("the shape that makes generated output land correctly", () => {
-  it("keeps the H1 as the only line above the first section heading", () => {
-    // Changesets prepends by replacing the FIRST newline in the file. Anything on a
-    // later line is pushed below the newest release section, so a paragraph here
-    // would be split off from the H1 by the next release. The negative control
-    // below reproduces exactly that.
-    const lines = changelog.split("\n");
-    expect(lines[0]).toBe("# Changelog");
-    const nextContent = lines.slice(1).find((line) => line.trim() !== "");
-    expect(nextContent).toBe(ARCHIVE_HEADING);
+  it("puts nothing but the H1 above the first heading", () => {
+    expect(shapeViolation(changelog)).toBeUndefined();
   });
 
   it(
@@ -209,6 +277,17 @@ describe("the shape that makes generated output land correctly", () => {
       );
       // The changeset's own summary is what landed as the entry.
       expect(result.changelog).toContain(PROBE_SUMMARY);
+      // AND THE INVARIANT IS CLOSED UNDER A RELEASE: the file a release produces is
+      // itself a file the next release can be prepended to. Without this the suite
+      // would only ever prove the shape of a file no release had touched yet, which
+      // is exactly the file that stops existing the moment this configuration works.
+      expect(shapeViolation(result.changelog)).toBeUndefined();
+      // The archived history comes through BYTE IDENTICAL. This is the assertion that
+      // makes the formatter part of the test: the release reformats the whole document
+      // through Prettier, so an entry the archive already carried must survive that
+      // pass unchanged or the Version PR reds `format:check` on a file nobody edited.
+      const archived = (text: string): string => text.slice(text.indexOf(ARCHIVE_HEADING));
+      expect(archived(result.changelog)).toBe(archived(changelog));
     },
   );
 
