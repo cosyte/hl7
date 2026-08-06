@@ -32,8 +32,8 @@ release each entry went out in and the text is already on disk in published copi
 
 Pinned by `test/scripts/changelog-generation.test.ts`, which runs the real `changeset version`
 against the real `CHANGELOG.md` and the real config in a throwaway package rather than
-reimplementing where the tool inserts text. Seven of its nine cases are red against the previous
-state. **The rule it enforces is that nothing but the H1 sits above the first heading, and it is
+reimplementing where the tool inserts text. Eight of its ten cases are red against the previous
+state, measured on the tree this change was written against rather than recalled. **The rule it enforces is that nothing but the H1 sits above the first heading, and it is
 asserted on the released document as well as the committed one**: a rule phrased as "the archive
 heading comes second" holds only until the first release writes its own version heading there,
 which would have redded the first Version PR this configuration ever opened. The archived history

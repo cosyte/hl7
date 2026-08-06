@@ -35,10 +35,17 @@
  *     released document must satisfy the shape rule TOO, and the archived history
  *     must come through byte identical: a rule that only held before the first
  *     release would wedge this repo the first time this configuration worked.
- *  5. A CONTROL PROVING THE FLAG IS LOAD-BEARING. The same inputs with
+ *  5. TWO CONSECUTIVE RELEASES, because one proves less than it looks like it
+ *     does. The second release is where the sharp edge is: `## 0.0.9` is a
+ *     SUBSTRING of the `## 0.0.10` that follows it, so any check written with
+ *     `String.indexOf` or a substring `toContain` over a version heading passes on
+ *     the first release and reds on the second, in a Version PR, with the changeset
+ *     already consumed. Every version-heading comparison here is an exact match
+ *     against the heading list for that reason.
+ *  6. A CONTROL PROVING THE FLAG IS LOAD-BEARING. The same inputs with
  *     `"changelog": false` must produce NO version heading. Without this, test 4
  *     would pass on a config change that did nothing.
- *  6. THE SHAPE RULE, and the negative control that explains it. Changesets
+ *  7. THE SHAPE RULE, and the negative control that explains it. Changesets
  *     prepends by replacing the FIRST newline in the file, so exactly one line can
  *     sit above generated output. The rule is that NOTHING BUT THE H1 sits above
  *     the first heading, which is what makes the splice land between two headings
@@ -326,7 +333,9 @@ describe("the shape that makes generated output land correctly", () => {
 
   it(
     "keeps every rule in this file true across two consecutive releases",
-    { timeout: 120_000 },
+    // Above the two 60s `spawnSync` ceilings this case can spend, so a hung subprocess
+    // reports as itself rather than as a case timeout.
+    { timeout: 150_000 },
     () => {
       // One release is not enough to prove this file is releasable indefinitely, and the
       // second release is where the sharp edge is: `## 0.0.9` is a SUBSTRING of the
