@@ -79,8 +79,14 @@ Mirrors the three disciplines in `documentation/conventions.md`. They bind here 
 1. **Documentation follows code**: a change to the public surface/stack/status isn't done until the
    docs are: this repo's docs content, the meta-repo `documentation/repos/hl7.md` (bump its
    "last verified" date), and the `ecosystem-map.md` status table.
-2. **Version + changelog**: a Changeset (`patch` on the `0.0.x` ladder) + a `CHANGELOG.md`
-   `[Unreleased]` entry per meaningful change. Renaming a stable warning code is a breaking change.
+2. **Version + changelog**: a Changeset (`patch` on the `0.0.x` ladder) per meaningful change.
+   **The changeset summary IS the changelog entry** and `CHANGELOG.md` is generated output above
+   `## Released before this file was generated`: `.changeset/config.json` sets a `changelog`
+   generator, so the release writes the version heading and the entry itself. **Do not hand-edit
+   `CHANGELOG.md`**, and do not reintroduce a hand-maintained `[Unreleased]` heading: one stood
+   there unrolled for the whole published history of this package, which is how a shipped tarball
+   came to describe its own contents as unreleased. `test/scripts/changelog-generation.test.ts`
+   pins both halves. Renaming a stable warning code is a breaking change.
 3. **Crew + knowledgebase loop**: if a parser's public API or warning codes change, flag/update the
    matching `crew` healthcare skill (`hl7v2-message-author`) + the KB product doc.
 4. **No internal project bookkeeping on a public surface** (founder directive, 2026-07-27). What a
