@@ -1,17 +1,23 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+## Released before this file was generated
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-Versions and publishing are managed with [Changesets](https://github.com/changesets/changesets);
-this file is maintained by hand (Changesets handles the version bump and publish only).
+Every release section above this heading is written by
+[Changesets](https://github.com/changesets/changesets) from the changesets in `.changeset/`, newest
+release first. The release writes its own version heading, so nothing above this line is maintained
+by hand, and a change is recorded by adding a changeset rather than by editing this file.
 
-## [Unreleased]
+Everything below this heading was maintained by hand. It sat under a single `[Unreleased]` heading
+that no release ever rolled over, which is why it went on describing already-shipped code as
+unreleased, inside the published tarball, for as long as it did. It is left as it was written
+rather than re-sorted into version sections: the file never recorded which release each entry went
+out in, and this is the text that installed copies already carry on disk. The only lines dropped
+are the empty section stubs that existed to receive the next hand-written entry.
 
-The first pre-alpha release (`0.0.1`) will ship the complete v1 API surface below. An earlier
-`0.1.0` tag was prepared but never published, so the package begins its public history at `0.0.x`,
-per the cosyte version ladder (`0.0.x` until first alpha).
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow the
+cosyte pre-alpha ladder, `0.0.x` until first alpha, rather than
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html) alone. An earlier `0.1.0` tag was
+prepared but never published, which is why the public history begins at `0.0.x`.
 
 ### Added
 
@@ -1762,15 +1768,3 @@ real JS object (literal,`Map`, `Proxy`, or otherwise) can hold two same-named en
   `src/helpers/`, `src/serialize/`, `src/builder/`. Lint, format, and
   TypeScript settings come from the shared `@cosyte/*` config packages
   (ESLint 9 + `typescript-eslint`). CI across Node 22 / 24.
-
-### Changed
-
-### Deprecated
-
-### Removed
-
-### Fixed
-
-### Security
-
-[Unreleased]: https://github.com/cosyte/hl7/commits/main
