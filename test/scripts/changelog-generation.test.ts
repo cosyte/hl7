@@ -85,6 +85,14 @@ const CHANGESET_BIN = join(REPO_ROOT, "node_modules", "@changesets", "cli", "bin
 /** The heading the hand-written history was moved under. Generated sections sit above it. */
 const ARCHIVE_HEADING = "## Released before this file was generated";
 const PROBE_SUMMARY = "A synthetic entry written by the changelog generation test.";
+/**
+ * The probe's summary deliberately QUOTES THE ARCHIVE HEADING on a line of its own. A real
+ * changeset may do this (the one shipping this change does), and a quoted copy lands in
+ * generated output ABOVE the real heading, where a substring search would find it first and
+ * every helper anchored on it would measure the wrong block. Changesets indents every line
+ * of a summary after the first, so the copy cannot start at column 0; this is what proves it.
+ */
+const PROBE_BODY = `${PROBE_SUMMARY}\n\n${ARCHIVE_HEADING}\n`;
 
 const changelog = readFileSync(CHANGELOG_PATH, "utf8");
 const config = JSON.parse(readFileSync(CONFIG_PATH, "utf8")) as { changelog?: unknown };
@@ -106,7 +114,12 @@ afterAll(() => {
  * Build a throwaway single-package repo and run the real `changeset version` in it.
  * Returns the resulting `CHANGELOG.md` and the version `package.json` was bumped to.
  */
-function runVersion(opts: { changelogBody: string; changelogSetting: unknown }): {
+function runVersion(opts: {
+  changelogBody: string;
+  changelogSetting: unknown;
+  /** Version the throwaway package starts at. A `patch` changeset bumps it by one. */
+  from?: string;
+}): {
   changelog: string;
   version: string;
 } {
@@ -129,7 +142,7 @@ function runVersion(opts: { changelogBody: string; changelogSetting: unknown }):
   );
   writeFileSync(
     join(dir, ".changeset", "probe.md"),
-    `---\n"@cosyte/hl7": patch\n---\n\n${PROBE_SUMMARY}\n`,
+    `---\n"@cosyte/hl7": patch\n---\n\n${PROBE_BODY}`,
   );
   // `private` keeps the throwaway package unpublishable even if it escaped the temp dir.
   // `prettier` is declared because Changesets reformats the whole document it writes, and
@@ -139,7 +152,7 @@ function runVersion(opts: { changelogBody: string; changelogSetting: unknown }):
     join(dir, "package.json"),
     JSON.stringify({
       name: "@cosyte/hl7",
-      version: "0.0.0",
+      version: opts.from ?? "0.0.0",
       private: true,
       prettier: "@cosyte/prettier-config",
     }),
@@ -190,16 +203,36 @@ function shapeViolation(text: string): string | undefined {
   const next = lines.slice(1).find((line) => line.trim() !== "");
   if (next === undefined) return "the document has no content below the H1";
   if (!/^## /.test(next)) return `prose above the first heading: ${JSON.stringify(next)}`;
-  if (!text.includes(ARCHIVE_HEADING)) return "the archived history heading is gone";
+  const anchors = lines.filter((line) => line === ARCHIVE_HEADING).length;
+  if (anchors !== 1) return `expected exactly one archived-history heading, found ${anchors}`;
   return undefined;
 }
 
-/** The header block of the archived half: from its heading down to its first entry section. */
+/**
+ * The header block of the archived half: from its heading down to its first entry section.
+ *
+ * The heading is located as a WHOLE LINE, not with `indexOf`. A changeset summary may quote
+ * it (this slice's own does), and a quoted copy inside a release section sits above the real
+ * heading, so a substring search would slice a few characters out of generated output and the
+ * future-tense guard below would silently stop reading the preamble it exists to protect.
+ * A whole-line match cannot collide: `getReleaseLine` in `@changesets/changelog-git` prefixes
+ * the first line of every summary with `- ` and indents every later line by two spaces, so no
+ * line inside a release section begins at column 0. `shapeViolation` asserts the count is one,
+ * so if that ever stops holding this fails loudly instead of measuring the wrong block.
+ */
 function archivePreamble(text: string): string {
-  const start = text.indexOf(ARCHIVE_HEADING);
+  const lines = text.split("\n");
+  const start = lines.indexOf(ARCHIVE_HEADING);
   if (start === -1) return "";
-  const end = text.indexOf("\n### ", start);
-  return end === -1 ? text.slice(start) : text.slice(start, end);
+  const end = lines.findIndex((line, i) => i > start && line.startsWith("### "));
+  return (end === -1 ? lines.slice(start) : lines.slice(start, end)).join("\n");
+}
+
+/** Everything from the archived-history heading down, located the same whole-line way. */
+function archivedHistory(text: string): string {
+  const lines = text.split("\n");
+  const start = lines.indexOf(ARCHIVE_HEADING);
+  return start === -1 ? "" : lines.slice(start).join("\n");
 }
 
 describe("changelog generation is on", () => {
@@ -271,10 +304,11 @@ describe("the shape that makes generated output land correctly", () => {
         "### Patch Changes",
       ]);
       // The archived history survives, below the release that was just written.
-      expect(result.changelog).toContain(ARCHIVE_HEADING);
-      expect(result.changelog.indexOf(`## ${result.version}`)).toBeLessThan(
-        result.changelog.indexOf(ARCHIVE_HEADING),
-      );
+      // Compared as HEADINGS, not as string offsets: a version heading is a prefix of
+      // the ones that follow it, so `## 0.0.1` is a substring of `## 0.0.10`.
+      const order = headings(result.changelog);
+      expect(order).toContain(ARCHIVE_HEADING);
+      expect(order.indexOf(`## ${result.version}`)).toBeLessThan(order.indexOf(ARCHIVE_HEADING));
       // The changeset's own summary is what landed as the entry.
       expect(result.changelog).toContain(PROBE_SUMMARY);
       // AND THE INVARIANT IS CLOSED UNDER A RELEASE: the file a release produces is
@@ -286,8 +320,46 @@ describe("the shape that makes generated output land correctly", () => {
       // makes the formatter part of the test: the release reformats the whole document
       // through Prettier, so an entry the archive already carried must survive that
       // pass unchanged or the Version PR reds `format:check` on a file nobody edited.
-      const archived = (text: string): string => text.slice(text.indexOf(ARCHIVE_HEADING));
-      expect(archived(result.changelog)).toBe(archived(changelog));
+      expect(archivedHistory(result.changelog)).toBe(archivedHistory(changelog));
+    },
+  );
+
+  it(
+    "keeps every rule in this file true across two consecutive releases",
+    { timeout: 120_000 },
+    () => {
+      // One release is not enough to prove this file is releasable indefinitely, and the
+      // second release is where the sharp edge is: `## 0.0.9` is a SUBSTRING of the
+      // `## 0.0.10` that follows it, so any assertion here written with `indexOf` or
+      // `toContain` over a version heading passes on the first release and reds on the
+      // second, in a Version PR, with the changeset already consumed.
+      const first = runVersion({
+        changelogBody: changelog,
+        changelogSetting: config.changelog,
+        from: "0.0.8",
+      });
+      expect(first.version).toBe("0.0.9");
+
+      const second = runVersion({
+        changelogBody: first.changelog,
+        changelogSetting: config.changelog,
+        from: first.version,
+      });
+      expect(second.version).toBe("0.0.10");
+
+      expect(headings(second.changelog).slice(0, 5)).toEqual([
+        "# Changelog",
+        "## 0.0.10",
+        "### Patch Changes",
+        "## 0.0.9",
+        "### Patch Changes",
+      ]);
+      // Newest first, the archive last, and the history untouched by either release.
+      const order = headings(second.changelog);
+      expect(order.indexOf("## 0.0.9")).toBeLessThan(order.indexOf(ARCHIVE_HEADING));
+      expect(shapeViolation(second.changelog)).toBeUndefined();
+      expect(archivePreamble(second.changelog)).toBe(archivePreamble(changelog));
+      expect(archivedHistory(second.changelog)).toBe(archivedHistory(changelog));
     },
   );
 
@@ -301,7 +373,11 @@ describe("the shape that makes generated output land correctly", () => {
       // The version bump still happens. The changelog is simply never touched,
       // which is the whole defect: nothing tells a reader the release went out.
       expect(result.changelog).toBe(changelog);
-      expect(result.changelog).not.toContain(`## ${result.version}`);
+      // As a HEADING, not a substring. The throwaway package always bumps to the same
+      // version, and `## 0.0.1` is a substring of the `## 0.0.10` that a later release
+      // will legitimately have written into the committed file: a `toContain` here goes
+      // red on a real release, which is the failure this whole file exists to prevent.
+      expect(headings(result.changelog)).not.toContain(`## ${result.version}`);
       expect(result.changelog).not.toContain(PROBE_SUMMARY);
     },
   );
