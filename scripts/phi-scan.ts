@@ -2319,8 +2319,19 @@ function main(): number {
   // the fix to a defect rather than a preference: the index route can refuse
   // (an unmerged entry, a tracked link) and return, and with this block after
   // it a tolerated skip went unmentioned on exactly those paths, against the
-  // rule this block states. Nothing in it depends on the index route having
-  // run, so moving it up costs nothing and makes the disclosure unconditional.
+  // rule this block states. Nothing in it has a DATA dependency on the index
+  // route, so the disclosure becomes unconditional.
+  //
+  // IT IS NOT FREE, AND THE FIRST DRAFT OF THIS COMMENT CLAIMED IT WAS. The
+  // re-check below asks whether a tolerated file is back on disk, so its window
+  // ends where this block runs: after the index route, the window included that
+  // route's `cat-file` calls, and here it does not. Measured, same repo, a
+  // transient restored during that call: the wider window refused (exit 2) and
+  // this position reports the skip and exits 0. That is the BASE commit's
+  // window, not a new gap, and the run is never silent about it (the clean line
+  // stays qualified and the file is named on stderr). The wider window was an
+  // accident of ordering rather than a decision, and deciding it deliberately
+  // is its own slice.
   // A tolerated file is never silent, and the tolerance is only good while the
   // file is still gone: if it is back on disk the sweep skipped something that
   // exists, which is an incomplete scan and refuses like any other.
