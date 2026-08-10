@@ -344,12 +344,17 @@ neither makes a per-root promise and neither is subject to it.
 **Its granularity is the declared root and nothing finer**, which is a real
 bound. Three states still exit 0, each measured with the rule in place and each
 pinned by a characterization test: a directory missing from **inside** a root
-(`mv test/fixtures/canonical ..` still prints `OK: no hits`, 27 fixtures
-unread); a root **with no walked parent** that is itself a symlink, which is
-followed, so the rule is satisfied by whatever is on the other side of it
-(measured on `src`; `test/fixtures` now refuses, see above); and the rule is a
-**floor of one** file. Closing the sub-tree case needs a floor derived from what git tracks
-under each root, which is a second moving part and a separate decision.
+(`mv test/fixtures/canonical ..` still prints `OK: no hits`); a root **with no
+walked parent** that is itself a symlink, which is followed, so the rule is
+satisfied by whatever is on the other side of it (measured on `src`;
+`test/fixtures` now refuses, see above); and the rule is a **floor of one**
+file.
+
+**All three are statements about the WALK, and that is now less than all of a
+sweep**: the bytes git carries at a tracked path are read whatever state the
+working tree is in, so a violator in any of the three exits 1. What each one
+still costs is untracked content in that state, and the fact that the sweep
+reports 0 rather than refusing. See the next section.
 
 **One shape often listed beside those is NOT open here, and porting it in as
 though it were would be wrong.** A root that is a **regular file**, or a link to
@@ -364,6 +369,87 @@ the `--allow-fixture` paths when no path is given, so the flag always resolves
 to **paths** mode and never to all-mode. Measured on a throwaway repo holding
 exactly one violator: exit 0 under this rule and exit 0 under the superseded
 one, identically. Do not add a guard for it.
+
+### The sweep reads the bytes git carries, not only the working tree
+
+**All mode reads every path in the git index as well as walking the working
+tree.** The two routes are a **union**: no walk root was narrowed, no clause was
+dropped, and a file the walk reads is still read from disk with exactly the
+tiers it had. The mechanism is written down in exactly one place, at
+`buildTargetsForIndex` in `scripts/phi-scan.ts`; what follows is the property,
+not a second copy of the mechanism.
+
+**Why: a reconciliation that compares path SETS is satisfied by decoy content.**
+A walk root swapped for a directory that mirrors the tracked names, over clean
+files, leaves every root yielding and every tracked path accounted for while the
+committed corpus goes unopened. Measured before this change, exit **0** with
+`OK: no hits`. Reading the index blob is the only answer that does not depend on
+the working tree being honest.
+
+**What that closed here, each measured and each pinned by a case in
+`test/scripts/phi-scan.test.ts`.** All five printed `OK: no hits` at exit **0**
+before it.
+
+- **A decoy directory** mirroring the tracked names, and a **single file**
+  replaced by a clean decoy. Both now exit 1, and a hit whose bytes are not the
+  bytes on disk says so, because the remedy includes re-staging.
+- **An undeclared top-level directory.** The walk roots are three names, so
+  anything outside them was invisible to it, and the pre-commit route has its
+  own prefix list. That is how **three real HL7 v2 messages under
+  `examples/data/` had never been read by either route**: two of them carried a
+  date of birth, a street address and person-name tokens that were in no
+  allow-list. They are declared in `scripts/phi-allow-list.txt` now, which is
+  the reviewed act that gate is for. A new directory is in scope the moment git
+  tracks something in it, with nobody having to remember to declare it.
+- **A tracked file absent from the working tree**, which the walk records as a
+  pre-existing limit. It is read from the index instead of skipped.
+- **A tracked symlink or gitlink outside every walk root.** The walk classifies
+  entries _inside_ a root, so such an entry was reached by neither route. It is
+  refused by mode (exit 2), and the refusal names the entry and never what is on
+  the other side of it.
+- **An unmerged index entry**, refused in all mode the way the pre-commit route
+  already refused it.
+
+**An empty index now refuses (exit 2).** It is not a clean corpus, it is no
+corpus: every check against what git carries would pass vacuously, and an empty
+tracked set is also the one state in which the tracked-file bound stops
+existing. This replaces a quieter fail-closed branch that switched one tolerance
+off and let the sweep report a verdict anyway.
+
+**What it deliberately does not do**, so nobody reads a bigger claim than the
+code makes:
+
+- **It does not credit a scan root.** The per-root observation rule stays a
+  statement about the walk: a root emptied on disk still refuses, even though
+  every file under it was just read out of the index. Letting the second rule
+  satisfy the first would retire a trap that is already paid for.
+- **It does not widen `--staged`.** What the pre-commit route enumerates decides
+  what a commit is **blocked** on, which is a hook decision and a separate one.
+  So a violator staged outside the hook's prefix list is caught by all mode and
+  not by `--staged`, and that gap is pinned by a case rather than left as a
+  claim.
+- **It is detective, not preventive**, like every other route here: it fires
+  after the write lands. It guarantees PHI is never carried silently, not that
+  it never touched the disk.
+- **Markdown is excluded**, copied from the walk rather than invented, because a
+  README or this log legitimately describes a violator value. It is the one
+  reason an index entry goes unread, and it is pinned by a case.
+- **Gitignore is not consulted here**, unlike the walk. A tracked file that also
+  matches an ignore rule is still content git carries.
+
+**The residual, stated plainly: content that is untracked AND outside every walk
+root is still read by neither route.** The index route reads what git carries and
+the walk reads three named roots, so an untracked scratch file at the repo root
+or under an undeclared directory falls between them. Closing that means
+enumerating the untracked working tree repo-wide, which is a different
+enumeration with its own refusal semantics, and it is not this.
+
+**Before porting any of this: derive, do not copy.** Each sibling phrases and
+exits differently, this repo's exit codes are its own (a walk root that is a
+regular file exits **2** here and **1** in at least one sibling), and the
+`--staged` scope question is a per-repo hook decision. What ports cleanly is the
+shape: read the bytes git carries, compare them against what the walk read, and
+refuse rather than report when the index cannot be read at all.
 
 ## Format
 
