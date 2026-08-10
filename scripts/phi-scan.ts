@@ -2315,6 +2315,33 @@ function main(): number {
     }
   }
 
+  // THE WALK'S ACCOUNTING RUNS HERE, BEFORE THE INDEX CORPUS, and the order is
+  // the fix to a defect rather than a preference: the index route can refuse
+  // (an unmerged entry, a tracked link) and return, and with this block after
+  // it a tolerated skip went unmentioned on exactly those paths, against the
+  // rule this block states. Nothing in it depends on the index route having
+  // run, so moving it up costs nothing and makes the disclosure unconditional.
+  // A tolerated file is never silent, and the tolerance is only good while the
+  // file is still gone: if it is back on disk the sweep skipped something that
+  // exists, which is an incomplete scan and refuses like any other.
+  if (vanished.length > 0) {
+    const back = vanished.filter((t) => t.absPath !== undefined && existsSync(t.absPath));
+    if (back.length > 0) {
+      process.stderr.write(
+        `[phi-scan] could not read ${back.map((t) => t.path).join(", ")}: vanished mid-scan and is ` +
+          `present again, so the sweep did not observe it. Re-run with the tree at rest.\n`,
+      );
+      return 2;
+    }
+    process.stderr.write(
+      // "gone" rather than "deleted": a rename leaves the enumerated path just
+      // as absent, and the residual on `Target.tolerateVanish` is about exactly
+      // that case, so the line must not assert the file was removed.
+      `[phi-scan] skipped ${String(vanished.length)} untracked file(s) gone between ` +
+        `enumeration and read: ${vanished.map((t) => t.path).join(", ")}\n`,
+    );
+  }
+
   // THE INDEX CORPUS, all mode only: the bytes git carries, at every path it
   // carries them, whether or not that path sits under a walk root and whether
   // or not the working tree still agrees with it. The mechanism, everything it
@@ -2363,27 +2390,6 @@ function main(): number {
         throw err;
       }
     }
-  }
-
-  // A tolerated file is never silent, and the tolerance is only good while the
-  // file is still gone: if it is back on disk the sweep skipped something that
-  // exists, which is an incomplete scan and refuses like any other.
-  if (vanished.length > 0) {
-    const back = vanished.filter((t) => t.absPath !== undefined && existsSync(t.absPath));
-    if (back.length > 0) {
-      process.stderr.write(
-        `[phi-scan] could not read ${back.map((t) => t.path).join(", ")}: vanished mid-scan and is ` +
-          `present again, so the sweep did not observe it. Re-run with the tree at rest.\n`,
-      );
-      return 2;
-    }
-    process.stderr.write(
-      // "gone" rather than "deleted": a rename leaves the enumerated path just
-      // as absent, and the residual on `Target.tolerateVanish` is about exactly
-      // that case, so the line must not assert the file was removed.
-      `[phi-scan] skipped ${String(vanished.length)} untracked file(s) gone between ` +
-        `enumeration and read: ${vanished.map((t) => t.path).join(", ")}\n`,
-    );
   }
 
   // Refuse a sweep that observed nothing UNDER ANY ONE OF ITS ROOTS.

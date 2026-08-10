@@ -2425,6 +2425,24 @@ describe("phi-scan: the index corpus", () => {
     expect(r.stderr).toMatch(/unmerged/);
   });
 
+  it("REFUSES a GITLINK in the index, and says what git carries for one", () => {
+    // The other half of the not-a-regular-entry rule on this route, pinned
+    // rather than asserted: the census claims every state it lists is pinned by
+    // a case, and this half was verified by hand and left unpinned, which is
+    // the same species of gap as an unmeasured control. A gitlink is NOT a
+    // symbolic link: git carries another repository's commit id for it, not a
+    // target path, so it gets its own half of the sentence.
+    const repo = makeScanRepo({ git: true });
+    gitCommit(repo, "seed");
+    const commitOid = gitOut(repo, ["rev-parse", "HEAD"]).trim();
+    gitIn(repo, ["update-index", "--add", "--cacheinfo", `160000,${commitOid},vendor/sub`]);
+
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(2);
+    expect(r.stderr).toContain("vendor/sub (a gitlink (a nested repository))");
+    expect(r.stderr).toContain("another repository's commit id");
+  });
+
   it("does NOT read markdown out of the index, the one exclusion", () => {
     // Copied from `walk()` rather than invented: a README or an override log
     // legitimately describes a violator value. Stated as a case rather than a

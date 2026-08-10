@@ -427,14 +427,6 @@ three different censuses of one slice is how a number goes wrong.
    (exit 2). This replaces a quieter fail-closed branch that switched one
    tolerance off and let the sweep report a verdict anyway.
 
-**A refusal still prints what the walk already found.** Cases 6, 7 and 8 refuse
-the whole sweep, and the walk may have found PHI under a root that yielded
-perfectly well; those hits are printed before the refusal, and the exit code is
-still 2, because an incomplete sweep is not a verdict whatever it found on the
-way. The first draft of this route printed the refusal alone, which was
-**worse** than the base commit for that input (exit 1 with five hits on base,
-exit 2 and silence here). Pinned by its own cases.
-
 **What it deliberately does not do**, so nobody reads a bigger claim than the
 code makes:
 
