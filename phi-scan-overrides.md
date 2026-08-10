@@ -386,35 +386,54 @@ committed corpus goes unopened. Measured before this change, exit **0** with
 `OK: no hits`. Reading the index blob is the only answer that does not depend on
 the working tree being honest.
 
-**What that closed here, each measured and each pinned by a case in
-`test/scripts/phi-scan.test.ts`.** All five printed `OK: no hits` at exit **0**
-before it.
+**What that closed here: EIGHT states, each one measured on the base commit and
+each pinned by a case in `test/scripts/phi-scan.test.ts`.** Every one of the
+eight printed `OK: no hits` at exit **0** before this change. The count is
+derived from that list and is the same count in the changeset and the commit;
+three different censuses of one slice is how a number goes wrong.
 
-- **A decoy directory** mirroring the tracked names, and a **single file**
-  replaced by a clean decoy. Both now exit 1, and a hit whose bytes are not the
-  bytes on disk says so, because the remedy includes re-staging.
-- **An undeclared top-level directory.** The walk roots are three names, so
-  anything outside them was invisible to it, and the pre-commit route has its
-  own prefix list. That is how **three real HL7 v2 messages under
-  `examples/data/` had never been read by either route**: two of them carried a
-  date of birth, a street address and person-name tokens that were in no
-  allow-list. They are declared in `scripts/phi-allow-list.txt` now, which is
-  the reviewed act that gate is for. A new directory is in scope the moment git
-  tracks something in it, with nobody having to remember to declare it.
-- **A tracked file absent from the working tree**, which the walk records as a
-  pre-existing limit. It is read from the index instead of skipped.
-- **A tracked symlink or gitlink outside every walk root.** The walk classifies
-  entries _inside_ a root, so such an entry was reached by neither route. It is
-  refused by mode (exit 2), and the refusal names the entry and never what is on
-  the other side of it.
-- **An unmerged index entry**, refused in all mode the way the pre-commit route
-  already refused it.
+1. **A walk root swapped for a decoy directory** mirroring the tracked names
+   over clean files. Now exit 1.
+2. **A single file replaced by a clean decoy** over PHI-bearing index bytes. Now
+   exit 1, and a hit whose bytes are not the bytes on disk says so, because the
+   remedy there includes re-staging.
+3. **A message under an undeclared top-level directory.** The walk roots are
+   three names, so anything outside them was invisible to it, and the
+   pre-commit route has its own prefix list. That is how **three real HL7 v2
+   messages under `examples/data/` had never been read by either route**: two of
+   them carried a date of birth, a street address and person-name tokens that
+   were in no allow-list. They are declared in `scripts/phi-allow-list.txt` now,
+   which is the reviewed act that gate is for. A new directory's **committed
+   bytes** are in scope the moment git tracks something in it, with nobody
+   having to remember to declare it. For a file that is not itself a message
+   that buys the dashed-SSN and non-test-email floor and nothing else: widening
+   the scope and widening the recogniser are two different changes.
+4. **A tracked file absent from the working tree**, which the walk records as a
+   pre-existing limit. It is read from the index instead of skipped. Now exit 1.
+5. **PHI behind a walk root that is itself a symlink.** That root is followed
+   and the per-root rule is satisfied by whatever is on the other side of it,
+   which is unchanged; the tracked corpus behind it is read anyway. Now exit 1.
+6. **A tracked symlink or gitlink outside every walk root.** The walk classifies
+   entries _inside_ a root, so such an entry was reached by neither route.
+   Refused by mode (exit 2), and the refusal names the entry and never what is
+   on the other side of it.
+7. **An unmerged index entry**, refused in all mode (exit 2) the way the
+   pre-commit route already refused it, with that route's mechanism sentence
+   corrected rather than copied: this one reads by object id, not by
+   `git show :<path>`.
+8. **An empty index**, which is not a clean corpus but no corpus: every check
+   against what git carries would pass vacuously, and an empty tracked set is
+   also the one state in which the tracked-file bound stops existing. Refused
+   (exit 2). This replaces a quieter fail-closed branch that switched one
+   tolerance off and let the sweep report a verdict anyway.
 
-**An empty index now refuses (exit 2).** It is not a clean corpus, it is no
-corpus: every check against what git carries would pass vacuously, and an empty
-tracked set is also the one state in which the tracked-file bound stops
-existing. This replaces a quieter fail-closed branch that switched one tolerance
-off and let the sweep report a verdict anyway.
+**A refusal still prints what the walk already found.** Cases 6, 7 and 8 refuse
+the whole sweep, and the walk may have found PHI under a root that yielded
+perfectly well; those hits are printed before the refusal, and the exit code is
+still 2, because an incomplete sweep is not a verdict whatever it found on the
+way. The first draft of this route printed the refusal alone, which was
+**worse** than the base commit for that input (exit 1 with five hits on base,
+exit 2 and silence here). Pinned by its own cases.
 
 **What it deliberately does not do**, so nobody reads a bigger claim than the
 code makes:
@@ -437,12 +456,17 @@ code makes:
 - **Gitignore is not consulted here**, unlike the walk. A tracked file that also
   matches an ignore rule is still content git carries.
 
-**The residual, stated plainly: content that is untracked AND outside every walk
-root is still read by neither route.** The index route reads what git carries and
-the walk reads three named roots, so an untracked scratch file at the repo root
-or under an undeclared directory falls between them. Closing that means
-enumerating the untracked working tree repo-wide, which is a different
-enumeration with its own refusal semantics, and it is not this.
+**The residual, measured rather than reasoned, because the first draft of this
+paragraph was narrower than the code: WORKING-TREE BYTES AT A PATH OUTSIDE EVERY
+WALK ROOT ARE READ BY NEITHER ROUTE, whether or not git tracks the path.** The
+walk reads three declared roots; this route reads what the index carries; the two
+miss the same place from opposite sides. Measured: PHI added to a **tracked**
+`examples/data/*.hl7` and left unstaged prints `OK: no hits` at exit 0, while the
+identical edit under `test/fixtures/` exits 1 because the walk reads it off disk.
+An untracked file out there is not read at all. Both halves are base-identical,
+so nothing regressed; what is new is that the claim is written down. Closing it
+means enumerating the untracked working tree repo-wide, a third enumeration with
+its own refusal semantics, and it is not this.
 
 **Before porting any of this: derive, do not copy.** Each sibling phrases and
 exits differently, this repo's exit codes are its own (a walk root that is a
@@ -450,6 +474,19 @@ regular file exits **2** here and **1** in at least one sibling), and the
 `--staged` scope question is a per-repo hook decision. What ports cleanly is the
 shape: read the bytes git carries, compare them against what the walk read, and
 refuse rather than report when the index cannot be read at all.
+
+**Two conditions do not fire here and will fire in a sibling**, both found by
+review rather than by a run in this repo, which is why they are written down.
+**EOL normalization makes every file diverge**: with `.gitattributes` setting
+`eol=crlf`, or `core.autocrlf=true`, the blob and the working-tree file differ on
+every text file, so the byte comparison skips nothing, every file is scanned
+twice, every count doubles, and each hit is repeated with a re-staging remedy for
+a file `git status` calls unmodified. It is fail-safe in direction (a duplicate
+finding, never a miss), and it must **not** be fixed by normalizing before the
+comparison, which would skip a decoy that differs only in line endings. **And a
+gitlink refuses the sweep permanently**: a mode-160000 entry anywhere in the
+index is refused, so a repo with a real submodule cannot take this route
+unmodified. Both are decisions to make on the way in, not lines to copy.
 
 ## Format
 

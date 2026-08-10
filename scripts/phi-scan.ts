@@ -915,16 +915,14 @@ const RAW_RECORD = /^:(?:\d{6}) (\d{6}) [0-9a-f]+ [0-9a-f]+ ([A-Z])\d*$/;
  * usually a perfectly ordinary regular file, and what it lacks is a SINGLE
  * staged blob rather than a readable type.
  */
-function refuseUnmerged(paths: string[]): void {
+function refuseUnmerged(paths: string[], how: string): void {
   if (paths.length === 0) return;
   const lines = paths.map((p) => `  - ${p}`).join("\n");
   const noun = paths.length === 1 ? "path is unmerged" : "paths are unmerged";
   throw new InvocationError(
     `refusing the scan: ${String(paths.length)} in-scope ${noun}:\n${lines}\n` +
       "An unmerged path is recorded at one or more of stages 1/2/3 and never at stage 0, so " +
-      "`git show :<path>` " +
-      "fails outright and there is no one staged blob for the scan to read. " +
-      "Resolve the conflict and `git add` the result.",
+      `${how} Resolve the conflict and \`git add\` the result.`,
   );
 }
 
@@ -1109,7 +1107,12 @@ function buildTargetsForStaged(): Target[] {
   // Unmerged first: such a record's destination mode is `000000`, which the mode
   // test below would otherwise refuse with a sentence about symbolic links and
   // gitlinks that is false for it.
-  refuseUnmerged(inScope.filter((s) => s.status === "U").map((s) => s.path));
+  // The mechanism sentence is THIS route's: it is `git show :<path>` that this
+  // route would have used to read the blob.
+  refuseUnmerged(
+    inScope.filter((s) => s.status === "U").map((s) => s.path),
+    "`git show :<path>` fails outright and there is no one staged blob for the scan to read.",
+  );
 
   const list = inScope.filter((s) => s.status !== "U");
 
@@ -1162,8 +1165,12 @@ function buildTargetsForStaged(): Target[] {
  *     route: `examples/data/` holds three tracked `.hl7` MESSAGES, and two of
  *     them carried a DOB, a street address and person-name tokens that were in
  *     no allow-list. Neither route had ever opened them. The index route reads
- *     every tracked path, so a new top-level directory is in scope the moment
- *     git tracks it, without anyone remembering to declare it.
+ *     every tracked path, so a new top-level directory's COMMITTED BYTES are in
+ *     scope the moment git tracks something in it, without anyone remembering
+ *     to declare it. Be exact about the half that buys: its WORKING-TREE bytes
+ *     are not (see the residual below), and what a scope widening buys for a
+ *     file that is not itself a message is tier 3, the dashed-SSN and
+ *     non-test-email floor, and nothing else.
  *   - A TRACKED FILE ABSENT FROM THE WORKING TREE. `walk()` records this as a
  *     pre-existing limit; it is now read from the index instead of skipped.
  *   - A TRACKED SYMLINK OR GITLINK OUTSIDE EVERY WALK ROOT. The walk classifies
@@ -1202,10 +1209,47 @@ function buildTargetsForStaged(): Target[] {
  *     carries, and they are also what the working tree can no longer be trusted
  *     to show.
  *
+ * THE RESIDUAL, MEASURED RATHER THAN REASONED, because the first draft of this
+ * paragraph was narrower than the code and that is this class's signature
+ * defect: WORKING-TREE BYTES AT A PATH OUTSIDE EVERY WALK ROOT ARE READ BY
+ * NEITHER ROUTE, WHETHER OR NOT GIT TRACKS THE PATH. The walk reads three
+ * declared roots and this route reads what the INDEX carries, so the two miss
+ * the same place from opposite sides. Measured on a throwaway repo: PHI added
+ * to a TRACKED `examples/data/*.hl7` and left unstaged prints `OK: no hits` at
+ * exit 0, while the identical edit under `test/fixtures/` exits 1 because the
+ * walk reads it off disk. An UNTRACKED file out there is not read at all. Both
+ * halves are base-identical (nothing outside the roots was read before this
+ * route either); what is new is that the claim is now written down. Closing it
+ * means enumerating the untracked working tree repo-wide, which is a third
+ * enumeration with its own refusal semantics, and it is not this.
+ *
  * ONE PROPERTY WORTH KEEPING WHEN THIS IS PORTED: an index blob is immutable
  * and is read out of the object store, so this route has no enumerate-then-read
  * window at all. The TOCTOU tolerance on `Target.tolerateVanish` covers the
  * walk and only the walk.
+ *
+ * TWO CONDITIONS THAT DO NOT FIRE IN THIS REPO AND WILL FIRE IN A SIBLING. Both
+ * were found by review rather than by this repo's own runs, which is exactly why
+ * they are written here: this file is the copy the other parsers take.
+ *
+ *   - EOL NORMALIZATION MAKES EVERY FILE DIVERGE. With `.gitattributes` setting
+ *     `eol=crlf`, or `core.autocrlf=true` (the Git-for-Windows default), the
+ *     blob and the working-tree file differ by line ending on every text file,
+ *     so the byte comparison skips nothing: every file is scanned twice, every
+ *     count doubles, and each hit is reported once more under
+ *     `INDEX_DIVERGENT_ORIGIN` with a re-staging remedy for a file `git status`
+ *     calls unmodified. The direction is fail-safe (a duplicate finding, never
+ *     a miss) and this repo has no `.gitattributes` and Linux CI, so it is
+ *     recorded rather than handled. DO NOT "fix" it by normalizing before the
+ *     comparison: a decoy differing only in line endings would then be skipped,
+ *     which is the escape this route exists to close. Check the condition
+ *     before porting, and fix it in the reporter if it fires.
+ *   - A GITLINK REFUSES THE SWEEP FOREVER. A mode-160000 entry anywhere in the
+ *     index is refused by the check above, so a repo with a real submodule
+ *     cannot use this route unmodified. That is fail-closed and deliberate here
+ *     (this repo has no submodule, and a stray gitlink is a known recurring
+ *     accident across these repos), but in a repo that legitimately has one it
+ *     is a decision to make, not a line to copy.
  */
 const INDEX_ORIGIN = "git index";
 
@@ -1271,8 +1315,12 @@ function readIndex(): IndexEntry[] {
     const stage = m?.[3];
     const path = m?.[4];
     if (mode === undefined || oid === undefined || stage === undefined || path === undefined) {
-      // The record is NOT echoed: a path is working-tree text and can itself
-      // carry PHI, the same reason a link target is never reported.
+      // The raw record is NOT echoed, and the reason is NOT that a path is
+      // unprintable: every refusal in this file names the paths it is refusing
+      // over, because a refusal nobody can act on is worse. It is that a record
+      // this regex did not match has no known structure, so there is no path to
+      // name in it, and printing unparsed bytes is not the same act as naming a
+      // path the code understood.
       throw new InvocationError(
         "could not read the output of `git ls-files -s -z`: unrecognized record. " +
           "Refusing rather than scanning a list that may be short.",
@@ -1429,14 +1477,27 @@ function buildTargetsForIndex(
   // An unmerged path is recorded at one or more of stages 1/2/3 and never at
   // stage 0, so there is no single set of bytes for this route to attribute to
   // it. Refused with the same message the pre-commit route uses.
-  refuseUnmerged([...new Set(inScope.filter((e) => e.stage !== "0").map((e) => e.path))]);
+  // NOT the pre-commit route's sentence. That one names `git show :<path>`,
+  // which is how THAT route reads a blob; this one reads by object id out of
+  // the entry the index holds, and an unmerged path has no stage-0 entry to
+  // take an id from. Same rule, two mechanisms, and a message that names the
+  // wrong one sends the reader to the wrong place.
+  refuseUnmerged(
+    [...new Set(inScope.filter((e) => e.stage !== "0").map((e) => e.path))],
+    "the index carries no stage-0 entry for it and there is no one object id for this route " +
+      "to read.",
+  );
 
   refuseUnscannable(
     inScope
       .filter((e) => !REGULAR_BLOB_MODES.has(e.mode))
       .map((e) => ({ path: e.path, kind: gitModeKind(e.mode) })),
-    "For such an entry git carries its target path rather than any content, so scanning it " +
-      "would prove nothing about what it points at.",
+    // Covers BOTH kinds this can be, because they are not the same thing: for a
+    // link git carries the target path, and for a gitlink it carries a commit
+    // id in another repository. Neither is content, and the earlier draft of
+    // this sentence described a gitlink as though it were a link.
+    "git carries a link target or another repository's commit id for such an entry, never " +
+      "content, so scanning it would prove nothing about what it refers to.",
     "Remove it from the index, or replace it with a regular file.",
   );
 
@@ -2269,6 +2330,15 @@ function main(): number {
       indexTargets = buildTargetsForIndex(index, observed);
     } catch (err) {
       if (err instanceof InvocationError) {
+        // A REFUSAL MUST NOT SWALLOW A REAL HIT, the same rule the starved-root
+        // refusal below already carries and pins. An unmerged path or a tracked
+        // link ANYWHERE in the index refuses the sweep, and the walk may already
+        // have found PHI under a root that yielded perfectly well: printing the
+        // refusal alone made this route's output strictly worse than the base
+        // commit's for that input (measured: exit 1 with five hits on base, exit
+        // 2 and silence here). The exit code is still 2, because an incomplete
+        // sweep is not a verdict whatever it found on the way.
+        if (hits.length > 0) report(hits, vanished.length);
         process.stderr.write(`[phi-scan] ${err.message}\n`);
         return 2;
       }
@@ -2286,6 +2356,7 @@ function main(): number {
         scanAndAttribute(t, allow, hits);
       } catch (err) {
         if (err instanceof InvocationError) {
+          if (hits.length > 0) report(hits, vanished.length);
           process.stderr.write(`[phi-scan] ${err.message}\n`);
           return 2;
         }

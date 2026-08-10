@@ -2364,7 +2364,10 @@ describe("phi-scan: the index corpus", () => {
     // A root with no walked parent is FOLLOWED, and the per-root rule is then
     // satisfied by whatever is on the other side of it. That limit is unchanged
     // and still recorded, but it no longer hides the tracked corpus: those
-    // bytes are read from the index. Measured on the base commit: exit 0.
+    // bytes are read from the index. Measured on the base commit rather than
+    // reasoned from the limit it cites, because this case's base result was
+    // written from expectation first and that is the trap this item names:
+    // base exit 0, head exit 1, same repo.
     const repo = makeScanRepo({ git: true });
     writeFileSync(
       join(repo, "src", "leak.ts"),
@@ -2500,5 +2503,48 @@ describe("phi-scan: the index corpus", () => {
     const r = runScannerIn(repo, null);
     expect(r.code, `stderr: ${r.stderr}`).toBe(2);
     expect(r.stderr).toMatch(/observed no files under 1 of its 3 scan roots \(src\)/);
+  });
+});
+
+describe("phi-scan: an index-route refusal does not swallow a hit", () => {
+  it("prints what the WALK found before refusing over an unmerged index entry", () => {
+    // A REFUSAL MUST NOT SWALLOW A REAL HIT: the rule the starved-root refusal
+    // already carried, applied to the two refusals this route added. An
+    // unmerged path anywhere in the index refuses the whole sweep, and the walk
+    // may have found PHI under a root that yielded perfectly well. Measured
+    // before the fix: exit 2 with the refusal alone, where the BASE commit
+    // exited 1 and printed five hits over the same repo. The exit code is still
+    // 2, because an incomplete sweep is not a verdict whatever it found.
+    const repo = makeScanRepo({ git: true });
+    writeFileSync(join(repo, "test", "fixtures", "leak.hl7"), INDEX_PHI);
+    const abs = join(repo, "test", "fixtures", "conflict.hl7");
+    writeFileSync(abs, CLEAN_FIXTURE);
+    const blob = gitOut(repo, ["hash-object", "-w", "test/fixtures/conflict.hl7"]).trim();
+    rmSync(abs, { force: true });
+    gitInWithInput(
+      repo,
+      ["update-index", "--index-info"],
+      `100644 ${blob} 2\ttest/fixtures/conflict.hl7\n`,
+    );
+
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(2);
+    expect(r.stderr).toContain("HIT: test/fixtures/leak.hl7");
+    expect(r.stderr).toContain(V.tFam);
+    expect(r.stderr).toMatch(/unmerged/);
+  });
+
+  it("prints what the WALK found before refusing over a tracked link", () => {
+    const repo = makeScanRepo({ git: true });
+    writeFileSync(join(repo, "test", "fixtures", "leak.hl7"), INDEX_PHI);
+    const outside = tempDir("hl7-phi-outside-");
+    writeFileSync(join(outside, "benign.txt"), "nothing to see here\n");
+    symlinkSync(join(outside, "benign.txt"), join(repo, "pointer.txt"));
+    gitIn(repo, ["add", "pointer.txt"]);
+
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(2);
+    expect(r.stderr).toContain("HIT: test/fixtures/leak.hl7");
+    expect(r.stderr).toContain("pointer.txt (a symbolic link)");
   });
 });
