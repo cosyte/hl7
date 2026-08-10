@@ -129,6 +129,16 @@ NAME AL
 # a PID-5 token once the escape sequences are stripped.
 NAME ABC
 
+# --- Tokens the runnable EXAMPLE messages use as names --------------------
+# These arrived when the sweep started reading the bytes git carries at every
+# tracked path: `examples/data/` is a top-level directory that is not a walk
+# root, so the three HL7 v2 messages in it had never been read by either
+# enumerating route. Every token below was surfaced by the gate rather than
+# guessed at, and every one is an invented stand-in in a sample message, the
+# same species as JOHN and JANE above.
+NAME ALICE
+NAME ADAMS
+
 # Batch per-message uniqueness tags placed in the PID-5 middle-name slot
 # (test/fixtures/batch/*.hl7, `Test^Patient^MSGA0001`)
 NAME MSGA
@@ -143,6 +153,9 @@ DOB 19601231
 DOB 19620305
 DOB 19630712
 DOB 19650301
+# `examples/data/adt-mutate-source.hl7` (PID-7), surfaced when the sweep began
+# reading every tracked path rather than the walk roots only.
+DOB 19650310
 DOB 19651122
 DOB 19700101
 DOB 19700401
@@ -151,6 +164,8 @@ DOB 19720310
 DOB 19750220
 DOB 19750301
 DOB 19750615
+# `examples/data/oru-r01-lab.hl7` (PID-7), same sweep.
+DOB 19750620
 DOB 19750701
 DOB 19771120
 DOB 19800101
@@ -175,6 +190,8 @@ ADDR 456 Elm St
 ADDR 789 Oak St
 # Inline fixture under test/ (NK1-4 next-of-kin address).
 ADDR 456 Oak St
+# `examples/data/adt-mutate-source.hl7` (PID-11), same sweep.
+ADDR 55 Oak Rd
 
 # --- Synthetic bare-numeric identifiers (PID-3 / PID-18 / PID-19) ---
 # `123456`: the CX id in the field-coercion fixture's PID-3
@@ -186,3 +203,10 @@ EMAILDOMAIN example.com
 EMAILDOMAIN example.org
 EMAILDOMAIN example.net
 EMAILDOMAIN example.test
+# The project's own contact address, in `package.json`. It is not a fixture and
+# not a patient contact, and the sweep reads `package.json` now that it reads
+# every tracked path. KNOW WHAT THIS COSTS: an allow-list entry is global and
+# route-blind, so an address at this domain inside a FIXTURE would pass the
+# email floor from here on. The name, DOB, MRN and address gates are what still
+# cover such a fixture.
+EMAILDOMAIN cosyte.com

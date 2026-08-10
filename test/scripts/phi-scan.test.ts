@@ -538,18 +538,32 @@ function makeStarvedScanRepo(root: "test/fixtures" | "test" | "src"): string {
 }
 
 /**
- * A `git` that runs `pre` (a line of `sh`) before delegating to the real git.
+ * A `git` that runs `pre` (a line of `sh`) before delegating to the real git,
+ * on the call whose argv contains `match`.
  *
- * `pre` runs on EVERY git call the scanner makes, which in `all` mode is
- * `check-ignore` and then `ls-files`, both before the first read. Every `pre`
- * used below is therefore idempotent (`rm -f`, `mkdir -p`) on purpose: a
- * non-idempotent one would behave differently on the second call.
+ * IT IS MATCHED ON THE SUBCOMMAND, AND THAT IS LOAD-BEARING RATHER THAN
+ * TIDINESS. These cases provoke the enumeration TOCTOU window, which opens when
+ * `walk()` has listed a root and closes when the first file is read. All mode
+ * calls git either side of that window: `ls-files -s -z` reads the index BEFORE
+ * the walk, `check-ignore` runs AFTER the walk has enumerated and before any
+ * read, and `cat-file` runs after the reads. An unmatched shim fired on the
+ * first of those, so the decoy was already gone before the walk listed it and
+ * every case here silently stopped provoking the window it names: measured, the
+ * tracked-file refusal below reported exit 0 with the shim firing everywhere and
+ * exit 2 with it bound to `check-ignore`. A case that no longer reaches its own
+ * branch proves nothing, and it fails GREEN.
+ *
+ * `check-ignore` is therefore the default, because it is the one call inside the
+ * window. `pre` is still idempotent everywhere below: git may call a matching
+ * subcommand more than once.
  */
-function gitShim(pre: string): string {
+function gitShim(pre: string, match = "check-ignore"): string {
   const shimDir = tempDir("hl7-phi-shim-");
-  writeFileSync(join(shimDir, "git"), `#!/bin/sh\n${pre}\nexec '${realGit()}' "$@"\n`, {
-    mode: 0o755,
-  });
+  writeFileSync(
+    join(shimDir, "git"),
+    `#!/bin/sh\ncase " $* " in\n  *" ${match} "*) ${pre} ;;\nesac\nexec '${realGit()}' "$@"\n`,
+    { mode: 0o755 },
+  );
   return shimDir;
 }
 
@@ -619,9 +633,13 @@ describe("phi-scan: enumeration TOCTOU", () => {
     expect(r.stderr).toMatch(/EISDIR/);
   });
 
-  it("REFUSES the tolerance outright when git cannot say what is tracked", () => {
-    // Fail closed: with no tracked set there is no way to tell a build transient
-    // from committed content, so nothing is tolerated.
+  it("REFUSES outright when git cannot say what it carries", () => {
+    // Fail closed. This used to be a property of the TOLERANCE alone (with no
+    // tracked set, a build transient is indistinguishable from committed
+    // content, so nothing was tolerated and the sweep carried on). All mode now
+    // reads the bytes git carries as well as the working tree, so the same
+    // condition refuses the whole sweep one step earlier: a verdict over the
+    // working tree alone is not the verdict this gate claims to give.
     const repo = makeScanRepo({ git: false });
     const decoy = join(repo, BUNDLED);
     writeFileSync(decoy, "export default {};\n");
@@ -632,24 +650,34 @@ describe("phi-scan: enumeration TOCTOU", () => {
     expect(r.stderr).toMatch(/could not read/);
   });
 
-  it("REFUSES the tolerance when git answers with an EMPTY tracked set", () => {
-    // An empty index would make every file untracked, which is the one state in
-    // which the tracked-file bound stops existing, so it counts as no answer.
+  it("REFUSES an all-mode sweep over an EMPTY index", () => {
+    // An empty index is not a clean corpus, it is no corpus: every check the
+    // sweep makes against what git carries would pass vacuously, and an empty
+    // tracked set would also make every file untracked, which is the one state
+    // in which the tracked-file bound stops existing. Both readings refuse.
     const repo = makeScanRepo({ git: true, track: false });
     const decoy = join(repo, BUNDLED);
     writeFileSync(decoy, "export default {};\n");
     const r = runScannerIn(repo, gitShim(`rm -f '${decoy}'`));
     expect(r.code, `stderr: ${r.stderr}`).toBe(2);
-    expect(r.stderr).toMatch(/could not read/);
+    expect(r.stderr).toMatch(/the git index holds no entries/);
   });
 
-  it("REFUSES an all-mode sweep that observed no files", () => {
+  it("REFUSES an all-mode sweep whose WALK observed no files", () => {
     // The refuse-a-scan-that-observes-nothing rule, now explicit: tolerating a
     // vanished file must never be able to decay into a clean report of nothing.
-    // Nothing tracked and everything ignored, so the walk finds files and the
-    // filters leave zero targets. (`git check-ignore` never reports a TRACKED
-    // path as ignored, which is why nothing is staged here.)
+    // Everything under the roots is untracked and ignored, so the walk finds
+    // files and the filters leave zero targets.
+    //
+    // THE INDEX IS DELIBERATELY NOT EMPTY, and it holds exactly one MARKDOWN
+    // file. An empty index refuses one step earlier (the case above), which
+    // would leave this rule asserted by a case that never reaches it; markdown
+    // is the one thing the index route skips, so the index is populated and
+    // still contributes no target. That keeps this case about the WALK, which
+    // is what the per-root rule is a statement about.
     const repo = makeScanRepo({ git: true, track: false });
+    writeFileSync(join(repo, "README.md"), "# scratch\n");
+    gitIn(repo, ["add", "README.md"]);
     writeFileSync(join(repo, ".gitignore"), "*\n");
     const r = runScannerIn(repo, null);
     expect(r.code, `stderr: ${r.stderr}`).toBe(2);
@@ -2228,5 +2256,313 @@ describe("phi-scan: what the per-root rule does NOT cover", () => {
     const r = runScannerIn(makeScanRepo({ git: true }), null);
     expect(r.code, `stderr: ${r.stderr}`).toBe(0);
     expect(r.stdout).toMatch(/^\[phi-scan] OK: no hits\n$/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The index corpus: the bytes git carries
+// ---------------------------------------------------------------------------
+//
+// All mode reads the working tree through the walk AND reads the bytes git
+// carries at every path in the index. This block is that route.
+//
+// EVERY CASE BELOW WAS MEASURED ON THE BASE COMMIT BEFORE IT WAS WRITTEN, and
+// the base result is in each case's own comment. Seven of them printed
+// `[phi-scan] OK: no hits` at exit 0 over a corpus the gate never opened, which
+// is the whole class: a clean result that was never measured. The four marked
+// CONTROL are the other half: they must NOT go red, and each one can (each was
+// checked against a deliberately wrong version of the route, noted per case).
+//
+// Every repo here is a throwaway (`makeScanRepo`), never this one.
+
+/** A message carrying an invented identity, for the index-corpus cases. */
+const INDEX_PHI = msg(
+  MSH,
+  `PID|1||${V.tMrn}^^^HOSP^MR||${V.tFam}^${V.tGiv}||${V.tDob}|F|||${V.tStreet}^^Boston^MA^02101`,
+);
+
+/** `git` in a throwaway repo, with stdin. */
+function gitInWithInput(cwd: string, args: string[], input: string): void {
+  const r = spawnSync("git", args, { cwd, encoding: "utf8", shell: false, input });
+  expect(r.status, r.stderr).toBe(0);
+}
+
+/** Stage `content` at `rel`, then leave `onDisk` (or nothing) in the worktree. */
+function stageThenReplace(repo: string, rel: string, content: string, onDisk: string | null): void {
+  const abs = join(repo, ...rel.split("/"));
+  mkdirSync(join(abs, ".."), { recursive: true });
+  writeFileSync(abs, content);
+  gitIn(repo, ["add", rel]);
+  if (onDisk === null) rmSync(abs, { force: true });
+  else writeFileSync(abs, onDisk);
+}
+
+describe("phi-scan: the index corpus", () => {
+  it("catches a walk root swapped for a directory mirroring the tracked NAMES", () => {
+    // THE ESCAPE THIS ROUTE EXISTS FOR. Reconciling the paths a sweep read
+    // against the paths git tracks is satisfied by a directory that mirrors the
+    // names over clean decoy content: every declared root yields, every tracked
+    // path is accounted for, and the committed corpus was never opened.
+    // Measured on the base commit: exit 0, `OK: no hits`.
+    const repo = makeScanRepo({ git: true });
+    stageThenReplace(repo, "test/fixtures/patient.hl7", INDEX_PHI, null);
+    rmSync(join(repo, "test", "fixtures"), { recursive: true, force: true });
+    mkdirSync(join(repo, "test", "fixtures"), { recursive: true });
+    writeFileSync(join(repo, "test", "fixtures", "patient.hl7"), CLEAN_FIXTURE);
+    writeFileSync(join(repo, "test", "fixtures", "clean.hl7"), CLEAN_FIXTURE);
+
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(1);
+    expect(r.stderr).toContain("test/fixtures/patient.hl7 (git index");
+    expect(r.stderr).toContain(V.tFam);
+  });
+
+  it("catches one file replaced by a clean decoy, and says the bytes differ", () => {
+    // Measured on the base commit: exit 0, `OK: no hits`.
+    const repo = makeScanRepo({ git: true });
+    stageThenReplace(repo, "test/fixtures/patient.hl7", INDEX_PHI, CLEAN_FIXTURE);
+
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(1);
+    // The label separates the two findings: the file on disk does NOT carry
+    // this, so the remedy includes re-staging.
+    expect(r.stderr).toContain("(git index; the working tree differs)");
+    // Five, counted from the run rather than from expectation: PID-5 twice (a
+    // family and a given token), PID-7, PID-11 and PID-3.
+    expect(r.stderr).toMatch(/5 of those are in bytes git carries at that path/);
+  });
+
+  it("catches a message under an UNDECLARED top-level directory", () => {
+    // `SCAN_ROOTS` is three names, so the walk sees nothing outside them, and
+    // `--staged` has its own prefix list. This is how three real HL7 messages
+    // under `examples/data/` in this package had never been read by either
+    // route. Measured on the base commit: exit 0, `OK: no hits`.
+    const repo = makeScanRepo({ git: true });
+    mkdirSync(join(repo, "examples", "data"), { recursive: true });
+    writeFileSync(join(repo, "examples", "data", "sample.hl7"), INDEX_PHI);
+    gitIn(repo, ["add", "examples/data/sample.hl7"]);
+
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(1);
+    expect(r.stderr).toContain("examples/data/sample.hl7 (git index)");
+    expect(r.stderr).toContain(V.tDob);
+  });
+
+  it("catches a tracked file that is absent from the working tree", () => {
+    // The walk's own pre-existing limit, closed for tracked content: a file
+    // committed and then removed from disk used to be read by neither route
+    // once it was no longer being staged. Measured on the base commit: exit 0.
+    const repo = makeScanRepo({ git: true });
+    stageThenReplace(repo, "test/fixtures/gone.hl7", INDEX_PHI, null);
+
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(1);
+    expect(r.stderr).toContain("test/fixtures/gone.hl7 (git index)");
+  });
+
+  it("catches PHI behind a walk root that is itself a symlink", () => {
+    // A root with no walked parent is FOLLOWED, and the per-root rule is then
+    // satisfied by whatever is on the other side of it. That limit is unchanged
+    // and still recorded, but it no longer hides the tracked corpus: those
+    // bytes are read from the index. Measured on the base commit rather than
+    // reasoned from the limit it cites, because this case's base result was
+    // written from expectation first and that is the trap this item names:
+    // base exit 0, head exit 1, same repo.
+    const repo = makeScanRepo({ git: true });
+    writeFileSync(
+      join(repo, "src", "leak.ts"),
+      `export const sample = ${JSON.stringify(INDEX_PHI)};\n`,
+    );
+    gitIn(repo, ["add", "src/leak.ts"]);
+    const elsewhere = join(repo, "elsewhere");
+    mkdirSync(elsewhere);
+    writeFileSync(join(elsewhere, "benign.ts"), "export const benign = true;\n");
+    rmSync(join(repo, "src"), { recursive: true, force: true });
+    symlinkSync(elsewhere, join(repo, "src"));
+
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(1);
+    expect(r.stderr).toContain("src/leak.ts (git index)");
+  });
+
+  it("REFUSES a tracked symbolic link that sits outside every walk root", () => {
+    // The walk only ever classifies entries INSIDE a root, so a link at the
+    // repo root was reached by neither enumerating route. git carries its
+    // TARGET PATH under mode 120000, so there is no content to scan and the
+    // only true thing to say is that the scan cannot account for it.
+    // Measured on the base commit: exit 0, `OK: no hits`.
+    const repo = makeScanRepo({ git: true });
+    const outside = tempDir("hl7-phi-outside-");
+    writeFileSync(join(outside, TARGET_NAME), SYMLINK_PHI);
+    symlinkSync(join(outside, TARGET_NAME), join(repo, "sample.hl7"));
+    gitIn(repo, ["add", "sample.hl7"]);
+
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(2);
+    expect(r.stderr).toContain("sample.hl7 (a symbolic link)");
+    // The refusal names the entry, never what is on the other side of it.
+    expectNoPhi(r.stderr);
+  });
+
+  it("REFUSES an UNMERGED index entry in all mode", () => {
+    // Such a path is recorded at one or more of stages 1/2/3 and never at stage
+    // 0, so there is no single set of bytes to attribute to it. The pre-commit
+    // route already refused this; all mode used to pass over it in silence.
+    // Measured on the base commit: exit 0, `OK: no hits`.
+    const repo = makeScanRepo({ git: true });
+    const abs = join(repo, "test", "fixtures", "conflict.hl7");
+    writeFileSync(abs, INDEX_PHI);
+    const blob = gitOut(repo, ["hash-object", "-w", "test/fixtures/conflict.hl7"]).trim();
+    rmSync(abs, { force: true });
+    gitInWithInput(
+      repo,
+      ["update-index", "--index-info"],
+      `100644 ${blob} 2\ttest/fixtures/conflict.hl7\n`,
+    );
+
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(2);
+    expect(r.stderr).toMatch(/unmerged/);
+  });
+
+  it("REFUSES a GITLINK in the index, and says what git carries for one", () => {
+    // The other half of the not-a-regular-entry rule on this route, pinned
+    // rather than asserted: the census claims every state it lists is pinned by
+    // a case, and this half was verified by hand and left unpinned, which is
+    // the same species of gap as an unmeasured control. A gitlink is NOT a
+    // symbolic link: git carries another repository's commit id for it, not a
+    // target path, so it gets its own half of the sentence.
+    const repo = makeScanRepo({ git: true });
+    gitCommit(repo, "seed");
+    const commitOid = gitOut(repo, ["rev-parse", "HEAD"]).trim();
+    gitIn(repo, ["update-index", "--add", "--cacheinfo", `160000,${commitOid},vendor/sub`]);
+
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(2);
+    expect(r.stderr).toContain("vendor/sub (a gitlink (a nested repository))");
+    expect(r.stderr).toContain("another repository's commit id");
+  });
+
+  it("does NOT read markdown out of the index, the one exclusion", () => {
+    // Copied from `walk()` rather than invented: a README or an override log
+    // legitimately describes a violator value. Stated as a case rather than a
+    // sentence, because it is the only reason an index entry goes unread and a
+    // silent widening of it would be a behaviour change nobody measured.
+    const repo = makeScanRepo({ git: true });
+    writeFileSync(join(repo, "NOTES.md"), `A sample message:\n\n    ${INDEX_PHI}\n`);
+    gitIn(repo, ["add", "NOTES.md"]);
+
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(0);
+    expect(r.stdout).toMatch(/OK: no hits/);
+  });
+
+  it("does NOT widen `--staged`, which is what a commit is blocked on", () => {
+    // The pre-commit route keeps its own scope predicate, deliberately: what it
+    // enumerates decides what a commit is BLOCKED on, which is a hook decision
+    // and not this one. So the same staged violator is caught by all mode and
+    // is not caught by `--staged`. Recorded as a case so the gap is a measured
+    // fact rather than a claim, and so widening it later is a deliberate act.
+    const repo = makeScanRepo({ git: true });
+    mkdirSync(join(repo, "examples", "data"), { recursive: true });
+    writeFileSync(join(repo, "examples", "data", "sample.hl7"), INDEX_PHI);
+    gitIn(repo, ["add", "examples/data/sample.hl7"]);
+
+    expect(runScannerArgsIn(repo, ["--staged"]).code).toBe(0);
+    expect(runScannerIn(repo, null).code).toBe(1);
+  });
+
+  it("CONTROL: a clean repo whose working tree matches the index exits 0", () => {
+    // The negative control on the whole route. It CAN fail: a version that
+    // scanned every index blob without comparing it to what the walk read
+    // still passes here, but the next control catches that one.
+    const r = runScannerIn(makeScanRepo({ git: true }), null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(0);
+    expect(r.stdout).toMatch(/^\[phi-scan] OK: no hits\n$/);
+  });
+
+  it("CONTROL: a clean file that DIFFERS from the index is not a hit", () => {
+    // Divergence is the ordinary state of a working tree mid-edit. The route
+    // scans both sets of bytes; it does not report on the difference itself.
+    // It CAN fail: a version that refused whenever the tree and the index
+    // disagreed would red-lock every edit, and reds here.
+    const repo = makeScanRepo({ git: true });
+    writeFileSync(join(repo, "src", "index.ts"), 'export const version = "0.0.1";\n');
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(0);
+    expect(r.stdout).toMatch(/OK: no hits/);
+  });
+
+  it("CONTROL: a violator in BOTH the working tree and the index is reported ONCE", () => {
+    // The byte comparison is what keeps the two routes from double-counting a
+    // corpus. It CAN fail in both directions: dropping the comparison reports
+    // every hit twice (measured, two `HIT:` lines for one file), and comparing
+    // by mtime or size instead of bytes is exactly what the decoy cases above
+    // defeat.
+    const repo = makeScanRepo({ git: true });
+    writeFileSync(join(repo, "test", "fixtures", "patient.hl7"), INDEX_PHI);
+    gitIn(repo, ["add", "test/fixtures/patient.hl7"]);
+
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(1);
+    expect(r.stderr.split("\n").filter((l) => l.startsWith("[phi-scan] HIT:"))).toHaveLength(1);
+    expect(r.stderr).not.toContain("(git index");
+  });
+
+  it("CONTROL: a starved walk root still refuses, though the index holds its files", () => {
+    // The per-root observation rule is a statement about the WALK and stays
+    // one. Letting the index route satisfy it would retire a trap that is
+    // already paid for: this repo's `src` is empty on disk and every one of its
+    // files was just read out of the index, and it still refuses.
+    const repo = makeScanRepo({ git: true });
+    rmSync(join(repo, "src"), { recursive: true, force: true });
+    mkdirSync(join(repo, "src"), { recursive: true });
+
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(2);
+    expect(r.stderr).toMatch(/observed no files under 1 of its 3 scan roots \(src\)/);
+  });
+});
+
+describe("phi-scan: an index-route refusal does not swallow a hit", () => {
+  it("prints what the WALK found before refusing over an unmerged index entry", () => {
+    // A REFUSAL MUST NOT SWALLOW A REAL HIT: the rule the starved-root refusal
+    // already carried, applied to the two refusals this route added. An
+    // unmerged path anywhere in the index refuses the whole sweep, and the walk
+    // may have found PHI under a root that yielded perfectly well. Measured
+    // before the fix: exit 2 with the refusal alone, where the BASE commit
+    // exited 1 and printed five hits over the same repo. The exit code is still
+    // 2, because an incomplete sweep is not a verdict whatever it found.
+    const repo = makeScanRepo({ git: true });
+    writeFileSync(join(repo, "test", "fixtures", "leak.hl7"), INDEX_PHI);
+    const abs = join(repo, "test", "fixtures", "conflict.hl7");
+    writeFileSync(abs, CLEAN_FIXTURE);
+    const blob = gitOut(repo, ["hash-object", "-w", "test/fixtures/conflict.hl7"]).trim();
+    rmSync(abs, { force: true });
+    gitInWithInput(
+      repo,
+      ["update-index", "--index-info"],
+      `100644 ${blob} 2\ttest/fixtures/conflict.hl7\n`,
+    );
+
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(2);
+    expect(r.stderr).toContain("HIT: test/fixtures/leak.hl7");
+    expect(r.stderr).toContain(V.tFam);
+    expect(r.stderr).toMatch(/unmerged/);
+  });
+
+  it("prints what the WALK found before refusing over a tracked link", () => {
+    const repo = makeScanRepo({ git: true });
+    writeFileSync(join(repo, "test", "fixtures", "leak.hl7"), INDEX_PHI);
+    const outside = tempDir("hl7-phi-outside-");
+    writeFileSync(join(outside, "benign.txt"), "nothing to see here\n");
+    symlinkSync(join(outside, "benign.txt"), join(repo, "pointer.txt"));
+    gitIn(repo, ["add", "pointer.txt"]);
+
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(2);
+    expect(r.stderr).toContain("HIT: test/fixtures/leak.hl7");
+    expect(r.stderr).toContain("pointer.txt (a symbolic link)");
   });
 });
