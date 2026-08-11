@@ -13,7 +13,7 @@ actually present. `msg.structure` is the read-side view; the parser also emits a
 single additive Tier-2 `MISSING_EXPECTED_GROUP` warning per absent group.
 
 This is **not** a conformance validator. It models only the genuinely-Required
-_anchor_ segments (never optional groups), so a conformant-but-sparse message
+*anchor* segments (never optional groups), so a conformant-but-sparse message
 can never trip a false positive. It never throws and never rewrites the message;
 `strict` mode may promote the warning per the usual Postel's-Law model.
 
@@ -30,20 +30,20 @@ A group is **present** if ANY of its anchor segments appears (the conservative
 direction, it suppresses a warning rather than inventing one). Only Required
 anchors are listed.
 
-| Message | Trigger events                         | Required group(s) → anchor segment(s) | Chapter (v2.5.1) |
-| ------- | -------------------------------------- | ------------------------------------- | ---------------- |
-| ADT     | A01, A02, A03, A04, A05, A08, A11, A13 | patient → `PID`; visit → `PV1`        | Ch. 3            |
-| ORU     | R01                                    | result → `OBR`/`OBX`                  | Ch. 7            |
-| ORM     | O01                                    | order → `ORC`                         | Ch. 4            |
-| OML     | O21                                    | order → `ORC`                         | Ch. 4            |
-| OMG     | O19                                    | order → `ORC`                         | Ch. 4            |
-| OMP     | O09                                    | order → `ORC`                         | Ch. 4            |
-| OMI     | O23                                    | order → `ORC`                         | Ch. 4            |
-| SIU     | S12–S24, S26                           | schedule → `SCH`                      | Ch. 10           |
-| MDM     | T02, T06                               | patient → `PID`; document → `TXA`     | Ch. 9            |
-| DFT     | P03                                    | patient → `PID`; financial → `FT1`    | Ch. 6            |
-| VXU     | V04                                    | patient → `PID`                       | CDC IG           |
-| ACK     | (code only)                            | acknowledgment → `MSA`                | Ch. 2            |
+| Message | Trigger events | Required group(s) → anchor segment(s) | Chapter (v2.5.1) |
+|---|---|---|---|
+| ADT | A01, A02, A03, A04, A05, A08, A11, A13 | patient → `PID`; visit → `PV1` | Ch. 3 |
+| ORU | R01 | result → `OBR`/`OBX` | Ch. 7 |
+| ORM | O01 | order → `ORC` | Ch. 4 |
+| OML | O21 | order → `ORC` | Ch. 4 |
+| OMG | O19 | order → `ORC` | Ch. 4 |
+| OMP | O09 | order → `ORC` | Ch. 4 |
+| OMI | O23 | order → `ORC` | Ch. 4 |
+| SIU | S12–S24, S26 | schedule → `SCH` | Ch. 10 |
+| MDM | T02, T06 | patient → `PID`; document → `TXA` | Ch. 9 |
+| DFT | P03 | patient → `PID`; financial → `FT1` | Ch. 6 |
+| VXU | V04 | patient → `PID` | CDC IG |
+| ACK | (code only) | acknowledgment → `MSA` | Ch. 2 |
 
 ## Deliberate exclusions (the false-positive guards)
 

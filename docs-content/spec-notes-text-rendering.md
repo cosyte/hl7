@@ -52,14 +52,14 @@ parseHL7(raw).segments("OBX")[0]?.field(5).render().text; // => "Gross exam unre
 Confirmed firsthand against HL7 v2 Chapter 2 §2.7 (v2.5.1 + v2.8.2; section
 numbers shift by version):
 
-| Escape                    | §       | Rendered as                                         |
-| ------------------------- | ------- | --------------------------------------------------- |
-| `\F\ \S\ \T\ \R\ \E\ \P\` | 2.7.1   | the literal delimiter / escape / truncation char    |
-| `\Xdddd…\`                | 2.7.5/6 | the decoded byte(s) (hex digit **pairs**)           |
-| `\H\` / `\N\`             | 2.7.1   | dropped from `text`; toggles a `highlighted` run    |
-| `\.br\` / `\.ce\`         | 2.7.6/7 | one line break                                      |
-| `\.sp\` / `\.sp <n>\`     | 2.7.6/7 | `n` line breaks (default 1)                         |
-| `\.sk\` / `\.sk <n>\`     | 2.7.6/7 | `n` spaces (default 1)                              |
+| Escape                    | §       | Rendered as                                          |
+| ------------------------- | ------- | ---------------------------------------------------- |
+| `\F\ \S\ \T\ \R\ \E\ \P\` | 2.7.1   | the literal delimiter / escape / truncation char     |
+| `\Xdddd…\`                | 2.7.5/6 | the decoded byte(s) (hex digit **pairs**)            |
+| `\H\` / `\N\`             | 2.7.1   | dropped from `text`; toggles a `highlighted` run     |
+| `\.br\` / `\.ce\`         | 2.7.6/7 | one line break                                       |
+| `\.sp\` / `\.sp <n>\`     | 2.7.6/7 | `n` line breaks (default 1)                          |
+| `\.sk\` / `\.sk <n>\`     | 2.7.6/7 | `n` spaces (default 1)                               |
 | `\.in <n>\` / `\.ti <n>\` | 2.7.6/7 | dropped (indentation, exact column math is a defer) |
 | `\.fi\` / `\.nf\`         | 2.7.6/7 | dropped (word-wrap mode toggle, no content)         |
 

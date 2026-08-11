@@ -261,14 +261,25 @@ describe("a hand-rolled Profile literal keeps its lowercase claim", () => {
   });
 });
 
-describe("the fold applies to the wire, not to the caller's query", () => {
-  // The tolerance this parser owes is to the sender, who picks the wire
-  // spelling. A query is the caller's own source text, so every accessor keeps
-  // asking for a segment the same canonical way it always has: uniform, and
-  // unchanged from before this fix.
-  it("a lowercase QUERY is still a miss, consistently across accessors", () => {
+describe("neither spelling of the query stops working", () => {
+  // Before segment names were folded, `Segment.type` carried the wire spelling
+  // and the `segmentId` shape guard accepts lowercase, so on a feed sending
+  // `obx` it was `segments("obx")` that returned the segment. That is the
+  // workaround a consumer on such a feed will have written, and it must not
+  // start returning `[]` -- which is documented as "no segment of that type
+  // exists" and so cannot be told apart from an empty message.
+  it("the SENDER's spelling still resolves, as it did before the fold", () => {
     const msg = parseHL7(oru("PID", "OBR", "obx"));
-    expect(msg.segments("obx")).toHaveLength(0);
+    expect(msg.segments("obx")).toHaveLength(1);
+    expect(msg.getAll("obx")).toHaveLength(1);
+    // Both spellings are one question, so they share the cached array.
+    expect(msg.segments("obx")).toBe(msg.segments("OBX"));
+  });
+
+  it("the dot-path keeps its uppercase-only contract, in both directions", () => {
+    // Unchanged from before this slice: a dot-path is the caller's own source
+    // text, and `parsePath` has always refused a lowercase segment name.
+    const msg = parseHL7(oru("PID", "OBR", "obx"));
     expect(() => msg.get("obx.5")).toThrow(TypeError);
     expect(() => msg.setField("obx.5", "x")).toThrow(TypeError);
     expect(() => msg.removeSegment("obx")).toThrow(TypeError);

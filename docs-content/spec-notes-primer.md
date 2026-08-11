@@ -21,7 +21,7 @@ here only at its boundary.
 > Chapter 2.A control-and-datatypes text (cross-checked across v2.2, v2.5, v2.5.1,
 > v2.7, v2.8.2 and v2.9), corroborated by the NIST v2+ data-type reference, and
 > was adversarially fact-checked (each claim independently voted; the few that
-> failed are called out inline as _refuted_). The spec text was read from the
+> failed are called out inline as *refuted*). The spec text was read from the
 > widely-cited `hl7.eu` mirror. For a production conformance system, treat the
 > **official HL7-published specification as the authoritative text of record**.
 > A mirror is a convenience, not the source.
@@ -44,10 +44,10 @@ meaningful at exactly one level of the tree, which bounds the parse.
 The parser cannot read anything until it has read `MSH`, because `MSH` declares
 the delimiters the rest of the message uses:
 
-| Where                                                                 | What it is                                  | Canonical value |
-| --------------------------------------------------------------------- | ------------------------------------------- | --------------- | --- |
-| **MSH-1**: the 4th character of the message (immediately after `MSH`) | Field separator                             | `               | `   |
-| **MSH-2**, in fixed order                                             | Component, repetition, escape, subcomponent | `^` `~` `\` `&` |
+| Where | What it is | Canonical value |
+|---|---|---|
+| **MSH-1**: the 4th character of the message (immediately after `MSH`) | Field separator | `|` |
+| **MSH-2**, in fixed order | Component, repetition, escape, subcomponent | `^` `~` `\` `&` |
 
 Whatever values appear in MSH-1/MSH-2 apply **message-wide**. A parser reads
 them once and uses them throughout. The four classic delimiters and their order
@@ -66,11 +66,11 @@ A conservative serializer emits `CR` only.
 
 This is the single most common correctness trap, and a parser must not collapse it:
 
-| On the wire                     | Meaning                     | Effect on a receiver's stored value |
-| ------------------------------- | --------------------------- | ----------------------------------- |
-| a value                         | **populated**               | set it                              |
-| nothing between delimiters      | **not-populated** (omitted) | leave the existing value unchanged  |
-| exactly two double-quotes: `""` | **null**                    | **delete** the existing value       |
+| On the wire | Meaning | Effect on a receiver's stored value |
+|---|---|---|
+| a value | **populated** | set it |
+| nothing between delimiters | **not-populated** (omitted) | leave the existing value unchanged |
+| exactly two double-quotes: `""` | **null** | **delete** the existing value |
 
 The null token is literally `|""|`. Using consecutive double-quotes as field
 content for any other purpose is prohibited by the standard. The consequence for a
@@ -89,10 +89,10 @@ Escape sequences and character-set handling are their own topics: see
 
 Message definitions in the standard are written in an abstract grammar:
 
-| Notation  | Meaning                               |
-| --------- | ------------------------------------- |
-| `[ X ]`   | optional: 0 or 1                      |
-| `{ X }`   | repeating, required: 1 or more        |
+| Notation | Meaning |
+|---|---|
+| `[ X ]` | optional: 0 or 1 |
+| `{ X }` | repeating, required: 1 or more |
 | `[{ X }]` | optional **and** repeating: 0 or more |
 
 `[{ … }]` and `{[ … ]}` are **explicitly equivalent**. A **segment group** is
@@ -104,7 +104,7 @@ example from the v2.7 text is `[{ NK1 }]`: Next of Kin, usage `RE`, cardinality
 ### Two optionality vocabularies: keep them apart
 
 The base segment-definition table and the conformance/profile layer use different
-code sets for the _same concept_, and conflating them is a real bug source:
+code sets for the *same concept*, and conflating them is a real bug source:
 
 - **Base OPT column:** `R` required · `O` optional · `C` conditional · `X`
   not-used-with-this-trigger · `B` backward-compatibility-only · `W` withdrawn.
@@ -131,13 +131,13 @@ That required, differently-named segment is what breaks the ambiguity between
 adjacent optional/repeating occurrences of the same segment. A parser relies on
 exactly this property to place a wire segment into the correct group.
 
-**Two things to _not_ build on** (both were adversarially _refuted_):
+**Two things to *not* build on** (both were adversarially *refuted*):
 
 1. **There is no universal, hardcoded anchor list.** The intuition that
    `MSH`/`PID`/`ORC`/`OBR`/`OBX` are fixed hierarchy anchors (with `PID` a child
    of `MSH`, etc.) does **not** generalize: reconstruction rests on the
    separator rule plus a grammar, not a fixed segment list. A parser that
-   special-cases those names _for general grouping_ is relying on a coincidence.
+   special-cases those names *for general grouping* is relying on a coincidence.
 2. When an expected parent segment is simply **absent**, the standard itself
    concedes the hierarchy "cannot be derived from message structure alone." A
    grammar-driven implementation can synthesize an empty placeholder ("ghost")
@@ -150,7 +150,7 @@ claim a universal anchor model: it checks, per specific `(message code, trigger
 event)` pair, only whether the segments the v2.5.1 abstract syntax marks
 **Required** are present, a deliberately narrow heuristic that can never
 false-positive on a conformant-but-sparse message. "Anchor" there means "a
-Required segment for _this_ trigger," which is a different and legitimate use of
+Required segment for *this* trigger," which is a different and legitimate use of
 the word from the refuted universal-anchor claim above.
 
 ## 4. Message typing: MSH-9 has three components
@@ -167,7 +167,7 @@ belief and was adversarially **refuted**. Do not model MSH-9 as two components;
 
 - **Message type ↔ trigger event is one-to-many:** a trigger maps to exactly one
   message type, but a message type has many triggers. (This is why the structure
-  safety net keys on the `(code, trigger)` _pair_, not the family.)
+  safety net keys on the `(code, trigger)` *pair*, not the family.)
 - **`Z` is reserved:** any message code or trigger beginning with `Z` is locally
   defined and is never assigned by the standard. The same reservation applies to
   locally-defined **Z-segments**, which a tolerant parser accepts and surfaces
@@ -185,10 +185,10 @@ is valued. Original mode is exactly equivalent to enhanced mode with `MSH-15 = N
 `MSH-16 = AL`. Enhanced mode separates two code vocabularies, and a parser/engine
 must know which applies:
 
-| Level                         | Field   | Codes                                                       |
-| ----------------------------- | ------- | ----------------------------------------------------------- |
+| Level | Field | Codes |
+|---|---|---|
 | **Accept** (transport/commit) | `MSA-1` | `CA` commit accept · `CR` commit reject · `CE` commit error |
-| **Application** (business)    | `MSA-1` | `AA` accept · `AE` error · `AR` reject                      |
+| **Application** (business) | `MSA-1` | `AA` accept · `AE` error · `AR` reject |
 
 A positive **accept** acknowledgement means the receiver has committed the message
 to **safe storage**, releasing the sender from resending, a stronger guarantee
@@ -211,17 +211,17 @@ decoding composites. Branch on the message's stated version (`MSH-12`).
 
 **10 components in v2.5 / v2.5.1; 12 in v2.9.**
 
-| #             | Component                       | Type    | Notes                                                           |
-| ------------- | ------------------------------- | ------- | --------------------------------------------------------------- |
-| CX.1          | ID Number                       | ST      | the identifier, the **only Required** component                 |
-| CX.2          | Check Digit                     | ST      |                                                                 |
-| CX.3          | Check Digit Scheme              | ID      |                                                                 |
-| **CX.4**      | **Assigning Authority**         | **HD**  | embedded HD, the namespace scoping the identifier               |
-| CX.5          | Identifier Type Code            | ID      |                                                                 |
-| **CX.6**      | **Assigning Facility**          | **HD**  | embedded HD                                                     |
-| CX.7 / CX.8   | Effective / Expiration Date     | DT      |                                                                 |
-| CX.9 / CX.10  | Assigning Jurisdiction / Agency | CWE     | **present already in v2.5** (a common myth dates these to v2.7) |
-| CX.11 / CX.12 | Security Check / Scheme         | ST / ID | **added in v2.9**                                               |
+| # | Component | Type | Notes |
+|---|---|---|---|
+| CX.1 | ID Number | ST | the identifier, the **only Required** component |
+| CX.2 | Check Digit | ST | |
+| CX.3 | Check Digit Scheme | ID | |
+| **CX.4** | **Assigning Authority** | **HD** | embedded HD, the namespace scoping the identifier |
+| CX.5 | Identifier Type Code | ID | |
+| **CX.6** | **Assigning Facility** | **HD** | embedded HD |
+| CX.7 / CX.8 | Effective / Expiration Date | DT | |
+| CX.9 / CX.10 | Assigning Jurisdiction / Agency | CWE | **present already in v2.5** (a common myth dates these to v2.7) |
+| CX.11 / CX.12 | Security Check / Scheme | ST / ID | **added in v2.9** |
 
 Load-bearing: `CX.1` (the id), `CX.4` (the assigning-authority HD, an id is
 meaningless without the namespace that scopes it), `CX.5` (type code).
@@ -232,7 +232,7 @@ meaningless without the namespace that scopes it), `CX.5` (type code).
 
 `XPN.1` Family Name is itself the `FN` composite (surname plus own/partner
 prefixes). `XPN.2`/`XPN.3` are given / further-given. **`XPN.7` Name Type Code**
-(`L` legal, `A` alias, …) is load-bearing: it decides _which_ name is
+(`L` legal, `A` alias, …) is load-bearing: it decides *which* name is
 authoritative. Version drift to watch: `XPN.6` Degree is `IS` in v2.5, deprecated
 there, withdrawn as of v2.7, and listed as `ST` in v2.9; the date components
 (`XPN.12`/`XPN.13`) are `TS` in v2.5 and `DTM` in v2.7+.

@@ -328,20 +328,28 @@ export class Hl7Message {
     if (this._segmentsByType === undefined) {
       this._segmentsByType = new Map();
     }
-    const cached = this._segmentsByType.get(segmentType);
+    // The QUERY is folded as well as the wire spelling, and dropping this
+    // would be a silent narrowing rather than a tidy-up. Before segment names
+    // were folded at all, `Segment.type` carried the wire spelling and the
+    // `segmentId` shape guard accepts lowercase, so on a feed sending `obx`
+    // it was `segments("obx")` that returned the segment and `segments("OBX")`
+    // that returned nothing. That is precisely the workaround a consumer on
+    // such a feed will have written. Folding both sides means the canonical
+    // query starts working without the sender-spelled one quietly returning
+    // `[]` -- and `[]` is documented as "no segment of that type exists", so a
+    // consumer has no way to tell the narrowing from an empty message.
+    const canonical = canonicalSegmentName(segmentType);
+    const cached = this._segmentsByType.get(canonical);
     if (cached !== undefined) return cached;
 
     // Build from the master `_allSegments` cache so individual Segment
     // wrappers are identical across both caches (D-11 cross-cache
     // stability). `allSegments()` builds the master cache on first call.
-    //
-    // The query is compared as given, NOT folded: `Segment.type` has already
-    // folded the wire spelling, which is where a vendor chooses the case. A
-    // caller writes the query in their own source, so `segments("obx")` stays
-    // the miss it has always been, matching what `msg.get("obx.5")` does.
+    // Keyed by the canonical name so both spellings share one entry and the
+    // D-11 array-identity guarantee does not split across them.
     const all = this.allSegments();
-    const filtered: readonly Segment[] = all.filter((s) => s.type === segmentType);
-    this._segmentsByType.set(segmentType, filtered);
+    const filtered: readonly Segment[] = all.filter((s) => s.type === canonical);
+    this._segmentsByType.set(canonical, filtered);
     return filtered;
   }
 

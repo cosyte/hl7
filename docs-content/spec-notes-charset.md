@@ -44,23 +44,23 @@ HL7 v2 Chapter 2:
 Charset resolution runs through a **frozen Table-0211 registry** (`resolveCharset`),
 mirroring `KNOWN_SEGMENTS`, one source of truth for how a code is treated:
 
-| Table-0211 code                                                               | Treatment                                                                |
-| ----------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| `8859/1` (and `ISO-8859-1` synonyms)                                          | **decode**: via Node `latin1` (**byte-exact**, never fails)              |
-| `ASCII` / blank / `ISO IR6`                                                   | **decode**: strict UTF-8 (a superset; 7-bit is identical)                |
-| `UNICODE UTF-8`, `UNICODE`, `UTF-8`                                           | **decode**: strict UTF-8                                                 |
-| `8859/2`–`8859/8`, `8859/10`, `8859/13`–`8859/16` (and `ISO-8859-N` synonyms) | **decode**: strict `TextDecoder` (C1 range faithful)                     |
-| `8859/9`, `8859/11`                                                           | **preserve verbatim**: no faithful Node decoder (windows-1254/874 alias) |
-| `ISO IR14/87/159`, `GB 18030-2000`, `KS X 1001`, `CNS 11643-1992`, `BIG-5`    | **preserve verbatim**: recognized, not decoded                           |
-| `UNICODE UTF-16`, `UNICODE UTF-32`                                            | **preserve verbatim**: recognized, not decoded                           |
-| anything not in Table 0211                                                    | **preserve verbatim**: unrecognized                                      |
+| Table-0211 code | Treatment |
+| --- | --- |
+| `8859/1` (and `ISO-8859-1` synonyms) | **decode**: via Node `latin1` (**byte-exact**, never fails) |
+| `ASCII` / blank / `ISO IR6` | **decode**: strict UTF-8 (a superset; 7-bit is identical) |
+| `UNICODE UTF-8`, `UNICODE`, `UTF-8` | **decode**: strict UTF-8 |
+| `8859/2`–`8859/8`, `8859/10`, `8859/13`–`8859/16` (and `ISO-8859-N` synonyms) | **decode**: strict `TextDecoder` (C1 range faithful) |
+| `8859/9`, `8859/11` | **preserve verbatim**: no faithful Node decoder (windows-1254/874 alias) |
+| `ISO IR14/87/159`, `GB 18030-2000`, `KS X 1001`, `CNS 11643-1992`, `BIG-5` | **preserve verbatim**: recognized, not decoded |
+| `UNICODE UTF-16`, `UNICODE UTF-32` | **preserve verbatim**: recognized, not decoded |
+| anything not in Table 0211 | **preserve verbatim**: unrecognized |
 
 `resolveCharset` and `canonicalCharset` are exported for callers that want to
 inspect this mapping directly.
 
 **`8859/1` decodes via `latin1`, not `TextDecoder`.** Node's WHATWG
 `TextDecoder("iso-8859-1")` is actually **windows-1252**: it remaps the C1 range
-(byte `0x80` → `€`, `0x9F` → `Ÿ`), which is _not_ ISO-8859-1. Node's `latin1`
+(byte `0x80` → `€`, `0x9F` → `Ÿ`), which is *not* ISO-8859-1. Node's `latin1`
 encoding is the true ISO-8859-1 (every byte maps 1:1), so `8859/1` (by far the
 most common non-UTF-8 HL7 charset) is decoded byte-exactly.
 
@@ -88,18 +88,18 @@ become `U+FFFD` (irreversible loss); instead the raw bytes are read as a `latin1
 1:1 mapping and one warning is raised. The same fail-safe covers a charset the
 parser does not decode at all:
 
-- **`UNSUPPORTED_CHARSET`**: a _recognized_ Table-0211 code that was not decoded:
+- **`UNSUPPORTED_CHARSET`**: a *recognized* Table-0211 code that was not decoded:
   either one this parser never decodes (the multibyte / ISO-2022 East-Asian sets,
   UTF-16/32) **or** a decodable set whose strict decode failed (a byte invalid for
   it, or an ICU build lacking the label).
-- **`UNKNOWN_CHARSET`**: a value that is _not_ an HL7 Table-0211 code at all.
+- **`UNKNOWN_CHARSET`**: a value that is *not* an HL7 Table-0211 code at all.
 
 Both read the bytes as `latin1`; the distinction is diagnostic. Neither warning
 can carry a decoded field value: a label is echoed **only when the Table-0211
 registry recognises it**, and anything else is replaced with `<withheld>`.
 
 That bound is membership rather than spelling for a reason. `UNKNOWN_CHARSET`
-fires precisely _when_ a label is absent from the closed table, so at that moment
+fires precisely *when* a label is absent from the closed table, so at that moment
 there is no spec-defined spelling left to test against, and a shape test cannot
 tell `UNICODE UTF-8` from a patient name. It matters because MSH-18 is read as
 the 18th `|`-token of the text before the first terminator, so on a message
@@ -114,9 +114,9 @@ deliberate trade of one diagnostic for a leak that reached a downstream report.
 
 **Recoverability is exact for single-byte content, best-effort for multibyte.**
 The HL7 structural bytes (the segment terminator CR (`0x0D`), LF, and the
-`|^~\&` delimiters) are 7-bit and unambiguous, so a _single-byte_ undecoded
+`|^~\&` delimiters) are 7-bit and unambiguous, so a *single-byte* undecoded
 field's content bytes survive and re-decode downstream via
-`Buffer.from(value, "latin1")`. A _multibyte_ code unit, however, can contain a
+`Buffer.from(value, "latin1")`. A *multibyte* code unit, however, can contain a
 byte that equals a structural byte (a UTF-16 `0x0D`, say); the tokenizer then
 frames on it. That is precisely why multibyte **decode** is deferred rather than
 claimed. See the limitations below.
@@ -135,7 +135,7 @@ the override wins.
   verbatim**, not decoded. HL7 renders these through stateful `\Mxxyyzz\`
   switches from an ASCII default; stateless whole-buffer decoding would mis-render
   switched content, so correctness is preferred over a lossy guess. Opt-in decode,
-  for the case where such a set is the _declared default_, may be added later.
+  for the case where such a set is the *declared default*, may be added later.
 - **Multibyte framing on the verbatim path.** A recognized-but-undecoded set is
   read as `latin1` and still tokenized, so a content byte that equals an HL7
   structural byte (the segment terminator CR (`0x0D`) / LF (`0x0A`), or a
@@ -149,14 +149,14 @@ the override wins.
   pass through preserved; the switched bytes are not re-rendered into the target
   repertoire.
 - **Byte-verbatim re-emit of a preserved charset escape** is tracked separately
-  (escape-fidelity work): a preserved `\M…\` decodes losslessly _as text_ but the
+  (escape-fidelity work): a preserved `\M…\` decodes losslessly *as text* but the
   serializer may canonicalize its backslashes.
 - **No transliteration** between character sets.
 
 ## Warning codes
 
-| Code                  | Meaning                                                                                                   |
-| --------------------- | --------------------------------------------------------------------------------------------------------- |
+| Code | Meaning |
+| --- | --- |
 | `UNSUPPORTED_CHARSET` | recognized Table-0211 set not decoded (never-decoded, or a strict-decode failure), bytes read as `latin1` |
-| `UNKNOWN_CHARSET`     | value not in Table 0211, bytes read as `latin1`                                                           |
-| `ENCODING_MISMATCH`   | `options.charset` override disagrees with the declared MSH-18                                             |
+| `UNKNOWN_CHARSET` | value not in Table 0211, bytes read as `latin1` |
+| `ENCODING_MISMATCH` | `options.charset` override disagrees with the declared MSH-18 |

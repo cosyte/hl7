@@ -14,7 +14,7 @@ explicit degree-of-precision component to the value's length (v2.5/v2.7).
 ## Why there is no `Date` by default
 
 A JavaScript `Date` is an absolute instant, and most HL7 v2 timestamps are not. `|1970|` is a year,
-`|19880705|` is a calendar day, and a value with no offset is the _sender's_ local time by the
+`|19880705|` is a calendar day, and a value with no offset is the *sender's* local time by the
 standard's own words. Materializing either as a `Date` means inventing a zone, and inventing UTC is
 how a day-only date of birth `|19880705|` becomes a UTC-midnight instant that reads back as
 **July 4** through `.getDate()` in any negative-offset zone. So this library parses DTM into typed
@@ -24,10 +24,9 @@ for one.
 ## The API
 
 ### Core: `src/parser/dates.ts`
-
 - `type DtmPrecision = "year"|"month"|"day"|"hour"|"minute"|"second"|"fraction"`.
 - `interface DtmParts { raw; valid; precision?; year?; month?(1–12, spec-native); day?; hour?; minute?;
-second?; fractionalSeconds?(verbatim digits, no dot); hasTimezone; offsetMinutes?(signed, iff tz) }`.
+  second?; fractionalSeconds?(verbatim digits, no dot); hasTimezone; offsetMinutes?(signed, iff tz) }`.
 - `parseDtm(raw): DtmParts`: pure structural parse of the HL7 DTM shape. **No zero-fill, no `Date`, no
   UTC.** Precision from populated length. Calendar-range check (month 1–12, day 1–31, hour 0–23,
   min/sec 0–59, offset hours ≤ 24 with minutes ≤ 59) → on bad shape/range `valid:false`, raw kept, parts omitted, never a
@@ -44,20 +43,17 @@ second?; fractionalSeconds?(verbatim digits, no dot); hasTimezone; offsetMinutes
   `TIMESTAMP_FALLBACK_FORMAT` warning. `BUILTIN_DATE_FALLBACKS`/`SUPPORTED_DATE_TOKENS` unchanged.
 
 ### TS composite: `src/model/types/ts.ts`
-
 - `TS` is the `DtmParts` shape (raw, valid, precision?, parts, hasTimezone, offsetMinutes?). Frozen.
   **No `.date`.** `parseTs(rep, enc)` = unescape → `parseDtm`.
 - `field.ts::asTs()` returns it.
 
 ### Helpers: `TS`-typed fields (the fidelity reaches the consumer)
-
 `meta.timestamp` (via cascade), `patient.dateOfBirth`, `visit.admit/dischargeDateTime`,
 `observations.observedDateTime` + the `TS|DT` `TypedValue.value`, `allergies.onsetDate`,
 `diagnoses.dateTime`, `insurance.effectiveDate` / `expirationDate`,
 `immunizations.administeredDateTime` / `expirationDate`.
 
 ### Non-goals
-
 Fidelity only: **no** localization, timezone conversion, or arithmetic; a missing offset is **flagged
 sender-local**, never resolved. `HHMM=0000` is preserved (never rolled to the previous day). No new
 warning code. Missing-tz is the structural `hasTimezone:false`, not a warning (avoids noise on the

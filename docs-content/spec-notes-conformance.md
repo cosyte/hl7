@@ -46,14 +46,14 @@ The design boundary is deliberate and load-bearing:
 The profile uses the six HL7 v2 usage codes (HL7 Conformance Methodology:
 Message Profiles; IHE ITI TF Vol.2 Appendix C):
 
-| Code | Meaning                   | Engine behaviour                                          |
-| ---- | ------------------------- | --------------------------------------------------------- |
-| `R`  | Required                  | absent ⇒ `PROFILE_REQUIRED_ABSENT`                        |
-| `RE` | Required, may be Empty    | absence is **never** a violation                          |
-| `C`  | Conditional               | presence **not evaluated** (no predicate language, below) |
-| `CE` | Conditional, may be Empty | presence **not evaluated**                                |
-| `O`  | Optional                  | no presence constraint                                    |
-| `X`  | Not permitted             | present ⇒ `PROFILE_NOT_PERMITTED`                         |
+| Code   | Meaning                    | Engine behaviour                                             |
+| ------ | -------------------------- | ----------------------------------------------------------- |
+| `R`    | Required                   | absent ⇒ `PROFILE_REQUIRED_ABSENT`                          |
+| `RE`   | Required, may be Empty     | absence is **never** a violation                            |
+| `C`    | Conditional                | presence **not evaluated** (no predicate language, below)  |
+| `CE`   | Conditional, may be Empty  | presence **not evaluated**                                  |
+| `O`    | Optional                   | no presence constraint                                      |
+| `X`    | Not permitted              | present ⇒ `PROFILE_NOT_PERMITTED`                           |
 
 **`C` / `CE` presence is not evaluated.** This bounded engine ships no
 conditional-predicate language (a deliberate defer), so a conditional element's

@@ -30,8 +30,8 @@ obx5?.text; // "Critical \H\value\N\ and \X41\" (byte-verbatim on emit)
 
 | Family               | Sequences                             | On read (`value`)                                        | On emit (`toString`/`text`)                                  |
 | -------------------- | ------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------ |
-| **Delimiter**        | `\F\ \S\ \T\ \R\ \E\`                 | decoded to the literal char (`\F\`→`\|`)                 | re-escaped from the decoded char, **byte-exact**             |
-| **Newline**          | `\.br\`                               | decoded to `\n`                                          | re-escaped to `\.br\`, **byte-exact**                        |
+| **Delimiter**        | `\F\ \S\ \T\ \R\ \E\`                 | decoded to the literal char (`\F\`→`\|`)                 | re-escaped from the decoded char, **byte-exact**            |
+| **Newline**          | `\.br\`                               | decoded to `\n`                                          | re-escaped to `\.br\`, **byte-exact**                       |
 | **Truncation**       | `\P\` (v2.7+)                         | decoded to MSH-2's truncation char (or spec default `#`) | re-escaped to `\P\` only when MSH-2 declared one             |
 | **Hex**              | `\X..\`                               | decoded to the raw byte(s) (`\X41\`→`A`)                 | **re-encoded to the sender's exact `\X..\` bytes** (overlay) |
 | **Highlight**        | `\H\ \N\`                             | preserved verbatim (no rendering policy)                 | **verbatim** (overlay)                                       |
