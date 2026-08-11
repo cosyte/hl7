@@ -21,15 +21,15 @@ content it does not yet name.
 
 ## What is version-sensitive (and how this library handles it)
 
-| Area | Version event | Handling |
-|---|---|---|
-| **MSH-2 encoding chars** | v2.7 allows a 5th char (truncation `#`) → MSH-2 may be 5 chars | Accepted; the standard escape set is recognized. |
-| **Composite component growth** | Composites gain trailing components across versions (CWE: 9 → 22 at v2.7) | Never assumed fixed; extra components preserved (see below), never truncated, never thrown on. |
-| **CE → CWE** | CE deprecated v2.5, **withdrawn v2.6**; CWE is the successor coded element | Read uniformly: `asCe()` and `asCwe()` accept either shape; neither is lossy (see *CE↔CWE interchange*). |
-| **CWE version ids** | CWE.7 / CWE.8 (coding-system version id, alternate version id) present from v2.5+ | Surfaced as `codingSystemVersionId` / `alternateCodingSystemVersionId` when present. |
-| **CWE second-alternate triplet + OIDs** | CWE.10–CWE.22 added at v2.7 (second-alternate code triplet, coding-system / value-set OIDs) | Preserved verbatim on `extraComponents`, not yet modeled by name (v2 of this library may restore the full shape). |
-| **TS → DTM** | TS (with a now-deprecated degree-of-precision component) superseded by DTM at v2.5 | One parse path covers both: only the timestamp component is read; the deprecated degree-of-precision component is ignored. Precision is recoverable from `.raw` (its string length encodes the precision). |
-| **MSH-21** | Renamed **Conformance Statement ID → Message Profile Identifier** at v2.5 (datatype became EI) | No semantic change to parsing: MSH-21 is read positionally like any field. The rename is naming only; this note records it so the field is not mistaken for two different things. |
+| Area                                    | Version event                                                                                  | Handling                                                                                                                                                                                                   |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **MSH-2 encoding chars**                | v2.7 allows a 5th char (truncation `#`) → MSH-2 may be 5 chars                                 | Accepted; the standard escape set is recognized.                                                                                                                                                           |
+| **Composite component growth**          | Composites gain trailing components across versions (CWE: 9 → 22 at v2.7)                      | Never assumed fixed; extra components preserved (see below), never truncated, never thrown on.                                                                                                             |
+| **CE → CWE**                            | CE deprecated v2.5, **withdrawn v2.6**; CWE is the successor coded element                     | Read uniformly: `asCe()` and `asCwe()` accept either shape; neither is lossy (see _CE↔CWE interchange_).                                                                                                   |
+| **CWE version ids**                     | CWE.7 / CWE.8 (coding-system version id, alternate version id) present from v2.5+              | Surfaced as `codingSystemVersionId` / `alternateCodingSystemVersionId` when present.                                                                                                                       |
+| **CWE second-alternate triplet + OIDs** | CWE.10–CWE.22 added at v2.7 (second-alternate code triplet, coding-system / value-set OIDs)    | Preserved verbatim on `extraComponents`, not yet modeled by name (v2 of this library may restore the full shape).                                                                                          |
+| **TS → DTM**                            | TS (with a now-deprecated degree-of-precision component) superseded by DTM at v2.5             | One parse path covers both: only the timestamp component is read; the deprecated degree-of-precision component is ignored. Precision is recoverable from `.raw` (its string length encodes the precision). |
+| **MSH-21**                              | Renamed **Conformance Statement ID → Message Profile Identifier** at v2.5 (datatype became EI) | No semantic change to parsing: MSH-21 is read positionally like any field. The rename is naming only; this note records it so the field is not mistaken for two different things.                          |
 
 ## Composite growth: the no-loss contract
 

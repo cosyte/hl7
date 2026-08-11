@@ -60,7 +60,7 @@ They are **not** citable spec mandates.
   `FTS` act as boundaries (they close the current message) and are **never
   yielded as messages**. So **`yielded count == MSH count`**. Envelope **count
   reconciliation** (BTS-1 / FTS-1) is `splitBatch`'s job; `parseStream` streams
-  *messages*, not a batch report.
+  _messages_, not a batch report.
 - **Terminator tolerance.** `\r`, `\r\n`, and `\n` are all accepted as segment
   terminators (real feeds mix them), matching the core parser's `normalize`.
 
@@ -74,7 +74,7 @@ bytes in 1-byte chunks or one big chunk yields identical messages**
 (property-tested across randomized chunk boundaries and 1-byte chunks).
 
 The one subtle case is a **`\r\n` terminator straddling a chunk boundary**: a
-`\r` at the very end of the current buffer is *not* yet treated as a terminator:
+`\r` at the very end of the current buffer is _not_ yet treated as a terminator:
 it waits for the next chunk, because that chunk may begin with the `\n` that
 completes a single `\r\n`. Treating it eagerly would invent a spurious empty
 segment. (The pathological chunk-split-mid-`MSH|^~\&` and mid-`\r\n` cases are
@@ -102,14 +102,14 @@ in a growing buffer.
 - An **unterminated final message** (the stream ended while its last segment had
   no terminator) is still yielded **in full**, with an
   `UNTERMINATED_STREAM_MESSAGE` warning on the entry's `streamWarnings`. Never a
-  throw, never a dropped tail. Only the *final* message can be unterminated; every
+  throw, never a dropped tail. Only the _final_ message can be unterminated; every
   earlier one is closed by the terminator that precedes the next boundary.
 
 ## `streamWarnings` vs `message.warnings`
 
 Per-message parse deviations live on `message.warnings`, exactly as a
 whole-buffer `parseHL7` would report them. Streaming changes nothing there. The
-entry's separate **`streamWarnings`** carries only *stream-level* diagnostics
+entry's separate **`streamWarnings`** carries only _stream-level_ diagnostics
 (today just `UNTERMINATED_STREAM_MESSAGE`), so the per-message surface stays
 identical to the non-streamed parse. Both carry codes + positions only, **never
 a field value**, so no PHI is exposed.
@@ -118,7 +118,7 @@ a field value**, so no PHI is exposed.
 
 - **Consumes an already-de-framed stream.** MLLP `<SB>…<EB><CR>` framing, ACK
   timing, reconnect, and TLS are [`@cosyte/mllp`](https://github.com/cosyte/mllp)'s.
-  `parseStream` yields *parsed messages*, it does not own the wire.
+  `parseStream` yields _parsed messages_, it does not own the wire.
 - **No random access / seek**; ordering is stream order. Not a persistent queue.
 - **Envelope reconciliation is not re-implemented** here: if you need the BTS-1 /
   FTS-1 count checks, buffer with `splitBatch`.

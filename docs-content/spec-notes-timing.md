@@ -63,11 +63,11 @@ never normalized, never resolved to clock times, never mapped to a different
 frequency. Alongside it, a **provenance-only** `kind` tells a consumer _what
 kind_ of pattern it is looking at; `code` always remains authoritative:
 
-| `kind`         | Meaning                                                                   | `interval`?                           |
-| -------------- | ------------------------------------------------------------------------- | ------------------------------------- |
+| `kind`         | Meaning                                                                  | `interval`?                          |
+| -------------- | ------------------------------------------------------------------------ | ------------------------------------ |
 | `"parametric"` | a `Q<integer><unit>` template: `Q6H`, `Q30M`, `Q2D`, `Q1W`, `Q3J5`       | `{ count, unit }`: **never dropped** |
-| `"named"`      | a recognized fixed mnemonic: `BID`, `TID`, `QID`, `QOD`, `QHS`, `PRN`, … | omitted                               |
-| `"unknown"`    | anything else (a local code, free text, an unrecognized mnemonic)         | omitted, surfaced **verbatim**       |
+| `"named"`      | a recognized fixed mnemonic: `BID`, `TID`, `QID`, `QOD`, `QHS`, `PRN`, … | omitted                              |
+| `"unknown"`    | anything else (a local code, free text, an unrecognized mnemonic)        | omitted, surfaced **verbatim**       |
 
 Table 0335 deliberately **mixes** fixed enumerated codes (scheduled at
 institution-specified times) with **parametric templates** whose **integer is

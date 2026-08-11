@@ -287,7 +287,7 @@ export function timestampFallbackFormat(
 /**
  * Build a `SEGMENT_CASE` warning. Emitted when a segment identifier carries an
  * ASCII lowercase letter (e.g. `pid` instead of `PID`, or `Obx` instead of
- * `OBX`), which HL7 v2 Ch. 2 §2.5 does not permit. The parser accepts the
+ * `OBX`), which no segment identifier in the HL7 v2 standard does. The parser accepts the
  * segment and resolves it as the segment it names, so `msg.segments("PID")`,
  * `msg.patient` and `observations()` all see it; the warning is how a consumer
  * learns the sender is non-conforming.

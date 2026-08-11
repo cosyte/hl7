@@ -131,10 +131,22 @@ export const KNOWN_SEGMENTS: ReadonlySet<string> = new Set<string>([
 ]);
 
 /**
+ * Length of every segment identifier this library can match. HL7 v2 Ch. 2 §2.5
+ * defines a segment identifier as three characters; all
+ * {@link KNOWN_SEGMENTS} are three, `defineProfile` validates custom
+ * Z-segments to `/^Z[A-Z0-9]{2}$/`, and the `segmentId` shape guard in
+ * `tokens.ts` requires exactly three. So nothing longer can ever match
+ * anything, whatever its case.
+ *
+ * @internal
+ */
+const SEGMENT_NAME_LENGTH = 3;
+
+/**
  * Fold a segment identifier to its canonical HL7 spelling: **ASCII** uppercase.
  *
- * HL7 v2 Ch. 2 §2.5 defines a segment identifier as three uppercase
- * alphanumeric characters, but real senders ship `pid`, `Pid` and `obx`, and
+ * Segment identifiers in the HL7 v2 standard are three characters and are
+ * uniformly uppercase, but real senders ship `pid`, `Pid` and `obx`, and
  * `README.md` advertises mixed-case segment names as a tolerated real-world
  * violation. Every lookup that asks "which segment is this?" therefore compares
  * canonical forms, so a miscased name resolves to the segment it names. The
@@ -150,14 +162,26 @@ export const KNOWN_SEGMENTS: ReadonlySet<string> = new Set<string>([
  * mapped here, so a non-ASCII lookalike stays unrecognized and falls out as
  * `UNKNOWN_SEGMENT`, which is the honest answer.
  *
+ * **Anything not exactly {@link SEGMENT_NAME_LENGTH} characters is returned
+ * untouched, and that bound is load-bearing rather than a micro-optimization.**
+ * A segment name is whatever precedes the first field separator, so an
+ * unescaped line break inside a narrative field, which HL7 requires to be sent
+ * as `\.br\` and which real senders send raw anyway, hands this function an
+ * entire clinical report as a "segment name". Folding it character by
+ * character is O(len) work that a sender controls the size of, on a path that
+ * runs once per segment per lookup: a 100 KB forged name cost 1.5 ms per
+ * comparison, turning a `msg.get()` loop into an availability problem. Nothing
+ * of that length can match a segment anyway, so the bound costs no behaviour.
+ *
  * Returns the input unchanged when it holds no ASCII lowercase letter, so the
  * overwhelmingly common spec-clean case allocates nothing.
  *
  * @internal
  */
 export function canonicalSegmentName(name: string): string {
+  if (name.length !== SEGMENT_NAME_LENGTH) return name;
   let out: string | undefined;
-  for (let i = 0; i < name.length; i++) {
+  for (let i = 0; i < SEGMENT_NAME_LENGTH; i++) {
     const code = name.charCodeAt(i);
     // 97..122 = 'a'..'z'. Nothing else is touched: not `ı`, not `ﬁ`, not `K`.
     if (code >= 97 && code <= 122) {

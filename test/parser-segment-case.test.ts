@@ -113,12 +113,10 @@ describe("case-folded lookup recovers the data that used to vanish", () => {
     }
   });
 
-  it("resolves through segments(), getAll() and a lowercase QUERY alike", () => {
+  it("resolves through segments() and getAll()", () => {
     const msg = parseHL7(oru("PID", "OBR", "obx"));
     expect(msg.segments("OBX")).toHaveLength(1);
     expect(msg.getAll("OBX")).toHaveLength(1);
-    // A caller asking in the sender's spelling gets the same cached array.
-    expect(msg.segments("obx")).toBe(msg.segments("OBX"));
   });
 
   it("the dot-path resolver agrees with the typed accessors", () => {
@@ -196,6 +194,93 @@ describe("strict mode keeps throwing, and accepts nothing new", () => {
 
   it("an all-uppercase message still parses clean under strict", () => {
     expect(() => parseHL7(oru("PID", "OBR", "OBX"), { strict: true })).not.toThrow();
+  });
+});
+
+describe("a forged segment name cannot amplify work or claim it resolved", () => {
+  /**
+   * A segment name is whatever precedes the first field separator, so an
+   * unescaped line break inside a narrative field, which HL7 requires to be
+   * sent as `\.br\` and which real senders send raw anyway, hands the parser
+   * a whole clinical report as a "segment name". Folding one character at a
+   * time is O(len) work a sender sizes, on a path that runs per segment per
+   * lookup.
+   */
+  const forged = "a narrative line a sender never escaped, repeated ".repeat(2000);
+
+  it("folds nothing that is not exactly three characters", () => {
+    expect(canonicalSegmentName(forged)).toBe(forged);
+    expect(canonicalSegmentName("ab")).toBe("ab");
+    expect(canonicalSegmentName("zpix")).toBe("zpix");
+  });
+
+  it("a huge forged name does not slow a repeated lookup to a crawl", () => {
+    const msg = parseHL7(`${MSH}\rPID|1||MRN1^^^H^MR\r${forged}\rOBX|1|ST|X||v`);
+    const started = performance.now();
+    for (let i = 0; i < 2000; i++) msg.get("OBX.5");
+    const elapsed = performance.now() - started;
+    // Base cost is sub-millisecond; the unbounded fold measured ~1.5 ms per
+    // comparison on a 100 KB name, i.e. seconds for this loop. A generous
+    // ceiling still separates the two by orders of magnitude.
+    expect(elapsed).toBeLessThan(1000);
+  });
+
+  it("does NOT report SEGMENT_CASE for a name that resolved to nothing", () => {
+    const msg = parseHL7(`${MSH}\rPID|1||M\r${forged}`);
+    const codes2 = msg.warnings.map((w) => w.code);
+    expect(codes2).toContain(WARNING_CODES.UNKNOWN_SEGMENT);
+    expect(codes2).not.toContain(WARNING_CODES.SEGMENT_CASE);
+  });
+
+  it("SEGMENT_CASE and UNKNOWN_SEGMENT never both fire for one segment", () => {
+    for (const name of ["zzz", "ZZZ", "pid", "PID", "q9", forged]) {
+      const msg = parseHL7(`${MSH}\r${name}|1`);
+      const perSegment = msg.warnings.filter(
+        (w) =>
+          w.position.segmentIndex === 1 &&
+          (w.code === WARNING_CODES.SEGMENT_CASE || w.code === WARNING_CODES.UNKNOWN_SEGMENT),
+      );
+      expect(perSegment.length).toBeLessThanOrEqual(1);
+    }
+  });
+});
+
+describe("a hand-rolled Profile literal keeps its lowercase claim", () => {
+  // `parseHL7` accepts a bare Profile object with no runtime key validation,
+  // and `defineProfile` rejects a lowercase key, so a literal was the only way
+  // to claim a lowercase Z-feed. Folding the lookup must not unclaim it.
+  const literal = {
+    name: "vendor",
+    customSegments: { zpi: { fields: { encounterId: 1 } } },
+  } as const;
+
+  it("suppresses UNKNOWN_SEGMENT and still resolves the declared field name", () => {
+    const msg = parseHL7(`${MSH}\rzpi|ENC42`, { profile: literal });
+    expect(msg.warnings.map((w) => w.code)).not.toContain(WARNING_CODES.UNKNOWN_SEGMENT);
+    expect(msg.segments("ZPI")[0]?.get("encounterId")?.value).toBe("ENC42");
+  });
+});
+
+describe("the fold applies to the wire, not to the caller's query", () => {
+  // The tolerance this parser owes is to the sender, who picks the wire
+  // spelling. A query is the caller's own source text, so every accessor keeps
+  // asking for a segment the same canonical way it always has: uniform, and
+  // unchanged from before this fix.
+  it("a lowercase QUERY is still a miss, consistently across accessors", () => {
+    const msg = parseHL7(oru("PID", "OBR", "obx"));
+    expect(msg.segments("obx")).toHaveLength(0);
+    expect(() => msg.get("obx.5")).toThrow(TypeError);
+    expect(() => msg.setField("obx.5", "x")).toThrow(TypeError);
+    expect(() => msg.removeSegment("obx")).toThrow(TypeError);
+  });
+
+  it("but the canonical query reaches the miscased segment on the wire", () => {
+    const msg = parseHL7(oru("pid", "OBR", "obx"));
+    expect(msg.segments("OBX")).toHaveLength(1);
+    expect(msg.get("OBX.5")).toBe("7.1");
+    msg.setField("PID.5.1", "SMITH");
+    expect(msg.get("PID.5.1")).toBe("SMITH");
+    expect(msg.rawSegments[1]?.name).toBe("pid");
   });
 });
 

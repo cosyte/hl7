@@ -514,25 +514,41 @@ export function parseHL7(
   // customSegments keys are validated to /^Z[A-Z0-9]{2}$/ at defineProfile
   // time, so they are already canonical and need no folding on that side.
   //
-  // Emission ORDER is load-bearing. UNKNOWN_SEGMENT goes first so that under
-  // `{ strict: true }` (where the first emit throws) a genuinely unrecognized
-  // segment still throws UNKNOWN_SEGMENT exactly as it did before this fix.
-  // A miscased-but-known segment has no UNKNOWN_SEGMENT to emit, so it throws
-  // SEGMENT_CASE: strict keeps throwing on every input it threw on before,
-  // and accepts nothing new.
+  // The two warnings are MUTUALLY EXCLUSIVE, which is what keeps each of them
+  // honest. SEGMENT_CASE says "this is a real segment, merely miscased", so it
+  // fires only when the canonical name actually resolves. Emitting it on any
+  // lowercase text would make it fire on a forged segment name -- an unescaped
+  // line break inside a narrative field hands the parser a line of clinical
+  // prose as a "segment name" -- and tell the reader it had been resolved as
+  // something, which is the same misdirection this slice removed from the
+  // UNKNOWN_SEGMENT text. A name that resolves to nothing gets UNKNOWN_SEGMENT
+  // alone, whose message already states that the comparison ignored case.
+  //
+  // Because they cannot both fire, strict mode (where the first emit throws)
+  // reports the same code it always did for an unrecognized segment, and
+  // SEGMENT_CASE only for a known segment that used to be misreported as
+  // unknown. Strict keeps throwing on every input it threw on before and
+  // accepts nothing new.
   const profileCustomSegments = effectiveProfile?.customSegments;
   for (let segIdx = 0; segIdx < rawSegments.length; segIdx++) {
     const rawSeg = rawSegments[segIdx];
     if (rawSeg === undefined) continue;
     const canonicalName = canonicalSegmentName(rawSeg.name);
+    // The profile claim is checked under BOTH spellings. `defineProfile`
+    // validates customSegments keys to /^Z[A-Z0-9]{2}$/, so a declared key is
+    // canonical and the folded lookup is the one that matters. But `parseHL7`
+    // also accepts a hand-rolled `Profile` literal, which gets no such
+    // validation, and a literal keyed `zpi` was the only way to claim a
+    // lowercase Z-feed before this change. Checking the raw name too keeps
+    // those callers working rather than silently unclaiming their segment.
     const isKnown = KNOWN_SEGMENTS.has(canonicalName);
     const isProfileClaimed =
       profileCustomSegments !== undefined &&
-      Object.prototype.hasOwnProperty.call(profileCustomSegments, canonicalName);
+      (Object.prototype.hasOwnProperty.call(profileCustomSegments, canonicalName) ||
+        Object.prototype.hasOwnProperty.call(profileCustomSegments, rawSeg.name));
     if (!isKnown && !isProfileClaimed) {
       emit(unknownSegment({ segmentIndex: segIdx }, rawSeg.name));
-    }
-    if (canonicalName !== rawSeg.name) {
+    } else if (canonicalName !== rawSeg.name) {
       emit(segmentCase({ segmentIndex: segIdx }, rawSeg.name));
     }
   }

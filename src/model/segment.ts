@@ -32,10 +32,10 @@ export class Segment {
    * `"OBX"`, `"ZPI"`.
    *
    * **Canonical ASCII uppercase.** A sender that ships `pid` or `Obx`, which
-   * HL7 v2 Ch. 2 §2.5 does not permit but which real feeds do, reports here as
-   * `PID` / `OBX`, so `msg.segments("PID")` matches it and a `SEGMENT_CASE`
-   * warning records the deviation. Read {@link Segment.raw}`.name` for the
-   * spelling that actually arrived.
+   * no segment identifier in the HL7 v2 standard does but which real feeds do,
+   * reports here as `PID` / `OBX`, so `msg.segments("PID")` matches it and a
+   * `SEGMENT_CASE` warning records the deviation. Read
+   * {@link Segment.raw}`.name` for the spelling that actually arrived.
    *
    * **Bounded, and it is `"<withheld>"` when the raw name is not that shape.**
    * A line with no field separator has its whole content read as a segment

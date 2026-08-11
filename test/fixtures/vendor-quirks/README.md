@@ -1,10 +1,12 @@
 # vendor-quirks fixtures
 
 One fixture per Tier-2 warning code in
-`src/parser/warnings.ts::WARNING_CODES` (13 total). Each fixture parses in
-lenient mode and (for warnings the parser currently emits) surfaces the
-named code in `msg.warnings` and throws `Hl7ParseError` under
-`{ strict: true }`.
+`src/parser/warnings.ts::WARNING_CODES` that a fixture can trigger. Each
+fixture parses in lenient mode and (for warnings the parser currently
+emits) surfaces the named code in `msg.warnings` and throws
+`Hl7ParseError` under `{ strict: true }`. The count is asserted by the
+sweep rather than stated here, because a number in this sentence went
+stale the moment a code was added.
 
 ## Filename contract (Plan 07-04 D-12)
 

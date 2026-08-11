@@ -10,22 +10,22 @@ sidebar_label: Patient-identity & merge events
 trigger events. It exists for one safety-critical reason: **a mis-applied
 patient merge conflates two patients or orphans clinical data under a retired
 MRN**, the highest-harm ADT path the library previously left unmodelled. The helper's job
-is to hand the consumer both sides of the merge, *labelled by role*, so the
+is to hand the consumer both sides of the merge, _labelled by role_, so the
 consumer can never accidentally retire the survivor.
 
 ## Spec traceability
 
 HL7 v2 Chapter 3 (Patient Administration):
 
-- **A18** (merge patient information, backward-compat): *"The PID segment
+- **A18** (merge patient information, backward-compat): _"The PID segment
   contains the surviving patient ID information. The MRG segment contains the
-  non-surviving information."* The merge direction is therefore
+  non-surviving information."_ The merge direction is therefore
   **spec-explicit and constant: MRG (prior) → PID (surviving)**. The helper
   surfaces it as the literal `direction: "MRG_TO_PID"` on every merge/move
   event and **never infers it from message content**.
 - **A39/A40** (merge person / merge patient identifier list): the incorrect
-  source identifiers travel in MRG and are *"logically never referenced in
-  future transactions"* once merged into the target identifiers in PID.
+  source identifiers travel in MRG and are _"logically never referenced in
+  future transactions"_ once merged into the target identifiers in PID.
 - Recognized triggers and their classification:
   - `merge`: A18, A34, A35, A36 (v2.3-era merges), A39, A40, A41 (account),
     A42 (visit)
@@ -61,7 +61,7 @@ property test over randomized segment layouts.
 ## Fail-safe behavior
 
 A merge/move event with an incomplete MRG→PID pair surfaces **what is
-present** plus a `MERGE_MISSING_PRIOR_OR_SURVIVOR` warning *on the event*
+present** plus a `MERGE_MISSING_PRIOR_OR_SURVIVOR` warning _on the event_
 (read-side helpers never mutate `msg.warnings`):
 
 - PID group with no MRG → warning (`missing: prior`), survivor still surfaced.
@@ -94,7 +94,7 @@ missing), never an identifier, name, or any other field value (no PHI).
   alternate ID / account number / visit number / alternate visit ID). They
   also carry MRG, so a consumer that needs them can read the raw segments
   meanwhile.
-- MRG-2 / MRG-6 (prior *alternate* patient/visit IDs, withdrawn v2.7) are
+- MRG-2 / MRG-6 (prior _alternate_ patient/visit IDs, withdrawn v2.7) are
   deliberately not surfaced.
 - `identityEvents()` keys on the trigger event alone (MSH-9.2, falling back
   to EVN-1). It does not require MSH-9.1 to be `ADT` (lenient toward vendor
