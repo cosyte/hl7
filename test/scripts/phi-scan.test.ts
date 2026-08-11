@@ -398,7 +398,7 @@ describe("phi-scan: --allow-fixture override gate", () => {
     // THIS CASE IS INVERTED FROM WHAT IT PINNED, DELIBERATELY. It used to assert
     // exit 0: "the override log is what flips a violator to clean". The
     // completeness rule made that assertion false and it is the assertion that
-    // was wrong, not the rule — a whole-file bypass withdraws a file from the
+    // was wrong, not the rule: a whole-file bypass withdraws a file from the
     // read set, and a scan that never opened a file has no clean verdict to give
     // about it. What the log gate is FOR is unchanged and is what this still
     // pins: it decides whether the flag is admitted at all, which is a different

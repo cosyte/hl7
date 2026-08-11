@@ -206,7 +206,7 @@
  * otherwise port forward: on a throwaway repo whose `test/fixtures` held exactly
  * one file, `--allow-fixture test/fixtures/<name>` returned `OK: no hits` at exit
  * 0 both here and on the superseded per-root rule. It now exits 2, and NOT
- * through this rule — THE COMPLETENESS RULE refuses it, naming the file as
+ * through this rule. THE COMPLETENESS RULE refuses it, naming the file as
  * enumerated and never read. The conclusion about the per-root rule is unchanged
  * and still stands: do not add a per-root guard for it.
  *
@@ -2239,9 +2239,9 @@ function report(hits: Hit[], skipped: number): void {
   // target enumerated and never read, so a developer following the superseded
   // sentence would be walked from exit 1 into exit 2. A printed remedy that
   // cannot reach the state it promises is the same defect as one that reaches a
-  // false green, with the sign flipped. The flag is still described — silently
+  // false green, with the sign flipped. The flag is still described (silently
   // dropping a documented flag from the diagnostic that names it is how the next
-  // reader re-adds it — but described as what it now is.
+  // reader re-adds it), but described as what it now is.
   process.stderr.write(
     `[phi-scan] ${String(hits.length)} hit(s) across ${String(paths.size)} file(s). ` +
       `If a value is genuinely synthetic, declare it in scripts/phi-allow-list.txt: ` +
@@ -2325,8 +2325,8 @@ function main(): number {
   // exactly the arithmetic that hides which ones did not.
   //
   // WHAT IS ABSENT FROM IT IS AS LOAD-BEARING AS WHAT IS IN IT. A path the
-  // enumerating routes filtered out upstream — a gitignored entry, a `.md` file
-  // on the index route, a staged path outside `isStagedReadable` — never became
+  // enumerating routes filtered out upstream (a gitignored entry, a `.md` file
+  // on the index route, a staged path outside `isStagedReadable`) never became
   // a target and is not in here, so the rule below does not fire on them. The
   // rule speaks only about targets this run named for itself.
   const enumerated = new Set<string>(targets.map((t) => t.path));
@@ -2523,7 +2523,7 @@ function main(): number {
   //
   // A bypass is a SUBTRACTION from this run's own target list. One that matches
   // no target subtracts nothing, so it is accepted, its audit entry is checked,
-  // and it is then IGNORED — and the run reports on a corpus the developer
+  // and it is then IGNORED, and the run reports on a corpus the developer
   // believes was acknowledged. Measured on `dfac162`, in a throwaway repo:
   // `phi-scan <clean file> --allow-fixture <file holding a real PID-5 name>`,
   // with the second path logged in `phi-scan-overrides.md`, printed
@@ -2565,7 +2565,7 @@ function main(): number {
   // exactly as the rejection gate instructs: `phi-scan <violator> <decoy>
   // --allow-fixture <decoy>` exited 1 naming only the violator, so the same argv
   // over a corpus whose ONLY violator is the withdrawn file exited 0 and printed
-  // `[phi-scan] OK: no hits` — byte-identical stdout and exit code to a genuine
+  // `[phi-scan] OK: no hits`, byte-identical stdout and exit code to a genuine
   // clean run over the same tree, with one of the two declared files never
   // opened. A scan that did not open a file has no clean verdict to give
   // about it.
@@ -2578,7 +2578,7 @@ function main(): number {
   // prints the difference.
   //
   // WHAT IT COSTS, DECIDED RATHER THAN STUMBLED INTO: `--allow-fixture` can no
-  // longer reach exit 0 in any mode — this tier and tier 1 together and neither
+  // longer reach exit 0 in any mode: this tier and tier 1 together, and neither
   // alone. Tier 1 judges a bypass that landed on nothing; this one judges a
   // bypass that landed on the target list. The flag, its override log and its
   // rejection gate all stay: they still name the path and still demand a
@@ -2601,8 +2601,8 @@ function main(): number {
   // walk listed and that is gone by the time we read it. Its bytes do not exist
   // to be read, nothing commits it, the run is never silent about it (the file
   // is named on stderr and the clean line is qualified), and a file that is back
-  // on disk already refused above. Everything else — a tracked file, a
-  // non-`ENOENT` failure — throws out of the scan loop and returns 2 there, so
+  // on disk already refused above. Everything else (a tracked file, a
+  // non-`ENOENT` failure) throws out of the scan loop and returns 2 there, so
   // it never reaches this line as a quiet gap.
   //
   // IT IS WRITTEN FOR EVERY MODE AND `--allow-fixture` IS THE ONLY WAY TO REACH

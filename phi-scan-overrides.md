@@ -8,15 +8,15 @@ trail.
 
 **A whole-file bypass can no longer reach exit 0, in any mode, and this is now
 the only thing it does.** The gate above still runs first, so a bypass without an
-entry here is still rejected on that ground. A bypass *with* one is then refused
+entry here is still rejected on that ground. A bypass _with_ one is then refused
 by **the completeness rule**: a target this run enumerated and never read refuses
 at exit **2**, naming the path. Reading one target says nothing about another, so
 a scan that never opened a file has no clean verdict to give about it. A bypass
-that names a path the run does *not* enumerate is refused too, on the companion
+that names a path the run does _not_ enumerate is refused too, on the companion
 tier, because a bypass that subtracts nothing would be accepted, logged and then
 ignored.
 
-**So the remedy that reaches a clean run is `scripts/phi-allow-list.txt`** — a
+**So the remedy that reaches a clean run is `scripts/phi-allow-list.txt`**: a
 token-level, reviewed declaration that leaves the file read. It was already the
 preferred one; it is now the only one. The flag, this log and its rejection gate
 all stay: they still name the path and still demand a committed audit entry, and
@@ -387,7 +387,7 @@ measurement that used to close this paragraph is now **false** and is replaced
 rather than deleted, because the number is what a reader would otherwise port
 forward: on a throwaway repo holding exactly one fixture, that argv returned
 exit 0 both under this rule and under the superseded one. It now exits **2**, and
-not through this rule — the **completeness rule** refuses it, naming the file as
+not through this rule. The **completeness rule** refuses it, naming the file as
 enumerated and never read. The conclusion about the per-root rule is unchanged:
 do not add a per-root guard for it.
 
