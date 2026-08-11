@@ -6,9 +6,11 @@ flag UNLESS this file contains an entry referencing the same path. The committed
 log is intentionally annoying: it discourages bypass and creates an audit
 trail.
 
-**A whole-file bypass can no longer reach exit 0, in any mode, and this is now
-the only thing it does.** The gate above still runs first, so a bypass without an
-entry here is still rejected on that ground. A bypass _with_ one is then refused
+**A whole-file bypass can no longer reach exit 0, in any mode.** Whatever it
+names and whatever else the run scans, the run ends in a refusal. The gate above
+still runs first, so a bypass without an entry here is still rejected on that
+ground, at the same exit code but with a different message. A bypass _with_ one
+is then refused
 by **the completeness rule**: a target this run enumerated and never read refuses
 at exit **2**, naming the path. Reading one target says nothing about another, so
 a scan that never opened a file has no clean verdict to give about it. A bypass

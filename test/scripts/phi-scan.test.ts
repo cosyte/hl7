@@ -18,7 +18,12 @@
  *   - a non-test email in OBX-5 free text
  *   - a custom-delimiter message (delimiters read from MSH-1/MSH-2)
  *   - the committed corpus (all-mode) is clean
- *   - the --allow-fixture override-log gate
+ *   - the --allow-fixture override-log gate, which decides whether the flag is
+ *     ADMITTED, and the completeness rule, which decides what the run then exits
+ *     with: a target enumerated and never read refuses (exit 2) in every mode,
+ *     as does a bypass naming a path the run does not enumerate. Between them a
+ *     whole-file bypass can no longer reach exit 0, so the case that used to pin
+ *     the opposite is inverted rather than deleted
  *   - the enumeration TOCTOU window: what a vanished file is allowed to do to a
  *     sweep, and five of the six ways it still refuses (the sixth, a tolerated
  *     file written back before the post-sweep re-check, is not reachable from a
