@@ -2338,11 +2338,16 @@ function main(): number {
   // cannot: "M of N read" counts the targets that DID get read, which is
   // exactly the arithmetic that hides which ones did not.
   //
-  // WHAT IS ABSENT FROM IT IS AS LOAD-BEARING AS WHAT IS IN IT. A path the
-  // enumerating routes filtered out upstream (a gitignored entry, a `.md` file
-  // on the index route, a staged path outside `isStagedReadable`) never became
-  // a target and is not in here, so the rule below does not fire on them. The
-  // rule speaks only about targets this run named for itself.
+  // WHAT IS ABSENT FROM IT IS AS LOAD-BEARING AS WHAT IS IN IT. A path an
+  // enumerating route filtered out upstream never became a target and is not in
+  // here, so the rule below does not fire on it. The rule speaks only about
+  // targets this run named for itself. Each filter lives in exactly one place
+  // and is named here rather than restated: `walk()`'s gitignore and `.md`
+  // exclusions, `buildTargetsForIndex`'s `.md` exclusion (copied from `walk()`),
+  // and `buildTargetsForStaged`'s `inScope` predicate, which is narrower than
+  // the sweep's roots on purpose. WHAT IS NOT A FILTER IS A REFUSAL: an unmerged
+  // path and a non-regular entry are dropped from these lists and then REFUSED
+  // under their own sentences, so nothing leaves through here quietly.
   const enumerated = new Set<string>(targets.map((t) => t.path));
 
   targets = targets.filter((t) => !allowed.has(t.path));
