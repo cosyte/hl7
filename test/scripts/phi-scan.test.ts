@@ -2684,6 +2684,11 @@ describe("phi-scan: the completeness rule", () => {
     expect(r.code, `stderr: ${r.stderr}`).toBe(2);
     expect(r.stdout).not.toContain("OK: no hits");
     expect(r.stderr).toContain(VIOLATOR);
+    // WHICH tier refused is asserted, not just that something did. Without this
+    // the case stays green under a mutation that swaps the completeness rule for
+    // the unmatched-bypass tier, which would refuse this argv for the wrong
+    // reason and print the wrong remedy.
+    expect(r.stderr).toContain("enumerated and never read");
   });
 
   it("refuses a lone --allow-fixture, which reads nothing at all", () => {

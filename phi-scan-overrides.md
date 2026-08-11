@@ -20,10 +20,22 @@ ignored.
 
 **So the remedy that reaches a clean run is `scripts/phi-allow-list.txt`**: a
 token-level, reviewed declaration that leaves the file read. It was already the
-preferred one; it is now the only one. The flag, this log and its rejection gate
-all stay: they still name the path and still demand a committed audit entry, and
-the run now ends in a refusal that names it rather than a green line that does
-not.
+preferred one. The flag, this log and its rejection gate all stay: they still
+name the path and still demand a committed audit entry, and the run now ends in a
+refusal that names it rather than a green line that does not.
+
+**It is not the remedy for every hit, and saying it was would repeat the defect
+this change closes.** The allow-list has five tags: `NAME`, `DOB`, `ADDR`, `ID`,
+`EMAILDOMAIN`. Two detectors consult none of them, which the sections below
+already state from the other direction (a dashed SSN anywhere is _always_ a hit;
+a phone outside the `555` fake-exchange convention is _always_ a hit). Measured
+on a fixture whose only hit was a dashed SSN, with `ID`, `NAME`, `ADDR` and `DOB`
+entries for both the dashed and undashed spellings: still exit 1. **For those two
+categories the remedy is to change the value in the fixture**, and there is no
+declaration that clears them. The bypass used to, so this is a genuine narrowing
+and is recorded as one. Giving those two detectors a tag would widen what can be
+declared synthetic, which is a change to what the gate permits and belongs in its
+own reviewed change, not in this one.
 
 ## How the scanner detects PHI
 
