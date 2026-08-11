@@ -2738,7 +2738,7 @@ describe("phi-scan: the completeness rule", () => {
     // An UNTRACKED file the walk enumerated and that is gone by the time we read
     // it has no bytes to read; the run says so on stderr and exits 0. It cannot
     // launder a bypass: `tolerateVanish` is set only in `all` mode and
-    // `--allow-fixture` always resolves to `paths` mode.
+    // `--allow-fixture` never resolves to `all` mode.
     const repo = makeScanRepo({ git: true });
     gitCommit(repo, "corpus");
     const decoy = join(repo, "src", "transient.ts");

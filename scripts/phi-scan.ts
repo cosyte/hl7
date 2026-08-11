@@ -202,8 +202,10 @@
  * the target list before anything is read, so allow-fixturing the last remaining
  * file under a root reads like a new way to starve one. It is unreachable.
  * `parseArgs` seeds the positional path set from `allowFixtures` when no path is
- * given, so `--allow-fixture` always resolves to `paths` mode and never to `all`,
- * and a `paths` run declares no root and makes no per-root promise.
+ * given, so `--allow-fixture` never resolves to `all`, and neither of the modes
+ * it does resolve to declares a root or makes a per-root promise. (It resolves to
+ * `paths` USUALLY, and to `staged` when `--staged` is also given; only the `never
+ * to all` half is relied on anywhere.)
  * THE MEASUREMENT THAT USED TO CLOSE THIS PARAGRAPH IS NOW FALSE AND IS REPLACED
  * RATHER THAN DELETED, because the number it named is the thing a reader would
  * otherwise port forward: on a throwaway repo whose `test/fixtures` held exactly
@@ -581,21 +583,21 @@ function parseArgs(argv: string[]): Args {
   // named ONLY by the flag is never ADMITTED to the run rather than withdrawn
   // from it, and the bypass subtracts nothing. Measured on `dfac162`:
   // `phi-scan <clean file> --allow-fixture <violator>`, with the violator logged
-  // in `phi-scan-overrides.md`, printed `[phi-scan] OK: no hits` at exit 0
-  // having validated the bypass, checked its audit entry and opened nothing.
-  // having validated the bypass and checked its audit entry. It scanned and
-  // reported on the CLEAN file, so the precise statement is that it never opened
-  // THE NAMED file, not that it opened nothing. `main`'s unmatched-bypass tier
-  // refuses that argv now. THE FIX IS THERE
-  // RATHER THAN A WIDER SEEDING RULE HERE because four other paragraphs in this
-  // file reason from what this line makes true. THE LOAD-BEARING HALF OF THAT
-  // SENTENCE IS "NEVER TO `all`", which is what keeps `allowed` empty in a sweep
-  // and keeps the vanish carve-out unable to launder a bypass. The other half as
-  // usually written ("always resolves to `paths` mode") is FALSE and is not
-  // relied on anywhere: `--staged --allow-fixture X` resolves to STAGED mode,
-  // because `staged` is tested first below. Both tiers cover that argv, measured
-  // at exit 2 whether or not X is staged. Widening this line would move the
-  // load-bearing half without moving the paragraphs that rest on it.
+  // in `phi-scan-overrides.md`, printed `[phi-scan] OK: no hits` at exit 0,
+  // having validated the bypass and checked its audit entry without ever opening
+  // THE NAMED FILE. (It did open the clean file and report on it, which is why
+  // the claim is about the named file and not about the run.) `main`'s
+  // unmatched-bypass tier refuses that argv now, and the fix is THERE rather
+  // than in a wider seeding rule HERE because other paragraphs reason from what
+  // this line makes true.
+  //
+  // WHAT THEY MAY REASON FROM IS "NEVER `all`", AND ONLY THAT. It is what keeps
+  // `allowed` empty in a sweep, which is what keeps the vanish carve-out unable
+  // to launder a bypass. THE WIDER FORM SOMETIMES WRITTEN NEARBY, "always
+  // resolves to `paths` mode", IS FALSE: `--staged --allow-fixture X` resolves
+  // to STAGED mode, because `staged` is tested first below. Measured at exit 2
+  // whether or not X is staged, through one tier or the other, so nothing is
+  // lost by the correction.
   const scanPaths = paths.length > 0 ? paths : [...allowFixtures];
 
   let mode: Args["mode"];
@@ -699,10 +701,10 @@ function validateAllowFixtures(allowFixtures: string[]): void {
     // be admitted at all; what is added is where admission actually leads.
     throw new InvocationError(
       `--allow-fixture rejected: no matching entry in phi-scan-overrides.md for:\n${lines}\n` +
-        `Add a "### <path>" subsection to phi-scan-overrides.md and commit it. Note that this ` +
-        `admits the flag, it does not make the run clean: a withdrawn target is then refused ` +
-        `(exit 2) as enumerated and never read. To reach exit 0, drop the flag and declare the ` +
-        `individual value in scripts/phi-allow-list.txt, or change the value in the fixture.`,
+        `Add a "### <path>" subsection to phi-scan-overrides.md and commit it. That ADMITS the ` +
+        `flag; it does not make the run clean, because an admitted bypass is then refused ` +
+        `(exit 2) either way. To reach exit 0, drop the flag and declare the individual value ` +
+        `in scripts/phi-allow-list.txt, or change the value in the fixture.`,
     );
   }
 }
@@ -1529,7 +1531,10 @@ function readBlobs(oids: string[]): Map<string, Buffer> {
  * filter chain expressed over PATHS alone, with no blob fetched and BEFORE the
  * dedupe against what the walk already read.
  *
- * THE THREE FILTERS ARE THE SAME THREE, IN THE SAME ORDER, AND THEY HAVE TO BE.
+ * IT MUST ADMIT THE SAME SET AS `buildTargetsForIndex`'s `readable`, AND THE
+ * CLAIM IS SET EQUALITY, NOT ORDER: these are pure predicates in a conjunction,
+ * so the order they are written in is free and the two functions do not use the
+ * same one. Both directions of a mismatch are bugs, and they are different bugs.
  * A path admitted here and dropped there would be enumerated and never read, so
  * the sweep would refuse over its own bookkeeping. A path dropped here and
  * admitted there would be read without having been declared, which is harmless
@@ -2326,7 +2331,7 @@ function report(hits: Hit[], skipped: number): void {
       `If a value is genuinely synthetic, declare it in scripts/phi-allow-list.txt, which is ` +
       `reviewed per value and leaves the file read. That covers the name, DOB, address, ` +
       `identifier and email-domain categories; a dashed SSN and a non-555 phone have NO ` +
-      `allow-list tag, so for those the only remedy is to change the value in the fixture. ` +
+      `allow-list tag, so for those the value itself has to change. ` +
       `A whole-file --allow-fixture bypass is still gated on phi-scan-overrides.md and is ` +
       `then REFUSED (exit 2), because a scan that never opened a file has no clean verdict ` +
       `to give about it.\n`,
@@ -2629,7 +2634,7 @@ function main(): number {
   // no target subtracts nothing, so it is accepted, its audit entry is checked,
   // and it is then IGNORED, and the run reports on a corpus the developer
   // believes was acknowledged. Measured on `dfac162`, in a throwaway repo:
-  // `phi-scan <clean file> --allow-fixture <file holding a real PID-5 name>`,
+  // `phi-scan <clean file> --allow-fixture <file holding a PID-5 name token>`,
   // with the second path logged in `phi-scan-overrides.md`, printed
   // `[phi-scan] OK: no hits` and exited 0. The seeding rule in `parseArgs` is
   // why: it seeds the positional set from the bypass list ONLY when no
@@ -2637,7 +2642,7 @@ function main(): number {
   // ADMITTED to the run rather than withdrawn from it. This tier is the fix, and
   // it is the fix rather than changing that seeding rule because the seeding
   // rule is what four other paragraphs in this file reason from ("the flag
-  // always resolves to `paths` mode and never to all").
+  // never resolves to `all`").
   //
   // IT IS A DIFFERENCE AGAINST THE ENUMERATED SET AND NAMES EVERY OFFENDER.
   //
@@ -2699,9 +2704,11 @@ function main(): number {
   // OVERSTATED HERE UNTIL A REVIEWER MEASURED IT. The allow-list has five tags
   // (NAME, DOB, ADDR, ID, EMAILDOMAIN). The dashed-SSN branch of
   // `scanCommonShapes` consults none of them and `checkPhoneField` is not handed
-  // the allow-list at all, so for those two categories there is now NO route to
-  // a clean run over the same bytes: the remedy is to change the value in the
-  // fixture. That is a real narrowing versus the superseded behaviour, where the
+  // the allow-list at all, so for those two categories NO declaration clears a
+  // hit: with the file still in scope, the value itself has to change. (Taking
+  // the file OUT of scope also reaches exit 0, by renaming it to `.md` or by
+  // untracking and gitignoring it. Both are scope changes rather than remedies,
+  // and neither is what the footer should send a developer to do.) That is a real narrowing versus the superseded behaviour, where the
   // bypass cleared them, and it is written down rather than left for the next
   // developer to discover from a footer that told them to edit a file that
   // cannot help. Giving those two detectors a tag is a defensible follow-up and
@@ -2711,7 +2718,7 @@ function main(): number {
   // A TOLERATED VANISH IS CARVED OUT BY NAME, AND THE CARVE-OUT CANNOT LAUNDER A
   // BYPASS. `Target.tolerateVanish` is set only in `buildTargetsForAll`, i.e.
   // only in `all` mode and only for a file git does not track; `allowed` is
-  // always empty in `all` mode (`parseArgs` makes the flag imply `paths` mode).
+  // always empty in `all` mode (`parseArgs` never resolves the flag to `all`).
   // So the two sets are disjoint by construction and a withdrawn file can never
   // arrive here dressed as a transient. What the carve-out does admit is exactly
   // what the header's TOCTOU paragraph already admits: an UNTRACKED file the

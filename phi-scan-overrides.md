@@ -30,9 +30,9 @@ this change closes.** The allow-list has five tags: `NAME`, `DOB`, `ADDR`, `ID`,
 already state from the other direction (a dashed SSN anywhere is _always_ a hit;
 a phone outside the `555` fake-exchange convention is _always_ a hit). Measured
 on a fixture whose only hit was a dashed SSN, with `ID`, `NAME`, `ADDR` and `DOB`
-entries for both the dashed and undashed spellings: still exit 1. **For those two
-categories the remedy is to change the value in the fixture**, and there is no
-declaration that clears them. The bypass used to, so this is a genuine narrowing
+entries for both the dashed and undashed spellings: still exit 1. **No
+declaration clears those two**, so with the file still in scope the value itself
+has to change. The bypass used to, so this is a genuine narrowing
 and is recorded as one. Giving those two detectors a tag would widen what can be
 declared synthetic, which is a change to what the gate permits and belongs in its
 own reviewed change, not in this one.
@@ -395,8 +395,8 @@ backstop besides. Measured both ways.
 
 **And one worry that looks real and is not.** Allow-fixturing the last file
 under a root cannot starve it: `parseArgs` seeds the positional path set from
-the `--allow-fixture` paths when no path is given, so the flag always resolves
-to **paths** mode and never to all-mode, and a paths run declares no root. The
+the `--allow-fixture` paths when no path is given, so the flag never resolves to
+all-mode, and neither mode it does resolve to declares a root. The
 measurement that used to close this paragraph is now **false** and is replaced
 rather than deleted, because the number is what a reader would otherwise port
 forward: on a throwaway repo holding exactly one fixture, that argv returned
