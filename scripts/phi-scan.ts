@@ -59,6 +59,18 @@
  * tracked file, a non-`ENOENT` failure, and a file that reappears all still
  * refuse.
  *
+ * THE COMPLETENESS RULE: A TARGET THIS RUN ENUMERATED AND NEVER READ REFUSES
+ * (exit 2), IN EVERY MODE, NAMING THE PATHS. It is a SET DIFFERENCE between
+ * what the enumerating routes declared and what `scanTarget` actually returned
+ * on, never a size comparison: a count counts the targets that DID get read, so
+ * "M of N" is exactly the arithmetic that hides which ones did not. A companion
+ * tier refuses a `--allow-fixture` that names a path this run does not
+ * enumerate, because a bypass that subtracts nothing is accepted, logged and
+ * then ignored. Both are measured, both live at the end of `main()`, and
+ * together they are why `--allow-fixture` can no longer reach exit 0. THE ONE
+ * CARVE-OUT IS THE TOLERATED VANISH BELOW, and it cannot launder a bypass: the
+ * tolerance exists only in `all` mode and `allowed` is always empty there.
+ *
  * THE OBSERVATION RULE IS PER-ROOT, NOT GLOBAL: `all` mode refuses (exit 2)
  * unless EVERY member of `SCAN_ROOTS` yielded at least one file that was
  * actually READ, and the refusal names the starved roots. Observing nothing at
@@ -70,8 +82,11 @@
  *
  * Modes:
  *   --staged                 - scan only files staged in `git diff --cached`
- *   --allow-fixture <path>   - bypass one path; rejected unless logged in
- *                              phi-scan-overrides.md
+ *   --allow-fixture <path>   - withdraw one path from the read set; rejected
+ *                              unless logged in phi-scan-overrides.md, and then
+ *                              REFUSED (exit 2) by the completeness rule below.
+ *                              It can no longer reach exit 0 in any mode: see
+ *                              THE COMPLETENESS RULE.
  *   <path> [<path>...]       - scan specific paths
  *   (no args)                - "all": scan every in-scope working-tree file,
  *                              AND the bytes git carries at every path in the
@@ -184,10 +199,16 @@
  * the target list before anything is read, so allow-fixturing the last remaining
  * file under a root reads like a new way to starve one. It is unreachable.
  * `parseArgs` seeds the positional path set from `allowFixtures` when no path is
- * given, so `--allow-fixture` always resolves to `paths` mode and never to `all`.
- * Measured on a throwaway repo whose `test/fixtures` held exactly one violator:
- * `--allow-fixture test/fixtures/<name>` returns `OK: no hits` at exit 0 here and
- * at exit 0 on the superseded rule, identically. Do not add a guard for it.
+ * given, so `--allow-fixture` always resolves to `paths` mode and never to `all`,
+ * and a `paths` run declares no root and makes no per-root promise.
+ * THE MEASUREMENT THAT USED TO CLOSE THIS PARAGRAPH IS NOW FALSE AND IS REPLACED
+ * RATHER THAN DELETED, because the number it named is the thing a reader would
+ * otherwise port forward: on a throwaway repo whose `test/fixtures` held exactly
+ * one file, `--allow-fixture test/fixtures/<name>` returned `OK: no hits` at exit
+ * 0 both here and on the superseded per-root rule. It now exits 2, and NOT
+ * through this rule — THE COMPLETENESS RULE refuses it, naming the file as
+ * enumerated and never read. The conclusion about the per-root rule is unchanged
+ * and still stands: do not add a per-root guard for it.
  *
  * AND ONE SHAPE THAT IS OFTEN LISTED WITH THOSE AND IS NOT OPEN HERE, recorded so
  * it is not ported in from a sibling as an open residual: A ROOT THAT IS A
@@ -2212,10 +2233,22 @@ function report(hits: Hit[], skipped: number): void {
       );
     }
   }
+  // THE FOOTER NO LONGER OFFERS `--allow-fixture` AS A REMEDY, AND THAT IS A
+  // DECISION RATHER THAN AN OMISSION. A bypass withdraws a file from the read
+  // set, and the completeness rule at the end of `main` refuses (exit 2) over a
+  // target enumerated and never read, so a developer following the superseded
+  // sentence would be walked from exit 1 into exit 2. A printed remedy that
+  // cannot reach the state it promises is the same defect as one that reaches a
+  // false green, with the sign flipped. The flag is still described — silently
+  // dropping a documented flag from the diagnostic that names it is how the next
+  // reader re-adds it — but described as what it now is.
   process.stderr.write(
     `[phi-scan] ${String(hits.length)} hit(s) across ${String(paths.size)} file(s). ` +
-      `If a value is genuinely synthetic, declare it in scripts/phi-allow-list.txt OR ` +
-      `run with --allow-fixture <path> AND log it in phi-scan-overrides.md.\n`,
+      `If a value is genuinely synthetic, declare it in scripts/phi-allow-list.txt: ` +
+      `a token-level, reviewed declaration is the only remedy that reaches a clean run. ` +
+      `A whole-file --allow-fixture bypass is still gated on phi-scan-overrides.md and is ` +
+      `then REFUSED (exit 2), because a scan that never opened a file has no clean verdict ` +
+      `to give about it.\n`,
   );
   if (fromIndex > 0) {
     // Named explicitly, because the remedy differs: these bytes are the ones
@@ -2284,11 +2317,30 @@ function main(): number {
     throw err;
   }
 
+  // ENUMERATED: every path this run DECLARED it would read, recorded BEFORE
+  // `--allow-fixture` subtracts from it and grown below by the index route's
+  // own targets. It is A SET AND NEVER A COUNT, because the completeness rule
+  // at the end of `main` has to NAME the paths that went unread and a tally
+  // cannot: "M of N read" counts the targets that DID get read, which is
+  // exactly the arithmetic that hides which ones did not.
+  //
+  // WHAT IS ABSENT FROM IT IS AS LOAD-BEARING AS WHAT IS IN IT. A path the
+  // enumerating routes filtered out upstream — a gitignored entry, a `.md` file
+  // on the index route, a staged path outside `isStagedReadable` — never became
+  // a target and is not in here, so the rule below does not fire on them. The
+  // rule speaks only about targets this run named for itself.
+  const enumerated = new Set<string>(targets.map((t) => t.path));
+
   targets = targets.filter((t) => !allowed.has(t.path));
 
   const hits: Hit[] = [];
   const vanished: Target[] = [];
   const observedRoots = new Set<string>();
+  // READ: filled in only once a target's bytes have been through `scanTarget`,
+  // so it is evidence of observation and never a plan to observe. `observed`
+  // below records the BYTES for the index route's dedupe and is walk-only; this
+  // set records the FACT of a read on both routes, which is the other question.
+  const read = new Set<string>();
   // What the walk actually read, keyed by path. The index corpus below skips a
   // blob whose bytes are already in here, so nothing is scanned or reported
   // twice, and a path whose working-tree bytes DIFFER is scanned both ways.
@@ -2297,6 +2349,7 @@ function main(): number {
     try {
       const bytes = scanAndAttribute(t, allow, hits);
       if (bytes !== null) {
+        read.add(t.path);
         observed.set(t.path, bytes);
         // Attributed through the SAME predicate the walk's roots are declared
         // by, never a second copy of the prefix rule. A `paths`-mode target can
@@ -2382,16 +2435,24 @@ function main(): number {
       }
       throw err;
     }
+    // THE INDEX ROUTE'S TARGETS ARE ENUMERATED TOO, so the completeness rule
+    // below covers both halves of the union rather than the walk alone. The
+    // paths `buildTargetsForIndex` deduped away are absent here and that is
+    // exact rather than lossy: it drops a path only when the walk read
+    // byte-identical content at it, which put that path in `read` already.
+    for (const t of indexTargets) enumerated.add(t.path);
     // The same subtraction the walk's targets get. It is UNREACHABLE today
     // (`parseArgs` seeds the positional path set from `--allow-fixture`, so the
     // flag always resolves to `paths` mode and never to all), and it is applied
     // anyway so the two routes cannot disagree about an acknowledged path if
-    // that ever changes.
+    // that ever changes. If it ever becomes reachable the subtracted path is now
+    // enumerated-and-unread, so it refuses below instead of going quiet.
     for (const t of indexTargets.filter((t) => !allowed.has(t.path))) {
       try {
         // The bytes are already in memory, so this cannot fail the way a
         // working-tree read can, and it can never be tolerated as vanished.
         scanAndAttribute(t, allow, hits);
+        read.add(t.path);
       } catch (err) {
         if (err instanceof InvocationError) {
           if (hits.length > 0) report(hits, vanished.length);
@@ -2456,6 +2517,113 @@ function main(): number {
       );
       return 2;
     }
+  }
+
+  // TIER 1 OF TWO: A BYPASS MUST NAME A PATH THIS RUN ENUMERATES.
+  //
+  // A bypass is a SUBTRACTION from this run's own target list. One that matches
+  // no target subtracts nothing, so it is accepted, its audit entry is checked,
+  // and it is then IGNORED — and the run reports on a corpus the developer
+  // believes was acknowledged. Measured on `dfac162`, in a throwaway repo:
+  // `phi-scan <clean file> --allow-fixture <file holding a real PID-5 name>`,
+  // with the second path logged in `phi-scan-overrides.md`, printed
+  // `[phi-scan] OK: no hits` and exited 0. The seeding rule in `parseArgs` is
+  // why: it seeds the positional set from the bypass list ONLY when no
+  // positional path was given, so with one present the named file was never
+  // ADMITTED to the run rather than withdrawn from it. This tier is the fix, and
+  // it is the fix rather than changing that seeding rule because the seeding
+  // rule is what four other paragraphs in this file reason from ("the flag
+  // always resolves to `paths` mode and never to all").
+  //
+  // IT IS A DIFFERENCE AGAINST THE ENUMERATED SET AND NAMES EVERY OFFENDER.
+  //
+  // IT SITS BELOW THE SCAN RATHER THAN BESIDE `parseArgs` for one reason: hits
+  // found under the targets that WERE read are printed first, the same rule the
+  // starved-root refusal above already carries. A refusal must not swallow a
+  // real hit.
+  const unmatchedBypass = [...allowed].filter((p) => !enumerated.has(p));
+  if (unmatchedBypass.length > 0) {
+    if (hits.length > 0) report(hits, vanished.length);
+    process.stderr.write(
+      `[phi-scan] refusing: --allow-fixture named ${String(unmatchedBypass.length)} path(s) ` +
+        `this run does not enumerate, so the flag subtracts nothing:\n` +
+        `${unmatchedBypass.map((p) => `  - ${p}`).join("\n")}\n` +
+        `A bypass that matches no target is accepted, logged and then ignored, which reads as ` +
+        `an acknowledgement of a file the run never had in scope. Name a path this run ` +
+        `actually enumerates, or drop the flag. In --staged mode the target list is what the ` +
+        `pre-commit predicate enumerates, which is narrower than the sweep's scan roots on ` +
+        `purpose.\n`,
+    );
+    return 2;
+  }
+
+  // TIER 2 OF TWO: THE COMPLETENESS RULE. A TARGET THIS RUN ENUMERATED AND
+  // NEVER READ REFUSES (exit 2), IN EVERY MODE, NAMING THE PATHS.
+  //
+  // THE DEFECT IT CLOSES, measured on `dfac162` in a throwaway repo laid out
+  // like this one, with the bypassed path logged in `phi-scan-overrides.md`
+  // exactly as the rejection gate instructs: `phi-scan <violator> <decoy>
+  // --allow-fixture <decoy>` exited 1 naming only the violator, so the same argv
+  // over a corpus whose ONLY violator is the withdrawn file exited 0 and printed
+  // `[phi-scan] OK: no hits` — byte-identical stdout and exit code to a genuine
+  // clean run over the same tree, with one of the two declared files never
+  // opened. A scan that did not open a file has no clean verdict to give
+  // about it.
+  //
+  // A SET DIFFERENCE, NEVER A SIZE COMPARISON, and that is not a style
+  // preference: a count counts the targets that DID get read, so `n read of n
+  // targets` is exactly the arithmetic that hides which ones did not, and it
+  // still would not say WHICH. `enumerated` is what the routes declared;
+  // `read` holds only paths whose bytes went through `scanTarget`. The refusal
+  // prints the difference.
+  //
+  // WHAT IT COSTS, DECIDED RATHER THAN STUMBLED INTO: `--allow-fixture` can no
+  // longer reach exit 0 in any mode — this tier and tier 1 together and neither
+  // alone. Tier 1 judges a bypass that landed on nothing; this one judges a
+  // bypass that landed on the target list. The flag, its override log and its
+  // rejection gate all stay: they still name the path and still demand a
+  // committed audit entry, and the run now ends in a refusal that names it
+  // instead of a green line that does not. THE MECHANISM THAT SURVIVES IS THE
+  // TOKEN-LEVEL ALLOW-LIST (`scripts/phi-allow-list.txt`), which declares a
+  // VALUE synthetic while the file is still read. `phi-scan-overrides.md`
+  // already told developers to prefer it. The suite's older case pinning
+  // "--allow-fixture with an override-log entry exits 0" is INVERTED rather than
+  // deleted, because a subtraction from a scan is still a file the scan proved
+  // nothing about.
+  //
+  // A TOLERATED VANISH IS CARVED OUT BY NAME, AND THE CARVE-OUT CANNOT LAUNDER A
+  // BYPASS. `Target.tolerateVanish` is set only in `buildTargetsForAll`, i.e.
+  // only in `all` mode and only for a file git does not track; `allowed` is
+  // always empty in `all` mode (`parseArgs` makes the flag imply `paths` mode).
+  // So the two sets are disjoint by construction and a withdrawn file can never
+  // arrive here dressed as a transient. What the carve-out does admit is exactly
+  // what the header's TOCTOU paragraph already admits: an UNTRACKED file the
+  // walk listed and that is gone by the time we read it. Its bytes do not exist
+  // to be read, nothing commits it, the run is never silent about it (the file
+  // is named on stderr and the clean line is qualified), and a file that is back
+  // on disk already refused above. Everything else — a tracked file, a
+  // non-`ENOENT` failure — throws out of the scan loop and returns 2 there, so
+  // it never reaches this line as a quiet gap.
+  //
+  // IT IS WRITTEN FOR EVERY MODE AND `--allow-fixture` IS THE ONLY WAY TO REACH
+  // IT TODAY. That is deliberate: it is a floor on the CONTRACT (a green line
+  // means every target's bytes were read), not on one caller's argv.
+  const tolerated = new Set<string>(vanished.map((t) => t.path));
+  const unread = [...enumerated].filter((p) => !read.has(p) && !tolerated.has(p));
+  if (unread.length > 0) {
+    // A REFUSAL MUST NOT SWALLOW A REAL HIT: whatever the targets that WERE read
+    // turned up is printed first, and the code is still 2, because an incomplete
+    // scan is not a verdict whatever it found on the way.
+    if (hits.length > 0) report(hits, vanished.length);
+    process.stderr.write(
+      `[phi-scan] refusing the scan: ${String(unread.length)} target(s) were enumerated and ` +
+        `never read:\n${unread.map((p) => `  - ${p}`).join("\n")}\n` +
+        `A scan that did not open a file has no clean verdict to give about it, and reading ` +
+        `one target says nothing about another. Drop the --allow-fixture flag, or declare the ` +
+        `individual value synthetic in scripts/phi-allow-list.txt, which is reviewed per value ` +
+        `and leaves the file read.\n`,
+    );
+    return 2;
   }
 
   report(hits, vanished.length);

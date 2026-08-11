@@ -4,8 +4,24 @@ This file logs every `--allow-fixture <path>` bypass invocation of
 `scripts/phi-scan.ts`. The scanner refuses to honor a `--allow-fixture <path>`
 flag UNLESS this file contains an entry referencing the same path. The committed
 log is intentionally annoying: it discourages bypass and creates an audit
-trail. Prefer extending `scripts/phi-allow-list.txt` (a token-level, reviewed
-declaration) over a whole-file bypass.
+trail.
+
+**A whole-file bypass can no longer reach exit 0, in any mode, and this is now
+the only thing it does.** The gate above still runs first, so a bypass without an
+entry here is still rejected on that ground. A bypass *with* one is then refused
+by **the completeness rule**: a target this run enumerated and never read refuses
+at exit **2**, naming the path. Reading one target says nothing about another, so
+a scan that never opened a file has no clean verdict to give about it. A bypass
+that names a path the run does *not* enumerate is refused too, on the companion
+tier, because a bypass that subtracts nothing would be accepted, logged and then
+ignored.
+
+**So the remedy that reaches a clean run is `scripts/phi-allow-list.txt`** — a
+token-level, reviewed declaration that leaves the file read. It was already the
+preferred one; it is now the only one. The flag, this log and its rejection gate
+all stay: they still name the path and still demand a committed audit entry, and
+the run now ends in a refusal that names it rather than a green line that does
+not.
 
 ## How the scanner detects PHI
 
@@ -366,9 +382,14 @@ backstop besides. Measured both ways.
 **And one worry that looks real and is not.** Allow-fixturing the last file
 under a root cannot starve it: `parseArgs` seeds the positional path set from
 the `--allow-fixture` paths when no path is given, so the flag always resolves
-to **paths** mode and never to all-mode. Measured on a throwaway repo holding
-exactly one violator: exit 0 under this rule and exit 0 under the superseded
-one, identically. Do not add a guard for it.
+to **paths** mode and never to all-mode, and a paths run declares no root. The
+measurement that used to close this paragraph is now **false** and is replaced
+rather than deleted, because the number is what a reader would otherwise port
+forward: on a throwaway repo holding exactly one fixture, that argv returned
+exit 0 both under this rule and under the superseded one. It now exits **2**, and
+not through this rule — the **completeness rule** refuses it, naming the file as
+enumerated and never read. The conclusion about the per-root rule is unchanged:
+do not add a per-root guard for it.
 
 ### The sweep reads the bytes git carries, not only the working tree
 
