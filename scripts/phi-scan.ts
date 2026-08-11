@@ -203,9 +203,7 @@
  * file under a root reads like a new way to starve one. It is unreachable.
  * `parseArgs` seeds the positional path set from `allowFixtures` when no path is
  * given, so `--allow-fixture` never resolves to `all`, and neither of the modes
- * it does resolve to declares a root or makes a per-root promise. (It resolves to
- * `paths` USUALLY, and to `staged` when `--staged` is also given; only the `never
- * to all` half is relied on anywhere.)
+ * it does resolve to declares a root or makes a per-root promise.
  * THE MEASUREMENT THAT USED TO CLOSE THIS PARAGRAPH IS NOW FALSE AND IS REPLACED
  * RATHER THAN DELETED, because the number it named is the thing a reader would
  * otherwise port forward: on a throwaway repo whose `test/fixtures` held exactly
@@ -585,19 +583,14 @@ function parseArgs(argv: string[]): Args {
   // `phi-scan <clean file> --allow-fixture <violator>`, with the violator logged
   // in `phi-scan-overrides.md`, printed `[phi-scan] OK: no hits` at exit 0,
   // having validated the bypass and checked its audit entry without ever opening
-  // THE NAMED FILE. (It did open the clean file and report on it, which is why
-  // the claim is about the named file and not about the run.) `main`'s
-  // unmatched-bypass tier refuses that argv now, and the fix is THERE rather
-  // than in a wider seeding rule HERE because other paragraphs reason from what
-  // this line makes true.
+  // THE NAMED FILE. `main`'s unmatched-bypass tier refuses that argv now, and
+  // the fix is THERE rather than in a wider seeding rule HERE because other
+  // paragraphs reason from what this line makes true.
   //
-  // WHAT THEY MAY REASON FROM IS "NEVER `all`", AND ONLY THAT. It is what keeps
+  // WHAT THEY MAY REASON FROM IS "NEVER `all`", AND ONLY THAT: it is what keeps
   // `allowed` empty in a sweep, which is what keeps the vanish carve-out unable
-  // to launder a bypass. THE WIDER FORM SOMETIMES WRITTEN NEARBY, "always
-  // resolves to `paths` mode", IS FALSE: `--staged --allow-fixture X` resolves
-  // to STAGED mode, because `staged` is tested first below. Measured at exit 2
-  // whether or not X is staged, through one tier or the other, so nothing is
-  // lost by the correction.
+  // to launder a bypass. `--staged --allow-fixture X` resolves to STAGED mode,
+  // measured at exit 2 whether or not X is staged.
   const scanPaths = paths.length > 0 ? paths : [...allowFixtures];
 
   let mode: Args["mode"];
@@ -698,13 +691,15 @@ function validateAllowFixtures(allowFixtures: string[]): void {
     // state it promises" defect the hit footer was rewritten for, and leaving it
     // here would have a developer commit a permanent audit entry for nothing.
     // The instruction stays, because a bypass genuinely still needs the entry to
-    // be admitted at all; what is added is where admission actually leads.
+    // be admitted at all; what is added is where admission actually leads. It
+    // does not restate the remedies: they differ per detector (see the footer in
+    // `report`), and a second copy here would be a second thing to go stale.
     throw new InvocationError(
       `--allow-fixture rejected: no matching entry in phi-scan-overrides.md for:\n${lines}\n` +
         `Add a "### <path>" subsection to phi-scan-overrides.md and commit it. That ADMITS the ` +
         `flag; it does not make the run clean, because an admitted bypass is then refused ` +
-        `(exit 2) either way. To reach exit 0, drop the flag and declare the individual value ` +
-        `in scripts/phi-allow-list.txt, or change the value in the fixture.`,
+        `(exit 2) either way. To reach exit 0, drop the flag; the hit report names the ` +
+        `remedies that do.`,
     );
   }
 }
@@ -2705,10 +2700,8 @@ function main(): number {
   // (NAME, DOB, ADDR, ID, EMAILDOMAIN). The dashed-SSN branch of
   // `scanCommonShapes` consults none of them and `checkPhoneField` is not handed
   // the allow-list at all, so for those two categories NO declaration clears a
-  // hit: with the file still in scope, the value itself has to change. (Taking
-  // the file OUT of scope also reaches exit 0, by renaming it to `.md` or by
-  // untracking and gitignoring it. Both are scope changes rather than remedies,
-  // and neither is what the footer should send a developer to do.) That is a real narrowing versus the superseded behaviour, where the
+  // hit: with the file still in scope, the value itself has to change. That is a
+  // real narrowing versus the superseded behaviour, where the
   // bypass cleared them, and it is written down rather than left for the next
   // developer to discover from a footer that told them to edit a file that
   // cannot help. Giving those two detectors a tag is a defensible follow-up and
