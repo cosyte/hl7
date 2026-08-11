@@ -570,8 +570,22 @@ function parseArgs(argv: string[]): Args {
 
   // An `--allow-fixture` path is a *subtractive* acknowledgement on a broader
   // scan, never a scan target on its own: so it also seeds the positional path
-  // set. That makes `--allow-fixture X` mean "scan X, but allow it" (proving the
-  // override gate actually subtracts a scanned target) instead of a silent no-op.
+  // set when no positional path was given, which is what stops a lone
+  // `--allow-fixture X` from being a run with nothing in it.
+  //
+  // THE SEEDING IS CONDITIONAL, AND THE HOLE THAT LEAVES IS CLOSED IN `main`,
+  // NOT HERE. With a positional path present the flag seeds nothing, so a path
+  // named ONLY by the flag is never ADMITTED to the run rather than withdrawn
+  // from it, and the bypass subtracts nothing. Measured on `dfac162`:
+  // `phi-scan <clean file> --allow-fixture <violator>`, with the violator logged
+  // in `phi-scan-overrides.md`, printed `[phi-scan] OK: no hits` at exit 0
+  // having validated the bypass, checked its audit entry and opened nothing.
+  // `main`'s unmatched-bypass tier refuses that argv now. THE FIX IS THERE
+  // RATHER THAN A WIDER SEEDING RULE HERE because four other paragraphs in this
+  // file reason from what this line makes true ("the flag always resolves to
+  // `paths` mode and never to `all`", which is what keeps `allowed` empty in a
+  // sweep and keeps the vanish carve-out unable to launder a bypass). Widening
+  // it would move that reasoning without moving those paragraphs.
   const scanPaths = paths.length > 0 ? paths : [...allowFixtures];
 
   let mode: Args["mode"];
