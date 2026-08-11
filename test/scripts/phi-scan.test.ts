@@ -394,22 +394,42 @@ describe("phi-scan: --allow-fixture override gate", () => {
     expect(r2.stderr).toMatch(/phi-scan-overrides\.md/);
   });
 
-  it("honors --allow-fixture WITH an override-log entry (exit 0)", () => {
+  it("admits --allow-fixture PAST the log gate, and then refuses it (exit 2)", () => {
+    // THIS CASE IS INVERTED FROM WHAT IT PINNED, DELIBERATELY. It used to assert
+    // exit 0: "the override log is what flips a violator to clean". The
+    // completeness rule made that assertion false and it is the assertion that
+    // was wrong, not the rule — a whole-file bypass withdraws a file from the
+    // read set, and a scan that never opened a file has no clean verdict to give
+    // about it. What the log gate is FOR is unchanged and is what this still
+    // pins: it decides whether the flag is admitted at all, which is a different
+    // question from what the run then exits with, and the two codes prove the
+    // difference (2 with a `phi-scan-overrides.md` message vs 2 with an
+    // enumerated-and-never-read message).
     const path = join(dir, "override-me.hl7");
     writeFileSync(path, msg(MSH, `PID|1||MRN1^^^HOSP^MR||${V.fam}^${V.giv}||${V.dob}|M`));
     const rel = relative(REPO_ROOT, path).split(sep).join("/");
-    // Sanity: scanned on its own it is a genuine violator: so the override, not
-    // an empty target set, is what flips the next run to clean.
+    // Sanity: scanned on its own it is a genuine violator.
     expect(runScanner([path]).code).toBe(1);
+
+    // Without the log entry the flag never gets past the gate.
+    const ungated = runScanner(["--allow-fixture", path]);
+    expect(ungated.code).toBe(2);
+    expect(ungated.stderr).toMatch(/phi-scan-overrides\.md/);
 
     const original = readFileSync(OVERRIDES_PATH, "utf8");
     try {
       appendFileSync(
         OVERRIDES_PATH,
-        `\n### ${rel}\n\n- **Date:** 2026-07-18\n- **Reason:** unit test\n- **Approved by:** vitest\n- **Expires:** permanent\n`,
+        `\n### ${rel}\n\n- **Date:** 2026-08-11\n- **Reason:** unit test\n- **Approved by:** vitest\n- **Expires:** permanent\n`,
       );
       const r = runScanner(["--allow-fixture", path]);
-      expect(r.code, `stderr: ${r.stderr}`).toBe(0);
+      expect(r.code, `stderr: ${r.stderr}`).toBe(2);
+      // The gate ADMITTED it (no override-log complaint), and the completeness
+      // rule is what refused. Asserted as the ABSENCE of the gate's message plus
+      // the presence of the rule's, so the two refusals cannot be confused.
+      expect(r.stderr).not.toMatch(/--allow-fixture rejected/);
+      expect(r.stderr).toContain("enumerated and never read");
+      expect(r.stderr).toContain(rel);
     } finally {
       writeFileSync(OVERRIDES_PATH, original);
     }
@@ -2564,5 +2584,158 @@ describe("phi-scan: an index-route refusal does not swallow a hit", () => {
     expect(r.code, `stderr: ${r.stderr}`).toBe(2);
     expect(r.stderr).toContain("HIT: test/fixtures/leak.hl7");
     expect(r.stderr).toContain("pointer.txt (a symbolic link)");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// THE COMPLETENESS RULE
+// ---------------------------------------------------------------------------
+
+/**
+ * A target this run ENUMERATED and NEVER READ refuses (exit 2), naming the
+ * paths, in every mode.
+ *
+ * THE DEFECT, measured on `dfac162` in a throwaway repo laid out like this one
+ * with the bypassed path logged in `phi-scan-overrides.md` exactly as the
+ * rejection gate instructs:
+ *   - `phi-scan <violator> <decoy> --allow-fixture <decoy>` exited 1 naming only
+ *     the violator, so the SAME argv over a corpus whose only violator is the
+ *     withdrawn file exited 0 and printed `[phi-scan] OK: no hits`, byte-identical
+ *     on stdout and exit code to a genuine clean run over the same tree;
+ *   - `phi-scan <clean file> --allow-fixture <violator>` exited 0 with
+ *     `[phi-scan] OK: no hits`, having validated the bypass, checked its audit
+ *     entry and never opened the named file at all. That is the companion tier's
+ *     defect: a bypass that matches no target subtracts nothing.
+ *
+ * THESE ARE POSITIVE CONTROLS, NOT SMOKE TESTS. Each one plants a violator that
+ * the scanner is separately shown to catch, so a refusal here can never be
+ * vacuous, and each asserts the REFUSAL CODE AND THE NAMED PATH rather than
+ * "non-zero": exit 1 is this gate's code for HITS FOUND, and a rule that reds a
+ * clean run into 1 would look like it works while saying something false.
+ *
+ * Everything runs in a throwaway repo through `runScannerArgsIn`, so the
+ * committed `phi-scan-overrides.md` is never mutated and a parallel worker
+ * cannot see a decoy.
+ */
+
+/** Append an override-log entry for `rel` inside a throwaway repo. */
+function logOverrideIn(repo: string, rel: string): void {
+  appendFileSync(
+    join(repo, "phi-scan-overrides.md"),
+    `\n### ${rel}\n\n- **Date:** 2026-08-11\n- **Reason:** unit test\n- **Approved by:** vitest\n- **Expires:** permanent\n`,
+  );
+}
+
+describe("phi-scan: the completeness rule", () => {
+  const VIOLATOR = "test/fixtures/completeness-violator.hl7";
+  const DECOY = "test/fixtures/completeness-decoy.hl7";
+
+  /** A repo holding a violator and a clean decoy, both under a walk root. */
+  function makeCompletenessRepo(): string {
+    const repo = makeScanRepo({ git: true });
+    writeFileSync(join(repo, ...VIOLATOR.split("/")), INDEX_PHI);
+    writeFileSync(join(repo, ...DECOY.split("/")), CLEAN_FIXTURE);
+    return repo;
+  }
+
+  it("CONTROL: the violator is caught and the decoy is clean, read on their own", () => {
+    // Anti-vacuity for every case below. Without this, a refusal over the decoy
+    // would prove nothing: an unread target could not be told from a clean one.
+    const repo = makeCompletenessRepo();
+    const hit = runScannerArgsIn(repo, [VIOLATOR]);
+    expect(hit.code, `stderr: ${hit.stderr}`).toBe(1);
+    expect(hit.stderr).toContain(V.tFam);
+    const clean = runScannerArgsIn(repo, [DECOY]);
+    expect(clean.code, `stderr: ${clean.stderr}`).toBe(0);
+    expect(clean.stdout).toContain("OK: no hits");
+  });
+
+  it("refuses (exit 2) over a target it enumerated and withdrew, naming it", () => {
+    const repo = makeCompletenessRepo();
+    logOverrideIn(repo, DECOY);
+    const r = runScannerArgsIn(repo, [VIOLATOR, DECOY, "--allow-fixture", DECOY]);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(2);
+    expect(r.stderr).toContain("enumerated and never read");
+    expect(r.stderr).toContain(DECOY);
+  });
+
+  it("still prints the hits it DID find before refusing", () => {
+    // A REFUSAL MUST NOT SWALLOW A REAL HIT. The base commit exited 1 and
+    // printed this hit; the rule must not trade the finding for the refusal.
+    const repo = makeCompletenessRepo();
+    logOverrideIn(repo, DECOY);
+    const r = runScannerArgsIn(repo, [VIOLATOR, DECOY, "--allow-fixture", DECOY]);
+    expect(r.code).toBe(2);
+    expect(r.stderr).toContain(`HIT: ${VIOLATOR}`);
+    expect(r.stderr).toContain(V.tFam);
+  });
+
+  it("refuses the argv whose ONLY violator is the withdrawn file", () => {
+    // THE FALSE GREEN ITSELF. On `dfac162` this exact argv printed
+    // `[phi-scan] OK: no hits` at exit 0 with the violator never opened.
+    const repo = makeCompletenessRepo();
+    logOverrideIn(repo, VIOLATOR);
+    const r = runScannerArgsIn(repo, [DECOY, VIOLATOR, "--allow-fixture", VIOLATOR]);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(2);
+    expect(r.stdout).not.toContain("OK: no hits");
+    expect(r.stderr).toContain(VIOLATOR);
+  });
+
+  it("refuses a lone --allow-fixture, which reads nothing at all", () => {
+    const repo = makeCompletenessRepo();
+    logOverrideIn(repo, VIOLATOR);
+    const r = runScannerArgsIn(repo, ["--allow-fixture", VIOLATOR]);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(2);
+    expect(r.stderr).toContain("enumerated and never read");
+  });
+
+  it("refuses a bypass that names a path the run does not enumerate", () => {
+    // THE COMPANION TIER. The bypass is accepted by the log gate, subtracts
+    // nothing, and on `dfac162` the run reported clean over a corpus that never
+    // included the file the developer believed had been acknowledged.
+    const repo = makeCompletenessRepo();
+    logOverrideIn(repo, VIOLATOR);
+    const r = runScannerArgsIn(repo, [DECOY, "--allow-fixture", VIOLATOR]);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(2);
+    expect(r.stderr).toContain("does not enumerate");
+    expect(r.stderr).toContain(VIOLATOR);
+    expect(r.stdout).not.toContain("OK: no hits");
+  });
+
+  it("NEGATIVE CONTROL: a run that reads every target it enumerates is unaffected", () => {
+    // The rule must not red an ordinary run. Both codes are pinned: a clean
+    // multi-target run still exits 0, and a violator among them still exits 1
+    // (not 2), so the rule cannot be passing by refusing everything.
+    const repo = makeCompletenessRepo();
+    const clean = runScannerArgsIn(repo, [DECOY, "test/smoke.test.ts"]);
+    expect(clean.code, `stderr: ${clean.stderr}`).toBe(0);
+    const hits = runScannerArgsIn(repo, [DECOY, VIOLATOR]);
+    expect(hits.code, `stderr: ${hits.stderr}`).toBe(1);
+  });
+
+  it("NEGATIVE CONTROL: the all-mode sweep still exits 0 over a clean corpus", () => {
+    // The sweep enumerates two routes (the walk and the git index) and both feed
+    // the same enumerated set. A bookkeeping error in either would refuse here.
+    const repo = makeScanRepo({ git: true });
+    gitCommit(repo, "corpus");
+    const r = runScannerIn(repo, null);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(0);
+    expect(r.stdout).toContain("OK: no hits");
+  });
+
+  it("NEGATIVE CONTROL: a tolerated vanish is still a skip, not a refusal", () => {
+    // THE ONE CARVE-OUT, pinned so it cannot be lost and cannot silently widen.
+    // An UNTRACKED file the walk enumerated and that is gone by the time we read
+    // it has no bytes to read; the run says so on stderr and exits 0. It cannot
+    // launder a bypass: `tolerateVanish` is set only in `all` mode and
+    // `--allow-fixture` always resolves to `paths` mode.
+    const repo = makeScanRepo({ git: true });
+    gitCommit(repo, "corpus");
+    const decoy = join(repo, "src", "transient.ts");
+    writeFileSync(decoy, "export const transient = true;\n");
+    const r = runScannerIn(repo, gitShim(`rm -f '${decoy}'`));
+    expect(r.code, `stderr: ${r.stderr}`).toBe(0);
+    expect(r.stderr).toContain("src/transient.ts");
+    expect(r.stderr).not.toContain("enumerated and never read");
   });
 });
