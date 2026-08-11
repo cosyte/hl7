@@ -18,7 +18,7 @@ import type { Buffer } from "node:buffer";
 
 import { DEFAULT_ENCODING_CHARACTERS, readDelimiters } from "./delimiters.js";
 import { FATAL_CODES, Hl7ParseError } from "./errors.js";
-import { KNOWN_SEGMENTS } from "./known-segments.js";
+import { KNOWN_SEGMENTS, canonicalSegmentName } from "./known-segments.js";
 import { emitIfFramed, stripMllp } from "./mllp.js";
 import { canonicalCharset } from "./charset.js";
 import { normalize, normalizeBuffer } from "./normalize.js";
@@ -29,6 +29,7 @@ import {
   encodingMismatch,
   missingExpectedGroup,
   safeCharsetLabel,
+  segmentCase,
   unknownSegment,
 } from "./warnings.js";
 import type { Hl7ParseWarning } from "./warnings.js";
@@ -500,21 +501,55 @@ export function parseHL7(
   );
 
   // Step 11.5: Emit UNKNOWN_SEGMENT for any non-standard segment name that
-  // is not declared in the active profile (D-31). Uses the already-resolved
-  // effectiveProfile for customSegments suppression. O(N): one Set.has +
-  // one hasOwnProperty per segment. Uses Object.prototype.hasOwnProperty.call
-  // to guard against prototype pollution (matches the T-02-06-01 mitigation
-  // in discriminateOptionsOrProfile).
+  // is not declared in the active profile (D-31), and SEGMENT_CASE for any
+  // name that is not already the canonical ASCII-uppercase spelling. Uses the
+  // already-resolved effectiveProfile for customSegments suppression. O(N):
+  // one Set.has + one hasOwnProperty per segment. Uses
+  // Object.prototype.hasOwnProperty.call to guard against prototype pollution
+  // (matches the T-02-06-01 mitigation in discriminateOptionsOrProfile).
+  //
+  // Both checks read the CANONICAL name, so `pid` resolves as PID rather than
+  // reading as an unknown segment: the defect that silently dropped a flagged
+  // lab result from `observations()` because the sender shipped `obx`. Profile
+  // customSegments keys are validated to /^Z[A-Z0-9]{2}$/ at defineProfile
+  // time, so they are already canonical and need no folding on that side.
+  //
+  // The two warnings are MUTUALLY EXCLUSIVE, which is what keeps each of them
+  // honest. SEGMENT_CASE says "this is a real segment, merely miscased", so it
+  // fires only when the canonical name actually resolves. Emitting it on any
+  // lowercase text would make it fire on a forged segment name -- an unescaped
+  // line break inside a narrative field hands the parser a line of clinical
+  // prose as a "segment name" -- and tell the reader it had been resolved as
+  // something, which is the same misdirection this slice removed from the
+  // UNKNOWN_SEGMENT text. A name that resolves to nothing gets UNKNOWN_SEGMENT
+  // alone, whose message already states that the comparison ignored case.
+  //
+  // Because they cannot both fire, strict mode (where the first emit throws)
+  // reports the same code it always did for an unrecognized segment, and
+  // SEGMENT_CASE only for a known segment that used to be misreported as
+  // unknown. Strict keeps throwing on every input it threw on before and
+  // accepts nothing new.
   const profileCustomSegments = effectiveProfile?.customSegments;
   for (let segIdx = 0; segIdx < rawSegments.length; segIdx++) {
     const rawSeg = rawSegments[segIdx];
     if (rawSeg === undefined) continue;
-    const isKnown = KNOWN_SEGMENTS.has(rawSeg.name);
+    const canonicalName = canonicalSegmentName(rawSeg.name);
+    // The profile claim is checked under BOTH spellings. `defineProfile`
+    // validates customSegments keys to /^Z[A-Z0-9]{2}$/, so a declared key is
+    // canonical and the folded lookup is the one that matters. But `parseHL7`
+    // also accepts a hand-rolled `Profile` literal, which gets no such
+    // validation, and a literal keyed `zpi` was the only way to claim a
+    // lowercase Z-feed before this change. Checking the raw name too keeps
+    // those callers working rather than silently unclaiming their segment.
+    const isKnown = KNOWN_SEGMENTS.has(canonicalName);
     const isProfileClaimed =
       profileCustomSegments !== undefined &&
-      Object.prototype.hasOwnProperty.call(profileCustomSegments, rawSeg.name);
+      (Object.prototype.hasOwnProperty.call(profileCustomSegments, canonicalName) ||
+        Object.prototype.hasOwnProperty.call(profileCustomSegments, rawSeg.name));
     if (!isKnown && !isProfileClaimed) {
       emit(unknownSegment({ segmentIndex: segIdx }, rawSeg.name));
+    } else if (canonicalName !== rawSeg.name) {
+      emit(segmentCase({ segmentIndex: segIdx }, rawSeg.name));
     }
   }
 
@@ -528,9 +563,12 @@ export function parseHL7(
   // unrecognized type yields no expected groups and emits nothing.
   const { messageCode, triggerEvent } = extractMessageType(rawSegments[0]);
   if (messageCode !== "") {
+    // Canonical names: a sender shipping `obx` still satisfies the ORU^R01
+    // result group, so the safety net does not report a group as missing when
+    // its anchor segment is present and merely miscased.
     const presentSegmentNames = new Set<string>();
     for (const seg of rawSegments) {
-      if (seg !== undefined) presentSegmentNames.add(seg.name);
+      if (seg !== undefined) presentSegmentNames.add(canonicalSegmentName(seg.name));
     }
     const structure = analyzeMessageStructure(messageCode, triggerEvent, presentSegmentNames);
     const messageType = triggerEvent !== "" ? `${messageCode}^${triggerEvent}` : messageCode;

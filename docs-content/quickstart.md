@@ -67,7 +67,9 @@ const msg = parseHL7(raw);
 
 for (const w of msg.warnings) {
   if (w.code === "SEGMENT_CASE") {
-    // a segment name arrived in the wrong case; the parser normalized it
+    // a segment name arrived in the wrong case (`obx`, `Pid`); it still
+    // resolves as the segment it names, so `observations()` and `patient`
+    // see it. Serialization re-emits the spelling that arrived.
   }
 }
 ```

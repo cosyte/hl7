@@ -87,6 +87,21 @@ Design around these. They're deliberate scope choices, not bugs:
   "quirk" is encoded **only** when a real document grounds it: a publicly published vendor interface
   spec (as with Visage 7 and Philips Vue PACS) or a real de-identified feed, never invented, so
   broader per-vendor coverage expands as grounded sources arrive rather than shipping speculative rules.
+- **A miscased segment name resolves, but is not rewritten.** A sender shipping `pid` or `obx`,
+  which no segment identifier in the HL7 v2 standard does, is matched by `msg.segments("PID")`, `msg.patient`,
+  `observations()` and `msg.get("PID.5")`, and reports `SEGMENT_CASE`. The comparison folds
+  **ASCII** case only, so a non-ASCII lookalike (a dotless Turkish `ı`) is deliberately _not_
+  folded into `PID` and surfaces as `UNKNOWN_SEGMENT` instead: guessing there would invent a
+  patient identity the sender never sent. Three consequences worth designing around: the spelling
+  that arrived is preserved on `RawSegment.name` and is what `toString()` re-emits, so the
+  round-trip stays byte-exact rather than being silently corrected; a lowercase **`msh`** is
+  still the `NO_MSH_SEGMENT` fatal, because MSH is what delimiter discovery reads before any
+  segment name exists to fold; and folding necessarily widens the set of malformed lines that
+  can be read as a segment at all, so an unescaped line break whose next three characters happen
+  to spell a segment name in **any** case (`dg1` as well as `DG1`) yields an empty entry in the
+  matching helper. That is the same three-character residue the bounded-messages note below
+  describes, and the reason to treat a message carrying unescaped breaks as suspect rather than
+  as data.
 - **No terminology validation, no network, no bundled codesets.** `codingSystem()` reports what a
   code _claims_ (HL7 Table 0396). It does not validate a value against LOINC, SNOMED CT, RxNorm, or
   any external system, and nothing here makes a network call.

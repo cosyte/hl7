@@ -18,6 +18,7 @@ import type {
   RawRepetition,
   RawSegment,
 } from "../parser/types.js";
+import { canonicalSegmentName } from "../parser/known-segments.js";
 import { boundedIdentifier } from "../parser/tokens.js";
 import type { Hl7ParseWarning } from "../parser/warnings.js";
 import { allergies as walkAllergies } from "../helpers/allergies.js";
@@ -298,7 +299,8 @@ export class Hl7Message {
   /**
    * Return every `Segment` of `segmentType` in document order. Returns `[]`
    * (empty array, NEVER `undefined`) when no segment of that type exists
-   * (MODEL-02). Alias for `segments(segmentType)`: shares the same cache.
+   * (MODEL-02). Alias for `segments(segmentType)`: shares the same cache, and
+   * matches segment names ignoring case exactly as it does.
    *
    * @example
    * ```ts
@@ -317,6 +319,12 @@ export class Hl7Message {
    * instances are both stable across calls (D-11). Invalidated wholesale
    * by the mutation methods.
    *
+   * **Segment names are matched ignoring ASCII case, on both sides.** A sender
+   * that ships `obx` is returned by `segments("OBX")`, and `segments("obx")`
+   * returns the same array (one cache entry, so the D-11 identity guarantee
+   * does not split across spellings). A `SEGMENT_CASE` warning records the
+   * sender's deviation; `Segment.raw.name` is the spelling that arrived.
+   *
    * @example
    * ```ts
    * const pid = msg.segments("PID")[0];
@@ -327,15 +335,28 @@ export class Hl7Message {
     if (this._segmentsByType === undefined) {
       this._segmentsByType = new Map();
     }
-    const cached = this._segmentsByType.get(segmentType);
+    // The QUERY is folded as well as the wire spelling, and dropping this
+    // would be a silent narrowing rather than a tidy-up. Before segment names
+    // were folded at all, `Segment.type` carried the wire spelling and the
+    // `segmentId` shape guard accepts lowercase, so on a feed sending `obx`
+    // it was `segments("obx")` that returned the segment and `segments("OBX")`
+    // that returned nothing. That is precisely the workaround a consumer on
+    // such a feed will have written. Folding both sides means the canonical
+    // query starts working without the sender-spelled one quietly returning
+    // `[]` -- and `[]` is documented as "no segment of that type exists", so a
+    // consumer has no way to tell the narrowing from an empty message.
+    const canonical = canonicalSegmentName(segmentType);
+    const cached = this._segmentsByType.get(canonical);
     if (cached !== undefined) return cached;
 
     // Build from the master `_allSegments` cache so individual Segment
     // wrappers are identical across both caches (D-11 cross-cache
     // stability). `allSegments()` builds the master cache on first call.
+    // Keyed by the canonical name so both spellings share one entry and the
+    // D-11 array-identity guarantee does not split across them.
     const all = this.allSegments();
-    const filtered: readonly Segment[] = all.filter((s) => s.type === segmentType);
-    this._segmentsByType.set(segmentType, filtered);
+    const filtered: readonly Segment[] = all.filter((s) => s.type === canonical);
+    this._segmentsByType.set(canonical, filtered);
     return filtered;
   }
 
@@ -362,7 +383,16 @@ export class Hl7Message {
       // `seg.get(name)` can resolve named positions. Conditional-pass under
       // exactOptionalPropertyTypes so the optional 4th ctor param stays
       // truly absent (not explicitly undefined) when no profile applied.
-      const customFields = this._customSegments?.[raw.name]?.fields;
+      // Canonical key first, then the wire spelling: profile customSegments
+      // keys are validated to /^Z[A-Z0-9]{2}$/ at defineProfile time, so a wire
+      // `zpi` only finds its declared field names once the name is folded, but
+      // a hand-rolled Profile literal gets no such validation and may be keyed
+      // in the sender's own lowercase. Both spellings are tried, in exactly the
+      // order the parser's profile-claim check uses, so a segment cannot be
+      // claimed by the profile yet miss its own field map.
+      const customSegment =
+        this._customSegments?.[canonicalSegmentName(raw.name)] ?? this._customSegments?.[raw.name];
+      const customFields = customSegment?.fields;
       if (customFields !== undefined) {
         built.push(new Segment(raw, this.encodingCharacters, i, customFields));
       } else {
@@ -777,13 +807,18 @@ export class Hl7Message {
     // D-18: parsePath throws TypeError on malformed path.
     const parsed = parsePath(path);
 
-    // Find the target segment by type + 0-indexed occurrence.
+    // Find the target segment by type + 0-indexed occurrence. The WIRE name is
+    // folded so a write targets the same segment a read found: without it,
+    // `msg.segments("PID")` would resolve a wire `pid` while
+    // `msg.setField("PID.5", ...)` reported it missing. `parsed.segmentType` is
+    // already validated to /^[A-Z][A-Z0-9]{2}$/ by `parsePath`.
+    const targetName = parsed.segmentType;
     let seen = 0;
     let segIdx = -1;
     for (let i = 0; i < this.rawSegments.length; i++) {
       const s = this.rawSegments[i];
       if (s === undefined) continue;
-      if (s.name === parsed.segmentType) {
+      if (canonicalSegmentName(s.name) === targetName) {
         if (seen === parsed.segmentIndex) {
           segIdx = i;
           break;
@@ -914,13 +949,15 @@ export class Hl7Message {
     }
 
     // Locate the target segment by type + 0-indexed occurrence (same rule as
-    // setField: the segment must already exist).
+    // setField: the segment must already exist, and the wire name is folded so
+    // a miscased segment is writable through the same path it is readable).
+    const targetName = parsed.segmentType;
     let seen = 0;
     let segIdx = -1;
     for (let i = 0; i < this.rawSegments.length; i++) {
       const s = this.rawSegments[i];
       if (s === undefined) continue;
-      if (s.name === parsed.segmentType) {
+      if (canonicalSegmentName(s.name) === targetName) {
         if (seen === parsed.segmentIndex) {
           segIdx = i;
           break;
@@ -1073,7 +1110,11 @@ export class Hl7Message {
 
     const mut = toMutableArray(this.rawSegments);
     if (all) {
-      const filtered = mut.filter((s) => s.name !== segmentType);
+      // Canonical on the wire side only: `segmentType` is already validated to
+      // /^[A-Z][A-Z0-9]{2}$/ above, so it is canonical by construction. This
+      // is what lets `removeSegment("OBX")` remove a segment the sender spelled
+      // `obx`, matching what `segments("OBX")` reports as present.
+      const filtered = mut.filter((s) => canonicalSegmentName(s.name) !== segmentType);
       (this as { -readonly [K in keyof this]: this[K] }).rawSegments = filtered;
     } else {
       let seen = 0;
@@ -1081,7 +1122,7 @@ export class Hl7Message {
       for (let i = 0; i < mut.length; i++) {
         const s = mut[i];
         if (s === undefined) continue;
-        if (s.name === segmentType) {
+        if (canonicalSegmentName(s.name) === segmentType) {
           if (seen === targetOccurrence) {
             removeAt = i;
             break;

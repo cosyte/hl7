@@ -40,11 +40,10 @@ const fixtures = readdirSync(VQ_DIR)
   .sort();
 
 /**
- * Warning codes the lenient parser actively emits today. Exhaustive as of
- * Phase 7 baseline: derived by probing every fixture and recording which
- * `msg.warnings` codes surface. Other codes in
- * `src/parser/warnings.ts::WARNING_CODES` have factory functions but no
- * call site in the parser pipeline (SEGMENT_CASE, EXTRA_FIELDS,
+ * Warning codes the lenient parser actively emits today. Derived by probing
+ * every fixture and recording which `msg.warnings` codes surface. Other codes
+ * in `src/parser/warnings.ts::WARNING_CODES` have factory functions but no
+ * call site in the parser pipeline (EXTRA_FIELDS,
  * DUPLICATE_REQUIRED_SEGMENT, MISSING_REQUIRED_FIELD, OUT_OF_ORDER_SEGMENT,
  * VERSION_MISMATCH, TIMESTAMP_FALLBACK_FORMAT).
  *
@@ -61,6 +60,11 @@ const EMITTING_CODES: ReadonlySet<string> = new Set<string>([
   "UNKNOWN_SEGMENT",
   "ENCODING_MISMATCH",
   "UNKNOWN_CHARSET",
+  // Wired when segment-name lookup became case-folding: `segment-case.hl7`
+  // ships a lowercase `pid`, which now resolves as PID and reports the
+  // deviation here instead of misreporting the segment as absent from the
+  // HL7 standard. Promotes this fixture's two `it.todo`s into assertions.
+  "SEGMENT_CASE",
 ]);
 
 /**

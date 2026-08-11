@@ -9,6 +9,7 @@
  */
 
 import { Field } from "./field.js";
+import { canonicalSegmentName } from "../parser/known-segments.js";
 import { boundedIdentifier } from "../parser/tokens.js";
 import type { EncodingCharacters, RawField, RawSegment } from "../parser/types.js";
 
@@ -29,6 +30,12 @@ export class Segment {
   /**
    * Segment identifier: three characters with a leading letter, e.g. `"PID"`,
    * `"OBX"`, `"ZPI"`.
+   *
+   * **Canonical ASCII uppercase.** A sender that ships `pid` or `Obx`, which
+   * no segment identifier in the HL7 v2 standard does but which real feeds do,
+   * reports here as `PID` / `OBX`, so `msg.segments("PID")` matches it and a
+   * `SEGMENT_CASE` warning records the deviation. Read
+   * {@link Segment.raw}`.name` for the spelling that actually arrived.
    *
    * **Bounded, and it is `"<withheld>"` when the raw name is not that shape.**
    * A line with no field separator has its whole content read as a segment
@@ -88,13 +95,25 @@ export class Segment {
     customFields?: Readonly<Record<string, number>>,
   ) {
     this.raw = raw;
+    // Canonicalized THEN bounded, in that order, and both steps matter.
+    //
+    // Canonical because `type` is what every lookup compares against: not just
+    // `msg.segments(type)`, but the `allSegments()` walkers behind
+    // `medications()`, `notes()`, `appointments()` and `msg.structure`. Folding
+    // here is what makes a sender's `obx` reach `observations()` instead of
+    // vanishing. Folding is ASCII-only (see `canonicalSegmentName`) so a
+    // Unicode lookalike cannot forge a segment identifier.
+    //
     // Bounded because a consumer reads `type` as a structural identifier and
     // reasonably interpolates it into a label, a locus or a report. An
     // unescaped line break inside a narrative field forges a segment whose
     // "name" is the rest of that field, so this is the field that carried
-    // clinical prose into a downstream package's report. `raw.name` keeps the
-    // verbatim text for the byte-exact round-trip; see the `type` field JSDoc.
-    this.type = boundedIdentifier(raw.name, "segmentId");
+    // clinical prose into a downstream package's report. Canonicalizing first
+    // cannot loosen that guard: the shape test admits both cases already, and
+    // ASCII-uppercasing maps `[A-Za-z]` onto `[A-Z]`, so exactly the same set
+    // of names passes it. `raw.name` keeps the verbatim text for the byte-exact
+    // round-trip; see the `type` field JSDoc.
+    this.type = boundedIdentifier(canonicalSegmentName(raw.name), "segmentId");
     this.fields = raw.fields;
     this.enc = enc;
     this.absoluteIndex = absoluteIndex;

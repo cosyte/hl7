@@ -19,6 +19,7 @@
  *   second `unescape` here would double-decode it.
  */
 
+import { canonicalSegmentName } from "../parser/known-segments.js";
 import type { EncodingCharacters, RawSegment } from "../parser/types.js";
 
 /**
@@ -87,6 +88,10 @@ export function parsePath(path: string): DotPath {
   if (path.length < 3) {
     throw new TypeError(`Invalid HL7 dot-path: "${path}" (segment name too short).`);
   }
+  // NOT folded. The tolerance this parser owes is to the WIRE, where a vendor
+  // chooses the spelling; a dot-path is the caller's own source text, where
+  // they do. `pid.5` stays a TypeError, as it always has, so every accessor
+  // asks for a segment the same way.
   const segmentType = path.slice(0, 3);
   if (!SEGMENT_NAME_RE.test(segmentType)) {
     throw new TypeError(
@@ -260,10 +265,17 @@ function findSegment(
   segmentType: string,
   occurrence: number,
 ): { readonly seg: RawSegment } | undefined {
+  // The WIRE side is folded, the query side is not: `parsePath` has already
+  // validated `segmentType` to /^[A-Z][A-Z0-9]{2}$/, so it is canonical by
+  // construction. This is what makes `msg.get("PID.5")` resolve a segment the
+  // sender spelled `pid`, agreeing with `msg.segments("PID")[0]`. Leaving the
+  // dot-path resolver case-sensitive on the wire while the typed accessors
+  // folded would be the worse failure: two documented routes to one field
+  // disagreeing about whether it exists.
   let seen = 0;
   for (const s of segments) {
     if (s === undefined) continue;
-    if (s.name === segmentType) {
+    if (canonicalSegmentName(s.name) === segmentType) {
       if (seen === occurrence) return { seg: s };
       seen++;
     }

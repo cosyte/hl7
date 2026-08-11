@@ -1,10 +1,12 @@
 # vendor-quirks fixtures
 
 One fixture per Tier-2 warning code in
-`src/parser/warnings.ts::WARNING_CODES` (13 total). Each fixture parses in
-lenient mode and (for warnings the parser currently emits) surfaces the
-named code in `msg.warnings` and throws `Hl7ParseError` under
-`{ strict: true }`.
+`src/parser/warnings.ts::WARNING_CODES` that a fixture can trigger. Each
+fixture parses in lenient mode and (for warnings the parser currently
+emits) surfaces the named code in `msg.warnings` and throws
+`Hl7ParseError` under `{ strict: true }`. The count is asserted by the
+sweep rather than stated here, because a number in this sentence went
+stale the moment a code was added.
 
 ## Filename contract (Plan 07-04 D-12)
 
@@ -36,7 +38,7 @@ authoring the fixture here.
 | `unknown-segment.hl7`              | `UNKNOWN_SEGMENT`            | yes          | `ZZZ` segment not in KNOWN_SEGMENTS and no profile claim          |
 | `encoding-mismatch.hl7`            | `ENCODING_MISMATCH`          | yes*         | MSH-18=`UTF-8`; sweep passes `options.charset="ASCII"` override   |
 | `unknown-charset.hl7`              | `UNKNOWN_CHARSET`            | yes          | MSH-18=`ISO IR 999` (unknown); read as Buffer                     |
-| `segment-case.hl7`                 | `SEGMENT_CASE`               | **no**       | Lowercase `pid`; parser emits `UNKNOWN_SEGMENT` instead           |
+| `segment-case.hl7`                 | `SEGMENT_CASE`               | yes          | Lowercase `pid`; resolves as PID and reports the case             |
 | `extra-fields.hl7`                 | `EXTRA_FIELDS`               | **no**       | EVN padded beyond spec width; no emit site wired                  |
 | `duplicate-required-segment.hl7`   | `DUPLICATE_REQUIRED_SEGMENT` | **no**       | Two MSH segments; no emit site wired                              |
 | `missing-required-field.hl7`       | `MISSING_REQUIRED_FIELD`     | **no**       | Empty MSH-9; no emit site wired                                   |
@@ -48,15 +50,12 @@ authoring the fixture here.
 disagrees with MSH-18 (see `resolveBufferCharset` in
 `src/parser/index.ts`). The sweep wires that option for this fixture only.
 
-## Parser emission status (2026-04-19 baseline)
+## Parser emission status
 
-Six codes have active emit sites in the lenient default parser; **seven
+Seven codes have active emit sites in the lenient default parser; **six
 codes have factory functions in `src/parser/warnings.ts` but no call site
-wired into the parser pipeline** as of the close of Phase 6:
+wired into the parser pipeline**:
 
-- `SEGMENT_CASE`: `segmentCase()` factory is never called. `splitSegments`
-  preserves the lowercase name; the downstream `UNKNOWN_SEGMENT` scan
-  surfaces the lowercase identifier instead.
 - `EXTRA_FIELDS`: `extraFields()` factory is never called. The tokenizer
   preserves every field; no per-segment spec width is enforced.
 - `DUPLICATE_REQUIRED_SEGMENT`: `duplicateRequiredSegment()` factory is
@@ -83,10 +82,12 @@ it with zero test changes.
 
 ## Co-trigger policy (Plan 07-04 D-14)
 
-Some fixtures emit additional warnings beyond their target (e.g.
-`segment-case.hl7` currently emits `UNKNOWN_SEGMENT` because `pid` is not a
-known HL7 segment name). The sweep uses `.toContain(code)` (not
-`.toEqual([code])`), so co-triggers do not fail the test.
+Some fixtures emit additional warnings beyond their target. The sweep uses
+`.toContain(code)` (not `.toEqual([code])`), so co-triggers do not fail the
+test. `segment-case.hl7` is the case that motivated the policy: it used to
+emit `UNKNOWN_SEGMENT` instead of its target, because the segment lookup was
+case-sensitive and `pid` matched nothing. It now emits `SEGMENT_CASE` and no
+`UNKNOWN_SEGMENT`, since `PID` is a known segment name.
 
 ## Adding a new fixture
 
