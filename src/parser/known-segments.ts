@@ -129,3 +129,43 @@ export const KNOWN_SEGMENTS: ReadonlySet<string> = new Set<string>([
   "CSP",
   "CSS",
 ]);
+
+/**
+ * Fold a segment identifier to its canonical HL7 spelling: **ASCII** uppercase.
+ *
+ * HL7 v2 Ch. 2 §2.5 defines a segment identifier as three uppercase
+ * alphanumeric characters, but real senders ship `pid`, `Pid` and `obx`, and
+ * `README.md` advertises mixed-case segment names as a tolerated real-world
+ * violation. Every lookup that asks "which segment is this?" therefore compares
+ * canonical forms, so a miscased name resolves to the segment it names. The
+ * wire spelling itself is never rewritten: it stays on `RawSegment.name`, which
+ * is what serialization emits, so the byte-verbatim round-trip is unaffected.
+ *
+ * **ASCII-only, deliberately, and this is the whole reason the function
+ * exists rather than a bare `.toUpperCase()`.** JavaScript's `toUpperCase` is
+ * Unicode-aware and locale-independent, so `"pıd".toUpperCase()` is `"PID"`:
+ * a dotless Turkish i would silently forge a **PID**, and the patient
+ * demographics of a segment the sender never sent would be read as real. The
+ * same trap exists for `"ı"`, `"ﬁ"` and the Kelvin sign. Only `a`-`z` are
+ * mapped here, so a non-ASCII lookalike stays unrecognized and falls out as
+ * `UNKNOWN_SEGMENT`, which is the honest answer.
+ *
+ * Returns the input unchanged when it holds no ASCII lowercase letter, so the
+ * overwhelmingly common spec-clean case allocates nothing.
+ *
+ * @internal
+ */
+export function canonicalSegmentName(name: string): string {
+  let out: string | undefined;
+  for (let i = 0; i < name.length; i++) {
+    const code = name.charCodeAt(i);
+    // 97..122 = 'a'..'z'. Nothing else is touched: not `ı`, not `ﬁ`, not `K`.
+    if (code >= 97 && code <= 122) {
+      out ??= name.slice(0, i);
+      out += String.fromCharCode(code - 32);
+    } else if (out !== undefined) {
+      out += name.charAt(i);
+    }
+  }
+  return out ?? name;
+}

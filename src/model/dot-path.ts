@@ -19,6 +19,7 @@
  *   second `unescape` here would double-decode it.
  */
 
+import { canonicalSegmentName } from "../parser/known-segments.js";
 import type { EncodingCharacters, RawSegment } from "../parser/types.js";
 
 /**
@@ -260,10 +261,15 @@ function findSegment(
   segmentType: string,
   occurrence: number,
 ): { readonly seg: RawSegment } | undefined {
+  // Canonical on both sides, so `msg.get("PID.5")` resolves the same segment
+  // `msg.segments("PID")[0]` returns. Leaving the dot-path resolver
+  // case-sensitive while the typed accessors fold would be the worse failure:
+  // two documented routes to one field disagreeing about whether it exists.
+  const targetName = canonicalSegmentName(segmentType);
   let seen = 0;
   for (const s of segments) {
     if (s === undefined) continue;
-    if (s.name === segmentType) {
+    if (canonicalSegmentName(s.name) === targetName) {
       if (seen === occurrence) return { seg: s };
       seen++;
     }

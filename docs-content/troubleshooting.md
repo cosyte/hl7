@@ -87,6 +87,16 @@ Design around these. They're deliberate scope choices, not bugs:
   "quirk" is encoded **only** when a real document grounds it: a publicly published vendor interface
   spec (as with Visage 7 and Philips Vue PACS) or a real de-identified feed, never invented, so
   broader per-vendor coverage expands as grounded sources arrive rather than shipping speculative rules.
+- **A miscased segment name resolves, but is not rewritten.** A sender shipping `pid` or `obx`,
+  which HL7 v2 Ch. 2 §2.5 does not permit, is matched by `msg.segments("PID")`, `msg.patient`,
+  `observations()` and `msg.get("PID.5")`, and reports `SEGMENT_CASE`. The comparison folds
+  **ASCII** case only, so a non-ASCII lookalike (a dotless Turkish `ı`) is deliberately *not*
+  folded into `PID` and surfaces as `UNKNOWN_SEGMENT` instead: guessing there would invent a
+  patient identity the sender never sent. Two consequences worth designing around: the spelling
+  that arrived is preserved on `RawSegment.name` and is what `toString()` re-emits, so the
+  round-trip stays byte-exact rather than being silently corrected; and a lowercase **`msh`** is
+  still the `NO_MSH_SEGMENT` fatal, because MSH is what delimiter discovery reads before any
+  segment name exists to fold.
 - **No terminology validation, no network, no bundled codesets.** `codingSystem()` reports what a
   code _claims_ (HL7 Table 0396). It does not validate a value against LOINC, SNOMED CT, RxNorm, or
   any external system, and nothing here makes a network call.

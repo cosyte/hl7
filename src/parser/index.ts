@@ -18,7 +18,7 @@ import type { Buffer } from "node:buffer";
 
 import { DEFAULT_ENCODING_CHARACTERS, readDelimiters } from "./delimiters.js";
 import { FATAL_CODES, Hl7ParseError } from "./errors.js";
-import { KNOWN_SEGMENTS } from "./known-segments.js";
+import { KNOWN_SEGMENTS, canonicalSegmentName } from "./known-segments.js";
 import { emitIfFramed, stripMllp } from "./mllp.js";
 import { canonicalCharset } from "./charset.js";
 import { normalize, normalizeBuffer } from "./normalize.js";
@@ -29,6 +29,7 @@ import {
   encodingMismatch,
   missingExpectedGroup,
   safeCharsetLabel,
+  segmentCase,
   unknownSegment,
 } from "./warnings.js";
 import type { Hl7ParseWarning } from "./warnings.js";
@@ -500,21 +501,39 @@ export function parseHL7(
   );
 
   // Step 11.5: Emit UNKNOWN_SEGMENT for any non-standard segment name that
-  // is not declared in the active profile (D-31). Uses the already-resolved
-  // effectiveProfile for customSegments suppression. O(N): one Set.has +
-  // one hasOwnProperty per segment. Uses Object.prototype.hasOwnProperty.call
-  // to guard against prototype pollution (matches the T-02-06-01 mitigation
-  // in discriminateOptionsOrProfile).
+  // is not declared in the active profile (D-31), and SEGMENT_CASE for any
+  // name that is not already the canonical ASCII-uppercase spelling. Uses the
+  // already-resolved effectiveProfile for customSegments suppression. O(N):
+  // one Set.has + one hasOwnProperty per segment. Uses
+  // Object.prototype.hasOwnProperty.call to guard against prototype pollution
+  // (matches the T-02-06-01 mitigation in discriminateOptionsOrProfile).
+  //
+  // Both checks read the CANONICAL name, so `pid` resolves as PID rather than
+  // reading as an unknown segment: the defect that silently dropped a flagged
+  // lab result from `observations()` because the sender shipped `obx`. Profile
+  // customSegments keys are validated to /^Z[A-Z0-9]{2}$/ at defineProfile
+  // time, so they are already canonical and need no folding on that side.
+  //
+  // Emission ORDER is load-bearing. UNKNOWN_SEGMENT goes first so that under
+  // `{ strict: true }` (where the first emit throws) a genuinely unrecognized
+  // segment still throws UNKNOWN_SEGMENT exactly as it did before this fix.
+  // A miscased-but-known segment has no UNKNOWN_SEGMENT to emit, so it throws
+  // SEGMENT_CASE: strict keeps throwing on every input it threw on before,
+  // and accepts nothing new.
   const profileCustomSegments = effectiveProfile?.customSegments;
   for (let segIdx = 0; segIdx < rawSegments.length; segIdx++) {
     const rawSeg = rawSegments[segIdx];
     if (rawSeg === undefined) continue;
-    const isKnown = KNOWN_SEGMENTS.has(rawSeg.name);
+    const canonicalName = canonicalSegmentName(rawSeg.name);
+    const isKnown = KNOWN_SEGMENTS.has(canonicalName);
     const isProfileClaimed =
       profileCustomSegments !== undefined &&
-      Object.prototype.hasOwnProperty.call(profileCustomSegments, rawSeg.name);
+      Object.prototype.hasOwnProperty.call(profileCustomSegments, canonicalName);
     if (!isKnown && !isProfileClaimed) {
       emit(unknownSegment({ segmentIndex: segIdx }, rawSeg.name));
+    }
+    if (canonicalName !== rawSeg.name) {
+      emit(segmentCase({ segmentIndex: segIdx }, rawSeg.name));
     }
   }
 
@@ -528,9 +547,12 @@ export function parseHL7(
   // unrecognized type yields no expected groups and emits nothing.
   const { messageCode, triggerEvent } = extractMessageType(rawSegments[0]);
   if (messageCode !== "") {
+    // Canonical names: a sender shipping `obx` still satisfies the ORU^R01
+    // result group, so the safety net does not report a group as missing when
+    // its anchor segment is present and merely miscased.
     const presentSegmentNames = new Set<string>();
     for (const seg of rawSegments) {
-      if (seg !== undefined) presentSegmentNames.add(seg.name);
+      if (seg !== undefined) presentSegmentNames.add(canonicalSegmentName(seg.name));
     }
     const structure = analyzeMessageStructure(messageCode, triggerEvent, presentSegmentNames);
     const messageType = triggerEvent !== "" ? `${messageCode}^${triggerEvent}` : messageCode;

@@ -7,6 +7,7 @@
  */
 
 import { resolveCharset } from "./charset.js";
+import { canonicalSegmentName } from "./known-segments.js";
 import { WITHHELD, safeDerivedToken } from "./tokens.js";
 export { safeDerivedToken } from "./tokens.js";
 export type { DerivedTokenKind } from "./tokens.js";
@@ -284,9 +285,16 @@ export function timestampFallbackFormat(
 }
 
 /**
- * Build a `SEGMENT_CASE` warning. Emitted when a segment identifier is not
- * all-uppercase (e.g. `pid` instead of `PID`). The parser accepts the
- * segment; the warning alerts consumers to non-conforming senders.
+ * Build a `SEGMENT_CASE` warning. Emitted when a segment identifier carries an
+ * ASCII lowercase letter (e.g. `pid` instead of `PID`, or `Obx` instead of
+ * `OBX`), which HL7 v2 Ch. 2 §2.5 does not permit. The parser accepts the
+ * segment and resolves it as the segment it names, so `msg.segments("PID")`,
+ * `msg.patient` and `observations()` all see it; the warning is how a consumer
+ * learns the sender is non-conforming.
+ *
+ * "Resolved as", not "rewritten to": the original spelling stays on
+ * `RawSegment.name` and is what serialization re-emits, so the byte-verbatim
+ * round-trip is unaffected.
  *
  * @example
  * ```ts
@@ -297,7 +305,10 @@ export function timestampFallbackFormat(
 export function segmentCase(position: Hl7Position, observed: string): Hl7ParseWarning {
   return {
     code: WARNING_CODES.SEGMENT_CASE,
-    message: `Segment identifier "${safeDerivedToken(observed, "segmentId")}" is not uppercase; normalized to "${safeDerivedToken(observed.toUpperCase(), "segmentId")}".`,
+    message:
+      `Segment identifier "${safeDerivedToken(observed, "segmentId")}" is not uppercase; ` +
+      `resolved as "${safeDerivedToken(canonicalSegmentName(observed), "segmentId")}" ` +
+      `(the original spelling is preserved and re-emitted verbatim).`,
     position,
   };
 }
@@ -330,6 +341,14 @@ export function extraFields(
  * not in the HL7 spec's standard set and not registered in the active
  * profile's `customSegments`.
  *
+ * The message states that the comparison ignored case, because the parser
+ * folds a segment name to its canonical ASCII-uppercase spelling before
+ * looking it up. An earlier wording read "not in HL7 spec and no profile
+ * claim" while the lookup was case-SENSITIVE, so a sender shipping `obx` was
+ * told its segment was absent from the standard. `OBX` is in the standard;
+ * the real fault was the case, and the message sent the integrator looking
+ * for a missing spec entry that was never missing.
+ *
  * @example
  * ```ts
  * import { unknownSegment } from "@cosyte/hl7";
@@ -339,7 +358,9 @@ export function extraFields(
 export function unknownSegment(position: Hl7Position, segmentName: string): Hl7ParseWarning {
   return {
     code: WARNING_CODES.UNKNOWN_SEGMENT,
-    message: `Unknown segment "${safeDerivedToken(segmentName, "segmentId")}": not in HL7 spec and no profile claim.`,
+    message:
+      `Unknown segment "${safeDerivedToken(segmentName, "segmentId")}": no standard HL7 segment ` +
+      `of that name (compared ignoring case) and no profile claim.`,
     position,
   };
 }
