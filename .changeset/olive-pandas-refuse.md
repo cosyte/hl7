@@ -1,0 +1,15 @@
+---
+"@cosyte/hl7": patch
+---
+
+Tooling: the PHI scanner now refuses over a file it listed and never opened, instead of reporting on the ones it did.
+
+`scripts/phi-scan.ts` counted a run as clean once every target it actually read came back clean. A target that left the read set was simply gone from the reckoning. Measured against the previous release, in a throwaway repository laid out like this one, with the bypassed path logged in `phi-scan-overrides.md` exactly as the rejection gate instructs: naming a violator and a second file, and withdrawing the second with `--allow-fixture`, exited 1 naming only the violator. So the same command line over a corpus whose only violator is the withdrawn file exited 0 and printed "OK: no hits", byte-identical on standard output and exit code to a genuine clean run over the same tree, with one of the two declared files never opened.
+
+A target this run enumerated and never read now refuses at exit 2, in every mode, naming the paths. It is a set difference between what the enumerating routes declared and what was actually read, never a size comparison: a count counts the files that were read, which is exactly the arithmetic that hides which ones were not, and it still would not say which. Both halves of the full sweep feed the same set, so the rule covers the working-tree walk and the bytes git carries alike.
+
+A second, related state is closed with it. A bypass naming a path the run does not enumerate subtracts nothing, so it was accepted, its audit entry was checked, and it was then ignored: naming one clean file and bypassing a second file that held a real patient name in a name field exited 0 with "OK: no hits", having never opened the named file at all. That now refuses at exit 2 too.
+
+What it costs, decided rather than stumbled into: a whole-file `--allow-fixture` bypass can no longer reach exit 0 in any mode. The flag, its bypass log and its rejection gate all stay, and they still demand a committed audit entry naming the path; the run now ends in a refusal that names the file instead of a green line that does not. The remedy that reaches a clean run is `scripts/phi-allow-list.txt`, a token-level declaration reviewed per value that leaves the file read, and the bypass log already told developers to prefer it. The hit report no longer offers the flag as a remedy, because following that advice walked a developer from exit 1 into exit 2.
+
+One carve-out, named rather than left to be discovered: an untracked file the sweep listed and that is gone from disk by the time it is read has no bytes to read. That stays a reported skip at exit 0, the behaviour the enumeration race already had, and it cannot be used to smuggle a bypass past the rule, because the tolerance exists only in the full sweep and a bypass always puts the run in another mode. A tracked file, and any failure that is not a missing file, still refuse.
