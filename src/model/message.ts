@@ -299,7 +299,8 @@ export class Hl7Message {
   /**
    * Return every `Segment` of `segmentType` in document order. Returns `[]`
    * (empty array, NEVER `undefined`) when no segment of that type exists
-   * (MODEL-02). Alias for `segments(segmentType)`: shares the same cache.
+   * (MODEL-02). Alias for `segments(segmentType)`: shares the same cache, and
+   * matches segment names ignoring case exactly as it does.
    *
    * @example
    * ```ts
@@ -317,6 +318,12 @@ export class Hl7Message {
    * document order. The returned array identity and the individual Segment
    * instances are both stable across calls (D-11). Invalidated wholesale
    * by the mutation methods.
+   *
+   * **Segment names are matched ignoring ASCII case, on both sides.** A sender
+   * that ships `obx` is returned by `segments("OBX")`, and `segments("obx")`
+   * returns the same array (one cache entry, so the D-11 identity guarantee
+   * does not split across spellings). A `SEGMENT_CASE` warning records the
+   * sender's deviation; `Segment.raw.name` is the spelling that arrived.
    *
    * @example
    * ```ts
