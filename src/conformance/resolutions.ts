@@ -46,6 +46,32 @@
  * rule 1's; a locus that is both duplicated and aimed at a non-conditional rule
  * yields exactly one finding, rule 2's.
  *
+ * ## A member that is not a well-formed resolution counts PER MEMBER
+ *
+ * The per-locus rule above is about a LOCUS, and an ill-typed member has none:
+ * it never reaches the locus checks, so it cannot be collapsed into a locus's
+ * single verdict. N ill-typed members are therefore N defects and N findings,
+ * every one of them reported at the profile-level sentinel `"(profile)"`. That
+ * sentinel is a place to hang a finding with no locus of its own, NOT a locus
+ * these defects share, so it never collapses them to one. Each names its own
+ * index (`resolutions[2] must be ...`), which is what makes N findings useful
+ * rather than repetitive: an author fixing three mistyped members is told about
+ * all three at once instead of one per run.
+ *
+ * ## The order the diagnostics come back in
+ *
+ * Resolution defects are reported in SUPPLY ORDER: the order the caller wrote
+ * the list, whatever KIND each defect is. An ill-typed member stands where it
+ * was supplied, and a locus's verdict stands where that locus FIRST appeared -
+ * so given `[{bad locus A}, 42, {bad locus B}]` the findings come back
+ * `A`, `(profile)`, `B`, never with the ill-typed member hoisted to the front.
+ * The two kinds are found in two passes (a member's shape has to be known
+ * before its locus can be grouped), but the passes RESERVE positions rather
+ * than emit, so the sequence handed back is one interleaved supply-ordered run.
+ * Profile-SHAPE defects are a separate, earlier group and still precede every
+ * resolution defect; `validate-against-profile.ts` concatenates the two groups
+ * in that order.
+ *
  * @internal
  */
 
@@ -53,12 +79,33 @@ import type { ProfileDefect } from "./profile-shape.js";
 import type { FindingLocus, UsageResolution } from "./types.js";
 import { boundedToken, describeValueType, isRecord, parseUsageToken } from "./usage.js";
 
-/** A resolution the shape check accepted, with the locus key it targets. @internal */
+/** A resolution the shape check accepted, with the locus it targets. @internal */
 interface WellFormedResolution {
-  readonly key: string;
   readonly locus: FindingLocus;
   readonly outcome: boolean;
 }
+
+/**
+ * One position in the supply-ordered diagnostic sequence, reserved while the
+ * list is walked and filled in once every locus is known.
+ *
+ * A `member` slot is an ill-typed member: it stands where it was supplied. A
+ * `locus` slot stands where its locus FIRST appeared, and is the only slot that
+ * locus gets however many resolutions share it - that is the per-locus counting
+ * rule, expressed as a position rather than only as a count. It carries the
+ * first resolution at the locus and the LIVE group every later duplicate is
+ * appended to, so the second pass needs no lookup that could come back empty.
+ *
+ * @internal
+ */
+type DefectSlot =
+  | { readonly kind: "member"; readonly detail: string }
+  | {
+      readonly kind: "locus";
+      readonly key: string;
+      readonly first: WellFormedResolution;
+      readonly group: readonly WellFormedResolution[];
+    };
 
 /** What one declared locus in the profile looks like to the resolution checks. @internal */
 interface DeclaredLocus {
@@ -207,15 +254,18 @@ export function analyzeResolutions(resolutions: unknown, profile: unknown): Reso
     return { defects, applied: EMPTY_ANALYSIS.applied };
   }
 
-  // Pass 1: shape. An ill-typed member is a defect at the profile-level
+  // Pass 1: walk the list ONCE, in supply order, reserving a slot per defect
+  // the list can produce. An ill-typed member is a defect at the profile-level
   // sentinel and is dropped from the locus checks below (there is no locus to
-  // check it at); every other member carries on with its locus.
-  const wellFormed: WellFormedResolution[] = [];
+  // check it at); every other member joins its locus group, and the FIRST
+  // member of a group reserves that locus's single slot.
+  const slots: DefectSlot[] = [];
+  const byLocus = new Map<string, WellFormedResolution[]>();
   for (let i = 0; i < resolutions.length; i++) {
     const member: unknown = resolutions[i];
     const detail = memberDefect(member, i);
     if (detail !== undefined) {
-      defects.push({ locus: ROOT_LOCUS, detail });
+      slots.push({ kind: "member", detail });
       continue;
     }
     const resolution = member as UsageResolution;
@@ -225,26 +275,29 @@ export function analyzeResolutions(resolutions: unknown, profile: unknown): Reso
       resolution.field === undefined
         ? { segment: boundedToken(resolution.segment) }
         : { segment: boundedToken(resolution.segment), field: resolution.field };
-    wellFormed.push({
-      key: locusKey(resolution.segment, resolution.field),
-      locus,
-      outcome: resolution.outcome,
-    });
+    const key = locusKey(resolution.segment, resolution.field);
+    const wellFormed: WellFormedResolution = { locus, outcome: resolution.outcome };
+    const group = byLocus.get(key);
+    if (group === undefined) {
+      const opened: WellFormedResolution[] = [wellFormed];
+      byLocus.set(key, opened);
+      slots.push({ kind: "locus", key, first: wellFormed, group: opened });
+    } else {
+      group.push(wellFormed);
+    }
   }
 
-  // Pass 2: one verdict per distinct locus, in the order the loci first appear.
-  const byLocus = new Map<string, WellFormedResolution[]>();
-  for (const resolution of wellFormed) {
-    const group = byLocus.get(resolution.key);
-    if (group === undefined) byLocus.set(resolution.key, [resolution]);
-    else group.push(resolution);
-  }
-
+  // Pass 2: fill each reserved slot IN SUPPLY ORDER - one verdict per distinct
+  // locus, emitted where that locus first appeared, interleaved with the
+  // ill-typed members exactly as the caller supplied them.
   const declared = collectDeclaredLoci(profile);
   const applied = new Map<string, boolean>();
-  for (const [key, group] of byLocus) {
-    const first = group[0];
-    if (first === undefined) continue;
+  for (const slot of slots) {
+    if (slot.kind === "member") {
+      defects.push({ locus: ROOT_LOCUS, detail: slot.detail });
+      continue;
+    }
+    const { key, first, group } = slot;
     const target = declared.get(key);
     if (target !== undefined && target.count > 1) {
       defects.push({

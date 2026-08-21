@@ -734,6 +734,75 @@ describe("resolutions: what is refused, and how many findings that is (AC12, AC1
     expect(findings.map((f) => f.locus.segment)).toEqual(["PID", "ZZA", "ZZB"]);
   });
 
+  it("a bad locus supplied BEFORE an ill-typed member is reported BEFORE it", () => {
+    // The two kinds are found by different checks (a member's shape, then its
+    // locus), but they are ONE supply-ordered group: index 0 is reported first
+    // whichever kind it is.
+    const findings = validateWith(WITHOUT_SEX, pid8Profile("C(R/X)"), [
+      { segment: "ZZA", outcome: true },
+      42,
+    ]);
+    expect(findings).toHaveLength(2);
+    expect(findings.every(isProfileMalformed)).toBe(true);
+    expect(findings.map((f) => f.locus.segment)).toEqual(["ZZA", "(profile)"]);
+  });
+
+  it("resolution defects of both kinds interleave in supply order", () => {
+    const findings = validateWith(WITHOUT_SEX, pid8Profile("C(R/X)"), [
+      { segment: "ZZA", outcome: true },
+      "junk",
+      { segment: "ZZB", outcome: true },
+    ]);
+    expect(findings).toHaveLength(3);
+    expect(findings.every(isProfileMalformed)).toBe(true);
+    expect(findings.map((f) => f.locus.segment)).toEqual(["ZZA", "(profile)", "ZZB"]);
+  });
+
+  it("a locus is reported where it FIRST appears, not where its duplicate does", () => {
+    // PID-8 is supplied at index 0 and again at index 3, so its ONE duplicate
+    // finding stands at index 0's position: ahead of the ill-typed member at
+    // index 1 and the bad locus at index 2.
+    const findings = validateWith(WITHOUT_SEX, pid8Profile("C(R/X)"), [
+      { segment: "PID", field: 8, outcome: true },
+      42,
+      { segment: "ZZB", outcome: true },
+      { segment: "PID", field: 8, outcome: false },
+    ]);
+    expect(findings).toHaveLength(3);
+    expect(findings.every(isProfileMalformed)).toBe(true);
+    expect(findings.map((f) => f.locus.segment)).toEqual(["PID", "(profile)", "ZZB"]);
+    expect(findings[0]?.locus.field).toBe(8);
+    expect(findings[0]?.message).toContain("2 resolutions were supplied");
+  });
+
+  it("shape defects still precede an INTERLEAVED run of resolution defects", () => {
+    const profile = {
+      name: "shape-then-interleaved",
+      segments: [{ segment: "PID", fields: [{ field: 8, usage: "RQ" }] }],
+    } as unknown as ConformanceProfile;
+    const findings = validateWith(WITH_SEX, profile, [
+      { segment: "ZZA", outcome: true },
+      42,
+      { segment: "ZZB", outcome: true },
+    ]);
+    expect(findings).toHaveLength(4);
+    expect(findings.every(isProfileMalformed)).toBe(true);
+    expect(findings.map((f) => f.locus.segment)).toEqual(["PID", "ZZA", "(profile)", "ZZB"]);
+  });
+
+  it("N ill-typed members are N findings at the sentinel, one per member", () => {
+    // The per-locus rule collapses defects at ONE locus. An ill-typed member has
+    // no locus: `(profile)` is where a finding with none is hung, not a locus
+    // these share, so three bad members stay three findings naming three indexes.
+    const findings = validateWith(WITHOUT_SEX, pid8Profile("C(R/X)"), [42, "junk", null]);
+    expect(findings).toHaveLength(3);
+    expect(findings.every(isProfileMalformed)).toBe(true);
+    expect(findings.every((f) => f.locus.segment === "(profile)")).toBe(true);
+    expect(findings[0]?.message).toContain("resolutions[0]");
+    expect(findings[1]?.message).toContain("resolutions[1]");
+    expect(findings[2]?.message).toContain("resolutions[2]");
+  });
+
   it("every resolution defect carries severity error", () => {
     const findings = validateWith(WITHOUT_SEX, pid8Profile("C(R/X)"), [
       { segment: "ZZZ", outcome: true },
