@@ -5,11 +5,13 @@
  *
  * @see validateAgainstProfile: run a user-authored profile against a message.
  * @see defineConformanceProfile: optional fail-fast profile-authoring gate.
+ * @see usageOutcomes: read a declared conditional's true and false outcomes.
  */
 
 export { validateAgainstProfile } from "./validate-against-profile.js";
 export { collectProfileDefects, defineConformanceProfile } from "./profile-shape.js";
 export type { ProfileDefect } from "./profile-shape.js";
+export { usageOutcomes } from "./usage.js";
 export {
   FINDING_CODES,
   USAGE_CODES,
@@ -17,10 +19,15 @@ export {
   type ConformanceFinding,
   type ConformanceProfile,
   type ConformanceResult,
+  type DeclaredConditionalUsage,
   type FieldRule,
   type FindingCode,
   type FindingLocus,
   type FindingSeverity,
   type SegmentRule,
+  type SimpleUsageCode,
   type UsageCode,
+  type UsageCodeRegistryEntry,
+  type UsageOutcomes,
+  type UsageResolution,
 } from "./types.js";

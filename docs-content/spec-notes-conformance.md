@@ -29,11 +29,12 @@ The design boundary is deliberate and load-bearing:
 
 ## The four invariants
 
-1. **Never throws.** Any message × any profile (even a malformed profile, or a
-   value forced through `any`) returns a `ConformanceResult`, never an
-   exception. A malformed profile becomes `PROFILE_MALFORMED` findings (never a
-   silent pass). For fail-fast authoring, `defineConformanceProfile(profile)`
-   runs the same shape check and **throws** `ProfileDefinitionError` on a defect.
+1. **Never throws.** Any message × any profile × any resolution argument (even a
+   malformed one, or a value forced through `any`) returns a
+   `ConformanceResult`, never an exception. A malformed profile becomes
+   `PROFILE_MALFORMED` findings (never a silent pass). For fail-fast authoring,
+   `defineConformanceProfile(profile)` runs the same shape check and **throws**
+   `ProfileDefinitionError` on a defect.
 2. **Valid ⇒ zero findings.**
 3. **No PHI in findings.** Every finding names the structural **locus** (segment,
    field, component, repetition, occurrence) and the rule that fired, never the
@@ -43,23 +44,106 @@ The design boundary is deliberate and load-bearing:
 
 ## Usage codes (HL7 conformance methodology)
 
-The profile uses the six HL7 v2 usage codes (HL7 Conformance Methodology:
-Message Profiles; IHE ITI TF Vol.2 Appendix C):
+A rule's usage is one of the seven simple codes below, or a **declared
+conditional** written `C(t/f)` whose two outcomes are each a simple code (HL7
+Conformance Methodology: Message Profiles; IHE ITI TF Vol.2 Appendix C):
 
-| Code   | Meaning                    | Engine behaviour                                             |
-| ------ | -------------------------- | ----------------------------------------------------------- |
-| `R`    | Required                   | absent ⇒ `PROFILE_REQUIRED_ABSENT`                          |
-| `RE`   | Required, may be Empty     | absence is **never** a violation                            |
-| `C`    | Conditional                | presence **not evaluated** (no predicate language, below)  |
-| `CE`   | Conditional, may be Empty  | presence **not evaluated**                                  |
-| `O`    | Optional                   | no presence constraint                                      |
-| `X`    | Not permitted              | present ⇒ `PROFILE_NOT_PERMITTED`                           |
+| Code     | Meaning                    | Engine behaviour                                            |
+| -------- | -------------------------- | ----------------------------------------------------------- |
+| `R`      | Required                   | absent ⇒ `PROFILE_REQUIRED_ABSENT`                          |
+| `RE`     | Required, may be Empty     | absence is **never** a violation                            |
+| `C`      | Conditional (undeclared)   | presence **not evaluated** (no predicate language, below)   |
+| `CE`     | Conditional, may be Empty  | presence **not evaluated**                                  |
+| `O`      | Optional                   | no presence constraint                                      |
+| `X`      | Not permitted              | present ⇒ `PROFILE_NOT_PERMITTED`                           |
+| `B`      | Backward Compatible        | presence **not evaluated**, on exactly `C`'s terms          |
+| `C(t/f)` | Declared conditional       | takes the outcome the **caller** resolves; `C` when unresolved |
 
-**`C` / `CE` presence is not evaluated.** This bounded engine ships no
-conditional-predicate language (a deliberate defer), so a conditional element's
-_presence_ is not checked, but its length / value-set / cardinality rules still
-apply when it _is_ present. This keeps "valid ⇒ zero findings" airtight: a
-conformant message never produces a stray conditional finding.
+Omitting `usage` on a rule means Optional, and is never refused.
+
+`USAGE_CODES` exports that vocabulary as a frozen, ordered listing: `R`, `RE`,
+`C`, `CE`, `O`, `X`, `C(a/b)`, `B`. **It is a published vocabulary listing, not
+a membership test for what a rule may declare.** `C(a/b)` is the NOTATION for
+the declared-conditional family, so it is listed and is refused on a rule
+(`a` and `b` are placeholders, not usage codes), while `C(RE/X)` is accepted on
+a rule and is not listed. What a rule may declare is answered by the `UsageCode`
+type at compile time and by `defineConformanceProfile` at run time.
+
+## Declared conditionals: the CALLER resolves them
+
+**The engine evaluates no condition predicate and never derives an outcome from
+the message.** It ships no conditional-predicate language, which is a deliberate
+boundary rather than an oversight. A rule declared `C(R/X)` therefore takes its
+outcome from a resolution you pass alongside the message and the profile:
+
+```ts runnable
+import { parseHL7, validateAgainstProfile, type ConformanceProfile } from "@cosyte/hl7";
+
+const raw = [
+  "MSH|^~\\&|EPIC|MAIN|LIS|REF|20260419101500||ADT^A01|MSG00001|P|2.5",
+  "PID|1||MRN12345^^^HOSP^MR||Doe^John^Q||19800115|",
+].join("\r");
+
+// "PID-8 is Required when the condition holds, Not-permitted when it does not."
+const profile: ConformanceProfile = {
+  name: "conditional-sex",
+  segments: [{ segment: "PID", fields: [{ field: 8, usage: "C(R/X)" }] }],
+};
+
+const msg = parseHL7(raw);
+
+// YOU decide the condition holds for this message. PID-8 is absent, so the
+// true outcome (`R`) fires:
+const held = validateAgainstProfile(msg, profile, [
+  { segment: "PID", field: 8, outcome: true },
+]);
+held.findings[0]?.code; // => "PROFILE_REQUIRED_ABSENT"
+
+// Resolve it false and the false outcome (`X`) applies instead; PID-8 is
+// absent, so nothing fires.
+const didNotHold = validateAgainstProfile(msg, profile, [
+  { segment: "PID", field: 8, outcome: false },
+]);
+didNotHold.findings.length; // => 0
+
+// Resolve nothing and the rule behaves exactly as `C` does: presence is not
+// evaluated at all.
+validateAgainstProfile(msg, profile).findings.length; // => 0
+```
+
+A resolution names a **locus**: the segment name, plus the 1-indexed field
+position when the target is a field rule. It applies to the RULE at that locus,
+so it covers every occurrence of the segment and every repetition of the field;
+there is no per-occurrence resolution. Four things are refused as
+`PROFILE_MALFORMED` rather than ignored:
+
+- a locus matching no rule the profile declares;
+- a locus matching a rule whose usage is not a declared conditional;
+- a locus matching more than one declared rule (it identifies no single rule);
+- two or more resolutions at one locus.
+
+Omitting the argument, or passing `undefined`, means "no resolutions". **Any
+other value that is not a list of well-formed resolutions is a
+`PROFILE_MALFORMED` finding**, never read as "none": a mis-typed argument must
+not return a clean result for elements nothing checked.
+
+**`C`, `CE`, `B` and an unresolved declared conditional are NOT
+presence-checked.** Their length / value-set / cardinality rules still apply
+when the element _is_ present. That keeps "valid ⇒ zero findings" airtight, and
+it is exactly why zero findings is not an attestation: an element whose presence
+nothing evaluated is an element nothing asserted.
+
+`B`'s behaviour is this library's own bounded choice rather than a sourced
+requirement. The methodology's table of allowable usage indicators lists `B` and
+carries no definition text for it, so the reading taken here is the one that
+imposes no presence obligation while preserving what the profile author
+declared.
+
+A declared conditional's outcomes may be any simple code here, because this
+engine targets the constrainable profile level. The methodology separately
+restricts an _implementable_ profile to `R`, `RE` or `X` per element, and its
+conditional outcomes likewise; a profile cannot yet declare which level it
+claims, so that restriction is not enforced.
 
 ## The finding codes
 
@@ -130,10 +214,11 @@ validateAgainstProfile(parseHL7(clean), profile).findings.length; // => 0
 
 ## Sources
 
-- HL7 v2 **Conformance Methodology: Message Profiles** (usage `R`/`RE`/`C`/`CE`/`O`/`X`,
-  cardinality, length, value-set binding).
+- HL7 v2 **Conformance Methodology: Message Profiles** (the usage indicators
+  allowable in a message profile, `C(a/b)` and `B` included, plus cardinality,
+  length and value-set binding).
 - **IHE ITI Technical Framework Vol.2 Appendix C**: "HL7 Profiling Conventions"
-  (the same six usage codes, cardinality `[min..max]`, table references).
+  (`R`/`RE`/`C`/`CE`/`O`/`X`, cardinality `[min..max]`, table references).
 - **NIST IGAMT / GVT**: the public-domain profile-authoring + validation model
   this engine's bounded subset mirrors. hl7 imports none of their code sets; a
   NIST-IGAMT XML import adapter is a possible later, separate addition.

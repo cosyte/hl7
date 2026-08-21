@@ -307,6 +307,7 @@ export { batchCountMismatch, batchMissingTrailer } from "./parser/warnings.js";
 // a raw profile and never throws. Also bundled under the `conformance` namespace.
 export { validateAgainstProfile } from "./conformance/validate-against-profile.js";
 export { defineConformanceProfile } from "./conformance/profile-shape.js";
+export { usageOutcomes } from "./conformance/usage.js";
 export {
   FINDING_CODES,
   USAGE_CODES,
@@ -314,12 +315,17 @@ export {
   type ConformanceFinding,
   type ConformanceProfile,
   type ConformanceResult,
+  type DeclaredConditionalUsage,
   type FieldRule,
   type FindingCode,
   type FindingLocus,
   type FindingSeverity,
   type SegmentRule,
+  type SimpleUsageCode,
   type UsageCode,
+  type UsageCodeRegistryEntry,
+  type UsageOutcomes,
+  type UsageResolution,
 } from "./conformance/types.js";
 export * as conformance from "./conformance/index.js";
 

@@ -21,7 +21,8 @@
 
 import { ProfileDefinitionError } from "../parser/errors.js";
 
-import { USAGE_CODES, type ConformanceProfile, type FindingLocus } from "./types.js";
+import type { ConformanceProfile, FindingLocus } from "./types.js";
+import { SIMPLE_USAGE_CODES, boundedToken, describeValueType, parseUsageToken } from "./usage.js";
 
 /** Segment-name shape: 3 chars, standard or `Z…` segment. Mirrors the model's rule. @internal */
 const SEGMENT_NAME_RE = /^[A-Z][A-Z0-9]{2}$/u;
@@ -152,15 +153,43 @@ export function collectProfileDefects(profile: unknown): readonly ProfileDefect[
   return out;
 }
 
-/** Validate a usage code; append defect if present-and-invalid. @internal */
+/**
+ * Validate a rule's usage against the declarable-usage grammar; append a defect
+ * if it is present and the grammar does not admit it.
+ *
+ * **An OMITTED usage is not a usage**: the grammar does not apply to it, this
+ * check returns before anything else, and the rule keeps its meaning of
+ * Optional. So no profile that authored cleanly before is newly refused.
+ *
+ * **One defect per rule, never two.** A rule declares exactly one usage token,
+ * so a token the grammar rejects is ONE defect however many ways it is wrong.
+ * The literal `C(a/b)` is the case worth naming: it is at once the reserved
+ * placeholder notation and a token whose outcomes are not simple codes, and it
+ * yields exactly ONE `PROFILE_MALFORMED` finding, not one for each reading.
+ *
+ * The defect names the offending token AS A WHOLE (rather than only its bad
+ * part) so an author can find their typo, bounded to the first 32 characters; a
+ * usage that is not a string at all has no token worth echoing, so that defect
+ * names the value's TYPE instead.
+ *
+ * @internal
+ */
 function checkUsage(usage: unknown, locus: FindingLocus, out: ProfileDefect[]): void {
   if (usage === undefined) return;
-  if (typeof usage !== "string" || !USAGE_CODES.includes(usage as never)) {
+  if (typeof usage !== "string") {
     out.push({
       locus,
-      detail: `${describe(locus)} usage must be one of ${USAGE_CODES.join("/")}.`,
+      detail: `${describe(locus)} usage must be a string, not ${describeValueType(usage)}.`,
     });
+    return;
   }
+  if (parseUsageToken(usage) !== undefined) return;
+  out.push({
+    locus,
+    detail:
+      `${describe(locus)} usage "${boundedToken(usage)}" is not a usage code this profile may declare. ` +
+      `Expected one of ${SIMPLE_USAGE_CODES.join("/")}, or a declared conditional written C(<true>/<false>) with both outcomes drawn from them.`,
+  });
 }
 
 /** Validate a severity; append defect if present-and-invalid. @internal */
