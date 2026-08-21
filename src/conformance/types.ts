@@ -27,43 +27,196 @@
  */
 
 /**
- * The six HL7 v2 conformance **usage codes** (HL7 Conformance Methodology,
- * Message Profiles; IHE ITI TF Vol.2 Appendix C). They constrain whether an
- * element must, may, or must not appear:
+ * The seven **simple** HL7 v2 conformance usage codes (HL7 Conformance
+ * Methodology, Message Profiles; IHE ITI TF Vol.2 Appendix C). They constrain
+ * whether an element must, may, or must not appear:
  *
  * - **`R`**: Required. The element SHALL be present (with a value). Absent →
  *   {@link FINDING_CODES.PROFILE_REQUIRED_ABSENT}.
  * - **`RE`**: Required but may be Empty. The element is supported and SHALL be
  *   sent when the sender has the data; its **absence is never a violation**
  *   (this engine cannot know whether the sender had the data).
- * - **`C`**: Conditional. Presence depends on a predicate. This bounded engine
- *   ships **no predicate language** (a documented defer: roadmap §5), so a
+ * - **`C`**: Conditional (undeclared). Presence depends on a predicate. This
+ *   bounded engine ships **no predicate language** (a documented defer), so a
  *   `C` element's **presence is not evaluated** (treated as optional); its
  *   length / value-set / cardinality rules still apply when it IS present.
  * - **`CE`**: Conditional but may be Empty. Same non-evaluation as `C`.
  * - **`O`**: Optional. No presence constraint.
  * - **`X`**: Not supported / not permitted. The element SHALL NOT be present.
  *   Present → {@link FINDING_CODES.PROFILE_NOT_PERMITTED}.
+ * - **`B`**: Backward Compatible. Presence is **not evaluated**, exactly as for
+ *   `C`; the element's length / value-set / cardinality rules still apply when
+ *   it IS present. See the note below on where that behaviour comes from.
+ *
+ * ## Two bounded decisions this library makes rather than inherits
+ *
+ * **`B`'s presence behaviour is this library's decision, not a sourced
+ * requirement.** The HL7 conformance methodology's table of usage indicators
+ * allowable in a message profile lists `B` among them and carries no definition
+ * text for it, so no source settles what a validator should do with a `B`
+ * element. This library chooses the reading that imposes no presence obligation
+ * (so `B` behaves as `C` does on presence) while preserving the author's
+ * declared intent in the profile. A later, separate change may revisit it
+ * against a source that defines the code.
+ *
+ * **A declared conditional's outcome domain is unrestricted HERE, and that is a
+ * level-scoped choice.** {@link DeclaredConditionalUsage} admits any simple code
+ * as either outcome, because this engine targets the CONSTRAINABLE profile
+ * level, whose vocabulary is the full indicator set. The methodology separately
+ * restricts an IMPLEMENTABLE profile to `R`, `RE` or `X` per element, and its
+ * conditional outcomes likewise. That restriction is not enforced here: a
+ * profile cannot yet declare which level it claims, and enforcing it belongs to
+ * the later, separate change that adds that declaration.
+ *
+ * @example
+ * ```ts
+ * import type { SimpleUsageCode } from "@cosyte/hl7";
+ * const usage: SimpleUsageCode = "R";
+ * ```
+ */
+export type SimpleUsageCode = "R" | "RE" | "C" | "CE" | "O" | "X" | "B";
+
+/**
+ * A **declared conditional** usage token: `C(t/f)`, where `t` is the usage that
+ * applies when the condition is true and `f` the usage that applies when it is
+ * false. Both outcomes are {@link SimpleUsageCode}s; the token is uppercase,
+ * carries no whitespace, and does not nest (`C(C(R/X)/O)` is not one).
+ *
+ * A rule declared `C(R/X)` is Required when a caller resolves it true and
+ * Not-permitted when a caller resolves it false. **The engine evaluates no
+ * condition predicate and never derives an outcome from the message**: an
+ * outcome is applied only when the caller supplies a {@link UsageResolution}.
+ * With no resolution supplied, the rule is evaluated exactly as a `C` rule is:
+ * presence not evaluated, every other constraint applied as usual.
+ *
+ * @example
+ * ```ts
+ * import type { DeclaredConditionalUsage } from "@cosyte/hl7";
+ * const usage: DeclaredConditionalUsage = "C(RE/X)";
+ * ```
+ */
+export type DeclaredConditionalUsage = `C(${SimpleUsageCode}/${SimpleUsageCode})`;
+
+/**
+ * Everything a rule's `usage` may be declared as: one of the seven
+ * {@link SimpleUsageCode}s, or a {@link DeclaredConditionalUsage} token.
+ *
+ * **This is not the same type as {@link UsageCodeRegistryEntry}.** The
+ * registry publishes `C(a/b)` as the NOTATION for the declared-conditional
+ * family, and `a` / `b` are placeholders rather than usage codes, so the
+ * literal `"C(a/b)"` is deliberately NOT assignable here. Neither type widens
+ * to a bare `string`: a typo such as `"RQ"` is a compile error, and
+ * {@link defineConformanceProfile} is the runtime backstop rather than the
+ * replacement.
  *
  * @example
  * ```ts
  * import type { UsageCode } from "@cosyte/hl7";
- * const usage: UsageCode = "R";
+ * const simple: UsageCode = "R";
+ * const conditional: UsageCode = "C(RE/X)";
  * ```
  */
-export type UsageCode = "R" | "RE" | "C" | "CE" | "O" | "X";
+export type UsageCode = SimpleUsageCode | DeclaredConditionalUsage;
 
 /**
- * The frozen set of valid {@link UsageCode}s, for runtime validation and
- * introspection. `USAGE_CODES.R === "R"`.
+ * One entry of the exported {@link USAGE_CODES} vocabulary listing: a
+ * {@link SimpleUsageCode}, or the literal notation `"C(a/b)"` that stands for
+ * the whole declared-conditional family.
+ *
+ * Distinct from {@link UsageCode} on purpose, so the placeholder can be listed
+ * without ever becoming assignable where a rule's usage is expected.
+ *
+ * @example
+ * ```ts
+ * import type { UsageCodeRegistryEntry } from "@cosyte/hl7";
+ * const entry: UsageCodeRegistryEntry = "C(a/b)";
+ * ```
+ */
+export type UsageCodeRegistryEntry = SimpleUsageCode | "C(a/b)";
+
+/**
+ * The frozen, ordered registry of HL7 v2 usage indicators a message profile may
+ * use: `R`, `RE`, `C`, `CE`, `O`, `X`, `C(a/b)`, `B`.
+ *
+ * **It is a published vocabulary LISTING, not a membership oracle for what a
+ * rule may declare.** The two questions are different and neither answers the
+ * other:
+ *
+ * - `C(a/b)` is listed here and is REFUSED on a rule, because `a` and `b` are
+ *   placeholders for usage codes rather than usage codes.
+ * - `C(RE/X)` is accepted on a rule and is NOT listed here, because the listing
+ *   carries the family's notation once instead of all of its members.
+ *
+ * What a rule may declare is answered by {@link UsageCode} at compile time and
+ * by {@link defineConformanceProfile} / {@link validateAgainstProfile} at run
+ * time. Do not re-derive this array as an accept-set.
  *
  * @example
  * ```ts
  * import { USAGE_CODES } from "@cosyte/hl7";
- * USAGE_CODES.includes("R" as const); // true
+ * USAGE_CODES.length; // 8
+ * USAGE_CODES[0]; // "R"
  * ```
  */
-export const USAGE_CODES: readonly UsageCode[] = Object.freeze(["R", "RE", "C", "CE", "O", "X"]);
+export const USAGE_CODES: readonly UsageCodeRegistryEntry[] = Object.freeze([
+  "R",
+  "RE",
+  "C",
+  "CE",
+  "O",
+  "X",
+  "C(a/b)",
+  "B",
+]);
+
+/**
+ * The two usage outcomes a {@link DeclaredConditionalUsage} token records: the
+ * usage that applies when the condition is true, and the one that applies when
+ * it is false. Both are simple codes.
+ *
+ * @example
+ * ```ts
+ * import type { UsageOutcomes } from "@cosyte/hl7";
+ * const outcomes: UsageOutcomes = { whenTrue: "RE", whenFalse: "X" };
+ * ```
+ */
+export interface UsageOutcomes {
+  /** The usage that applies when the condition is resolved true. */
+  readonly whenTrue: SimpleUsageCode;
+  /** The usage that applies when the condition is resolved false. */
+  readonly whenFalse: SimpleUsageCode;
+}
+
+/**
+ * A caller-supplied resolution of one declared-conditional rule. The engine
+ * evaluates no condition predicate and reads nothing from the message to decide
+ * an outcome: **the caller decides**, and passes an ordered list of these
+ * alongside the message and the profile.
+ *
+ * The `segment` name plus the 1-indexed `field` (absent when the target is a
+ * segment rule) is the LOCUS the resolution applies to. It applies to the RULE
+ * at that locus, hence to every occurrence of the segment and every repetition
+ * of the field: there is no per-occurrence resolution.
+ *
+ * A resolution whose locus matches no declared rule, matches more than one, or
+ * matches a rule whose usage is not a declared conditional is a profile defect
+ * ({@link FINDING_CODES.PROFILE_MALFORMED}), never a silent no-op.
+ *
+ * @example
+ * ```ts
+ * import type { UsageResolution } from "@cosyte/hl7";
+ * // "PID-8's condition is true for this message."
+ * const resolution: UsageResolution = { segment: "PID", field: 8, outcome: true };
+ * ```
+ */
+export interface UsageResolution {
+  /** Segment name of the target rule (e.g. `"PID"`). */
+  readonly segment: string;
+  /** 1-indexed field position when the target is a field rule; absent for a segment rule. */
+  readonly field?: number;
+  /** `true` applies the token's true outcome, `false` its false outcome. */
+  readonly outcome: boolean;
+}
 
 /**
  * A repetition-count constraint. `min` / `max` are inclusive bounds on the
@@ -109,7 +262,11 @@ export interface FieldRule {
    * label, so the label is never echoed into a finding message.
    */
   readonly name?: string;
-  /** Usage constraint (see {@link UsageCode}). Omitted ⇒ Optional. */
+  /**
+   * Usage constraint: a simple code, or a declared conditional such as
+   * `C(RE/X)` (see {@link UsageCode}). Omitted ⇒ Optional, and an omitted
+   * usage is never refused.
+   */
   readonly usage?: UsageCode;
   /** Repetition-count constraint for this field. */
   readonly cardinality?: Cardinality;
@@ -146,8 +303,10 @@ export interface SegmentRule {
   readonly segment: string;
   /**
    * Usage for the segment as a whole. `R` ⇒ at least one occurrence required;
-   * `X` ⇒ none permitted; `RE` / `O` ⇒ no presence constraint; `C` / `CE` ⇒
-   * presence not evaluated (no predicate language). Omitted ⇒ Optional.
+   * `X` ⇒ none permitted; `RE` / `O` ⇒ no presence constraint; `C` / `CE` /
+   * `B` ⇒ presence not evaluated (no predicate language). A declared
+   * conditional such as `C(R/X)` takes the outcome a caller resolves, and is
+   * evaluated exactly as `C` when nothing resolves it. Omitted ⇒ Optional.
    */
   readonly usage?: UsageCode;
   /** Occurrence-count constraint for this segment across the message. */

@@ -1,0 +1,23 @@
+---
+"@cosyte/hl7": patch
+---
+
+Conformance profiles: a declared conditional usage `C(a/b)`, the `B` indicator, and caller-supplied resolutions.
+
+A profile could previously declare only `R`, `RE`, `C`, `CE`, `O` or `X`. Two indicators the HL7 v2 conformance methodology allows in a message profile were missing: the declared conditional `C(a/b)`, which carries an explicit true and false usage outcome, and `B` (Backward Compatible). Without `C(a/b)` there was no path from a profile this engine can express to an implementable one. A rule may now declare either, on segment rules and field rules alike, and `usageOutcomes(rule)` reads a declared conditional's two outcomes back as separate simple codes (`undefined` for a rule whose usage is simple or absent, never a throw).
+
+`validateAgainstProfile` takes a third, optional argument: an ORDERED LIST of resolutions, each naming a locus (segment name, plus the 1-indexed field position when the target is a field rule) and a boolean outcome. A resolved rule is evaluated exactly as the same rule declared with that outcome as its usage, for every occurrence of the segment and every repetition of the field. The container is a list rather than a map keyed by locus on purpose: two resolutions at one locus are a defect that has to be REPORTED, and a keyed container cannot represent the input that triggers it, so the defect would be undiagnosable. The list order is also the order the diagnostics are reported in.
+
+**The engine still evaluates no condition predicate and derives no outcome from the message.** That boundary is unchanged and is the reason the resolution comes from the caller. This supersedes the previous framing that a declared conditional's outcomes would be recorded but not resolved: they are recorded AND applied, by the caller's decision rather than the engine's.
+
+New public surface: the `usageOutcomes` function, the `UsageResolution` and `UsageOutcomes` types, and the `SimpleUsageCode` / `DeclaredConditionalUsage` / `UsageCodeRegistryEntry` types.
+
+**Two exported shapes are now distinct, and that is a type-level break for one shape of consumer code.** `UsageCode`, the type a rule's `usage` is declared with, is now the seven simple codes plus the declared-conditional template `C(t/f)`; an exhaustive `switch` over it no longer compiles without arms for `B` and for the conditional form. `USAGE_CODES` is typed as `readonly UsageCodeRegistryEntry[]`, which additionally admits the placeholder `"C(a/b)"` and is therefore NOT assignable where a rule usage is expected. Neither type widens to a bare `string`: the typo `"RQ"` is still a compile error.
+
+`USAGE_CODES` now lists eight entries: `R`, `RE`, `C`, `CE`, `O`, `X`, `C(a/b)`, `B`, with the previous six keeping their positions. It is a published vocabulary LISTING, not a membership test for what a rule may declare: `C(a/b)` is listed and is refused on a rule (`a` and `b` are placeholders for usage codes, not usage codes), while `C(RE/X)` is accepted on a rule and is not listed.
+
+Every refusal now NAMES the offending token instead of only listing the permitted set, on both the validation path and the fail-fast `defineConformanceProfile` gate, so an author debugging a typo no longer has to diff their profile against the vocabulary. A token is echoed as a whole, bounded to its first 32 characters; a usage that is not a string names the value's TYPE rather than echoing its content. A resolution that matches no declared rule, matches more than one, targets a rule whose usage is not a declared conditional, or is duplicated at one locus is a `PROFILE_MALFORMED` finding, and so is a resolution argument that is not a list of well-formed resolutions: a mis-typed argument must never be read as "no resolutions" and return a clean result for elements nothing checked.
+
+Unchanged: omitting `usage` on a rule still means Optional and is still never refused; `C`, `CE`, `B` and an unresolved declared conditional are not presence-checked, with their length, value-set and cardinality rules applied on exactly the terms a `C` rule gets today; and a profile drawn only from the previous six codes validates to the same findings, in the same order, as before.
+
+`B`'s presence behaviour is this library's own bounded choice, not a sourced requirement: the methodology lists `B` among the allowable indicators and carries no definition text for it, so the reading taken is the one that imposes no presence obligation. A declared conditional's outcomes may be any simple code here because this engine targets the constrainable profile level; the methodology's restriction of an implementable profile to `R`, `RE` or `X` is not enforced, since a profile cannot yet declare which level it claims.
