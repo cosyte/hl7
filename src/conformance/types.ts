@@ -3,8 +3,9 @@
  * **consumer authors** a declarative {@link ConformanceProfile}: a bounded
  * subset of the HL7 v2 Message-Profile / NIST-IGAMT model (usage codes,
  * cardinality, length, value-set binding against a consumer-supplied code
- * list): and {@link validateAgainstProfile} runs it against a parsed message,
- * returning typed {@link ConformanceFinding}s.
+ * list, condition predicates read against the message itself): and
+ * {@link validateAgainstProfile} runs it against a parsed message, returning
+ * typed {@link ConformanceFinding}s.
  *
  * This is the **sanctioned functionality-plane replacement for the retired
  * vendor-corpus arc**: instead of hl7 shipping vendor/IHE/regulatory profiles
@@ -36,11 +37,15 @@
  * - **`RE`**: Required but may be Empty. The element is supported and SHALL be
  *   sent when the sender has the data; its **absence is never a violation**
  *   (this engine cannot know whether the sender had the data).
- * - **`C`**: Conditional (undeclared). Presence depends on a predicate. This
- *   bounded engine ships **no predicate language** (a documented defer), so a
- *   `C` element's **presence is not evaluated** (treated as optional); its
- *   length / value-set / cardinality rules still apply when it IS present.
- * - **`CE`**: Conditional but may be Empty. Same non-evaluation as `C`.
+ * - **`C`**: Conditional. Presence depends on a condition predicate. A rule
+ *   that declares one on its `condition` is evaluated by it: predicate true is
+ *   Required, predicate false is Not-permitted, which are the outcomes IHE
+ *   specifies for `C`. A rule that declares NO predicate has its **presence
+ *   not evaluated** (treated as optional); its length / value-set /
+ *   cardinality rules still apply when it IS present.
+ * - **`CE`**: Conditional but may be Empty. With a predicate, true is
+ *   Required-but-may-be-Empty and false is Not-permitted, again IHE's
+ *   outcomes. With no predicate, the same non-evaluation as `C`.
  * - **`O`**: Optional. No presence constraint.
  * - **`X`**: Not supported / not permitted. The element SHALL NOT be present.
  *   Present → {@link FINDING_CODES.PROFILE_NOT_PERMITTED}.
@@ -82,12 +87,16 @@ export type SimpleUsageCode = "R" | "RE" | "C" | "CE" | "O" | "X" | "B";
  * false. Both outcomes are {@link SimpleUsageCode}s; the token is uppercase,
  * carries no whitespace, and does not nest (`C(C(R/X)/O)` is not one).
  *
- * A rule declared `C(R/X)` is Required when a caller resolves it true and
- * Not-permitted when a caller resolves it false. **The engine evaluates no
- * condition predicate and never derives an outcome from the message**: an
- * outcome is applied only when the caller supplies a {@link UsageResolution}.
- * With no resolution supplied, the rule is evaluated exactly as a `C` rule is:
- * presence not evaluated, every other constraint applied as usual.
+ * A rule declared `C(R/X)` is Required when the condition holds and
+ * Not-permitted when it does not. Two sources can decide that, and a rule uses
+ * exactly one of them: the {@link ConditionPredicate} on its `condition`, which
+ * the engine evaluates against the message, or a caller-supplied
+ * {@link UsageResolution}. Declaring both at one locus is
+ * {@link FINDING_CODES.PROFILE_MALFORMED}, never a silent preference.
+ *
+ * With neither supplied, the rule is evaluated exactly as a `C` rule with no
+ * predicate is: presence not evaluated, every other constraint applied as
+ * usual.
  *
  * @example
  * ```ts
@@ -219,6 +228,306 @@ export interface UsageResolution {
 }
 
 /**
+ * Where in the message a condition predicate reads: a structural coordinate,
+ * a segment name plus the 1-indexed field, component and subcomponent
+ * positions that narrow it. Every member is a name or an index, so a location
+ * is inherently PHI-free and is safe to name in a finding.
+ *
+ * The coordinate narrows from the outside in: a `component` needs a `field`,
+ * and a `subcomponent` needs a `component`. A location that skips a level names
+ * no addressable element and is refused as
+ * {@link FINDING_CODES.PROFILE_MALFORMED}, as is a location whose `segment` is
+ * not a valid segment name.
+ *
+ * **A comparison statement needs a `field`.** A segment on its own has no
+ * single content to compare, so a {@link ComparisonPredicate} whose location
+ * stops at the segment is also `PROFILE_MALFORMED`. A
+ * {@link PresencePredicate} may stop there: it asks whether the segment occurs.
+ *
+ * @example
+ * ```ts
+ * import type { PredicateLocation } from "@cosyte/hl7";
+ * const completionStatus: PredicateLocation = { segment: "RXA", field: 20 };
+ * const identifier: PredicateLocation = { segment: "RXA", field: 9, component: 1 };
+ * ```
+ */
+export interface PredicateLocation {
+  /** Segment name: 3 chars, `[A-Z][A-Z0-9]{2}` (standard or `Z…` segment). */
+  readonly segment: string;
+  /** 1-indexed HL7 field position (e.g. `20` for RXA-20). Omitted targets the segment itself. */
+  readonly field?: number;
+  /** 1-indexed component within the field. Requires `field`. */
+  readonly component?: number;
+  /** 1-indexed subcomponent within the component. Requires `component`. */
+  readonly subcomponent?: number;
+}
+
+/**
+ * The two proposition statements that ask whether an element carries content,
+ * from the published condition-predicate language (`IF CWE.1 (Identifier) is
+ * valued`).
+ *
+ * **A presence statement is always determinate**: an element the message does
+ * not carry is simply not valued, which is an answer rather than a gap. That is
+ * what separates it from a comparison, which needs content to compare and has
+ * none when the element is absent.
+ *
+ * @example
+ * ```ts
+ * import type { PredicatePresence } from "@cosyte/hl7";
+ * const statement: PredicatePresence = "is valued";
+ * ```
+ */
+export type PredicatePresence = "is valued" | "is not valued";
+
+/**
+ * The closed set of verbs a comparison statement may use, from the published
+ * condition-predicate language's verb table. Each pairs the element's content
+ * against the statement's value list:
+ *
+ * - **`is` / `is not`**: the value equals (does not equal) a listed value,
+ *   whole and case-sensitive.
+ * - **`contains` / `does not contain`**: the value carries (does not carry) a
+ *   listed value as a substring, case-sensitive.
+ * - **`matches` / `does not match`**: the value matches (does not match) a
+ *   listed value read as a regular expression, anchored over the whole value.
+ *
+ * **A negative verb negates the COMPARISON, not the statement.** Each pair is an
+ * exact complement value by value, and both halves are quantified the same way:
+ * existentially, over every repetition of the field and every occurrence of the
+ * segment the location names (see {@link ComparisonPredicate}). Three
+ * consequences, and the second is the one that surprises:
+ *
+ * - Where the message carries exactly ONE value at that location, the pair
+ *   behaves as an exact complement: one of the two decides true and the other
+ *   false.
+ * - Where the location REPEATS, both halves can decide true at once, because
+ *   both are existential. `PID-3.1 is 'MRN1'` asks whether SOME identifier is
+ *   `MRN1`, and `PID-3.1 is not 'MRN1'` asks whether SOME identifier is not
+ *   `MRN1`; for `MRN1~MRN2` the answer to both is yes. So a negative verb is
+ *   NOT a way to ask whether no repetition is a listed value: the language
+ *   carries no negation connector, so that question cannot be written at all,
+ *   and `AL1-3.1 is not 'PENICILLIN'` decides true for a patient who has that
+ *   allergy and one other.
+ * - Where the message carries no value at that location, neither half decides.
+ *   The comparison is unevaluatable whichever verb it uses.
+ *
+ * @example
+ * ```ts
+ * import type { PredicateVerb } from "@cosyte/hl7";
+ * const verb: PredicateVerb = "contains";
+ * ```
+ */
+export type PredicateVerb =
+  | "is"
+  | "is not"
+  | "contains"
+  | "does not contain"
+  | "matches"
+  | "does not match";
+
+/**
+ * The frozen, ordered listing of the comparison verbs a condition predicate may
+ * use: `is`, `is not`, `contains`, `does not contain`, `matches`,
+ * `does not match`.
+ *
+ * Unlike {@link USAGE_CODES}, this listing IS the accept-set: a verb outside it
+ * is `PROFILE_MALFORMED`, and the {@link PredicateVerb} type refuses it at
+ * compile time where the author writes TypeScript.
+ *
+ * @example
+ * ```ts
+ * import { PREDICATE_VERBS } from "@cosyte/hl7";
+ * PREDICATE_VERBS.length; // 6
+ * PREDICATE_VERBS[0]; // "is"
+ * ```
+ */
+export const PREDICATE_VERBS: readonly PredicateVerb[] = Object.freeze([
+  "is",
+  "is not",
+  "contains",
+  "does not contain",
+  "matches",
+  "does not match",
+]);
+
+/**
+ * The connectors that join two condition-predicate statements, with the
+ * published semantics: `AND` is true only when both operands are true, `OR`
+ * when at least one is, `XOR` when exactly one is.
+ *
+ * @example
+ * ```ts
+ * import type { PredicateConnector } from "@cosyte/hl7";
+ * const connector: PredicateConnector = "AND";
+ * ```
+ */
+export type PredicateConnector = "AND" | "OR" | "XOR";
+
+/**
+ * The frozen, ordered listing of the connectors a condition predicate may use:
+ * `AND`, `OR`, `XOR`. Like {@link PREDICATE_VERBS} this listing IS the
+ * accept-set.
+ *
+ * @example
+ * ```ts
+ * import { PREDICATE_CONNECTORS } from "@cosyte/hl7";
+ * PREDICATE_CONNECTORS.length; // 3
+ * PREDICATE_CONNECTORS[2]; // "XOR"
+ * ```
+ */
+export const PREDICATE_CONNECTORS: readonly PredicateConnector[] = Object.freeze([
+  "AND",
+  "OR",
+  "XOR",
+]);
+
+/**
+ * A presence statement: does the element at `location` carry content?
+ *
+ * Content is read at or below the location, so a field-only location is valued
+ * when any subcomponent of any component of any repetition is non-empty, and a
+ * segment-only location is valued when the segment occurs at all. This is the
+ * same reading of "present" the engine's `R` and `X` checks use.
+ *
+ * @example
+ * ```ts
+ * import type { PresencePredicate } from "@cosyte/hl7";
+ * // "IF RXA-9.1 (Identifier) is valued"
+ * const predicate: PresencePredicate = {
+ *   location: { segment: "RXA", field: 9, component: 1 },
+ *   presence: "is valued",
+ * };
+ * ```
+ */
+export interface PresencePredicate {
+  /** The element the statement asks about. */
+  readonly location: PredicateLocation;
+  /** Which of the two presence statements this is. */
+  readonly presence: PredicatePresence;
+}
+
+/**
+ * A comparison statement: does the content at `location` stand in the `verb`
+ * relation to one of the `values`?
+ *
+ * The value read at a location is the subcomponent at the coordinate, with an
+ * omitted `component` and `subcomponent` both defaulting to `1` (a coded
+ * element's code), exactly as a field rule's own `component` default does.
+ * `values` must carry at least one entry: a comparison with no value list is
+ * `PROFILE_MALFORMED`, and is a compile error where the author writes
+ * TypeScript.
+ *
+ * **A comparison against an element the message does not carry is
+ * unevaluatable**, not false: there is no content to compare. It is reported as
+ * {@link FINDING_CODES.PROFILE_CONDITION_UNEVALUATABLE} rather than silently
+ * deciding the conditional.
+ *
+ * **The statement is quantified over repetitions and occurrences.** Where the
+ * location names a repeating field, or a segment that occurs more than once, the
+ * comparison reads one value per repetition per occurrence and is true when ONE
+ * OR MORE of them stands in the verb's relation to the value list. That is the
+ * language's default occurrence semantics, and it covers the negative verbs too:
+ * `is not` is true when SOME value is not a listed one, not when every value is
+ * not. So at a repeating location a verb and its negative can both decide true
+ * against the same value list. {@link PredicateVerb} works the case through.
+ *
+ * @example
+ * ```ts
+ * import type { ComparisonPredicate } from "@cosyte/hl7";
+ * // "IF RXA-20 (Completion Status) contains one of the values in the list: {'CP', 'PA'}"
+ * const predicate: ComparisonPredicate = {
+ *   location: { segment: "RXA", field: 20 },
+ *   verb: "contains",
+ *   values: ["CP", "PA"],
+ * };
+ * ```
+ */
+export interface ComparisonPredicate {
+  /** The element whose content the statement compares. */
+  readonly location: PredicateLocation;
+  /** The relation to test. */
+  readonly verb: PredicateVerb;
+  /**
+   * The value list, at least one entry. For `matches` / `does not match` each
+   * entry is a regular-expression source; anything the platform cannot compile
+   * is `PROFILE_MALFORMED`.
+   */
+  readonly values: readonly string[];
+}
+
+/**
+ * Two statements joined by a connector. Nests: either side may itself be a
+ * connected predicate.
+ *
+ * A connected predicate is unevaluatable exactly when its result DEPENDS on an
+ * unevaluatable operand. So `AND` is false as soon as one side is false however
+ * unevaluatable the other is, `OR` is true as soon as one side is true, and
+ * `XOR` needs both sides.
+ *
+ * @example
+ * ```ts
+ * import type { ConnectedPredicate } from "@cosyte/hl7";
+ * // "IF RXA-9.1 contains '00' AND RXA-20 contains one of the values in the list: {'CP','PA'}"
+ * const predicate: ConnectedPredicate = {
+ *   connector: "AND",
+ *   left: { location: { segment: "RXA", field: 9, component: 1 }, verb: "contains", values: ["00"] },
+ *   right: { location: { segment: "RXA", field: 20 }, verb: "contains", values: ["CP", "PA"] },
+ * };
+ * ```
+ */
+export interface ConnectedPredicate {
+  /** Which connector joins the two operands. */
+  readonly connector: PredicateConnector;
+  /** The left-hand operand. */
+  readonly left: ConditionPredicate;
+  /** The right-hand operand. */
+  readonly right: ConditionPredicate;
+}
+
+/**
+ * A **condition predicate**: the computable test a conditionally-used element's
+ * usage is decided by, expressed in the published condition-predicate language
+ * as a presence statement, a comparison statement, or two of those joined by a
+ * connector.
+ *
+ * A rule declares one on its `condition`, and only a rule whose usage is
+ * conditional (`C`, `CE`, or a declared conditional such as `C(RE/X)`) may
+ * carry one: there is nothing for a predicate to decide anywhere else, so a
+ * predicate on any other rule is `PROFILE_MALFORMED` rather than a silent
+ * no-op. A rule may not declare a predicate AND take a caller-supplied
+ * resolution: that too is `PROFILE_MALFORMED`, so neither source is silently
+ * preferred over the other.
+ *
+ * **The predicate reads the message only.** It never makes a network call and
+ * never consults a bundled code set: every value it compares against is one the
+ * profile author wrote down.
+ *
+ * **Declare exactly one of `presence`, `verb` and `connector`, and OMIT the
+ * others.** A key set to `undefined` still declares it, so a statement
+ * assembled from an options bag has to leave out the keys it does not use
+ * rather than pass them through empty. A statement declaring two of them is
+ * `PROFILE_MALFORMED`: the engine will not guess which question was meant,
+ * because deciding a conditional element's usage from the wrong question turns
+ * a required element into a permitted absence.
+ *
+ * @example
+ * ```ts
+ * import type { ConditionPredicate } from "@cosyte/hl7";
+ * const simple: ConditionPredicate = {
+ *   location: { segment: "PID", field: 7 },
+ *   presence: "is valued",
+ * };
+ * const complex: ConditionPredicate = {
+ *   connector: "OR",
+ *   left: simple,
+ *   right: { location: { segment: "PID", field: 8 }, verb: "is", values: ["M", "F"] },
+ * };
+ * ```
+ */
+export type ConditionPredicate = PresencePredicate | ComparisonPredicate | ConnectedPredicate;
+
+/**
  * A repetition-count constraint. `min` / `max` are inclusive bounds on the
  * number of repetitions (for a field rule) or occurrences (for a segment
  * rule). `max` may be the literal `"*"` for "unbounded". Omitted bounds are
@@ -268,6 +577,12 @@ export interface FieldRule {
    * usage is never refused.
    */
   readonly usage?: UsageCode;
+  /**
+   * The {@link ConditionPredicate} that decides this rule's usage, evaluated
+   * against the message. Only a rule whose `usage` is conditional (`C`, `CE`,
+   * or a declared conditional) may declare one.
+   */
+  readonly condition?: ConditionPredicate;
   /** Repetition-count constraint for this field. */
   readonly cardinality?: Cardinality;
   /** Maximum character length of the checked component value (inclusive). */
@@ -309,6 +624,12 @@ export interface SegmentRule {
    * evaluated exactly as `C` when nothing resolves it. Omitted ⇒ Optional.
    */
   readonly usage?: UsageCode;
+  /**
+   * The {@link ConditionPredicate} that decides this rule's usage, evaluated
+   * against the message. Only a rule whose `usage` is conditional (`C`, `CE`,
+   * or a declared conditional) may declare one.
+   */
+  readonly condition?: ConditionPredicate;
   /** Occurrence-count constraint for this segment across the message. */
   readonly cardinality?: Cardinality;
   /** Per-field rules, applied to each occurrence of this segment. */
@@ -320,9 +641,10 @@ export interface SegmentRule {
 /**
  * A **user-authored, declarative** conformance profile. The
  * consumer supplies this; hl7 ships none. It is a bounded subset of the HL7 v2
- * Message-Profile model: usage / cardinality / length / consumer-supplied
- * value set: with **no** conditional-predicate language, **no** bundled code
- * set, and **no** network binding (all deliberate scope boundaries).
+ * Message-Profile model: usage / condition predicate / cardinality / length /
+ * consumer-supplied value set: with **no** bundled code set and **no** network
+ * binding (both deliberate scope boundaries). A condition predicate reads the
+ * message in front of it and nothing else.
  *
  * @example
  * ```ts
@@ -380,6 +702,13 @@ export const FINDING_CODES = {
   PROFILE_LENGTH: "PROFILE_LENGTH",
   /** A checked component value is not a member of the consumer-supplied value set. */
   PROFILE_VALUE_NOT_IN_SET: "PROFILE_VALUE_NOT_IN_SET",
+  /**
+   * A rule's declared {@link ConditionPredicate} could not be decided against
+   * this message, so the rule's usage was never selected and the element's
+   * presence was NOT assessed. A distinct code on purpose: an unassessed
+   * conditional is filterable by code, without matching a message string.
+   */
+  PROFILE_CONDITION_UNEVALUATABLE: "PROFILE_CONDITION_UNEVALUATABLE",
   /** The profile ITSELF is structurally malformed (a diagnostic, not a message finding). */
   PROFILE_MALFORMED: "PROFILE_MALFORMED",
 } as const;

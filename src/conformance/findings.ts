@@ -152,6 +152,40 @@ export function valueNotInSet(
 }
 
 /**
+ * A rule's declared condition predicate could not be decided against this
+ * message, so its usage outcome was never selected and the element's presence
+ * was NOT assessed.
+ *
+ * `undecidedAt` is the pre-rendered, DEDUPED structural description of the
+ * location(s) the predicate could not be decided at (`RXA-20`, `PID-5
+ * component 1`), which is what an author needs to fix it. A repeated coordinate
+ * says nothing new and a finding is what a consumer persists, so the caller
+ * collapses repeats before the message is built. Like every other factory here it
+ * carries no value read from the message: and, because a predicate's value list
+ * is profile content that a consumer's logs must not accumulate either, no
+ * value drawn from the predicate's own list.
+ *
+ * @internal
+ */
+export function conditionUnevaluatable(
+  locus: FindingLocus,
+  undecidedAt: readonly string[],
+  severity: FindingSeverity,
+): ConformanceFinding {
+  const kind = locus.field === undefined ? "segment" : "field";
+  const at =
+    undecidedAt.length === 0 ? "" : ` (no content to compare at ${undecidedAt.join(", ")})`;
+  return {
+    code: FINDING_CODES.PROFILE_CONDITION_UNEVALUATABLE,
+    severity,
+    locus,
+    message:
+      `The condition predicate for ${kind} ${describeLocus(locus)} could not be evaluated against this message${at}, ` +
+      `so its usage was not decided and its presence was not assessed.`,
+  };
+}
+
+/**
  * The profile ITSELF is structurally malformed. A diagnostic about the
  * **profile**, not the message: always `error` severity. `detail` describes
  * the shape defect (a profile is author-supplied configuration, not clinical

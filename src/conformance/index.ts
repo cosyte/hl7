@@ -6,6 +6,7 @@
  * @see validateAgainstProfile: run a user-authored profile against a message.
  * @see defineConformanceProfile: optional fail-fast profile-authoring gate.
  * @see usageOutcomes: read a declared conditional's true and false outcomes.
+ * @see ConditionPredicate: the computable test that decides a conditional usage.
  */
 
 export { validateAgainstProfile } from "./validate-against-profile.js";
@@ -14,16 +15,26 @@ export type { ProfileDefect } from "./profile-shape.js";
 export { usageOutcomes } from "./usage.js";
 export {
   FINDING_CODES,
+  PREDICATE_CONNECTORS,
+  PREDICATE_VERBS,
   USAGE_CODES,
   type Cardinality,
+  type ComparisonPredicate,
+  type ConditionPredicate,
   type ConformanceFinding,
   type ConformanceProfile,
   type ConformanceResult,
+  type ConnectedPredicate,
   type DeclaredConditionalUsage,
   type FieldRule,
   type FindingCode,
   type FindingLocus,
   type FindingSeverity,
+  type PredicateConnector,
+  type PredicateLocation,
+  type PredicatePresence,
+  type PredicateVerb,
+  type PresencePredicate,
   type SegmentRule,
   type SimpleUsageCode,
   type UsageCode,

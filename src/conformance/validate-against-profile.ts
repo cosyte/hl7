@@ -5,8 +5,10 @@
  *
  * The sanctioned functionality-plane replacement for the retired vendor-corpus
  * arc: the consumer brings the profile and every value set; hl7 ships **no**
- * profile, **no** code set, and makes **no** network call. Four invariants the
- * engine holds absolutely:
+ * profile, **no** code set, and makes **no** network call. A rule's condition
+ * predicate is no exception: it is decided by reading the message in front of
+ * it, against values the profile author wrote down. Four invariants the engine
+ * holds absolutely:
  *
  * 1. **Never throws.** Any message × any profile × any resolution argument
  *    (even a malformed one, or a value cast through `any`) yields a
@@ -26,6 +28,7 @@ import type { RawRepetition } from "../parser/types.js";
 import type { Field } from "../model/field.js";
 import type { Segment } from "../model/segment.js";
 import * as F from "./findings.js";
+import { describeLocation, evaluatePredicate, type PredicateEvaluation } from "./predicate.js";
 import { collectProfileDefects } from "./profile-shape.js";
 import { analyzeResolutions, locusKey } from "./resolutions.js";
 import {
@@ -41,7 +44,33 @@ import {
   type UsageCode,
   type UsageResolution,
 } from "./types.js";
-import { parseUsageToken } from "./usage.js";
+import { parseUsageToken, predicateOutcomes } from "./usage.js";
+
+/**
+ * Evaluate a rule's declared condition predicate, at most once per rule per
+ * validation run.
+ *
+ * A predicate's location is message-wide, so its answer is a property of the
+ * RULE and not of any one occurrence of the segment the rule sits under. The
+ * memo is what makes that literally true: a field rule under a segment that
+ * occurs five times is decided once, so it can also be REPORTED once when it
+ * cannot be decided at all.
+ *
+ * @internal
+ */
+function predicateReader(
+  message: Hl7Message,
+): (rule: SegmentRule | FieldRule) => PredicateEvaluation | undefined {
+  const memo = new Map<SegmentRule | FieldRule, PredicateEvaluation>();
+  return (rule) => {
+    if (rule.condition === undefined) return undefined;
+    const seen = memo.get(rule);
+    if (seen !== undefined) return seen;
+    const evaluated = evaluatePredicate(message, rule.condition);
+    memo.set(rule, evaluated);
+    return evaluated;
+  };
+}
 
 /** A best-effort profile name for the result when the profile may be malformed. @internal */
 function safeName(profile: unknown): string {
@@ -73,15 +102,18 @@ function fieldHasValue(field: Field): boolean {
  * - `R` absent ⇒ `"required-absent"`.
  * - `X` present ⇒ `"not-permitted"`.
  * - `RE` / `O` ⇒ no presence finding (RE absence is never a violation).
- * - `C` / `CE` ⇒ no presence finding: this bounded engine ships no
- *   predicate language, so a conditional element's presence is **not
- *   evaluated** (a documented defer). Its length / value-set / cardinality
- *   rules still apply when present.
- * - `B` ⇒ no presence finding, on exactly the terms `C` gets.
+ * - `C` / `CE` ⇒ no presence finding, because a conditional code only ever
+ *   reaches here UNDECIDED: the rule declared no predicate and no caller
+ *   resolution named it, or its predicate could not be decided against this
+ *   message. Presence is **not evaluated** for an undecided conditional; its
+ *   length / value-set / cardinality rules still apply when present, and an
+ *   undecided predicate additionally reports itself.
+ * - `B` ⇒ no presence finding, on exactly the terms an undecided `C` gets.
  *
- * A declared conditional never reaches here: {@link effectiveUsage} has already
- * reduced it to the simple code its resolution selects, or to `C` when nothing
- * resolved it.
+ * A DECIDED conditional never reaches here: {@link effectiveUsage} has already
+ * reduced it to the simple code its condition predicate decided or its
+ * resolution selected, so a `C(R/X)` whose predicate evaluated true arrives as
+ * `R` and is checked on exactly `R`'s terms.
  *
  * @internal
  */
@@ -97,10 +129,21 @@ function presenceVerdict(
 /**
  * The simple usage code a rule is actually evaluated under.
  *
- * A simple code is itself. A declared conditional takes the outcome a caller
- * resolved at this rule's locus, and `C` when no caller resolved it, so an
- * unresolved conditional is evaluated exactly as a `C` rule is: no presence
- * finding either way, every other constraint on the same terms.
+ * A simple code with no predicate is itself. A conditional usage takes its
+ * outcome from exactly one of two sources, and the profile shape check has
+ * already guaranteed they cannot both be present at one locus:
+ *
+ * - the rule's own **condition predicate**, evaluated against the message. True
+ *   selects the true outcome and false the false one, for a declared
+ *   conditional and for the bare `C` / `CE` codes alike (whose outcomes IHE
+ *   states rather than the profile declaring them).
+ * - a caller-supplied **resolution** at this rule's locus.
+ *
+ * With neither, and for a predicate the message could not decide, the answer is
+ * `C`: presence not evaluated, every other constraint on the same terms. An
+ * undecided predicate additionally emits its own finding, because "presence not
+ * evaluated" must be visible rather than silent when the profile asked for it
+ * to be evaluated.
  *
  * @internal
  */
@@ -108,16 +151,52 @@ function effectiveUsage(
   usage: UsageCode | undefined,
   key: string,
   resolved: ReadonlyMap<string, boolean>,
+  predicate: PredicateEvaluation | undefined,
 ): SimpleUsageCode | undefined {
   if (usage === undefined) return undefined;
   const parsed = parseUsageToken(usage);
   // Unreachable through `validateAgainstProfile`: a token the grammar rejects
   // is a profile defect and the engine returns before evaluating anything.
   if (parsed === undefined) return undefined;
+  if (predicate !== undefined) {
+    const outcomes = predicateOutcomes(usage);
+    // Also unreachable through `validateAgainstProfile`: a predicate on a
+    // non-conditional usage is a profile defect and never gets this far.
+    if (outcomes === undefined) return parsed.kind === "simple" ? parsed.code : "C";
+    if (predicate.outcome === "true") return outcomes.whenTrue;
+    if (predicate.outcome === "false") return outcomes.whenFalse;
+    return "C";
+  }
   if (parsed.kind === "simple") return parsed.code;
   const outcome = resolved.get(key);
   if (outcome === undefined) return "C";
   return outcome ? parsed.whenTrue : parsed.whenFalse;
+}
+
+/**
+ * The finding an undecided predicate owes, or `null` when there is nothing to
+ * report. One per RULE: the caller passes the locus the rule declares, without
+ * an occurrence, because the predicate was decided over the whole message.
+ *
+ * The rendered locations are DEDUPED. A connector tree collects one entry per
+ * undecidable leaf, and a leaf's rendering is a structural coordinate that says
+ * nothing new when it repeats: a predicate that asks about `RXA-20` on both
+ * sides of an `OR` owes the author one mention of `RXA-20`, not two. It also
+ * bounds what a consumer persists, which matters because a finding is the part
+ * of this engine that gets written to a log or a database: at the nesting depth
+ * the language admits, a tree of identical leaves rendered one per leaf reaches
+ * a megabyte of message for one finding.
+ *
+ * @internal
+ */
+function undecidedFinding(
+  predicate: PredicateEvaluation | undefined,
+  locus: FindingLocus,
+  severity: FindingSeverity,
+): ConformanceFinding | null {
+  if (predicate === undefined || predicate.outcome !== "unevaluatable") return null;
+  const at = [...new Set(predicate.undecided.map(describeLocation))];
+  return F.conditionUnevaluatable(locus, at, severity);
 }
 
 /** Check a cardinality bound against an observed count; push a finding if out of range. @internal */
@@ -150,6 +229,7 @@ function checkFields(
   declaredSegment: string,
   fields: readonly FieldRule[],
   resolved: ReadonlyMap<string, boolean>,
+  readPredicate: (rule: SegmentRule | FieldRule) => PredicateEvaluation | undefined,
   out: ConformanceFinding[],
 ): void {
   for (const rule of fields) {
@@ -158,9 +238,26 @@ function checkFields(
     const present = fieldHasValue(field);
     const baseLocus: FindingLocus = { segment: seg.type, field: rule.field, occurrence };
 
-    // A resolution applies to the RULE, so it is keyed on the locus the PROFILE
-    // declares and applies to every occurrence and every repetition alike.
-    const usage = effectiveUsage(rule.usage, locusKey(declaredSegment, rule.field), resolved);
+    // A resolution and a predicate both apply to the RULE, so the resolution is
+    // keyed on the locus the PROFILE declares and the predicate is decided over
+    // the whole message: both cover every occurrence and every repetition.
+    const predicate = readPredicate(rule);
+    const usage = effectiveUsage(
+      rule.usage,
+      locusKey(declaredSegment, rule.field),
+      resolved,
+      predicate,
+    );
+    // An undecided predicate is reported once for the rule, not once per
+    // occurrence, and at the rule's own locus rather than any one occurrence's.
+    if (occurrence === 0) {
+      const undecided = undecidedFinding(
+        predicate,
+        { segment: seg.type, field: rule.field },
+        severity,
+      );
+      if (undecided !== null) out.push(undecided);
+    }
     const verdict = presenceVerdict(usage, present);
     if (verdict === "required-absent") {
       out.push(F.requiredAbsent(baseLocus, severity));
@@ -203,6 +300,7 @@ function checkSegment(
   message: Hl7Message,
   rule: SegmentRule,
   resolved: ReadonlyMap<string, boolean>,
+  readPredicate: (r: SegmentRule | FieldRule) => PredicateEvaluation | undefined,
   out: ConformanceFinding[],
 ): void {
   const severity: FindingSeverity = rule.severity ?? "error";
@@ -211,7 +309,10 @@ function checkSegment(
   const present = count > 0;
   const segLocus: FindingLocus = { segment: rule.segment };
 
-  const usage = effectiveUsage(rule.usage, locusKey(rule.segment, undefined), resolved);
+  const predicate = readPredicate(rule);
+  const usage = effectiveUsage(rule.usage, locusKey(rule.segment, undefined), resolved, predicate);
+  const undecided = undecidedFinding(predicate, segLocus, severity);
+  if (undecided !== null) out.push(undecided);
   const verdict = presenceVerdict(usage, present);
   if (verdict === "required-absent") {
     out.push(F.requiredAbsent(segLocus, severity));
@@ -228,7 +329,7 @@ function checkSegment(
   for (let occ = 0; occ < occurrences.length; occ++) {
     const seg = occurrences[occ];
     if (seg === undefined) continue;
-    checkFields(seg, occ, rule.segment, rule.fields, resolved, out);
+    checkFields(seg, occ, rule.segment, rule.fields, resolved, readPredicate, out);
   }
 }
 
@@ -251,12 +352,20 @@ function checkSegment(
  *
  * **Read-only**: the message is never mutated.
  *
- * **Declared conditionals are resolved by the CALLER, never by the engine.** A
- * rule declared `C(R/X)` takes its true or false outcome from the matching
- * {@link UsageResolution} in `resolutions`; the engine evaluates no condition
- * predicate and derives no outcome from the message. A conditional nothing
- * resolves is evaluated exactly as a `C` rule is: presence not evaluated, every
- * other constraint applied as usual.
+ * **A conditional usage takes its outcome from one source, never two.** A rule
+ * that declares a {@link ConditionPredicate} on its `condition` has it
+ * evaluated against the message, and the true or false outcome selects the
+ * usage the rest of the rule is checked under: the outcomes a declared
+ * conditional such as `C(R/X)` writes down, or the ones IHE states for the bare
+ * `C` and `CE` codes. A rule that declares none takes the outcome of a matching
+ * {@link UsageResolution} in `resolutions` instead. Declaring both at one locus
+ * is `PROFILE_MALFORMED`. With neither, the rule is evaluated exactly as a `C`
+ * rule is: presence not evaluated, every other constraint applied as usual.
+ *
+ * **A predicate the message cannot decide is reported, never guessed.** It
+ * yields a `PROFILE_CONDITION_UNEVALUATABLE` finding and the element's presence
+ * is not assessed, so an unassessed conditional can never hide inside an empty
+ * findings list.
  *
  * Omitting `resolutions` (or passing `undefined`) is the same as passing an
  * empty list. Any OTHER value that is not a list of well-formed resolutions is
@@ -265,7 +374,7 @@ function checkSegment(
  *
  * @param message - a parsed message from {@link parseHL7}.
  * @param profile - the consumer's declarative {@link ConformanceProfile}.
- * @param resolutions - optional caller-supplied outcomes for declared-conditional rules.
+ * @param resolutions - optional caller-supplied outcomes for declared-conditional rules that declare no predicate.
  * @returns the profile name and the ordered findings (empty ⇒ no declared rule violated).
  *
  * @example
@@ -277,16 +386,19 @@ function checkSegment(
  *   segments: [
  *     { segment: "PID", usage: "R", fields: [
  *       { field: 3, name: "Patient Identifiers", usage: "R" },
- *       { field: 8, name: "Administrative Sex", usage: "C(RE/X)", valueSet: ["M", "F", "U"] },
+ *       {
+ *         field: 8,
+ *         name: "Administrative Sex",
+ *         usage: "C(RE/X)",
+ *         // "Required but may be empty when a birth date was sent, else not permitted."
+ *         condition: { location: { segment: "PID", field: 7 }, presence: "is valued" },
+ *         valueSet: ["M", "F", "U"],
+ *       },
  *     ] },
  *   ],
  * };
  *
- * const msg = parseHL7(raw);
- * // The CALLER decides PID-8's condition holds for this message:
- * const { findings } = validateAgainstProfile(msg, profile, [
- *   { segment: "PID", field: 8, outcome: true },
- * ]);
+ * const { findings } = validateAgainstProfile(parseHL7(raw), profile);
  * for (const f of findings) console.log(f.severity, f.code, f.message);
  * // findings.length === 0 ⇒ no declared rule violated (NOT an attestation)
  * ```
@@ -306,8 +418,9 @@ export function validateAgainstProfile(
   }
 
   const out: ConformanceFinding[] = [];
+  const readPredicate = predicateReader(message);
   for (const rule of profile.segments) {
-    checkSegment(message, rule, resolved.applied, out);
+    checkSegment(message, rule, resolved.applied, readPredicate, out);
   }
   return Object.freeze({ profileName: profile.name, findings: Object.freeze(out) });
 }
