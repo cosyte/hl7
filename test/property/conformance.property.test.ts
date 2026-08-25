@@ -20,8 +20,11 @@ import fc from "fast-check";
 
 import {
   FINDING_CODES,
+  PREDICATE_CONNECTORS,
+  PREDICATE_VERBS,
   parseHL7,
   validateAgainstProfile,
+  type ConditionPredicate,
   type ConformanceProfile,
   type UsageResolution,
 } from "../../src/index.js";
@@ -356,7 +359,7 @@ describe("property: the wider vocabulary and caller-supplied resolutions", () =>
     );
   });
 
-  it("an unresolved declared conditional, and B, are findings-identical to C", () => {
+  it("an unresolved declared conditional with NO predicate, and B, are identical to C", () => {
     const substitutable = fc.constantFrom("C(R/X)", "C(RE/X)", "C(O/B)", "C(B/B)", "B");
     fc.assert(
       fc.property(
@@ -381,6 +384,331 @@ describe("property: the wider vocabulary and caller-supplied resolutions", () =>
           expect(validateAgainstProfile(msg, build(usage)).findings).toEqual(
             validateAgainstProfile(msg, build("C")).findings,
           );
+        },
+      ),
+      RUN_CONFIG,
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Condition predicates. New arbitraries and new properties rather than widened
+// ones, so every generator above keeps generating exactly what it did before
+// and the no-predicate path stays pinned by the properties that already pass.
+// ---------------------------------------------------------------------------
+
+/** A location arbitrary: valid coordinates mixed with shapes that address nothing. */
+const locationArb = fc.record(
+  {
+    segment: fc.oneof(VALID_SEGMENT, fc.string()),
+    field: fc.option(fc.oneof(fc.integer({ min: 1, max: 20 }), fc.integer(), fc.string()), {
+      nil: undefined,
+    }),
+    component: fc.option(fc.oneof(fc.integer({ min: 1, max: 4 }), fc.integer()), {
+      nil: undefined,
+    }),
+    subcomponent: fc.option(fc.integer({ min: 1, max: 3 }), { nil: undefined }),
+  },
+  { requiredKeys: [] },
+);
+
+/** One statement: a presence or a comparison, well-formed or garbage in every position. */
+const statementArb = fc.oneof(
+  fc.record({
+    location: locationArb,
+    presence: fc.oneof(fc.constantFrom("is valued", "is not valued"), fc.string()),
+  }),
+  fc.record(
+    {
+      location: locationArb,
+      verb: fc.oneof(fc.constantFrom(...PREDICATE_VERBS), fc.string()),
+      values: fc.oneof(
+        fc.array(fc.string(), { maxLength: 3 }),
+        fc.array(fc.integer(), { maxLength: 2 }),
+        fc.string(),
+      ),
+    },
+    { requiredKeys: ["location", "verb"] },
+  ),
+  fc.string(),
+  fc.constant(null),
+  fc.integer(),
+);
+
+/** Any condition-shaped value at all, one connector deep. */
+const conditionArb = fc.oneof(
+  statementArb,
+  fc.record(
+    {
+      connector: fc.oneof(fc.constantFrom(...PREDICATE_CONNECTORS), fc.string()),
+      left: statementArb,
+      right: statementArb,
+    },
+    { requiredKeys: ["connector"] },
+  ),
+);
+
+/** The wider vocabulary again, this time with a condition riding on each rule. */
+const predicatedProfileArb = fc.record({
+  name: fc.oneof(fc.string({ minLength: 1 }), fc.integer()),
+  segments: fc.array(
+    fc.record(
+      {
+        segment: fc.oneof(VALID_SEGMENT, fc.string()),
+        usage: fc.option(fc.oneof(WIDE_USAGE, fc.string()), { nil: undefined }),
+        condition: fc.option(conditionArb, { nil: undefined }),
+        cardinality: fc.option(cardinalityArb, { nil: undefined }),
+        fields: fc.option(
+          fc.array(
+            fc.record(
+              {
+                field: fc.oneof(fc.integer({ min: 1, max: 20 }), fc.string()),
+                usage: fc.option(fc.oneof(WIDE_USAGE, fc.string()), { nil: undefined }),
+                condition: fc.option(conditionArb, { nil: undefined }),
+                length: fc.option(fc.nat({ max: 10 }), { nil: undefined }),
+                valueSet: fc.option(fc.array(fc.string(), { maxLength: 4 }), { nil: undefined }),
+              },
+              { requiredKeys: ["field"] },
+            ),
+            { maxLength: 4 },
+          ),
+          { nil: undefined },
+        ),
+      },
+      { requiredKeys: ["segment"] },
+    ),
+    { maxLength: 5 },
+  ),
+});
+
+/**
+ * Locations every message in the pool carries content at, so a COMPARISON
+ * against one of them is always decidable. Presence statements are decidable
+ * everywhere by definition, so they need no such restriction.
+ */
+const DECIDABLE_LOCATION = fc.constantFrom(
+  { segment: "MSH", field: 3 },
+  { segment: "MSH", field: 10 },
+  { segment: "MSH", field: 12 },
+  { segment: "MSH", field: 9, component: 1 },
+);
+
+const ANY_LOCATION = fc.oneof(
+  DECIDABLE_LOCATION,
+  fc.constantFrom(
+    { segment: "PID", field: 3 },
+    { segment: "PID", field: 8 },
+    { segment: "ZFA", field: 1 },
+    { segment: "PV1" },
+  ),
+);
+
+/** A well-formed, ALWAYS-DECIDABLE predicate. */
+const decidableStatement = fc.oneof(
+  fc.record({
+    location: ANY_LOCATION,
+    presence: fc.constantFrom("is valued" as const, "is not valued" as const),
+  }),
+  fc.record({
+    location: DECIDABLE_LOCATION,
+    verb: fc.constantFrom(...PREDICATE_VERBS),
+    values: fc.array(fc.constantFrom("A", "2.5", "ADT", "M1", "LAB", "[A-Z]+"), {
+      minLength: 1,
+      maxLength: 3,
+    }),
+  }),
+) as fc.Arbitrary<ConditionPredicate>;
+
+const decidableTree = fc.oneof(
+  decidableStatement,
+  fc.record({
+    connector: fc.constantFrom(...PREDICATE_CONNECTORS),
+    left: decidableStatement,
+    right: decidableStatement,
+  }) as fc.Arbitrary<ConditionPredicate>,
+);
+
+describe("property: condition predicates", () => {
+  it("never throws for any message x any predicate-carrying profile x any resolution", () => {
+    fc.assert(
+      fc.property(
+        fc.nat({ max: MESSAGE_POOL.length - 1 }),
+        predicatedProfileArb,
+        resolutionArgArb,
+        (idx, profile, resolutions) => {
+          const msg = MESSAGE_POOL[idx];
+          if (msg === undefined) return;
+          const result = runWith(msg, profile, resolutions);
+          expect(Array.isArray(result.findings)).toBe(true);
+          expect(typeof result.profileName).toBe("string");
+        },
+      ),
+      RUN_CONFIG,
+    );
+  });
+
+  it("a predicate never mutates the message it reads", () => {
+    fc.assert(
+      fc.property(
+        fc.nat({ max: MESSAGE_POOL.length - 1 }),
+        predicatedProfileArb,
+        (idx, profile) => {
+          const msg = MESSAGE_POOL[idx];
+          if (msg === undefined) return;
+          const before = msg.toString();
+          runWith(msg, profile, undefined);
+          expect(msg.toString()).toBe(before);
+        },
+      ),
+      RUN_CONFIG,
+    );
+  });
+
+  it("a result carrying any PROFILE_MALFORMED still carries no message-level finding", () => {
+    fc.assert(
+      fc.property(
+        fc.nat({ max: MESSAGE_POOL.length - 1 }),
+        predicatedProfileArb,
+        (idx, profile) => {
+          const msg = MESSAGE_POOL[idx];
+          if (msg === undefined) return;
+          const { findings } = runWith(msg, profile, undefined);
+          if (!findings.some((f) => f.code === FINDING_CODES.PROFILE_MALFORMED)) return;
+          expect(findings.every((f) => f.code === FINDING_CODES.PROFILE_MALFORMED)).toBe(true);
+        },
+      ),
+      RUN_CONFIG,
+    );
+  });
+
+  it("a conformant message against a predicate-carrying profile yields ZERO findings", () => {
+    fc.assert(
+      fc.property(
+        fc.nat({ max: MESSAGE_POOL.length - 1 }),
+        decidableTree,
+        decidableTree,
+        decidableTree,
+        (idx, a, b, c) => {
+          const msg = MESSAGE_POOL[idx];
+          if (msg === undefined) return;
+          // Every rule below is satisfied by every message in the pool under
+          // BOTH of its outcomes, so whichever branch the predicate picks, the
+          // message conforms. MSH is always present (R and RE both hold), ZFA
+          // never is (X and O both hold), and the field rule imposes no
+          // presence obligation under either of its outcomes.
+          const profile: ConformanceProfile = {
+            name: "satisfied-under-either-outcome",
+            segments: [
+              { segment: "MSH", usage: "C(R/RE)", condition: a },
+              { segment: "ZFA", usage: "C(X/O)", condition: b },
+              { segment: "MSH", fields: [{ field: 10, usage: "C(RE/O)", condition: c }] },
+            ],
+          };
+          expect(validateAgainstProfile(msg, profile).findings).toEqual([]);
+        },
+      ),
+      RUN_CONFIG,
+    );
+  });
+
+  it("a decidable predicate never leaves a stray unevaluatable finding behind", () => {
+    fc.assert(
+      fc.property(fc.nat({ max: MESSAGE_POOL.length - 1 }), decidableTree, (idx, condition) => {
+        const msg = MESSAGE_POOL[idx];
+        if (msg === undefined) return;
+        const profile: ConformanceProfile = {
+          name: "decidable",
+          segments: [
+            { segment: "PID", usage: "C(O/O)", condition },
+            { segment: "OBX", fields: [{ field: 5, usage: "C(O/O)", condition }] },
+          ],
+        };
+        const { findings } = validateAgainstProfile(msg, profile);
+        expect(
+          findings.filter((f) => f.code === FINDING_CODES.PROFILE_CONDITION_UNEVALUATABLE),
+        ).toEqual([]);
+      }),
+      RUN_CONFIG,
+    );
+  });
+
+  it("no predicate finding echoes a message value or a value list drawn from the profile", () => {
+    fc.assert(
+      fc.property(
+        // Two distinctive sentinels: one planted in the MESSAGE and one in the
+        // PROFILE's own value list. The "ZQV" prefix cannot occur inside the
+        // finding vocabulary, so a hit is a genuine leak rather than a
+        // coincidental substring of English prose.
+        fc.stringMatching(/^[A-Za-z0-9]{1,8}$/u).map((s) => `ZQVMSG${s}`),
+        fc.stringMatching(/^[A-Za-z0-9]{1,8}$/u).map((s) => `ZQVSET${s}`),
+        fc.boolean(),
+        (inMessage, inProfile, undecidable) => {
+          const raw =
+            `MSH|^~\\&|A|B|C|D|20260101||ADT^A01|M1|P|2.5\rPID|1||MRN9^^^H^MR||Doe^John||19800101|` +
+            inMessage;
+          const msg = parseHL7(raw);
+          // Either a predicate that cannot be decided (its location names a
+          // segment the message does not carry) or one that can, and whose
+          // selected outcome then fires the rule's other constraints.
+          const condition: ConditionPredicate = undecidable
+            ? { location: { segment: "PV1", field: 2 }, verb: "is", values: [inProfile] }
+            : { location: { segment: "PID", field: 8 }, verb: "is", values: [inProfile] };
+          const profile: ConformanceProfile = {
+            name: "leak-probe",
+            segments: [
+              {
+                segment: "PID",
+                fields: [
+                  { field: 8, usage: "C(R/X)", condition, valueSet: [inProfile], length: 1 },
+                ],
+              },
+            ],
+          };
+          const { findings } = validateAgainstProfile(msg, profile);
+          expect(findings.length).toBeGreaterThan(0);
+          for (const f of findings) {
+            expect(f.message).not.toContain(inMessage);
+            expect(f.message).not.toContain(inProfile);
+            // The locus stays structural: a segment name and indices only.
+            expect(typeof f.locus.segment).toBe("string");
+            expect(f.locus.segment).not.toContain(inMessage);
+          }
+        },
+      ),
+      RUN_CONFIG,
+    );
+  });
+
+  it("no MALFORMED diagnostic about a predicate echoes its value list either", () => {
+    fc.assert(
+      fc.property(
+        fc.stringMatching(/^[A-Za-z0-9]{1,8}$/u).map((s) => `ZQVSET${s}`),
+        (secret) => {
+          const msg = MESSAGE_POOL[0];
+          if (msg === undefined) return;
+          const profile = {
+            name: "malformed-probe",
+            segments: [
+              {
+                segment: "PID",
+                fields: [
+                  {
+                    field: 8,
+                    usage: "C(R/X)",
+                    // An uncompilable regular expression carrying the sentinel.
+                    condition: {
+                      location: { segment: "PID", field: 8 },
+                      verb: "matches",
+                      values: [`(${secret}`],
+                    },
+                  },
+                ],
+              },
+            ],
+          };
+          const { findings } = runWith(msg, profile, undefined);
+          expect(findings.length).toBeGreaterThan(0);
+          for (const f of findings) expect(f.message).not.toContain(secret);
         },
       ),
       RUN_CONFIG,

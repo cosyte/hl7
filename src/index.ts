@@ -305,21 +305,37 @@ export { batchCountMismatch, batchMissingTrailer } from "./parser/warnings.js";
 // `defineConformanceProfile` is the optional fail-fast authoring gate (throws
 // `ProfileDefinitionError` on a malformed profile); the engine itself tolerates
 // a raw profile and never throws. Also bundled under the `conformance` namespace.
+// A conditionally-used rule may declare a `ConditionPredicate`, which the engine
+// EVALUATES against the message to select the rule's usage outcome: a location,
+// a verb from the closed set (or a presence statement), a value list the profile
+// author supplies, and AND/OR/XOR connectors. Still no network call and still no
+// code set; a predicate the message cannot decide is reported as
+// PROFILE_CONDITION_UNEVALUATABLE rather than guessed either way.
 export { validateAgainstProfile } from "./conformance/validate-against-profile.js";
 export { defineConformanceProfile } from "./conformance/profile-shape.js";
 export { usageOutcomes } from "./conformance/usage.js";
 export {
   FINDING_CODES,
+  PREDICATE_CONNECTORS,
+  PREDICATE_VERBS,
   USAGE_CODES,
   type Cardinality,
+  type ComparisonPredicate,
+  type ConditionPredicate,
   type ConformanceFinding,
   type ConformanceProfile,
   type ConformanceResult,
+  type ConnectedPredicate,
   type DeclaredConditionalUsage,
   type FieldRule,
   type FindingCode,
   type FindingLocus,
   type FindingSeverity,
+  type PredicateConnector,
+  type PredicateLocation,
+  type PredicatePresence,
+  type PredicateVerb,
+  type PresencePredicate,
   type SegmentRule,
   type SimpleUsageCode,
   type UsageCode,

@@ -581,7 +581,20 @@ for (const f of findings) console.log(f.severity, f.code, f.message);
 // e.g. "error PROFILE_VALUE_NOT_IN_SET  PID-8 component 1 value is not in the profile value set (3 permitted codes)."
 ```
 
-The engine holds four invariants: it **never throws** (a malformed profile yields `PROFILE_MALFORMED` findings, not an exception: use `defineConformanceProfile` for a fail-fast authoring gate that _does_ throw); a **valid message yields zero findings**; **no finding carries PHI**: each names the structural locus (segment / field / component / repetition) and the rule, never the offending value; and validation is **read-only**. Usage codes are the HL7 six (`R`/`RE`/`C`/`CE`/`O`/`X`); `C`/`CE` presence is not evaluated (no predicate language, a documented boundary). Distinct from the parse-profile system (`defineProfile`/`profiles`), which shapes _how a message is parsed_.
+The engine holds four invariants: it **never throws** (a malformed profile yields `PROFILE_MALFORMED` findings, not an exception: use `defineConformanceProfile` for a fail-fast authoring gate that _does_ throw); a **valid message yields zero findings**; **no finding carries PHI**: each names the structural locus (segment / field / component / repetition) and the rule, never the offending value; and validation is **read-only**. Distinct from the parse-profile system (`defineProfile`/`profiles`), which shapes _how a message is parsed_.
+
+A rule's usage is one of `R`/`RE`/`C`/`CE`/`O`/`X`/`B`, or a declared conditional written `C(t/f)`. A conditionally-used rule can carry a **condition predicate** that the engine evaluates against the message to decide which outcome applies: a location in the same message, a verb from the closed set (`is`, `is not`, `contains`, `does not contain`, `matches`, `does not match`) or a presence statement (`is valued`, `is not valued`), a value list _you_ supply, and `AND`/`OR`/`XOR` connectors.
+
+```ts
+// "PID-8 is Required when a date of birth was sent, Not-permitted when it was not."
+{
+  field: 8,
+  usage: "C(R/X)",
+  condition: { location: { segment: "PID", field: 7 }, presence: "is valued" },
+}
+```
+
+Still no network call and still no code set: a predicate reads the message in front of it and compares against values you wrote down. A predicate the message cannot decide (a comparison against an element that is not there) yields a `PROFILE_CONDITION_UNEVALUATABLE` finding and the element's presence is **not** assessed, rather than being guessed either way. A rule that declares no predicate can still take its outcome from a caller-supplied resolution, and declaring both at one locus is refused.
 
 > **"No findings" is not an attestation.** An empty result means _nothing this profile checked was violated_: never "this message is conformant." The profile only covers what you declared, and hl7 makes no conformance certification. See [`docs-content/spec-notes-conformance.md`](docs-content/spec-notes-conformance.md).
 

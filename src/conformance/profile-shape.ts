@@ -21,8 +21,16 @@
 
 import { ProfileDefinitionError } from "../parser/errors.js";
 
+import { collectPredicateDefects } from "./predicate.js";
 import type { ConformanceProfile, FindingLocus } from "./types.js";
-import { SIMPLE_USAGE_CODES, boundedToken, describeValueType, parseUsageToken } from "./usage.js";
+import {
+  SIMPLE_USAGE_CODES,
+  boundedToken,
+  describeValueType,
+  parseUsageToken,
+  predicateOutcomes,
+  usageIsAdmissible,
+} from "./usage.js";
 
 /** Segment-name shape: 3 chars, standard or `Z…` segment. Mirrors the model's rule. @internal */
 const SEGMENT_NAME_RE = /^[A-Z][A-Z0-9]{2}$/u;
@@ -136,6 +144,7 @@ export function collectProfileDefects(profile: unknown): readonly ProfileDefect[
     }
     const segLocus: FindingLocus = { segment: name };
     checkUsage(seg["usage"], segLocus, out);
+    checkCondition(seg["condition"], seg["usage"], segLocus, out);
     checkSeverity(seg["severity"], segLocus, out);
     checkCardinality(seg["cardinality"], segLocus, out);
 
@@ -192,6 +201,43 @@ function checkUsage(usage: unknown, locus: FindingLocus, out: ProfileDefect[]): 
   });
 }
 
+/**
+ * Validate a rule's declared condition predicate: its own shape, and the one
+ * pairing rule that governs where a predicate may be declared at all.
+ *
+ * **A predicate may only sit on a rule whose usage is conditional** (`C`, `CE`
+ * or a declared conditional). Anywhere else there is no conditional usage for
+ * it to decide, and the engine reports that rather than ignoring the predicate:
+ * the same discipline that makes a caller resolution aimed at a non-conditional
+ * rule a defect instead of a silent no-op. An OMITTED condition is not a
+ * condition, so no rule that authored cleanly before is newly refused.
+ *
+ * The pairing complaint is suppressed when the usage token is itself
+ * inadmissible, because {@link checkUsage} has already reported that and a
+ * second defect derived from it would only restate the first.
+ *
+ * @internal
+ */
+function checkCondition(
+  condition: unknown,
+  usage: unknown,
+  locus: FindingLocus,
+  out: ProfileDefect[],
+): void {
+  if (condition === undefined) return;
+  const where = `${describe(locus)} condition`;
+  collectPredicateDefects(condition, where, locus, out);
+  if (!usageIsAdmissible(usage)) return;
+  if (predicateOutcomes(usage) === undefined) {
+    out.push({
+      locus,
+      detail:
+        `${where} is declared on a rule whose usage is not conditional, so there is no conditional usage for it to decide. ` +
+        `A condition predicate belongs on C, CE, or a declared conditional written C(<true>/<false>).`,
+    });
+  }
+}
+
 /** Validate a severity; append defect if present-and-invalid. @internal */
 function checkSeverity(sev: unknown, locus: FindingLocus, out: ProfileDefect[]): void {
   if (sev === undefined) return;
@@ -220,6 +266,7 @@ function checkFieldRule(rule: unknown, segment: string, index: number, out: Prof
   }
   const fieldLocus: FindingLocus = { segment, field };
   checkUsage(rule["usage"], fieldLocus, out);
+  checkCondition(rule["condition"], rule["usage"], fieldLocus, out);
   checkSeverity(rule["severity"], fieldLocus, out);
   checkCardinality(rule["cardinality"], fieldLocus, out);
 

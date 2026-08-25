@@ -2,8 +2,10 @@
  * Caller-supplied resolutions for declared-conditional rules: their shape
  * check, their diagnostics, and the index the engine applies.
  *
- * The engine evaluates no condition predicate and reads nothing from the
- * message to decide an outcome. A caller passes an ORDERED LIST of
+ * A declared conditional's outcome comes from one of two sources, never both:
+ * the rule's own condition predicate, which the engine evaluates against the
+ * message, or a caller-supplied resolution, which decides it from outside. This
+ * module is the second. A caller passes an ORDERED LIST of
  * {@link UsageResolution}s alongside the message and the profile, each naming a
  * LOCUS (segment name, plus the 1-indexed field position when the target is a
  * field rule) and a boolean outcome. A resolution applies to the RULE at that
@@ -39,12 +41,16 @@
  *    rule, so no outcome could be applied);
  * 2. the locus matches no declared rule, or matches one whose usage is not a
  *    declared conditional (there is no conditional to resolve);
- * 3. two or more resolutions share the locus (N duplicates are ONE defect and
+ * 3. the rule at the locus declares its own condition predicate (the outcome
+ *    already has a source, and preferring either source silently would decide a
+ *    patient-safety question by accident of precedence);
+ * 4. two or more resolutions share the locus (N duplicates are ONE defect and
  *    yield ONE finding however large N is, whether or not their outcomes agree).
  *
  * So a locus that is both duplicated and ambiguous yields exactly one finding,
  * rule 1's; a locus that is both duplicated and aimed at a non-conditional rule
- * yields exactly one finding, rule 2's.
+ * yields exactly one finding, rule 2's; and a locus both duplicated and
+ * colliding with a declared predicate yields exactly one, rule 3's.
  *
  * ## A member that is not a well-formed resolution counts PER MEMBER
  *
@@ -113,6 +119,8 @@ interface DeclaredLocus {
   readonly count: number;
   /** Whether the single declared rule's usage is a declared-conditional token. */
   readonly conditional: boolean;
+  /** Whether the single declared rule carries its own condition predicate. */
+  readonly predicated: boolean;
 }
 
 /**
@@ -163,14 +171,16 @@ function collectDeclaredLoci(profile: unknown): ReadonlyMap<string, DeclaredLocu
   const segments = profile["segments"];
   if (!Array.isArray(segments)) return loci;
 
-  const record = (key: string, usage: unknown): void => {
+  const record = (key: string, usage: unknown, condition: unknown): void => {
     const conditional = typeof usage === "string" && parseUsageToken(usage)?.kind === "conditional";
     const seen = loci.get(key);
     loci.set(key, {
       count: (seen?.count ?? 0) + 1,
-      // The `conditional` flag is only read when `count === 1`, so the first
-      // rule at a locus is the only one whose usage can matter.
+      // The `conditional` and `predicated` flags are only read when
+      // `count === 1`, so the first rule at a locus is the only one whose usage
+      // or condition can matter.
       conditional: seen === undefined ? conditional : seen.conditional,
+      predicated: seen === undefined ? condition !== undefined : seen.predicated,
     });
   };
 
@@ -178,7 +188,7 @@ function collectDeclaredLoci(profile: unknown): ReadonlyMap<string, DeclaredLocu
     if (!isRecord(segment)) continue;
     const name = segment["segment"];
     if (typeof name !== "string") continue;
-    record(locusKey(name, undefined), segment["usage"]);
+    record(locusKey(name, undefined), segment["usage"], segment["condition"]);
 
     const fields = segment["fields"];
     if (!Array.isArray(fields)) continue;
@@ -186,7 +196,7 @@ function collectDeclaredLoci(profile: unknown): ReadonlyMap<string, DeclaredLocu
       if (!isRecord(field)) continue;
       const position = field["field"];
       if (typeof position !== "number" || !Number.isInteger(position) || position < 1) continue;
-      record(locusKey(name, position), field["usage"]);
+      record(locusKey(name, position), field["usage"], field["condition"]);
     }
   }
   return loci;
@@ -317,6 +327,13 @@ export function analyzeResolutions(resolutions: unknown, profile: unknown): Reso
       defects.push({
         locus: first.locus,
         detail: `resolution for ${describeTarget(first.locus)} targets a rule whose usage is not a declared conditional, so there is no condition to resolve.`,
+      });
+      continue;
+    }
+    if (target.predicated) {
+      defects.push({
+        locus: first.locus,
+        detail: `resolution for ${describeTarget(first.locus)} targets a rule that declares its own condition predicate; a rule takes its outcome from the predicate or from a resolution, never from both.`,
       });
       continue;
     }

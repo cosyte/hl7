@@ -1016,3 +1016,121 @@ describe("the exported shapes are separate types (AC24)", () => {
     expect([asUsage, asEntry]).toEqual(["anything", "anything"]);
   });
 });
+
+// ---------------------------------------------------------------------------
+// The NO-PREDICATE path, pinned where it already lived. Condition predicates
+// arrived after everything above, and every expectation above is deliberately
+// untouched: a rule that declares no predicate has to behave exactly as it did
+// before predicates existed, and a suite that was edited to agree with a new
+// behaviour cannot say so. These add to it instead.
+// ---------------------------------------------------------------------------
+
+describe("a rule with NO condition predicate is untouched by predicates existing", () => {
+  const NO_PRESENCE_EVALUATION = ["C", "CE", "B", "C(R/X)", "C(RE/X)"] as const;
+
+  for (const token of NO_PRESENCE_EVALUATION) {
+    it(`${token} with no predicate still has its presence NOT evaluated`, () => {
+      for (const raw of [WITH_SEX, WITHOUT_SEX, THREE_SEX_REPS, LONG_SEX, MSH_ONLY]) {
+        expect(validateWith(raw, pid8Profile(token), undefined), `${token} presence`).toEqual([]);
+      }
+    });
+
+    it(`${token} with no predicate still applies every OTHER constraint`, () => {
+      // Three repetitions against a max of 2, and one four-character value
+      // against a max of 3: both still fire, exactly as they did before.
+      expect(
+        validateWith(
+          THREE_SEX_REPS,
+          pid8Profile(token, { cardinality: { min: 1, max: 2 } }),
+          undefined,
+        ).map((f) => f.code),
+        `${token} cardinality`,
+      ).toEqual([FINDING_CODES.PROFILE_CARDINALITY]);
+      expect(
+        validateWith(LONG_SEX, pid8Profile(token, { length: 3 }), undefined).map((f) => f.code),
+        `${token} length`,
+      ).toEqual([FINDING_CODES.PROFILE_LENGTH]);
+      expect(
+        validateWith(LONG_SEX, pid8Profile(token, { valueSet: ["M", "F", "U"] }), undefined).map(
+          (f) => f.code,
+        ),
+        `${token} value set`,
+      ).toEqual([FINDING_CODES.PROFILE_VALUE_NOT_IN_SET]);
+    });
+  }
+
+  it("a caller-supplied resolution still selects the outcome for a predicate-free rule", () => {
+    expect(
+      validateWith(WITHOUT_SEX, pid8Profile("C(R/X)"), [
+        { segment: "PID", field: 8, outcome: true },
+      ]).map((f) => f.code),
+    ).toEqual([FINDING_CODES.PROFILE_REQUIRED_ABSENT]);
+    expect(
+      validateWith(WITH_SEX, pid8Profile("C(R/X)"), [
+        { segment: "PID", field: 8, outcome: false },
+      ]).map((f) => f.code),
+    ).toEqual([FINDING_CODES.PROFILE_NOT_PERMITTED]);
+  });
+
+  it("a resolution is still refused where it always was, with a predicate nowhere in sight", () => {
+    // Targets a rule whose usage is not a declared conditional.
+    expect(
+      validateWith(WITHOUT_SEX, pid8Profile("R"), [
+        { segment: "PID", field: 8, outcome: true },
+      ]).every(isProfileMalformed),
+    ).toBe(true);
+    // Duplicated at one locus.
+    expect(
+      validateWith(WITHOUT_SEX, pid8Profile("C(R/X)"), [
+        { segment: "PID", field: 8, outcome: true },
+        { segment: "PID", field: 8, outcome: true },
+      ]),
+    ).toHaveLength(1);
+  });
+
+  it("a whole profile drawn from the pin's vocabulary validates to the same findings", () => {
+    // A profile using nothing this change added, run over the fixture corpus:
+    // if predicates had leaked into the no-predicate path, this is where it
+    // would show, because every usage code and every constraint is exercised.
+    const profile = {
+      name: "pin-vocabulary",
+      segments: [
+        { segment: "MSH", usage: "R", fields: [{ field: 10, usage: "R" }] },
+        {
+          segment: "PID",
+          usage: "R",
+          cardinality: { min: 1, max: 1 },
+          fields: [
+            { field: 3, usage: "R", cardinality: { min: 1, max: 1 } },
+            { field: 5, usage: "RE" },
+            { field: 7, usage: "C" },
+            { field: 8, usage: "CE", valueSet: ["M", "F", "U"], length: 1 },
+            { field: 20, usage: "B" },
+            { field: 30, usage: "X" },
+          ],
+        },
+        { segment: "EVN", usage: "O" },
+        { segment: "ZZZ", usage: "X" },
+      ],
+    } as unknown as ConformanceProfile;
+    for (const raw of [WITH_SEX, WITHOUT_SEX, THREE_SEX_REPS, LONG_SEX]) {
+      const findings = validateWith(raw, profile, undefined);
+      // Nothing here can produce the new code: no rule declares a predicate.
+      expect(
+        findings.some((f) => f.code === FINDING_CODES.PROFILE_CONDITION_UNEVALUATABLE),
+        raw,
+      ).toBe(false);
+    }
+    expect(validateWith(WITH_SEX, profile, undefined)).toEqual([]);
+    expect(validateWith(LONG_SEX, profile, undefined).map((f) => f.code)).toEqual([
+      FINDING_CODES.PROFILE_LENGTH,
+      FINDING_CODES.PROFILE_VALUE_NOT_IN_SET,
+    ]);
+  });
+
+  it("the fail-fast gate still accepts a profile that declares no predicate", () => {
+    for (const token of NO_PRESENCE_EVALUATION) {
+      expect(() => defineConformanceProfile(pid8Profile(token))).not.toThrow();
+    }
+  });
+});

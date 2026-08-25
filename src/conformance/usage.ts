@@ -129,6 +129,50 @@ export function describeValueType(value: unknown): string {
   return typeof value;
 }
 
+/**
+ * Is `usage` something a rule may legally declare (an admissible token, or
+ * nothing at all)? Used to suppress a downstream diagnostic that would only
+ * restate a usage defect already reported.
+ *
+ * @internal
+ */
+export function usageIsAdmissible(usage: unknown): boolean {
+  if (usage === undefined) return true;
+  return typeof usage === "string" && parseUsageToken(usage) !== undefined;
+}
+
+/**
+ * The two usage outcomes a declared CONDITION PREDICATE selects between for a
+ * rule carrying this usage token, or `undefined` when the usage is not
+ * conditional at all and therefore admits no predicate.
+ *
+ * Three tokens admit one. A declared conditional `C(t/f)` carries its outcomes
+ * explicitly. The bare conditional codes carry theirs by definition rather than
+ * by declaration, and IHE ITI TF Vol.2 Appendix C states both branches for each
+ * one: a `C` element SHALL be populated when the predicate is satisfied and
+ * SHALL NOT be when it is not, which is `R` against `X`; a `CE` element is
+ * populated when the predicate is satisfied AND the sender knows the value,
+ * which is `RE`, against the same `X`.
+ *
+ * `B` is deliberately absent. The methodology lists it among the allowable
+ * indicators and carries no definition text for it, so no source says what a
+ * predicate on a `B` element would decide, and inventing one is exactly the
+ * guess this engine refuses to make.
+ *
+ * @internal
+ */
+export function predicateOutcomes(usage: unknown): UsageOutcomes | undefined {
+  if (typeof usage !== "string") return undefined;
+  const parsed = parseUsageToken(usage);
+  if (parsed === undefined) return undefined;
+  if (parsed.kind === "conditional") {
+    return { whenTrue: parsed.whenTrue, whenFalse: parsed.whenFalse };
+  }
+  if (parsed.code === "C") return { whenTrue: "R", whenFalse: "X" };
+  if (parsed.code === "CE") return { whenTrue: "RE", whenFalse: "X" };
+  return undefined;
+}
+
 /** Read a rule's `usage` without assuming the argument really is a rule. @internal */
 function readUsage(rule: unknown): unknown {
   if (!isRecord(rule)) return undefined;
