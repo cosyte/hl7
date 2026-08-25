@@ -138,6 +138,59 @@ export function describeLocation(location: PredicateLocation): string {
 }
 
 // ---------------------------------------------------------------------------
+// Which statement is this? Asked ONCE, by the shape check and the evaluator
+// alike, because two readings of one union is how a predicate gets admitted as
+// one kind of statement and then evaluated as another.
+// ---------------------------------------------------------------------------
+
+/**
+ * The three keys that say WHICH statement a candidate predicate is: a presence
+ * statement, a comparison statement, or two of those joined by a connector.
+ *
+ * @internal
+ */
+const DISCRIMINANT_KEYS = ["presence", "verb", "connector"] as const;
+
+/** One of {@link DISCRIMINANT_KEYS}. @internal */
+type DiscriminantKey = (typeof DISCRIMINANT_KEYS)[number];
+
+/**
+ * Which of {@link DISCRIMINANT_KEYS} a candidate predicate CARRIES, read by key
+ * presence rather than by value.
+ *
+ * This is a function so that the shape check and the evaluator cannot drift
+ * apart, because they did: the check counted keys whose VALUE was not
+ * `undefined` while the evaluator asked `"connector" in predicate`. A statement
+ * carrying a discriminant key set to `undefined` therefore passed the check as
+ * one kind of statement and was then read as another - crashing on
+ * `connector: undefined` and, worse, silently evaluating a comparison carrying
+ * `presence: undefined` as `is not valued` at the comparison's location, which
+ * decides a conditional element's usage from a question the profile never
+ * asked. Neither needed a cast to reach: a union target's excess-property check
+ * admits any property declared by ANY member, so
+ * `{ connector: undefined, location, verb: "is", values: [...] }` type-checks
+ * against {@link ConditionPredicate} as written.
+ *
+ * Key presence is the reading that fails safe. A statement carrying two
+ * discriminant keys is ambiguous however either one is valued, so it is
+ * refused as `PROFILE_MALFORMED` and the author is told to omit the key rather
+ * than to set it to nothing. Guessing which question was meant is the one thing
+ * this engine will not do: a conditional decided from the wrong question turns a
+ * required element into a permitted absence, silently.
+ *
+ * Total over `unknown` and never throws, like everything else a profile's own
+ * content reaches: a candidate predicate that is not a record at all declares no
+ * statement, which is a shape the shape check reports and the evaluator refuses
+ * to decide.
+ *
+ * @internal
+ */
+function declaredKinds(predicate: unknown): readonly DiscriminantKey[] {
+  if (!isRecord(predicate)) return [];
+  return DISCRIMINANT_KEYS.filter((key) => key in predicate);
+}
+
+// ---------------------------------------------------------------------------
 // Shape check. Total over `unknown`: a predicate can arrive as any value at all.
 // ---------------------------------------------------------------------------
 
@@ -235,6 +288,21 @@ function checkValues(
     out.push({ locus, detail: `${where} must carry at least one value to compare against.` });
     return;
   }
+  // Holes first, because `every`, `some` and `includes` all SKIP them: a sparse
+  // array (`const v: string[] = []; v.length = 2;`) reads to those three as "no
+  // entry disagrees", which is a length wearing no values at all, and
+  // `does not contain` against one then decides a fabricated TRUE. An index
+  // walk sees the hole for what it is. Named by INDEX and never by content, on
+  // the same terms as the regular-expression check below.
+  for (let i = 0; i < values.length; i++) {
+    if (!(i in values)) {
+      out.push({
+        locus,
+        detail: `${where} values[${String(i)}] is missing; a sparse list declares a length without declaring a value.`,
+      });
+      return;
+    }
+  }
   if (!values.every((v) => typeof v === "string")) {
     out.push({ locus, detail: `${where} values must all be strings.` });
     return;
@@ -288,19 +356,18 @@ export function collectPredicateDefects(
     return;
   }
 
-  // Exactly one of the three discriminants may be present. A statement carrying
-  // two of them is a shape the language does not define, and guessing which one
-  // the author meant is the one thing this engine will not do.
-  const kinds = (["presence", "verb", "connector"] as const).filter(
-    (key) => predicate[key] !== undefined,
-  );
+  // Exactly one of the three discriminants may be present, read the one way
+  // `declaredKinds` reads them. A statement carrying two is a shape the
+  // language does not define, and guessing which one the author meant is the
+  // one thing this engine will not do.
+  const kinds = declaredKinds(predicate);
   if (kinds.length !== 1) {
     out.push({
       locus,
       detail:
         kinds.length === 0
           ? `${where} declares no presence, verb or connector, so it states nothing.`
-          : `${where} declares ${String(kinds.length)} of presence, verb and connector at once, which the language does not define.`,
+          : `${where} declares ${String(kinds.length)} of presence, verb and connector at once, which the language does not define. A key set to undefined still declares it: omit the key instead.`,
     });
     return;
   }
@@ -505,6 +572,12 @@ export function evaluatePredicate(
   // Defence in depth: the shape check already refused anything deeper, so this
   // can only fire for a predicate that never went through it.
   if (depth > MAX_PREDICATE_DEPTH) return { outcome: "unevaluatable", undecided: [] };
+  // Defence in depth again, and the same shape check's other guarantee: exactly
+  // one discriminant KEY, counted by the same function, so the `in` tests below
+  // read the statement the check admitted rather than a second opinion about
+  // which statement it is. A predicate that never went through the check is
+  // undecidable here, never guessed at and never a throw.
+  if (declaredKinds(predicate).length !== 1) return { outcome: "unevaluatable", undecided: [] };
   if ("connector" in predicate) {
     const left = evaluatePredicate(message, predicate.left, depth + 1);
     const right = evaluatePredicate(message, predicate.right, depth + 1);

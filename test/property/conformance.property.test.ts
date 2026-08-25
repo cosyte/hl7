@@ -412,6 +412,41 @@ const locationArb = fc.record(
   { requiredKeys: [] },
 );
 
+/**
+ * A well-formed statement that ALSO carries a discriminant key set to
+ * `undefined`, which is a different shape from one that omits it.
+ *
+ * `fc.record` with `requiredKeys` OMITS an optional key rather than valuing it
+ * `undefined`, so no arbitrary here could build this shape - and this shape is
+ * exactly the one a union's excess-property check admits from plain TypeScript
+ * (`{ connector: undefined, location, verb: "is", values: [...] }` type-checks
+ * against `ConditionPredicate`), and exactly the one a helper assembling a
+ * predicate from an options bag returns on every call. Reading a discriminant
+ * by value admits it and then reads it as a different statement; reading by key
+ * presence refuses it. Generated so the properties below can falsify that.
+ */
+const strayDiscriminantArb = fc.oneof(
+  fc.record(
+    {
+      location: locationArb,
+      verb: fc.oneof(fc.constantFrom(...PREDICATE_VERBS), fc.string()),
+      values: fc.array(fc.string(), { maxLength: 3 }),
+      presence: fc.constant(undefined),
+      connector: fc.constant(undefined),
+    },
+    { requiredKeys: ["location", "verb", "values"] },
+  ),
+  fc.record(
+    {
+      location: locationArb,
+      presence: fc.constantFrom("is valued", "is not valued"),
+      verb: fc.constant(undefined),
+      connector: fc.constant(undefined),
+    },
+    { requiredKeys: ["location", "presence"] },
+  ),
+);
+
 /** One statement: a presence or a comparison, well-formed or garbage in every position. */
 const statementArb = fc.oneof(
   fc.record({
@@ -430,6 +465,7 @@ const statementArb = fc.oneof(
     },
     { requiredKeys: ["location", "verb"] },
   ),
+  strayDiscriminantArb,
   fc.string(),
   fc.constant(null),
   fc.integer(),
@@ -443,6 +479,9 @@ const conditionArb = fc.oneof(
       connector: fc.oneof(fc.constantFrom(...PREDICATE_CONNECTORS), fc.string()),
       left: statementArb,
       right: statementArb,
+      // A connector may carry the stray keys too, on the same terms.
+      verb: fc.constant(undefined),
+      presence: fc.constant(undefined),
     },
     { requiredKeys: ["connector"] },
   ),
@@ -609,6 +648,45 @@ describe("property: condition predicates", () => {
       ),
       RUN_CONFIG,
     );
+  });
+
+  it("a statement carrying more than one discriminant KEY is refused, never decided", () => {
+    /** How many of the three discriminant keys a candidate statement carries. */
+    const discriminantKeys = (value: unknown): number =>
+      typeof value === "object" && value !== null
+        ? ["presence", "verb", "connector"].filter((key) => key in value).length
+        : 0;
+
+    // Counted, because an arbitrary that never produces the shape would make
+    // this property pass by saying nothing: `fc.record` OMITS an optional key,
+    // and omitting is the case that was never broken.
+    let generated = 0;
+
+    fc.assert(
+      fc.property(
+        fc.nat({ max: MESSAGE_POOL.length - 1 }),
+        strayDiscriminantArb,
+        (idx, condition) => {
+          const msg = MESSAGE_POOL[idx];
+          if (msg === undefined) return;
+          if (discriminantKeys(condition) < 2) return;
+          generated++;
+          const profile = {
+            name: "stray-discriminant",
+            segments: [{ segment: "MSH", fields: [{ field: 3, usage: "C(R/X)", condition }] }],
+          };
+          // Exactly the refusal, and nothing else: not a decided outcome from
+          // whichever discriminant the engine happened to look at first, and
+          // not an empty findings list either.
+          expect(runWith(msg, profile, undefined).findings.map((f) => f.code)).toEqual([
+            FINDING_CODES.PROFILE_MALFORMED,
+          ]);
+        },
+      ),
+      RUN_CONFIG,
+    );
+
+    expect(generated).toBeGreaterThan(0);
   });
 
   it("a decidable predicate never leaves a stray unevaluatable finding behind", () => {

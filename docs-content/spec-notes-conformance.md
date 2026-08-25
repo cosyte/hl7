@@ -263,7 +263,8 @@ message rule against a profile it cannot trust, and still returns a result
 rather than throwing.
 
 - a verb outside the closed set, or a presence statement that is not one of the two;
-- a comparison with no value list, an empty one, or one carrying a non-string;
+- a comparison with no value list, an empty one, or one carrying a non-string
+  (a sparse array's holes count as non-strings: a length is not a value list);
 - a regular-expression value the platform cannot compile;
 - a location naming no addressable element: a bad segment name, a non-positive
   index, a component with no field, or a subcomponent with no component;
@@ -271,7 +272,11 @@ rather than throwing.
   has no single content to compare (a presence statement may stop there: it asks
   whether the segment occurs);
 - a statement declaring none of `presence`, `verb` and `connector`, or more than
-  one of them, and a nesting deeper than the language defines;
+  one of them, and a nesting deeper than the language defines. **A key set to
+  `undefined` still declares it**, so a statement assembled from an options bag
+  has to omit the keys it does not use rather than pass them through empty;
+  the engine will not guess which of two declared discriminants you meant,
+  because guessing decides an element's usage from a question you never asked;
 - a predicate on a rule whose usage is not conditional, including a rule with no
   usage at all: there is nothing there for it to decide, and ignoring it would be
   a silent no-op;

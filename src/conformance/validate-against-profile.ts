@@ -102,15 +102,18 @@ function fieldHasValue(field: Field): boolean {
  * - `R` absent ⇒ `"required-absent"`.
  * - `X` present ⇒ `"not-permitted"`.
  * - `RE` / `O` ⇒ no presence finding (RE absence is never a violation).
- * - `C` / `CE` ⇒ no presence finding: this bounded engine ships no
- *   predicate language, so a conditional element's presence is **not
- *   evaluated** (a documented defer). Its length / value-set / cardinality
- *   rules still apply when present.
- * - `B` ⇒ no presence finding, on exactly the terms `C` gets.
+ * - `C` / `CE` ⇒ no presence finding, because a conditional code only ever
+ *   reaches here UNDECIDED: the rule declared no predicate and no caller
+ *   resolution named it, or its predicate could not be decided against this
+ *   message. Presence is **not evaluated** for an undecided conditional; its
+ *   length / value-set / cardinality rules still apply when present, and an
+ *   undecided predicate additionally reports itself.
+ * - `B` ⇒ no presence finding, on exactly the terms an undecided `C` gets.
  *
- * A declared conditional never reaches here: {@link effectiveUsage} has already
- * reduced it to the simple code its resolution selects, or to `C` when nothing
- * resolved it.
+ * A DECIDED conditional never reaches here: {@link effectiveUsage} has already
+ * reduced it to the simple code its condition predicate decided or its
+ * resolution selected, so a `C(R/X)` whose predicate evaluated true arrives as
+ * `R` and is checked on exactly `R`'s terms.
  *
  * @internal
  */

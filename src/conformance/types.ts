@@ -477,6 +477,14 @@ export interface ConnectedPredicate {
  * never consults a bundled code set: every value it compares against is one the
  * profile author wrote down.
  *
+ * **Declare exactly one of `presence`, `verb` and `connector`, and OMIT the
+ * others.** A key set to `undefined` still declares it, so a statement
+ * assembled from an options bag has to leave out the keys it does not use
+ * rather than pass them through empty. A statement declaring two of them is
+ * `PROFILE_MALFORMED`: the engine will not guess which question was meant,
+ * because deciding a conditional element's usage from the wrong question turns
+ * a required element into a permitted absence.
+ *
  * @example
  * ```ts
  * import type { ConditionPredicate } from "@cosyte/hl7";

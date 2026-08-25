@@ -286,6 +286,45 @@ describe("an undecidable predicate is reported, never guessed (criteria 2, 4)", 
     ]);
   });
 
+  it("rides the RULE's evaluation: a field rule the engine never reaches reports nothing", () => {
+    // Two rules the engine does not descend into, for reasons that predate
+    // predicates entirely: the host segment is absent, and the host segment is
+    // present but its own rule forbids it. A field rule under either is
+    // evaluated for NO usage at all - a Required field under an absent optional
+    // segment is not reported either - so what an undecidable predicate there
+    // could lose is the diagnostic, never a usage decision. Reporting it anyway
+    // would put a conditional finding on a message that satisfies every rule
+    // the profile declares, which is the one thing an empty findings list has
+    // to keep meaning.
+    const absentHost: ConformanceProfile = {
+      name: "absent-host",
+      segments: [
+        { segment: "ZZA", fields: [{ field: 1, usage: "C(R/X)", condition: comparePv1 }] },
+      ],
+    };
+    expect(codes(findingsOf(DOE, absentHost))).toEqual([]);
+
+    const forbiddenHost: ConformanceProfile = {
+      name: "forbidden-host",
+      segments: [
+        {
+          segment: "PID",
+          usage: "X",
+          fields: [{ field: 8, usage: "C(R/X)", condition: comparePv1 }],
+        },
+      ],
+    };
+    expect(codes(findingsOf(DOE, forbiddenHost))).toEqual([FINDING_CODES.PROFILE_NOT_PERMITTED]);
+
+    // A SEGMENT rule is evaluated whether or not its segment occurs, so the
+    // same undecidable predicate there is always reported. The predicate's own
+    // LOCATION being absent from the message is a different question again, and
+    // is what the undecidable outcome is for.
+    expect(codes(findingsOf(DOE, pv1Profile("C(R/X)", comparePv1)))).toContain(
+      FINDING_CODES.PROFILE_CONDITION_UNEVALUATABLE,
+    );
+  });
+
   it("still applies the rule's other constraints, exactly as an undecided C does", () => {
     const condition = comparePv1;
     const extra = { length: 0, valueSet: ["Z"] } as const;
@@ -732,6 +771,15 @@ describe("a predicate the language does not admit is refused (criterion 9)", () 
 
   const NO_IDS = message("PID|1||||Doe^John||19800115|M");
 
+  /**
+   * A value list carrying a LENGTH but no values. `every`, `some` and
+   * `includes` all skip holes, so a shape check written with them reads this as
+   * "one or more well-typed values" and a comparison against it then decides an
+   * answer no value in the profile supports.
+   */
+  const SPARSE_VALUES: string[] = [];
+  SPARSE_VALUES.length = 2;
+
   const DEFECTS: readonly (readonly [string, unknown])[] = [
     ["an unrecognised verb", { location: FAMILY, verb: "equals", values: ["Doe"] }],
     ["a comparison with no value list", { location: FAMILY, verb: "is" }],
@@ -766,6 +814,31 @@ describe("a predicate the language does not admit is refused (criterion 9)", () 
     [
       "a statement declaring two discriminants at once",
       { location: FAMILY, presence: "is valued", verb: "is", values: ["Doe"] },
+    ],
+    [
+      "a comparison carrying a connector key set to undefined",
+      { connector: undefined, location: FAMILY, verb: "is", values: ["Doe"] },
+    ],
+    [
+      "a comparison carrying a presence key set to undefined",
+      { presence: undefined, location: FAMILY, verb: "is", values: ["Doe"] },
+    ],
+    [
+      "a presence statement carrying a verb key set to undefined",
+      { location: DOB, presence: "is valued", verb: undefined },
+    ],
+    [
+      "a connected predicate carrying a verb key set to undefined",
+      {
+        connector: "AND",
+        verb: undefined,
+        left: { location: DOB, presence: "is valued" },
+        right: { location: DOB, presence: "is valued" },
+      },
+    ],
+    [
+      "a value list that is a sparse array",
+      { location: FAMILY, verb: "is", values: SPARSE_VALUES },
     ],
     [
       "an unrecognised connector",
@@ -990,6 +1063,106 @@ describe("a predicate no type check could have stopped never throws (criterion 1
         "not a list",
       ),
     ).not.toThrow();
+  });
+});
+
+describe("the engine never evaluates a statement other than the one it admitted (criteria 1, 9, 11)", () => {
+  /**
+   * Which statement a predicate IS gets asked one way, by key presence, in the
+   * shape check and in the evaluator alike. Two readings of one union is how a
+   * predicate is admitted as a comparison and then evaluated as a presence
+   * statement, and that is not a theoretical worry: `ConditionPredicate` is a
+   * union, a union target's excess-property check admits any property declared
+   * by ANY member, and a helper assembling a predicate from an options bag
+   * (`{ location, presence: opts.presence, verb: opts.verb, values: opts.values }`)
+   * sets both discriminant keys on every predicate it returns and leaves the
+   * unused one `undefined`.
+   *
+   * A key set to `undefined` therefore DECLARES that discriminant, and a
+   * statement declaring two of them is refused rather than resolved by
+   * guesswork: a conditional decided from a question the profile never asked
+   * turns a required element into a permitted absence, which is the one failure
+   * this engine may not have.
+   */
+  const strayConnector: ConditionPredicate = {
+    connector: undefined,
+    location: DOB,
+    verb: "is",
+    values: ["19800115"],
+  };
+
+  const strayPresence: ConditionPredicate = {
+    presence: undefined,
+    location: DOB,
+    verb: "is",
+    values: ["19800115"],
+  };
+
+  it("type-checks against the published types, which is why the guard is at runtime", () => {
+    // No cast and no `any` above: both declarations are plain TypeScript. If a
+    // future compiler refuses them, the runtime guard below is still the
+    // contract - a profile reaches this engine from JavaScript too.
+    expect(Object.keys(strayConnector)).toContain("connector");
+    expect(Object.keys(strayPresence)).toContain("presence");
+  });
+
+  for (const [label, condition] of [
+    ["a stray connector key", strayConnector],
+    ["a stray presence key", strayPresence],
+  ] as const) {
+    it(`${label} is PROFILE_MALFORMED rather than a throw`, () => {
+      let findings: readonly ConformanceFinding[] = [];
+      expect(() => {
+        findings = findingsOf(WITH_DOB, pid8Profile("C(R/X)", condition));
+      }, label).not.toThrow();
+      expect(codes(findings), label).toEqual([FINDING_CODES.PROFILE_MALFORMED]);
+    });
+
+    it(`${label} is refused by the fail-fast authoring gate too`, () => {
+      expect(() => defineConformanceProfile(pid8Profile("C(R/X)", condition))).toThrow();
+    });
+
+    it(`${label} never decides the rule's usage`, () => {
+      // PID-7 IS `19800115`, so the DECLARED comparison decides TRUE and
+      // `C(X/O)` would select X for a valued PID-8. Read as the presence
+      // statement `is not valued` instead it decides FALSE, selects O, and
+      // returns NO findings at all. Neither answer may be reached from a shape
+      // the engine refused: the result is the refusal, and only the refusal.
+      const findings = findingsOf(WITH_DOB, pid8Profile("C(X/O)", condition));
+      expect(codes(findings), label).toEqual([FINDING_CODES.PROFILE_MALFORMED]);
+    });
+  }
+
+  it("omitting the key, rather than valuing it undefined, is the well-formed spelling", () => {
+    // The same comparison with no stray key decides TRUE and selects X, so the
+    // refusal above is about the extra key and nothing else.
+    const clean: ConditionPredicate = { location: DOB, verb: "is", values: ["19800115"] };
+    expect(codes(findingsOf(WITH_DOB, pid8Profile("C(X/O)", clean)))).toEqual([
+      FINDING_CODES.PROFILE_NOT_PERMITTED,
+    ]);
+    // The same comparison against a message whose PID-7 is valued and
+    // different decides FALSE, selects O, and finds nothing to report.
+    const otherDob = message(pid({ dob: "19900101" }));
+    expect(codes(findingsOf(otherDob, pid8Profile("C(X/O)", clean)))).toEqual([]);
+  });
+
+  it("a LONE discriminant key valued undefined states nothing and is refused too", () => {
+    for (const condition of [
+      { location: DOB, presence: undefined },
+      { location: DOB, verb: undefined, values: ["19800115"] },
+      { connector: undefined, left: { location: DOB, presence: "is valued" }, right: {} },
+    ]) {
+      const profile = {
+        name: "lone-undefined",
+        segments: [{ segment: "PID", fields: [{ field: 8, usage: "C(R/X)", condition }] }],
+      };
+      // PID-8 is empty in this message, so a rule decided TRUE would fire
+      // PROFILE_REQUIRED_ABSENT: its absence is what "evaluates no message
+      // rule" looks like from outside.
+      const findings = looseFindings(NO_SEX, profile);
+      expect(codes(findings)).toContain(FINDING_CODES.PROFILE_MALFORMED);
+      expect(codes(findings)).not.toContain(FINDING_CODES.PROFILE_REQUIRED_ABSENT);
+    }
   });
 });
 
