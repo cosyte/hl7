@@ -56,7 +56,12 @@
  * decided TRUE when one or more of those repetitions or occurrences satisfies
  * it, which is the language's default occurrence semantics ("at least one
  * occurrence of"). That existential covers the negative verbs too: `is not` is
- * true when some repetition is not one of the listed values.
+ * true when SOME repetition is not one of the listed values, and not when every
+ * repetition is not one. So a verb and its negative are complements value by
+ * value but NOT statement by statement, and at a repeating location both can
+ * decide true. The published types say so; do not "restore" a complement claim
+ * here without changing `satisfies` to quantify the negatives universally,
+ * which is a different language.
  *
  * @internal
  */
@@ -470,8 +475,29 @@ function comparableValues(message: Hl7Message, location: PredicateLocation): rea
   return values;
 }
 
-/** Does one value stand in the verb's relation to the value list? @internal */
-function satisfies(verb: ComparisonPredicate["verb"], value: string, values: readonly string[]) {
+/** Is this verb one whose value list is read as regular expressions? @internal */
+function isPatternVerb(verb: ComparisonPredicate["verb"]): boolean {
+  return verb === "matches" || verb === "does not match";
+}
+
+/**
+ * Does one value stand in the verb's relation to the value list?
+ *
+ * `patterns` is the value list already compiled, positionally, and is read only
+ * by the two pattern verbs; an entry is `undefined` where the platform cannot
+ * compile that source, which the shape check has already refused, so here it
+ * simply never matches. Passed in rather than compiled here because this is
+ * called once per repetition per occurrence and the compilation does not depend
+ * on the value being tested.
+ *
+ * @internal
+ */
+function satisfies(
+  verb: ComparisonPredicate["verb"],
+  value: string,
+  values: readonly string[],
+  patterns: readonly (RegExp | undefined)[],
+) {
   switch (verb) {
     case "is":
       return values.includes(value);
@@ -482,9 +508,9 @@ function satisfies(verb: ComparisonPredicate["verb"], value: string, values: rea
     case "does not contain":
       return !values.some((v) => value.includes(v));
     case "matches":
-      return values.some((v) => compileAnchored(v)?.test(value) === true);
+      return patterns.some((p) => p?.test(value) === true);
     case "does not match":
-      return !values.some((v) => compileAnchored(v)?.test(value) === true);
+      return !patterns.some((p) => p?.test(value) === true);
   }
 }
 
@@ -523,11 +549,18 @@ function evaluateComparison(
   if (values.length === 0) {
     return { outcome: "unevaluatable", undecided: [statement.location] };
   }
+  // Compile a pattern list ONCE per statement rather than once per listed
+  // pattern per repetition per occurrence. Identical answer, and the work it
+  // removes grows with how often the location repeats. Done after the emptiness
+  // check above, so a location the message does not carry compiles nothing.
+  const patterns = isPatternVerb(statement.verb) ? statement.values.map(compileAnchored) : [];
   // "At least one occurrence of" is the language's default: one repetition or
   // occurrence satisfying the statement decides it true, negative verbs
-  // included (`is not` is true when SOME repetition is not a listed value).
+  // included (`is not` is true when SOME repetition is not a listed value, NOT
+  // when every repetition is not one, so at a repeating location a verb and its
+  // negative can both decide true).
   return decided(
-    values.some((v) => satisfies(statement.verb, v, statement.values)) ? "true" : "false",
+    values.some((v) => satisfies(statement.verb, v, statement.values, patterns)) ? "true" : "false",
   );
 }
 

@@ -292,8 +292,25 @@ export type PredicatePresence = "is valued" | "is not valued";
  * - **`matches` / `does not match`**: the value matches (does not match) a
  *   listed value read as a regular expression, anchored over the whole value.
  *
- * Each negative verb is the exact complement of its positive twin at the same
- * location, so the two never both decide true and never both decide false.
+ * **A negative verb negates the COMPARISON, not the statement.** Each pair is an
+ * exact complement value by value, and both halves are quantified the same way:
+ * existentially, over every repetition of the field and every occurrence of the
+ * segment the location names (see {@link ComparisonPredicate}). Three
+ * consequences, and the second is the one that surprises:
+ *
+ * - Where the message carries exactly ONE value at that location, the pair
+ *   behaves as an exact complement: one of the two decides true and the other
+ *   false.
+ * - Where the location REPEATS, both halves can decide true at once, because
+ *   both are existential. `PID-3.1 is 'MRN1'` asks whether SOME identifier is
+ *   `MRN1`, and `PID-3.1 is not 'MRN1'` asks whether SOME identifier is not
+ *   `MRN1`; for `MRN1~MRN2` the answer to both is yes. So a negative verb is
+ *   NOT a way to ask whether no repetition is a listed value: the language
+ *   carries no negation connector, so that question cannot be written at all,
+ *   and `AL1-3.1 is not 'PENICILLIN'` decides true for a patient who has that
+ *   allergy and one other.
+ * - Where the message carries no value at that location, neither half decides.
+ *   The comparison is unevaluatable whichever verb it uses.
  *
  * @example
  * ```ts
@@ -405,6 +422,15 @@ export interface PresencePredicate {
  * unevaluatable**, not false: there is no content to compare. It is reported as
  * {@link FINDING_CODES.PROFILE_CONDITION_UNEVALUATABLE} rather than silently
  * deciding the conditional.
+ *
+ * **The statement is quantified over repetitions and occurrences.** Where the
+ * location names a repeating field, or a segment that occurs more than once, the
+ * comparison reads one value per repetition per occurrence and is true when ONE
+ * OR MORE of them stands in the verb's relation to the value list. That is the
+ * language's default occurrence semantics, and it covers the negative verbs too:
+ * `is not` is true when SOME value is not a listed one, not when every value is
+ * not. So at a repeating location a verb and its negative can both decide true
+ * against the same value list. {@link PredicateVerb} works the case through.
  *
  * @example
  * ```ts

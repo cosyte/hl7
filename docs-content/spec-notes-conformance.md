@@ -140,8 +140,10 @@ may not be skipped, so a `component` needs a `field` and a `subcomponent` needs 
 | `{ location, verb, values }`              | does the content at that location stand in `verb`'s relation to one of `values`? |
 | `{ connector, left, right }`              | `AND` both, `OR` at least one, `XOR` exactly one                    |
 
-The verbs are the published closed set, and each negative is the exact
-complement of its positive twin:
+The verbs are the published closed set. Each negative is the exact complement of
+its positive twin **for one value**; how the pair behaves where the location
+carries more than one is the section below this table, and it is not
+complementary:
 
 | Verb                            | True when the value                                        |
 | ------------------------------- | ---------------------------------------------------------- |
@@ -167,7 +169,19 @@ is the value here".
 match.** A statement is true when one or more of those repetitions or
 occurrences satisfies it, which is the language's default occurrence semantics.
 That existential covers the negative verbs too: `is not` is true when _some_
-repetition is not one of the listed values.
+repetition is not one of the listed values, and not when _every_ repetition is
+not one of them.
+
+**So at a repeating location a verb and its negative can both decide true, and
+that is the trap to read carefully.** `PID-3.1 is 'MRN1'` asks whether some
+identifier is `MRN1`; `PID-3.1 is not 'MRN1'` asks whether some identifier is
+not `MRN1`. For `PID-3 = MRN1~MRN2` the answer to both is yes. A negative verb
+is therefore not a way to ask whether _no_ repetition is a listed value: the
+language carries no negation connector, so that question cannot be written in a
+predicate at all, and `AL1-3.1 is not 'PENICILLIN'` decides true for a patient
+who has that allergy and one other. Where a location carries exactly one value
+the pair does behave as an exact complement, and where it carries none neither
+half decides: the comparison is unevaluatable whichever verb it uses.
 
 ```ts runnable
 import { parseHL7, validateAgainstProfile, type ConformanceProfile } from "@cosyte/hl7";

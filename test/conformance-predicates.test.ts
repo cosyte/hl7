@@ -259,6 +259,36 @@ describe("an undecidable predicate is reported, never guessed (criteria 2, 4)", 
     expect(finding?.locus).toEqual({ segment: "PID", field: 8 });
   });
 
+  it("names each undecidable location ONCE, however many leaves ask about it", () => {
+    // A connector tree collects one entry per undecidable leaf and the language
+    // admits 16 levels of nesting, so a tree of identical leaves rendered one
+    // per leaf puts thousands of copies of one coordinate into a single
+    // finding's message. A finding is the part of this engine a consumer
+    // persists, and a repeated structural coordinate tells them nothing new.
+    const tree = (depth: number): ConditionPredicate =>
+      depth === 0 ? comparePv1 : { connector: "OR", left: tree(depth - 1), right: tree(depth - 1) };
+
+    const [finding] = findingsOf(DOE, pid8Profile("C(R/X)", tree(12)));
+    expect(finding?.code).toBe(FINDING_CODES.PROFILE_CONDITION_UNEVALUATABLE);
+    // 4096 leaves, all asking about PV1-2.
+    expect(finding?.message.match(/PV1-2/gu) ?? []).toHaveLength(1);
+    expect(finding?.message.length).toBeLessThan(400);
+  });
+
+  it("still names every DISTINCT location the answer depended on", () => {
+    const other: ConditionPredicate = {
+      location: { segment: "PV1", field: 3, component: 1 },
+      verb: "is",
+      values: ["ICU"],
+    };
+    const [finding] = findingsOf(
+      DOE,
+      pid8Profile("C(R/X)", { connector: "OR", left: comparePv1, right: other }),
+    );
+    expect(finding?.message).toContain("PV1-2");
+    expect(finding?.message).toContain("PV1-3 component 1");
+  });
+
   it("carries the rule's own severity", () => {
     const findings = findingsOf(DOE, pid8Profile("C(R/X)", comparePv1, { severity: "warning" }));
     expect(findings[0]?.severity).toBe("warning");
@@ -440,7 +470,12 @@ describe("every verb and presence statement decides both ways (criterion 5)", ()
     ["contains", "does not contain"],
     ["matches", "does not match"],
   ] as const) {
-    it(`"${negative}" is the exact complement of "${positive}"`, () => {
+    // PID-5.1 carries exactly ONE value in every message of the corpus, which
+    // is the only place the pair IS complementary. Where the location repeats
+    // both halves are existential and both can hold: pinned in its own block
+    // below, because the complement reading of a repeating location is the
+    // misreading this language invites.
+    it(`"${negative}" is the exact complement of "${positive}" at a single-valued location`, () => {
       for (const msg of [DOE, ROE, TWO_IDS]) {
         for (const values of [["Doe"], ["Do"], ["D.e"], ["Zzz"]]) {
           const pos = findingsOf(
@@ -687,6 +722,116 @@ describe("repetitions and occurrences: one or more satisfies it (criterion 7)", 
     expect(codes(at(1, ["MRN1"]))).toEqual([FINDING_CODES.PROFILE_NOT_PERMITTED]);
     expect(codes(at(2, ["ALT"]))).toEqual([FINDING_CODES.PROFILE_NOT_PERMITTED]);
     expect(at(2, ["MRN1"])).toEqual([]);
+  });
+});
+
+describe("a negative verb is existential too, not a negation of the statement (criterion 7)", () => {
+  // Criterion 7's quantifier is over the whole STATEMENT, negative verbs
+  // included, so `is not` asks "is SOME repetition not a listed value" rather
+  // than "is NO repetition one". That is intended behaviour and it is what the
+  // published surfaces have to describe, because an author who reads a negative
+  // verb as a negation of the statement writes `AL1-3.1 is not 'PENICILLIN'`
+  // believing it asks whether the patient has no such allergy, gets true the
+  // moment a second allergy differs, and resolves a `C(R/X)` from a question
+  // they never asked. Pinned here as its own subject rather than as one
+  // assertion inside the repetition block.
+
+  const PID3: PredicateLocation = { segment: "PID", field: 3, component: 1 };
+  const OBX3: PredicateLocation = { segment: "OBX", field: 3, component: 1 };
+
+  /**
+   * Decide one statement observably. The rule is PID-8 `C(X/O)` and PID-8 is
+   * valued in every message used here, so TRUE selects `X` and fires exactly one
+   * `PROFILE_NOT_PERMITTED`, FALSE selects `O` and fires nothing, and an
+   * undecidable predicate is visible as its own code. Nothing is read as
+   * "false" by omission.
+   */
+  const decide = (msg: Hl7Message, condition: ConditionPredicate): string => {
+    const found = codes(findingsOf(msg, pid8Profile("C(X/O)", condition)));
+    if (found.length === 0) return "false";
+    if (found.length === 1 && found[0] === FINDING_CODES.PROFILE_NOT_PERMITTED) return "true";
+    if (found.length === 1 && found[0] === FINDING_CODES.PROFILE_CONDITION_UNEVALUATABLE) {
+      return "unevaluatable";
+    }
+    return `decided nothing: ${found.join()}`;
+  };
+
+  const PAIRS = [
+    ["is", "is not"],
+    ["contains", "does not contain"],
+    ["matches", "does not match"],
+  ] as const satisfies readonly (readonly [PredicateVerb, PredicateVerb])[];
+
+  it("the pairs cover the whole published verb set, with nothing left over", () => {
+    expect([...PAIRS.flat()].sort()).toEqual([...PREDICATE_VERBS].sort());
+  });
+
+  for (const [positive, negative] of PAIRS) {
+    it(`"${positive}" and "${negative}" BOTH decide true where the FIELD repeats`, () => {
+      // PID-3 = MRN1~MRN2 against the list ["MRN1"]: one repetition is MRN1 and
+      // the other is not, and both statements ask whether SOME repetition holds.
+      const values = ["MRN1"];
+      expect(TWO_IDS.segments("PID")[0]?.field(3).repetitions).toHaveLength(2);
+      expect(decide(TWO_IDS, { location: PID3, verb: positive, values }), positive).toBe("true");
+      expect(decide(TWO_IDS, { location: PID3, verb: negative, values }), negative).toBe("true");
+    });
+
+    it(`"${positive}" and "${negative}" BOTH decide true where the SEGMENT occurs twice`, () => {
+      // OBX-3.1 is WBC in the first occurrence and RBC in the second.
+      const values = ["WBC"];
+      expect(TWO_OBX.segments("OBX")).toHaveLength(2);
+      expect(decide(TWO_OBX, { location: OBX3, verb: positive, values }), positive).toBe("true");
+      expect(decide(TWO_OBX, { location: OBX3, verb: negative, values }), negative).toBe("true");
+    });
+
+    it(`"${positive}" and "${negative}" are complementary where the location carries ONE value`, () => {
+      // The boundary the published note draws: one value, one answer each way.
+      for (const [values, expected] of [
+        [["MRN1"], "true"],
+        [["MRN9"], "false"],
+      ] as const) {
+        expect(DOE.segments("PID")[0]?.field(3).repetitions).toHaveLength(1);
+        expect(decide(DOE, { location: PID3, verb: positive, values }), positive).toBe(expected);
+        expect(decide(DOE, { location: PID3, verb: negative, values }), negative).toBe(
+          expected === "true" ? "false" : "true",
+        );
+      }
+    });
+
+    it(`neither "${positive}" nor "${negative}" decides where the location carries NO value`, () => {
+      // DOE carries no OBX at all, so there is no content to compare and the
+      // negative verb does not get to fall back on a fabricated true.
+      const values = ["WBC"];
+      expect(decide(DOE, { location: OBX3, verb: positive, values }), positive).toBe(
+        "unevaluatable",
+      );
+      expect(decide(DOE, { location: OBX3, verb: negative, values }), negative).toBe(
+        "unevaluatable",
+      );
+    });
+  }
+
+  it("the language carries no negation connector, so the universal question is unwritable", () => {
+    // The published note tells an author that a negative verb is NOT a way to
+    // ask whether no repetition is a listed value, and that the question cannot
+    // be written at all. That second half holds only while the connector set
+    // stays free of a negation: adding one would make the note wrong.
+    expect([...PREDICATE_CONNECTORS]).toEqual(["AND", "OR", "XOR"]);
+  });
+
+  it("the durable published surfaces describe the existential rule, not a complement rule", () => {
+    // Documentation follows code, and this is the sentence that did not: a
+    // published claim that the pair "never both decide true" is falsified by
+    // every repeating-location test above. The changeset carries the same
+    // correction but is consumed at release, so it is not asserted here.
+    const surfaces = ["src/conformance/types.ts", "docs-content/spec-notes-conformance.md"];
+    for (const path of surfaces) {
+      const text = readFileSync(join(import.meta.dirname, "..", path), "utf8");
+      expect(text, `${path} still claims the pair can never both decide`).not.toMatch(
+        /never both decide/,
+      );
+      expect(text, `${path} does not say both can decide true`).toMatch(/both .{0,40}decide true/);
+    }
   });
 });
 

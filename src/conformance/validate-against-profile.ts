@@ -178,6 +178,15 @@ function effectiveUsage(
  * report. One per RULE: the caller passes the locus the rule declares, without
  * an occurrence, because the predicate was decided over the whole message.
  *
+ * The rendered locations are DEDUPED. A connector tree collects one entry per
+ * undecidable leaf, and a leaf's rendering is a structural coordinate that says
+ * nothing new when it repeats: a predicate that asks about `RXA-20` on both
+ * sides of an `OR` owes the author one mention of `RXA-20`, not two. It also
+ * bounds what a consumer persists, which matters because a finding is the part
+ * of this engine that gets written to a log or a database: at the nesting depth
+ * the language admits, a tree of identical leaves rendered one per leaf reaches
+ * a megabyte of message for one finding.
+ *
  * @internal
  */
 function undecidedFinding(
@@ -186,7 +195,8 @@ function undecidedFinding(
   severity: FindingSeverity,
 ): ConformanceFinding | null {
   if (predicate === undefined || predicate.outcome !== "unevaluatable") return null;
-  return F.conditionUnevaluatable(locus, predicate.undecided.map(describeLocation), severity);
+  const at = [...new Set(predicate.undecided.map(describeLocation))];
+  return F.conditionUnevaluatable(locus, at, severity);
 }
 
 /** Check a cardinality bound against an observed count; push a finding if out of range. @internal */
