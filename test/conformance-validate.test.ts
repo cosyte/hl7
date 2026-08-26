@@ -1134,3 +1134,59 @@ describe("a rule with NO condition predicate is untouched by predicates existing
     }
   });
 });
+
+describe("a bare value-set rule is untouched by coding-system bindings existing", () => {
+  /** A profile whose only rule is the bare-array value-set form: no binding anywhere. */
+  const BARE: ConformanceProfile = {
+    name: "bare-value-set",
+    segments: [{ segment: "PID", fields: [{ field: 8, valueSet: ["M", "F", "U"], length: 1 }] }],
+  };
+
+  it("produces exactly the codes, messages, severities and order it always did", () => {
+    // PID-8 is "MMMM": too long AND not in the set, in that order.
+    const findings = validateWith(LONG_SEX, BARE, undefined);
+    expect(findings.map((f) => f.code)).toEqual([
+      FINDING_CODES.PROFILE_LENGTH,
+      FINDING_CODES.PROFILE_VALUE_NOT_IN_SET,
+    ]);
+    expect(findings.map((f) => f.severity)).toEqual(["error", "error"]);
+    expect(findings[0]?.message).toBe(
+      "PID-8 rep 0 component 1 value length 4 exceeds the declared maximum of 1.",
+    );
+    expect(findings[1]?.message).toBe(
+      "PID-8 rep 0 component 1 value is not in the profile value set (3 permitted code(s)).",
+    );
+    expect(findings.map((f) => f.locus)).toEqual([
+      { segment: "PID", field: 8, component: 1, repetition: 0, occurrence: 0 },
+      { segment: "PID", field: 8, component: 1, repetition: 0, occurrence: 0 },
+    ]);
+  });
+
+  it("emits no coding-system finding for ANY message in the corpus", () => {
+    for (const raw of [WITH_SEX, WITHOUT_SEX, THREE_SEX_REPS, LONG_SEX, MSH_ONLY]) {
+      expect(
+        validateWith(raw, BARE, undefined).some(
+          (f) => f.code === FINDING_CODES.PROFILE_CODING_SYSTEM_MISMATCH,
+        ),
+        raw,
+      ).toBe(false);
+    }
+  });
+
+  it("a coded field whose coding-system component is plainly wrong still validates clean", () => {
+    // This is the false negative the binding exists to close, and the point of
+    // the test is that WITHOUT a binding it stays exactly as it was: a bare
+    // value-set rule has no opinion about provenance, and gains none.
+    const raw =
+      "MSH|^~\\&|LAB|MAIN|EHR|REF|20260101||ORU^R01|MSG1|P|2.5\rOBX|1|NM|WBC^White^SCT||7.5";
+    const profile: ConformanceProfile = {
+      name: "bare-coded",
+      segments: [{ segment: "OBX", fields: [{ field: 3, valueSet: ["WBC", "RBC"] }] }],
+    };
+    expect(validateWith(raw, profile, undefined)).toEqual([]);
+  });
+
+  it("the fail-fast gate still accepts the bare form", () => {
+    expect(() => defineConformanceProfile(BARE)).not.toThrow();
+  });
+});

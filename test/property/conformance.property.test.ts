@@ -757,6 +757,91 @@ describe("property: condition predicates", () => {
     );
   });
 
+  it("no coding-system finding ever echoes the claim the message made", () => {
+    // A value-set binding carries a coding-system identifier, so the engine now
+    // READS a component it never read before and REPORTS on it. That is a new
+    // route by which message content could reach a consumer's log, and a leaked
+    // value is the one failure here no re-run undoes. So: a sentinel in the
+    // coding-system component the finding is ABOUT, and a second in the code
+    // beside it, neither of which may appear anywhere in any finding.
+    fc.assert(
+      fc.property(
+        fc.stringMatching(/^[A-Za-z0-9]{1,8}$/u).map((s) => `ZQVSYS${s}`),
+        fc.stringMatching(/^[A-Za-z0-9]{1,8}$/u).map((s) => `ZQVCODE${s}`),
+        fc.constantFrom(1, 4),
+        fc.boolean(),
+        (claimedSystem, code, component, blank) => {
+          // The whole triplet is planted: the code, its text, and the claim.
+          // `blank` swaps the claim for whitespace, which is the absent-claim
+          // path: it reports too, and it must not echo the code beside it.
+          const system = blank ? "   " : claimedSystem;
+          const triplet =
+            component === 1
+              ? `${code}^${code}TEXT^${system}`
+              : `PRIMARY^PRIMARYTEXT^LN^${code}^${code}TEXT^${system}`;
+          const raw = [
+            "MSH|^~\\&|A|B|C|D|20260101||ORU^R01|M1|P|2.5",
+            "PID|1||MRN9^^^H^MR||Doe^John||19800101|M",
+            `OBX|1|NM|${triplet}||7.5`,
+          ].join("\r");
+          const profile: ConformanceProfile = {
+            name: "coding-system-leak-probe",
+            segments: [
+              {
+                segment: "OBX",
+                fields: [{ field: 3, component, valueSet: ["WBC", "RBC"], codingSystem: "LN" }],
+              },
+            ],
+          };
+          const { findings } = validateAgainstProfile(parseHL7(raw), profile);
+          // The claim is never LN, so the mismatch always fires.
+          expect(
+            findings.some((f) => f.code === FINDING_CODES.PROFILE_CODING_SYSTEM_MISMATCH),
+          ).toBe(true);
+          for (const f of findings) {
+            expect(f.message).not.toContain(claimedSystem);
+            expect(f.message).not.toContain(code);
+            expect(JSON.stringify(f)).not.toContain("ZQV");
+            // The locus stays structural: a segment name and indices only.
+            expect(f.locus.segment).toBe("OBX");
+            expect(typeof f.locus.component).toBe("number");
+          }
+        },
+      ),
+      RUN_CONFIG,
+    );
+  });
+
+  it("no MALFORMED diagnostic about a coding-system binding echoes what the author wrote", () => {
+    // The refusal path reads a PROFILE-supplied identifier. An unrecognized one
+    // is echoed on purpose (an author debugging a typo needs it), so what this
+    // pins is the other half: a binding that is not a string has no token worth
+    // echoing, and its diagnostic names the value's TYPE instead of its content.
+    fc.assert(
+      fc.property(
+        fc.stringMatching(/^[A-Za-z0-9]{1,8}$/u).map((s) => `ZQVBIND${s}`),
+        (secret) => {
+          const msg = MESSAGE_POOL[1];
+          if (msg === undefined) return;
+          const profile = {
+            name: "binding-shape-probe",
+            segments: [
+              {
+                segment: "OBX",
+                fields: [{ field: 3, valueSet: ["WBC"], codingSystem: { claimed: secret } }],
+              },
+            ],
+          };
+          const { findings } = runWith(msg, profile, undefined);
+          expect(findings.length).toBeGreaterThan(0);
+          expect(findings.every((f) => f.code === FINDING_CODES.PROFILE_MALFORMED)).toBe(true);
+          for (const f of findings) expect(f.message).not.toContain(secret);
+        },
+      ),
+      RUN_CONFIG,
+    );
+  });
+
   it("no MALFORMED diagnostic about a predicate echoes its value list either", () => {
     fc.assert(
       fc.property(
@@ -789,6 +874,115 @@ describe("property: condition predicates", () => {
           for (const f of findings) expect(f.message).not.toContain(secret);
         },
       ),
+      RUN_CONFIG,
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Coding-system bindings. New arbitraries again rather than widened ones, so
+// every generator above keeps generating exactly what it did before and the
+// invariants they pin stay pinned on the same inputs.
+// ---------------------------------------------------------------------------
+
+/** Anything an author might put in the binding position, recognized or not. */
+const codingSystemArb = fc.oneof(
+  fc.constantFrom("LN", "SCT", "CVX", "UCUM", "loinc", " LN ", "SNOMED"),
+  fc.constantFrom("", "   ", "ZZZ", "0396", "LOINC-2"),
+  fc.string(),
+  fc.integer(),
+  fc.constant(null),
+  fc.array(fc.string(), { maxLength: 2 }),
+);
+
+/** A field rule that always declares a binding, well-formed or not. */
+const boundFieldRuleArb = fc.record(
+  {
+    field: fc.oneof(fc.integer({ min: 1, max: 20 }), fc.integer({ min: -3, max: 0 })),
+    component: fc.option(fc.integer({ min: 1, max: 8 }), { nil: undefined }),
+    valueSet: fc.option(fc.array(fc.string(), { maxLength: 4 }), { nil: undefined }),
+    codingSystem: codingSystemArb,
+    codingSystemComponent: fc.option(
+      fc.oneof(fc.integer({ min: -2, max: 9 }), fc.constant(2.5), fc.string()),
+      { nil: undefined },
+    ),
+    severity: fc.option(fc.constantFrom("error", "warning", "info"), { nil: undefined }),
+  },
+  { requiredKeys: ["field", "codingSystem"] },
+);
+
+const boundProfileArb = fc.record({
+  name: fc.string({ minLength: 1 }),
+  segments: fc.array(
+    fc.record(
+      {
+        segment: VALID_SEGMENT,
+        fields: fc.array(boundFieldRuleArb, { maxLength: 4 }),
+      },
+      { requiredKeys: ["segment"] },
+    ),
+    { maxLength: 4 },
+  ),
+});
+
+describe("property: coding-system bindings", () => {
+  it("never throws for any message × any binding-shaped profile", () => {
+    fc.assert(
+      fc.property(fc.nat({ max: MESSAGE_POOL.length - 1 }), boundProfileArb, (idx, profile) => {
+        const msg = MESSAGE_POOL[idx];
+        if (msg === undefined) return;
+        const result = runWith(msg, profile, undefined);
+        expect(Array.isArray(result.findings)).toBe(true);
+      }),
+      RUN_CONFIG,
+    );
+  });
+
+  it("validation never mutates the message, binding or no binding", () => {
+    fc.assert(
+      fc.property(fc.nat({ max: MESSAGE_POOL.length - 1 }), boundProfileArb, (idx, profile) => {
+        const msg = MESSAGE_POOL[idx];
+        if (msg === undefined) return;
+        const before = msg.toString();
+        runWith(msg, profile, undefined);
+        expect(msg.toString()).toBe(before);
+      }),
+      RUN_CONFIG,
+    );
+  });
+
+  it("every coding-system finding is well-formed and names a component it read", () => {
+    fc.assert(
+      fc.property(fc.nat({ max: MESSAGE_POOL.length - 1 }), boundProfileArb, (idx, profile) => {
+        const msg = MESSAGE_POOL[idx];
+        if (msg === undefined) return;
+        const { findings } = runWith(msg, profile, undefined);
+        for (const f of findings) {
+          expect(["error", "warning", "info"]).toContain(f.severity);
+          expect(f.message.length).toBeGreaterThan(0);
+          if (f.code !== FINDING_CODES.PROFILE_CODING_SYSTEM_MISMATCH) continue;
+          expect(typeof f.locus.field).toBe("number");
+          expect(typeof f.locus.component).toBe("number");
+          expect(typeof f.locus.repetition).toBe("number");
+          expect(typeof f.locus.occurrence).toBe("number");
+        }
+      }),
+      RUN_CONFIG,
+    );
+  });
+
+  it("a rule that declares NO binding never produces a coding-system finding", () => {
+    // The additive half of the contract, generatively: the previously-shipping
+    // bare-array form cannot start emitting a code it never emitted.
+    fc.assert(
+      fc.property(fc.nat({ max: MESSAGE_POOL.length - 1 }), profileArb, (idx, profile) => {
+        const msg = MESSAGE_POOL[idx];
+        if (msg === undefined) return;
+        const { findings } = runWith(msg, profile, undefined);
+        expect(findings.some((f) => f.code === FINDING_CODES.PROFILE_CODING_SYSTEM_MISMATCH)).toBe(
+          false,
+        );
+      }),
       RUN_CONFIG,
     );
   });

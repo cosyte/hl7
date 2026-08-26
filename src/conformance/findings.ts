@@ -152,6 +152,45 @@ export function valueNotInSet(
 }
 
 /**
+ * A present repetition does not carry the coding system the rule binds its
+ * value set to.
+ *
+ * The message names the EXPECTED system and the locus, and nothing else. Two
+ * halves of that are deliberate:
+ *
+ * - The `expected` identifier is the RESOLVED registered acronym rather than
+ *   whatever spelling the profile author wrote, so the text is drawn from the
+ *   library's own frozen provenance map and can carry nothing a caller
+ *   supplied. It is what the author needs to see anyway: the identity the
+ *   comparison was actually made against.
+ * - The OFFENDING claim is never named, on exactly the terms
+ *   {@link valueNotInSet} never names the offending code. A coding-system
+ *   component is read out of the message, so it is message content, and message
+ *   content does not travel into a consumer's logs however innocuous one
+ *   instance of it looks.
+ *
+ * The wording covers a wrong system, an unrecognized one, a blank one and an
+ * absent one with one sentence, because they are one finding with one remedy
+ * and distinguishing them in the text would have to describe what was found.
+ *
+ * @internal
+ */
+export function codingSystemMismatch(
+  locus: FindingLocus,
+  expected: string,
+  severity: FindingSeverity,
+): ConformanceFinding {
+  return {
+    code: FINDING_CODES.PROFILE_CODING_SYSTEM_MISMATCH,
+    severity,
+    locus,
+    message: `${describeLocus(
+      locus,
+    )} does not carry the coding system the profile binds this value set to (expected ${expected}).`,
+  };
+}
+
+/**
  * A rule's declared condition predicate could not be decided against this
  * message, so its usage outcome was never selected and the element's presence
  * was NOT assessed.

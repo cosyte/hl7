@@ -311,6 +311,16 @@ export { batchCountMismatch, batchMissingTrailer } from "./parser/warnings.js";
 // author supplies, and AND/OR/XOR connectors. Still no network call and still no
 // code set; a predicate the message cannot decide is reported as
 // PROFILE_CONDITION_UNEVALUATABLE rather than guessed either way.
+// A field rule may additionally bind its value set to the coding system its
+// codes must come from (`codingSystem`, with `codingSystemComponent` where the
+// default code+2 offset does not hold). The message's own coding-system
+// component is compared by RESOLVED identity through the Table 0396 provenance
+// map this library already ships, so `loinc`/`LOINC`/`LN` all match a binding
+// of `LN`; a mismatch, an unrecognized claim, a blank one and an absent one are
+// all PROFILE_CODING_SYSTEM_MISMATCH, distinct from PROFILE_VALUE_NOT_IN_SET.
+// An identifier the map does not recognize is refused when the profile is
+// DEFINED, never compared against a system that cannot be resolved. Still no
+// code set and no network call: it checks the sender's claim, not the code.
 export { validateAgainstProfile } from "./conformance/validate-against-profile.js";
 export { defineConformanceProfile } from "./conformance/profile-shape.js";
 export { usageOutcomes } from "./conformance/usage.js";

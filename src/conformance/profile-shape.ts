@@ -19,6 +19,7 @@
  * @internal (the two functions are re-exported from the package root)
  */
 
+import { KNOWN_CODING_SYSTEMS, codingSystem } from "../model/coding-system.js";
 import { ProfileDefinitionError } from "../parser/errors.js";
 
 import { collectPredicateDefects } from "./predicate.js";
@@ -249,6 +250,97 @@ function checkSeverity(sev: unknown, locus: FindingLocus, out: ProfileDefect[]):
   }
 }
 
+/**
+ * The recognized coding-system identifiers, listed for a defect detail so an
+ * author who is refused can see what they may bind to. Read off the library's
+ * own provenance map rather than re-derived, so the list cannot drift from the
+ * oracle the comparison actually uses.
+ *
+ * @internal
+ */
+const RECOGNIZED_CODING_SYSTEMS: string = KNOWN_CODING_SYSTEMS.map((s) => s.id).join("/");
+
+/**
+ * Validate a rule's coding-system binding: the identifier itself, the component
+ * that carries it, and the one pairing rule that governs where a binding may be
+ * declared at all.
+ *
+ * **A binding needs a value set.** It binds a value set to the system its codes
+ * are drawn from, so a binding on a rule that declares none is a defect rather
+ * than a system-only check: checking provenance without checking membership is
+ * a different constraint, and inventing it here would decide by silence what an
+ * author never asked for. An OMITTED binding is not a binding, so no rule that
+ * authored cleanly before is newly refused.
+ *
+ * **A component with no identifier is refused for the same reason**: it names
+ * where to read a system nothing is compared against, and ignoring it would be
+ * a silent no-op.
+ *
+ * **Recognition is the library's own frozen provenance map**, which is a
+ * deliberate SUBSET of the published registry rather than all of it. So the
+ * detail says the identifier is not one this library recognizes: it is not a
+ * claim that the identifier is unregistered, and refusing at authoring time is
+ * the fail-safe direction against silently comparing a message to a system that
+ * cannot be resolved.
+ *
+ * @internal
+ */
+function checkCodingSystem(
+  rule: Record<string, unknown>,
+  locus: FindingLocus,
+  out: ProfileDefect[],
+): void {
+  const bound = rule["codingSystem"];
+  const comp = rule["codingSystemComponent"];
+
+  if (comp !== undefined && (typeof comp !== "number" || !Number.isInteger(comp) || comp < 1)) {
+    out.push({
+      locus,
+      detail: `${describe(locus)} codingSystemComponent must be a positive (1-indexed) integer.`,
+    });
+  }
+
+  if (bound === undefined) {
+    if (comp !== undefined) {
+      out.push({
+        locus,
+        detail:
+          `${describe(locus)} declares codingSystemComponent without a codingSystem, so it names where to read a coding system that nothing is compared against. ` +
+          `Declare codingSystem alongside it, or drop it.`,
+      });
+    }
+    return;
+  }
+
+  if (typeof bound !== "string") {
+    out.push({
+      locus,
+      detail: `${describe(locus)} codingSystem must be a string, not ${describeValueType(bound)}.`,
+    });
+  } else if (bound.trim().length === 0) {
+    out.push({
+      locus,
+      detail: `${describe(locus)} codingSystem must be a non-empty coding-system identifier.`,
+    });
+  } else if (codingSystem(bound)?.known !== true) {
+    out.push({
+      locus,
+      detail:
+        `${describe(locus)} codingSystem "${boundedToken(bound)}" is not a coding-system identifier this library recognizes. ` +
+        `Recognized identifiers (and their well-known aliases): ${RECOGNIZED_CODING_SYSTEMS}.`,
+    });
+  }
+
+  if (rule["valueSet"] === undefined) {
+    out.push({
+      locus,
+      detail:
+        `${describe(locus)} declares codingSystem on a rule that declares no valueSet. ` +
+        `A coding-system binding binds a value set to the system its codes are drawn from, so there is nothing here for it to bind.`,
+    });
+  }
+}
+
 /** Validate one field rule object. @internal */
 function checkFieldRule(rule: unknown, segment: string, index: number, out: ProfileDefect[]): void {
   const locus: FindingLocus = { segment };
@@ -298,6 +390,7 @@ function checkFieldRule(rule: unknown, segment: string, index: number, out: Prof
       });
     }
   }
+  checkCodingSystem(rule, fieldLocus, out);
 }
 
 /**
