@@ -25,6 +25,7 @@
 import type { Hl7Message } from "../model/message.js";
 import type { RawRepetition } from "../parser/types.js";
 
+import { codingSystem } from "../model/coding-system.js";
 import type { Field } from "../model/field.js";
 import type { Segment } from "../model/segment.js";
 import * as F from "./findings.js";
@@ -86,11 +87,33 @@ function componentValue(rep: RawRepetition, component: number): string {
   return rep.components[component - 1]?.subcomponents[0] ?? "";
 }
 
+/** Does one repetition carry any non-empty content in any component/subcomponent? @internal */
+function repetitionHasValue(rep: RawRepetition): boolean {
+  return rep.components.some((comp) => comp.subcomponents.some((sub) => sub !== ""));
+}
+
 /** Does the field carry any non-empty content in any repetition/component/subcomponent? @internal */
 function fieldHasValue(field: Field): boolean {
-  return field.repetitions.some((rep) =>
-    rep.components.some((comp) => comp.subcomponents.some((sub) => sub !== "")),
-  );
+  return field.repetitions.some(repetitionHasValue);
+}
+
+/**
+ * The registered coding-system identity a field rule binds its value set to, or
+ * `undefined` when it binds none.
+ *
+ * Resolution goes through the library's own provenance map, which is what makes
+ * the comparison an identity test rather than a string test: an author binding
+ * `loinc` and a feed sending `LN` are talking about the same system, and
+ * reporting a mismatch there would be a false positive on a correct feed.
+ *
+ * A binding the map cannot resolve is a profile defect and the engine returns
+ * its defects before it evaluates any rule, so `undefined` here means "no
+ * binding declared" on every path that can actually reach it.
+ *
+ * @internal
+ */
+function boundCodingSystem(rule: FieldRule): string | undefined {
+  return codingSystem(rule.codingSystem)?.id;
 }
 
 /**
@@ -274,6 +297,12 @@ function checkFields(
 
     if (rule.length === undefined && rule.valueSet === undefined) continue;
     const component = rule.component ?? 1;
+    // The coding-system component defaults to two positions after the checked
+    // one, which is the coded element's own code-to-system relationship: a code
+    // at component 1 puts its system at 3, an alternate code at 4 puts its
+    // alternate system at 6. A profile with no binding never reads it.
+    const expectedSystem = boundCodingSystem(rule);
+    const systemComponent = rule.codingSystemComponent ?? component + 2;
     for (let r = 0; r < reps.length; r++) {
       const rep = reps[r];
       if (rep === undefined) continue;
@@ -290,6 +319,27 @@ function checkFields(
       }
       if (rule.valueSet !== undefined && value !== "" && !rule.valueSet.includes(value)) {
         out.push(F.valueNotInSet(locus, rule.valueSet.length, severity));
+      }
+      // The coding-system check is INDEPENDENT of the membership check above:
+      // each fires on its own merits, so a permitted code carried under the
+      // wrong system yields exactly one coding-system finding and no value-set
+      // finding, and a code wrong on both counts yields one of each.
+      //
+      // It is scoped to a repetition that carries something. An empty
+      // repetition claims no code, so it has no provenance to be wrong about;
+      // a repetition that carries a code and no resolvable system does, and
+      // that case is a finding rather than a pass.
+      if (expectedSystem !== undefined && repetitionHasValue(rep)) {
+        const claimed = codingSystem(componentValue(rep, systemComponent));
+        if (claimed?.id !== expectedSystem) {
+          out.push(
+            F.codingSystemMismatch(
+              { ...locus, component: systemComponent },
+              expectedSystem,
+              severity,
+            ),
+          );
+        }
       }
     }
   }
@@ -366,6 +416,16 @@ function checkSegment(
  * yields a `PROFILE_CONDITION_UNEVALUATABLE` finding and the element's presence
  * is not assessed, so an unassessed conditional can never hide inside an empty
  * findings list.
+ *
+ * **A value set may be bound to the coding system its codes come from.** A rule
+ * that declares {@link FieldRule.codingSystem} has the message's own
+ * coding-system component compared against it by resolved identity, per present
+ * repetition, and a mismatch is `PROFILE_CODING_SYSTEM_MISMATCH`: a distinct
+ * code, so "a code we do not accept" and "a code that looks right but claims
+ * the wrong system" stop being one answer. The check is additive and opt-in: a
+ * rule that declares no binding behaves exactly as it always has. Still no code
+ * set and still no network call, because this compares the sender's CLAIM
+ * against the profile and never the code against a terminology.
  *
  * Omitting `resolutions` (or passing `undefined`) is the same as passing an
  * empty list. Any OTHER value that is not a list of well-formed resolutions is

@@ -1,0 +1,27 @@
+---
+"@cosyte/hl7": patch
+---
+
+Conformance profiles: a value set can now be bound to the coding system its codes must come from.
+
+A field rule could say "this code must be one of these" and nothing more. The message says more: a coded element carries the sender's claimed coding system right beside the code, and the engine never read it. So a feed sending a plausible, permitted-looking code labelled with the wrong system validated clean, which is a false negative on the results path rather than a completeness nicety: what a certified reportable-lab interface most needs to assert about OBX-3 is precisely which vocabulary the code came from.
+
+A field rule may now declare `codingSystem`, and optionally `codingSystemComponent`. With a binding declared, each present, non-empty repetition has its coding-system component compared against the binding, and a mismatch is the new `FINDING_CODES.PROFILE_CODING_SYSTEM_MISMATCH`.
+
+**The new code is distinct from `PROFILE_VALUE_NOT_IN_SET` on purpose.** "A code we do not accept" and "a code that looks right but claims the wrong system" are two problems with two remedies, and one code for both would hide the second inside the first. The two checks are also INDEPENDENT: a permitted code carried under the wrong system yields exactly one coding-system finding and no value-set finding, and a code wrong on both counts yields exactly one of each.
+
+**Comparison is by resolved identity, never string equality.** Both sides go through the Table 0396 provenance map this library already ships, so `LN`, `LOINC`, `loinc` and `  LN  ` all match a binding of `LN`, and `SCT`, `SNOMED` and `SNOMEDCT` all match a binding of `SCT`. Comparing raw strings would report a mismatch for a correct feed that wrote an accepted spelling, which is the worst outcome available here.
+
+**The coding-system component defaults to two positions after the checked one**, which is the coded element's own code-to-system relationship: a code at component 1 puts its system at component 3, and an alternate code at component 4 puts its alternate system at component 6. So a rule checking the primary triplet declares neither key, and a rule checking the alternate triplet sets `component` alone. `codingSystemComponent` overrides the offset for a field whose layout does not follow it. Checking both triplets from one rule is not supported: declare two rules on the same field.
+
+**An absent or blank claim is a finding, never a pass.** A present, non-empty repetition whose coding-system component is missing entirely, empty, whitespace-only, or names a system that cannot be resolved is reported with the same code. Deciding otherwise would let the exact case the binding exists for pass by omitting a component. An EMPTY repetition is not reported (it claims no code, so it has no provenance to be wrong about), and an absent or empty FIELD is still left to its usage code: `PROFILE_REQUIRED_ABSENT` for `R`, nothing for `RE`, `O`, `C`, `CE` or `B`.
+
+**A binding this library cannot resolve is refused when the profile is DEFINED**, as `PROFILE_MALFORMED` from `validateAgainstProfile` and a thrown `ProfileDefinitionError` from `defineConformanceProfile`, rather than compared at validation time against a system that cannot be resolved. The same refusal covers an identifier that is not a string, is empty or whitespace-only, a `codingSystemComponent` that is not a positive integer, a `codingSystemComponent` declared without an identifier, and a binding on a rule that declares no `valueSet`: a binding with nothing to bind is a defect, not a system-only check. Validation still never throws for any of them.
+
+**The recognition set is a deliberate SUBSET of the published registry, not all of it.** It is the same safety-relevant map that backs `codingSystem()` and `KNOWN_CODING_SYSTEMS`, so an identifier that is genuinely registered but outside that map is still refused, and the refusal says the identifier is not one this library recognizes rather than that it is unregistered. That is the fail-safe direction, and it means a local or site-specific coding system cannot be bound at all: keep the bare `valueSet` form for those rules. Widening the map is a separate change with its own per-entry sourcing.
+
+**No PHI, on the same terms as every other finding.** A coding-system finding names the EXPECTED system and the structural locus (segment, field, the component it read, repetition, occurrence) and nothing else. It never carries the offending claim or any other value taken from the message, and the expected identifier it does carry is the resolved registered acronym read out of the library's own frozen map rather than whatever spelling the profile author wrote.
+
+**This checks the sender's claim, never the code.** Nothing here verifies that a code exists in the system the message names, or that the system is current. hl7 still ships no code set, bundles no value set and makes no network call; membership stays a literal check against the array you supply.
+
+Unchanged, and deliberately: the bare `valueSet: readonly string[]` form is untouched and still first-class. A rule that declares no binding produces exactly the findings it produced before, in the same order, with the same codes, messages and severities, and can never emit the new code. The binding is purely additive and opt-in, and it constrains rather than relaxes: no profile that authored cleanly before is newly refused, and no message that validated cleanly before newly fails on a rule that did not opt in.

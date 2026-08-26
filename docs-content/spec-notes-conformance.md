@@ -382,6 +382,119 @@ restricts an _implementable_ profile to `R`, `RE` or `X` per element, and its
 conditional outcomes likewise; a profile cannot yet declare which level it
 claims, so that restriction is not enforced.
 
+## Binding a value set to the coding system its codes come from
+
+A bare `valueSet` answers one question: is this code one we accept? It says
+nothing about **where the code came from**, and the message does: a coded
+element carries the sender's claimed coding system right beside the code. So a
+feed sending a plausible, permitted-looking code labelled with the wrong system
+validates clean against a bare value set, which is the more dangerous of the two
+mistakes an interface can make about a code.
+
+Add `codingSystem` to the rule and the engine compares that claim too:
+
+```ts runnable
+import {
+  parseHL7,
+  validateAgainstProfile,
+  FINDING_CODES,
+  type ConformanceProfile,
+} from "@cosyte/hl7";
+
+// "OBX-3 must carry one of our two result codes, and that code must be a LOINC
+// code." The value set is still yours; the binding says where it must come from.
+const profile: ConformanceProfile = {
+  name: "loinc-results",
+  segments: [{ segment: "OBX", fields: [{ field: 3, valueSet: ["WBC", "RBC"], codingSystem: "LN" }] }],
+};
+
+const head = "MSH|^~\\&|LAB|MAIN|EHR|REF|20260419101500||ORU^R01|MSG00004|P|2.5";
+const check = (obx3: string) =>
+  validateAgainstProfile(parseHL7([head, `OBX|1|NM|${obx3}||7.5`].join("\r")), profile).findings;
+
+// A permitted code, correctly labelled LOINC. Nothing fires.
+check("WBC^White Blood Cells^LN").length; // => 0
+
+// The same code labelled SNOMED CT. Membership still passes, and the binding
+// catches exactly what membership cannot see.
+check("WBC^White Blood Cells^SCT")[0]?.code; // => "PROFILE_CODING_SYSTEM_MISMATCH"
+
+// A code you do not accept, correctly labelled. A different answer, on purpose.
+check("XYZ^Mystery^LN")[0]?.code; // => "PROFILE_VALUE_NOT_IN_SET"
+
+// Wrong on both counts: exactly one finding of each, never one merged answer.
+const both = check("XYZ^Mystery^SCT");
+both.length; // => 2
+both.map((finding) => finding.code).join(" + ");
+// => "PROFILE_VALUE_NOT_IN_SET + PROFILE_CODING_SYSTEM_MISMATCH"
+
+// Case and the well-known aliases resolve to the same registered acronym, so a
+// feed sending "loinc" against a binding of "LN" is a match, not a false alarm.
+check("WBC^White Blood Cells^loinc").length; // => 0
+
+// No coding system at all is a finding, never a pass.
+check("WBC^White Blood Cells")[0]?.code === FINDING_CODES.PROFILE_CODING_SYSTEM_MISMATCH;
+// => true
+
+// The finding names the expected system and the component it read, and never
+// the claim the message made.
+const mismatch = check("WBC^White Blood Cells^SCT")[0];
+mismatch?.locus.component; // => 3
+mismatch?.message.includes("SCT"); // => false
+mismatch?.message.includes("LN"); // => true
+```
+
+**It is opt-in, and it is a second check rather than a different one.** A rule
+that declares no `codingSystem` behaves exactly as it always has. A rule that
+declares one runs both checks independently, so a permitted code under the wrong
+system is one coding-system finding and no value-set finding.
+
+**Comparison is by resolved identity, not by string equality.** `LN`, `LOINC`,
+`loinc` and `  LN  ` all name the same system, and so do `SCT`, `SNOMED` and
+`SNOMEDCT`. The same map [`codingSystem()`](./spec-notes-coding-system.md) uses
+resolves both sides, so a correct feed writing a different accepted spelling is
+never reported.
+
+**Which component carries the system.** By default the engine reads **two
+positions after** the component it checks the code at, which is the coded
+element's own code-to-system relationship: a code at component 1 puts its system
+at component 3, and an alternate code at component 4 puts its alternate system
+at component 6. So `{ valueSet, codingSystem }` checks the primary triplet, and
+adding `component: 4` moves the whole check to the alternate one. Set
+`codingSystemComponent` explicitly for a field whose layout does not follow that
+offset. To check **both** triplets, declare two rules on the same field.
+
+**An absent or blank claim is reported, not waved through.** A present,
+non-empty repetition whose coding-system component is missing, empty,
+whitespace-only, or names a system that cannot be resolved is the same finding
+with the same code. Deciding otherwise would let the exact case the binding
+exists for pass by omitting a component. An **empty** repetition is not
+reported: it claims no code, so it has no provenance to be wrong about, and an
+absent or empty **field** is left to its usage code exactly as before.
+
+**An identifier this library does not recognize is refused when the profile is
+defined**, as `PROFILE_MALFORMED`, rather than compared against a system that
+cannot be resolved. So is a binding that is not a string, is blank, declares a
+`codingSystemComponent` that is not a positive integer, declares that component
+without an identifier, or is declared on a rule with no `valueSet` at all: a
+binding with nothing to bind is a defect, not a system-only check.
+
+Two consequences worth stating plainly:
+
+- **The recognition set is a deliberate subset, not the whole registry.** It is
+  the same safety-relevant map documented in
+  [coding-system provenance](./spec-notes-coding-system.md), so some identifiers
+  that are genuinely registered are still refused here. That is the fail-safe
+  direction: a refusal at authoring time is visible, a comparison against an
+  unresolvable system is not.
+- **A local or site-specific coding system cannot be bound.** By construction.
+  If your interface uses one, keep the bare `valueSet` form for that rule.
+
+**This checks the sender's claim, never the code.** Nothing here verifies that
+the code exists in the system the message names, or that the system is current.
+hl7 still ships no code set and makes no network call; the binding lets you
+encode the assertion your own interface requires, and asserts nothing of its own.
+
 ## The finding codes
 
 Stable, additive codes on `FINDING_CODES`. Segment-level vs field-level is told
@@ -395,6 +508,8 @@ apart by whether the finding's `locus.field` is set, not by separate codes.
 - `PROFILE_CONDITION_UNEVALUATABLE`: a rule's condition predicate could not be
   decided against this message, so its usage outcome was never selected and the
   element's presence was not assessed.
+- `PROFILE_CODING_SYSTEM_MISMATCH`: a present repetition does not carry the
+  coding system the rule binds its value set to.
 - `PROFILE_MALFORMED`: the profile itself is structurally malformed (a diagnostic).
 
 Length and value-set checks read the value at the rule's `component` (default

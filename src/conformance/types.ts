@@ -600,6 +600,56 @@ export interface FieldRule {
    */
   readonly component?: number;
   /**
+   * Bind {@link valueSet} to the coding system its codes must be drawn from: a
+   * coding-system identifier this library recognizes, or any alias it
+   * recognizes for one. Declaring it turns "the code must be one of these"
+   * into "and it must
+   * be drawn from THIS system", so a feed sending a plausible code labelled
+   * with the wrong system stops validating clean.
+   *
+   * The message's own coding-system component is compared by RESOLVED
+   * IDENTITY, not by string equality: a feed sending `loinc`, `LOINC` or `LN`
+   * all match a binding of `LN`, because each resolves to the same registered
+   * acronym. A repetition whose coding-system component resolves to anything
+   * else, including nothing at all, is
+   * {@link FINDING_CODES.PROFILE_CODING_SYSTEM_MISMATCH}.
+   *
+   * **Opt-in and independent.** Omitting it leaves a `valueSet` rule behaving
+   * exactly as it always has. Declaring it adds a SECOND check rather than
+   * changing the first: a permitted code carried under the wrong system yields
+   * one coding-system finding and no value-set finding, and a code that is
+   * wrong on both counts yields exactly one of each.
+   *
+   * **Recognition is this library's own frozen subset, not the whole
+   * registry.** An identifier it does not recognize is refused when the profile
+   * is defined ({@link FINDING_CODES.PROFILE_MALFORMED}), rather than silently
+   * compared against a system that cannot be resolved: so a local or
+   * site-specific system cannot be bound, and a consumer with one keeps the
+   * bare `valueSet`. A binding declared without a `valueSet` is refused the
+   * same way: there is nothing there for it to bind.
+   *
+   * **This checks the sender's CLAIM, never the code.** Nothing here verifies
+   * that the code exists in the system the message names: hl7 still ships no
+   * code set and makes no network call.
+   */
+  readonly codingSystem?: string;
+  /**
+   * 1-indexed component carrying the coding-system identifier that a declared
+   * {@link FieldRule.codingSystem} is compared against.
+   *
+   * Defaults to **two positions after {@link component}**, which is the coded
+   * element's own code-to-system relationship: a code at component 1 puts its
+   * system at component 3, and an alternate code at component 4 puts its
+   * alternate system at component 6. So a rule checking the primary triplet
+   * needs neither key, and a rule checking the alternate triplet sets
+   * `component` alone.
+   *
+   * Set it explicitly for a field whose layout does not follow that offset.
+   * Checking BOTH triplets from one rule is not supported: declare two rules on
+   * the same field.
+   */
+  readonly codingSystemComponent?: number;
+  /**
    * Severity for findings this rule produces. Defaults to `"error"`. A profile
    * author can downgrade a data-quality rule (e.g. a length or value-set check)
    * to `"warning"` or `"info"` without changing the check itself.
@@ -709,6 +759,19 @@ export const FINDING_CODES = {
    * conditional is filterable by code, without matching a message string.
    */
   PROFILE_CONDITION_UNEVALUATABLE: "PROFILE_CONDITION_UNEVALUATABLE",
+  /**
+   * A present repetition does not carry the coding system the rule binds its
+   * value set to: its coding-system component resolves to a different system,
+   * to none this library recognizes, or is blank or absent altogether.
+   *
+   * A distinct code on purpose, because it is a different answer from
+   * {@link FINDING_CODES.PROFILE_VALUE_NOT_IN_SET}: "a code we do not accept"
+   * and "a code that looks right but claims the wrong system" are two problems
+   * with two remedies, and one code for both would hide the second inside the
+   * first. A rule that declares no {@link FieldRule.codingSystem} never emits
+   * it.
+   */
+  PROFILE_CODING_SYSTEM_MISMATCH: "PROFILE_CODING_SYSTEM_MISMATCH",
   /** The profile ITSELF is structurally malformed (a diagnostic, not a message finding). */
   PROFILE_MALFORMED: "PROFILE_MALFORMED",
 } as const;
