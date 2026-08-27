@@ -551,6 +551,78 @@ export interface Cardinality {
 }
 
 /**
+ * A rule for one **component position** inside a field, declared on a field
+ * rule's {@link FieldRule.components}.
+ *
+ * **A component's cardinality is IMPLIED by its usage and may not be
+ * declared.** The HL7 conformance methodology (section 5.2, Cardinality) states
+ * it outright: an explicit cardinality range is required for segment groups,
+ * segments and field elements, while component and sub-component elements do
+ * not explicitly include one, and the range implicitly associated with each
+ * depends on its usage code: `[1..1]` for `R`, `[0..1]` for `RE` and `O`,
+ * `[0..0]` for `X`. A component carries no repetition construct in HL7 v2, so
+ * `[1..1]` reduces to "present with a value exactly once" and `[0..0]` to
+ * "absent or empty": the observable is a presence finding, never a count
+ * finding. Declaring a `cardinality` here is
+ * {@link FINDING_CODES.PROFILE_MALFORMED}, not a silently-honoured extra
+ * constraint.
+ *
+ * **Declaring component rules CLOSES the field's component set.** A field rule
+ * that declares them says what that field's components are, so a present
+ * repetition carrying a non-empty value at an index the rule does not declare
+ * is {@link FINDING_CODES.PROFILE_UNDECLARED_CONTENT}. A field rule that
+ * declares NONE declares no depth and is checked exactly as it always was: the
+ * undeclared-content check can never fire for it. "None" means no component
+ * rule reaches the engine, so an EMPTY list says exactly what omitting the
+ * member says; it is never read as a declaration that the field has no
+ * components.
+ *
+ * @example
+ * ```ts
+ * import type { ComponentRule } from "@cosyte/hl7";
+ * const identifier: ComponentRule = { component: 1, usage: "R" };
+ * const checkDigit: ComponentRule = { component: 2, usage: "X" };
+ * ```
+ */
+export interface ComponentRule {
+  /** 1-indexed component position within the field (e.g. `4` for `PID-3.4`). */
+  readonly component: number;
+  /**
+   * Optional human label for the component (e.g. `"Assigning Authority"`).
+   * Structural documentation for the profile author only: findings identify a
+   * component by its PHI-free structural locus (segment + field + index), never
+   * by this label, so the label is never echoed into a finding message.
+   */
+  readonly name?: string;
+  /**
+   * Usage constraint for this component, from the same vocabulary a field rule
+   * declares (see {@link UsageCode}). Its cardinality follows from it and is
+   * never declared beside it.
+   *
+   * - **`R`**: a present repetition SHALL carry a non-empty value here.
+   *   Absent ⇒ {@link FINDING_CODES.PROFILE_REQUIRED_ABSENT}.
+   * - **`X`**: a present repetition SHALL NOT carry a value here. Present ⇒
+   *   {@link FINDING_CODES.PROFILE_NOT_PERMITTED}.
+   * - **`RE`** / **`O`**: no presence constraint.
+   * - **`C`** / **`CE`** / **`B`** / a declared conditional: presence is **not
+   *   evaluated**, on exactly the terms an undecided conditional field rule
+   *   gets. A component rule declares no condition predicate and no caller
+   *   resolution can name one, so nothing ever decides it.
+   *
+   * Omitted ⇒ Optional, and an omitted usage is never refused. The component
+   * still counts as DECLARED for the undeclared-content check: declaring the
+   * index is what closes the set, not constraining it.
+   */
+  readonly usage?: UsageCode;
+  /**
+   * Severity for findings this component rule produces. Defaults to the
+   * severity of the field rule that carries it (itself `"error"` by default),
+   * so downgrading a field rule downgrades its components with it.
+   */
+  readonly severity?: FindingSeverity;
+}
+
+/**
  * A rule for one **field position** within a segment. Every
  * constraint is optional; a rule with only a `field` index is a no-op.
  *
@@ -597,8 +669,37 @@ export interface FieldRule {
   /**
    * 1-indexed component whose value the `length` / `valueSet` checks read.
    * Defaults to `1` (the first component: a coded element's code).
+   *
+   * **Not to be confused with {@link FieldRule.components}** (plural), which
+   * declares per-component RULES and closes the field's component set. This one
+   * (singular) only says which component the length / value-set checks read;
+   * declaring it neither declares a component rule nor closes anything.
    */
   readonly component?: number;
+  /**
+   * Per-component rules for this field: what its components ARE and what each
+   * one's usage is. Applied **per present repetition**.
+   *
+   * **Declaring them closes the field's component set**, which is what makes
+   * {@link FINDING_CODES.PROFILE_UNDECLARED_CONTENT} decidable: a present
+   * repetition carrying a non-empty value at an index no rule here declares is
+   * content the profile never specified, and the HL7 conformance methodology
+   * counts that as a conformance violation rather than harmless extra content
+   * (its own worked example is data in a fourth component where the profile
+   * defines three).
+   *
+   * **Omitting them changes nothing, and an empty list is omitting them.** A
+   * field rule that declares no component rules declares no depth: it is
+   * checked exactly as it always has been, and the undeclared-content check can
+   * never fire for it. `components: []` carries no component rule, so it says
+   * precisely that and is never read as "this field has no components" (which
+   * would make every component of every repetition undeclared content). This is
+   * additive and opt-in, per field rule.
+   *
+   * Each component's cardinality is IMPLIED by its usage and may not be
+   * declared: see {@link ComponentRule}.
+   */
+  readonly components?: readonly ComponentRule[];
   /**
    * Bind {@link valueSet} to the coding system its codes must be drawn from: a
    * coding-system identifier this library recognizes, or any alias it
@@ -772,6 +873,19 @@ export const FINDING_CODES = {
    * it.
    */
   PROFILE_CODING_SYSTEM_MISMATCH: "PROFILE_CODING_SYSTEM_MISMATCH",
+  /**
+   * A present repetition carries a non-empty value at a component index the
+   * field rule does not declare.
+   *
+   * A distinct code on purpose: "a value we do not accept" and "content in an
+   * element the profile never specified" are two problems with two remedies,
+   * and the second is the one an author cannot see from any other finding. It
+   * fires only for a field rule carrying at least one
+   * {@link FieldRule.components} entry, because declaring component rules is
+   * what closes the component set; a rule that declares none (the member
+   * omitted, or an empty list) can never emit it.
+   */
+  PROFILE_UNDECLARED_CONTENT: "PROFILE_UNDECLARED_CONTENT",
   /** The profile ITSELF is structurally malformed (a diagnostic, not a message finding). */
   PROFILE_MALFORMED: "PROFILE_MALFORMED",
 } as const;
@@ -798,7 +912,10 @@ export interface FindingLocus {
   readonly segment: string;
   /** 1-indexed field position, when the finding is field-level. */
   readonly field?: number;
-  /** 1-indexed component, when a component-scoped check (length / value-set) fired. */
+  /**
+   * 1-indexed component, when a component-scoped check fired: length,
+   * value-set, a component rule's own usage, or undeclared content.
+   */
   readonly component?: number;
   /** 0-indexed field repetition, when the finding is repetition-scoped. */
   readonly repetition?: number;

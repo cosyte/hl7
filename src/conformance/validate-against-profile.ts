@@ -34,6 +34,7 @@ import { collectProfileDefects } from "./profile-shape.js";
 import { analyzeResolutions, locusKey } from "./resolutions.js";
 import {
   type Cardinality,
+  type ComponentRule,
   type ConformanceFinding,
   type ConformanceProfile,
   type ConformanceResult,
@@ -91,6 +92,37 @@ function componentValue(rep: RawRepetition, component: number): string {
 function repetitionHasValue(rep: RawRepetition): boolean {
   return rep.components.some((comp) => comp.subcomponents.some((sub) => sub !== ""));
 }
+
+/**
+ * Does one repetition carry any non-empty content AT a 1-indexed component?
+ *
+ * Read at or below the coordinate, which is the same reading of "present" the
+ * engine's `R` and `X` checks use for a field and its `is valued` presence
+ * statement uses for any location: a component is valued when any of its
+ * subcomponents carries something. Deliberately NOT
+ * {@link componentValue}`(rep, c) !== ""`, which reads only the FIRST
+ * subcomponent: a component whose content sits in a later subcomponent is
+ * content, and calling it absent would let the undeclared-content check miss
+ * exactly the case it exists for.
+ *
+ * @internal
+ */
+function componentHasValue(rep: RawRepetition, component: number): boolean {
+  return rep.components[component - 1]?.subcomponents.some((sub) => sub !== "") ?? false;
+}
+
+/**
+ * The empty resolution map component rules are evaluated under. A caller
+ * resolution names a segment plus an optional field and can therefore never
+ * name a component, so a conditional usage on a component rule is decided by
+ * nothing at all: it is evaluated exactly as an undecided conditional, which is
+ * what an empty map produces. Passing the run's REAL map here would apply a
+ * field's resolution to that field's components, which is a resolution the
+ * caller never wrote.
+ *
+ * @internal
+ */
+const NO_RESOLUTIONS: ReadonlyMap<string, boolean> = Object.freeze(new Map<string, boolean>());
 
 /** Does the field carry any non-empty content in any repetition/component/subcomponent? @internal */
 function fieldHasValue(field: Field): boolean {
@@ -245,6 +277,66 @@ function checkCardinality(
   }
 }
 
+/**
+ * Evaluate a field rule's declared component rules against ONE present
+ * repetition of that field: each declared component's usage, then the content
+ * the profile never declared.
+ *
+ * **A component's cardinality is implied by its usage, so the observable is
+ * presence.** The methodology associates `[1..1]` with `R`, `[0..1]` with `RE`
+ * and `O`, and `[0..0]` with `X`, and a component carries no repetition
+ * construct in HL7 v2: `[1..1]` can only mean "valued here", `[0..0]` only
+ * "not valued here". So the checks are the field-level `R` and `X` checks read
+ * one level in, through the same {@link presenceVerdict} and the same finding
+ * factories, and there is never a component cardinality finding to emit.
+ *
+ * **Declaring component rules CLOSES the field's component set**, which is the
+ * whole basis of the undeclared-content check: the methodology counts content
+ * in an element the profile does not specify as a conformance violation, and
+ * its own worked example is data in a fourth component where the profile
+ * defines three. A field rule that declares NO component rules declares no
+ * depth and never reaches here, whether it omits the list or carries an EMPTY
+ * one, so the check is opt-in per field rule and can never fire on a profile
+ * authored before it existed.
+ *
+ * A conditional usage on a component rule is never decided: a component rule
+ * declares no condition predicate and a caller resolution cannot name a
+ * component. It is evaluated exactly as an undecided conditional field rule is,
+ * which is presence not evaluated.
+ *
+ * @internal
+ */
+function checkComponents(
+  rules: readonly ComponentRule[],
+  rep: RawRepetition,
+  base: FindingLocus,
+  fieldSeverity: FindingSeverity,
+  out: ConformanceFinding[],
+): void {
+  const declared = new Set<number>();
+  for (const rule of rules) {
+    declared.add(rule.component);
+    const locus: FindingLocus = { ...base, component: rule.component };
+    // A component rule inherits its field rule's severity unless it overrides
+    // it, so downgrading a field rule downgrades its components with it.
+    const severity: FindingSeverity = rule.severity ?? fieldSeverity;
+    const usage = effectiveUsage(rule.usage, "", NO_RESOLUTIONS, undefined);
+    const verdict = presenceVerdict(usage, componentHasValue(rep, rule.component));
+    if (verdict === "required-absent") out.push(F.requiredAbsent(locus, severity));
+    else if (verdict === "not-permitted") out.push(F.notPermitted(locus, severity));
+  }
+
+  // One finding per undeclared component index that carries content, in
+  // ascending index order. An EMPTY undeclared component is not content: the
+  // methodology's violation is the PRESENCE of unexpected content, and a
+  // trailing separator is not presence.
+  for (let index = 1; index <= rep.components.length; index++) {
+    if (declared.has(index)) continue;
+    if (!componentHasValue(rep, index)) continue;
+    out.push(F.undeclaredContent({ ...base, component: index }, declared.size, fieldSeverity));
+  }
+}
+
 /** Run every field rule of a segment rule against one occurrence of the segment. @internal */
 function checkFields(
   seg: Segment,
@@ -294,6 +386,35 @@ function checkFields(
 
     const reps = field.repetitions;
     checkCardinality(reps.length, rule.cardinality, baseLocus, "repetition", severity, out);
+
+    // Component rules are evaluated per PRESENT repetition. An empty repetition
+    // (the middle of `A~~B`) carries no content at any component, so every
+    // component check it could answer is answered by its emptiness: firing `R`
+    // on each one would report the same absent repetition once per declared
+    // component, and firing undeclared-content on it would report content that
+    // is not there.
+    //
+    // The gate is "this rule CARRIES component rules", not "the key is set". An
+    // EMPTY list declares no component rules, so it declares no depth and is
+    // checked exactly as an omitted list is. Reading `[]` as a declaration of
+    // depth ZERO would instead make every non-empty component undeclared
+    // content, one finding per component per repetition per occurrence, from a
+    // rule that constrains nothing; and `[]` is reachable by accident (a list
+    // built by a filter, or read from configuration) with no cast at all.
+    const componentRules = rule.components;
+    if (componentRules !== undefined && componentRules.length > 0) {
+      for (let r = 0; r < reps.length; r++) {
+        const rep = reps[r];
+        if (rep === undefined || !repetitionHasValue(rep)) continue;
+        checkComponents(
+          componentRules,
+          rep,
+          { segment: seg.type, field: rule.field, repetition: r, occurrence },
+          severity,
+          out,
+        );
+      }
+    }
 
     if (rule.length === undefined && rule.valueSet === undefined) continue;
     const component = rule.component ?? 1;
@@ -426,6 +547,20 @@ function checkSegment(
  * rule that declares no binding behaves exactly as it always has. Still no code
  * set and still no network call, because this compares the sender's CLAIM
  * against the profile and never the code against a terminology.
+ *
+ * **A field rule may declare what its COMPONENTS are, and doing so closes the
+ * set.** Each entry of `components` carries a 1-indexed index and an optional
+ * usage code whose cardinality is IMPLIED rather than declared (`R` is
+ * `[1..1]`, `RE` and `O` are `[0..1]`, `X` is `[0..0]`; a component has no
+ * repetition construct, so each reduces to presence). Per present repetition,
+ * `R` with nothing at that component is `PROFILE_REQUIRED_ABSENT` and `X` with
+ * something there is `PROFILE_NOT_PERMITTED`, both at a locus naming the
+ * component. Content at an index the rule does NOT declare is
+ * `PROFILE_UNDECLARED_CONTENT`, one finding per undeclared index per
+ * repetition: the methodology counts content in an element the profile never
+ * specified as a conformance violation rather than harmless extra content. A
+ * field rule that declares no `components` declares no depth and is checked
+ * exactly as it always was, so this is additive and opt-in per rule.
  *
  * Omitting `resolutions` (or passing `undefined`) is the same as passing an
  * empty list. Any OTHER value that is not a list of well-formed resolutions is

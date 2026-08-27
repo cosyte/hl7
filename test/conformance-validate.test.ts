@@ -544,10 +544,17 @@ describe("unresolved conditionals and B behave exactly as C (AC10, AC11)", () =>
     ["B", "a Backward Compatible rule"],
   ] as const;
 
+  // These fixtures declare a MAXIMUM and no minimum. They used to declare
+  // `{ min: 1, max: 2 }`, which the profile-shape collector now refuses for any
+  // declared usage other than R and RE: the methodology fixes a non-Required
+  // element's minimum cardinality at 0 and names RE as its one exception, so
+  // that pairing was never a profile an author could have meant. What each test
+  // below asserts is unchanged; only the pairing it asserts it through is.
+  // `conformance-components.test.ts` pins the refusal itself.
   for (const [token, label] of unresolved) {
     it(`${label} is findings-identical to the same rule declared C`, () => {
       for (const raw of [WITH_SEX, WITHOUT_SEX, THREE_SEX_REPS, LONG_SEX]) {
-        for (const extra of [{}, { cardinality: { min: 1, max: 2 } }, { length: 3 }]) {
+        for (const extra of [{}, { cardinality: { max: 2 } }, { length: 3 }]) {
           expect(validateWith(raw, pid8Profile(token, extra), undefined)).toEqual(
             validateWith(raw, pid8Profile("C", extra), undefined),
           );
@@ -555,30 +562,30 @@ describe("unresolved conditionals and B behave exactly as C (AC10, AC11)", () =>
       }
     });
 
-    it(`${label}: an absent element yields ZERO findings even under cardinality min 1`, () => {
-      const profile = pid8Profile(token, { cardinality: { min: 1, max: 2 } });
+    it(`${label}: an absent element yields ZERO findings under a declared cardinality`, () => {
+      const profile = pid8Profile(token, { cardinality: { max: 2 } });
       expect(validateWith(WITHOUT_SEX, profile, undefined)).toEqual([]);
     });
 
     it(`${label}: three repetitions yield exactly one PROFILE_CARDINALITY`, () => {
-      const profile = pid8Profile(token, { cardinality: { min: 1, max: 2 } });
+      const profile = pid8Profile(token, { cardinality: { max: 2 } });
       const findings = validateWith(THREE_SEX_REPS, profile, undefined);
       expect(findings).toHaveLength(1);
       expect(findings[0]?.code).toBe(FINDING_CODES.PROFILE_CARDINALITY);
     });
 
     it(`${label}: one over-long repetition yields exactly one PROFILE_LENGTH`, () => {
-      const profile = pid8Profile(token, { cardinality: { min: 1, max: 2 }, length: 3 });
+      const profile = pid8Profile(token, { cardinality: { max: 2 }, length: 3 });
       const findings = validateWith(LONG_SEX, profile, undefined);
       expect(findings).toHaveLength(1);
       expect(findings[0]?.code).toBe(FINDING_CODES.PROFILE_LENGTH);
     });
   }
 
-  it("a B segment rule with cardinality min 1 whose segment is absent yields zero findings", () => {
+  it("a B segment rule with a declared cardinality whose segment is absent yields zero findings", () => {
     const profile = {
       name: "b-segment",
-      segments: [{ segment: "PV1", usage: "B", cardinality: { min: 1 } }],
+      segments: [{ segment: "PV1", usage: "B", cardinality: { max: 1 } }],
     } as unknown as ConformanceProfile;
     expect(validateWith(WITH_SEX, profile, undefined)).toEqual([]);
   });
@@ -1037,11 +1044,13 @@ describe("a rule with NO condition predicate is untouched by predicates existing
 
     it(`${token} with no predicate still applies every OTHER constraint`, () => {
       // Three repetitions against a max of 2, and one four-character value
-      // against a max of 3: both still fire, exactly as they did before.
+      // against a max of 3: both still fire, exactly as they did before. The
+      // cardinality declares no minimum, because none of these tokens is R or
+      // RE and the collector now refuses a positive minimum on the rest.
       expect(
         validateWith(
           THREE_SEX_REPS,
-          pid8Profile(token, { cardinality: { min: 1, max: 2 } }),
+          pid8Profile(token, { cardinality: { max: 2 } }),
           undefined,
         ).map((f) => f.code),
         `${token} cardinality`,
@@ -1188,5 +1197,122 @@ describe("a bare value-set rule is untouched by coding-system bindings existing"
 
   it("the fail-fast gate still accepts the bare form", () => {
     expect(() => defineConformanceProfile(BARE)).not.toThrow();
+  });
+});
+
+describe("a field rule that declares no component rules is untouched by component rules existing", () => {
+  // Declaring component rules is what CLOSES a field's component set, so a rule
+  // that declares none declares no depth: undeclared-content detection has
+  // nothing to measure against and can never fire for it. That is the boundary
+  // the whole check rests on, so it is asserted rather than assumed.
+  const MULTI_COMPONENT = [
+    "MSH|^~\\&|A|B|C|D|20260101||ADT^A01|MSG1|P|2.5",
+    // PID-3 carries five components and PID-5 carries three: a rule declaring
+    // no components sees all of them and has an opinion about none.
+    "PID|1||MRN12345^^^H^MR||Doe^John^Q||19800101|M",
+  ].join("\r");
+  const BARE_VALUE_SET: ConformanceProfile = {
+    name: "bare-value-set",
+    segments: [{ segment: "PID", fields: [{ field: 8, valueSet: ["M", "F", "U"], length: 1 }] }],
+  };
+  // An EMPTY `components` list carries no component rule, so the rule declares
+  // none: "declares no component rules" is a statement about the RULES, not
+  // about the key being absent. Reading `[]` as a declaration of depth ZERO
+  // would make every non-empty component undeclared content, which is the
+  // false-positive storm the check is scoped to avoid, and `[]` is reachable
+  // with no cast at all (a list built by a filter, or read from configuration).
+  const EMPTY_COMPONENTS: ConformanceProfile = {
+    name: "empty-components",
+    segments: [{ segment: "PID", fields: [{ field: 3, usage: "R", components: [] }] }],
+  };
+  /** The same rule with the member left out: the behaviour `[]` has to match. */
+  const NO_COMPONENTS_KEY: ConformanceProfile = {
+    name: "empty-components",
+    segments: [{ segment: "PID", fields: [{ field: 3, usage: "R" }] }],
+  };
+
+  it("emits no PROFILE_UNDECLARED_CONTENT for ANY message in the corpus", () => {
+    for (const raw of [
+      WITH_SEX,
+      WITHOUT_SEX,
+      THREE_SEX_REPS,
+      LONG_SEX,
+      MSH_ONLY,
+      MULTI_COMPONENT,
+    ]) {
+      for (const profile of [
+        MIN_PROFILE,
+        BARE_VALUE_SET,
+        pid8Profile("R"),
+        pid8Profile("X"),
+        EMPTY_COMPONENTS,
+      ]) {
+        expect(
+          validateWith(raw, profile, undefined).some(
+            (f) => f.code === FINDING_CODES.PROFILE_UNDECLARED_CONTENT,
+          ),
+          raw,
+        ).toBe(false);
+      }
+    }
+  });
+
+  it("a field carrying content in every component validates clean against a rule with no components", () => {
+    const profile: ConformanceProfile = {
+      name: "no-component-rules",
+      // `component: 3` names where the value-set check READS; it declares no
+      // component rule and closes nothing.
+      segments: [
+        { segment: "PID", fields: [{ field: 3, usage: "R", component: 3 }, { field: 5 }] },
+      ],
+    };
+    expect(validateWith(MULTI_COMPONENT, profile, undefined)).toEqual([]);
+  });
+
+  it("an EMPTY `components` list declares no component rules, so nothing fires", () => {
+    expect(validateWith(MULTI_COMPONENT, EMPTY_COMPONENTS, undefined)).toEqual([]);
+  });
+
+  it("an EMPTY list and an omitted one are findings-identical, across the corpus", () => {
+    for (const raw of [WITH_SEX, WITHOUT_SEX, THREE_SEX_REPS, MSH_ONLY, MULTI_COMPONENT]) {
+      expect(validateWith(raw, EMPTY_COMPONENTS, undefined), raw).toEqual(
+        validateWith(raw, NO_COMPONENTS_KEY, undefined),
+      );
+    }
+  });
+
+  it("an EMPTY list fires nothing across every repetition and every occurrence either", () => {
+    // Two PID occurrences, two repetitions each, four components each: the
+    // shape that would render 16 findings from a rule constraining nothing.
+    const raw = [
+      "MSH|^~\\&|A|B|C|D|20260101||ADT^A01|MSG1|P|2.5",
+      "PID|1||MRN12345^^^H~MRN67890^^^H||Doe^John^Q",
+      "PID|2||MRN22222^^^H~MRN33333^^^H||Roe^Jane^Q",
+    ].join("\r");
+    expect(validateWith(raw, EMPTY_COMPONENTS, undefined)).toEqual([]);
+  });
+
+  it("an EMPTY list is accepted at profile-definition time, exactly as an omitted one is", () => {
+    expect(() => defineConformanceProfile(EMPTY_COMPONENTS)).not.toThrow();
+    expect(
+      validateWith(MULTI_COMPONENT, EMPTY_COMPONENTS, undefined).some(isProfileMalformed),
+    ).toBe(false);
+  });
+
+  it("the fixture corpus produces exactly the findings it always did", () => {
+    expect(validateAgainstProfile(parseHL7(readFix("adt-pass.hl7")), MIN_PROFILE).findings).toEqual(
+      [],
+    );
+    for (const [fixture, code] of [
+      ["adt-missing-required.hl7", FINDING_CODES.PROFILE_REQUIRED_ABSENT],
+      ["adt-cardinality.hl7", FINDING_CODES.PROFILE_CARDINALITY],
+      ["adt-value-not-in-set.hl7", FINDING_CODES.PROFILE_VALUE_NOT_IN_SET],
+    ] as const) {
+      const findings = validateAgainstProfile(parseHL7(readFix(fixture)), MIN_PROFILE).findings;
+      expect(
+        findings.map((f) => f.code),
+        fixture,
+      ).toEqual([code]);
+    }
   });
 });

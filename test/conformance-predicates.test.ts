@@ -845,12 +845,22 @@ describe("a selected outcome gets exactly the terms it would get directly (crite
   // date of birth AND messages without one; a corpus where every message takes
   // the same branch would leave the other one untested while still passing.
   const corpus = [DOE, ROE, NO_SEX, TWO_IDS, TWO_OBX, NO_DOB, message(pid({ dob: "", sex: "" }))];
+  // The cardinality cases are `[..0]` now rather than `[1..1]` / `[2..2]`, and
+  // that is forced rather than chosen: the collector holds the methodology's
+  // usage/cardinality coherence, so `R` refuses a declared minimum of 0, every
+  // other declared usage refuses a minimum above 0, and `X` refuses any maximum
+  // but 0. A bound only one side of the equivalence may carry would measure the
+  // collector rather than the equivalence. A maximum of 0 with no minimum
+  // declared is the bound EVERY token here shares (`R` is unconstrained by a
+  // missing minimum, and `X`'s terminus is satisfied by a maximum of 0), so the
+  // property stays under test with a cardinality in play, standalone and
+  // alongside the other constraints, exactly as it was before.
   const extras: readonly Partial<FieldRule>[] = [
     {},
-    { cardinality: { min: 1, max: 1 } },
+    { cardinality: { max: 0 } },
     { length: 0 },
     { valueSet: ["F", "U"] },
-    { length: 0, valueSet: ["F", "U"], cardinality: { min: 2, max: 2 } },
+    { length: 0, valueSet: ["F", "U"], cardinality: { max: 0 } },
   ];
 
   for (const [token, whenTrue, whenFalse] of [
@@ -862,8 +872,17 @@ describe("a selected outcome gets exactly the terms it would get directly (crite
     it(`${token} resolved by its predicate is findings-identical to the outcome declared directly`, () => {
       let comparedTrue = 0;
       let comparedFalse = 0;
+      // A second, wider bound where the token admits one: `[0..1]` is legal for
+      // this token and for both of its outcomes exactly when neither outcome is
+      // `R` (which needs a minimum of 1 or more) or `X` (which needs a maximum
+      // of 0). The shared `[..0]` case above covers every token regardless.
+      const shared: readonly Partial<FieldRule>[] = [whenTrue, whenFalse].some(
+        (o) => o === "R" || o === "X",
+      )
+        ? extras
+        : [...extras, { cardinality: { min: 0, max: 1 } }];
       for (const predicate of [dobValued, dobNotValued]) {
-        for (const extra of extras) {
+        for (const extra of shared) {
           for (const msg of corpus) {
             // Both predicates read PID-7, so which branch a message takes is
             // readable from the message rather than assumed.
@@ -892,11 +911,11 @@ describe("a selected outcome gets exactly the terms it would get directly (crite
     const condition: ConditionPredicate = { location: DOB, presence: "is valued" };
     const withPredicate = findingsOf(TWO_OBX, {
       name: "seg",
-      segments: [{ segment: "OBX", usage: "C(RE/X)", condition, cardinality: { min: 1, max: 1 } }],
+      segments: [{ segment: "OBX", usage: "C(RE/X)", condition, cardinality: { max: 1 } }],
     });
     const direct = findingsOf(TWO_OBX, {
       name: "seg",
-      segments: [{ segment: "OBX", usage: "RE", cardinality: { min: 1, max: 1 } }],
+      segments: [{ segment: "OBX", usage: "RE", cardinality: { max: 1 } }],
     });
     expect(withPredicate).toEqual(direct);
     expect(codes(withPredicate)).toEqual([FINDING_CODES.PROFILE_CARDINALITY]);
