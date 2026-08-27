@@ -141,7 +141,7 @@ it did not see before. Read the "before you upgrade" section at the end.
 | OMI^O23 | `OBR`, `IPC` | 1 | Intended correction. Same reasoning as `OMG^O19`; `IPC` (imaging procedure control) is required in the published imaging order. |
 | OMP^O09 | `RXO`, `RXR` | 1 | Intended correction. The published pharmacy order requires the order and route segments. |
 | SIU^S12 through S24, S26 | `RGS` | 1 | Intended correction. The published scheduling structure requires at least one resource group. |
-| MDM^T02, T06 | `PV1`, `OBX` | 1 | Intended correction. `PV1` is required at the top level of every published `MDM_T02` variant, and the document content group carries a required `OBX`. Note that this repo's own document fixtures carry no `PV1` and so now warn: a true positive against the publication, and the clearest single illustration of the volume change. |
+| MDM^T02, T06 | `EVN`, `PV1`, `OBX` | 1 | Intended correction. All three sit at a minimum of one along the whole path from the root in all five published `MDM_T02` variants, which is the structure both trigger events reference: `EVN` and `PV1` directly at the top level, `OBX` inside a document content group that is itself required. `EVN` was absent from the old table for every message code, not just for ADT, on the same reasoning that "real senders omit it freely"; a document notification is no more exempt from the published minimum than an admit is. Note that this repo's own document fixtures carry `EVN` but no `PV1`, and so now warn on `PV1`: a true positive against the publication, and the clearest single illustration of the volume change. |
 | DFT^P03 | `EVN` | 1 | Intended correction. |
 | ACK | `MSH` | 1 | Intended correction. |
 
@@ -206,7 +206,9 @@ Three things changed at once, and all three point the same way:
 1. **More trigger events are recognized**, so messages that used to be
    `recognized: false` and silent are now checked.
 2. **More segments are expected per pair**, most visibly `EVN` across the whole
-   ADT family and `PV1` in `MDM`.
+   ADT family and in `MDM` as well, plus `PV1` in `MDM`. `EVN` was excluded from
+   the old table for every message code, so the widening follows it everywhere
+   the publication requires it, `MDM` and `DFT^P03` included.
 3. **The warning names a segment rather than a group label**, so
    `missingGroups` now holds values like `"EVN"` where it used to hold
    `"patient"`.
