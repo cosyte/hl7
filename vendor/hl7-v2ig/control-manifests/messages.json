@@ -1,0 +1,4179 @@
+{
+  "resourceType": "List",
+  "id": "v2Messages",
+  "status": "current",
+  "mode": "working",
+  "title": "A List of the v2+ message definitions",
+  "orderedBy": {
+    "coding": {
+      "system": "http://terminology.hl7.org/CodeSystem/list-order",
+      "code": "alphabetic"
+    }
+  },
+  "entry": [
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A01-ADT_A01",
+        "display": "ADT^A01^ADT_A01: Admit/Visit Notification"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A02-ADT_A02",
+        "display": "ADT^A02^ADT_A02: Transfer a Patient"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A03-ADT_A03",
+        "display": "ADT^A03^ADT_A03: Discharge/End Visit"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A04-ADT_A01",
+        "display": "ADT^A04^ADT_A01: Register a Patient"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A05-ADT_A05",
+        "display": "ADT^A05^ADT_A05: Pre-Admit a Patient"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A06-ADT_A06",
+        "display": "ADT^A06^ADT_A06: Change an Outpatient to an Inpatient"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A07-ADT_A06",
+        "display": "ADT^A07^ADT_A06: Change an Inpatient to an Outpatient"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A08-ADT_A01",
+        "display": "ADT^A08^ADT_A01: Update Patient Information"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A09-ADT_A09",
+        "display": "ADT^A09^ADT_A09: Patient Departing - Tracking"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A10-ADT_A09",
+        "display": "ADT^A10^ADT_A09: Patient Arriving - Tracking"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A11-ADT_A09",
+        "display": "ADT^A11^ADT_A09: Cancel Admit / Visit Notification"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A12-ADT_A12",
+        "display": "ADT^A12^ADT_A12: Cancel Transfer"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A13-ADT_A01",
+        "display": "ADT^A13^ADT_A01: Cancel Discharge / End Visit"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A14-ADT_A05",
+        "display": "ADT^A14^ADT_A05: Pending Admit"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A15-ADT_A15",
+        "display": "ADT^A15^ADT_A15: Pending Transfer"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A16-ADT_A16",
+        "display": "ADT^A16^ADT_A16: Pending Discharge"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A17-ADT_A17",
+        "display": "ADT^A17^ADT_A17: Swap Patients"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A18-",
+        "display": "ADT^A18^: ADT/ACK - Merge Patient Information"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/QRY-A19-",
+        "display": "QRY^A19^: QRY/ADR - Patient Query"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A20-ADT_A20",
+        "display": "ADT^A20^ADT_A20: Bed Status Update"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A21-ADT_A21",
+        "display": "ADT^A21^ADT_A21: Patient Goes on a Leave of Absence"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A22-ADT_A21",
+        "display": "ADT^A22^ADT_A21: Patient Returns From a Leave of Absence"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A23-ADT_A21",
+        "display": "ADT^A23^ADT_A21: Delete a Patient Record"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A24-ADT_A24",
+        "display": "ADT^A24^ADT_A24: Link Patient Information"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A25-ADT_A21",
+        "display": "ADT^A25^ADT_A21: Cancel Pending Discharge"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A26-ADT_A21",
+        "display": "ADT^A26^ADT_A21: Cancel Pending Transfer"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A27-ADT_A21",
+        "display": "ADT^A27^ADT_A21: Cancel Pending Admit"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A28-ADT_A05",
+        "display": "ADT^A28^ADT_A05: Add Person or Patient Information"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A29-ADT_A21",
+        "display": "ADT^A29^ADT_A21: Delete Person Information"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A30-",
+        "display": "ADT^A30^: ADT/ACK - Merge Person Information"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A31-ADT_A05",
+        "display": "ADT^A31^ADT_A05: Update Person Information"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A32-ADT_A21",
+        "display": "ADT^A32^ADT_A21: Cancel Patient Arriving - Tracking"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A33-ADT_A21",
+        "display": "ADT^A33^ADT_A21: Cancel Patient Departing - Tracking"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A34-",
+        "display": "ADT^A34^: ADT/ACK - Merge Patient Information - Patient ID Only"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A35-",
+        "display": "ADT^A35^: ADT/ACK - Merge Patient Information - Account Number Only"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A36-",
+        "display": "ADT^A36^: ADT/ACK - Merge Patient Information - Patient ID & Account Number"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A37-ADT_A37",
+        "display": "ADT^A37^ADT_A37: Unlink Patient Information"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A38-ADT_A38",
+        "display": "ADT^A38^ADT_A38: Cancel Pre-Admit"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A39-",
+        "display": "ADT^A39^: ADT/ACK - Merge Person - Patient ID"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A40-ADT_A39",
+        "display": "ADT^A40^ADT_A39: Merge Patient - Patient Identifier List"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A41-ADT_A39",
+        "display": "ADT^A41^ADT_A39: Merge Account - Patient Account Number"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A42-ADT_A39",
+        "display": "ADT^A42^ADT_A39: Merge Visit - Visit Number"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A43-ADT_A43",
+        "display": "ADT^A43^ADT_A43: Move Patient Information - Patient Identifier List"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A44-ADT_A44",
+        "display": "ADT^A44^ADT_A44: Move Account Information - Patient Account Number"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A45-ADT_A45",
+        "display": "ADT^A45^ADT_A45: Move Visit Information - Visit Number"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A46-",
+        "display": "ADT^A46^: ADT/ACK - Change Patient ID"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A47-ADT_A44",
+        "display": "ADT^A47^ADT_A44: Change Patient Identifier List"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A48-",
+        "display": "ADT^A48^: ADT/ACK - Change Alternate Patient ID"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A49-ADT_A43",
+        "display": "ADT^A49^ADT_A43: Change Patient Account Number"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A50-ADT_A50",
+        "display": "ADT^A50^ADT_A50: Change Visit Number"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A51-ADT_A50",
+        "display": "ADT^A51^ADT_A50: Change Alternate Visit ID"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A52-ADT_A52",
+        "display": "ADT^A52^ADT_A52: Cancel Leave of Absence for a Patient"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A53-ADT_A52",
+        "display": "ADT^A53^ADT_A52: Cancel Patient Returns from a Leave of Absence"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A54-ADT_A54",
+        "display": "ADT^A54^ADT_A54: Change Attending Doctor"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A55-ADT_A54",
+        "display": "ADT^A55^ADT_A54: Cancel Change Attending Doctor"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/QBP-Q21-QBP_Q21",
+        "display": "QBP^Q21^QBP_Q21: Get Person Demographics"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RSP-K21-RSP_K21",
+        "display": "RSP^K21^RSP_K21: Get Person DemographicsResponse"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/QBP-Q22-QBP_Q21",
+        "display": "QBP^Q22^QBP_Q21: Find Candidates"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RSP-K22-RSP_K22",
+        "display": "RSP^K22^RSP_K22: Find CandidatesResponse"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/QBP-Q23-QBP_Q21",
+        "display": "QBP^Q23^QBP_Q21: Get Corresponding Identifiers"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RSP-K23-RSP_K23",
+        "display": "RSP^K23^RSP_K23: Get Corresponding IdentifiersResponse"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/QBP-Q24-QBP_Q21",
+        "display": "QBP^Q24^QBP_Q21: Allocate Identifiers"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RSP-K24-RSP_K23",
+        "display": "RSP^K24^RSP_K23: Allocate IdentifiersResponse"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A60-ADT_A60",
+        "display": "ADT^A60^ADT_A60: Update Adverse Reaction Information"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A61-ADT_A61",
+        "display": "ADT^A61^ADT_A61: Change Consulting Doctor"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADT-A62-ADT_A61",
+        "display": "ADT^A62^ADT_A61: Cancel Change Consulting Doctor"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/QBP-Q32-QBP_Q21",
+        "display": "QBP^Q32^QBP_Q21: Find Candidates including Visit Information"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RSP-K32-RSP_K32",
+        "display": "RSP^K32^RSP_K32: Find Candidates including Visit InformationResponse"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/OMG-O19-OMG_O19",
+        "display": "OMG^O19^OMG_O19: general clinical order message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ORG-O20-ORG_O20",
+        "display": "ORG^O20^ORG_O20: general clinical order acknowledgement message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/OML-O21-OML_O21",
+        "display": "OML^O21^OML_O21: laboratory order message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ORL-O22-ORL_O22",
+        "display": "ORL^O22^ORL_O22: General Laboratory Order Acknowledgment Message - Patient Segments Required"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ORL-O53-ORL_O53",
+        "display": "ORL^O53^ORL_O53: General Laboratory Order Acknowledgment Message - Patient Segments Optional"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/OML-O33-OML_O33",
+        "display": "OML^O33^OML_O33: Laboratory order for multiple orders related to a single specimen"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ORL-O34-ORL_O34",
+        "display": "ORL^O34^ORL_O34: Laboratory order response message to a multiple order related to single specimen OML - Patient Segments Required"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ORL-O54-ORL_O54",
+        "display": "ORL^O54^ORL_O54: Laboratory order response message to a multiple order related to single specimen OML - Patient Segments Optional"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/OML-O35-OML_O35",
+        "display": "OML^O35^OML_O35: Laboratory order for multiple orders related to a single container of a specimen"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ORL-O36-ORL_O36",
+        "display": "ORL^O36^ORL_O36: Laboratory order response message to a single container of a specimen OML - Patient Segments Required"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ORL-O55-ORL_O55",
+        "display": "ORL^O55^ORL_O55: Laboratory order response message to a single container of a specimen OML - Patient Segments Optional"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/OML-O39-OML_O39",
+        "display": "OML^O39^OML_O39: Specimen shipment centric laboratory order"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ORL-O40-ORL_O40",
+        "display": "ORL^O40^ORL_O40: Specimen shipment centric laboratory order response message to specimen shipment OML - Patient Segments Required"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ORL-O56-ORL_O56",
+        "display": "ORL^O56^ORL_O56: Specimen shipment centric laboratory order response message to specimen shipment OML - Patient Segments Optional"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/OMI-O23-OMI_O23",
+        "display": "OMI^O23^OMI_O23: Imaging Order Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ORI-O24-ORI_O24",
+        "display": "ORI^O24^ORI_O24: Imaging Order Response Message to Any OMI"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/OPL-O37-OPL_O37",
+        "display": "OPL^O37^OPL_O37: Population/Location-Based Laboratory Order Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/OPR-O38-OPR_O38",
+        "display": "OPR^O38^OPR_O38: Population/Location-Based Laboratory Order Acknowledgment Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/OSU-O51-OSU_O51",
+        "display": "OSU^O51^OSU_O51: Order Status Update"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/OSU-O52-OSU_O52",
+        "display": "OSU^O52^OSU_O52: Order Status Update Acknowledgement"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/OMQ-O57-OMQ_O57",
+        "display": "OMQ^O57^OMQ_O57: General Order Message with Document Payload"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ORX-O58-ORX_O58",
+        "display": "ORX^O58^ORX_O58: General Order Message with Document Payload Acknowledgement Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/OML-O59_A-OML_O59",
+        "display": "OML^O59_A^OML_O59: Laboratory Result Interpretation Request Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RCV-O59_B-RCV_O59",
+        "display": "RCV^O59_B^RCV_O59: Pharmacy/Treatment Dispense Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/QBP-Z73-QBP_Z73",
+        "display": "QBP^Z73^QBP_Z73: Query Example: Information about Phone Calls"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RTB-Z74-RTB_Z74",
+        "display": "RTB^Z74^RTB_Z74: Query Example: Information about Phone Calls"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/OMD-O03-OMD_O03",
+        "display": "OMD^O03^OMD_O03: Dietary Order"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ORD-O04-ORD_O04",
+        "display": "ORD^O04^ORD_O04: dietary order acknowledgment"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/OMS-O05-OMS_O05",
+        "display": "OMS^O05^OMS_O05: stock requisition order message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ORS-O06-ORS_O06",
+        "display": "ORS^O06^ORS_O06: stock requisition order acknowledgment message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/OMN-O07-OMN_O07",
+        "display": "OMN^O07^OMN_O07: non-stock requisition order message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ORN-O08-ORN_O08",
+        "display": "ORN^O08^ORN_O08: non-stock requisition order acknowledgment message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/OMB-O27-OMB_O27",
+        "display": "OMB^O27^OMB_O27: Blood Product Order Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ORB-O28-ORB_O28",
+        "display": "ORB^O28^ORB_O28: Blood Product Order Acknowledgment"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/BPS-O29-BPS_O29",
+        "display": "BPS^O29^BPS_O29: Blood Product Dispense Status Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/BRP-O30-BRP_O30",
+        "display": "BRP^O30^BRP_O30: Blood Product Dispense Status Acknowledgment"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/BTS-O31-BTS_O31",
+        "display": "BTS^O31^BTS_O31: Blood Product Transfusion/Disposition Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/BRT-O32-BRT_O32",
+        "display": "BRT^O32^BRT_O32: Blood Product Transfusion/Disposition Acknowledgment"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/DBC-O41-DBC_O41",
+        "display": "DBC^O41^DBC_O41: Create Donor Record Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/DBU-O42-DBC_O42",
+        "display": "DBU^O42^DBC_O42: Update Donor Record Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/QBP-Q33-QBP_O33",
+        "display": "QBP^Q33^QBP_O33: Get Donor Record Candidates"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RSP-K33-RSP_O33",
+        "display": "RSP^K33^RSP_O33: "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/QBP-Q34-QBP_O34",
+        "display": "QBP^Q34^QBP_O34: Get Donor Record"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RSP-K34-RSP_O34",
+        "display": "RSP^K34^RSP_O34: "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/DRG-O43-DRG_O43",
+        "display": "DRG^O43^DRG_O43: Donor Registration"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/DER-O44-DER_O44",
+        "display": "DER^O44^DER_O44: Donor Eligibility Request"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/DEO-O45-DEO_O45",
+        "display": "DEO^O45^DEO_O45: Donor Eligibility Observations"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/DEL-O46-DEL_O46",
+        "display": "DEL^O46^DEL_O46: Donor Eligibility"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/DRC-O47-DRC_O47",
+        "display": "DRC^O47^DRC_O47: Donor Request to Collect"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/DPR-O48-DPR_O48",
+        "display": "DPR^O48^DPR_O48: Donation Procedure"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/OMP-O09-OMP_O09",
+        "display": "OMP^O09^OMP_O09: Pharmacy/Treatment Order Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ORP-O10-ORP_O10",
+        "display": "ORP^O10^ORP_O10: Pharmacy/Treatment Order Acknowledgment"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RDE-O11-RDE_O11",
+        "display": "RDE^O11^RDE_O11: Pharmacy/Treatment Encoded Order Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RRE-O12-RRE_O12",
+        "display": "RRE^O12^RRE_O12: Pharmacy/Treatment Encoded Order Acknowledgment"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RDS-O13-RDS_O13",
+        "display": "RDS^O13^RDS_O13: Pharmacy/Treatment Dispense Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RRD-O14-RRD_O14",
+        "display": "RRD^O14^RRD_O14: Pharmacy/Treatment Dispense Acknowledgement Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RGV-O15-RGV_O15",
+        "display": "RGV^O15^RGV_O15: Pharmacy/Treatment Give Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RRG-O16-RRG_O16",
+        "display": "RRG^O16^RRG_O16: Pharmacy/Treatment Give Acknowledgment Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RAS-O17-RAS_O17",
+        "display": "RAS^O17^RAS_O17: Pharmacy/Treatment Administration Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RRA-O18-RRA_O18",
+        "display": "RRA^O18^RRA_O18: Pharmacy/Treatment Administration Acknowledgment Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RDE-O25-RDE_O11",
+        "display": "RDE^O25^RDE_O11: Pharmacy/Treatment Refill Authorization Request Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RRE-O26-RRE_O12",
+        "display": "RRE^O26^RRE_O12: Pharmacy/Treatment Refill Authorization Request Acknowledgment"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/QBP-Q31-QBP_Q11",
+        "display": "QBP^Q31^QBP_Q11: Query Example: Pharmacy"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RSP-K31-RSP_K31",
+        "display": "RSP^K31^RSP_K31: Query Example: Pharmacy"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RDE-O49-RDE_O49",
+        "display": "RDE^O49^RDE_O49: Pharmacy/Treatment Dispense Request Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RRE-O50-RRE_O50",
+        "display": "RRE^O50^RRE_O50: Pharmacy/Treatment Encoded Order Acknowledgment"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/XQ-V01-",
+        "display": "XQ^V01^: XQ - Query for Vaccination Record"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/VXX-V02-",
+        "display": "VXX^V02^: VXX - Response To Vaccintaion Query Returning Multiple PID Matches"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/VXR-V03-",
+        "display": "VXR^V03^: VXR - Vaccination Record Response"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/VXU-V04-VXU_V04",
+        "display": "VXU^V04^VXU_V04: Unsolicited Vaccination Record Update"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/QBP-Z99-QBP_Q13",
+        "display": "QBP^Z99^QBP_Q13: Query Example: Who Am I"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RSP-Z84-RSP_Z84",
+        "display": "RSP^Z84^RSP_Z84: Query Example: Who Am I"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/QBP-Znn_A-QBP_Qnn",
+        "display": "QBP^Znn_A^QBP_Qnn: Query Grammer"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RTB-Znn_B-RTB_Knn",
+        "display": "RTB^Znn_B^RTB_Knn: Response Grammer"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RDY-Znn_C-RDY_K15",
+        "display": "RDY^Znn_C^RDY_K15: Response Grammer for display response Example"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RTB-Znn_D-RTB_K13",
+        "display": "RTB^Znn_D^RTB_K13: Response Grammer with tabular response"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/QBP-Znn_E-QBP_Q11",
+        "display": "QBP^Znn_E^QBP_Q11: Query Profile template for query with segment pattern response"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RDY-Znn_F-RDY_K15",
+        "display": "RDY^Znn_F^RDY_K15: Response Grammer RDY Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/QBP-Q11-QBP_Q11",
+        "display": "QBP^Q11^QBP_Q11: Query by Parameter"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RSP-K11-RSP_K11",
+        "display": "RSP^K11^RSP_K11: Segment Pattern Response"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RTB-K13-RTB_K13",
+        "display": "RTB^K13^RTB_K13: Tabular Response"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/QBP-Q15-QBP_Q15",
+        "display": "QBP^Q15^QBP_Q15: Query by Parameter"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RDY-K15-RDY_K15",
+        "display": "RDY^K15^RDY_K15: Display Response"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/QSB-Q16-QSB_Q16",
+        "display": "QSB^Q16^QSB_Q16: Create subscription"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/QVR-Q17-QVR_Q17",
+        "display": "QVR^Q17^QVR_Q17: query for previous events"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/QCN-J01-QCN_J01",
+        "display": "QCN^J01^QCN_J01: cancel query/acknowledge message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/QSX-J02-QCN_J01",
+        "display": "QSX^J02^QCN_J01: cancel subscription/acknowledge message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/QSB-Z83-QSB_Q16",
+        "display": "QSB^Z83^QSB_Q16: Query Grammer QSB Message Example"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RSP-Z82-RSP_Z82",
+        "display": "RSP^Z82^RSP_Z82: Response Grammar Example: Pharmacy Dispense Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RSP-Z85-RSP_Z86",
+        "display": "RSP^Z85^RSP_Z86: Response Grammar Example: Pharmacy Information Comprehensive"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/QBP-Z87-QBP_Q11",
+        "display": "QBP^Z87^QBP_Q11: Query Grammar Example: Dispense Information"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RSP-Z88-RSP_Z88",
+        "display": "RSP^Z88^RSP_Z88: Query Grammar Example: Dispense Information"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/QBP-Z89-QBP_Q11",
+        "display": "QBP^Z89^QBP_Q11: Query Grammar Example: Lab Results History"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RSP-Z90-RSP_Z90",
+        "display": "RSP^Z90^RSP_Z90: Query Grammar Example: Lab Results History"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RTB-Z92-RTB_K13",
+        "display": "RTB^Z92^RTB_K13: Response Grammar Example: Who Am I"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RTB-Z94-RTB_K13",
+        "display": "RTB^Z94^RTB_K13: Response Grammar Example: Who Am I"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RTB-Z95-RTB_K13",
+        "display": "RTB^Z95^RTB_K13: Response Grammar Example: Who Am I"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RDY-Z98-RDY_K15",
+        "display": "RDY^Z98^RDY_K15: Response Grammar Example: Dispense History"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RDY-Z80-RDY_Z80",
+        "display": "RDY^Z80^RDY_Z80: Response Grammar Example: Dispense History"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RTB-Z78-RTB_K13",
+        "display": "RTB^Z78^RTB_K13: Response Grammar Example: TBD"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RTB-Z76-RTB_K13",
+        "display": "RTB^Z76^RTB_K13: Response Grammar Example: TBD"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/BAR-P01-BAR_P01",
+        "display": "BAR^P01^BAR_P01: Add Patient Account"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/BAR-P02-BAR_P02",
+        "display": "BAR^P02^BAR_P02: Purge Patient Accounts"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/DFT-P03-DFT_P03",
+        "display": "DFT^P03^DFT_P03: Post Detail Financial Transactions"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/QRY-P04-",
+        "display": "QRY^P04^: QRY/DSR - Generate Bills And Accounts Receivable Statements"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/BAR-P05-BAR_P05",
+        "display": "BAR^P05^BAR_P05: Update Account"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/BAR-P06-BAR_P06",
+        "display": "BAR^P06^BAR_P06: End Account"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/BAR-P10-BAR_P10",
+        "display": "BAR^P10^BAR_P10: Transmit Ambulatory Payment Classification (APC) Groups"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/DFT-P11-DFT_P11",
+        "display": "DFT^P11^DFT_P11: Post Detail Financial Transactions - Expanded"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/BAR-P12-BAR_P12",
+        "display": "BAR^P12^BAR_P12: Update Diagnosis/Procedure"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ORU-R01-ORU_R01",
+        "display": "ORU^R01^ORU_R01: Unsolicited Observation Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/OUL-R21-",
+        "display": "OUL^R21^: OUL – Unsolicited Laboratory Observation Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/QRY-R02-",
+        "display": "QRY^R02^: QRY/ORF - Query for Results of Observation"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/QRY-R04-",
+        "display": "QRY^R04^: QRY/ORF - Query for Results of Observation"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ORU-R30-ORU_R30",
+        "display": "ORU^R30^ORU_R30: Unsolicited Point-Of-Care Observation Message without Existing Order – Place an Order"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ORU-R31-ORU_R30",
+        "display": "ORU^R31^ORU_R30: Unsolicited New Point-Of-Care Observation Message – Search for an Order"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ORU-R32-ORU_R30",
+        "display": "ORU^R32^ORU_R30: Unsolicited Pre-Ordered Point-Of-Care Observation"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ORA-R33-ORA_R33",
+        "display": "ORA^R33^ORA_R33: Observation Report Acknowledgement"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/OUL-R22-OUL_R22",
+        "display": "OUL^R22^OUL_R22: Unsolicited Specimen Oriented Observation Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/OUL-R23-OUL_R23",
+        "display": "OUL^R23^OUL_R23: Unsolicited Specimen Container Oriented Observation Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/OUL-R24-OUL_R24",
+        "display": "OUL^R24^OUL_R24: Unsolicited Order Oriented Observation Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/OPU-R25-OPU_R25",
+        "display": "OPU^R25^OPU_R25: Unsolicited Population/Location-Based Laboratory Observation Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ORU-R40-ORU_R01",
+        "display": "ORU^R40^ORU_R01: Unsolicited Alert Observation Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ORA-R41-ORA_R41",
+        "display": "ORA^R41^ORA_R41: Observation Report Alert Acknowledgement"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ORU-R42-ORU_R01",
+        "display": "ORU^R42^ORU_R01: Unsolicited Device Event Observation Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ORU-R43-ORU_R01",
+        "display": "ORU^R43^ORU_R01: Unsolicited Patient-Device Association Observation Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/CRM-C01-CRM_C01",
+        "display": "CRM^C01^CRM_C01: Register a patient on a clinical trial"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/CRM-C02-CRM_C01",
+        "display": "CRM^C02^CRM_C01: Cancel a patient registration on clinical trial (for clerical mistakes since an intended registration should not be canceled)"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/CRM-C03-CRM_C01",
+        "display": "CRM^C03^CRM_C01: Correct/update registration information"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/CRM-C04-CRM_C01",
+        "display": "CRM^C04^CRM_C01: Patient has gone off a clinical trial"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/CRM-C05-CRM_C01",
+        "display": "CRM^C05^CRM_C01: Patient enters phase of clinical trial"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/CRM-C06-CRM_C01",
+        "display": "CRM^C06^CRM_C01: Cancel patient entering a phase (clerical mistake)"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/CRM-C07-CRM_C01",
+        "display": "CRM^C07^CRM_C01: Correct/update phase information"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/CRM-C08-CRM_C01",
+        "display": "CRM^C08^CRM_C01: Patient has gone off phase of clinical trial"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/CSU-C09-CSU_C09",
+        "display": "CSU^C09^CSU_C09: Automated time intervals for reporting, like monthly"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/CSU-C10-CSU_C09",
+        "display": "CSU^C10^CSU_C09: Patient completes the clinical trial"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/CSU-C11-CSU_C09",
+        "display": "CSU^C11^CSU_C09: Patient completes a phase of the clinical trial"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/CSU-C12-CSU_C09",
+        "display": "CSU^C12^CSU_C09: Update/correction of patient order/result information"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PEX-P07-PEX_P07",
+        "display": "PEX^P07^PEX_P07: Unsolicited initial individual product experience report"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PEX-P08-PEX_P07",
+        "display": "PEX^P08^PEX_P07: Unsolicited update individual product experience report"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SUR-P09-",
+        "display": "SUR^P09^: SUR - Summary Product Experience Report"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/OSM-R26-OSM_R26",
+        "display": "OSM^R26^OSM_R26: Unsolicited Specimen Shipment Manifest Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MFN-M01-",
+        "display": "MFN^M01^: MFN/MFK - Master File Notification [WITHDRAWN]"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MFN-M13-MFN_M13",
+        "display": "MFN^M13^MFN_M13: Master File Notification - General"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MFN-M14-MFN_Znn",
+        "display": "MFN^M14^MFN_Znn: Master File Notification - Site Defined"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MFN-M02-MFN_M02",
+        "display": "MFN^M02^MFN_M02: Staff/Practitioner Master File Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MFN-M03-",
+        "display": "MFN^M03^: MFN/MFK - Master File Notification - Test/Observation [WITHDRAWN]"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MFN-M08-MFN_M08",
+        "display": "MFN^M08^MFN_M08: Master File Notification - Test/Observation (Numeric)"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MFN-M09-MFN_M09",
+        "display": "MFN^M09^MFN_M09: Master File Notification - Test/Observation (Categorical)"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MFN-M10-MFN_M10",
+        "display": "MFN^M10^MFN_M10: Master File Notification - Test/Observation Batteries"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MFN-M11-MFN_M11",
+        "display": "MFN^M11^MFN_M11: Master File Notification - Test/Calculated Observations"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MFN-M12-MFN_M12",
+        "display": "MFN^M12^MFN_M12: Master File Notification - Additional Basic Observation/Service Attributes"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MFN-M18-MFN_M18",
+        "display": "MFN^M18^MFN_M18: Master File Notification – Test/Observation (Payer)"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MFN-M05-MFN_M05",
+        "display": "MFN^M05^MFN_M05: Patient Location Master File Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MFN-M04-MFN_M04",
+        "display": "MFN^M04^MFN_M04: Charge Description Master File Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MFN-M06-MFN_M06",
+        "display": "MFN^M06^MFN_M06: Clinical Trials Master File Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MFN-M07-MFN_M07",
+        "display": "MFN^M07^MFN_M07: Clinical Trials Master File Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MFN-M15-MFN_M15",
+        "display": "MFN^M15^MFN_M15: Inventory Item Master File Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MFN-M16-MFN_M16",
+        "display": "MFN^M16^MFN_M16: Inventory Item Master File Message – Enhanced"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MFN-M17-MFN_M17",
+        "display": "MFN^M17^MFN_M17: DRG Master File Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MFN-M19-MFN_M19",
+        "display": "MFN^M19^MFN_M19: Contract Master File –"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MDM-T01-MDM_T01",
+        "display": "MDM^T01^MDM_T01: Original Document Notification"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MDM-T02-MDM_T02",
+        "display": "MDM^T02^MDM_T02: Original Document Notification and Content"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MDM-T03-MDM_T01",
+        "display": "MDM^T03^MDM_T01: Document Status Change Notification"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MDM-T04-MDM_T02",
+        "display": "MDM^T04^MDM_T02: Document Status Change Notification and Content"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MDM-T05-MDM_T01",
+        "display": "MDM^T05^MDM_T01: Document Addendum Notification"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MDM-T06-MDM_T02",
+        "display": "MDM^T06^MDM_T02: Document Addendum Notification and Content"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MDM-T07-MDM_T01",
+        "display": "MDM^T07^MDM_T01: Document Edit Notification"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MDM-T08-MDM_T02",
+        "display": "MDM^T08^MDM_T02: Document Edit Notification and Content"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MDM-T09-MDM_T01",
+        "display": "MDM^T09^MDM_T01: Document Replacement Notification"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MDM-T10-MDM_T02",
+        "display": "MDM^T10^MDM_T02: Document Replacement Notification and Content"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MDM-T11-MDM_T01",
+        "display": "MDM^T11^MDM_T01: Document Cancel Notification"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/QRY-T12-",
+        "display": "QRY^T12^: QRY/DOC - Document Query"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SRM-S01-SRM_S01",
+        "display": "SRM^S01^SRM_S01: "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SRM-S02-SRM_S01",
+        "display": "SRM^S02^SRM_S01: "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SRM-S03-SRM_S01",
+        "display": "SRM^S03^SRM_S01: "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SRM-S04-SRM_S01",
+        "display": "SRM^S04^SRM_S01: "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SRM-S05-SRM_S01",
+        "display": "SRM^S05^SRM_S01: "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SRM-S06-SRM_S01",
+        "display": "SRM^S06^SRM_S01: "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SRM-S07-SRM_S01",
+        "display": "SRM^S07^SRM_S01: "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SRM-S08-SRM_S01",
+        "display": "SRM^S08^SRM_S01: "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SRM-S09-SRM_S01",
+        "display": "SRM^S09^SRM_S01: "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SRM-S10-SRM_S01",
+        "display": "SRM^S10^SRM_S01: "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SRM-S11-SRM_S01",
+        "display": "SRM^S11^SRM_S01: "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SIU-S12-SIU_S12",
+        "display": "SIU^S12^SIU_S12: "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SIU-S13-SIU_S12",
+        "display": "SIU^S13^SIU_S12: "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SIU-S14-SIU_S12",
+        "display": "SIU^S14^SIU_S12: "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SIU-S15-SIU_S12",
+        "display": "SIU^S15^SIU_S12: "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SIU-S16-SIU_S12",
+        "display": "SIU^S16^SIU_S12: "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SIU-S17-SIU_S12",
+        "display": "SIU^S17^SIU_S12: "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SIU-S18-SIU_S12",
+        "display": "SIU^S18^SIU_S12: "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SIU-S19-SIU_S12",
+        "display": "SIU^S19^SIU_S12: "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SIU-S20-SIU_S12",
+        "display": "SIU^S20^SIU_S12: "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SIU-S21-SIU_S12",
+        "display": "SIU^S21^SIU_S12: "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SIU-S22-SIU_S12",
+        "display": "SIU^S22^SIU_S12: "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SIU-S23-SIU_S12",
+        "display": "SIU^S23^SIU_S12: "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SIU-S24-SIU_S12",
+        "display": "SIU^S24^SIU_S12: "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SIU-S26-SIU_S12",
+        "display": "SIU^S26^SIU_S12: "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SIU-S27-SIU_S12",
+        "display": "SIU^S27^SIU_S12: "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SQM-S25-",
+        "display": "SQM^S25^: SQM/SQR - Schedule Query Message and Response"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RQI-I01-RQI_I01",
+        "display": "RQI^I01^RQI_I01: Request for Insurance Information"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RQI-I02-RQI_I01",
+        "display": "RQI^I02^RQI_I01: Request/Receipt of Patient Selection Display List"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RQI-I03-RQI_I01",
+        "display": "RQI^I03^RQI_I01: Request/Receipt of Patient Selection List"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RQP-I04-RQP_I04",
+        "display": "RQP^I04^RQP_I04: request for patient demographic data"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RQC-I05-",
+        "display": "RQC^I05^: RQC/RCI - Request for Patient Clinical Information"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RQC-I06-",
+        "display": "RQC^I06^: RQC/RCL - Request/Receipt of Clinical Data Listing"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PIN-I07-RQI_I01",
+        "display": "PIN^I07^RQI_I01: Unsolicited Insurance Information"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RQA-I08-RQA_I08",
+        "display": "RQA^I08^RQA_I08: Request for Treatment Authorization Information"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RQA-I09-RQA_I08",
+        "display": "RQA^I09^RQA_I08: Request for Modification to an Authorization"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RQA-I10-RQA_I08",
+        "display": "RQA^I10^RQA_I08: Request for Resubmission of an Authorization"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RQA-I11-RQA_I08",
+        "display": "RQA^I11^RQA_I08: Request for Cancellation of an Authorization"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/CCM-I21-CCM_I21",
+        "display": "CCM^I21^CCM_I21: Collaborative Care Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/CCR-I16-CCR_I16",
+        "display": "CCR^I16^CCR_I16: Collaborative Care Referral"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/CCR-I17-CCR_I16",
+        "display": "CCR^I17^CCR_I16: Modify Collaborative Care Referral"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/CCR-I18-CCR_I16",
+        "display": "CCR^I18^CCR_I16: Cancel Collaborative Care Referral"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/CCU-I20-CCU_I20",
+        "display": "CCU^I20^CCU_I20: Asynchronous Collaborative Care Update"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/CCQ-I19-CCQ_I19",
+        "display": "CCQ^I19^CCQ_I19: Collaborative Care Query/Collaborative Care Query Update"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/CCF-I22-CCF_I22",
+        "display": "CCF^I22^CCF_I22: Collaborative Care Fetch / Collaborative Care Information"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PGL-PC6-PGL_PC6",
+        "display": "PGL^PC6^PGL_PC6: Patient Goal Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PGL-PC7-PGL_PC6",
+        "display": "PGL^PC7^PGL_PC6: Patient Goal Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PGL-PC8-PGL_PC6",
+        "display": "PGL^PC8^PGL_PC6: Patient Goal Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PPR-PC1-PPR_PC1",
+        "display": "PPR^PC1^PPR_PC1: Patient Problem Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PPR-PC2-PPR_PC1",
+        "display": "PPR^PC2^PPR_PC1: Patient Problem Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PPR-PC3-PPR_PC1",
+        "display": "PPR^PC3^PPR_PC1: Patient Problem Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PPP-PCB-PPP_PCB",
+        "display": "PPP^PCB^PPP_PCB: Patient Pathway Message (Problem-Oriented)"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PPP-PCC-PPP_PCB",
+        "display": "PPP^PCC^PPP_PCB: Patient Pathway Message (Problem-Oriented)"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PPP-PCD-PPP_PCB",
+        "display": "PPP^PCD^PPP_PCB: Patient Pathway Message (Problem-Oriented)"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PPG-PCG-PPG_PCG",
+        "display": "PPG^PCG^PPG_PCG: Patient Pathway Message (Goal-Oriented)"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PPG-PCH-PPG_PCG",
+        "display": "PPG^PCH^PPG_PCG: Patient Pathway Message (Goal-Oriented)"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PPG-PCJ-PPG_PCG",
+        "display": "PPG^PCJ^PPG_PCG: Patient Pathway Message (Goal-Oriented)"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/QRY-PC4-",
+        "display": "QRY^PC4^: QRY - Patient Care Problem Query"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PRR-PC5-",
+        "display": "PRR^PC5^: PRR - Patient Problem Response"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/QRY-PC9-",
+        "display": "QRY^PC9^: QRY - Patient Goal Query"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PPV-PCA-",
+        "display": "PPV^PCA^: PPV - Patient Goal Response"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/QRY-PCE-",
+        "display": "QRY^PCE^: QRY - Patient Pathway (Problem-Oriented) Query"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PTR-PCF-",
+        "display": "PTR^PCF^: PTR - Patient Pathway (Problem-Oriented) Response"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/QRY-PCK-",
+        "display": "QRY^PCK^: QRY - Patient Pathway (Goal-Oriented) Query"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PPT-PCL-",
+        "display": "PPT^PCL^: PPT - Patient Pathway (Goal-Oriented) Response"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ESU-U01-ESU_U01",
+        "display": "ESU^U01^ESU_U01: Automated Equipment Status Update"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ESR-U02-ESR_U02",
+        "display": "ESR^U02^ESR_U02: Automated Equipment Status Request"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SSU-U03-SSU_U03",
+        "display": "SSU^U03^SSU_U03: Specimen Status Update"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SSR-U04-SSR_U04",
+        "display": "SSR^U04^SSR_U04: Specimen Status Request"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/INU-U05-INU_U05",
+        "display": "INU^U05^INU_U05: Automated Equipment Inventory Update"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/INR-U06-INR_U06",
+        "display": "INR^U06^INR_U06: Automated Equipment Inventory Request"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/EAC-U07-EAC_U07",
+        "display": "EAC^U07^EAC_U07: Automated Equipment Command"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/EAR-U08-EAR_U08",
+        "display": "EAR^U08^EAR_U08: Automated Equipment Response"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/EAN-U09-EAN_U09",
+        "display": "EAN^U09^EAN_U09: Automated Equipment Notification"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/TCU-U10-TCU_U10",
+        "display": "TCU^U10^TCU_U10: Automated Equipment Test Code Settings Update"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/TCR-U11-TCU_U10",
+        "display": "TCR^U11^TCU_U10: Automated Equipment Test Code Settings Request"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/LSU-U12-LSU_U12",
+        "display": "LSU^U12^LSU_U12: Automated Equipment Log/Service Update"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/LSR-U13-LSU_U12",
+        "display": "LSR^U13^LSU_U12: Automated Equipment Log/Service Request"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/INR-U14-INR_U14",
+        "display": "INR^U14^INR_U14: Automated Equipment Inventory Request"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/NMQ-N01-",
+        "display": "NMQ^N01^: NMQ - Application Management Query Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/NMD-N02-NMD_N02",
+        "display": "NMD^N02^NMD_N02: Application Management Data Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PMU-B01-PMU_B01",
+        "display": "PMU^B01^PMU_B01: Add Personnel Record"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PMU-B02-PMU_B01",
+        "display": "PMU^B02^PMU_B01: Update Personnel Record"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PMU-B03-PMU_B03",
+        "display": "PMU^B03^PMU_B03: Delete Personnel Record"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PMU-B04-PMU_B04",
+        "display": "PMU^B04^PMU_B04: Activate Practicing Person"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PMU-B05-PMU_B04",
+        "display": "PMU^B05^PMU_B04: Deactivate Practicing Person"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PMU-B06-PMU_B04",
+        "display": "PMU^B06^PMU_B04: Terminate Practicing Person"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/QBP-Q25-QBP_Q21",
+        "display": "QBP^Q25^QBP_Q21: Query by Parameter"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RSP-K25-RSP_K25",
+        "display": "RSP^K25^RSP_K25: Segment Pattern Response"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PMU-B07-PMU_B07",
+        "display": "PMU^B07^PMU_B07: Grant Certificate/Permission"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PMU-B08-PMU_B08",
+        "display": "PMU^B08^PMU_B08: Revoke Certificate/Permission"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/EHC-E01-EHC_E01",
+        "display": "EHC^E01^EHC_E01: Submit HealthCare Services Invoice"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/EHC-E02-EHC_E02",
+        "display": "EHC^E02^EHC_E02: Cancel HealthCare Services Invoice"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/QBP-E03-QBP_E03",
+        "display": "QBP^E03^QBP_E03: Query HealthCare Services Invoice Status"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/EHC-E04-EHC_E04",
+        "display": "EHC^E04^EHC_E04: Re-Assess HealthCare Services Invoice Request"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/EHC-E10-EHC_E10",
+        "display": "EHC^E10^EHC_E10: Edit/Adjudication Results"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/EHC-E12-EHC_E12",
+        "display": "EHC^E12^EHC_E12: Request Additional Information"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/EHC-E13-EHC_E13",
+        "display": "EHC^E13^EHC_E13: Additional Information Response"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/EHC-E15-EHC_E15",
+        "display": "EHC^E15^EHC_E15: Payment/Remittance Advice"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/EHC-E20-EHC_E20",
+        "display": "EHC^E20^EHC_E20: Submit Authorization Request"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/EHC-E21-EHC_E21",
+        "display": "EHC^E21^EHC_E21: Cancel Authorization Request"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/QBP-E22-QBP_E22",
+        "display": "QBP^E22^QBP_E22: Query Authorization Request Status"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/EHC-E24-EHC_E24",
+        "display": "EHC^E24^EHC_E24: Authorization Response"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/EHC-E30-",
+        "display": "EHC^E30^: Submit Health Document related to Authorization Request"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/EHC-E31-",
+        "display": "EHC^E31^: Cancel Health Document related to Authorization Request"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SLR-S28-SLR_S28",
+        "display": "SLR^S28^SLR_S28: Request New Sterilization Lot"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SLR-S29-SLR_S28",
+        "display": "SLR^S29^SLR_S28: Request Sterilization Lot Deletion"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/STI-S30-SLR_S28",
+        "display": "STI^S30^SLR_S28: Request Item"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SDR-S31-SDR_S31",
+        "display": "SDR^S31^SDR_S31: Request Anti-Microbial Device Data"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SMD-S32-SDR_S32",
+        "display": "SMD^S32^SDR_S32: Request Anti-Microbial Device Cycle Data"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/STC-S33-STC_S33",
+        "display": "STC^S33^STC_S33: Notification of Sterilization Configuration"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SLN-S34-SLR_S28",
+        "display": "SLN^S34^SLR_S28: Notification of New Sterilization Lot"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SLN-S35-SLR_S28",
+        "display": "SLN^S35^SLR_S28: Notification of Sterilization Lot Deletion"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SDN-S36-SDR_S31",
+        "display": "SDN^S36^SDR_S31: Notification of Anti-Microbial Device Data"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SCN-S37-SDR_S32",
+        "display": "SCN^S37^SDR_S32: Notification of Anti-Microbial Device Cycle Data"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A01-ACK",
+        "display": "ACK^A01^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A02-ACK",
+        "display": "ACK^A02^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A03-ACK",
+        "display": "ACK^A03^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A04-ACK",
+        "display": "ACK^A04^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A05-ACK",
+        "display": "ACK^A05^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A06-ACK",
+        "display": "ACK^A06^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A07-ACK",
+        "display": "ACK^A07^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A08-ACK",
+        "display": "ACK^A08^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A09-ACK",
+        "display": "ACK^A09^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A10-ACK",
+        "display": "ACK^A10^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A11-ACK",
+        "display": "ACK^A11^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A12-ACK",
+        "display": "ACK^A12^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A13-ACK",
+        "display": "ACK^A13^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A14-ACK",
+        "display": "ACK^A14^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A15-ACK",
+        "display": "ACK^A15^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A16-ACK",
+        "display": "ACK^A16^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A17-ACK",
+        "display": "ACK^A17^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A20-ACK",
+        "display": "ACK^A20^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A21-ACK",
+        "display": "ACK^A21^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A22-ACK",
+        "display": "ACK^A22^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A23-ACK",
+        "display": "ACK^A23^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A24-ACK",
+        "display": "ACK^A24^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A25-ACK",
+        "display": "ACK^A25^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A26-ACK",
+        "display": "ACK^A26^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A27-ACK",
+        "display": "ACK^A27^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A28-ACK",
+        "display": "ACK^A28^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A29-ACK",
+        "display": "ACK^A29^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A31-ACK",
+        "display": "ACK^A31^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A32-ACK",
+        "display": "ACK^A32^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A33-ACK",
+        "display": "ACK^A33^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A37-ACK",
+        "display": "ACK^A37^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A38-ACK",
+        "display": "ACK^A38^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A40-ACK",
+        "display": "ACK^A40^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A41-ACK",
+        "display": "ACK^A41^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A42-ACK",
+        "display": "ACK^A42^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A43-ACK",
+        "display": "ACK^A43^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A44-ACK",
+        "display": "ACK^A44^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A45-ACK",
+        "display": "ACK^A45^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A47-ACK",
+        "display": "ACK^A47^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A49-ACK",
+        "display": "ACK^A49^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A50-ACK",
+        "display": "ACK^A50^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A51-ACK",
+        "display": "ACK^A51^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A52-ACK",
+        "display": "ACK^A52^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A53-ACK",
+        "display": "ACK^A53^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A54-ACK",
+        "display": "ACK^A54^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A55-ACK",
+        "display": "ACK^A55^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A60-ACK",
+        "display": "ACK^A60^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A61-ACK",
+        "display": "ACK^A61^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-A62-ACK",
+        "display": "ACK^A62^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RSP-Znn_E-RSP_Znn",
+        "display": "RSP^Znn_E^RSP_Znn: Response to Query Profile template for query with segment pattern response"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-Q16-ACK",
+        "display": "ACK^Q16^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-Q17-ACK",
+        "display": "ACK^Q17^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-J01-ACK",
+        "display": "ACK^J01^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-J02-ACK",
+        "display": "ACK^J02^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-P01-ACK",
+        "display": "ACK^P01^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-P02-ACK",
+        "display": "ACK^P02^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-P03-ACK",
+        "display": "ACK^P03^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-P05-ACK",
+        "display": "ACK^P05^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-P06-ACK",
+        "display": "ACK^P06^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-P10-ACK",
+        "display": "ACK^P10^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-P11-ACK",
+        "display": "ACK^P11^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-P12-ACK",
+        "display": "ACK^P12^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-R01-ACK",
+        "display": "ACK^R01^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-R30-ACK",
+        "display": "ACK^R30^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-R31-ACK",
+        "display": "ACK^R31^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-R32-ACK",
+        "display": "ACK^R32^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-C01-ACK",
+        "display": "ACK^C01^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-C02-ACK",
+        "display": "ACK^C02^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-C03-ACK",
+        "display": "ACK^C03^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-C04-ACK",
+        "display": "ACK^C04^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-C05-ACK",
+        "display": "ACK^C05^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-C06-ACK",
+        "display": "ACK^C06^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-C07-ACK",
+        "display": "ACK^C07^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-C08-ACK",
+        "display": "ACK^C08^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-C09-ACK",
+        "display": "ACK^C09^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-C10-ACK",
+        "display": "ACK^C10^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-C11-ACK",
+        "display": "ACK^C11^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-C12-ACK",
+        "display": "ACK^C12^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MFK-M13-MFK_M01",
+        "display": "MFK^M13^MFK_M01: Response to Master File Notification - General"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MFK-M14-MFK_M01",
+        "display": "MFK^M14^MFK_M01: Response to Master File Notification - Site Defined"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MFK-M02-MFK_M01",
+        "display": "MFK^M02^MFK_M01: Response to Staff/Practitioner Master File Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MFK-M08-MFK_M01",
+        "display": "MFK^M08^MFK_M01: Response to Master File Notification - Test/Observation (Numeric)"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MFK-M09-MFK_M01",
+        "display": "MFK^M09^MFK_M01: Response to Master File Notification - Test/Observation (Categorical)"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MFK-M10-MFK_M01",
+        "display": "MFK^M10^MFK_M01: Response to Master File Notification - Test/Observation Batteries"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MFK-M11-MFK_M01",
+        "display": "MFK^M11^MFK_M01: Response to Master File Notification - Test/Calculated Observations"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MFK-M12-MFK_M01",
+        "display": "MFK^M12^MFK_M01: Response to Master File Notification - Additional Basic Observation/Service Attributes"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MFK-M18-MFK_M01",
+        "display": "MFK^M18^MFK_M01: Response to Master File Notification – Test/Observation (Payer)"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MFK-M05-MFK_M01",
+        "display": "MFK^M05^MFK_M01: Response to Patient Location Master File Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MFK-M04-MFK_M01",
+        "display": "MFK^M04^MFK_M01: Response to Charge Description Master File Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MFK-M06-MFK_M01",
+        "display": "MFK^M06^MFK_M01: Response to Clinical Trials Master File Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-M06-ACK",
+        "display": "ACK^M06^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MFK-M07-MFK_M01",
+        "display": "MFK^M07^MFK_M01: Response to Clinical Trials Master File Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-M07-ACK",
+        "display": "ACK^M07^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MFK-M15-MFK_M01",
+        "display": "MFK^M15^MFK_M01: Response to Inventory Item Master File Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MFK-M16-MFK_M01",
+        "display": "MFK^M16^MFK_M01: Response to Inventory Item Master File Message – Enhanced"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MFK-M17-MFK_M01",
+        "display": "MFK^M17^MFK_M01: Response to DRG Master File Message"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MFK-M19-MFK_M01",
+        "display": "MFK^M19^MFK_M01: Response to Contract Master File –"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-T01-ACK",
+        "display": "ACK^T01^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-T02-ACK",
+        "display": "ACK^T02^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-T03-ACK",
+        "display": "ACK^T03^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-T04-ACK",
+        "display": "ACK^T04^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-T05-ACK",
+        "display": "ACK^T05^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-T06-ACK",
+        "display": "ACK^T06^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-T07-ACK",
+        "display": "ACK^T07^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-T08-ACK",
+        "display": "ACK^T08^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-T09-ACK",
+        "display": "ACK^T09^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-T10-ACK",
+        "display": "ACK^T10^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-T11-ACK",
+        "display": "ACK^T11^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SRR-S01-SRR_S01",
+        "display": "SRR^S01^SRR_S01: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SRR-S02-SRR_S01",
+        "display": "SRR^S02^SRR_S01: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SRR-S03-SRR_S01",
+        "display": "SRR^S03^SRR_S01: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SRR-S04-SRR_S01",
+        "display": "SRR^S04^SRR_S01: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SRR-S05-SRR_S01",
+        "display": "SRR^S05^SRR_S01: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SRR-S06-SRR_S01",
+        "display": "SRR^S06^SRR_S01: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SRR-S07-SRR_S01",
+        "display": "SRR^S07^SRR_S01: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SRR-S08-SRR_S01",
+        "display": "SRR^S08^SRR_S01: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SRR-S09-SRR_S01",
+        "display": "SRR^S09^SRR_S01: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SRR-S10-SRR_S01",
+        "display": "SRR^S10^SRR_S01: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SRR-S11-SRR_S01",
+        "display": "SRR^S11^SRR_S01: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-S12-ACK",
+        "display": "ACK^S12^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-S13-ACK",
+        "display": "ACK^S13^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-S14-ACK",
+        "display": "ACK^S14^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-S15-ACK",
+        "display": "ACK^S15^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-S16-ACK",
+        "display": "ACK^S16^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-S17-ACK",
+        "display": "ACK^S17^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-S18-ACK",
+        "display": "ACK^S18^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-S19-ACK",
+        "display": "ACK^S19^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-S20-ACK",
+        "display": "ACK^S20^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-S21-ACK",
+        "display": "ACK^S21^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-S22-ACK",
+        "display": "ACK^S22^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-S23-ACK",
+        "display": "ACK^S23^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-S24-ACK",
+        "display": "ACK^S24^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-S26-ACK",
+        "display": "ACK^S26^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-S27-ACK",
+        "display": "ACK^S27^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RPI-I01-RPI_I01",
+        "display": "RPI^I01^RPI_I01: Response to Request for Insurance Information"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RPL-I02-RPL_I02",
+        "display": "RPL^I02^RPL_I02: Response to Request/Receipt of Patient Selection Display List"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RPR-I03-RPR_I03",
+        "display": "RPR^I03^RPR_I03: Response to Request/Receipt of Patient Selection List"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RPI-I04-RPI_I04",
+        "display": "RPI^I04^RPI_I04: Response to request for patient demographic data"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-I07-ACK",
+        "display": "ACK^I07^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RPA-I08-RPA_I08",
+        "display": "RPA^I08^RPA_I08: Response to Request for Treatment Authorization Information"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RPA-I09-RPA_I08",
+        "display": "RPA^I09^RPA_I08: Response to Request for Modification to an Authorization"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RPA-I10-RPA_I08",
+        "display": "RPA^I10^RPA_I08: Response to Request for Resubmission of an Authorization"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RPA-I11-RPA_I08",
+        "display": "RPA^I11^RPA_I08: Response to Request for Cancellation of an Authorization"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/CQU-I19-CQU_I19",
+        "display": "CQU^I19^CQU_I19: Response to Collaborative Care Query/Collaborative Care Query Update"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/CCI-I22-CCI_I22",
+        "display": "CCI^I22^CCI_I22: Response to Collaborative Care Fetch / Collaborative Care Information"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-PC6-ACK",
+        "display": "ACK^PC6^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-PC7-ACK",
+        "display": "ACK^PC7^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-PC8-ACK",
+        "display": "ACK^PC8^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-PC1-ACK",
+        "display": "ACK^PC1^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-PC2-ACK",
+        "display": "ACK^PC2^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-PC3-ACK",
+        "display": "ACK^PC3^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-PCB-ACK",
+        "display": "ACK^PCB^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-PCC-ACK",
+        "display": "ACK^PCC^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-PCD-ACK",
+        "display": "ACK^PCD^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-PCG-ACK",
+        "display": "ACK^PCG^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-PCH-ACK",
+        "display": "ACK^PCH^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-PCJ-ACK",
+        "display": "ACK^PCJ^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-U01-ACK",
+        "display": "ACK^U01^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-U02-ACK",
+        "display": "ACK^U02^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-U03-ACK",
+        "display": "ACK^U03^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-U04-ACK",
+        "display": "ACK^U04^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-U05-ACK",
+        "display": "ACK^U05^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-U06-ACK",
+        "display": "ACK^U06^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-U07-ACK",
+        "display": "ACK^U07^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-U08-ACK",
+        "display": "ACK^U08^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-U09-ACK",
+        "display": "ACK^U09^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-U10-ACK",
+        "display": "ACK^U10^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-U11-ACK",
+        "display": "ACK^U11^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-U12-ACK",
+        "display": "ACK^U12^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-U13-ACK",
+        "display": "ACK^U13^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-U14-ACK",
+        "display": "ACK^U14^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-N02-ACK",
+        "display": "ACK^N02^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-B01-ACK",
+        "display": "ACK^B01^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-B02-ACK",
+        "display": "ACK^B02^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-B03-ACK",
+        "display": "ACK^B03^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-B04-ACK",
+        "display": "ACK^B04^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-B05-ACK",
+        "display": "ACK^B05^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-B06-ACK",
+        "display": "ACK^B06^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-B07-ACK",
+        "display": "ACK^B07^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-B08-ACK",
+        "display": "ACK^B08^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RSP-E03-RSP_E03",
+        "display": "RSP^E03^RSP_E03: Response to Query HealthCare Services Invoice Status"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RSP-E22-RSP_E22",
+        "display": "RSP^E22^RSP_E22: Response to Query Authorization Request Status"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SLS-S28-SLR_S28",
+        "display": "SLS^S28^SLR_S28: Response to Request New Sterilization Lot"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-S28-ACK",
+        "display": "ACK^S28^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SLS-S29-SLR_S28",
+        "display": "SLS^S29^SLR_S28: Response to Request Sterilization Lot Deletion"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-S29-ACK",
+        "display": "ACK^S29^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/STS-S30-SLR_S28",
+        "display": "STS^S30^SLR_S28: Response to Request Item"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-S30-ACK",
+        "display": "ACK^S30^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SDS-S31-SDR_S31",
+        "display": "SDS^S31^SDR_S31: Response to Request Anti-Microbial Device Data"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-S31-ACK",
+        "display": "ACK^S31^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SMS-S32-SDR_S32",
+        "display": "SMS^S32^SDR_S32: Response to Request Anti-Microbial Device Cycle Data"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-S32-ACK",
+        "display": "ACK^S32^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-S33-ACK",
+        "display": "ACK^S33^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-S34-ACK",
+        "display": "ACK^S34^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-S35-ACK",
+        "display": "ACK^S35^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-S36-ACK",
+        "display": "ACK^S36^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-S37-ACK",
+        "display": "ACK^S37^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-Q21-ACK",
+        "display": "ACK^Q21^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-K21-ACK",
+        "display": "ACK^K21^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-Q22-ACK",
+        "display": "ACK^Q22^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-K22-ACK",
+        "display": "ACK^K22^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-Q23-ACK",
+        "display": "ACK^Q23^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-K23-ACK",
+        "display": "ACK^K23^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-Q24-ACK",
+        "display": "ACK^Q24^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-K24-ACK",
+        "display": "ACK^K24^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-Q32-ACK",
+        "display": "ACK^Q32^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-K32-ACK",
+        "display": "ACK^K32^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O19-ACK",
+        "display": "ACK^O19^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O20-ACK",
+        "display": "ACK^O20^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O21-ACK",
+        "display": "ACK^O21^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O22-ACK",
+        "display": "ACK^O22^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O53-ACK",
+        "display": "ACK^O53^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O33-ACK",
+        "display": "ACK^O33^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O34-ACK",
+        "display": "ACK^O34^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O54-ACK",
+        "display": "ACK^O54^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O35-ACK",
+        "display": "ACK^O35^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O36-ACK",
+        "display": "ACK^O36^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O55-ACK",
+        "display": "ACK^O55^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O39-ACK",
+        "display": "ACK^O39^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O40-ACK",
+        "display": "ACK^O40^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O56-ACK",
+        "display": "ACK^O56^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O23-ACK",
+        "display": "ACK^O23^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O24-ACK",
+        "display": "ACK^O24^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O37-ACK",
+        "display": "ACK^O37^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O38-ACK",
+        "display": "ACK^O38^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O51-ACK",
+        "display": "ACK^O51^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O52-ACK",
+        "display": "ACK^O52^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O57-ACK",
+        "display": "ACK^O57^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O58-ACK",
+        "display": "ACK^O58^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O59_A-ACK",
+        "display": "ACK^O59_A^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-Z73-ACK",
+        "display": "ACK^Z73^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O03-ACK",
+        "display": "ACK^O03^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O04-ACK",
+        "display": "ACK^O04^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O05-ACK",
+        "display": "ACK^O05^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O06-ACK",
+        "display": "ACK^O06^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O07-ACK",
+        "display": "ACK^O07^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O08-ACK",
+        "display": "ACK^O08^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O27-ACK",
+        "display": "ACK^O27^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O28-ACK",
+        "display": "ACK^O28^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O29-ACK",
+        "display": "ACK^O29^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O30-ACK",
+        "display": "ACK^O30^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O31-ACK",
+        "display": "ACK^O31^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O32-ACK",
+        "display": "ACK^O32^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O41-ACK",
+        "display": "ACK^O41^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O42-ACK",
+        "display": "ACK^O42^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-K33-ACK",
+        "display": "ACK^K33^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-K34-ACK",
+        "display": "ACK^K34^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O43-ACK",
+        "display": "ACK^O43^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O44-ACK",
+        "display": "ACK^O44^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O45-ACK",
+        "display": "ACK^O45^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O46-ACK",
+        "display": "ACK^O46^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O47-ACK",
+        "display": "ACK^O47^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O48-ACK",
+        "display": "ACK^O48^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O09-ACK",
+        "display": "ACK^O09^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O10-ACK",
+        "display": "ACK^O10^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O11-ACK",
+        "display": "ACK^O11^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O12-ACK",
+        "display": "ACK^O12^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O13-ACK",
+        "display": "ACK^O13^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O14-ACK",
+        "display": "ACK^O14^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O15-ACK",
+        "display": "ACK^O15^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O16-ACK",
+        "display": "ACK^O16^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O17-ACK",
+        "display": "ACK^O17^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O18-ACK",
+        "display": "ACK^O18^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O25-ACK",
+        "display": "ACK^O25^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O26-ACK",
+        "display": "ACK^O26^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-Q31-ACK",
+        "display": "ACK^Q31^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-K31-ACK",
+        "display": "ACK^K31^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O49-ACK",
+        "display": "ACK^O49^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-O50-ACK",
+        "display": "ACK^O50^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-V04-ACK",
+        "display": "ACK^V04^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-Z84-ACK",
+        "display": "ACK^Z84^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-R33-ACK",
+        "display": "ACK^R33^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-R22-ACK",
+        "display": "ACK^R22^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-R23-ACK",
+        "display": "ACK^R23^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-R24-ACK",
+        "display": "ACK^R24^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-R25-ACK",
+        "display": "ACK^R25^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-R40-ACK",
+        "display": "ACK^R40^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-R41-ACK",
+        "display": "ACK^R41^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-R42-ACK",
+        "display": "ACK^R42^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-R43-ACK",
+        "display": "ACK^R43^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-P07-ACK",
+        "display": "ACK^P07^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-P08-ACK",
+        "display": "ACK^P08^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-R26-ACK",
+        "display": "ACK^R26^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-M13-ACK",
+        "display": "ACK^M13^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-M14-ACK",
+        "display": "ACK^M14^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-M02-ACK",
+        "display": "ACK^M02^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-M08-ACK",
+        "display": "ACK^M08^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-M09-ACK",
+        "display": "ACK^M09^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-M10-ACK",
+        "display": "ACK^M10^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-M11-ACK",
+        "display": "ACK^M11^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-M12-ACK",
+        "display": "ACK^M12^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-M18-ACK",
+        "display": "ACK^M18^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-M05-ACK",
+        "display": "ACK^M05^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-M04-ACK",
+        "display": "ACK^M04^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-M15-ACK",
+        "display": "ACK^M15^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-M16-ACK",
+        "display": "ACK^M16^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-M17-ACK",
+        "display": "ACK^M17^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-M19-ACK",
+        "display": "ACK^M19^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-S01-ACK",
+        "display": "ACK^S01^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-S02-ACK",
+        "display": "ACK^S02^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-S03-ACK",
+        "display": "ACK^S03^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-S04-ACK",
+        "display": "ACK^S04^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-S05-ACK",
+        "display": "ACK^S05^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-S06-ACK",
+        "display": "ACK^S06^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-S07-ACK",
+        "display": "ACK^S07^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-S08-ACK",
+        "display": "ACK^S08^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-S09-ACK",
+        "display": "ACK^S09^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-S10-ACK",
+        "display": "ACK^S10^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-S11-ACK",
+        "display": "ACK^S11^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-I01-ACK",
+        "display": "ACK^I01^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-I02-ACK",
+        "display": "ACK^I02^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-I03-ACK",
+        "display": "ACK^I03^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-I04-ACK",
+        "display": "ACK^I04^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-I08-ACK",
+        "display": "ACK^I08^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-I09-ACK",
+        "display": "ACK^I09^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-I10-ACK",
+        "display": "ACK^I10^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-I11-ACK",
+        "display": "ACK^I11^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-I21-ACK",
+        "display": "ACK^I21^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-I16-ACK",
+        "display": "ACK^I16^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-I17-ACK",
+        "display": "ACK^I17^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-I18-ACK",
+        "display": "ACK^I18^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-I20-ACK",
+        "display": "ACK^I20^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-I19-ACK",
+        "display": "ACK^I19^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-I22-ACK",
+        "display": "ACK^I22^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-Q25-ACK",
+        "display": "ACK^Q25^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-K25-ACK",
+        "display": "ACK^K25^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-E01-ACK",
+        "display": "ACK^E01^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-E02-ACK",
+        "display": "ACK^E02^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-E03-ACK",
+        "display": "ACK^E03^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-E04-ACK",
+        "display": "ACK^E04^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-E10-ACK",
+        "display": "ACK^E10^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-E12-ACK",
+        "display": "ACK^E12^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-E13-ACK",
+        "display": "ACK^E13^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-E15-ACK",
+        "display": "ACK^E15^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-E20-ACK",
+        "display": "ACK^E20^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-E21-ACK",
+        "display": "ACK^E21^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-E22-ACK",
+        "display": "ACK^E22^ACK: Response to "
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACK-E24-ACK",
+        "display": "ACK^E24^ACK: Response to "
+      }
+    }
+  ]
+}

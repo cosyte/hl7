@@ -1,0 +1,840 @@
+{
+  "resourceType": "StructureDefinition",
+  "url": "http://hl7.org/v2/StructureDefinition/OMP_O09",
+  "id": "OMP_O09",
+  "meta": {
+    "profile": [
+      "http://hl7.org/v2/StructureDefinition/MessageStructure-Profile"
+    ]
+  },
+  "version": "0.0.1",
+  "status": "active",
+  "kind": "logical",
+  "abstract": false,
+  "baseDefinition": "http://hl7.org/v2/StructureDefinition/MessageStructure",
+  "derivation": "specialization",
+  "differential": {
+    "element": [
+      {
+        "id": "OMP_O09",
+        "path": "OMP_O09",
+        "short": "OMP_O09",
+        "definition": "OMP_O09 Message Structure",
+        "min": 0,
+        "max": "*"
+      },
+      {
+        "id": "OMP_O09.1-MSH",
+        "path": "OMP_O09.1-MSH",
+        "short": "Message Header",
+        "min": 1,
+        "max": "1",
+        "definition": "Message Header",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/MSH"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMP_O09.2-ARV",
+        "path": "OMP_O09.2-ARV",
+        "short": "Acccess Restrictions",
+        "min": 0,
+        "max": "*",
+        "definition": "Acccess Restrictions",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ARV"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMP_O09.3-SFT",
+        "path": "OMP_O09.3-SFT",
+        "short": "Software",
+        "min": 0,
+        "max": "*",
+        "definition": "Software",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/SFT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMP_O09.4-UAC",
+        "path": "OMP_O09.4-UAC",
+        "short": "User Authentication Credential",
+        "min": 0,
+        "max": "1",
+        "definition": "User Authentication Credential",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/UAC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMP_O09.5-NTE",
+        "path": "OMP_O09.5-NTE",
+        "short": "Notes and Comments (for Header)",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes and Comments (for Header)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMP_O09.6-PATIENT",
+        "path": "OMP_O09.6-PATIENT",
+        "short": "PATIENT",
+        "min": 0,
+        "max": "1",
+        "definition": "PATIENT",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OMP_O09.6-PATIENT.1-PID",
+        "path": "OMP_O09.6-PATIENT.1-PID",
+        "short": "Patient Identification",
+        "min": 1,
+        "max": "1",
+        "definition": "Patient Identification",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PID"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMP_O09.6-PATIENT.2-ADDITIONAL_DEMOGRAPHICS",
+        "path": "OMP_O09.6-PATIENT.2-ADDITIONAL_DEMOGRAPHICS",
+        "short": "ADDITIONAL_DEMOGRAPHICS",
+        "min": 0,
+        "max": "1",
+        "definition": "ADDITIONAL_DEMOGRAPHICS",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OMP_O09.6-PATIENT.2-ADDITIONAL_DEMOGRAPHICS.1-PD1",
+        "path": "OMP_O09.6-PATIENT.2-ADDITIONAL_DEMOGRAPHICS.1-PD1",
+        "short": "Additional Demographics",
+        "min": 1,
+        "max": "1",
+        "definition": "Additional Demographics",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PD1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMP_O09.6-PATIENT.2-ADDITIONAL_DEMOGRAPHICS.2-GSP",
+        "path": "OMP_O09.6-PATIENT.2-ADDITIONAL_DEMOGRAPHICS.2-GSP",
+        "short": "Person Gender and Sex",
+        "min": 0,
+        "max": "*",
+        "definition": "Person Gender and Sex",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSP"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMP_O09.6-PATIENT.2-ADDITIONAL_DEMOGRAPHICS.3-GSR",
+        "path": "OMP_O09.6-PATIENT.2-ADDITIONAL_DEMOGRAPHICS.3-GSR",
+        "short": "Recorded Gender and Sex",
+        "min": 0,
+        "max": "*",
+        "definition": "Recorded Gender and Sex",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSR"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMP_O09.6-PATIENT.2-ADDITIONAL_DEMOGRAPHICS.4-GSC",
+        "path": "OMP_O09.6-PATIENT.2-ADDITIONAL_DEMOGRAPHICS.4-GSC",
+        "short": "Sex Parameter for Clinical UseSex Parameter for Clinical Use",
+        "min": 0,
+        "max": "*",
+        "definition": "Sex Parameter for Clinical UseSex Parameter for Clinical Use",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMP_O09.6-PATIENT.2-ADDITIONAL_DEMOGRAPHICS.5-PRT",
+        "path": "OMP_O09.6-PATIENT.2-ADDITIONAL_DEMOGRAPHICS.5-PRT",
+        "short": "Participation (for Additional Demographics)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (for Additional Demographics)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMP_O09.6-PATIENT.3-NTE",
+        "path": "OMP_O09.6-PATIENT.3-NTE",
+        "short": "Notes and Comments (for Patient ID)",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes and Comments (for Patient ID)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMP_O09.6-PATIENT.4-ARV",
+        "path": "OMP_O09.6-PATIENT.4-ARV",
+        "short": "For backwards compatibility only as of V2.9.",
+        "min": 0,
+        "max": "*",
+        "definition": "For backwards compatibility only as of V2.9.",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ARV"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "B"
+          }
+        ]
+      },
+      {
+        "id": "OMP_O09.6-PATIENT.5-PATIENT_VISIT",
+        "path": "OMP_O09.6-PATIENT.5-PATIENT_VISIT",
+        "short": "PATIENT_VISIT",
+        "min": 0,
+        "max": "1",
+        "definition": "PATIENT_VISIT",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OMP_O09.6-PATIENT.5-PATIENT_VISIT.1-PV1",
+        "path": "OMP_O09.6-PATIENT.5-PATIENT_VISIT.1-PV1",
+        "short": "Patient Visit",
+        "min": 1,
+        "max": "1",
+        "definition": "Patient Visit",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PV1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMP_O09.6-PATIENT.5-PATIENT_VISIT.2-PV2",
+        "path": "OMP_O09.6-PATIENT.5-PATIENT_VISIT.2-PV2",
+        "short": "Patient Visit - Additional Info",
+        "min": 0,
+        "max": "1",
+        "definition": "Patient Visit \u2013 Additional Info",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PV2"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMP_O09.6-PATIENT.5-PATIENT_VISIT.3-PRT",
+        "path": "OMP_O09.6-PATIENT.5-PATIENT_VISIT.3-PRT",
+        "short": "Participation (for Patient Visit)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (for Patient Visit)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMP_O09.6-PATIENT.5-PATIENT_VISIT.4-ARV",
+        "path": "OMP_O09.6-PATIENT.5-PATIENT_VISIT.4-ARV",
+        "short": "For backwards compatibility only as of V2.9.",
+        "min": 0,
+        "max": "*",
+        "definition": "For backwards compatibility only as of V2.9.",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ARV"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "B"
+          }
+        ]
+      },
+      {
+        "id": "OMP_O09.6-PATIENT.6-INSURANCE",
+        "path": "OMP_O09.6-PATIENT.6-INSURANCE",
+        "short": "INSURANCE",
+        "min": 0,
+        "max": "*",
+        "definition": "INSURANCE",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OMP_O09.6-PATIENT.6-INSURANCE.1-IN1",
+        "path": "OMP_O09.6-PATIENT.6-INSURANCE.1-IN1",
+        "short": "Insurance",
+        "min": 1,
+        "max": "1",
+        "definition": "Insurance",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/IN1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMP_O09.6-PATIENT.6-INSURANCE.2-IN2",
+        "path": "OMP_O09.6-PATIENT.6-INSURANCE.2-IN2",
+        "short": "Insurance Additional Information",
+        "min": 0,
+        "max": "1",
+        "definition": "Insurance Additional Information",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/IN2"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMP_O09.6-PATIENT.6-INSURANCE.3-IN3",
+        "path": "OMP_O09.6-PATIENT.6-INSURANCE.3-IN3",
+        "short": "Insurance Additional Information, Certification",
+        "min": 0,
+        "max": "1",
+        "definition": "Insurance Additional Information, Certification",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/IN3"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMP_O09.6-PATIENT.7-GT1",
+        "path": "OMP_O09.6-PATIENT.7-GT1",
+        "short": "Guarantor",
+        "min": 0,
+        "max": "1",
+        "definition": "Guarantor",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GT1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMP_O09.6-PATIENT.8-AL1",
+        "path": "OMP_O09.6-PATIENT.8-AL1",
+        "short": "Allergy Information",
+        "min": 0,
+        "max": "*",
+        "definition": "Allergy Information",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/AL1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMP_O09.7-ORDER",
+        "path": "OMP_O09.7-ORDER",
+        "short": "ORDER",
+        "min": 1,
+        "max": "*",
+        "definition": "ORDER",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OMP_O09.7-ORDER.1-ORC",
+        "path": "OMP_O09.7-ORDER.1-ORC",
+        "short": "Common Order",
+        "min": 1,
+        "max": "1",
+        "definition": "Common Order",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ORC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMP_O09.7-ORDER.2-TIMING",
+        "path": "OMP_O09.7-ORDER.2-TIMING",
+        "short": "TIMING",
+        "min": 0,
+        "max": "*",
+        "definition": "TIMING",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OMP_O09.7-ORDER.2-TIMING.1-TQ1",
+        "path": "OMP_O09.7-ORDER.2-TIMING.1-TQ1",
+        "short": "Timing/Quantity",
+        "min": 1,
+        "max": "1",
+        "definition": "Timing/Quantity",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/TQ1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMP_O09.7-ORDER.2-TIMING.2-TQ2",
+        "path": "OMP_O09.7-ORDER.2-TIMING.2-TQ2",
+        "short": "Timing/Quantity Order Sequence",
+        "min": 0,
+        "max": "*",
+        "definition": "Timing/Quantity Order Sequence",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/TQ2"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMP_O09.7-ORDER.3-RXO",
+        "path": "OMP_O09.7-ORDER.3-RXO",
+        "short": "Pharmacy/Treatment Order",
+        "min": 1,
+        "max": "1",
+        "definition": "Pharmacy/Treatment Order",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/RXO"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMP_O09.7-ORDER.4-PRT",
+        "path": "OMP_O09.7-ORDER.4-PRT",
+        "short": "Participation (for Pharmacy/Treatment Order)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (for RXO)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMP_O09.7-ORDER.5-NTE",
+        "path": "OMP_O09.7-ORDER.5-NTE",
+        "short": "Notes and Comments (for RXO)",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes and Comments (for RXO)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMP_O09.7-ORDER.6-RXR",
+        "path": "OMP_O09.7-ORDER.6-RXR",
+        "short": "Pharmacy/Treatment Route",
+        "min": 1,
+        "max": "*",
+        "definition": "Pharmacy/Treatment Route",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/RXR"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMP_O09.7-ORDER.7-COMPONENT",
+        "path": "OMP_O09.7-ORDER.7-COMPONENT",
+        "short": "COMPONENT",
+        "min": 0,
+        "max": "*",
+        "definition": "COMPONENT",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OMP_O09.7-ORDER.7-COMPONENT.1-RXC",
+        "path": "OMP_O09.7-ORDER.7-COMPONENT.1-RXC",
+        "short": "Pharmacy/Treatment Component",
+        "min": 1,
+        "max": "1",
+        "definition": "Pharmacy/Treatment Component",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/RXC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMP_O09.7-ORDER.7-COMPONENT.2-NTE",
+        "path": "OMP_O09.7-ORDER.7-COMPONENT.2-NTE",
+        "short": "Notes and Comments (for each RXC)",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes and Comments (for each RXC)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMP_O09.7-ORDER.8-CDO",
+        "path": "OMP_O09.7-ORDER.8-CDO",
+        "short": "Cumulative Dosage",
+        "min": 0,
+        "max": "*",
+        "definition": "Cumulative Dosage Segment",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/CDO"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMP_O09.7-ORDER.9-OBSERVATION",
+        "path": "OMP_O09.7-ORDER.9-OBSERVATION",
+        "short": "OBSERVATION",
+        "min": 0,
+        "max": "*",
+        "definition": "OBSERVATION",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OMP_O09.7-ORDER.9-OBSERVATION.1-OBX",
+        "path": "OMP_O09.7-ORDER.9-OBSERVATION.1-OBX",
+        "short": "Observation/Result",
+        "min": 1,
+        "max": "1",
+        "definition": "Observation/Result",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OBX"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMP_O09.7-ORDER.9-OBSERVATION.2-PRT",
+        "path": "OMP_O09.7-ORDER.9-OBSERVATION.2-PRT",
+        "short": "Participation (for Observation)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (for Observation)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMP_O09.7-ORDER.9-OBSERVATION.3-NTE",
+        "path": "OMP_O09.7-ORDER.9-OBSERVATION.3-NTE",
+        "short": "Notes and Comments (for OBX)",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes and Comments (for OBX)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMP_O09.7-ORDER.10-FT1",
+        "path": "OMP_O09.7-ORDER.10-FT1",
+        "short": "Financial Transaction",
+        "min": 0,
+        "max": "*",
+        "definition": "Financial Transaction",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/FT1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMP_O09.7-ORDER.11-BLG",
+        "path": "OMP_O09.7-ORDER.11-BLG",
+        "short": "Billing",
+        "min": 0,
+        "max": "1",
+        "definition": "Billing Segment",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/BLG"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      }
+    ]
+  },
+  "title": "HL7 v2 OMP_O09 Message Structure",
+  "name": "OMP_O09",
+  "type": "OMP_O09",
+  "fhirVersion": "5.0.0",
+  "date": "2025-06-13T21:28:58Z"
+}

@@ -469,6 +469,53 @@ export function missingExpectedGroup(
 }
 
 /**
+ * Build a `MISSING_EXPECTED_GROUP` warning naming one absent required SEGMENT.
+ *
+ * This is what the parser emits: once per segment the published structure
+ * definition gives a minimum of one and the message does not carry, e.g. an
+ * `ADT^A01` with no `EVN`. It shares the code with
+ * {@link missingExpectedGroup} on purpose. The code is public contract that
+ * consumers narrow on, and the change here is which structural fact the
+ * message names, not which class of finding it is.
+ *
+ * Tier-2 and additive: lenient parse never throws on it, `strict` mode may
+ * promote it. The message carries only structural identifiers (the message
+ * type, the segment name, the published structure id), never a field value:
+ * the message type is shape-checked before it is interpolated and withheld if
+ * it does not match, and the other two are registry data rather than anything
+ * read off the message. `position` references MSH-9.
+ *
+ * @example
+ * ```ts
+ * import { missingRequiredSegment } from "@cosyte/hl7";
+ * const w = missingRequiredSegment(
+ *   { segmentIndex: 0, fieldIndex: 9 },
+ *   "ADT^A01",
+ *   "EVN",
+ *   "ADT_A01",
+ * );
+ * ```
+ */
+export function missingRequiredSegment(
+  position: Hl7Position,
+  messageType: string,
+  segmentName: string,
+  structureId: string,
+): Hl7ParseWarning {
+  const source =
+    structureId === ""
+      ? "which its expected structure gives a minimum of one"
+      : `which its published structure (${structureId}) gives a minimum of one`;
+  return {
+    code: WARNING_CODES.MISSING_EXPECTED_GROUP,
+    message:
+      `Message type "${safeDerivedToken(messageType, "messageType")}" is missing segment "${segmentName}", ` +
+      `${source}; message may be truncated or misrouted.`,
+    position,
+  };
+}
+
+/**
  * Build an `OUT_OF_ORDER_SEGMENT` warning. Emitted when a segment appears
  * outside the order the active profile declares (e.g. `EVN` appearing
  * before `MSH` in a typical ADT message).

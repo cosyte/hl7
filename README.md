@@ -534,7 +534,7 @@ Matching on `messageCode` + `triggerEvent` is more robust than string-equals on 
 
 ### Spot a truncated or misrouted message
 
-For the common message types, `msg.structure` reports whether the core segment groups the HL7 spec marks **Required** for that trigger event are actually present. It's a **misroute / truncation safety net**, not a conformance validator: an `ORU^R01` that arrives with no `OBR`/`OBX` result group is almost always truncated or sent to the wrong feed.
+For the message types it covers, `msg.structure` reports whether the segments HL7's own published message-structure definitions give a **minimum of one** for that trigger event are actually present. It's a **misroute / truncation safety net**, not a conformance validator: an `ORU^R01` that arrives with no `OBR` is almost always truncated or sent to the wrong feed.
 
 ```ts
 import { parseHL7, WARNING_CODES } from "@cosyte/hl7";
@@ -542,16 +542,19 @@ import { parseHL7, WARNING_CODES } from "@cosyte/hl7";
 const msg = parseHL7(raw); // ORU^R01 with only MSH + PID
 
 console.log(msg.structure.recognized); // true
-console.log(msg.structure.missingGroups); // ["result"]  (no OBR/OBX)
+console.log(msg.structure.missingSegments); // ["OBR"]
+console.log(msg.structure.structureIds); // ["ORU_R01-A", "ORU_R01-B", ...]
 
 // The same finding also surfaces as an additive Tier-2 warning, so a
 // channel can route on it without inspecting `structure`:
 if (msg.warnings.some((w) => w.code === WARNING_CODES.MISSING_EXPECTED_GROUP)) {
-  // quarantine / alert: the message is missing an expected segment group
+  // quarantine / alert: the message is missing an expected segment
 }
 ```
 
-The check is **conservative by construction**: it only models groups that are genuinely Required (so a conformant-but-sparse message never warns), it keys on the **trigger event** (not the message family), and a type it doesn't recognize yields `recognized: false` and emits nothing. It never throws and never rewrites the message. `strict` mode may promote the warning to an error per the usual model. Recognized types: ADT (A01/A02/A03/A04/A05/A08/A11/A13), ORU^R01, ORM^O01, OML^O21, OMG^O19, OMP^O09, OMI^O23, SIU (S12–S26), MDM (T02/T06), DFT^P03, VXU^V04, and ACK. See [`docs-content/spec-notes-structure.md`](docs-content/spec-notes-structure.md) for the per-type Required-segment sourcing.
+Expectations are **derived, not hand-picked**: the package vendors a byte-for-byte snapshot of the published structures and derives the registry from it offline, with no network call at build time or run time. `STRUCTURE_REGISTRY_PROVENANCE` carries the publication, its commit, the sha256 of every vendored file and the structure behind every recognized pair, so a warning can be audited without leaving the package.
+
+It stays conservative where the publication is: a segment inside an optional group is not expected (so a conformant `OBX`-free `ORU^R01` never warns), a segment is expected only when every published variant of the structure requires it, and a type it doesn't recognize yields `recognized: false` and emits nothing. It never throws and never rewrites the message. `strict` mode may promote the warning to an error per the usual model. Recognized message codes: ADT, ORU, ORM, OML, OMG, OMP, OMI, SIU, MDM, DFT, VXU and ACK, across 94 trigger-event pairs. See [`docs-content/spec-notes-structure.md`](docs-content/spec-notes-structure.md) for the full table, the derivation rules, and what changed for consumers.
 
 ### Validate against your own conformance profile (`validateAgainstProfile`)
 

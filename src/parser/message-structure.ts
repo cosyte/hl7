@@ -4,256 +4,131 @@
  * validator.
  *
  * It answers one question per message: **"for this trigger event, are the
- * core segment groups the spec marks Required actually present?"** When an
- * expected group is entirely absent (e.g. an `ORU^R01` carrying no `OBR`/`OBX`
- * result group: the classic signature of a truncated or misrouted feed), the
- * parser emits a single additive Tier-2 `MISSING_EXPECTED_GROUP` warning. It
- * never throws, never refuses, never rewrites the message.
+ * segments the published structure definition gives a minimum of one actually
+ * present?"** When a required segment is absent (e.g. an `ORU^R01` carrying no
+ * `OBR`: the classic signature of a truncated or misrouted feed), the parser
+ * emits a single additive Tier-2 `MISSING_EXPECTED_GROUP` warning naming that
+ * segment. It never throws, never refuses, never rewrites the message.
  *
- * Design constraints (all accuracy-driven, to guarantee ZERO spec
- * false-positives):
+ * Design constraints, all accuracy-driven:
  *
+ *   - **Derived, never hand-picked.** The registry below is generated from a
+ *     vendored, byte-for-byte snapshot of HL7's own machine-readable message
+ *     structures. There is no leniency list and no suppression list: what the
+ *     registry expects is what the publication says, and the one pair the
+ *     publication does not carry at all is marked as a retained transcription
+ *     carrying its reason.
  *   - **Per trigger event, never per family.** The claim that an ADT family
- *     shares one shape is false: events diverge by version and trigger. Every
- *     definition keys on the (messageCode, triggerEvent) pair.
- *   - **Required (R) anchors only.** A group is modelled only when its anchor
- *     segment is genuinely Required by the v2.5.1 abstract syntax for that
- *     event. Optional groups (e.g. PID in ORU, RXA in VXU, OBR in OML) are
- *     deliberately excluded so a conformant-but-sparse message never warns.
- *   - **Presence is liberal.** A group counts as present if ANY of its anchor
- *     segments appears: the conservative direction (it suppresses a warning
- *     rather than inventing one).
+ *     shares one shape is false: events diverge by trigger. Every definition
+ *     keys on the (messageCode, triggerEvent) pair, except `ACK`, whose
+ *     MSH-9.2 carries the ACKNOWLEDGED message's trigger event.
+ *   - **Optional groups never make a segment required.** A segment counts as
+ *     required only when its minimum is at least one along the whole path from
+ *     the structure root, so a conformant OBX-free `ORU^R01` never warns.
+ *   - **A family must agree.** Where the publication splits a structure into
+ *     variants, a segment is required only when every variant requires it.
  *   - **Unrecognized = silent.** A message whose type has no definition here
  *     produces an unrecognized structure summary and zero structural warnings.
  *
- * Spec traceability: HL7 v2.5.1: Ch. 3 (ADT), Ch. 4 (orders), Ch. 6
- * (financial: DFT), Ch. 7 (observation: ORU), Ch. 9 (MDM), Ch. 10
- * (scheduling: SIU), Ch. 2 (ACK), CDC IG (VXU). Per-entry sourcing lives in
+ * Provenance: every expectation traces to `STRUCTURE_REGISTRY_PROVENANCE`,
+ * which names the publication, the commit, the sha256 of every vendored file
+ * and the structure behind each recognized pair. Per-entry adjudication against
+ * the transcription this replaced lives in
  * `docs-content/spec-notes-structure.md`.
  *
- * Zero runtime deps: pure data + pure functions.
+ * Zero runtime deps, and zero network: pure data + pure functions.
  */
 
+import {
+  GENERATED_MESSAGE_STRUCTURE_DEFINITIONS,
+  GENERATED_STRUCTURE_REGISTRY_PROVENANCE,
+} from "./generated/message-structures.js";
+import type {
+  MessageStructure,
+  MessageStructureDefinition,
+  StructureGroup,
+} from "./structure-types.js";
 import { boundedIdentifier } from "./tokens.js";
 
-/**
- * One expected segment group for a recognized trigger event. The group is
- * considered **present** when at least one of its `anchorSegments` appears in
- * the parsed message; its total absence is what signals a truncated or
- * misrouted message.
- */
-export interface ExpectedSegmentGroup {
-  /** Human-readable group label, e.g. `"result"`, `"patient"`, `"order"`. */
-  readonly name: string;
-  /**
-   * The segment name(s) whose presence proves this group is present. Only
-   * segments the HL7 v2.5.1 abstract syntax marks **Required (R)** for the
-   * owning trigger event appear here, so a conformant message can never lack
-   * all of them.
-   */
-  readonly anchorSegments: readonly string[];
+export type {
+  ExpectedSegmentGroup,
+  MessageStructure,
+  MessageStructureDefinition,
+  StructureDerivation,
+  StructureFamily,
+  StructureGroup,
+  StructurePublicationRef,
+  StructureRegistryProvenance,
+  StructureSnapshotFile,
+  StructureSourcePair,
+} from "./structure-types.js";
+
+/** Freeze a definition and everything reachable from it. */
+function freezeDefinition(def: MessageStructureDefinition): MessageStructureDefinition {
+  return Object.freeze({
+    ...def,
+    triggerEvents: Object.freeze([...def.triggerEvents]),
+    expectedGroups: Object.freeze(def.expectedGroups.map((g) => Object.freeze({ ...g }))),
+    requiredSegments: Object.freeze([...def.requiredSegments]),
+    structureIds: Object.freeze([...def.structureIds]),
+  });
 }
 
 /**
- * The expected structure of one recognized message type, keyed on the
- * (messageCode, triggerEvent) pair. A definition with an empty `triggerEvents`
- * list matches on `messageCode` alone (used for `ACK`, which carries no
- * trigger event in MSH-9.2).
- */
-export interface MessageStructureDefinition {
-  /** MSH-9.1 message code, e.g. `"ORU"`. */
-  readonly messageCode: string;
-  /**
-   * The MSH-9.2 trigger events this definition applies to, e.g. `["R01"]`.
-   * An empty list means "match on message code alone" (e.g. `ACK`).
-   */
-  readonly triggerEvents: readonly string[];
-  /** The Required (R) segment groups expected for these events. */
-  readonly expectedGroups: readonly ExpectedSegmentGroup[];
-}
-
-/**
- * The conservative, Required-only expected-group registry. Each entry's spec
- * source is recorded in `docs-content/spec-notes-structure.md`. Deliberately
- * narrow: it recognizes the common message types' **core Required groups
- * only** and is NOT a conformance validator. Frozen (data, not config).
+ * The derived expected-segment registry. Generated from HL7's published,
+ * machine-readable message structures (see `STRUCTURE_REGISTRY_PROVENANCE` for
+ * the publication, the commit and the per-file hashes) and frozen: data, not
+ * config. Deliberately narrow in COVERAGE (twelve message codes) and not narrow
+ * in CONTENT: within those codes it expects exactly what the publication marks
+ * required. It is still a safety net, not a conformance validator.
  *
  * @example
  * ```ts
  * import { MESSAGE_STRUCTURE_DEFINITIONS } from "@cosyte/hl7";
- * const oru = MESSAGE_STRUCTURE_DEFINITIONS.find((d) => d.messageCode === "ORU");
- * console.log(oru?.expectedGroups[0]?.name); // "result"
+ * const adt = MESSAGE_STRUCTURE_DEFINITIONS.find((d) =>
+ *   d.messageCode === "ADT" && d.triggerEvents.includes("A01"),
+ * );
+ * console.log(adt?.requiredSegments); // ["EVN", "MSH", "PID", "PV1"]
  * ```
  */
-export const MESSAGE_STRUCTURE_DEFINITIONS: readonly MessageStructureDefinition[] = Object.freeze([
-  // ── ADT (Ch. 3): patient identification (PID) + visit (PV1) are Required
-  //    for these admit/transfer/discharge/register/update/cancel events.
-  //    EVN is intentionally excluded: real senders omit it freely, making it
-  //    a weak (false-positive-prone) signal.
-  Object.freeze({
-    messageCode: "ADT",
-    triggerEvents: Object.freeze(["A01", "A02", "A03", "A04", "A05", "A08", "A11", "A13"]),
-    expectedGroups: Object.freeze([
-      Object.freeze({ name: "patient", anchorSegments: Object.freeze(["PID"]) }),
-      Object.freeze({ name: "visit", anchorSegments: Object.freeze(["PV1"]) }),
-    ]),
-  }),
-  // ── ORU^R01 (Ch. 7): the OBR/OBX result group is the Required payload.
-  //    PID is excluded (the patient-result group's PID is R within the group,
-  //    but a result-only relay can legitimately omit it at the top: keep the
-  //    anchor on the result segments themselves, the true truncation signal).
-  Object.freeze({
-    messageCode: "ORU",
-    triggerEvents: Object.freeze(["R01"]),
-    expectedGroups: Object.freeze([
-      Object.freeze({ name: "result", anchorSegments: Object.freeze(["OBR", "OBX"]) }),
-    ]),
-  }),
-  // ── Orders (Ch. 4): ORC is the Required common-order segment across the
-  //    order message family. OBR is excluded: it is Optional in several of
-  //    these (OML/OMG/OMI carry it inside an optional observation-request
-  //    group), so anchoring only on ORC avoids a false positive.
-  Object.freeze({
-    messageCode: "ORM",
-    triggerEvents: Object.freeze(["O01"]),
-    expectedGroups: Object.freeze([
-      Object.freeze({ name: "order", anchorSegments: Object.freeze(["ORC"]) }),
-    ]),
-  }),
-  Object.freeze({
-    messageCode: "OML",
-    triggerEvents: Object.freeze(["O21"]),
-    expectedGroups: Object.freeze([
-      Object.freeze({ name: "order", anchorSegments: Object.freeze(["ORC"]) }),
-    ]),
-  }),
-  Object.freeze({
-    messageCode: "OMG",
-    triggerEvents: Object.freeze(["O19"]),
-    expectedGroups: Object.freeze([
-      Object.freeze({ name: "order", anchorSegments: Object.freeze(["ORC"]) }),
-    ]),
-  }),
-  Object.freeze({
-    messageCode: "OMP",
-    triggerEvents: Object.freeze(["O09"]),
-    expectedGroups: Object.freeze([
-      Object.freeze({ name: "order", anchorSegments: Object.freeze(["ORC"]) }),
-    ]),
-  }),
-  Object.freeze({
-    messageCode: "OMI",
-    triggerEvents: Object.freeze(["O23"]),
-    expectedGroups: Object.freeze([
-      Object.freeze({ name: "order", anchorSegments: Object.freeze(["ORC"]) }),
-    ]),
-  }),
-  // ── SIU scheduling (Ch. 10): SCH (schedule activity) is Required for every
-  //    S12–S26 event. The patient group (PID) is Optional in the SIU abstract
-  //    syntax, so it is excluded.
-  Object.freeze({
-    messageCode: "SIU",
-    triggerEvents: Object.freeze([
-      "S12",
-      "S13",
-      "S14",
-      "S15",
-      "S16",
-      "S17",
-      "S18",
-      "S19",
-      "S20",
-      "S21",
-      "S22",
-      "S23",
-      "S24",
-      "S26",
-    ]),
-    expectedGroups: Object.freeze([
-      Object.freeze({ name: "schedule", anchorSegments: Object.freeze(["SCH"]) }),
-    ]),
-  }),
-  // ── MDM (Ch. 9): document management: PID + the TXA document header are
-  //    Required for T02 (original document) and T06 (document addendum).
-  Object.freeze({
-    messageCode: "MDM",
-    triggerEvents: Object.freeze(["T02", "T06"]),
-    expectedGroups: Object.freeze([
-      Object.freeze({ name: "patient", anchorSegments: Object.freeze(["PID"]) }),
-      Object.freeze({ name: "document", anchorSegments: Object.freeze(["TXA"]) }),
-    ]),
-  }),
-  // ── DFT^P03 (Ch. 6): financial transaction: PID + at least one FT1
-  //    financial-transaction segment are Required.
-  Object.freeze({
-    messageCode: "DFT",
-    triggerEvents: Object.freeze(["P03"]),
-    expectedGroups: Object.freeze([
-      Object.freeze({ name: "patient", anchorSegments: Object.freeze(["PID"]) }),
-      Object.freeze({ name: "financial", anchorSegments: Object.freeze(["FT1"]) }),
-    ]),
-  }),
-  // ── VXU^V04 (CDC IG): immunization update: PID is Required. RXA is
-  //    excluded: it lives in the Optional order group of the CDC IG, so a
-  //    query-shaped VXU with no administered vaccine must not warn.
-  Object.freeze({
-    messageCode: "VXU",
-    triggerEvents: Object.freeze(["V04"]),
-    expectedGroups: Object.freeze([
-      Object.freeze({ name: "patient", anchorSegments: Object.freeze(["PID"]) }),
-    ]),
-  }),
-  // ── ACK (Ch. 2): a general acknowledgment: MSA (message acknowledgment) is
-  //    Required. Matched on message code alone (no trigger event in MSH-9.2).
-  Object.freeze({
-    messageCode: "ACK",
-    triggerEvents: Object.freeze([]),
-    expectedGroups: Object.freeze([
-      Object.freeze({ name: "acknowledgment", anchorSegments: Object.freeze(["MSA"]) }),
-    ]),
-  }),
-]);
+export const MESSAGE_STRUCTURE_DEFINITIONS: readonly MessageStructureDefinition[] = Object.freeze(
+  GENERATED_MESSAGE_STRUCTURE_DEFINITIONS.map(freezeDefinition),
+);
 
 /**
- * The presence verdict for one expected group of a recognized message type.
+ * Where every expectation in {@link MESSAGE_STRUCTURE_DEFINITIONS} came from:
+ * the publication and the commit it was read at, the sha256 and upstream URL of
+ * every vendored file, the variant family behind each referenced structure, and
+ * the structure id behind each recognized (message code, trigger event) pair.
+ *
+ * A consumer auditing a warning can answer "says who?" without leaving the
+ * package and without a network call.
+ *
+ * @example
+ * ```ts
+ * import { STRUCTURE_REGISTRY_PROVENANCE } from "@cosyte/hl7";
+ * console.log(STRUCTURE_REGISTRY_PROVENANCE.publication.repository); // "HL7/v2ig"
+ * const a01 = STRUCTURE_REGISTRY_PROVENANCE.pairs.find(
+ *   (p) => p.messageCode === "ADT" && p.triggerEvent === "A01",
+ * );
+ * console.log(a01?.structureId); // "ADT_A01"
+ * ```
  */
-export interface StructureGroup {
-  /** The group label from its `ExpectedSegmentGroup`, e.g. `"result"`. */
-  readonly name: string;
-  /** The anchor segment name(s) whose presence would satisfy this group. */
-  readonly anchorSegments: readonly string[];
-  /** `true` when at least one anchor segment is present in the message. */
-  readonly present: boolean;
-}
-
-/**
- * The structure summary for a parsed message: the data behind
- * `Hl7Message.structure`. For an unrecognized type, `recognized` is `false`,
- * `expectedGroups` is empty, and `missingGroups` is empty (the safety net is
- * deliberately silent on types it does not model).
- */
-export interface MessageStructure {
-  /** `true` when a `MESSAGE_STRUCTURE_DEFINITIONS` entry matched the type. */
-  readonly recognized: boolean;
-  /**
-   * MSH-9.1 message code observed on the message. `""` when absent, and
-   * `"<withheld>"` when `recognized` is `false` and the observed value is not
-   * identifier-shaped (MSH-9 can hold a data field on a malformed message).
-   */
-  readonly messageCode: string;
-  /**
-   * MSH-9.2 trigger event observed on the message. `""` when absent, and
-   * `"<withheld>"` when `recognized` is `false` and the observed value is not
-   * identifier-shaped. Note that on the `recognized` branch this is echoed
-   * verbatim, which for a definition matching on message code alone (`ACK`)
-   * means an arbitrary MSH-9.2.
-   */
-  readonly triggerEvent: string;
-  /** Per-expected-group presence verdicts (empty when unrecognized). */
-  readonly expectedGroups: readonly StructureGroup[];
-  /** Names of the expected groups that are entirely absent (the warnings). */
-  readonly missingGroups: readonly string[];
-}
+export const STRUCTURE_REGISTRY_PROVENANCE = Object.freeze({
+  ...GENERATED_STRUCTURE_REGISTRY_PROVENANCE,
+  publication: Object.freeze({ ...GENERATED_STRUCTURE_REGISTRY_PROVENANCE.publication }),
+  files: Object.freeze(
+    GENERATED_STRUCTURE_REGISTRY_PROVENANCE.files.map((f) => Object.freeze({ ...f })),
+  ),
+  families: Object.freeze(
+    GENERATED_STRUCTURE_REGISTRY_PROVENANCE.families.map((f) =>
+      Object.freeze({ ...f, members: Object.freeze([...f.members]) }),
+    ),
+  ),
+  pairs: Object.freeze(
+    GENERATED_STRUCTURE_REGISTRY_PROVENANCE.pairs.map((p) => Object.freeze({ ...p })),
+  ),
+});
 
 /**
  * Find the structure definition for a (messageCode, triggerEvent) pair, or
@@ -276,11 +151,11 @@ function findDefinition(
 }
 
 /**
- * Analyze a parsed message's structure against the conservative expected-group
+ * Analyze a parsed message's structure against the derived expected-segment
  * registry. Pure: it takes the message code, trigger event, and the set of
  * segment names actually present, and returns a `MessageStructure` summary. It
  * decides nothing about whether to warn: the caller (parser) emits one
- * `MISSING_EXPECTED_GROUP` warning per name in `missingGroups`.
+ * `MISSING_EXPECTED_GROUP` warning per name in `missingSegments`.
  *
  * @param messageCode - MSH-9.1 (e.g. `"ORU"`); empty string if absent.
  * @param triggerEvent - MSH-9.2 (e.g. `"R01"`); empty string if absent.
@@ -290,8 +165,8 @@ function findDefinition(
  * ```ts
  * import { analyzeMessageStructure } from "@cosyte/hl7";
  * const s = analyzeMessageStructure("ORU", "R01", new Set(["MSH", "PID"]));
- * console.log(s.recognized);     // true
- * console.log(s.missingGroups);  // ["result"]  (no OBR/OBX)
+ * console.log(s.recognized);        // true
+ * console.log(s.missingSegments);   // ["OBR"]  (the published minimum of one)
  * ```
  */
 export function analyzeMessageStructure(
@@ -322,28 +197,55 @@ export function analyzeMessageStructure(
       triggerEvent: boundedIdentifier(triggerEvent, "segmentId"),
       expectedGroups: Object.freeze([]),
       missingGroups: Object.freeze([]),
+      requiredSegments: Object.freeze([]),
+      missingSegments: Object.freeze([]),
+      structureIds: Object.freeze([]),
     });
   }
 
   const groups: StructureGroup[] = [];
   const missing: string[] = [];
   for (const expected of def.expectedGroups) {
-    const present = expected.anchorSegments.some((name) => presentSegmentNames.has(name));
+    const present = presentSegmentNames.has(expected.requiredSegment);
     groups.push(
       Object.freeze({
         name: expected.name,
         anchorSegments: expected.anchorSegments,
+        requiredSegment: expected.requiredSegment,
         present,
       }),
     );
-    if (!present) missing.push(expected.name);
+    if (!present) missing.push(expected.requiredSegment);
   }
 
+  const missingSegments = Object.freeze(missing);
   return Object.freeze({
     recognized: true,
     messageCode,
     triggerEvent,
     expectedGroups: Object.freeze(groups),
-    missingGroups: Object.freeze(missing),
+    missingGroups: missingSegments,
+    requiredSegments: def.requiredSegments,
+    missingSegments,
+    structureIds: def.structureIds,
   });
+}
+
+/**
+ * The registry entry behind a recognized (message code, trigger event) pair, or
+ * `undefined` when the pair is not modelled. Exposed so a consumer reading a
+ * structural warning can reach the published structure it came from.
+ *
+ * @example
+ * ```ts
+ * import { findMessageStructureDefinition } from "@cosyte/hl7";
+ * const def = findMessageStructureDefinition("ORU", "R01");
+ * console.log(def?.structureId); // "ORU_R01"
+ * ```
+ */
+export function findMessageStructureDefinition(
+  messageCode: string,
+  triggerEvent: string,
+): MessageStructureDefinition | undefined {
+  return findDefinition(messageCode, triggerEvent);
 }

@@ -1,0 +1,1438 @@
+{
+  "resourceType": "StructureDefinition",
+  "url": "http://hl7.org/v2/StructureDefinition/DFT_P03",
+  "id": "DFT_P03",
+  "meta": {
+    "profile": [
+      "http://hl7.org/v2/StructureDefinition/MessageStructure-Profile"
+    ]
+  },
+  "version": "0.0.1",
+  "status": "active",
+  "kind": "logical",
+  "abstract": false,
+  "baseDefinition": "http://hl7.org/v2/StructureDefinition/MessageStructure",
+  "derivation": "specialization",
+  "differential": {
+    "element": [
+      {
+        "id": "DFT_P03",
+        "path": "DFT_P03",
+        "short": "DFT_P03",
+        "definition": "DFT_P03 Message Structure",
+        "min": 0,
+        "max": "*"
+      },
+      {
+        "id": "DFT_P03.1-MSH",
+        "path": "DFT_P03.1-MSH",
+        "short": "Message Header",
+        "min": 1,
+        "max": "1",
+        "definition": "Message Header",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/MSH"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.2-SFT",
+        "path": "DFT_P03.2-SFT",
+        "short": "Software",
+        "min": 0,
+        "max": "*",
+        "definition": "Software Segment",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/SFT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.3-UAC",
+        "path": "DFT_P03.3-UAC",
+        "short": "User Authentication Credential",
+        "min": 0,
+        "max": "1",
+        "definition": "User Authentication Credential",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/UAC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.4-EVN",
+        "path": "DFT_P03.4-EVN",
+        "short": "Event Type",
+        "min": 1,
+        "max": "1",
+        "definition": "Event Type",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/EVN"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.5-PID",
+        "path": "DFT_P03.5-PID",
+        "short": "Patient Identification",
+        "min": 1,
+        "max": "1",
+        "definition": "Patient Identification",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PID"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.6-PD1",
+        "path": "DFT_P03.6-PD1",
+        "short": "Additional Demographics",
+        "min": 0,
+        "max": "1",
+        "definition": "Additional Demographics",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PD1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.7-GSP",
+        "path": "DFT_P03.7-GSP",
+        "short": "Person Gender and Sex",
+        "min": 0,
+        "max": "*",
+        "definition": "Person Gender and Sex",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSP"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.8-GSR",
+        "path": "DFT_P03.8-GSR",
+        "short": "Recorded Gender and Sex",
+        "min": 0,
+        "max": "*",
+        "definition": "Recorded Gender and Sex",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSR"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.9-GSC",
+        "path": "DFT_P03.9-GSC",
+        "short": "Sex Parameter for Clinical Use",
+        "min": 0,
+        "max": "*",
+        "definition": "Sex Parameter for Clinical Use",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.10-PRT",
+        "path": "DFT_P03.10-PRT",
+        "short": "Participation",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.11-ROL",
+        "path": "DFT_P03.11-ROL",
+        "short": "*Role*",
+        "min": 0,
+        "max": "*",
+        "definition": "*Role*",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ROL"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": ""
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.12-VISIT",
+        "path": "DFT_P03.12-VISIT",
+        "short": "VISIT",
+        "min": 0,
+        "max": "1",
+        "definition": "VISIT",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.12-VISIT.1-PV1",
+        "path": "DFT_P03.12-VISIT.1-PV1",
+        "short": "Patient Visit",
+        "min": 0,
+        "max": "1",
+        "definition": "Patient Visit",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PV1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.12-VISIT.2-PV2",
+        "path": "DFT_P03.12-VISIT.2-PV2",
+        "short": "Patient Visit - Additional Info",
+        "min": 0,
+        "max": "1",
+        "definition": "Patient Visit - Additional Info",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PV2"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.12-VISIT.3-PRT",
+        "path": "DFT_P03.12-VISIT.3-PRT",
+        "short": "Participation",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.12-VISIT.4-ROL",
+        "path": "DFT_P03.12-VISIT.4-ROL",
+        "short": "*Role*",
+        "min": 0,
+        "max": "*",
+        "definition": "*Role*",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ROL"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": ""
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.13-DB1",
+        "path": "DFT_P03.13-DB1",
+        "short": "Disability Information",
+        "min": 0,
+        "max": "*",
+        "definition": "Disability Information",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/DB1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.14-COMMON_ORDER",
+        "path": "DFT_P03.14-COMMON_ORDER",
+        "short": "COMMON_ORDER",
+        "min": 0,
+        "max": "*",
+        "definition": "COMMON_ORDER",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.14-COMMON_ORDER.1-ORC",
+        "path": "DFT_P03.14-COMMON_ORDER.1-ORC",
+        "short": "Common Order (across all FT1s)",
+        "min": 1,
+        "max": "1",
+        "definition": "Common Order (across all FT1s)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ORC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.14-COMMON_ORDER.2-PRT",
+        "path": "DFT_P03.14-COMMON_ORDER.2-PRT",
+        "short": "Participation",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.14-COMMON_ORDER.3-TIMING_QUANTITY",
+        "path": "DFT_P03.14-COMMON_ORDER.3-TIMING_QUANTITY",
+        "short": "TIMING_QUANTITY",
+        "min": 0,
+        "max": "*",
+        "definition": "TIMING_QUANTITY",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.14-COMMON_ORDER.3-TIMING_QUANTITY.1-TQ1",
+        "path": "DFT_P03.14-COMMON_ORDER.3-TIMING_QUANTITY.1-TQ1",
+        "short": "Timing/Quantity",
+        "min": 1,
+        "max": "1",
+        "definition": "Timing/Quantity",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/TQ1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.14-COMMON_ORDER.3-TIMING_QUANTITY.2-TQ2",
+        "path": "DFT_P03.14-COMMON_ORDER.3-TIMING_QUANTITY.2-TQ2",
+        "short": "Timing/Quantity Order Sequence",
+        "min": 0,
+        "max": "*",
+        "definition": "Timing/Quantity Order Sequence",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/TQ2"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.14-COMMON_ORDER.4-ORDER",
+        "path": "DFT_P03.14-COMMON_ORDER.4-ORDER",
+        "short": "ORDER",
+        "min": 0,
+        "max": "1",
+        "definition": "ORDER",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.14-COMMON_ORDER.4-ORDER.1-OBR",
+        "path": "DFT_P03.14-COMMON_ORDER.4-ORDER.1-OBR",
+        "short": "Order Detail",
+        "min": 1,
+        "max": "1",
+        "definition": "Order Detail Segment",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OBR"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.14-COMMON_ORDER.4-ORDER.2-PRT",
+        "path": "DFT_P03.14-COMMON_ORDER.4-ORDER.2-PRT",
+        "short": "Participation",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.14-COMMON_ORDER.4-ORDER.3-NTE",
+        "path": "DFT_P03.14-COMMON_ORDER.4-ORDER.3-NTE",
+        "short": "Notes and Comments (on Order Detail)",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes and Comments (on Order Detail)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.14-COMMON_ORDER.5-OBSERVATION",
+        "path": "DFT_P03.14-COMMON_ORDER.5-OBSERVATION",
+        "short": "OBSERVATION",
+        "min": 0,
+        "max": "*",
+        "definition": "OBSERVATION",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.14-COMMON_ORDER.5-OBSERVATION.1-OBX",
+        "path": "DFT_P03.14-COMMON_ORDER.5-OBSERVATION.1-OBX",
+        "short": "Observations / Result",
+        "min": 1,
+        "max": "1",
+        "definition": "Observations / Result",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OBX"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.14-COMMON_ORDER.5-OBSERVATION.2-PRT",
+        "path": "DFT_P03.14-COMMON_ORDER.5-OBSERVATION.2-PRT",
+        "short": "Participation",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.14-COMMON_ORDER.5-OBSERVATION.3-NTE",
+        "path": "DFT_P03.14-COMMON_ORDER.5-OBSERVATION.3-NTE",
+        "short": "Notes and Comments (on Result)",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes and Comments (on Result)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.15-FINANCIAL",
+        "path": "DFT_P03.15-FINANCIAL",
+        "short": "FINANCIAL",
+        "min": 1,
+        "max": "*",
+        "definition": "FINANCIAL",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.15-FINANCIAL.1-FT1",
+        "path": "DFT_P03.15-FINANCIAL.1-FT1",
+        "short": "Financial Transaction",
+        "min": 1,
+        "max": "1",
+        "definition": "Financial Transaction",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/FT1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.15-FINANCIAL.2-PRT",
+        "path": "DFT_P03.15-FINANCIAL.2-PRT",
+        "short": "Participation",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.15-FINANCIAL.3-ROL",
+        "path": "DFT_P03.15-FINANCIAL.3-ROL",
+        "short": "Role",
+        "min": 0,
+        "max": "*",
+        "definition": "Role",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ROL"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.15-FINANCIAL.4-NTE",
+        "path": "DFT_P03.15-FINANCIAL.4-NTE",
+        "short": "Notes and Comments (on line item - FT1 - above)",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes and Comments (on line item - FT1 - above)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.15-FINANCIAL.5-FINANCIAL_PROCEDURE",
+        "path": "DFT_P03.15-FINANCIAL.5-FINANCIAL_PROCEDURE",
+        "short": "FINANCIAL_PROCEDURE",
+        "min": 0,
+        "max": "*",
+        "definition": "FINANCIAL_PROCEDURE",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.15-FINANCIAL.5-FINANCIAL_PROCEDURE.1-PR1",
+        "path": "DFT_P03.15-FINANCIAL.5-FINANCIAL_PROCEDURE.1-PR1",
+        "short": "Procedure",
+        "min": 1,
+        "max": "1",
+        "definition": "Procedure",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PR1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.15-FINANCIAL.5-FINANCIAL_PROCEDURE.2-PRT",
+        "path": "DFT_P03.15-FINANCIAL.5-FINANCIAL_PROCEDURE.2-PRT",
+        "short": "Participation",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.15-FINANCIAL.5-FINANCIAL_PROCEDURE.3-ROL",
+        "path": "DFT_P03.15-FINANCIAL.5-FINANCIAL_PROCEDURE.3-ROL",
+        "short": "Role",
+        "min": 0,
+        "max": "*",
+        "definition": "Role",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ROL"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "B"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.15-FINANCIAL.6-FINANCIAL_OBSERVATION_STANDALONE",
+        "path": "DFT_P03.15-FINANCIAL.6-FINANCIAL_OBSERVATION_STANDALONE",
+        "short": "FINANCIAL_OBSERVATION_STANDALONE",
+        "min": 0,
+        "max": "*",
+        "definition": "FINANCIAL_OBSERVATION_STANDALONE",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.15-FINANCIAL.6-FINANCIAL_OBSERVATION_STANDALONE.1-OBX",
+        "path": "DFT_P03.15-FINANCIAL.6-FINANCIAL_OBSERVATION_STANDALONE.1-OBX",
+        "short": "Observation",
+        "min": 1,
+        "max": "1",
+        "definition": "Observation",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OBX"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.15-FINANCIAL.6-FINANCIAL_OBSERVATION_STANDALONE.2-PRT",
+        "path": "DFT_P03.15-FINANCIAL.6-FINANCIAL_OBSERVATION_STANDALONE.2-PRT",
+        "short": "Participation",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.15-FINANCIAL.6-FINANCIAL_OBSERVATION_STANDALONE.3-NTE",
+        "path": "DFT_P03.15-FINANCIAL.6-FINANCIAL_OBSERVATION_STANDALONE.3-NTE",
+        "short": "Notes and Comment (on Result)",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes and Comment (on Result)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.15-FINANCIAL.7-FINANCIAL_ORDER_STANDALONE",
+        "path": "DFT_P03.15-FINANCIAL.7-FINANCIAL_ORDER_STANDALONE",
+        "short": "FINANCIAL_ORDER_STANDALONE",
+        "min": 0,
+        "max": "*",
+        "definition": "FINANCIAL_ORDER_STANDALONE",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.15-FINANCIAL.7-FINANCIAL_ORDER_STANDALONE.1-OBR",
+        "path": "DFT_P03.15-FINANCIAL.7-FINANCIAL_ORDER_STANDALONE.1-OBR",
+        "short": "Order Detail",
+        "min": 1,
+        "max": "1",
+        "definition": "Order Detail Segment",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OBR"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.15-FINANCIAL.7-FINANCIAL_ORDER_STANDALONE.2-PRT",
+        "path": "DFT_P03.15-FINANCIAL.7-FINANCIAL_ORDER_STANDALONE.2-PRT",
+        "short": "Participation",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.15-FINANCIAL.7-FINANCIAL_ORDER_STANDALONE.3-NTE",
+        "path": "DFT_P03.15-FINANCIAL.7-FINANCIAL_ORDER_STANDALONE.3-NTE",
+        "short": "Notes and Comment (on Result)",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes and Comment (on Result)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.15-FINANCIAL.7-FINANCIAL_ORDER_STANDALONE.4-FINANCIAL_OBSERVATION",
+        "path": "DFT_P03.15-FINANCIAL.7-FINANCIAL_ORDER_STANDALONE.4-FINANCIAL_OBSERVATION",
+        "short": "FINANCIAL_OBSERVATION",
+        "min": 0,
+        "max": "*",
+        "definition": "FINANCIAL_OBSERVATION",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.15-FINANCIAL.7-FINANCIAL_ORDER_STANDALONE.4-FINANCIAL_OBSERVATION.1-OBX",
+        "path": "DFT_P03.15-FINANCIAL.7-FINANCIAL_ORDER_STANDALONE.4-FINANCIAL_OBSERVATION.1-OBX",
+        "short": "Observation",
+        "min": 1,
+        "max": "1",
+        "definition": "Observation",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OBX"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.15-FINANCIAL.7-FINANCIAL_ORDER_STANDALONE.4-FINANCIAL_OBSERVATION.2-PRT",
+        "path": "DFT_P03.15-FINANCIAL.7-FINANCIAL_ORDER_STANDALONE.4-FINANCIAL_OBSERVATION.2-PRT",
+        "short": "Participation",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.15-FINANCIAL.7-FINANCIAL_ORDER_STANDALONE.4-FINANCIAL_OBSERVATION.3-NTE",
+        "path": "DFT_P03.15-FINANCIAL.7-FINANCIAL_ORDER_STANDALONE.4-FINANCIAL_OBSERVATION.3-NTE",
+        "short": "Notes and Comment (on Result)",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes and Comment (on Result)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.15-FINANCIAL.8-FINANCIAL_COMMON_ORDER",
+        "path": "DFT_P03.15-FINANCIAL.8-FINANCIAL_COMMON_ORDER",
+        "short": "FINANCIAL_COMMON_ORDER",
+        "min": 0,
+        "max": "*",
+        "definition": "FINANCIAL_COMMON_ORDER",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.15-FINANCIAL.8-FINANCIAL_COMMON_ORDER.1-ORC",
+        "path": "DFT_P03.15-FINANCIAL.8-FINANCIAL_COMMON_ORDER.1-ORC",
+        "short": "Common Order (specific to above FT1)",
+        "min": 1,
+        "max": "1",
+        "definition": "Common Order (specific to above FT1)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ORC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.15-FINANCIAL.8-FINANCIAL_COMMON_ORDER.2-PRT",
+        "path": "DFT_P03.15-FINANCIAL.8-FINANCIAL_COMMON_ORDER.2-PRT",
+        "short": "Participation",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.15-FINANCIAL.8-FINANCIAL_COMMON_ORDER.3-FINANCIAL_TIMING_QUANTITY",
+        "path": "DFT_P03.15-FINANCIAL.8-FINANCIAL_COMMON_ORDER.3-FINANCIAL_TIMING_QUANTITY",
+        "short": "FINANCIAL_TIMING_QUANTITY",
+        "min": 0,
+        "max": "*",
+        "definition": "FINANCIAL_TIMING_QUANTITY",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.15-FINANCIAL.8-FINANCIAL_COMMON_ORDER.3-FINANCIAL_TIMING_QUANTITY.1-TQ1",
+        "path": "DFT_P03.15-FINANCIAL.8-FINANCIAL_COMMON_ORDER.3-FINANCIAL_TIMING_QUANTITY.1-TQ1",
+        "short": "Timing/Quantity",
+        "min": 1,
+        "max": "1",
+        "definition": "Timing/Quantity",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/TQ1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.15-FINANCIAL.8-FINANCIAL_COMMON_ORDER.3-FINANCIAL_TIMING_QUANTITY.2-TQ2",
+        "path": "DFT_P03.15-FINANCIAL.8-FINANCIAL_COMMON_ORDER.3-FINANCIAL_TIMING_QUANTITY.2-TQ2",
+        "short": "Timing/Quantity Order Sequence",
+        "min": 0,
+        "max": "*",
+        "definition": "Timing/Quantity Order Sequence",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/TQ2"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.15-FINANCIAL.8-FINANCIAL_COMMON_ORDER.4-FINANCIAL_ORDER",
+        "path": "DFT_P03.15-FINANCIAL.8-FINANCIAL_COMMON_ORDER.4-FINANCIAL_ORDER",
+        "short": "FINANCIAL_ORDER",
+        "min": 0,
+        "max": "1",
+        "definition": "FINANCIAL_ORDER",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.15-FINANCIAL.8-FINANCIAL_COMMON_ORDER.4-FINANCIAL_ORDER.1-OBR",
+        "path": "DFT_P03.15-FINANCIAL.8-FINANCIAL_COMMON_ORDER.4-FINANCIAL_ORDER.1-OBR",
+        "short": "Order Detail",
+        "min": 1,
+        "max": "1",
+        "definition": "Order Detail Segment",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OBR"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.15-FINANCIAL.8-FINANCIAL_COMMON_ORDER.4-FINANCIAL_ORDER.2-PRT",
+        "path": "DFT_P03.15-FINANCIAL.8-FINANCIAL_COMMON_ORDER.4-FINANCIAL_ORDER.2-PRT",
+        "short": "Participation",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.15-FINANCIAL.8-FINANCIAL_COMMON_ORDER.4-FINANCIAL_ORDER.3-NTE",
+        "path": "DFT_P03.15-FINANCIAL.8-FINANCIAL_COMMON_ORDER.4-FINANCIAL_ORDER.3-NTE",
+        "short": "Notes and Comments (on Order Detail)",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes and Comments (on Order Detail)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.15-FINANCIAL.8-FINANCIAL_COMMON_ORDER.5-FINANCIAL_OBSERVATION",
+        "path": "DFT_P03.15-FINANCIAL.8-FINANCIAL_COMMON_ORDER.5-FINANCIAL_OBSERVATION",
+        "short": "FINANCIAL_OBSERVATION",
+        "min": 0,
+        "max": "*",
+        "definition": "FINANCIAL_OBSERVATION",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.15-FINANCIAL.8-FINANCIAL_COMMON_ORDER.5-FINANCIAL_OBSERVATION.1-OBX",
+        "path": "DFT_P03.15-FINANCIAL.8-FINANCIAL_COMMON_ORDER.5-FINANCIAL_OBSERVATION.1-OBX",
+        "short": "Observations / Result",
+        "min": 1,
+        "max": "1",
+        "definition": "Observations / Result",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OBX"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.15-FINANCIAL.8-FINANCIAL_COMMON_ORDER.5-FINANCIAL_OBSERVATION.2-PRT",
+        "path": "DFT_P03.15-FINANCIAL.8-FINANCIAL_COMMON_ORDER.5-FINANCIAL_OBSERVATION.2-PRT",
+        "short": "Participation",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.15-FINANCIAL.8-FINANCIAL_COMMON_ORDER.5-FINANCIAL_OBSERVATION.3-NTE",
+        "path": "DFT_P03.15-FINANCIAL.8-FINANCIAL_COMMON_ORDER.5-FINANCIAL_OBSERVATION.3-NTE",
+        "short": "Notes and Comments (on Result)",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes and Comments (on Result)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.16-DIAGNOSIS",
+        "path": "DFT_P03.16-DIAGNOSIS",
+        "short": "DIAGNOSIS",
+        "min": 0,
+        "max": "*",
+        "definition": "DIAGNOSIS",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.16-DIAGNOSIS.1-DG1",
+        "path": "DFT_P03.16-DIAGNOSIS.1-DG1",
+        "short": "Diagnosis (global across all FT1s)",
+        "min": 1,
+        "max": "1",
+        "definition": "Diagnosis (global across all FT1s)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/DG1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.17-DRG",
+        "path": "DFT_P03.17-DRG",
+        "short": "Diagnosis Related Group",
+        "min": 0,
+        "max": "1",
+        "definition": "Diagnosis Related Group",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/DRG"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.18-GT1",
+        "path": "DFT_P03.18-GT1",
+        "short": "Guarantor (global across all FT1s)",
+        "min": 0,
+        "max": "*",
+        "definition": "Guarantor (global across all FT1s)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GT1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.19-INSURANCE",
+        "path": "DFT_P03.19-INSURANCE",
+        "short": "INSURANCE",
+        "min": 0,
+        "max": "*",
+        "definition": "INSURANCE",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.19-INSURANCE.1-IN1",
+        "path": "DFT_P03.19-INSURANCE.1-IN1",
+        "short": "Insurance (global across all FT1s)",
+        "min": 1,
+        "max": "1",
+        "definition": "Insurance (global across all FT1s)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/IN1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.19-INSURANCE.2-GSP",
+        "path": "DFT_P03.19-INSURANCE.2-GSP",
+        "short": "Person Gender and Sex",
+        "min": 0,
+        "max": "*",
+        "definition": "Person Gender and Sex",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSP"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.19-INSURANCE.3-GSR",
+        "path": "DFT_P03.19-INSURANCE.3-GSR",
+        "short": "Recorded Gender and Sex",
+        "min": 0,
+        "max": "*",
+        "definition": "Recorded Gender and Sex",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSR"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.19-INSURANCE.4-IN2",
+        "path": "DFT_P03.19-INSURANCE.4-IN2",
+        "short": "Insurance - Additional Info.",
+        "min": 0,
+        "max": "1",
+        "definition": "Insurance - Additional Info.",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/IN2"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.19-INSURANCE.5-IN3",
+        "path": "DFT_P03.19-INSURANCE.5-IN3",
+        "short": "Insurance - Add'l Info. - Cert.",
+        "min": 0,
+        "max": "*",
+        "definition": "Insurance - Add'l Info. - Cert.",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/IN3"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.19-INSURANCE.6-PRT",
+        "path": "DFT_P03.19-INSURANCE.6-PRT",
+        "short": "Participation",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.19-INSURANCE.7-ROL",
+        "path": "DFT_P03.19-INSURANCE.7-ROL",
+        "short": "Role",
+        "min": 0,
+        "max": "*",
+        "definition": "Role",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ROL"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "B"
+          }
+        ]
+      },
+      {
+        "id": "DFT_P03.20-ACC",
+        "path": "DFT_P03.20-ACC",
+        "short": "Accident Information",
+        "min": 0,
+        "max": "1",
+        "definition": "Accident Information",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ACC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      }
+    ]
+  },
+  "title": "HL7 v2 DFT_P03 Message Structure",
+  "name": "DFT_P03",
+  "type": "DFT_P03",
+  "fhirVersion": "5.0.0",
+  "date": "2025-06-13T21:28:58Z"
+}

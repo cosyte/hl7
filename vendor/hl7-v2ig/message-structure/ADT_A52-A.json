@@ -1,0 +1,261 @@
+{
+  "resourceType": "StructureDefinition",
+  "url": "http://hl7.org/v2/StructureDefinition/ADT_A52-A",
+  "id": "ADT_A52-A",
+  "meta": {
+    "profile": [
+      "http://hl7.org/v2/StructureDefinition/MessageStructure-Profile"
+    ]
+  },
+  "version": "0.0.1",
+  "status": "active",
+  "kind": "logical",
+  "abstract": false,
+  "baseDefinition": "http://hl7.org/v2/StructureDefinition/MessageStructure",
+  "derivation": "specialization",
+  "differential": {
+    "element": [
+      {
+        "id": "ADT_A52-A",
+        "path": "ADT_A52-A",
+        "short": "ADT_A52-A",
+        "definition": "ADT_A52-A Message Structure",
+        "min": 0,
+        "max": "*"
+      },
+      {
+        "id": "ADT_A52-A.1-MSH",
+        "path": "ADT_A52-A.1-MSH",
+        "short": "Message Header",
+        "min": 1,
+        "max": "1",
+        "definition": "Message Header",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/MSH"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A52-A.2-ARV",
+        "path": "ADT_A52-A.2-ARV",
+        "short": "Access Restrictions",
+        "min": 0,
+        "max": "*",
+        "definition": "Access Restrictions",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ARV"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A52-A.3-SFT",
+        "path": "ADT_A52-A.3-SFT",
+        "short": "Software",
+        "min": 0,
+        "max": "*",
+        "definition": "Software Segment",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/SFT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A52-A.4-UAC",
+        "path": "ADT_A52-A.4-UAC",
+        "short": "User Authentication Credential",
+        "min": 0,
+        "max": "1",
+        "definition": "User Authentication Credential",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/UAC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A52-A.5-EVN",
+        "path": "ADT_A52-A.5-EVN",
+        "short": "Event Type",
+        "min": 1,
+        "max": "1",
+        "definition": "Event Type",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/EVN"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A52-A.6-PID",
+        "path": "ADT_A52-A.6-PID",
+        "short": "Patient Identification",
+        "min": 1,
+        "max": "1",
+        "definition": "Patient Identification",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PID"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A52-A.7-PD1",
+        "path": "ADT_A52-A.7-PD1",
+        "short": "Additional Demographics",
+        "min": 0,
+        "max": "1",
+        "definition": "Additional Demographics",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PD1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A52-A.8-GSP",
+        "path": "ADT_A52-A.8-GSP",
+        "short": "Person Gender and Sex",
+        "min": 0,
+        "max": "*",
+        "definition": "Person Gender and Sex",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSP"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A52-A.9-GSR",
+        "path": "ADT_A52-A.9-GSR",
+        "short": "Recorded Gender and Sex",
+        "min": 0,
+        "max": "*",
+        "definition": "Recorded Gender and Sex",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSR"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A52-A.10-GSC",
+        "path": "ADT_A52-A.10-GSC",
+        "short": "Sex Parameter for Clinical Use",
+        "min": 0,
+        "max": "*",
+        "definition": "Sex Parameter for Clinical Use",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A52-A.11-PV1",
+        "path": "ADT_A52-A.11-PV1",
+        "short": "Patient Visit",
+        "min": 1,
+        "max": "1",
+        "definition": "Patient Visit",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PV1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A52-A.12-PV2",
+        "path": "ADT_A52-A.12-PV2",
+        "short": "Patient Visit - Additional Info.",
+        "min": 0,
+        "max": "1",
+        "definition": "Patient Visit - Additional Info.",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PV2"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      }
+    ]
+  },
+  "title": "HL7 v2 ADT_A52-A Message Structure",
+  "name": "ADT_A52-A",
+  "type": "ADT_A52-A",
+  "fhirVersion": "5.0.0",
+  "date": "2025-06-13T21:28:56Z"
+}

@@ -113,14 +113,23 @@ describe("public exports: Phase G structure surface", () => {
     expect(typeof mod.analyzeMessageStructure).toBe("function");
     expect(Array.isArray(mod.MESSAGE_STRUCTURE_DEFINITIONS)).toBe(true);
     expect(typeof mod.missingExpectedGroup).toBe("function");
+    expect(typeof mod.missingRequiredSegment).toBe("function");
+    expect(typeof mod.findMessageStructureDefinition).toBe("function");
+    expect(typeof mod.STRUCTURE_REGISTRY_PROVENANCE).toBe("object");
     expect(mod.WARNING_CODES.MISSING_EXPECTED_GROUP).toBe("MISSING_EXPECTED_GROUP");
   });
 
   it("structure types resolve (compile-time check via usage)", async () => {
     const { analyzeMessageStructure } = await import("../src/index.js");
     const s: MessageStructure = analyzeMessageStructure("ORU", "R01", new Set(["MSH"]));
-    const g: StructureGroup | undefined = s.expectedGroups[0];
+    const present: StructureGroup | undefined = s.expectedGroups.find(
+      (g) => g.requiredSegment === "MSH",
+    );
+    const absent: StructureGroup | undefined = s.expectedGroups.find(
+      (g) => g.requiredSegment === "OBR",
+    );
     expect(s.recognized).toBe(true);
-    expect(g?.present).toBe(false);
+    expect(present?.present).toBe(true);
+    expect(absent?.present).toBe(false);
   });
 });

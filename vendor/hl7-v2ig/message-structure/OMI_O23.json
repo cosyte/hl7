@@ -1,0 +1,916 @@
+{
+  "resourceType": "StructureDefinition",
+  "url": "http://hl7.org/v2/StructureDefinition/OMI_O23",
+  "id": "OMI_O23",
+  "meta": {
+    "profile": [
+      "http://hl7.org/v2/StructureDefinition/MessageStructure-Profile"
+    ]
+  },
+  "version": "0.0.1",
+  "status": "active",
+  "kind": "logical",
+  "abstract": false,
+  "baseDefinition": "http://hl7.org/v2/StructureDefinition/MessageStructure",
+  "derivation": "specialization",
+  "differential": {
+    "element": [
+      {
+        "id": "OMI_O23",
+        "path": "OMI_O23",
+        "short": "OMI_O23",
+        "definition": "OMI_O23 Message Structure",
+        "min": 0,
+        "max": "*"
+      },
+      {
+        "id": "OMI_O23.1-MSH",
+        "path": "OMI_O23.1-MSH",
+        "short": "Message Header",
+        "min": 1,
+        "max": "1",
+        "definition": "Message Header",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/MSH"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.2-ARV",
+        "path": "OMI_O23.2-ARV",
+        "short": "Access Restrictions",
+        "min": 0,
+        "max": "*",
+        "definition": "Access Restrictions",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ARV"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.3-SFT",
+        "path": "OMI_O23.3-SFT",
+        "short": "Software",
+        "min": 0,
+        "max": "*",
+        "definition": "Software",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/SFT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.4-UAC",
+        "path": "OMI_O23.4-UAC",
+        "short": "User Authentication Credential",
+        "min": 0,
+        "max": "1",
+        "definition": "User Authentication Credential",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/UAC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.5-NTE",
+        "path": "OMI_O23.5-NTE",
+        "short": "Notes and Comments (for Header)",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes and Comments (for Header)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.6-PATIENT",
+        "path": "OMI_O23.6-PATIENT",
+        "short": "PATIENT",
+        "min": 0,
+        "max": "1",
+        "definition": "PATIENT",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.6-PATIENT.1-PID",
+        "path": "OMI_O23.6-PATIENT.1-PID",
+        "short": "Patient Identification",
+        "min": 1,
+        "max": "1",
+        "definition": "Patient Identification",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PID"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.6-PATIENT.2-PD1",
+        "path": "OMI_O23.6-PATIENT.2-PD1",
+        "short": "Additional Demographics",
+        "min": 0,
+        "max": "1",
+        "definition": "Additional Demographics",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PD1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.6-PATIENT.3-GSP",
+        "path": "OMI_O23.6-PATIENT.3-GSP",
+        "short": "Person Gender and Sex",
+        "min": 0,
+        "max": "*",
+        "definition": "Person Gender and Sex",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSP"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.6-PATIENT.4-GSR",
+        "path": "OMI_O23.6-PATIENT.4-GSR",
+        "short": "Recorded Gender and Sex",
+        "min": 0,
+        "max": "*",
+        "definition": "Recorded Gender and Sex",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSR"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.6-PATIENT.5-GSC",
+        "path": "OMI_O23.6-PATIENT.5-GSC",
+        "short": "Sex Parameter for Clinical Use",
+        "min": 0,
+        "max": "*",
+        "definition": "Sex Parameter for Clinical Use",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.6-PATIENT.6-PRT",
+        "path": "OMI_O23.6-PATIENT.6-PRT",
+        "short": "Participation (for Patient)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (for Patient)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.6-PATIENT.7-OCCUPATIONAL_DATA_FOR_HEALTH",
+        "path": "OMI_O23.6-PATIENT.7-OCCUPATIONAL_DATA_FOR_HEALTH",
+        "short": "OCCUPATIONAL_DATA_FOR_HEALTH",
+        "min": 0,
+        "max": "1",
+        "definition": "OCCUPATIONAL_DATA_FOR_HEALTH",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.6-PATIENT.7-OCCUPATIONAL_DATA_FOR_HEALTH.1-OH1",
+        "path": "OMI_O23.6-PATIENT.7-OCCUPATIONAL_DATA_FOR_HEALTH.1-OH1",
+        "short": "Employment Status",
+        "min": 0,
+        "max": "*",
+        "definition": "Employment Status",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OH1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.6-PATIENT.7-OCCUPATIONAL_DATA_FOR_HEALTH.2-OH2",
+        "path": "OMI_O23.6-PATIENT.7-OCCUPATIONAL_DATA_FOR_HEALTH.2-OH2",
+        "short": "Past or Present Job",
+        "min": 0,
+        "max": "*",
+        "definition": "Past or Present Job",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OH2"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.6-PATIENT.7-OCCUPATIONAL_DATA_FOR_HEALTH.3-OH3",
+        "path": "OMI_O23.6-PATIENT.7-OCCUPATIONAL_DATA_FOR_HEALTH.3-OH3",
+        "short": "Usual Work",
+        "min": 0,
+        "max": "1",
+        "definition": "Usual Work",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OH3"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.6-PATIENT.7-OCCUPATIONAL_DATA_FOR_HEALTH.4-OH4",
+        "path": "OMI_O23.6-PATIENT.7-OCCUPATIONAL_DATA_FOR_HEALTH.4-OH4",
+        "short": "Combat Zone Work",
+        "min": 0,
+        "max": "*",
+        "definition": "Combat Zone Work",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OH4"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.6-PATIENT.8-ARV",
+        "path": "OMI_O23.6-PATIENT.8-ARV",
+        "short": "For backwards compatibility only as of V2.9.",
+        "min": 0,
+        "max": "*",
+        "definition": "For backwards compatibility only as of V2.9.",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ARV"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "B"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.6-PATIENT.9-NTE",
+        "path": "OMI_O23.6-PATIENT.9-NTE",
+        "short": "Notes and Comments (for Patient ID)",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes and Comments (for Patient ID)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.6-PATIENT.10-PATIENT_VISIT",
+        "path": "OMI_O23.6-PATIENT.10-PATIENT_VISIT",
+        "short": "PATIENT_VISIT",
+        "min": 0,
+        "max": "1",
+        "definition": "PATIENT_VISIT",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.6-PATIENT.10-PATIENT_VISIT.1-PV1",
+        "path": "OMI_O23.6-PATIENT.10-PATIENT_VISIT.1-PV1",
+        "short": "Patient Visit",
+        "min": 1,
+        "max": "1",
+        "definition": "Patient Visit",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PV1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.6-PATIENT.10-PATIENT_VISIT.2-PV2",
+        "path": "OMI_O23.6-PATIENT.10-PATIENT_VISIT.2-PV2",
+        "short": "Patient Visit- Additional Info",
+        "min": 0,
+        "max": "1",
+        "definition": "Patient Visit- Additional Info",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PV2"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.6-PATIENT.10-PATIENT_VISIT.3-PRT",
+        "path": "OMI_O23.6-PATIENT.10-PATIENT_VISIT.3-PRT",
+        "short": "Participation (for Patient Visit)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (for Patient Visit)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.6-PATIENT.11-INSURANCE",
+        "path": "OMI_O23.6-PATIENT.11-INSURANCE",
+        "short": "INSURANCE",
+        "min": 0,
+        "max": "*",
+        "definition": "INSURANCE",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.6-PATIENT.11-INSURANCE.1-IN1",
+        "path": "OMI_O23.6-PATIENT.11-INSURANCE.1-IN1",
+        "short": "Insurance",
+        "min": 1,
+        "max": "1",
+        "definition": "Insurance",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/IN1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.6-PATIENT.11-INSURANCE.2-IN2",
+        "path": "OMI_O23.6-PATIENT.11-INSURANCE.2-IN2",
+        "short": "Insurance Additional Information",
+        "min": 0,
+        "max": "1",
+        "definition": "Insurance Additional Information",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/IN2"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.6-PATIENT.11-INSURANCE.3-IN3",
+        "path": "OMI_O23.6-PATIENT.11-INSURANCE.3-IN3",
+        "short": "Insurance Additional Information, Certification",
+        "min": 0,
+        "max": "1",
+        "definition": "Insurance Additional Information, Certification",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/IN3"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.6-PATIENT.12-GT1",
+        "path": "OMI_O23.6-PATIENT.12-GT1",
+        "short": "Guarantor",
+        "min": 0,
+        "max": "1",
+        "definition": "Guarantor",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GT1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.6-PATIENT.13-AL1",
+        "path": "OMI_O23.6-PATIENT.13-AL1",
+        "short": "Allergy Information",
+        "min": 0,
+        "max": "*",
+        "definition": "Allergy Information",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/AL1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.7-ORDER",
+        "path": "OMI_O23.7-ORDER",
+        "short": "ORDER",
+        "min": 1,
+        "max": "*",
+        "definition": "ORDER",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.7-ORDER.1-ORC",
+        "path": "OMI_O23.7-ORDER.1-ORC",
+        "short": "Common Order",
+        "min": 1,
+        "max": "1",
+        "definition": "Common Order",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ORC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.7-ORDER.2-PRT",
+        "path": "OMI_O23.7-ORDER.2-PRT",
+        "short": "Participation",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.7-ORDER.3-TIMING",
+        "path": "OMI_O23.7-ORDER.3-TIMING",
+        "short": "TIMING",
+        "min": 0,
+        "max": "*",
+        "definition": "TIMING",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.7-ORDER.3-TIMING.1-TQ1",
+        "path": "OMI_O23.7-ORDER.3-TIMING.1-TQ1",
+        "short": "Timing/Quantity",
+        "min": 1,
+        "max": "1",
+        "definition": "Timing/Quantity",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/TQ1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.7-ORDER.3-TIMING.2-TQ2",
+        "path": "OMI_O23.7-ORDER.3-TIMING.2-TQ2",
+        "short": "Timing/Quantity Order Sequence",
+        "min": 0,
+        "max": "*",
+        "definition": "Timing/Quantity Order Sequence",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/TQ2"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.7-ORDER.4-OBR",
+        "path": "OMI_O23.7-ORDER.4-OBR",
+        "short": "Observation",
+        "min": 1,
+        "max": "1",
+        "definition": "Observation",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OBR"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.7-ORDER.5-NTE",
+        "path": "OMI_O23.7-ORDER.5-NTE",
+        "short": "Notes and Comments (for Detail)",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes and Comments (for Detail)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.7-ORDER.6-PRT",
+        "path": "OMI_O23.7-ORDER.6-PRT",
+        "short": "Participation (for Order)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (for Order)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.7-ORDER.7-CTD",
+        "path": "OMI_O23.7-ORDER.7-CTD",
+        "short": "Contact Data",
+        "min": 0,
+        "max": "1",
+        "definition": "Contact Data",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/CTD"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.7-ORDER.8-DG1",
+        "path": "OMI_O23.7-ORDER.8-DG1",
+        "short": "Diagnosis",
+        "min": 0,
+        "max": "*",
+        "definition": "Diagnosis",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/DG1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.7-ORDER.9-REL",
+        "path": "OMI_O23.7-ORDER.9-REL",
+        "short": "Relationship (for Observation)",
+        "min": 0,
+        "max": "*",
+        "definition": "Relationship (for Observation)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/REL"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.7-ORDER.10-OBSERVATION",
+        "path": "OMI_O23.7-ORDER.10-OBSERVATION",
+        "short": "OBSERVATION",
+        "min": 0,
+        "max": "*",
+        "definition": "OBSERVATION",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.7-ORDER.10-OBSERVATION.1-OBX",
+        "path": "OMI_O23.7-ORDER.10-OBSERVATION.1-OBX",
+        "short": "Observation/Result",
+        "min": 1,
+        "max": "1",
+        "definition": "Observation/Result",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OBX"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.7-ORDER.10-OBSERVATION.2-PRT",
+        "path": "OMI_O23.7-ORDER.10-OBSERVATION.2-PRT",
+        "short": "Participation (for Observation)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (for Observation)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.7-ORDER.10-OBSERVATION.3-NTE",
+        "path": "OMI_O23.7-ORDER.10-OBSERVATION.3-NTE",
+        "short": "Notes and Comments (for Results)",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes and Comments (for Results)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.7-ORDER.11-IPC",
+        "path": "OMI_O23.7-ORDER.11-IPC",
+        "short": "Imaging Procedure Control",
+        "min": 1,
+        "max": "*",
+        "definition": "Imaging Procedure Control",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/IPC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.8-DEVICE",
+        "path": "OMI_O23.8-DEVICE",
+        "short": "DEVICE",
+        "min": 0,
+        "max": "*",
+        "definition": "DEVICE",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.8-DEVICE.1-DEV",
+        "path": "OMI_O23.8-DEVICE.1-DEV",
+        "short": "Device (for Participation)",
+        "min": 1,
+        "max": "1",
+        "definition": "Device (for Participation)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/DEV"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OMI_O23.8-DEVICE.2-OBX",
+        "path": "OMI_O23.8-DEVICE.2-OBX",
+        "short": "Observation/Result",
+        "min": 0,
+        "max": "*",
+        "definition": "Observation/Result",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OBX"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      }
+    ]
+  },
+  "title": "HL7 v2 OMI_O23 Message Structure",
+  "name": "OMI_O23",
+  "type": "OMI_O23",
+  "fhirVersion": "5.0.0",
+  "date": "2025-06-13T21:28:57Z"
+}
