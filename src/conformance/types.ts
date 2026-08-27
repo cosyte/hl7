@@ -64,14 +64,18 @@
  * declared intent in the profile. A later, separate change may revisit it
  * against a source that defines the code.
  *
- * **A declared conditional's outcome domain is unrestricted HERE, and that is a
- * level-scoped choice.** {@link DeclaredConditionalUsage} admits any simple code
- * as either outcome, because this engine targets the CONSTRAINABLE profile
- * level, whose vocabulary is the full indicator set. The methodology separately
- * restricts an IMPLEMENTABLE profile to `R`, `RE` or `X` per element, and its
- * conditional outcomes likewise. That restriction is not enforced here: a
- * profile cannot yet declare which level it claims, and enforcing it belongs to
- * the later, separate change that adds that declaration.
+ * **A declared conditional's outcome domain is unrestricted BY THE TYPE, and
+ * narrowed by the level a profile claims.** {@link DeclaredConditionalUsage}
+ * admits any simple code as either outcome, because the full indicator set is
+ * the CONSTRAINABLE level's vocabulary and that is what a profile claims when it
+ * declares no level. The methodology separately restricts an IMPLEMENTABLE
+ * profile to `R`, `RE` or `X` per element, and its conditional outcomes
+ * likewise. A profile that declares {@link ConformanceProfile.level}
+ * `implementable` is held to exactly that: `C`, `CE`, `O`, `B`, a conditional
+ * whose outcomes are not all drawn from `R` / `RE` / `X`, and a rule that
+ * declares no usage at all are each
+ * {@link FINDING_CODES.PROFILE_MALFORMED} there, and none of them is refused at
+ * any other level.
  *
  * @example
  * ```ts
@@ -176,6 +180,66 @@ export const USAGE_CODES: readonly UsageCodeRegistryEntry[] = Object.freeze([
   "X",
   "C(a/b)",
   "B",
+]);
+
+/**
+ * The three **profile levels** the HL7 conformance methodology defines, in the
+ * order it defines them: from the least constrained to the most.
+ *
+ * - **`standard`**: the base standard definitions and constraints as-is. The
+ *   overall structure is established, but the full declaration of requirements
+ *   has yet to be specified, so considerable openness still exists.
+ * - **`constrainable`**: further constrains a parent profile, but not all
+ *   element attributes are fully constrained: optionality is still in place
+ *   somewhere.
+ * - **`implementable`**: defines all elements such that all optionality and
+ *   openness have been removed. Every element is either supported (`R` or `RE`)
+ *   or it is not (`X`), and a conditional usage's true and false outcomes are
+ *   drawn from those same three codes.
+ *
+ * **Why a consumer cares, and it is the only reason this exists.** The
+ * methodology draws the completeness line here: a complete assessment of an
+ * interface declaring conformance to an implementable profile can be
+ * determined, while for standard-level and constrainable-level profiles not all
+ * aspects can be. So an empty {@link ConformanceResult.findings} means two
+ * different things at two different levels, and
+ * {@link ConformanceResult.level} is what tells them apart.
+ *
+ * **The level is the author's CLAIM, checked for internal consistency.** hl7
+ * verifies that a profile claiming `implementable` has actually removed the
+ * optionality the level asserts is gone, and refuses the claim as
+ * {@link FINDING_CODES.PROFILE_MALFORMED} when it has not. Nothing here is an
+ * external or accredited attestation, and zero findings at `implementable`
+ * level is still not one: see {@link ConformanceResult}.
+ *
+ * @example
+ * ```ts
+ * import type { ProfileLevel } from "@cosyte/hl7";
+ * const level: ProfileLevel = "implementable";
+ * ```
+ */
+export type ProfileLevel = "standard" | "constrainable" | "implementable";
+
+/**
+ * The frozen listing of the three {@link ProfileLevel}s, ordered from the least
+ * constrained to the most: `standard`, `constrainable`, `implementable`.
+ *
+ * Unlike {@link USAGE_CODES} this listing IS the accept-set: a
+ * {@link ConformanceProfile.level} outside it is
+ * {@link FINDING_CODES.PROFILE_MALFORMED}, and the {@link ProfileLevel} type
+ * refuses it at compile time where the author writes TypeScript.
+ *
+ * @example
+ * ```ts
+ * import { PROFILE_LEVELS } from "@cosyte/hl7";
+ * PROFILE_LEVELS.length; // 3
+ * PROFILE_LEVELS[0]; // "standard"
+ * ```
+ */
+export const PROFILE_LEVELS: readonly ProfileLevel[] = Object.freeze([
+  "standard",
+  "constrainable",
+  "implementable",
 ]);
 
 /**
@@ -818,6 +882,29 @@ export interface SegmentRule {
 export interface ConformanceProfile {
   /** A name for provenance: echoed into {@link ConformanceResult.profileName}. */
   readonly name: string;
+  /**
+   * The {@link ProfileLevel} this profile CLAIMS, echoed into
+   * {@link ConformanceResult.level}.
+   *
+   * **Omitting it claims `constrainable`**, the weaker of the two claims a
+   * working profile can make, so a profile that says nothing never reads as an
+   * implementable one. Declaring `standard` or `constrainable` imposes no
+   * level-derived constraint on any element: both levels are defined as leaving
+   * optionality in place, so there is nothing for the engine to check.
+   *
+   * **Declaring `implementable` is a claim the engine CHECKS**, because the
+   * level asserts that all optionality and openness have been removed. Every
+   * segment, field and component rule must declare a usage, and that usage must
+   * be `R`, `RE` or `X`, or a declared conditional both of whose outcomes are
+   * drawn from those three. A rule left at `C`, `CE`, `O` or `B`, a conditional
+   * whose outcomes are not, and a rule that declares no usage at all each refuse
+   * the claim as {@link FINDING_CODES.PROFILE_MALFORMED} rather than being
+   * accepted on the author's word.
+   *
+   * The level changes NO message check: it alters which findings can fire for a
+   * given message not at all. It is a declaration plus its gate.
+   */
+  readonly level?: ProfileLevel;
   /** The segment rules, evaluated in array order (stable finding order). */
   readonly segments: readonly SegmentRule[];
 }
@@ -951,15 +1038,39 @@ export interface ConformanceFinding {
 }
 
 /**
- * The result of {@link validateAgainstProfile}: the profile's `name` and the
- * ordered list of `findings`.
+ * The result of {@link validateAgainstProfile}: the profile's `name`, the
+ * {@link ProfileLevel} in force, and the ordered list of `findings`.
  *
  * **`findings.length === 0` is NOT a conformance attestation.** It means every
  * rule the profile declared was satisfied: nothing about the parts of the
  * message the profile did not cover, and nothing about clinical correctness.
- * Read it as "no declared rule was violated," never as "conformant."
+ * Read it as "no declared rule was violated," never as "conformant." That holds
+ * at every level, `implementable` included: the level says the profile removed
+ * its own optionality, not that anyone accredited the result.
+ *
+ * **What the level DOES tell you** is how to read an empty findings list. At
+ * `implementable` level every element the profile declares was reduced to a
+ * supported / not-supported decision, so the assessment against that profile is
+ * complete. At `standard` or `constrainable` level it is not: elements the
+ * profile left optional were never asserted either way, so an empty list is
+ * consistent with parts of the message having gone unassessed.
  */
 export interface ConformanceResult {
   readonly profileName: string;
+  /**
+   * The {@link ProfileLevel} the assessment was actually made at.
+   *
+   * Present on EVERY result, including one for a profile so malformed its name
+   * could not be read. A profile that declares no level is assessed and echoed
+   * as `constrainable`; a profile whose declaration is not one of the three
+   * levels is echoed the same way, alongside the
+   * {@link FINDING_CODES.PROFILE_MALFORMED} finding that names it.
+   *
+   * **A REFUSED `implementable` claim is never echoed here.** Where the engine
+   * returned `PROFILE_MALFORMED` findings it did not complete the assessment
+   * the claim asserts, so the level in force falls back to `constrainable`
+   * rather than repeating a claim nothing verified.
+   */
+  readonly level: ProfileLevel;
   readonly findings: readonly ConformanceFinding[];
 }
