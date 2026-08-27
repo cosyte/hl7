@@ -12,10 +12,11 @@
  * events it recognises (patient = PID, visit = PV1), so it re-parses with
  * **zero warnings** and `msg.structure.missingGroups` empty.
  *
- * **Merge and move events.** Supplying `priorIdentity` adds the `MRG` segment
- * the published structure requires for the identity-management events (merge,
- * move and their account and visit variants), so those events can be authored
- * spec-clean rather than arriving without the identity they retire. The
+ * **Merge, move and identifier-change events.** Supplying `priorIdentity` adds
+ * the `MRG` segment the published structure requires for the
+ * identity-management events (merge, move and identifier change, with their
+ * account and visit variants), so those events can be authored spec-clean
+ * rather than arriving without the identity they retire. The
  * direction is the spec's and is never inverted: `MRG` carries the PRIOR,
  * non-surviving identity and `PID` the SURVIVING one.
  *
@@ -138,7 +139,8 @@ export interface BuildAdtInit extends MessageEnvelope {
   /** EVN content (EVN-1 is the trigger event; EVN-2/6 optional). */
   readonly event?: AdtEvent;
   /**
-   * MRG content: the prior identity a merge or move event retires. Optional,
+   * MRG content: the prior identity a merge, move or identifier-change event
+   * retires. Optional,
    * and emitted only when supplied. **Required for a trigger event whose
    * published structure requires MRG**, where an init without it is a typed
    * error rather than a message missing the identity it retires.
@@ -200,7 +202,8 @@ function mrgSegment(prior: AdtPriorIdentity): RawSegment {
  *
  * @param event - the ADT trigger event (MSH-9.2). Required, non-empty.
  * @param init - the MSH envelope + typed PID/PV1/EVN content (`patient`
- *   required), plus `priorIdentity` for a merge or move event.
+ *   required), plus `priorIdentity` for a merge, move or identifier-change
+ *   event.
  * @throws TypeError when `event` is empty, when `init.patient` is absent, or
  *   when the requested trigger event's published structure requires MRG and no
  *   prior identity carrying a merge key was supplied.

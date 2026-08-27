@@ -117,7 +117,7 @@ injected**. The result is spec-clean and re-parses with **zero warnings**.
 
 | builder | message | read it back with |
 | --- | --- | --- |
-| `buildAdt(event, init)` | `ADT` admit, discharge, transfer, merge and move | `msg.patient`, `msg.visit`, `msg.identityEvents()` |
+| `buildAdt(event, init)` | `ADT` admit, discharge, transfer, merge, move and identifier change | `msg.patient`, `msg.visit`, `msg.identityEvents()` |
 | `buildOru(init)` | `ORU^R01` observation result | `msg.observations()` |
 | `buildOrm(init)` | `ORM^O01` general order | `msg.orders()` |
 | `buildSiu(event, init)` | `SIU` scheduling notification | `msg.appointments()` |

@@ -7,7 +7,8 @@
  *     published structure requires MRG.
  *   - **role labelling survives the round trip**: the supplied prior
  *     identifiers come back as `prior`, the supplied patient identifiers as
- *     `surviving`, in the spec-constant direction.
+ *     `surviving`, in the spec-constant direction. Graded over the SAME
+ *     registry-derived domain as the zero-warning half, not a narrower list.
  *   - **no MRG unless asked for**: a non-merge event is byte-identical to what
  *     the builder emitted before this content existed.
  *
@@ -16,7 +17,12 @@
 
 import { describe, expect, it } from "vitest";
 
-import { buildAdt, findMessageStructureDefinition, parseHL7 } from "../src/index.js";
+import {
+  buildAdt,
+  findMessageStructureDefinition,
+  parseHL7,
+  type IdentityEventKind,
+} from "../src/index.js";
 
 import {
   ENVELOPE,
@@ -26,10 +32,29 @@ import {
   adtInit,
 } from "./_helpers/supported-pairs.js";
 
-/** The merge and move events the read-side identity helper classifies. */
-const READ_SIDE_IDENTITY_EVENTS = ["A40", "A41", "A42", "A43", "A44"];
+/**
+ * The read-side half of the criterion is graded over the SAME domain as the
+ * emit-side half: every trigger event whose registry entry requires MRG. Both
+ * halves come from `MERGE_EVENTS`, which is derived from the registry, so
+ * neither can be narrowed to the subset that happens to pass.
+ */
+const READ_SIDE_IDENTITY_EVENTS: readonly string[] = MERGE_EVENTS;
+
+/** Kinds whose events expose the MRG (prior) to PID (surviving) pair. */
+const PAIRED_KINDS: readonly IdentityEventKind[] = ["merge", "move", "change"];
 
 describe("buildAdt with prior identity", () => {
+  it("derives a domain that still covers every event the structures require MRG for", () => {
+    // Guards the derivation itself: an empty or shrunken domain would let the
+    // two assertions below pass vacuously. Every event the published ADT
+    // structures require MRG for must be in it; a registry that grows a new
+    // one simply widens the domain both halves are graded over.
+    for (const event of ["A40", "A41", "A42", "A43", "A44", "A45", "A47", "A49", "A50", "A51"]) {
+      expect(MERGE_EVENTS, event).toContain(event);
+    }
+    expect(new Set(MERGE_EVENTS).size).toBe(MERGE_EVENTS.length);
+  });
+
   it("every merge or move event is zero-warning and structurally complete", () => {
     for (const event of MERGE_EVENTS) {
       expect(findMessageStructureDefinition("ADT", event)?.requiredSegments, event).toContain(
@@ -50,6 +75,7 @@ describe("buildAdt with prior identity", () => {
       expect(events.length, `ADT^${event}`).toBe(1);
       const ev = events[0];
       expect(ev?.eventType).toBe(event);
+      expect(PAIRED_KINDS, `ADT^${event}`).toContain(ev?.kind);
       expect(ev?.direction).toBe("MRG_TO_PID");
       expect(ev?.prior?.sourceSegment).toBe("MRG");
       expect(ev?.surviving?.sourceSegment).toBe("PID");
@@ -61,6 +87,20 @@ describe("buildAdt with prior identity", () => {
       expect(ev?.surviving?.name?.givenName).toBe("Jane");
       // Nothing is left unpaired: no fail-safe warning on the event either.
       expect(ev?.warnings).toEqual([]);
+    }
+  });
+
+  it("classifies the change-identifier family as change, never as merge", () => {
+    // A mis-applied merge conflates two patients. A47/A49/A50/A51 replace one
+    // identifier on ONE record, so a consumer keying on `kind === "merge"`
+    // must not act on them; A45 is the third member of the move family.
+    const kindOf = (event: string): IdentityEventKind | undefined =>
+      parseHL7(buildAdt(event, adtInit(event)).toString()).identityEvents()[0]?.kind;
+
+    expect(kindOf("A40")).toBe("merge");
+    expect(kindOf("A45")).toBe("move");
+    for (const event of ["A47", "A49", "A50", "A51"]) {
+      expect(kindOf(event), event).toBe("change");
     }
   });
 

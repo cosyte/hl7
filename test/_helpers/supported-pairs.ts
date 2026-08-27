@@ -7,6 +7,7 @@
  */
 
 import {
+  MESSAGE_STRUCTURE_DEFINITIONS,
   buildAck,
   buildAdt,
   buildDft,
@@ -55,19 +56,19 @@ export const PRIOR_IDENTITY = {
   name: { familyName: "Test", givenName: "Mary" },
 } as const;
 
-/** Trigger events whose published structure requires a merge segment. */
-export const MERGE_EVENTS: readonly string[] = [
-  "A40",
-  "A41",
-  "A42",
-  "A43",
-  "A44",
-  "A45",
-  "A47",
-  "A49",
-  "A50",
-  "A51",
-];
+/**
+ * Trigger events whose published structure requires a merge segment, DERIVED
+ * from the registry rather than hand-listed: the emit side and the read side
+ * are graded over the same domain, and a registry entry that starts or stops
+ * requiring MRG moves both at once instead of drifting past a literal list.
+ */
+export const MERGE_EVENTS: readonly string[] = Object.freeze(
+  MESSAGE_STRUCTURE_DEFINITIONS.filter(
+    (def) => def.messageCode === "ADT" && def.requiredSegments.includes("MRG"),
+  )
+    .flatMap((def) => [...def.triggerEvents])
+    .sort(),
+);
 
 /** A full ADT init for `event`; prior identity is supplied only when required. */
 export function adtInit(event: string): BuildAdtInit {

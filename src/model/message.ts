@@ -528,11 +528,13 @@ export class Hl7Message {
   }
 
   /**
-   * Every recognized ADT patient-identity event (merge / move / link /
-   * unlink / person add/update), with the MRG-sourced
+   * Every recognized ADT patient-identity event (merge / move / change /
+   * link / unlink / person add/update), with the MRG-sourced
    * `prior` and PID/PV1-sourced `surviving` parties labelled by role and the
-   * spec-constant `direction: "MRG_TO_PID"` on merge/move events. Returns
-   * `[]` when the trigger event is not in the identity family. D-06: not
+   * spec-constant `direction: "MRG_TO_PID"` on merge/move/change events.
+   * Returns `[]` when the trigger event is not in the identity family. The
+   * recognized set is floored by the published message structures: every ADT
+   * trigger event whose structure requires MRG is recognized. D-06: not
    * memoized. Never throws; incomplete merge pairs surface a
    * `MERGE_MISSING_PRIOR_OR_SURVIVOR` warning on the event.
    *
