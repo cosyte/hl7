@@ -8,9 +8,15 @@
  */
 
 import { generateControlId } from "./control-id.js";
+import {
+  encodeComposite,
+  encodeCompositeReps,
+  type CompositeKind,
+  type CompositeValueByKind,
+} from "./encode-composite.js";
 import { formatHl7Timestamp } from "./format-timestamp.js";
 import { DEFAULT_ENCODING_CHARACTERS } from "../parser/delimiters.js";
-import type { RawField, RawSegment } from "../parser/types.js";
+import type { RawComponent, RawField, RawSegment } from "../parser/types.js";
 
 /**
  * The MSH envelope shared by every typed builder: the addressing + control
@@ -96,6 +102,50 @@ export function buildMshSegment(type: string, envelope: MessageEnvelope): RawSeg
     scalarField(envelope.version ?? "2.5"), // MSH-12
   ];
   return { name: "MSH", fields };
+}
+
+/**
+ * Encode a single typed composite, or an array of them, into a (possibly
+ * repeating) field. `undefined` yields an absent field, so an omitted optional
+ * member is never a defaulted value.
+ * @internal
+ */
+export function repField<K extends CompositeKind>(
+  kind: K,
+  value: CompositeValueByKind[K] | readonly CompositeValueByKind[K][] | undefined,
+): RawField {
+  if (value === undefined) return absentField();
+  if (Array.isArray(value)) {
+    return encodeCompositeReps(kind, value as readonly CompositeValueByKind[K][]);
+  }
+  return encodeComposite(kind, value as CompositeValueByKind[K]);
+}
+
+/**
+ * Assemble a single-repetition field from an ordered component list, each
+ * component given as its own subcomponent list. Interior empties are preserved
+ * (component positions stay aligned for a faithful re-parse), trailing empties
+ * are trimmed, and an all-empty list yields an absent field.
+ *
+ * This is the encode-safe route for the few composites the typed composite
+ * encoders do not model (SCH-11 timing quantity, FT1-11/12 composite price):
+ * the caller supplies decoded parts and the serializer escapes each one, so a
+ * delimiter inside a part can never forge a component boundary.
+ * @internal
+ */
+export function structuredField(components: readonly (readonly string[])[]): RawField {
+  const comps: RawComponent[] = components.map((subs) => {
+    const trimmed = subs.slice();
+    while (trimmed.length > 0 && trimmed[trimmed.length - 1] === "") trimmed.pop();
+    return { subcomponents: trimmed };
+  });
+  while (comps.length > 0) {
+    const last = comps[comps.length - 1];
+    if (last !== undefined && last.subcomponents.every((s) => s === "")) comps.pop();
+    else break;
+  }
+  if (comps.length === 0) return absentField();
+  return { repetitions: [{ components: comps }], isNull: false };
 }
 
 /**

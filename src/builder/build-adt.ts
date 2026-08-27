@@ -12,12 +12,19 @@
  * events it recognises (patient = PID, visit = PV1), so it re-parses with
  * **zero warnings** and `msg.structure.missingGroups` empty.
  *
+ * **Merge and move events.** Supplying `priorIdentity` adds the `MRG` segment
+ * the published structure requires for the identity-management events (merge,
+ * move and their account and visit variants), so those events can be authored
+ * spec-clean rather than arriving without the identity they retire. The
+ * direction is the spec's and is never inverted: `MRG` carries the PRIOR,
+ * non-surviving identity and `PID` the SURVIVING one.
+ *
  * **Never fabricate.** Only values the caller supplies are emitted; an omitted
  * optional field becomes an empty/absent field, never a defaulted clinical
  * value. `patient` is **required**: an ADT patient event with no patient is a
  * typed `TypeError`, not a guessed PID.
  *
- * Spec traceability: HL7 v2 Ch. 3 (ADT: MSH/EVN/PID/PV1), Ch. 2 datatypes.
+ * Spec traceability: HL7 v2 Ch. 3 (ADT: MSH/EVN/PID/MRG/PV1), Ch. 2 datatypes.
  * Zero runtime deps.
  */
 
@@ -32,18 +39,15 @@ import type { XCN } from "../model/types/xcn.js";
 import type { XPN } from "../model/types/xpn.js";
 import type { XTN } from "../model/types/xtn.js";
 
-import {
-  encodeComposite,
-  encodeCompositeReps,
-  type CompositeKind,
-  type CompositeValueByKind,
-} from "./encode-composite.js";
+import { encodeComposite } from "./encode-composite.js";
+import { evnSegment, pidSegment, pv1Segment } from "./segment-bodies.js";
 import {
   assembleSegment,
   buildMshSegment,
-  scalarField,
+  repField,
   type MessageEnvelope,
 } from "./segment-fields.js";
+import { assertRequiredContent } from "./supported-messages.js";
 
 /** Typed PID (patient identification) content for {@link buildAdt}. */
 export interface AdtPatient {
@@ -93,6 +97,38 @@ export interface AdtEvent {
   readonly eventOccurred?: TS | string;
 }
 
+/**
+ * Typed MRG (merge patient information) content for {@link buildAdt}: the
+ * **prior**, non-surviving identity that a merge or move event retires in
+ * favour of the `patient` identity. The direction is HL7's and is constant:
+ * the identifiers here merge INTO the ones on PID, never the reverse.
+ *
+ * @example
+ * ```ts
+ * import type { AdtPriorIdentity } from "@cosyte/hl7";
+ * const prior: AdtPriorIdentity = {
+ *   identifiers: { idNumber: "MRN-OLD", identifierTypeCode: "MR" },
+ *   accountNumber: { idNumber: "ACCT-OLD" },
+ * };
+ * ```
+ */
+export interface AdtPriorIdentity {
+  /** MRG-1 Prior Patient Identifier List: one or more CX identifiers. */
+  readonly identifiers?: CX | readonly CX[];
+  /** MRG-3 Prior Patient Account Number: the merge key of an account merge. */
+  readonly accountNumber?: CX;
+  /**
+   * MRG-4 Prior Patient ID. Backward compatibility only: withdrawn as of HL7
+   * v2.7 in favour of MRG-1, and the read side stops reading it on a message
+   * whose MSH-12 declares v2.7 or later.
+   */
+  readonly legacyPatientId?: CX;
+  /** MRG-5 Prior Visit Number: the merge key of a visit merge. */
+  readonly visitNumber?: CX;
+  /** MRG-7 Prior Patient Name. */
+  readonly name?: XPN;
+}
+
 /** Input for {@link buildAdt}: the MSH envelope plus the typed segment bodies. */
 export interface BuildAdtInit extends MessageEnvelope {
   /** PID content. **Required**: never fabricated. */
@@ -101,22 +137,57 @@ export interface BuildAdtInit extends MessageEnvelope {
   readonly visit?: AdtVisit;
   /** EVN content (EVN-1 is the trigger event; EVN-2/6 optional). */
   readonly event?: AdtEvent;
+  /**
+   * MRG content: the prior identity a merge or move event retires. Optional,
+   * and emitted only when supplied. **Required for a trigger event whose
+   * published structure requires MRG**, where an init without it is a typed
+   * error rather than a message missing the identity it retires.
+   */
+  readonly priorIdentity?: AdtPriorIdentity;
+}
+
+/** Does a CX carry a usable identifier (Ch. 2A: CX.1 is the identifier)? @internal */
+function hasUsableId(cx: CX | undefined): boolean {
+  return cx !== undefined && cx.idNumber !== undefined && cx.idNumber !== "";
 }
 
 /**
- * Encode a single composite or an array of them into a (possibly repeating)
- * field. `undefined` → absent field.
- * @internal
+ * Does the prior identity carry at least one usable merge key? A name alone
+ * never does: the read side would surface a prior party with nothing to
+ * retire, which is exactly the message this builder refuses to emit for an
+ * event whose structure requires MRG. @internal
  */
-function repField<K extends CompositeKind>(
-  kind: K,
-  value: CompositeValueByKind[K] | readonly CompositeValueByKind[K][] | undefined,
-): RawField {
-  if (value === undefined) return { repetitions: [], isNull: false };
-  if (Array.isArray(value)) {
-    return encodeCompositeReps(kind, value as readonly CompositeValueByKind[K][]);
-  }
-  return encodeComposite(kind, value as CompositeValueByKind[K]);
+function hasPriorIdentityKey(prior: AdtPriorIdentity): boolean {
+  const ids = prior.identifiers;
+  const idList = ids === undefined ? [] : Array.isArray(ids) ? ids : [ids as CX];
+  return (
+    (idList as readonly CX[]).some(hasUsableId) ||
+    hasUsableId(prior.accountNumber) ||
+    hasUsableId(prior.legacyPatientId) ||
+    hasUsableId(prior.visitNumber)
+  );
+}
+
+/** The MRG segment carrying the prior, non-surviving identity. @internal */
+function mrgSegment(prior: AdtPriorIdentity): RawSegment {
+  return assembleSegment(
+    "MRG",
+    new Map<number, RawField | undefined>([
+      [1, prior.identifiers !== undefined ? repField("CX", prior.identifiers) : undefined],
+      [
+        3,
+        prior.accountNumber !== undefined ? encodeComposite("CX", prior.accountNumber) : undefined,
+      ],
+      [
+        4,
+        prior.legacyPatientId !== undefined
+          ? encodeComposite("CX", prior.legacyPatientId)
+          : undefined,
+      ],
+      [5, prior.visitNumber !== undefined ? encodeComposite("CX", prior.visitNumber) : undefined],
+      [7, prior.name !== undefined ? encodeComposite("XPN", prior.name) : undefined],
+    ]),
+  );
 }
 
 /**
@@ -128,8 +199,24 @@ function repField<K extends CompositeKind>(
  * `msg.patient` / `msg.visit` read back the values supplied.
  *
  * @param event - the ADT trigger event (MSH-9.2). Required, non-empty.
- * @param init - the MSH envelope + typed PID/PV1/EVN content (`patient` required).
- * @throws TypeError when `event` is empty or `init.patient` is absent.
+ * @param init - the MSH envelope + typed PID/PV1/EVN content (`patient`
+ *   required), plus `priorIdentity` for a merge or move event.
+ * @throws TypeError when `event` is empty, when `init.patient` is absent, or
+ *   when the requested trigger event's published structure requires MRG and no
+ *   prior identity carrying a merge key was supplied.
+ *
+ * @example
+ * ```ts
+ * import { buildAdt, parseHL7 } from "@cosyte/hl7";
+ * // A merge: the prior identifiers are retired in favour of the surviving ones.
+ * const merge = buildAdt("A40", {
+ *   patient: { identifiers: { idNumber: "MRN-NEW", identifierTypeCode: "MR" } },
+ *   priorIdentity: { identifiers: { idNumber: "MRN-OLD", identifierTypeCode: "MR" } },
+ * });
+ * const ev = parseHL7(merge.toString()).identityEvents()[0];
+ * ev?.prior?.identifiers[0]?.idNumber;     // "MRN-OLD"
+ * ev?.surviving?.identifiers[0]?.idNumber; // "MRN-NEW"
+ * ```
  *
  * @example
  * ```ts
@@ -164,83 +251,48 @@ export function buildAdt(event: string, init: BuildAdtInit): Hl7Message {
     init.patient === undefined
   ) {
     throw new TypeError(
-      "buildAdt: `patient` is required. An ADT patient event is never emitted with a " +
-        "fabricated patient. Supply at least one identifier or a name.",
+      `buildAdt: ADT^${event} requires \`patient\` (PID). An ADT patient event is never emitted ` +
+        "with a fabricated patient. Supply at least one identifier or a name.",
     );
   }
 
   const enc = DEFAULT_ENCODING_CHARACTERS;
   const version = init.version ?? "2.5";
 
-  const segments: RawSegment[] = [buildMshSegment(`ADT^${event}`, init)];
+  // Segment order follows the published ADT shape: PID [PD1] MRG [PV1], so the
+  // prior identity sits between the surviving PID and its visit.
+  const segments: RawSegment[] = [
+    buildMshSegment(`ADT^${event}`, init),
+    // EVN-1 is the (caller-supplied) trigger event: not a fabricated value.
+    evnSegment(event, init.event),
+    pidSegment(init.patient),
+  ];
 
-  // ── EVN ──────────────────────────────────────────────────────────────────
-  // EVN-1 is the (caller-supplied) trigger event: not a fabricated value.
-  const evn = init.event;
-  segments.push(
-    assembleSegment(
-      "EVN",
-      new Map<number, RawField | undefined>([
-        [1, scalarField(event)],
-        [
-          2,
-          evn?.recordedDateTime !== undefined
-            ? encodeComposite("TS", evn.recordedDateTime)
-            : undefined,
-        ],
-        [
-          6,
-          evn?.eventOccurred !== undefined ? encodeComposite("TS", evn.eventOccurred) : undefined,
-        ],
-      ]),
-    ),
-  );
+  const prior = init.priorIdentity;
+  if (prior !== undefined) segments.push(mrgSegment(prior));
 
-  // ── PID ──────────────────────────────────────────────────────────────────
-  const p = init.patient;
-  segments.push(
-    assembleSegment(
-      "PID",
-      new Map<number, RawField | undefined>([
-        [1, p.setId !== undefined ? scalarField(p.setId) : undefined],
-        [3, p.identifiers !== undefined ? repField("CX", p.identifiers) : undefined],
-        [5, p.name !== undefined ? repField("XPN", p.name) : undefined],
-        [
-          6,
-          p.mothersMaidenName !== undefined
-            ? encodeComposite("XPN", p.mothersMaidenName)
-            : undefined,
-        ],
-        [7, p.birthDateTime !== undefined ? encodeComposite("TS", p.birthDateTime) : undefined],
-        [8, p.administrativeSex !== undefined ? scalarField(p.administrativeSex) : undefined],
-        [11, p.address !== undefined ? repField("XAD", p.address) : undefined],
-        [13, p.phoneHome !== undefined ? repField("XTN", p.phoneHome) : undefined],
-        [18, p.accountNumber !== undefined ? encodeComposite("CX", p.accountNumber) : undefined],
-      ]),
-    ),
-  );
+  // PV1 is always emitted so the ADT visit group is present
+  // (structure-complete), even when the caller supplies no visit: an empty PV1
+  // is the fail-safe, never fabricated content.
+  segments.push(pv1Segment(init.visit));
 
-  // ── PV1 ──────────────────────────────────────────────────────────────────
-  // Always emitted so the ADT "visit" group is present (structure-complete),
-  // even when the caller supplies no visit: an empty PV1 is the fail-safe,
-  // never fabricated content.
-  const v = init.visit;
-  segments.push(
-    assembleSegment(
-      "PV1",
-      new Map<number, RawField | undefined>([
-        [1, v?.setId !== undefined ? scalarField(v.setId) : undefined],
-        [2, v?.patientClass !== undefined ? scalarField(v.patientClass) : undefined],
-        [
-          3,
-          v?.assignedLocation !== undefined ? encodeComposite("PL", v.assignedLocation) : undefined,
-        ],
-        [7, v?.attendingDoctor !== undefined ? repField("XCN", v.attendingDoctor) : undefined],
-        [8, v?.referringDoctor !== undefined ? repField("XCN", v.referringDoctor) : undefined],
-        [19, v?.visitNumber !== undefined ? encodeComposite("CX", v.visitNumber) : undefined],
-        [44, v?.admitDateTime !== undefined ? encodeComposite("TS", v.admitDateTime) : undefined],
-      ]),
-    ),
+  // A merge or move event whose structure requires MRG needs a prior identity
+  // that actually carries a merge key: a name alone leaves the read side with
+  // nothing to retire, so it is refused rather than emitted.
+  const emitted = new Set(segments.map((s) => s.name));
+  if (prior === undefined || !hasPriorIdentityKey(prior)) emitted.delete("MRG");
+  assertRequiredContent(
+    "buildAdt",
+    "ADT",
+    event,
+    emitted,
+    new Map([
+      ["PID", "patient"],
+      [
+        "MRG",
+        "priorIdentity, carrying at least one prior identifier, account number or visit number",
+      ],
+    ]),
   );
 
   return new Hl7Message({
