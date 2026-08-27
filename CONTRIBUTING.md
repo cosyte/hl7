@@ -81,6 +81,36 @@ pnpm test test/differential/differential.test.ts
 See [`docs-content/spec-notes-differential.md`](./docs-content/spec-notes-differential.md) for what
 gets compared and the known/justified divergences already documented.
 
+## Releasing
+
+Releases are automated. A push to `main` runs the **Release** workflow, which is a thin caller of
+the shared `cosyte/.github` release pipeline: Changesets opens or lands the version pull request,
+then the pipeline publishes to npm, builds the docs artifacts and cuts the GitHub release. None of
+it is run by hand.
+
+Two run states get misread, so they are written down here:
+
+- **`waiting` is not a failure.** The shared pipeline puts the publish job in this repository's
+  `release` environment, and that environment carries at least one required reviewer plus a
+  deployment branch policy limited to the default branch. A run parked at `waiting` is that gate
+  holding the publish for a human approver. It is the intended control working: nothing reaches npm
+  unattended. Approve the deployment from the run page when the release is meant to go out, and
+  leave it parked when it is not. Never "fix" a `waiting` run by weakening the environment.
+- **`startup_failure` is a failure, and it means the caller's `permissions:` block is incomplete.**
+  The shared pipeline declares `actions: read` so it can read that environment protection, and a
+  called workflow's `GITHUB_TOKEN` can only be downgraded by its caller, never elevated. So if the
+  `release` job in `.github/workflows/release.yml` loses any of its four grants (`actions: read`,
+  `contents: write`, `id-token: write`, `pull-requests: write`), or loses the `permissions:` block
+  altogether and inherits the read-only repository default, the pipeline's request becomes an
+  escalation and GitHub refuses the whole workflow at startup: one second, no jobs, no steps, no
+  logs, and nothing red inside the run to read. It looks like silence rather than like a broken
+  build, which is why it once went unnoticed for two months.
+
+`test/workflows/release-caller-contract.test.ts` is what catches the second case. It reads
+`.github/workflows/release.yml` out of the checkout as text (no YAML dependency, no network, no
+credentials) and fails `pnpm test` naming the grant that went missing, so the regression surfaces
+in the pull request that causes it instead of in the next release.
+
 ## Adding a vendor-quirk fixture
 
 The library's credibility depends on a growing library of real-world
