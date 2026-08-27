@@ -71,6 +71,32 @@ decide, and this engine will not invent an answer.
 
 Omitting `usage` on a rule means Optional, and is never refused.
 
+### Usage and cardinality have to agree
+
+A segment or field rule may declare both, and the methodology fixes the
+relationship between them. Three constraints, checked when the profile is
+**defined**:
+
+| The rule declares | Its cardinality must                                         |
+| ----------------- | ------------------------------------------------------------ |
+| `R`               | have a `min` of 1 or more, if it declares one at all          |
+| anything but `R`  | have a `min` of 0, if it declares one at all                  |
+| `RE`              | be free to carry a `min` above 0: the one documented exception |
+| `X`               | have a `max` of 0, or declare no `max`                        |
+
+The `RE` exception is there so you can say "not always present, but at least
+three occurrences when it is": that is `RE` with `[3..5]`, which reads as an
+implied `[0, 3..5]`. Every other non-Required usage takes a minimum of 0,
+including the conditional codes, whose per-message outcome supplies the rest:
+the methodology's own worked pairing is `C(R/X)` with `[0..5]`, meaning zero
+occurrences when the predicate is false and one to five when it is true.
+
+A pairing that contradicts itself is `PROFILE_MALFORMED` from
+`validateAgainstProfile` and a thrown `ProfileDefinitionError` from
+`defineConformanceProfile`, exactly like any other profile defect. **It is
+checked against what the rule DECLARES**, so a rule that declares no usage, or
+no cardinality, is never refused for a pairing it never wrote.
+
 `USAGE_CODES` exports that vocabulary as a frozen, ordered listing: `R`, `RE`,
 `C`, `CE`, `O`, `X`, `C(a/b)`, `B`. **It is a published vocabulary listing, not
 a membership test for what a rule may declare.** `C(a/b)` is the NOTATION for
@@ -495,6 +521,120 @@ the code exists in the system the message names, or that the system is current.
 hl7 still ships no code set and makes no network call; the binding lets you
 encode the assertion your own interface requires, and asserts nothing of its own.
 
+## Declaring what a field's components are
+
+A field rule constrains the field. `components` constrains what is **inside**
+it: a list of 1-indexed component positions, each with an optional usage code.
+
+**A component's cardinality is implied by its usage and is never declared.** The
+methodology requires an explicit cardinality range for segment groups, segments
+and field elements, and states that components do not carry one: the range
+follows from the usage code instead. `R` implies `[1..1]`, `RE` and `O` imply
+`[0..1]`, and `X` implies `[0..0]`. A component has no repetition construct in
+HL7 v2, so those reduce to presence: `[1..1]` is "valued here" and `[0..0]` is
+"not valued here". Declaring a `cardinality` on a component rule is
+`PROFILE_MALFORMED`, not an extra constraint the engine quietly honours.
+
+**Declaring component rules CLOSES the field's component set**, and that is the
+point. Without it the engine grades only what you wrote down, so a vendor
+stuffing a fourth component into a field you specified with three passes clean.
+The methodology counts that as a conformance violation rather than harmless
+extra content, and its own example is exactly that case: data present for a
+fourth component where the profile defines three. Content at a component index
+your rule does not declare is `PROFILE_UNDECLARED_CONTENT`, one finding per
+undeclared index per repetition.
+
+```ts runnable
+import {
+  parseHL7,
+  validateAgainstProfile,
+  FINDING_CODES,
+  type ConformanceProfile,
+} from "@cosyte/hl7";
+
+// "A patient identifier is an ID in component 1, an assigning authority in
+// component 4 and an identifier type in component 5. Components 2 and 3 are not
+// supported, and there is nothing past component 5."
+const profile: ConformanceProfile = {
+  name: "identifier-shape",
+  segments: [
+    {
+      segment: "PID",
+      fields: [
+        {
+          field: 3,
+          name: "Patient Identifier List",
+          components: [
+            { component: 1, name: "ID Number", usage: "R" },
+            { component: 2, name: "Check Digit", usage: "X" },
+            { component: 3, name: "Check Digit Scheme", usage: "X" },
+            { component: 4, name: "Assigning Authority", usage: "RE" },
+            { component: 5, name: "Identifier Type Code", usage: "R" },
+          ],
+        },
+      ],
+    },
+  ],
+};
+
+const head = "MSH|^~\\&|EPIC|MAIN|LIS|REF|20260419101500||ADT^A01|MSG00001|P|2.5";
+const check = (pid3: string) =>
+  validateAgainstProfile(parseHL7([head, `PID|1||${pid3}||Doe^John`].join("\r")), profile).findings;
+
+// A conforming identifier. Nothing fires.
+check("MRN12345^^^HOSP^MR").length; // => 0
+
+// No identifier type: component 5 is Required, so its implied [1..1] fires.
+check("MRN12345^^^HOSP")[0]?.code; // => "PROFILE_REQUIRED_ABSENT"
+check("MRN12345^^^HOSP")[0]?.locus.component; // => 5
+
+// A check digit where the profile says X: its implied [0..0] fires.
+check("MRN12345^7^^HOSP^MR")[0]?.code; // => "PROFILE_NOT_PERMITTED"
+
+// A SIXTH component, which the profile never declared at all.
+const extra = check("MRN12345^^^HOSP^MR^SURPRISE");
+extra.length; // => 1
+extra[0]?.code === FINDING_CODES.PROFILE_UNDECLARED_CONTENT; // => true
+extra[0]?.locus.component; // => 6
+
+// PHI-safe like every other finding: the surprising value is never named, and
+// the message carries the locus plus how many components the rule declares.
+extra[0]?.message.includes("SURPRISE"); // => false
+extra[0]?.message.includes("component 6"); // => true
+```
+
+**Omitting `components` changes nothing.** A field rule that declares none
+declares no depth, is checked exactly as it always has been, and can never emit
+`PROFILE_UNDECLARED_CONTENT`. The check is additive and opt-in per rule.
+
+`components` (plural) is not `component` (singular). The singular one says
+which component the `length` and `valueSet` checks read; it declares no
+component rule and closes nothing.
+
+A few boundaries worth stating plainly:
+
+- **Declaring an index is what closes the set, not constraining it.**
+  `{ component: 4 }` with no usage means "component 4 exists and is Optional",
+  which is enough to stop it being undeclared content.
+- **An empty component is not content.** Trailing separators, an empty
+  component and an empty subcomponent are all absence, so none of them is
+  reported. A component is valued when any of its subcomponents carries
+  something.
+- **Component rules are evaluated per PRESENT repetition.** An absent or empty
+  field is left to its own usage code exactly as before, and an empty repetition
+  inside a present field reports nothing.
+- **A conditional usage on a component is never decided.** A component rule
+  carries no `condition` and a caller resolution names a segment plus a field,
+  so `C`, `CE`, `B` and a declared conditional all leave a component's presence
+  unevaluated, on the same terms an undecided conditional field rule gets.
+- **This goes exactly one level deep.** Sub-component rules are not supported,
+  and a component rule says nothing about what is inside its component.
+- **The check is only as good as the depth you declare.** A shallow profile
+  still under-reports, which is a property of the profile rather than of the
+  engine: an undeclared field, an undeclared segment and an undeclared
+  sub-component are all still unchecked, and "no findings" is still not an
+  attestation.
+
 ## The finding codes
 
 Stable, additive codes on `FINDING_CODES`. Segment-level vs field-level is told
@@ -510,6 +650,9 @@ apart by whether the finding's `locus.field` is set, not by separate codes.
   element's presence was not assessed.
 - `PROFILE_CODING_SYSTEM_MISMATCH`: a present repetition does not carry the
   coding system the rule binds its value set to.
+- `PROFILE_UNDECLARED_CONTENT`: a present repetition carries content at a
+  component index the field rule does not declare. Only a rule that declares
+  `components` can emit it.
 - `PROFILE_MALFORMED`: the profile itself is structurally malformed (a diagnostic).
 
 Length and value-set checks read the value at the rule's `component` (default

@@ -52,12 +52,11 @@ export function describeLocus(locus: FindingLocus): string {
  * @internal
  */
 export function requiredAbsent(locus: FindingLocus, severity: FindingSeverity): ConformanceFinding {
-  const kind = locus.field === undefined ? "segment" : "field";
   return {
     code: FINDING_CODES.PROFILE_REQUIRED_ABSENT,
     severity,
     locus,
-    message: `Required ${kind} ${describeLocus(locus)} is absent or empty (usage R).`,
+    message: `Required ${elementKind(locus)} ${describeLocus(locus)} is absent or empty (usage R).`,
   };
 }
 
@@ -68,15 +67,62 @@ export function requiredAbsent(locus: FindingLocus, severity: FindingSeverity): 
  * @internal
  */
 export function notPermitted(locus: FindingLocus, severity: FindingSeverity): ConformanceFinding {
-  const kind = locus.field === undefined ? "segment" : "field";
+  const kind = elementKind(locus);
   return {
     code: FINDING_CODES.PROFILE_NOT_PERMITTED,
     severity,
     locus,
-    message: `${kind === "segment" ? "Segment" : "Field"} ${describeLocus(
+    message: `${kind.charAt(0).toUpperCase()}${kind.slice(1)} ${describeLocus(
       locus,
     )} is present but the profile marks it not-permitted (usage X).`,
   };
+}
+
+/**
+ * A present repetition carries a non-empty value at a component index the field
+ * rule does not declare.
+ *
+ * The message names the locus and the NUMBER of components the rule declares,
+ * and nothing else. That count is profile shape rather than message content, on
+ * exactly the terms {@link valueNotInSet} reports the SIZE of a value set: it
+ * tells an author how deep their rule reaches, which is the fact they need to
+ * either widen the rule or take the finding seriously.
+ *
+ * **The surprising value is never named**, and this is the factory most tempted
+ * to name it: an author reading "there is content you did not declare" wants to
+ * know what it was. The component is undeclared precisely because the profile
+ * says nothing about it, so its content is unconstrained message content and
+ * therefore PHI until proven otherwise. The locus says where to look in the
+ * message the caller already holds.
+ *
+ * @internal
+ */
+export function undeclaredContent(
+  locus: FindingLocus,
+  declaredComponents: number,
+  severity: FindingSeverity,
+): ConformanceFinding {
+  return {
+    code: FINDING_CODES.PROFILE_UNDECLARED_CONTENT,
+    severity,
+    locus,
+    message:
+      `${describeLocus(locus)} carries content at a component the profile does not declare ` +
+      `(the field rule declares ${String(declaredComponents)} component(s)).`,
+  };
+}
+
+/**
+ * Which level of the positional tree a locus names, for a finding message.
+ * Component before field before segment, because a locus narrows from the
+ * outside in and the innermost index it carries is the element the finding is
+ * about.
+ *
+ * @internal
+ */
+function elementKind(locus: FindingLocus): "segment" | "field" | "component" {
+  if (locus.component !== undefined) return "component";
+  return locus.field === undefined ? "segment" : "field";
 }
 
 /**

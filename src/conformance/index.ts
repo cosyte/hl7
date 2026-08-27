@@ -20,6 +20,7 @@ export {
   USAGE_CODES,
   type Cardinality,
   type ComparisonPredicate,
+  type ComponentRule,
   type ConditionPredicate,
   type ConformanceFinding,
   type ConformanceProfile,

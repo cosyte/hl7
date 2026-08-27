@@ -321,6 +321,16 @@ export { batchCountMismatch, batchMissingTrailer } from "./parser/warnings.js";
 // An identifier the map does not recognize is refused when the profile is
 // DEFINED, never compared against a system that cannot be resolved. Still no
 // code set and no network call: it checks the sender's claim, not the code.
+// A field rule may additionally declare per-component rules (`components`),
+// each a 1-indexed index plus an optional usage code whose cardinality is
+// IMPLIED rather than declared (`R` is [1..1], `RE`/`O` are [0..1], `X` is
+// [0..0]; a component has no repetition construct, so those reduce to presence).
+// Declaring them CLOSES the field's component set, so a present repetition
+// carrying content at an undeclared index is PROFILE_UNDECLARED_CONTENT. A
+// field rule that declares none is checked exactly as before and can never emit
+// it. The usage/cardinality coherence the methodology states (R needs min >= 1;
+// a non-R usage needs min 0, RE being the documented exception; X admits only
+// max 0) is refused when the profile is DEFINED, for segment and field rules.
 export { validateAgainstProfile } from "./conformance/validate-against-profile.js";
 export { defineConformanceProfile } from "./conformance/profile-shape.js";
 export { usageOutcomes } from "./conformance/usage.js";
@@ -331,6 +341,7 @@ export {
   USAGE_CODES,
   type Cardinality,
   type ComparisonPredicate,
+  type ComponentRule,
   type ConditionPredicate,
   type ConformanceFinding,
   type ConformanceProfile,
