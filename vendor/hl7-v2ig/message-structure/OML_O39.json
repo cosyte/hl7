@@ -1,0 +1,1432 @@
+{
+  "resourceType": "StructureDefinition",
+  "url": "http://hl7.org/v2/StructureDefinition/OML_O39",
+  "id": "OML_O39",
+  "meta": {
+    "profile": [
+      "http://hl7.org/v2/StructureDefinition/MessageStructure-Profile"
+    ]
+  },
+  "version": "0.0.1",
+  "status": "active",
+  "kind": "logical",
+  "abstract": false,
+  "baseDefinition": "http://hl7.org/v2/StructureDefinition/MessageStructure",
+  "derivation": "specialization",
+  "differential": {
+    "element": [
+      {
+        "id": "OML_O39",
+        "path": "OML_O39",
+        "short": "OML_O39",
+        "definition": "OML_O39 Message Structure",
+        "min": 0,
+        "max": "*"
+      },
+      {
+        "id": "OML_O39.1-MSH",
+        "path": "OML_O39.1-MSH",
+        "short": "Message Header",
+        "min": 1,
+        "max": "1",
+        "definition": "Message Header",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/MSH"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.2-ARV",
+        "path": "OML_O39.2-ARV",
+        "short": "Access Restrictions",
+        "min": 0,
+        "max": "*",
+        "definition": "Access Restrictions",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ARV"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.3-SFT",
+        "path": "OML_O39.3-SFT",
+        "short": "Software",
+        "min": 0,
+        "max": "*",
+        "definition": "Software",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/SFT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.4-UAC",
+        "path": "OML_O39.4-UAC",
+        "short": "User Authentication Credential",
+        "min": 0,
+        "max": "1",
+        "definition": "User Authentication Credential",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/UAC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.5-NTE",
+        "path": "OML_O39.5-NTE",
+        "short": "Notes and Comments (for Header)",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes and Comments (for Header)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.6-PATIENT",
+        "path": "OML_O39.6-PATIENT",
+        "short": "PATIENT",
+        "min": 0,
+        "max": "1",
+        "definition": "PATIENT",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.6-PATIENT.1-PID",
+        "path": "OML_O39.6-PATIENT.1-PID",
+        "short": "Patient Identification",
+        "min": 1,
+        "max": "1",
+        "definition": "Patient Identification",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PID"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.6-PATIENT.2-PD1",
+        "path": "OML_O39.6-PATIENT.2-PD1",
+        "short": "Additional Demographics",
+        "min": 0,
+        "max": "1",
+        "definition": "Additional Demographics",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PD1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.6-PATIENT.3-GSP",
+        "path": "OML_O39.6-PATIENT.3-GSP",
+        "short": "Person Gender and Sex",
+        "min": 0,
+        "max": "*",
+        "definition": "Person Gender and Sex",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSP"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.6-PATIENT.4-GSR",
+        "path": "OML_O39.6-PATIENT.4-GSR",
+        "short": "Recorded Gender and Sex",
+        "min": 0,
+        "max": "*",
+        "definition": "Recorded Gender and Sex",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSR"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.6-PATIENT.5-PRT",
+        "path": "OML_O39.6-PATIENT.5-PRT",
+        "short": "Participation (for Patient)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (for Patient)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.6-PATIENT.6-OCCUPATIONAL_DATA_FOR_HEALTH",
+        "path": "OML_O39.6-PATIENT.6-OCCUPATIONAL_DATA_FOR_HEALTH",
+        "short": "OCCUPATIONAL_DATA_FOR_HEALTH",
+        "min": 0,
+        "max": "1",
+        "definition": "OCCUPATIONAL_DATA_FOR_HEALTH",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.6-PATIENT.6-OCCUPATIONAL_DATA_FOR_HEALTH.1-OH1",
+        "path": "OML_O39.6-PATIENT.6-OCCUPATIONAL_DATA_FOR_HEALTH.1-OH1",
+        "short": "Employment Status",
+        "min": 0,
+        "max": "*",
+        "definition": "Employment Status",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OH1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.6-PATIENT.6-OCCUPATIONAL_DATA_FOR_HEALTH.2-OH2",
+        "path": "OML_O39.6-PATIENT.6-OCCUPATIONAL_DATA_FOR_HEALTH.2-OH2",
+        "short": "Past or Present Job",
+        "min": 0,
+        "max": "*",
+        "definition": "Past or Present Job",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OH2"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.6-PATIENT.6-OCCUPATIONAL_DATA_FOR_HEALTH.3-OH3",
+        "path": "OML_O39.6-PATIENT.6-OCCUPATIONAL_DATA_FOR_HEALTH.3-OH3",
+        "short": "Usual Work",
+        "min": 0,
+        "max": "1",
+        "definition": "Usual Work",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OH3"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.6-PATIENT.6-OCCUPATIONAL_DATA_FOR_HEALTH.4-OH4",
+        "path": "OML_O39.6-PATIENT.6-OCCUPATIONAL_DATA_FOR_HEALTH.4-OH4",
+        "short": "Combat Zone Work",
+        "min": 0,
+        "max": "*",
+        "definition": "Combat Zone Work",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OH4"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.6-PATIENT.7-NTE",
+        "path": "OML_O39.6-PATIENT.7-NTE",
+        "short": "Notes and Comments (for Patient ID)",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes and Comments (for Patient ID)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.6-PATIENT.8-NEXT_OF_KIN",
+        "path": "OML_O39.6-PATIENT.8-NEXT_OF_KIN",
+        "short": "NEXT_OF_KIN",
+        "min": 0,
+        "max": "*",
+        "definition": "NEXT_OF_KIN",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.6-PATIENT.8-NEXT_OF_KIN.1-NK1",
+        "path": "OML_O39.6-PATIENT.8-NEXT_OF_KIN.1-NK1",
+        "short": "Next of Kin/Associated Parties",
+        "min": 1,
+        "max": "1",
+        "definition": "Next of Kin/Associated Parties",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NK1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.6-PATIENT.8-NEXT_OF_KIN.2-GSP",
+        "path": "OML_O39.6-PATIENT.8-NEXT_OF_KIN.2-GSP",
+        "short": "Person Gender and Sex",
+        "min": 0,
+        "max": "*",
+        "definition": "Person Gender and Sex",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSP"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.6-PATIENT.8-NEXT_OF_KIN.3-GSR",
+        "path": "OML_O39.6-PATIENT.8-NEXT_OF_KIN.3-GSR",
+        "short": "Recorded Gender and Sex",
+        "min": 0,
+        "max": "*",
+        "definition": "Recorded Gender and Sex",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSR"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.6-PATIENT.8-NEXT_OF_KIN.4-OH2",
+        "path": "OML_O39.6-PATIENT.8-NEXT_OF_KIN.4-OH2",
+        "short": "Past or Present Job",
+        "min": 0,
+        "max": "*",
+        "definition": "Past or Present Job",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OH2"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.6-PATIENT.8-NEXT_OF_KIN.5-OH3",
+        "path": "OML_O39.6-PATIENT.8-NEXT_OF_KIN.5-OH3",
+        "short": "Usual Work",
+        "min": 0,
+        "max": "1",
+        "definition": "Usual Work",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OH3"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.6-PATIENT.9-ARV",
+        "path": "OML_O39.6-PATIENT.9-ARV",
+        "short": "For backwards compatibility only as of V2.9.",
+        "min": 0,
+        "max": "*",
+        "definition": "For backwards compatibility only as of V2.9.",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ARV"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "B"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.6-PATIENT.10-PATIENT_VISIT",
+        "path": "OML_O39.6-PATIENT.10-PATIENT_VISIT",
+        "short": "PATIENT_VISIT",
+        "min": 0,
+        "max": "1",
+        "definition": "PATIENT_VISIT",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.6-PATIENT.10-PATIENT_VISIT.1-PV1",
+        "path": "OML_O39.6-PATIENT.10-PATIENT_VISIT.1-PV1",
+        "short": "Patient Visit",
+        "min": 1,
+        "max": "1",
+        "definition": "Patient Visit",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PV1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.6-PATIENT.10-PATIENT_VISIT.2-PV2",
+        "path": "OML_O39.6-PATIENT.10-PATIENT_VISIT.2-PV2",
+        "short": "Patient Visit- Additional Info",
+        "min": 0,
+        "max": "1",
+        "definition": "Patient Visit- Additional Info",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PV2"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.6-PATIENT.10-PATIENT_VISIT.3-PRT",
+        "path": "OML_O39.6-PATIENT.10-PATIENT_VISIT.3-PRT",
+        "short": "Participation (for Patient Visit)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (for Patient Visit)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.6-PATIENT.11-INSURANCE",
+        "path": "OML_O39.6-PATIENT.11-INSURANCE",
+        "short": "INSURANCE",
+        "min": 0,
+        "max": "*",
+        "definition": "INSURANCE",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.6-PATIENT.11-INSURANCE.1-IN1",
+        "path": "OML_O39.6-PATIENT.11-INSURANCE.1-IN1",
+        "short": "Insurance",
+        "min": 1,
+        "max": "1",
+        "definition": "Insurance",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/IN1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.6-PATIENT.11-INSURANCE.2-IN2",
+        "path": "OML_O39.6-PATIENT.11-INSURANCE.2-IN2",
+        "short": "Insurance Additional Information",
+        "min": 0,
+        "max": "1",
+        "definition": "Insurance Additional Information",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/IN2"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.6-PATIENT.11-INSURANCE.3-IN3",
+        "path": "OML_O39.6-PATIENT.11-INSURANCE.3-IN3",
+        "short": "Insurance Additional Information, Certification",
+        "min": 0,
+        "max": "1",
+        "definition": "Insurance Additional Information, Certification",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/IN3"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.6-PATIENT.12-GT1",
+        "path": "OML_O39.6-PATIENT.12-GT1",
+        "short": "Guarantor",
+        "min": 0,
+        "max": "1",
+        "definition": "Guarantor",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GT1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.6-PATIENT.13-AL1",
+        "path": "OML_O39.6-PATIENT.13-AL1",
+        "short": "Allergy Information",
+        "min": 0,
+        "max": "*",
+        "definition": "Allergy Information",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/AL1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.7-ORDER",
+        "path": "OML_O39.7-ORDER",
+        "short": "ORDER",
+        "min": 1,
+        "max": "*",
+        "definition": "ORDER",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.7-ORDER.1-ORC",
+        "path": "OML_O39.7-ORDER.1-ORC",
+        "short": "Common Order",
+        "min": 1,
+        "max": "1",
+        "definition": "Common Order",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ORC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.7-ORDER.2-NTE",
+        "path": "OML_O39.7-ORDER.2-NTE",
+        "short": "Notes and Comments (for Order)",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes and Comments (for Order)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.7-ORDER.3-PRT",
+        "path": "OML_O39.7-ORDER.3-PRT",
+        "short": "Participation (for Order)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (for Order)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.7-ORDER.4-TIMING",
+        "path": "OML_O39.7-ORDER.4-TIMING",
+        "short": "TIMING",
+        "min": 0,
+        "max": "*",
+        "definition": "TIMING",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.7-ORDER.4-TIMING.1-TQ1",
+        "path": "OML_O39.7-ORDER.4-TIMING.1-TQ1",
+        "short": "Timing/Quantity",
+        "min": 1,
+        "max": "1",
+        "definition": "Timing/Quantity",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/TQ1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.7-ORDER.4-TIMING.2-TQ2",
+        "path": "OML_O39.7-ORDER.4-TIMING.2-TQ2",
+        "short": "Timing/Quantity Order Sequence",
+        "min": 0,
+        "max": "*",
+        "definition": "Timing/Quantity Order Sequence",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/TQ2"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST",
+        "path": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST",
+        "short": "OBSERVATION_REQUEST",
+        "min": 0,
+        "max": "1",
+        "definition": "OBSERVATION_REQUEST",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.1-OBR",
+        "path": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.1-OBR",
+        "short": "Observation Request",
+        "min": 1,
+        "max": "1",
+        "definition": "Observation Request",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OBR"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.2-TCD",
+        "path": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.2-TCD",
+        "short": "Test Code Details",
+        "min": 0,
+        "max": "1",
+        "definition": "Test Code Details",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/TCD"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.3-NTE",
+        "path": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.3-NTE",
+        "short": "Notes and Comments (for Detail)",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes and Comments (for Detail)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.4-PRT",
+        "path": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.4-PRT",
+        "short": "Participation (for Observation Request)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (for Observation)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.5-CTD",
+        "path": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.5-CTD",
+        "short": "Contact Data",
+        "min": 0,
+        "max": "1",
+        "definition": "Contact Data",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/CTD"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.6-DG1",
+        "path": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.6-DG1",
+        "short": "Diagnosis",
+        "min": 0,
+        "max": "*",
+        "definition": "Diagnosis",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/DG1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.7-REL",
+        "path": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.7-REL",
+        "short": "Relationship (for Observation)",
+        "min": 0,
+        "max": "*",
+        "definition": "Relationship (for Observation)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/REL"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.8-OBSERVATION",
+        "path": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.8-OBSERVATION",
+        "short": "OBSERVATION",
+        "min": 0,
+        "max": "*",
+        "definition": "OBSERVATION",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.8-OBSERVATION.1-OBX",
+        "path": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.8-OBSERVATION.1-OBX",
+        "short": "Observation/Result",
+        "min": 1,
+        "max": "1",
+        "definition": "Observation/Result",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OBX"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.8-OBSERVATION.2-PRT",
+        "path": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.8-OBSERVATION.2-PRT",
+        "short": "Participation (for Observation)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (for Observation)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.8-OBSERVATION.3-TCD",
+        "path": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.8-OBSERVATION.3-TCD",
+        "short": "Test Code Detail",
+        "min": 0,
+        "max": "1",
+        "definition": "Test Code Detail",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/TCD"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.8-OBSERVATION.4-NTE",
+        "path": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.8-OBSERVATION.4-NTE",
+        "short": "Notes and Comments (for Results)",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes and Comments (for Results)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.9-SPECIMEN_SHIPMENT",
+        "path": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.9-SPECIMEN_SHIPMENT",
+        "short": "SPECIMEN_SHIPMENT",
+        "min": 0,
+        "max": "*",
+        "definition": "SPECIMEN_SHIPMENT",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.9-SPECIMEN_SHIPMENT.1-SHP",
+        "path": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.9-SPECIMEN_SHIPMENT.1-SHP",
+        "short": "Shipment",
+        "min": 1,
+        "max": "1",
+        "definition": "Shipment Segment",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/SHP"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.9-SPECIMEN_SHIPMENT.2-SHIPMENT_OBSERVATION",
+        "path": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.9-SPECIMEN_SHIPMENT.2-SHIPMENT_OBSERVATION",
+        "short": "SHIPMENT_OBSERVATION",
+        "min": 0,
+        "max": "*",
+        "definition": "SHIPMENT_OBSERVATION",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.9-SPECIMEN_SHIPMENT.2-SHIPMENT_OBSERVATION.1-OBX",
+        "path": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.9-SPECIMEN_SHIPMENT.2-SHIPMENT_OBSERVATION.1-OBX",
+        "short": "Observation/Result Segment (Additional Shipping Information)",
+        "min": 1,
+        "max": "1",
+        "definition": "Observation/Result Segment (Additional Shipping Information)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OBX"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.9-SPECIMEN_SHIPMENT.2-SHIPMENT_OBSERVATION.2-PRT",
+        "path": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.9-SPECIMEN_SHIPMENT.2-SHIPMENT_OBSERVATION.2-PRT",
+        "short": "Participation (for Shipment Observation)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (for OBX)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.9-SPECIMEN_SHIPMENT.3-PACKAGE",
+        "path": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.9-SPECIMEN_SHIPMENT.3-PACKAGE",
+        "short": "PACKAGE",
+        "min": 1,
+        "max": "*",
+        "definition": "PACKAGE",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.9-SPECIMEN_SHIPMENT.3-PACKAGE.1-PAC",
+        "path": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.9-SPECIMEN_SHIPMENT.3-PACKAGE.1-PAC",
+        "short": "Shipping Package",
+        "min": 1,
+        "max": "1",
+        "definition": "Shipping Package Segment",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PAC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.9-SPECIMEN_SHIPMENT.3-PACKAGE.2-SPECIMEN_IN_PACKAGE",
+        "path": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.9-SPECIMEN_SHIPMENT.3-PACKAGE.2-SPECIMEN_IN_PACKAGE",
+        "short": "SPECIMEN_IN_PACKAGE",
+        "min": 0,
+        "max": "*",
+        "definition": "SPECIMEN_IN_PACKAGE",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.9-SPECIMEN_SHIPMENT.3-PACKAGE.2-SPECIMEN_IN_PACKAGE.1-SPM",
+        "path": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.9-SPECIMEN_SHIPMENT.3-PACKAGE.2-SPECIMEN_IN_PACKAGE.1-SPM",
+        "short": "Specimen Information",
+        "min": 1,
+        "max": "1",
+        "definition": "Specimen Information",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/SPM"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.9-SPECIMEN_SHIPMENT.3-PACKAGE.2-SPECIMEN_IN_PACKAGE.2-NTE",
+        "path": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.9-SPECIMEN_SHIPMENT.3-PACKAGE.2-SPECIMEN_IN_PACKAGE.2-NTE",
+        "short": "Notes and Comments (for Specimen)",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes and Comments (for Specimen)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.9-SPECIMEN_SHIPMENT.3-PACKAGE.2-SPECIMEN_IN_PACKAGE.3-SPECIMEN_OBSERVATION",
+        "path": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.9-SPECIMEN_SHIPMENT.3-PACKAGE.2-SPECIMEN_IN_PACKAGE.3-SPECIMEN_OBSERVATION",
+        "short": "SPECIMEN_OBSERVATION",
+        "min": 0,
+        "max": "*",
+        "definition": "SPECIMEN_OBSERVATION",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.9-SPECIMEN_SHIPMENT.3-PACKAGE.2-SPECIMEN_IN_PACKAGE.3-SPECIMEN_OBSERVATION.1-OBX",
+        "path": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.9-SPECIMEN_SHIPMENT.3-PACKAGE.2-SPECIMEN_IN_PACKAGE.3-SPECIMEN_OBSERVATION.1-OBX",
+        "short": "Observation/Result Segment (For Specimen)",
+        "min": 1,
+        "max": "1",
+        "definition": "Observation/Result Segment (For Specimen)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OBX"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.9-SPECIMEN_SHIPMENT.3-PACKAGE.2-SPECIMEN_IN_PACKAGE.3-SPECIMEN_OBSERVATION.2-PRT",
+        "path": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.9-SPECIMEN_SHIPMENT.3-PACKAGE.2-SPECIMEN_IN_PACKAGE.3-SPECIMEN_OBSERVATION.2-PRT",
+        "short": "Participation (for Specimen Observation)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (for Specimen Observation)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.9-SPECIMEN_SHIPMENT.3-PACKAGE.2-SPECIMEN_IN_PACKAGE.4-SPECIMEN_CONTAINER_IN_PACKAGE",
+        "path": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.9-SPECIMEN_SHIPMENT.3-PACKAGE.2-SPECIMEN_IN_PACKAGE.4-SPECIMEN_CONTAINER_IN_PACKAGE",
+        "short": "SPECIMEN_CONTAINER_IN_PACKAGE",
+        "min": 0,
+        "max": "*",
+        "definition": "SPECIMEN_CONTAINER_IN_PACKAGE",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.9-SPECIMEN_SHIPMENT.3-PACKAGE.2-SPECIMEN_IN_PACKAGE.4-SPECIMEN_CONTAINER_IN_PACKAGE.1-SAC",
+        "path": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.9-SPECIMEN_SHIPMENT.3-PACKAGE.2-SPECIMEN_IN_PACKAGE.4-SPECIMEN_CONTAINER_IN_PACKAGE.1-SAC",
+        "short": "Container Information",
+        "min": 1,
+        "max": "1",
+        "definition": "Container Information",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/SAC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.9-SPECIMEN_SHIPMENT.3-PACKAGE.2-SPECIMEN_IN_PACKAGE.4-SPECIMEN_CONTAINER_IN_PACKAGE.2-NTE",
+        "path": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.9-SPECIMEN_SHIPMENT.3-PACKAGE.2-SPECIMEN_IN_PACKAGE.4-SPECIMEN_CONTAINER_IN_PACKAGE.2-NTE",
+        "short": "Notes and Comments (for Specimen Container)",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes and Comments (for Specimen Container)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.9-SPECIMEN_SHIPMENT.3-PACKAGE.2-SPECIMEN_IN_PACKAGE.4-SPECIMEN_CONTAINER_IN_PACKAGE.3-CONTAINER_OBSERVATION",
+        "path": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.9-SPECIMEN_SHIPMENT.3-PACKAGE.2-SPECIMEN_IN_PACKAGE.4-SPECIMEN_CONTAINER_IN_PACKAGE.3-CONTAINER_OBSERVATION",
+        "short": "CONTAINER_OBSERVATION",
+        "min": 0,
+        "max": "*",
+        "definition": "CONTAINER_OBSERVATION",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.9-SPECIMEN_SHIPMENT.3-PACKAGE.2-SPECIMEN_IN_PACKAGE.4-SPECIMEN_CONTAINER_IN_PACKAGE.3-CONTAINER_OBSERVATION.1-OBX",
+        "path": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.9-SPECIMEN_SHIPMENT.3-PACKAGE.2-SPECIMEN_IN_PACKAGE.4-SPECIMEN_CONTAINER_IN_PACKAGE.3-CONTAINER_OBSERVATION.1-OBX",
+        "short": "Observation/Result Segment (For Container)",
+        "min": 1,
+        "max": "1",
+        "definition": "Observation/Result Segment (For Container)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OBX"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.9-SPECIMEN_SHIPMENT.3-PACKAGE.2-SPECIMEN_IN_PACKAGE.4-SPECIMEN_CONTAINER_IN_PACKAGE.3-CONTAINER_OBSERVATION.2-PRT",
+        "path": "OML_O39.7-ORDER.5-OBSERVATION_REQUEST.9-SPECIMEN_SHIPMENT.3-PACKAGE.2-SPECIMEN_IN_PACKAGE.4-SPECIMEN_CONTAINER_IN_PACKAGE.3-CONTAINER_OBSERVATION.2-PRT",
+        "short": "Participation (for Container Observation)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (for Container Observation)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.7-ORDER.6-FT1",
+        "path": "OML_O39.7-ORDER.6-FT1",
+        "short": "Financial Transaction",
+        "min": 0,
+        "max": "*",
+        "definition": "Financial Transaction",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/FT1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.7-ORDER.7-CTI",
+        "path": "OML_O39.7-ORDER.7-CTI",
+        "short": "Clinical Trial Identification",
+        "min": 0,
+        "max": "*",
+        "definition": "Clinical Trial Identification",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/CTI"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.7-ORDER.8-BLG",
+        "path": "OML_O39.7-ORDER.8-BLG",
+        "short": "Billing",
+        "min": 0,
+        "max": "1",
+        "definition": "Billing Segment",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/BLG"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.8-DEVICE",
+        "path": "OML_O39.8-DEVICE",
+        "short": "DEVICE",
+        "min": 0,
+        "max": "*",
+        "definition": "DEVICE",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.8-DEVICE.1-DEV",
+        "path": "OML_O39.8-DEVICE.1-DEV",
+        "short": "Device (for Participation)",
+        "min": 1,
+        "max": "1",
+        "definition": "Device (for Participation)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/DEV"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OML_O39.8-DEVICE.2-OBX",
+        "path": "OML_O39.8-DEVICE.2-OBX",
+        "short": "Observation/Result",
+        "min": 0,
+        "max": "*",
+        "definition": "Observation/Result",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OBX"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      }
+    ]
+  },
+  "title": "HL7 v2 OML_O39 Message Structure",
+  "name": "OML_O39",
+  "type": "OML_O39",
+  "fhirVersion": "5.0.0",
+  "date": "2025-06-13T21:28:57Z"
+}

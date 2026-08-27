@@ -1,20 +1,23 @@
 /**
- * Phase G: message-type & structure awareness. Covers the conservative
- * misroute/truncation safety net on both the read-side (`msg.structure`) and
- * the parse-side (`MISSING_EXPECTED_GROUP` warning emission), plus the two
- * accuracy guarantees that make it shippable:
+ * Phase G: message-type & structure awareness. Covers the misroute/truncation
+ * safety net on both the read-side (`msg.structure`) and the parse-side
+ * (`MISSING_EXPECTED_GROUP` warning emission), plus the two accuracy guarantees
+ * that make it shippable:
  *
- *   1. ZERO false positives: every well-formed canonical fixture of a
- *      recognized type produces NO structural warning.
- *   2. The truncation signature: a recognized type stripped of an expected
- *      Required group warns ADDITIVELY, exactly once per missing group, and
- *      lenient parse never throws.
+ *   1. NO WARNING WITHOUT AN ABSENT REQUIRED SEGMENT. A warning fires only when
+ *      the message really does lack a segment the published structure gives a
+ *      minimum of one; the committed corpus is swept for that property rather
+ *      than spot-checked.
+ *   2. The truncation signature: a recognized type stripped of a required
+ *      segment warns ADDITIVELY, exactly once per missing segment, and lenient
+ *      parse never throws.
  *
- * The warning message carries only structural facts (type, group, anchor
- * names), never a field value, so the PHI-safety assertion is explicit here.
+ * The warning message carries only structural identifiers (type, segment,
+ * published structure id), never a field value, so the PHI-safety assertion is
+ * explicit here.
  */
 
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -41,7 +44,20 @@ function structuralWarnings(raw: string): readonly { readonly message: string }[
   return parseHL7(raw).warnings.filter((w) => w.code === WARNING_CODES.MISSING_EXPECTED_GROUP);
 }
 
-describe("Phase G: well-formed messages never warn (zero false positives)", () => {
+describe("Phase G: a warning only ever names a genuinely absent required segment", () => {
+  it.each(readdirSync(FIXTURE_DIR).filter((n) => n.endsWith(".hl7")))(
+    "%s warns exactly for the required segments it does not carry",
+    (fixture) => {
+      const msg = parseHL7(readFileSync(path.join(FIXTURE_DIR, fixture), "utf8"));
+      const present = new Set(msg.allSegments().map((s) => s.type));
+      const genuinelyAbsent = msg.structure.requiredSegments.filter((s) => !present.has(s));
+      expect([...msg.structure.missingSegments]).toEqual(genuinelyAbsent);
+      expect(
+        msg.warnings.filter((w) => w.code === WARNING_CODES.MISSING_EXPECTED_GROUP),
+      ).toHaveLength(genuinelyAbsent.length);
+    },
+  );
+
   it.each([
     ["oru-r01", "ORU^R01"],
     ["adt-a01", "ADT^A01"],
@@ -49,30 +65,44 @@ describe("Phase G: well-formed messages never warn (zero false positives)", () =
     ["adt-a08", "ADT^A08"],
     ["orm-o01", "ORM^O01"],
     ["siu-s12", "SIU^S12"],
-    ["mdm-t02", "MDM^T02"],
     ["vxu-v04", "VXU^V04"],
+    ["adt-a24-link", "ADT^A24"],
+    ["adt-a43-move", "ADT^A43"],
+    ["dft-p03-charge", "DFT^P03"],
   ])("%s (%s) emits no MISSING_EXPECTED_GROUP", (fixture) => {
     expect(structuralWarnings(loadFixture(fixture))).toHaveLength(0);
+  });
+
+  it("the MDM^T02 fixtures warn for PV1 only, which they genuinely lack", () => {
+    // The published MDM_T02 structure gives PV1 a minimum of one at the top
+    // level in every variant. The repo's own canonical documents predate that
+    // expectation and carry no PV1, so this is a true positive rather than a
+    // false one; it is adjudicated in docs-content/spec-notes-structure.md.
+    for (const fixture of ["mdm-t02", "mdm-t02-document"]) {
+      const ws = structuralWarnings(loadFixture(fixture));
+      expect(ws).toHaveLength(1);
+      expect(ws[0]?.message).toContain("PV1");
+    }
   });
 });
 
 describe("Phase G: truncation signature warns additively", () => {
-  it("ORU^R01 with no OBR/OBX result group warns once for 'result'", () => {
+  it("ORU^R01 with no OBR warns once, naming OBR and its published structure", () => {
     const raw = "MSH|^~\\&|A|F|||20250102||ORU^R01|1|T|2.5.1\rPID|||X\r";
     const ws = structuralWarnings(raw);
     expect(ws).toHaveLength(1);
-    expect(ws[0]?.message).toContain("result");
-    expect(ws[0]?.message).toContain("OBR/OBX");
+    expect(ws[0]?.message).toContain("OBR");
+    expect(ws[0]?.message).toContain("ORU_R01");
   });
 
-  it("ADT^A01 missing PV1 warns once for the absent 'visit' group only", () => {
+  it("ADT^A01 missing PV1 warns once for the absent segment only", () => {
     const raw = "MSH|^~\\&|A|F|||20250102||ADT^A01|1|T|2.5.1\rEVN||20250102\rPID|||X\r";
     const ws = structuralWarnings(raw);
     expect(ws).toHaveLength(1);
-    expect(ws[0]?.message).toContain("visit");
+    expect(ws[0]?.message).toContain("PV1");
   });
 
-  it("ADT^A01 missing both PID and PV1 warns twice (one per group)", () => {
+  it("ADT^A01 missing both PID and PV1 warns twice (one per segment)", () => {
     const raw = "MSH|^~\\&|A|F|||20250102||ADT^A01|1|T|2.5.1\rEVN||20250102\r";
     expect(structuralWarnings(raw)).toHaveLength(2);
   });
@@ -84,16 +114,18 @@ describe("Phase G: truncation signature warns additively", () => {
 });
 
 describe("Phase G: unrecognized types are silent (conservative)", () => {
-  it("an unmodelled trigger event emits no structural warning", () => {
-    // QRY^A19 is a real type the registry deliberately does not model.
+  it("an unmodelled message code emits no structural warning", () => {
+    // QRY^A19 is a real type the registry does not cover.
     const raw = "MSH|^~\\&|A|F|||20250102||QRY^A19|1|T|2.5.1\r";
     expect(structuralWarnings(raw)).toHaveLength(0);
   });
 
-  it("an ADT trigger event outside the recognized set is silent", () => {
-    // A06 (change outpatient→inpatient) is intentionally not modelled.
-    const raw = "MSH|^~\\&|A|F|||20250102||ADT^A06|1|T|2.5.1\r";
+  it("an ADT trigger event the publication names no structure for is silent", () => {
+    // A18 (merge patient information) is one of the eight pairs the
+    // publication's own message list leaves without a structure.
+    const raw = "MSH|^~\\&|A|F|||20250102||ADT^A18|1|T|2.5.1\r";
     expect(structuralWarnings(raw)).toHaveLength(0);
+    expect(parseHL7(raw).structure.recognized).toBe(false);
   });
 });
 
@@ -116,22 +148,28 @@ describe("Phase G: msg.structure read-side view", () => {
     expect(s.messageCode).toBe("ORU");
     expect(s.triggerEvent).toBe("R01");
     expect(s.missingGroups).toEqual([]);
+    expect(s.missingSegments).toEqual([]);
     expect(s.expectedGroups.every((g) => g.present)).toBe(true);
+    expect(s.structureIds).toContain("ORU_R01-A");
   });
 
-  it("reports the missing group for a truncated ORU^R01", () => {
+  it("reports the missing segment for a truncated ORU^R01", () => {
     const raw = "MSH|^~\\&|A|F|||20250102||ORU^R01|1|T|2.5.1\rPID|||X\r";
     const s = parseHL7(raw).structure;
     expect(s.recognized).toBe(true);
-    expect(s.missingGroups).toEqual(["result"]);
+    expect(s.missingSegments).toEqual(["OBR"]);
+    expect(s.missingGroups).toEqual(["OBR"]);
   });
 
-  it("unrecognized type → recognized:false, no expected/missing groups", () => {
+  it("unrecognized type -> recognized:false, no expected/missing groups", () => {
     const raw = "MSH|^~\\&|A|F|||20250102||QRY^A19|1|T|2.5.1\r";
     const s = parseHL7(raw).structure;
     expect(s.recognized).toBe(false);
     expect(s.expectedGroups).toEqual([]);
     expect(s.missingGroups).toEqual([]);
+    expect(s.missingSegments).toEqual([]);
+    expect(s.requiredSegments).toEqual([]);
+    expect(s.structureIds).toEqual([]);
   });
 
   it("is memoized (D-02): same reference across reads", () => {
@@ -150,12 +188,12 @@ describe("Phase G: pure analyzeMessageStructure", () => {
   it("ACK matches on message code alone (empty trigger event)", () => {
     const s = analyzeMessageStructure("ACK", "", new Set(["MSH"]));
     expect(s.recognized).toBe(true);
-    expect(s.missingGroups).toEqual(["acknowledgment"]);
+    expect(s.missingSegments).toEqual(["MSA"]);
   });
 
-  it("ACK with MSA present has no missing group", () => {
+  it("ACK with MSA present has no missing segment", () => {
     const s = analyzeMessageStructure("ACK", "", new Set(["MSH", "MSA"]));
-    expect(s.missingGroups).toEqual([]);
+    expect(s.missingSegments).toEqual([]);
   });
 
   it("the registry is frozen and recognizes the documented types", () => {

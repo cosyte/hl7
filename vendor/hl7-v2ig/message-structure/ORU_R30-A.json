@@ -1,0 +1,706 @@
+{
+  "resourceType": "StructureDefinition",
+  "url": "http://hl7.org/v2/StructureDefinition/ORU_R30-A",
+  "id": "ORU_R30-A",
+  "meta": {
+    "profile": [
+      "http://hl7.org/v2/StructureDefinition/MessageStructure-Profile"
+    ]
+  },
+  "version": "0.0.1",
+  "status": "active",
+  "kind": "logical",
+  "abstract": false,
+  "baseDefinition": "http://hl7.org/v2/StructureDefinition/MessageStructure",
+  "derivation": "specialization",
+  "differential": {
+    "element": [
+      {
+        "id": "ORU_R30-A",
+        "path": "ORU_R30-A",
+        "short": "ORU_R30-A",
+        "definition": "ORU_R30-A Message Structure",
+        "min": 0,
+        "max": "*"
+      },
+      {
+        "id": "ORU_R30-A.1-MSH",
+        "path": "ORU_R30-A.1-MSH",
+        "short": "Message Header",
+        "min": 1,
+        "max": "1",
+        "definition": "Message Header",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/MSH"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R30-A.2-ARV",
+        "path": "ORU_R30-A.2-ARV",
+        "short": "Access Restrictions",
+        "min": 0,
+        "max": "*",
+        "definition": "Access Restrictions",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ARV"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R30-A.3-SFT",
+        "path": "ORU_R30-A.3-SFT",
+        "short": "Software",
+        "min": 0,
+        "max": "*",
+        "definition": "Software Segment",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/SFT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R30-A.4-UAC",
+        "path": "ORU_R30-A.4-UAC",
+        "short": "User Authentication Credential",
+        "min": 0,
+        "max": "1",
+        "definition": "User Authentication Credential",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/UAC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R30-A.5-PID",
+        "path": "ORU_R30-A.5-PID",
+        "short": "Patient Identification",
+        "min": 1,
+        "max": "1",
+        "definition": "Patient Identification",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PID"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R30-A.6-PD1",
+        "path": "ORU_R30-A.6-PD1",
+        "short": "Additional Demographics",
+        "min": 0,
+        "max": "1",
+        "definition": "Additional Demographics",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PD1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R30-A.7-GSP",
+        "path": "ORU_R30-A.7-GSP",
+        "short": "Person Gender and Sex",
+        "min": 0,
+        "max": "*",
+        "definition": "Person Gender and Sex",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSP"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R30-A.8-GSR",
+        "path": "ORU_R30-A.8-GSR",
+        "short": "Recorded Gender and Sex",
+        "min": 0,
+        "max": "*",
+        "definition": "Recorded Gender and Sex",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSR"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R30-A.9-GSC",
+        "path": "ORU_R30-A.9-GSC",
+        "short": "Sex Parameter for Clinical Use",
+        "min": 0,
+        "max": "*",
+        "definition": "Sex Parameter for Clinical Use",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R30-A.10-PRT",
+        "path": "ORU_R30-A.10-PRT",
+        "short": "Participation (for Patient)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (for Patient)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R30-A.11-OH1",
+        "path": "ORU_R30-A.11-OH1",
+        "short": "Employment Status",
+        "min": 0,
+        "max": "*",
+        "definition": "Employment Status",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OH1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R30-A.12-OH2",
+        "path": "ORU_R30-A.12-OH2",
+        "short": "Past or Present Job",
+        "min": 0,
+        "max": "*",
+        "definition": "Past or Present Job",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OH2"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R30-A.13-OH3",
+        "path": "ORU_R30-A.13-OH3",
+        "short": "Usual Work",
+        "min": 0,
+        "max": "1",
+        "definition": "Usual Work",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OH3"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R30-A.14-OH4",
+        "path": "ORU_R30-A.14-OH4",
+        "short": "Combat Zone Work",
+        "min": 0,
+        "max": "*",
+        "definition": "Combat Zone Work",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OH4"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R30-A.15-ARV",
+        "path": "ORU_R30-A.15-ARV",
+        "short": "For backwards compatibility only as of V2.9",
+        "min": 0,
+        "max": "*",
+        "definition": "For backwards compatibility only as of V2.9",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ARV"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "B"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R30-A.16-PATIENT_OBSERVATION",
+        "path": "ORU_R30-A.16-PATIENT_OBSERVATION",
+        "short": "PATIENT_OBSERVATION",
+        "min": 0,
+        "max": "*",
+        "definition": "PATIENT_OBSERVATION",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R30-A.16-PATIENT_OBSERVATION.1-OBX",
+        "path": "ORU_R30-A.16-PATIENT_OBSERVATION.1-OBX",
+        "short": "Observation (for Patient ID)",
+        "min": 1,
+        "max": "1",
+        "definition": "Observation (for Patient ID)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OBX"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R30-A.16-PATIENT_OBSERVATION.2-PRT",
+        "path": "ORU_R30-A.16-PATIENT_OBSERVATION.2-PRT",
+        "short": "Participation (for Patient Observation)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (for Observation)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R30-A.17-VISIT",
+        "path": "ORU_R30-A.17-VISIT",
+        "short": "VISIT",
+        "min": 0,
+        "max": "1",
+        "definition": "VISIT",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R30-A.17-VISIT.1-PV1",
+        "path": "ORU_R30-A.17-VISIT.1-PV1",
+        "short": "Patient Visit",
+        "min": 1,
+        "max": "1",
+        "definition": "Patient Visit",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PV1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R30-A.17-VISIT.2-PV2",
+        "path": "ORU_R30-A.17-VISIT.2-PV2",
+        "short": "Patient Visit - Additional",
+        "min": 0,
+        "max": "1",
+        "definition": "Patient Visit \u2013 Additional",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PV2"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R30-A.17-VISIT.3-PRT",
+        "path": "ORU_R30-A.17-VISIT.3-PRT",
+        "short": "Participation (for Patient Visit)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (for Patient Visit)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R30-A.18-ORC",
+        "path": "ORU_R30-A.18-ORC",
+        "short": "Common Order information",
+        "min": 1,
+        "max": "1",
+        "definition": "Common Order information",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ORC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R30-A.19-PRT",
+        "path": "ORU_R30-A.19-PRT",
+        "short": "Participation (for Common Order)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (for common order)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R30-A.20-OBR",
+        "path": "ORU_R30-A.20-OBR",
+        "short": "Observation Request",
+        "min": 1,
+        "max": "1",
+        "definition": "Observation Request",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OBR"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R30-A.21-NTE",
+        "path": "ORU_R30-A.21-NTE",
+        "short": "Notes or Comments for order/result",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes or Comments for order/result",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R30-A.22-PRT",
+        "path": "ORU_R30-A.22-PRT",
+        "short": "Participation (for Observation)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (for observation)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R30-A.23-TIMING_QTY",
+        "path": "ORU_R30-A.23-TIMING_QTY",
+        "short": "TIMING_QTY",
+        "min": 0,
+        "max": "*",
+        "definition": "TIMING_QTY",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R30-A.23-TIMING_QTY.1-TQ1",
+        "path": "ORU_R30-A.23-TIMING_QTY.1-TQ1",
+        "short": "Timing/Quantity",
+        "min": 1,
+        "max": "1",
+        "definition": "Timing/Quantity",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/TQ1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R30-A.23-TIMING_QTY.2-TQ2",
+        "path": "ORU_R30-A.23-TIMING_QTY.2-TQ2",
+        "short": "Timing/Quantity Order Sequence",
+        "min": 0,
+        "max": "*",
+        "definition": "Timing/Quantity Order Sequence",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/TQ2"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R30-A.24-OBSERVATION",
+        "path": "ORU_R30-A.24-OBSERVATION",
+        "short": "OBSERVATION",
+        "min": 1,
+        "max": "*",
+        "definition": "OBSERVATION",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R30-A.24-OBSERVATION.1-OBX",
+        "path": "ORU_R30-A.24-OBSERVATION.1-OBX",
+        "short": "Observation Results, one per reported value",
+        "min": 1,
+        "max": "1",
+        "definition": "Observation Results, one per reported value",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OBX"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R30-A.24-OBSERVATION.2-PRT",
+        "path": "ORU_R30-A.24-OBSERVATION.2-PRT",
+        "short": "Participation (for Observation)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (for Observation)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R30-A.24-OBSERVATION.3-NTE",
+        "path": "ORU_R30-A.24-OBSERVATION.3-NTE",
+        "short": "Notes or Comments for individual result",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes or Comments for individual result",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R30-A.25-DEVICE",
+        "path": "ORU_R30-A.25-DEVICE",
+        "short": "DEVICE",
+        "min": 0,
+        "max": "*",
+        "definition": "DEVICE",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R30-A.25-DEVICE.1-DEV",
+        "path": "ORU_R30-A.25-DEVICE.1-DEV",
+        "short": "Device (for Participation)",
+        "min": 1,
+        "max": "1",
+        "definition": "Device (for Participation)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/DEV"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R30-A.25-DEVICE.2-OBX",
+        "path": "ORU_R30-A.25-DEVICE.2-OBX",
+        "short": "Observation/Result",
+        "min": 0,
+        "max": "*",
+        "definition": "Observation/Result",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OBX"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      }
+    ]
+  },
+  "title": "HL7 v2 ORU_R30-A Message Structure",
+  "name": "ORU_R30-A",
+  "type": "ORU_R30-A",
+  "fhirVersion": "5.0.0",
+  "date": "2025-06-13T21:28:59Z"
+}

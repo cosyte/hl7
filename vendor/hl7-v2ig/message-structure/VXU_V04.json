@@ -1,0 +1,776 @@
+{
+  "resourceType": "StructureDefinition",
+  "url": "http://hl7.org/v2/StructureDefinition/VXU_V04",
+  "id": "VXU_V04",
+  "meta": {
+    "profile": [
+      "http://hl7.org/v2/StructureDefinition/MessageStructure-Profile"
+    ]
+  },
+  "version": "0.0.1",
+  "status": "active",
+  "kind": "logical",
+  "abstract": false,
+  "baseDefinition": "http://hl7.org/v2/StructureDefinition/MessageStructure",
+  "derivation": "specialization",
+  "differential": {
+    "element": [
+      {
+        "id": "VXU_V04",
+        "path": "VXU_V04",
+        "short": "VXU_V04",
+        "definition": "VXU_V04 Message Structure",
+        "min": 0,
+        "max": "*"
+      },
+      {
+        "id": "VXU_V04.1-MSH",
+        "path": "VXU_V04.1-MSH",
+        "short": "Message Header",
+        "min": 1,
+        "max": "1",
+        "definition": "Message Header Segment",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/MSH"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "VXU_V04.2-ARV",
+        "path": "VXU_V04.2-ARV",
+        "short": "Access Restrictions",
+        "min": 0,
+        "max": "*",
+        "definition": "Access Restrictions",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ARV"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "VXU_V04.3-SFT",
+        "path": "VXU_V04.3-SFT",
+        "short": "Software",
+        "min": 0,
+        "max": "*",
+        "definition": "Software",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/SFT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "VXU_V04.4-UAC",
+        "path": "VXU_V04.4-UAC",
+        "short": "User Authentication Credential",
+        "min": 0,
+        "max": "1",
+        "definition": "User Authentication Credential",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/UAC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "VXU_V04.5-PID",
+        "path": "VXU_V04.5-PID",
+        "short": "Patient Identification",
+        "min": 1,
+        "max": "1",
+        "definition": "Patient Identification Segment",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PID"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "VXU_V04.6-PD1",
+        "path": "VXU_V04.6-PD1",
+        "short": "Additional Demographics",
+        "min": 0,
+        "max": "1",
+        "definition": "Additional Demographics",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PD1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "VXU_V04.7-GSP",
+        "path": "VXU_V04.7-GSP",
+        "short": "Person Gender and Sex",
+        "min": 0,
+        "max": "*",
+        "definition": "Person Gender and Sex",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSP"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "VXU_V04.8-GSR",
+        "path": "VXU_V04.8-GSR",
+        "short": "Recorded Gender and Sex",
+        "min": 0,
+        "max": "*",
+        "definition": "Recorded Gender and Sex",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSR"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "VXU_V04.9-GSC",
+        "path": "VXU_V04.9-GSC",
+        "short": "Sex Parameter for Clinical Use",
+        "min": 0,
+        "max": "*",
+        "definition": "Sex Parameter for Clinical Use",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "VXU_V04.10-PRT",
+        "path": "VXU_V04.10-PRT",
+        "short": "Participation",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "VXU_V04.11-NK1",
+        "path": "VXU_V04.11-NK1",
+        "short": "Next of Kin/Associated Parties",
+        "min": 0,
+        "max": "*",
+        "definition": "Next of Kin/Associated Parties",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NK1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "VXU_V04.12-GSP",
+        "path": "VXU_V04.12-GSP",
+        "short": "Person Gender and Sex",
+        "min": 0,
+        "max": "*",
+        "definition": "Person Gender and Sex",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSP"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "VXU_V04.13-GSR",
+        "path": "VXU_V04.13-GSR",
+        "short": "Recorded Gender and Sex",
+        "min": 0,
+        "max": "*",
+        "definition": "Recorded Gender and Sex",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSR"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "VXU_V04.14-ARV",
+        "path": "VXU_V04.14-ARV",
+        "short": "For backwards compatibility only as of V2.9.",
+        "min": 0,
+        "max": "*",
+        "definition": "For backwards compatibility only as of V2.9.",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ARV"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "B"
+          }
+        ]
+      },
+      {
+        "id": "VXU_V04.15-PATIENT_VISIT",
+        "path": "VXU_V04.15-PATIENT_VISIT",
+        "short": "PATIENT_VISIT",
+        "min": 0,
+        "max": "1",
+        "definition": "PATIENT_VISIT",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "VXU_V04.15-PATIENT_VISIT.1-PV1",
+        "path": "VXU_V04.15-PATIENT_VISIT.1-PV1",
+        "short": "Patient Visit",
+        "min": 1,
+        "max": "1",
+        "definition": "Patient Visit",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PV1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "VXU_V04.15-PATIENT_VISIT.2-PV2",
+        "path": "VXU_V04.15-PATIENT_VISIT.2-PV2",
+        "short": "Patient Visit - Additional Info",
+        "min": 0,
+        "max": "1",
+        "definition": "Patient Visit \u2013 Additional Info",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PV2"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "VXU_V04.15-PATIENT_VISIT.3-PRT",
+        "path": "VXU_V04.15-PATIENT_VISIT.3-PRT",
+        "short": "Participation",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "VXU_V04.15-PATIENT_VISIT.4-ARV",
+        "path": "VXU_V04.15-PATIENT_VISIT.4-ARV",
+        "short": "For backwards compatibility only as of V2.9.",
+        "min": 0,
+        "max": "*",
+        "definition": "For backwards compatibility only as of V2.9.",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ARV"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "B"
+          }
+        ]
+      },
+      {
+        "id": "VXU_V04.16-GT1",
+        "path": "VXU_V04.16-GT1",
+        "short": "Guarantor",
+        "min": 0,
+        "max": "*",
+        "definition": "Guarantor",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GT1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "VXU_V04.17-INSURANCE",
+        "path": "VXU_V04.17-INSURANCE",
+        "short": "INSURANCE",
+        "min": 0,
+        "max": "*",
+        "definition": "INSURANCE",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "VXU_V04.17-INSURANCE.1-IN1",
+        "path": "VXU_V04.17-INSURANCE.1-IN1",
+        "short": "Insurance",
+        "min": 1,
+        "max": "1",
+        "definition": "Insurance",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/IN1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "VXU_V04.17-INSURANCE.2-IN2",
+        "path": "VXU_V04.17-INSURANCE.2-IN2",
+        "short": "Insurance Additional Information",
+        "min": 0,
+        "max": "1",
+        "definition": "Insurance Additional Information",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/IN2"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "VXU_V04.17-INSURANCE.3-IN3",
+        "path": "VXU_V04.17-INSURANCE.3-IN3",
+        "short": "Insurance Additional Information, Certification",
+        "min": 0,
+        "max": "1",
+        "definition": "Insurance Additional Information, Certification",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/IN3"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "VXU_V04.18-PERSON_OBSERVATION",
+        "path": "VXU_V04.18-PERSON_OBSERVATION",
+        "short": "PERSON_OBSERVATION",
+        "min": 0,
+        "max": "*",
+        "definition": "PERSON_OBSERVATION",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "VXU_V04.18-PERSON_OBSERVATION.1-OBX",
+        "path": "VXU_V04.18-PERSON_OBSERVATION.1-OBX",
+        "short": "Observation/Result",
+        "min": 1,
+        "max": "1",
+        "definition": "Observation/Result",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OBX"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "VXU_V04.18-PERSON_OBSERVATION.2-PRT",
+        "path": "VXU_V04.18-PERSON_OBSERVATION.2-PRT",
+        "short": "Participation (for Person Observation)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (for Observation)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "VXU_V04.18-PERSON_OBSERVATION.3-NTE",
+        "path": "VXU_V04.18-PERSON_OBSERVATION.3-NTE",
+        "short": "Notes (Regarding Patient Observation)",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes (Regarding Patient Observation)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "VXU_V04.19-ORDER",
+        "path": "VXU_V04.19-ORDER",
+        "short": "ORDER",
+        "min": 0,
+        "max": "*",
+        "definition": "ORDER",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "VXU_V04.19-ORDER.1-ORC",
+        "path": "VXU_V04.19-ORDER.1-ORC",
+        "short": "Common Order",
+        "min": 1,
+        "max": "1",
+        "definition": "Common Order",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ORC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "VXU_V04.19-ORDER.2-PRT",
+        "path": "VXU_V04.19-ORDER.2-PRT",
+        "short": "Participation (for Common Order)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (for ORC)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "VXU_V04.19-ORDER.3-TIMING",
+        "path": "VXU_V04.19-ORDER.3-TIMING",
+        "short": "TIMING",
+        "min": 0,
+        "max": "*",
+        "definition": "TIMING",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "VXU_V04.19-ORDER.3-TIMING.1-TQ1",
+        "path": "VXU_V04.19-ORDER.3-TIMING.1-TQ1",
+        "short": "Timing/Quantity",
+        "min": 1,
+        "max": "1",
+        "definition": "Timing/Quantity",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/TQ1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "VXU_V04.19-ORDER.3-TIMING.2-TQ2",
+        "path": "VXU_V04.19-ORDER.3-TIMING.2-TQ2",
+        "short": "Timing/Quantity Order Sequence",
+        "min": 0,
+        "max": "*",
+        "definition": "Timing/Quantity Order Sequence",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/TQ2"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "VXU_V04.19-ORDER.4-RXA",
+        "path": "VXU_V04.19-ORDER.4-RXA",
+        "short": "Pharmacy Administration",
+        "min": 1,
+        "max": "1",
+        "definition": "Pharmacy Administration Segment",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/RXA"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "VXU_V04.19-ORDER.5-PRT",
+        "path": "VXU_V04.19-ORDER.5-PRT",
+        "short": "Participation",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "VXU_V04.19-ORDER.6-RXR",
+        "path": "VXU_V04.19-ORDER.6-RXR",
+        "short": "Pharmacy Route",
+        "min": 0,
+        "max": "1",
+        "definition": "Pharmacy Route",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/RXR"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "VXU_V04.19-ORDER.7-OBSERVATION",
+        "path": "VXU_V04.19-ORDER.7-OBSERVATION",
+        "short": "OBSERVATION",
+        "min": 0,
+        "max": "*",
+        "definition": "OBSERVATION",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "VXU_V04.19-ORDER.7-OBSERVATION.1-OBX",
+        "path": "VXU_V04.19-ORDER.7-OBSERVATION.1-OBX",
+        "short": "Observation/Result",
+        "min": 1,
+        "max": "1",
+        "definition": "Observation/Result",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OBX"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "VXU_V04.19-ORDER.7-OBSERVATION.2-PRT",
+        "path": "VXU_V04.19-ORDER.7-OBSERVATION.2-PRT",
+        "short": "Participation (for Observation)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (for Observation)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "VXU_V04.19-ORDER.7-OBSERVATION.3-NTE",
+        "path": "VXU_V04.19-ORDER.7-OBSERVATION.3-NTE",
+        "short": "Notes (Regarding Immunization)",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes (Regarding Immunization)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      }
+    ]
+  },
+  "title": "HL7 v2 VXU_V04 Message Structure",
+  "name": "VXU_V04",
+  "type": "VXU_V04",
+  "fhirVersion": "5.0.0",
+  "date": "2025-06-13T21:28:58Z"
+}

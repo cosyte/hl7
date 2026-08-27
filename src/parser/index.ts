@@ -24,10 +24,10 @@ import { canonicalCharset } from "./charset.js";
 import { normalize, normalizeBuffer } from "./normalize.js";
 import { snippet as segmentSnippet, splitSegments } from "./segments.js";
 import { tokenize } from "./tokenize.js";
-import { analyzeMessageStructure } from "./message-structure.js";
+import { analyzeMessageStructure, findMessageStructureDefinition } from "./message-structure.js";
 import {
   encodingMismatch,
-  missingExpectedGroup,
+  missingRequiredSegment,
   safeCharsetLabel,
   segmentCase,
   unknownSegment,
@@ -553,36 +553,40 @@ export function parseHL7(
     }
   }
 
-  // Step 11.6 (Phase G): structural-conformance safety net. For the common
-  // message types the registry recognizes, warn ADDITIVELY when an expected
-  // Required segment group is entirely absent (e.g. ORU^R01 with no OBR/OBX),
-  // the signature of a truncated or misrouted feed. Warning-only (Tier-2);
+  // Step 11.6 (Phase G): structural-conformance safety net. For the message
+  // types the registry recognizes, warn ADDITIVELY when a segment the PUBLISHED
+  // structure definition gives a minimum of one is absent (e.g. ORU^R01 with no
+  // OBR), the signature of a truncated or misrouted feed. Warning-only (Tier-2);
   // lenient parse never throws, `strict` may promote via the emitter. The
-  // warning carries only structural facts (type, group, anchor names): never
-  // a field value, so no PHI is exposed. Conservative by construction: an
-  // unrecognized type yields no expected groups and emits nothing.
+  // warning carries only structural identifiers (message type, segment name,
+  // published structure id): never a field value, so no PHI is exposed.
+  // Conservative by construction: an unrecognized type yields no expected
+  // segments and emits nothing.
   const { messageCode, triggerEvent } = extractMessageType(rawSegments[0]);
   if (messageCode !== "") {
-    // Canonical names: a sender shipping `obx` still satisfies the ORU^R01
-    // result group, so the safety net does not report a group as missing when
-    // its anchor segment is present and merely miscased.
+    // Canonical names: a sender shipping `obx` still satisfies an OBX
+    // expectation, so the safety net does not report a segment as missing when
+    // it is present and merely miscased.
     const presentSegmentNames = new Set<string>();
     for (const seg of rawSegments) {
       if (seg !== undefined) presentSegmentNames.add(canonicalSegmentName(seg.name));
     }
     const structure = analyzeMessageStructure(messageCode, triggerEvent, presentSegmentNames);
     const messageType = triggerEvent !== "" ? `${messageCode}^${triggerEvent}` : messageCode;
-    for (const group of structure.expectedGroups) {
-      if (!group.present) {
-        emit(
-          missingExpectedGroup(
-            { segmentIndex: 0, fieldIndex: 9 },
-            messageType,
-            group.name,
-            group.anchorSegments,
-          ),
-        );
-      }
+    // The structure id is registry data, not anything read off the message, so
+    // it is interpolated as-is; the message type is shape-checked inside the
+    // warning factory.
+    const structureId =
+      findMessageStructureDefinition(messageCode, triggerEvent)?.structureId ?? "";
+    for (const segmentName of structure.missingSegments) {
+      emit(
+        missingRequiredSegment(
+          { segmentIndex: 0, fieldIndex: 9 },
+          messageType,
+          segmentName,
+          structureId,
+        ),
+      );
     }
   }
 

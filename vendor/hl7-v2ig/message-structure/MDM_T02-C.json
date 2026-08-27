@@ -1,0 +1,509 @@
+{
+  "resourceType": "StructureDefinition",
+  "url": "http://hl7.org/v2/StructureDefinition/MDM_T02-C",
+  "id": "MDM_T02-C",
+  "meta": {
+    "profile": [
+      "http://hl7.org/v2/StructureDefinition/MessageStructure-Profile"
+    ]
+  },
+  "version": "0.0.1",
+  "status": "active",
+  "kind": "logical",
+  "abstract": false,
+  "baseDefinition": "http://hl7.org/v2/StructureDefinition/MessageStructure",
+  "derivation": "specialization",
+  "differential": {
+    "element": [
+      {
+        "id": "MDM_T02-C",
+        "path": "MDM_T02-C",
+        "short": "MDM_T02-C",
+        "definition": "MDM_T02-C Message Structure",
+        "min": 0,
+        "max": "*"
+      },
+      {
+        "id": "MDM_T02-C.1-MSH",
+        "path": "MDM_T02-C.1-MSH",
+        "short": "Message Header",
+        "min": 1,
+        "max": "1",
+        "definition": "Message Header",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/MSH"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "MDM_T02-C.2-SFT",
+        "path": "MDM_T02-C.2-SFT",
+        "short": "Software",
+        "min": 0,
+        "max": "*",
+        "definition": "Software Segment",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/SFT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "MDM_T02-C.3-UAC",
+        "path": "MDM_T02-C.3-UAC",
+        "short": "User Authentication Credential",
+        "min": 0,
+        "max": "1",
+        "definition": "User Authentication Credential",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/UAC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "MDM_T02-C.4-EVN",
+        "path": "MDM_T02-C.4-EVN",
+        "short": "Event Type",
+        "min": 1,
+        "max": "1",
+        "definition": "Event Type",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/EVN"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "B"
+          }
+        ]
+      },
+      {
+        "id": "MDM_T02-C.5-PID",
+        "path": "MDM_T02-C.5-PID",
+        "short": "Patient Identification",
+        "min": 1,
+        "max": "1",
+        "definition": "Patient Identification",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PID"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "MDM_T02-C.6-GSP",
+        "path": "MDM_T02-C.6-GSP",
+        "short": "Person Gender and Sex",
+        "min": 0,
+        "max": "*",
+        "definition": "Person Gender and Sex",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSP"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "MDM_T02-C.7-GSR",
+        "path": "MDM_T02-C.7-GSR",
+        "short": "Recorded Gender and Sex",
+        "min": 0,
+        "max": "*",
+        "definition": "Recorded Gender and Sex",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSR"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "MDM_T02-C.8-GSC",
+        "path": "MDM_T02-C.8-GSC",
+        "short": "Sex Parameter for Clinical Use",
+        "min": 0,
+        "max": "*",
+        "definition": "Sex Parameter for Clinical Use",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "MDM_T02-C.9-PRT",
+        "path": "MDM_T02-C.9-PRT",
+        "short": "Participation",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "MDM_T02-C.10-PV1",
+        "path": "MDM_T02-C.10-PV1",
+        "short": "Patient Visit",
+        "min": 1,
+        "max": "1",
+        "definition": "Patient Visit",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PV1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "MDM_T02-C.11-PRT",
+        "path": "MDM_T02-C.11-PRT",
+        "short": "Participation",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation Segment",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "MDM_T02-C.12-COMMON_ORDER",
+        "path": "MDM_T02-C.12-COMMON_ORDER",
+        "short": "COMMON_ORDER",
+        "min": 0,
+        "max": "*",
+        "definition": "COMMON_ORDER",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "MDM_T02-C.12-COMMON_ORDER.1-ORC",
+        "path": "MDM_T02-C.12-COMMON_ORDER.1-ORC",
+        "short": "Common order segment",
+        "min": 1,
+        "max": "1",
+        "definition": "Common order segment",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ORC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "MDM_T02-C.12-COMMON_ORDER.2-PRT",
+        "path": "MDM_T02-C.12-COMMON_ORDER.2-PRT",
+        "short": "Participation",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "MDM_T02-C.12-COMMON_ORDER.3-TIMING",
+        "path": "MDM_T02-C.12-COMMON_ORDER.3-TIMING",
+        "short": "TIMING",
+        "min": 0,
+        "max": "*",
+        "definition": "TIMING",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "MDM_T02-C.12-COMMON_ORDER.3-TIMING.1-TQ1",
+        "path": "MDM_T02-C.12-COMMON_ORDER.3-TIMING.1-TQ1",
+        "short": "Timing/Quantity",
+        "min": 1,
+        "max": "1",
+        "definition": "Timing/Quantity",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/TQ1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "MDM_T02-C.12-COMMON_ORDER.3-TIMING.2-TQ2",
+        "path": "MDM_T02-C.12-COMMON_ORDER.3-TIMING.2-TQ2",
+        "short": "Timing/Quantity Order Sequence",
+        "min": 0,
+        "max": "*",
+        "definition": "Timing/Quantity Order Sequence",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/TQ2"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "MDM_T02-C.12-COMMON_ORDER.4-OBR",
+        "path": "MDM_T02-C.12-COMMON_ORDER.4-OBR",
+        "short": "Observation request segment",
+        "min": 1,
+        "max": "1",
+        "definition": "Observation request segment",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OBR"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "MDM_T02-C.12-COMMON_ORDER.5-PRT",
+        "path": "MDM_T02-C.12-COMMON_ORDER.5-PRT",
+        "short": "Participation",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "MDM_T02-C.12-COMMON_ORDER.6-NTE",
+        "path": "MDM_T02-C.12-COMMON_ORDER.6-NTE",
+        "short": "Notes and comments about the OBR",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes and comments about the OBR",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "MDM_T02-C.13-TXA",
+        "path": "MDM_T02-C.13-TXA",
+        "short": "Document Notification",
+        "min": 1,
+        "max": "1",
+        "definition": "Document Notification",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/TXA"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "MDM_T02-C.14-CON",
+        "path": "MDM_T02-C.14-CON",
+        "short": "Consent",
+        "min": 0,
+        "max": "*",
+        "definition": "Consent Segment",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/CON"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "MDM_T02-C.15-FIXME",
+        "path": "MDM_T02-C.15-FIXME",
+        "short": "FIXME",
+        "min": 1,
+        "max": "*",
+        "definition": "FIXME",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "MDM_T02-C.15-FIXME.1-OBX",
+        "path": "MDM_T02-C.15-FIXME.1-OBX",
+        "short": "Observation/Result (one or more required)",
+        "min": 1,
+        "max": "1",
+        "definition": "Observation/Result (one or more required)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OBX"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "MDM_T02-C.15-FIXME.2-PRT",
+        "path": "MDM_T02-C.15-FIXME.2-PRT",
+        "short": "Participation",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "MDM_T02-C.15-FIXME.3-NTE",
+        "path": "MDM_T02-C.15-FIXME.3-NTE",
+        "short": "Notes and comments about the OBX",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes and comments about the OBX",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      }
+    ]
+  },
+  "title": "HL7 v2 MDM_T02-C Message Structure",
+  "name": "MDM_T02-C",
+  "type": "MDM_T02-C",
+  "fhirVersion": "5.0.0",
+  "date": "2025-06-13T21:28:59Z"
+}

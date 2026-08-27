@@ -1,0 +1,586 @@
+{
+  "resourceType": "StructureDefinition",
+  "url": "http://hl7.org/v2/StructureDefinition/SIU_S12",
+  "id": "SIU_S12",
+  "meta": {
+    "profile": [
+      "http://hl7.org/v2/StructureDefinition/MessageStructure-Profile"
+    ]
+  },
+  "version": "0.0.1",
+  "status": "active",
+  "kind": "logical",
+  "abstract": false,
+  "baseDefinition": "http://hl7.org/v2/StructureDefinition/MessageStructure",
+  "derivation": "specialization",
+  "differential": {
+    "element": [
+      {
+        "id": "SIU_S12",
+        "path": "SIU_S12",
+        "short": "SIU_S12",
+        "definition": "SIU_S12 Message Structure",
+        "min": 0,
+        "max": "*"
+      },
+      {
+        "id": "SIU_S12.1-MSH",
+        "path": "SIU_S12.1-MSH",
+        "short": "Message Header",
+        "min": 1,
+        "max": "1",
+        "definition": "Message Header",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/MSH"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "SIU_S12.2-SCH",
+        "path": "SIU_S12.2-SCH",
+        "short": "Schedule Activity Information",
+        "min": 1,
+        "max": "1",
+        "definition": "Schedule Activity Information",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/SCH"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "SIU_S12.3-TQ1",
+        "path": "SIU_S12.3-TQ1",
+        "short": "Timing/Quantity",
+        "min": 0,
+        "max": "*",
+        "definition": "Timing/Quantity",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/TQ1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "SIU_S12.4-NTE",
+        "path": "SIU_S12.4-NTE",
+        "short": "Notes and Comments for the SCH",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes and Comments for the SCH",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "SIU_S12.5-PATIENT",
+        "path": "SIU_S12.5-PATIENT",
+        "short": "PATIENT",
+        "min": 0,
+        "max": "*",
+        "definition": "PATIENT",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "SIU_S12.5-PATIENT.1-PID",
+        "path": "SIU_S12.5-PATIENT.1-PID",
+        "short": "Patient Identification",
+        "min": 1,
+        "max": "1",
+        "definition": "Patient Identification",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PID"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "SIU_S12.5-PATIENT.2-PD1",
+        "path": "SIU_S12.5-PATIENT.2-PD1",
+        "short": "Additional Demographics",
+        "min": 0,
+        "max": "1",
+        "definition": "Additional Demographics",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PD1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "SIU_S12.5-PATIENT.3-GSP",
+        "path": "SIU_S12.5-PATIENT.3-GSP",
+        "short": "Person Gender and Sex",
+        "min": 0,
+        "max": "*",
+        "definition": "Person Gender and Sex",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSP"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "SIU_S12.5-PATIENT.4-GSR",
+        "path": "SIU_S12.5-PATIENT.4-GSR",
+        "short": "Recorded Gender and Sex",
+        "min": 0,
+        "max": "*",
+        "definition": "Recorded Gender and Sex",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSR"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "SIU_S12.5-PATIENT.5-GSC",
+        "path": "SIU_S12.5-PATIENT.5-GSC",
+        "short": "Sex Parameter for Clinical Use",
+        "min": 0,
+        "max": "*",
+        "definition": "Sex Parameter for Clinical Use",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "SIU_S12.5-PATIENT.6-PRT",
+        "path": "SIU_S12.5-PATIENT.6-PRT",
+        "short": "Participation",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "SIU_S12.5-PATIENT.7-PV1",
+        "path": "SIU_S12.5-PATIENT.7-PV1",
+        "short": "Patient Visit",
+        "min": 0,
+        "max": "1",
+        "definition": "Patient Visit",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PV1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "SIU_S12.5-PATIENT.8-PV2",
+        "path": "SIU_S12.5-PATIENT.8-PV2",
+        "short": "Patient Visit - Additional Info",
+        "min": 0,
+        "max": "1",
+        "definition": "Patient Visit - Additional Info",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PV2"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "SIU_S12.5-PATIENT.9-PRT",
+        "path": "SIU_S12.5-PATIENT.9-PRT",
+        "short": "Participation",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "SIU_S12.5-PATIENT.10-OBX",
+        "path": "SIU_S12.5-PATIENT.10-OBX",
+        "short": "Observation/Result",
+        "min": 0,
+        "max": "*",
+        "definition": "Observation/Result",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OBX"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "SIU_S12.5-PATIENT.11-PRT",
+        "path": "SIU_S12.5-PATIENT.11-PRT",
+        "short": "Participation",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "SIU_S12.5-PATIENT.12-DG1",
+        "path": "SIU_S12.5-PATIENT.12-DG1",
+        "short": "Diagnosis",
+        "min": 0,
+        "max": "*",
+        "definition": "Diagnosis",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/DG1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "SIU_S12.6-RESOURCES",
+        "path": "SIU_S12.6-RESOURCES",
+        "short": "RESOURCES",
+        "min": 1,
+        "max": "*",
+        "definition": "RESOURCES",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "SIU_S12.6-RESOURCES.1-RGS",
+        "path": "SIU_S12.6-RESOURCES.1-RGS",
+        "short": "Resource Group Segment",
+        "min": 1,
+        "max": "1",
+        "definition": "Resource Group Segment",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/RGS"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "SIU_S12.6-RESOURCES.2-SERVICE",
+        "path": "SIU_S12.6-RESOURCES.2-SERVICE",
+        "short": "SERVICE",
+        "min": 0,
+        "max": "*",
+        "definition": "SERVICE",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "SIU_S12.6-RESOURCES.2-SERVICE.1-AIS",
+        "path": "SIU_S12.6-RESOURCES.2-SERVICE.1-AIS",
+        "short": "Appointment Information - Service",
+        "min": 1,
+        "max": "1",
+        "definition": "Appointment Information - Service",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/AIS"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "SIU_S12.6-RESOURCES.2-SERVICE.2-NTE",
+        "path": "SIU_S12.6-RESOURCES.2-SERVICE.2-NTE",
+        "short": "Notes and Comments for the AIS",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes and Comments for the AIS",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "SIU_S12.6-RESOURCES.3-GENERAL_RESOURCE",
+        "path": "SIU_S12.6-RESOURCES.3-GENERAL_RESOURCE",
+        "short": "GENERAL_RESOURCE",
+        "min": 0,
+        "max": "*",
+        "definition": "GENERAL_RESOURCE",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "SIU_S12.6-RESOURCES.3-GENERAL_RESOURCE.1-AIG",
+        "path": "SIU_S12.6-RESOURCES.3-GENERAL_RESOURCE.1-AIG",
+        "short": "Appointment Information - General Resource",
+        "min": 1,
+        "max": "1",
+        "definition": "Appointment Information - General Resource",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/AIG"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "SIU_S12.6-RESOURCES.3-GENERAL_RESOURCE.2-NTE",
+        "path": "SIU_S12.6-RESOURCES.3-GENERAL_RESOURCE.2-NTE",
+        "short": "Notes and Comments for the AIG",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes and Comments for the AIG",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "SIU_S12.6-RESOURCES.4-LOCATION_RESOURCE",
+        "path": "SIU_S12.6-RESOURCES.4-LOCATION_RESOURCE",
+        "short": "LOCATION_RESOURCE",
+        "min": 0,
+        "max": "*",
+        "definition": "LOCATION_RESOURCE",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "SIU_S12.6-RESOURCES.4-LOCATION_RESOURCE.1-AIL",
+        "path": "SIU_S12.6-RESOURCES.4-LOCATION_RESOURCE.1-AIL",
+        "short": "Appointment Information - Location Resource",
+        "min": 1,
+        "max": "1",
+        "definition": "Appointment Information - Location Resource",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/AIL"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "SIU_S12.6-RESOURCES.4-LOCATION_RESOURCE.2-NTE",
+        "path": "SIU_S12.6-RESOURCES.4-LOCATION_RESOURCE.2-NTE",
+        "short": "Notes and Comments for the AIL",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes and Comments for the AIL",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "SIU_S12.6-RESOURCES.5-PERSONNEL_RESOURCE",
+        "path": "SIU_S12.6-RESOURCES.5-PERSONNEL_RESOURCE",
+        "short": "PERSONNEL_RESOURCE",
+        "min": 0,
+        "max": "*",
+        "definition": "PERSONNEL_RESOURCE",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "SIU_S12.6-RESOURCES.5-PERSONNEL_RESOURCE.1-AIP",
+        "path": "SIU_S12.6-RESOURCES.5-PERSONNEL_RESOURCE.1-AIP",
+        "short": "Appointment Information - Personnel Resource",
+        "min": 1,
+        "max": "1",
+        "definition": "Appointment Information - Personnel Resource",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/AIP"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "SIU_S12.6-RESOURCES.5-PERSONNEL_RESOURCE.2-NTE",
+        "path": "SIU_S12.6-RESOURCES.5-PERSONNEL_RESOURCE.2-NTE",
+        "short": "Notes and Comments for the AIP",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes and Comments for the AIP",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      }
+    ]
+  },
+  "title": "HL7 v2 SIU_S12 Message Structure",
+  "name": "SIU_S12",
+  "type": "SIU_S12",
+  "fhirVersion": "5.0.0",
+  "date": "2025-06-13T21:29:00Z"
+}

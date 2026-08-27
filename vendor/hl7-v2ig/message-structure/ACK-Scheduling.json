@@ -1,0 +1,129 @@
+{
+    "resourceType": "StructureDefinition",
+    "url": "http://hl7.org/v2/StructureDefinition/ACK-Scheduling",
+    "id": "ACK-Scheduling",
+    "meta": {
+        "profile": [
+            "http://hl7.org/v2/StructureDefinition/MessageStructure-Profile"
+        ]
+    },
+    "version": "0.0.1",
+    "status": "active",
+    "kind": "logical",
+    "abstract": false,
+    "baseDefinition": "http://hl7.org/v2/StructureDefinition/MessageStructure",
+    "derivation": "specialization",
+    "differential": {
+        "element": [
+            {
+                "id": "ACK-Scheduling",
+                "path": "ACK-Scheduling",
+                "short": "ACK-Scheduling",
+                "definition": "ACK-Scheduling Message Structure",
+                "min": 0,
+                "max": "*"
+            },
+            {
+                "id": "ACK-Scheduling.1-MSH",
+                "path": "ACK-Scheduling.1-MSH",
+                "short": "Message Header",
+                "min": 1,
+                "max": "1",
+                "definition": "Message Header",
+                "type": [
+                    {
+                        "code": "http://hl7.org/v2/StructureDefinition/MSH"
+                    }
+                ],
+                "extension": [
+                    {
+                        "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+                        "valueCode": "A"
+                    }
+                ]
+            },
+            {
+                "id": "ACK-Scheduling.2-SFT",
+                "path": "ACK-Scheduling.2-SFT",
+                "short": "Software",
+                "min": 0,
+                "max": "*",
+                "definition": "Software Segment",
+                "type": [
+                    {
+                        "code": "http://hl7.org/v2/StructureDefinition/SFT"
+                    }
+                ],
+                "extension": [
+                    {
+                        "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+                        "valueCode": "A"
+                    }
+                ]
+            },
+            {
+                "id": "ACK-Scheduling.3-UAC",
+                "path": "ACK-Scheduling.3-UAC",
+                "short": "User Authentication Credential Segment",
+                "min": 0,
+                "max": "*",
+                "definition": "User Authentication Credential Segment",
+                "type": [
+                    {
+                        "code": "http://hl7.org/v2/StructureDefinition/UAC"
+                    }
+                ],
+                "extension": [
+                    {
+                        "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+                        "valueCode": "A"
+                    }
+                ]
+            },
+            {
+                "id": "ACK-Scheduling.4-MSA",
+                "path": "ACK-Scheduling.4-MSA",
+                "short": "Message Acknowledgment",
+                "min": 1,
+                "max": "1",
+                "definition": "Message Acknowledgment",
+                "type": [
+                    {
+                        "code": "http://hl7.org/v2/StructureDefinition/MSA"
+                    }
+                ],
+                "extension": [
+                    {
+                        "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+                        "valueCode": "A"
+                    }
+                ]
+            },
+            {
+                "id": "ACK-Scheduling.5-ERR",
+                "path": "ACK-Scheduling.5-ERR",
+                "short": "Error Information",
+                "min": 0,
+                "max": "*",
+                "definition": "Error Information",
+                "type": [
+                    {
+                        "code": "http://hl7.org/v2/StructureDefinition/ERR"
+                    }
+                ],
+                "extension": [
+                    {
+                        "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+                        "valueCode": "A"
+                    }
+                ]
+            }
+        ]
+    },
+    "title": "HL7 v2 ACK-Scheduling Message Structure",
+    "name": "ACK-Scheduling",
+    "type": "ACK-Scheduling",
+    "fhirVersion": "5.0.0",
+    "date": "2025-06-13T21:28:56Z",
+    "description": "Acknowledgment variant for scheduling messages (ACK^S12-S24, S26, S27). UAC is encoded as repeating in V2.9.1 clause 10.4 \u2014 REVIEW-0001 pending V2 Management review of whether this is intentional or a typo. If a typo, this structure can be merged into the canonical ACK."
+}

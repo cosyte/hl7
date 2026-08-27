@@ -1,0 +1,1054 @@
+{
+  "resourceType": "StructureDefinition",
+  "url": "http://hl7.org/v2/StructureDefinition/ADT_A06-A",
+  "id": "ADT_A06-A",
+  "meta": {
+    "profile": [
+      "http://hl7.org/v2/StructureDefinition/MessageStructure-Profile"
+    ]
+  },
+  "version": "0.0.1",
+  "status": "active",
+  "kind": "logical",
+  "abstract": false,
+  "baseDefinition": "http://hl7.org/v2/StructureDefinition/MessageStructure",
+  "derivation": "specialization",
+  "differential": {
+    "element": [
+      {
+        "id": "ADT_A06-A",
+        "path": "ADT_A06-A",
+        "short": "ADT_A06-A",
+        "definition": "ADT_A06-A Message Structure",
+        "min": 0,
+        "max": "*"
+      },
+      {
+        "id": "ADT_A06-A.1-MSH",
+        "path": "ADT_A06-A.1-MSH",
+        "short": "Message Header",
+        "min": 1,
+        "max": "1",
+        "definition": "Message Header",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/MSH"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.2-ARV",
+        "path": "ADT_A06-A.2-ARV",
+        "short": "Access Restrictions",
+        "min": 0,
+        "max": "*",
+        "definition": "Access Restrictions",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ARV"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.3-SFT",
+        "path": "ADT_A06-A.3-SFT",
+        "short": "Software",
+        "min": 0,
+        "max": "*",
+        "definition": "Software Segment",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/SFT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.4-UAC",
+        "path": "ADT_A06-A.4-UAC",
+        "short": "User Authentication Credential",
+        "min": 0,
+        "max": "1",
+        "definition": "User Authentication Credential",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/UAC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.5-EVN",
+        "path": "ADT_A06-A.5-EVN",
+        "short": "Event Type",
+        "min": 1,
+        "max": "1",
+        "definition": "Event Type",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/EVN"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.6-PID",
+        "path": "ADT_A06-A.6-PID",
+        "short": "Patient Identification",
+        "min": 1,
+        "max": "1",
+        "definition": "Patient Identification",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PID"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.7-PD1",
+        "path": "ADT_A06-A.7-PD1",
+        "short": "Additional Demographics",
+        "min": 0,
+        "max": "1",
+        "definition": "Additional Demographics",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PD1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.8-GSP",
+        "path": "ADT_A06-A.8-GSP",
+        "short": "Person Gender and Sex",
+        "min": 0,
+        "max": "*",
+        "definition": "Person Gender and Sex",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSP"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.9-GSR",
+        "path": "ADT_A06-A.9-GSR",
+        "short": "Recorded Gender and Sex",
+        "min": 0,
+        "max": "*",
+        "definition": "Recorded Gender and Sex",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSR"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.10-GSC",
+        "path": "ADT_A06-A.10-GSC",
+        "short": "Sex Parameter for Clinical Use",
+        "min": 0,
+        "max": "*",
+        "definition": "Sex Parameter for Clinical Use",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.11-OH1",
+        "path": "ADT_A06-A.11-OH1",
+        "short": "Employment Status",
+        "min": 0,
+        "max": "*",
+        "definition": "Employment Status",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OH1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.12-OH2",
+        "path": "ADT_A06-A.12-OH2",
+        "short": "Past or Present Job",
+        "min": 0,
+        "max": "*",
+        "definition": "Past or Present Job",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OH2"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.13-OH3",
+        "path": "ADT_A06-A.13-OH3",
+        "short": "Usual Work",
+        "min": 0,
+        "max": "1",
+        "definition": "Usual Work",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OH3"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.14-OH4",
+        "path": "ADT_A06-A.14-OH4",
+        "short": "Combat Zone Work",
+        "min": 0,
+        "max": "*",
+        "definition": "Combat Zone Work",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OH4"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.15-ARV",
+        "path": "ADT_A06-A.15-ARV",
+        "short": "Access Restrictions",
+        "min": 0,
+        "max": "*",
+        "definition": "Access Restrictions",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ARV"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "B"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.16-ROL",
+        "path": "ADT_A06-A.16-ROL",
+        "short": "Role",
+        "min": 0,
+        "max": "*",
+        "definition": "Role",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ROL"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "B"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.17-PRT",
+        "path": "ADT_A06-A.17-PRT",
+        "short": "Participation",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.18-MRG",
+        "path": "ADT_A06-A.18-MRG",
+        "short": "Merge Information",
+        "min": 0,
+        "max": "1",
+        "definition": "Merge Information",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/MRG"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.19-NEXT_OF_KIN",
+        "path": "ADT_A06-A.19-NEXT_OF_KIN",
+        "short": "NEXT_OF_KIN",
+        "min": 0,
+        "max": "*",
+        "definition": "NEXT_OF_KIN",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.19-NEXT_OF_KIN.1-NK1",
+        "path": "ADT_A06-A.19-NEXT_OF_KIN.1-NK1",
+        "short": "Next of Kin / Associated Parties",
+        "min": 1,
+        "max": "1",
+        "definition": "Next of Kin / Associated Parties",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NK1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.19-NEXT_OF_KIN.2-GSP",
+        "path": "ADT_A06-A.19-NEXT_OF_KIN.2-GSP",
+        "short": "Person Gender and Sex",
+        "min": 0,
+        "max": "*",
+        "definition": "Person Gender and Sex",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSP"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.19-NEXT_OF_KIN.3-GSR",
+        "path": "ADT_A06-A.19-NEXT_OF_KIN.3-GSR",
+        "short": "Recorded Gender and Sex",
+        "min": 0,
+        "max": "*",
+        "definition": "Recorded Gender and Sex",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSR"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.19-NEXT_OF_KIN.4-OH2",
+        "path": "ADT_A06-A.19-NEXT_OF_KIN.4-OH2",
+        "short": "Past or Present Job",
+        "min": 0,
+        "max": "*",
+        "definition": "Past or Present Job",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OH2"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.19-NEXT_OF_KIN.5-OH3",
+        "path": "ADT_A06-A.19-NEXT_OF_KIN.5-OH3",
+        "short": "Usual Work",
+        "min": 0,
+        "max": "1",
+        "definition": "Usual Work",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OH3"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.20-PV1",
+        "path": "ADT_A06-A.20-PV1",
+        "short": "Patient Visit",
+        "min": 1,
+        "max": "1",
+        "definition": "Patient Visit",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PV1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.21-PV2",
+        "path": "ADT_A06-A.21-PV2",
+        "short": "Patient Visit - Additional Info.",
+        "min": 0,
+        "max": "1",
+        "definition": "Patient Visit - Additional Info.",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PV2"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.22-ARV",
+        "path": "ADT_A06-A.22-ARV",
+        "short": "Access Restrictions",
+        "min": 0,
+        "max": "*",
+        "definition": "Access Restrictions",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ARV"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "B"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.23-ROL",
+        "path": "ADT_A06-A.23-ROL",
+        "short": "Role",
+        "min": 0,
+        "max": "*",
+        "definition": "Role",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ROL"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "B"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.24-PRT",
+        "path": "ADT_A06-A.24-PRT",
+        "short": "Participation",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.25-DB1",
+        "path": "ADT_A06-A.25-DB1",
+        "short": "Disability Information",
+        "min": 0,
+        "max": "*",
+        "definition": "Disability Information",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/DB1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.26-OBSERVATION",
+        "path": "ADT_A06-A.26-OBSERVATION",
+        "short": "OBSERVATION",
+        "min": 0,
+        "max": "*",
+        "definition": "OBSERVATION",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.26-OBSERVATION.1-OBX",
+        "path": "ADT_A06-A.26-OBSERVATION.1-OBX",
+        "short": "Observation/Result",
+        "min": 1,
+        "max": "1",
+        "definition": "Observation/Result",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OBX"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.26-OBSERVATION.2-PRT",
+        "path": "ADT_A06-A.26-OBSERVATION.2-PRT",
+        "short": "Participation",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.27-AL1",
+        "path": "ADT_A06-A.27-AL1",
+        "short": "Allergy Information",
+        "min": 0,
+        "max": "*",
+        "definition": "Allergy Information",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/AL1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.28-IAM",
+        "path": "ADT_A06-A.28-IAM",
+        "short": "Patient Adverse Reaction Information",
+        "min": 0,
+        "max": "*",
+        "definition": "Patient Adverse Reaction Information",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/IAM"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.29-DG1",
+        "path": "ADT_A06-A.29-DG1",
+        "short": "Diagnosis Information",
+        "min": 0,
+        "max": "*",
+        "definition": "Diagnosis Information",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/DG1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.30-DRG",
+        "path": "ADT_A06-A.30-DRG",
+        "short": "Diagnosis Related Group",
+        "min": 0,
+        "max": "1",
+        "definition": "Diagnosis Related Group",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/DRG"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.31-PROCEDURE",
+        "path": "ADT_A06-A.31-PROCEDURE",
+        "short": "PROCEDURE",
+        "min": 0,
+        "max": "*",
+        "definition": "PROCEDURE",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.31-PROCEDURE.1-PR1",
+        "path": "ADT_A06-A.31-PROCEDURE.1-PR1",
+        "short": "Procedures",
+        "min": 1,
+        "max": "1",
+        "definition": "Procedures",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PR1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.31-PROCEDURE.2-ROL",
+        "path": "ADT_A06-A.31-PROCEDURE.2-ROL",
+        "short": "Role",
+        "min": 0,
+        "max": "*",
+        "definition": "Role",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ROL"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "B"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.31-PROCEDURE.3-PRT",
+        "path": "ADT_A06-A.31-PROCEDURE.3-PRT",
+        "short": "Participation",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.32-GT1",
+        "path": "ADT_A06-A.32-GT1",
+        "short": "Guarantor",
+        "min": 0,
+        "max": "*",
+        "definition": "Guarantor",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GT1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.33-GSP",
+        "path": "ADT_A06-A.33-GSP",
+        "short": "Person Gender and Sex",
+        "min": 0,
+        "max": "*",
+        "definition": "Person Gender and Sex",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSP"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.34-GSR",
+        "path": "ADT_A06-A.34-GSR",
+        "short": "Recorded Gender and Sex",
+        "min": 0,
+        "max": "*",
+        "definition": "Recorded Gender and Sex",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSR"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.35-INSURANCE",
+        "path": "ADT_A06-A.35-INSURANCE",
+        "short": "INSURANCE",
+        "min": 0,
+        "max": "*",
+        "definition": "INSURANCE",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.35-INSURANCE.1-IN1",
+        "path": "ADT_A06-A.35-INSURANCE.1-IN1",
+        "short": "Insurance",
+        "min": 1,
+        "max": "1",
+        "definition": "Insurance",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/IN1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.35-INSURANCE.2-IN2",
+        "path": "ADT_A06-A.35-INSURANCE.2-IN2",
+        "short": "Insurance Additional Info.",
+        "min": 0,
+        "max": "1",
+        "definition": "Insurance Additional Info.",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/IN2"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.35-INSURANCE.3-IN3",
+        "path": "ADT_A06-A.35-INSURANCE.3-IN3",
+        "short": "Insurance Additional Info - Cert.",
+        "min": 0,
+        "max": "*",
+        "definition": "Insurance Additional Info - Cert.",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/IN3"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.35-INSURANCE.4-GSP",
+        "path": "ADT_A06-A.35-INSURANCE.4-GSP",
+        "short": "Person Gender and Sex",
+        "min": 0,
+        "max": "*",
+        "definition": "Person Gender and Sex",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSP"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.35-INSURANCE.5-GSR",
+        "path": "ADT_A06-A.35-INSURANCE.5-GSR",
+        "short": "Recorded Gender and Sex",
+        "min": 0,
+        "max": "*",
+        "definition": "Recorded Gender and Sex",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSR"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.35-INSURANCE.6-ROL",
+        "path": "ADT_A06-A.35-INSURANCE.6-ROL",
+        "short": "Role",
+        "min": 0,
+        "max": "*",
+        "definition": "Role",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ROL"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "B"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.35-INSURANCE.7-PRT",
+        "path": "ADT_A06-A.35-INSURANCE.7-PRT",
+        "short": "Participation",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.36-ACC",
+        "path": "ADT_A06-A.36-ACC",
+        "short": "Accident Information",
+        "min": 0,
+        "max": "1",
+        "definition": "Accident Information",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ACC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.37-UB1",
+        "path": "ADT_A06-A.37-UB1",
+        "short": "Universal Bill Information",
+        "min": 0,
+        "max": "1",
+        "definition": "Universal Bill Information",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/UB1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ADT_A06-A.38-UB2",
+        "path": "ADT_A06-A.38-UB2",
+        "short": "Universal Bill 92 Information",
+        "min": 0,
+        "max": "1",
+        "definition": "Universal Bill 92 Information",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/UB2"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      }
+    ]
+  },
+  "title": "HL7 v2 ADT_A06-A Message Structure",
+  "name": "ADT_A06-A",
+  "type": "ADT_A06-A",
+  "fhirVersion": "5.0.0",
+  "date": "2025-06-13T21:28:56Z"
+}

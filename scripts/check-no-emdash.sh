@@ -148,9 +148,32 @@ cd "$(git rev-parse --show-toplevel)"
 #
 #   stderr is captured and any of it fails the run (see refuse_if_incomplete above).
 #
-# The one file the scan does not cover is this script, which has to name the encodings
-# it bans. Nothing checks the checker, so keep it free of the literal character: it
-# matches by codepoint and by encoding and never spells one out.
+# TWO THINGS THE SCAN DOES NOT COVER, and they are excluded for the SAME stated reason
+# the KNOWN LIMIT above already gives: the ban is a rule about prose that people write,
+# and grounded data is not brand copy.
+#
+#   1. THIS SCRIPT, which has to name the encodings it bans. Nothing checks the checker,
+#      so keep it free of the literal character: it matches by codepoint and by encoding
+#      and never spells one out.
+#
+#   2. THE VERBATIM BYTES OF A VENDORED PUBLICATION, under
+#      vendor/hl7-v2ig/message-structure/ and vendor/hl7-v2ig/control-manifests/. Those
+#      are HL7's own files, committed byte for byte so the shipped structure registry can
+#      be derived offline and audited; one of them (ACK-Scheduling.json) carries the JS
+#      backslash-u form of the banned character inside HL7's own description text. There
+#      is no rewrite available: editing a vendored byte forfeits the whole point of
+#      vendoring it, and the alternative (dropping that structure) would change what the
+#      registry derives. It is the fixture-bytes case the KNOWN LIMIT names, arriving as
+#      valid UTF-8 rather than as a legacy charset.
+#
+#      THE EXCLUSION IS THE TWO SUBDIRECTORIES AND NOTHING ELSE. This repo's own writing
+#      under vendor/ (README.md, snapshot.json) is still scanned, so a person cannot put
+#      prose behind this exclusion by choosing a directory. And the excluded bytes are not
+#      unguarded: snapshot.json records a sha256 for every one of them and
+#      test/parser-structure-provenance.test.ts recomputes all 83, so a file edited to
+#      smuggle anything in reds the suite. Keep the prefixes anchored and keep the filter
+#      a SINGLE stage: the stderr capture below is bound to the pipeline that follows it,
+#      and an extra stage would write outside it.
 git ls-files -z > "$FILELIST"
 
 if [ ! -s "$FILELIST" ]; then
@@ -159,11 +182,14 @@ if [ ! -s "$FILELIST" ]; then
   exit 1
 fi
 
-HITS=$(grep -zvxF 'scripts/check-no-emdash.sh' < "$FILELIST" |
+HITS=$(grep -zv -e '^scripts/check-no-emdash\.sh$' \
+  -e '^vendor/hl7-v2ig/message-structure/' \
+  -e '^vendor/hl7-v2ig/control-manifests/' < "$FILELIST" |
   xargs -0 -r grep -d skip -nP -e "$PATTERN" -- 2>>"$ERRLOG" || true)
 
 refuse_if_incomplete
 
 [ -n "$HITS" ] && fail_with_hits "the tracked files listed above" "$HITS"
 
-echo "check-no-emdash: OK (no em dashes in the tracked files; this script is excluded)"
+echo "check-no-emdash: OK (no em dashes in the tracked files; this script and the" \
+  "verbatim vendored publication bytes are excluded)"

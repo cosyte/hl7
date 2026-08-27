@@ -1,0 +1,1216 @@
+{
+  "resourceType": "StructureDefinition",
+  "url": "http://hl7.org/v2/StructureDefinition/ORU_R01-A",
+  "id": "ORU_R01-A",
+  "meta": {
+    "profile": [
+      "http://hl7.org/v2/StructureDefinition/MessageStructure-Profile"
+    ]
+  },
+  "version": "0.0.1",
+  "status": "active",
+  "kind": "logical",
+  "abstract": false,
+  "baseDefinition": "http://hl7.org/v2/StructureDefinition/MessageStructure",
+  "derivation": "specialization",
+  "differential": {
+    "element": [
+      {
+        "id": "ORU_R01-A",
+        "path": "ORU_R01-A",
+        "short": "ORU_R01-A",
+        "definition": "ORU_R01-A Message Structure",
+        "min": 0,
+        "max": "*"
+      },
+      {
+        "id": "ORU_R01-A.1-MSH",
+        "path": "ORU_R01-A.1-MSH",
+        "short": "Message Header",
+        "min": 1,
+        "max": "1",
+        "definition": "Message Header",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/MSH"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.2-ARV",
+        "path": "ORU_R01-A.2-ARV",
+        "short": "Access Restrictions",
+        "min": 0,
+        "max": "*",
+        "definition": "Access Restrictions",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ARV"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.3-SFT",
+        "path": "ORU_R01-A.3-SFT",
+        "short": "Software",
+        "min": 0,
+        "max": "*",
+        "definition": "Software Segment",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/SFT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.4-UAC",
+        "path": "ORU_R01-A.4-UAC",
+        "short": "User Authentication Credential",
+        "min": 0,
+        "max": "1",
+        "definition": "User Authentication Credential",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/UAC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT",
+        "path": "ORU_R01-A.5-PATIENT_RESULT",
+        "short": "PATIENT_RESULT",
+        "min": 1,
+        "max": "*",
+        "definition": "PATIENT_RESULT",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT",
+        "short": "PATIENT",
+        "min": 0,
+        "max": "1",
+        "definition": "PATIENT",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.1-PID",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.1-PID",
+        "short": "Patient Identification",
+        "min": 1,
+        "max": "1",
+        "definition": "Patient Identification",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PID"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.2-PD1",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.2-PD1",
+        "short": "Additional Demographics",
+        "min": 0,
+        "max": "1",
+        "definition": "Additional Demographics",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PD1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.3-GSP",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.3-GSP",
+        "short": "Person Gender and Sex",
+        "min": 0,
+        "max": "*",
+        "definition": "Person Gender and Sex",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSP"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.4-GSR",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.4-GSR",
+        "short": "Recorded Gender and Sex",
+        "min": 0,
+        "max": "*",
+        "definition": "Recorded Gender and Sex",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSR"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.5-GSC",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.5-GSC",
+        "short": "Sex Parameter for Clinical Use",
+        "min": 0,
+        "max": "*",
+        "definition": "Sex Parameter for Clinical Use",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.6-PRT",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.6-PRT",
+        "short": "Participation (for Patient)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (for Patient)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.7-OH1",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.7-OH1",
+        "short": "Employment Status",
+        "min": 0,
+        "max": "*",
+        "definition": "Employment Status",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OH1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.8-OH2",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.8-OH2",
+        "short": "Past or Present Job",
+        "min": 0,
+        "max": "*",
+        "definition": "Past or Present Job",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OH2"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.9-OH3",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.9-OH3",
+        "short": "Usual Work",
+        "min": 0,
+        "max": "1",
+        "definition": "Usual Work",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OH3"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.10-OH4",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.10-OH4",
+        "short": "Combat Zone Work",
+        "min": 0,
+        "max": "*",
+        "definition": "Combat Zone Work",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OH4"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.11-NTE",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.11-NTE",
+        "short": "Notes and Comments",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes and Comments",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.12-NEXT_OF_KIN",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.12-NEXT_OF_KIN",
+        "short": "NEXT_OF_KIN",
+        "min": 0,
+        "max": "*",
+        "definition": "NEXT_OF_KIN",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.12-NEXT_OF_KIN.1-NK1",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.12-NEXT_OF_KIN.1-NK1",
+        "short": "Next of Kin/Associated Parties",
+        "min": 1,
+        "max": "1",
+        "definition": "Next of Kin/Associated Parties",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NK1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.12-NEXT_OF_KIN.2-GSP",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.12-NEXT_OF_KIN.2-GSP",
+        "short": "Person Gender and Sex",
+        "min": 0,
+        "max": "*",
+        "definition": "Person Gender and Sex",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSP"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.12-NEXT_OF_KIN.3-GSR",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.12-NEXT_OF_KIN.3-GSR",
+        "short": "Recorded Gender and Sex",
+        "min": 0,
+        "max": "*",
+        "definition": "Recorded Gender and Sex",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSR"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.12-NEXT_OF_KIN.4-OH2",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.12-NEXT_OF_KIN.4-OH2",
+        "short": "Past or Present Job",
+        "min": 0,
+        "max": "*",
+        "definition": "Past or Present Job",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OH2"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.12-NEXT_OF_KIN.5-OH3",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.12-NEXT_OF_KIN.5-OH3",
+        "short": "Usual Work",
+        "min": 0,
+        "max": "1",
+        "definition": "Usual Work",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OH3"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.13-ARV",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.13-ARV",
+        "short": "For backwards compatibility only as of V2.9",
+        "min": 0,
+        "max": "*",
+        "definition": "For backwards compatibility only as of V2.9",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ARV"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "B"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.14-PATIENT_OBSERVATION",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.14-PATIENT_OBSERVATION",
+        "short": "PATIENT_OBSERVATION",
+        "min": 0,
+        "max": "*",
+        "definition": "PATIENT_OBSERVATION",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.14-PATIENT_OBSERVATION.1-OBX",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.14-PATIENT_OBSERVATION.1-OBX",
+        "short": "Observation (for Patient ID)",
+        "min": 1,
+        "max": "1",
+        "definition": "Observation (for Patient ID)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OBX"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.14-PATIENT_OBSERVATION.2-PRT",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.14-PATIENT_OBSERVATION.2-PRT",
+        "short": "Participation (Observation Participation)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (Observation Participation)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.15-VISIT",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.15-VISIT",
+        "short": "VISIT",
+        "min": 0,
+        "max": "1",
+        "definition": "VISIT",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.15-VISIT.1-PV1",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.15-VISIT.1-PV1",
+        "short": "Patient Visit",
+        "min": 1,
+        "max": "1",
+        "definition": "Patient Visit",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PV1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.15-VISIT.2-PV2",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.15-VISIT.2-PV2",
+        "short": "Patient Visit - Additional Info",
+        "min": 0,
+        "max": "1",
+        "definition": "Patient Visit - Additional Info",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PV2"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.15-VISIT.3-PRT",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.15-VISIT.3-PRT",
+        "short": "Participation (for Patient Visit)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (for Patient Visit)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.16-INSURANCE",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.16-INSURANCE",
+        "short": "INSURANCE",
+        "min": 0,
+        "max": "*",
+        "definition": "INSURANCE",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.16-INSURANCE.1-IN1",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.16-INSURANCE.1-IN1",
+        "short": "Insurance",
+        "min": 1,
+        "max": "1",
+        "definition": "Insurance",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/IN1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.16-INSURANCE.2-IN2",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.16-INSURANCE.2-IN2",
+        "short": "Insurance Additional Information",
+        "min": 0,
+        "max": "1",
+        "definition": "Insurance Additional Information",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/IN2"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.16-INSURANCE.3-IN3",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.1-PATIENT.16-INSURANCE.3-IN3",
+        "short": "Insurance Additional Information, Certification",
+        "min": 0,
+        "max": "1",
+        "definition": "Insurance Additional Information, Certification",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/IN3"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION",
+        "short": "ORDER_OBSERVATION",
+        "min": 1,
+        "max": "*",
+        "definition": "ORDER_OBSERVATION",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.1-COMMON_ORDER",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.1-COMMON_ORDER",
+        "short": "COMMON_ORDER",
+        "min": 0,
+        "max": "1",
+        "definition": "COMMON_ORDER",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.1-COMMON_ORDER.1-ORC",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.1-COMMON_ORDER.1-ORC",
+        "short": "Order common",
+        "min": 1,
+        "max": "1",
+        "definition": "Order common",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ORC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.1-COMMON_ORDER.2-PRT",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.1-COMMON_ORDER.2-PRT",
+        "short": "Participation (for Common Order)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (for Observation)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.1-COMMON_ORDER.3-ORDER_DOCUMENT",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.1-COMMON_ORDER.3-ORDER_DOCUMENT",
+        "short": "ORDER_DOCUMENT",
+        "min": 0,
+        "max": "1",
+        "definition": "ORDER_DOCUMENT",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.1-COMMON_ORDER.3-ORDER_DOCUMENT.1-OBX",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.1-COMMON_ORDER.3-ORDER_DOCUMENT.1-OBX",
+        "short": "Observation containing Document",
+        "min": 1,
+        "max": "1",
+        "definition": "Observation containing Document",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OBX"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.1-COMMON_ORDER.3-ORDER_DOCUMENT.2-PRT",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.1-COMMON_ORDER.3-ORDER_DOCUMENT.2-PRT",
+        "short": "Participation",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.1-COMMON_ORDER.3-ORDER_DOCUMENT.3-TXA",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.1-COMMON_ORDER.3-ORDER_DOCUMENT.3-TXA",
+        "short": "Transcription Document Header",
+        "min": 1,
+        "max": "1",
+        "definition": "Transcription Document Header",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/TXA"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.2-OBR",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.2-OBR",
+        "short": "Observations Request",
+        "min": 1,
+        "max": "1",
+        "definition": "Observations Request",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OBR"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.3-NTE",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.3-NTE",
+        "short": "Notes and comments",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes and comments",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.4-OBSERVATION_PARTICIPATION",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.4-OBSERVATION_PARTICIPATION",
+        "short": "OBSERVATION_PARTICIPATION",
+        "min": 0,
+        "max": "*",
+        "definition": "OBSERVATION_PARTICIPATION",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.4-OBSERVATION_PARTICIPATION.1-PRT",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.4-OBSERVATION_PARTICIPATION.1-PRT",
+        "short": "Participation (for Observation Participation)",
+        "min": 1,
+        "max": "1",
+        "definition": "Participation (for Observation)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.4-OBSERVATION_PARTICIPATION.2-DEV",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.4-OBSERVATION_PARTICIPATION.2-DEV",
+        "short": "Device",
+        "min": 0,
+        "max": "*",
+        "definition": "Device",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/DEV"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.5-TIMING_QTY",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.5-TIMING_QTY",
+        "short": "TIMING_QTY",
+        "min": 0,
+        "max": "*",
+        "definition": "TIMING_QTY",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.5-TIMING_QTY.1-TQ1",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.5-TIMING_QTY.1-TQ1",
+        "short": "Timing/Quantity",
+        "min": 1,
+        "max": "1",
+        "definition": "Timing/Quantity",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/TQ1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.5-TIMING_QTY.2-TQ2",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.5-TIMING_QTY.2-TQ2",
+        "short": "Timing/Quantity Order Sequence",
+        "min": 0,
+        "max": "*",
+        "definition": "Timing/Quantity Order Sequence",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/TQ2"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.6-CTD",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.6-CTD",
+        "short": "Contact Data",
+        "min": 0,
+        "max": "1",
+        "definition": "Contact Data",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/CTD"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.7-OBSERVATION",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.7-OBSERVATION",
+        "short": "OBSERVATION",
+        "min": 0,
+        "max": "*",
+        "definition": "OBSERVATION",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.7-OBSERVATION.1-OBX",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.7-OBSERVATION.1-OBX",
+        "short": "Observation related to OBR",
+        "min": 1,
+        "max": "1",
+        "definition": "Observation related to OBR",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OBX"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.7-OBSERVATION.2-PRT",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.7-OBSERVATION.2-PRT",
+        "short": "Participation (Observation Participation)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (Observation Participation)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.7-OBSERVATION.3-NTE",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.7-OBSERVATION.3-NTE",
+        "short": "Notes and comments",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes and comments",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.8-FT1",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.8-FT1",
+        "short": "Financial Transaction",
+        "min": 0,
+        "max": "*",
+        "definition": "Financial Transaction",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/FT1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.9-CTI",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.9-CTI",
+        "short": "Clinical Trial Identification",
+        "min": 0,
+        "max": "*",
+        "definition": "Clinical Trial Identification",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/CTI"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.10-SPECIMEN",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.10-SPECIMEN",
+        "short": "SPECIMEN",
+        "min": 0,
+        "max": "*",
+        "definition": "SPECIMEN",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.10-SPECIMEN.1-SPM",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.10-SPECIMEN.1-SPM",
+        "short": "Specimen",
+        "min": 1,
+        "max": "1",
+        "definition": "Specimen",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/SPM"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.10-SPECIMEN.2-SPECIMEN_OBSERVATION",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.10-SPECIMEN.2-SPECIMEN_OBSERVATION",
+        "short": "SPECIMEN_OBSERVATION",
+        "min": 0,
+        "max": "*",
+        "definition": "SPECIMEN_OBSERVATION",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.10-SPECIMEN.2-SPECIMEN_OBSERVATION.1-OBX",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.10-SPECIMEN.2-SPECIMEN_OBSERVATION.1-OBX",
+        "short": "Observation (for Patient ID)",
+        "min": 1,
+        "max": "1",
+        "definition": "Observation (for Patient ID)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OBX"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.10-SPECIMEN.2-SPECIMEN_OBSERVATION.2-PRT",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.2-ORDER_OBSERVATION.10-SPECIMEN.2-SPECIMEN_OBSERVATION.2-PRT",
+        "short": "Participation (Observation Participation)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (Observation Participation)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.3-DEVICE",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.3-DEVICE",
+        "short": "DEVICE",
+        "min": 0,
+        "max": "*",
+        "definition": "DEVICE",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.3-DEVICE.1-DEV",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.3-DEVICE.1-DEV",
+        "short": "Device (for Participation)",
+        "min": 1,
+        "max": "1",
+        "definition": "Device (for Participation)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/DEV"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.5-PATIENT_RESULT.3-DEVICE.2-OBX",
+        "path": "ORU_R01-A.5-PATIENT_RESULT.3-DEVICE.2-OBX",
+        "short": "Observation/Result",
+        "min": 0,
+        "max": "*",
+        "definition": "Observation/Result",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OBX"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORU_R01-A.6-DSC",
+        "path": "ORU_R01-A.6-DSC",
+        "short": "Continuation Pointer",
+        "min": 0,
+        "max": "1",
+        "definition": "Continuation Pointer",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/DSC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      }
+    ]
+  },
+  "title": "HL7 v2 ORU_R01-A Message Structure",
+  "name": "ORU_R01-A",
+  "type": "ORU_R01-A",
+  "fhirVersion": "5.0.0",
+  "date": "2025-06-13T21:28:59Z"
+}
