@@ -22,6 +22,7 @@ import {
   FINDING_CODES,
   PREDICATE_CONNECTORS,
   PREDICATE_VERBS,
+  PROFILE_LEVELS,
   parseHL7,
   validateAgainstProfile,
   type ConditionPredicate,
@@ -982,6 +983,189 @@ describe("property: coding-system bindings", () => {
         expect(findings.some((f) => f.code === FINDING_CODES.PROFILE_CODING_SYSTEM_MISMATCH)).toBe(
           false,
         );
+      }),
+      RUN_CONFIG,
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Profile LEVELS. A level is a declaration plus its gate: it decides whether
+// the PROFILE is refused, never what the MESSAGE is found to be. New
+// arbitraries rather than widened ones, so every generator above keeps
+// generating exactly what it did before.
+// ---------------------------------------------------------------------------
+
+/** A level: the three real ones, near-misses, and values of the wrong type. */
+const levelArb = fc.oneof(
+  fc.constantFrom("standard", "constrainable", "implementable"),
+  fc.constantFrom("Implementable", "IMPLEMENTABLE", "", "  ", "certified", "conformant"),
+  fc.string(),
+  fc.integer(),
+  fc.constant(null),
+  fc.array(fc.constantFrom("implementable"), { maxLength: 2 }),
+);
+
+/** A profile that always declares a level, over the wider usage vocabulary. */
+const levelledProfileArb = fc.record({
+  name: fc.string({ minLength: 1 }),
+  level: levelArb,
+  segments: fc.array(
+    fc.record(
+      {
+        segment: VALID_SEGMENT,
+        usage: fc.option(WIDE_USAGE, { nil: undefined }),
+        fields: fc.array(
+          fc.record(
+            {
+              field: fc.integer({ min: 1, max: 20 }),
+              usage: fc.option(WIDE_USAGE, { nil: undefined }),
+              components: fc.option(
+                fc.array(
+                  fc.record(
+                    {
+                      component: fc.integer({ min: 1, max: 6 }),
+                      usage: fc.option(WIDE_USAGE, { nil: undefined }),
+                    },
+                    { requiredKeys: ["component"] },
+                  ),
+                  { maxLength: 3 },
+                ),
+                { nil: undefined },
+              ),
+            },
+            { requiredKeys: ["field"] },
+          ),
+          { maxLength: 4 },
+        ),
+      },
+      { requiredKeys: ["segment"] },
+    ),
+    { maxLength: 4 },
+  ),
+});
+
+describe("property: profile levels", () => {
+  it("never throws, and every result carries one of the three levels", () => {
+    fc.assert(
+      fc.property(fc.nat({ max: MESSAGE_POOL.length - 1 }), levelledProfileArb, (idx, profile) => {
+        const msg = MESSAGE_POOL[idx];
+        if (msg === undefined) return;
+        const result = runWith(msg, profile, undefined);
+        expect(PROFILE_LEVELS).toContain(result.level);
+      }),
+      RUN_CONFIG,
+    );
+  });
+
+  it("implementable is echoed ONLY when the profile was accepted whole", () => {
+    // The fail-safe, generatively: a result carrying any PROFILE_MALFORMED
+    // never says implementable, whatever the profile claimed, so a consumer
+    // cannot read a claim of completeness off a run that assessed nothing.
+    fc.assert(
+      fc.property(fc.nat({ max: MESSAGE_POOL.length - 1 }), levelledProfileArb, (idx, profile) => {
+        const msg = MESSAGE_POOL[idx];
+        if (msg === undefined) return;
+        const { findings, level } = runWith(msg, profile, undefined);
+        if (findings.some((f) => f.code === FINDING_CODES.PROFILE_MALFORMED)) {
+          expect(level).not.toBe("implementable");
+        } else {
+          expect(level).toBe(profile.level);
+        }
+      }),
+      RUN_CONFIG,
+    );
+  });
+
+  it("no level-derived defect ever echoes a value read from the message", () => {
+    // The same sentinel discipline the value-set probe above uses: a "ZQV"
+    // prefix cannot occur inside the finding vocabulary, so a hit is a genuine
+    // leak rather than a coincidental substring of English prose. Every level
+    // refusal fires at once here: a leftover usage, a conditional whose
+    // outcomes the level does not admit, a rule that declares no usage, and a
+    // level token that is not a level.
+    fc.assert(
+      fc.property(
+        fc.stringMatching(/^[A-Za-z0-9]{1,9}$/u).map((s) => `ZQV${s}`),
+        fc.constantFrom("implementable", "ZQVLEVEL"),
+        (secret, level) => {
+          const raw =
+            `MSH|^~\\&|${secret}|B|C|D|20260101||ADT^A01|${secret}|P|2.5\r` +
+            `PID|1||${secret}^^^H^MR||Doe^John||19800101|${secret}`;
+          const msg = parseHL7(raw);
+          const profile = {
+            name: "level-phi-probe",
+            level,
+            segments: [
+              { segment: "MSH", usage: "O", fields: [{ field: 10, usage: "C" }] },
+              {
+                segment: "PID",
+                fields: [
+                  { field: 3, usage: "C(R/O)", components: [{ component: 1 }] },
+                  { field: 8, usage: "B" },
+                ],
+              },
+            ],
+          };
+          const { findings, level: inForce } = runWith(msg, profile, undefined);
+          expect(findings.length).toBeGreaterThan(0);
+          expect(inForce).not.toBe("implementable");
+          for (const f of findings) expect(f.message).not.toContain(secret);
+        },
+      ),
+      RUN_CONFIG,
+    );
+  });
+
+  it("a profile that declares NO level never produces a level-derived defect", () => {
+    // The additive half of the contract, generatively: a profile authored
+    // before the declaration existed makes no claim, so nothing here can refuse
+    // it, and its result is assessed at the weaker level.
+    fc.assert(
+      fc.property(fc.nat({ max: MESSAGE_POOL.length - 1 }), wideProfileArb, (idx, profile) => {
+        const msg = MESSAGE_POOL[idx];
+        if (msg === undefined) return;
+        const bare = runWith(msg, profile, undefined);
+        const declared = runWith(msg, { ...profile, level: "constrainable" }, undefined);
+        expect(bare.level).toBe("constrainable");
+        expect(declared.findings).toEqual(bare.findings);
+      }),
+      RUN_CONFIG,
+    );
+  });
+
+  it("the level changes no message check: the same message yields the same findings", () => {
+    // The scope boundary, generatively. A profile the implementable claim
+    // ACCEPTS produces exactly the findings it produces with no level declared
+    // at all, for every message: the gate refuses profiles, it does not decide
+    // messages.
+    const implementableUsage = fc.constantFrom("R", "RE", "X", "C(R/X)", "C(RE/X)", "C(X/X)");
+    const acceptedProfileArb = fc.record({
+      // The name is prefixed rather than raw: a blank one is itself a profile
+      // defect, which refuses the claim and is the OTHER property's business.
+      // This one needs profiles the claim actually accepts.
+      name: fc.string().map((s) => `p${s}`),
+      segments: fc.array(
+        fc.record({
+          segment: VALID_SEGMENT,
+          usage: implementableUsage,
+          fields: fc.array(
+            fc.record({ field: fc.integer({ min: 1, max: 20 }), usage: implementableUsage }),
+            { maxLength: 4 },
+          ),
+        }),
+        { maxLength: 4 },
+      ),
+    });
+    fc.assert(
+      fc.property(fc.nat({ max: MESSAGE_POOL.length - 1 }), acceptedProfileArb, (idx, profile) => {
+        const msg = MESSAGE_POOL[idx];
+        if (msg === undefined) return;
+        const bare = runWith(msg, profile, undefined);
+        const claimed = runWith(msg, { ...profile, level: "implementable" }, undefined);
+        expect(claimed.level).toBe("implementable");
+        expect(bare.level).toBe("constrainable");
+        expect(claimed.findings).toEqual(bare.findings);
       }),
       RUN_CONFIG,
     );

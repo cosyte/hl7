@@ -333,6 +333,19 @@ export { batchCountMismatch, batchMissingTrailer } from "./parser/warnings.js";
 // states (R needs min >= 1; a non-R usage needs min 0, RE being the documented
 // exception; X admits only max 0) is refused when the profile is DEFINED, for
 // segment and field rules.
+// A profile may declare which of the methodology's three PROFILE LEVELS it
+// claims (`level`: standard, constrainable, implementable; `PROFILE_LEVELS`
+// lists them least-constrained first), and EVERY result echoes the level in
+// force beside the profile name, because an empty findings list means two
+// different things at two different levels: only at the implementable level has
+// all optionality been removed, so only there is the assessment against that
+// profile complete. Declaring none claims constrainable, the weaker claim, so
+// silence never reads as implementable. A claim of implementable is CHECKED
+// rather than believed: every segment, field and component rule must declare a
+// usage, and it must be R/RE/X or a declared conditional whose outcomes are
+// drawn from those three, else PROFILE_MALFORMED; a refused claim is never the
+// level echoed. Zero findings at implementable level is still not an
+// attestation, and the level changes no message check whatsoever.
 export { validateAgainstProfile } from "./conformance/validate-against-profile.js";
 export { defineConformanceProfile } from "./conformance/profile-shape.js";
 export { usageOutcomes } from "./conformance/usage.js";
@@ -340,6 +353,7 @@ export {
   FINDING_CODES,
   PREDICATE_CONNECTORS,
   PREDICATE_VERBS,
+  PROFILE_LEVELS,
   USAGE_CODES,
   type Cardinality,
   type ComparisonPredicate,
@@ -359,6 +373,7 @@ export {
   type PredicatePresence,
   type PredicateVerb,
   type PresencePredicate,
+  type ProfileLevel,
   type SegmentRule,
   type SimpleUsageCode,
   type UsageCode,

@@ -29,6 +29,7 @@ import { codingSystem } from "../model/coding-system.js";
 import type { Field } from "../model/field.js";
 import type { Segment } from "../model/segment.js";
 import * as F from "./findings.js";
+import { levelInForce } from "./level.js";
 import { describeLocation, evaluatePredicate, type PredicateEvaluation } from "./predicate.js";
 import { collectProfileDefects } from "./profile-shape.js";
 import { analyzeResolutions, locusKey } from "./resolutions.js";
@@ -562,6 +563,20 @@ function checkSegment(
  * field rule that declares no `components` declares no depth and is checked
  * exactly as it always was, so this is additive and opt-in per rule.
  *
+ * **Every result carries the {@link ProfileLevel} in force**, beside the
+ * profile name, because an empty findings list means two different things at
+ * two different levels. A profile may declare
+ * {@link ConformanceProfile.level}; one that declares none is assessed and
+ * echoed as `constrainable`, the weaker claim, so silence never reads as
+ * `implementable`. A profile that DOES claim `implementable` is held to the
+ * level's own terminus at profile-shape time: every segment, field and
+ * component rule must declare a usage, and that usage must be `R`, `RE` or `X`
+ * or a declared conditional whose outcomes are drawn from those three. A claim
+ * that fails is `PROFILE_MALFORMED`, and a refused claim is never the level
+ * echoed on the result. The level changes no message check at all: it decides
+ * which findings the PROFILE is refused for, never which findings a MESSAGE
+ * produces.
+ *
  * Omitting `resolutions` (or passing `undefined`) is the same as passing an
  * empty list. Any OTHER value that is not a list of well-formed resolutions is
  * a `PROFILE_MALFORMED` finding, never read as "no resolutions": a mis-typed
@@ -570,7 +585,7 @@ function checkSegment(
  * @param message - a parsed message from {@link parseHL7}.
  * @param profile - the consumer's declarative {@link ConformanceProfile}.
  * @param resolutions - optional caller-supplied outcomes for declared-conditional rules that declare no predicate.
- * @returns the profile name and the ordered findings (empty ⇒ no declared rule violated).
+ * @returns the profile name, the level in force, and the ordered findings (empty ⇒ no declared rule violated).
  *
  * @example
  * ```ts
@@ -608,8 +623,17 @@ export function validateAgainstProfile(
   const resolved = analyzeResolutions(resolutions, profile);
   const defects = [...collectProfileDefects(profile), ...resolved.defects];
   if (defects.length > 0) {
+    // The level is echoed here too, on a result whose profile may be malformed
+    // enough that even its NAME fell back to a sentinel: a consumer reading
+    // `level` must never have to check whether it is there. An implementable
+    // claim is refused on this branch by construction, so the echo falls back
+    // to the weaker claim rather than repeating one nothing verified.
     const findings = defects.map((d) => F.malformed(d.locus, d.detail));
-    return Object.freeze({ profileName: safeName(profile), findings: Object.freeze(findings) });
+    return Object.freeze({
+      profileName: safeName(profile),
+      level: levelInForce(profile, true),
+      findings: Object.freeze(findings),
+    });
   }
 
   const out: ConformanceFinding[] = [];
@@ -617,5 +641,9 @@ export function validateAgainstProfile(
   for (const rule of profile.segments) {
     checkSegment(message, rule, resolved.applied, readPredicate, out);
   }
-  return Object.freeze({ profileName: profile.name, findings: Object.freeze(out) });
+  return Object.freeze({
+    profileName: profile.name,
+    level: levelInForce(profile, false),
+    findings: Object.freeze(out),
+  });
 }

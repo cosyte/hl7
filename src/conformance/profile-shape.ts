@@ -16,13 +16,18 @@
  * A defect `detail` describes the profile's SHAPE (`segments[2].fields[0].field
  * must be a positive integer`): profile structure only, never PHI.
  *
- * Two families of check here are about COHERENCE rather than shape, and both
- * come from the HL7 conformance methodology rather than from this library:
- * the usage-to-cardinality relationship of section 5.2.1 plus the
- * not-supported terminus (see {@link checkUsageCardinalityCoherence}), and the
- * rule that a component's cardinality is implied by its usage and may not be
- * declared beside it (see {@link checkComponentRules}). Both are applied to
- * what a rule DECLARES, so a rule that declares nothing is refused nothing.
+ * Three families of check here are about COHERENCE rather than shape, and all
+ * three come from the HL7 conformance methodology rather than from this
+ * library: the usage-to-cardinality relationship of section 5.2.1 plus the
+ * not-supported terminus (see {@link checkUsageCardinalityCoherence}), the rule
+ * that a component's cardinality is implied by its usage and may not be
+ * declared beside it (see {@link checkComponentRules}), and the terminus an
+ * IMPLEMENTABLE profile's own claim imposes on every element it declares (see
+ * {@link checkImplementableUsage}). The first two are applied to what a rule
+ * DECLARES, so a rule that declares nothing is refused nothing. The third is
+ * the one deliberate exception, and only for a profile that asked for it: at
+ * the implementable level a rule that declares NO usage is refused too, because
+ * silence there means Optional and the level asserts optionality is gone.
  *
  * @internal (the two functions are re-exported from the package root)
  */
@@ -30,8 +35,9 @@
 import { KNOWN_CODING_SYSTEMS, codingSystem } from "../model/coding-system.js";
 import { ProfileDefinitionError } from "../parser/errors.js";
 
+import { DEFAULT_PROFILE_LEVEL, claimsImplementable, usageIsImplementable } from "./level.js";
 import { collectPredicateDefects } from "./predicate.js";
-import type { ConformanceProfile, FindingLocus } from "./types.js";
+import { PROFILE_LEVELS, type ConformanceProfile, type FindingLocus } from "./types.js";
 import {
   SIMPLE_USAGE_CODES,
   boundedToken,
@@ -209,6 +215,106 @@ function checkUsageCardinalityCoherence(
 }
 
 /**
+ * Validate the level a profile claims: absent, or one of the three
+ * {@link PROFILE_LEVELS}.
+ *
+ * **An OMITTED level is not a claim**: it is not refused, and the profile is
+ * assessed and echoed as `constrainable`, so no profile that authored cleanly
+ * before the declaration existed is newly refused.
+ *
+ * A level that is not one of the three is a defect however it is wrong: a token
+ * outside the set, a mis-spelling, or a value of another type entirely reaching
+ * the engine through an unchecked cast. The detail names the offending
+ * declaration the way {@link checkUsage} names an offending usage token, which
+ * is to say bounded and by type where there is no token worth echoing. A
+ * profile's level is author-supplied configuration rather than message content,
+ * so echoing it is what lets an author find their typo.
+ *
+ * @internal
+ */
+function checkLevel(level: unknown, out: ProfileDefect[]): void {
+  if (level === undefined) return;
+  const locus: FindingLocus = { segment: "(profile)" };
+  const expected = `Expected one of ${PROFILE_LEVELS.join("/")}, or no level at all (which claims ${DEFAULT_PROFILE_LEVEL}).`;
+  if (typeof level !== "string") {
+    out.push({
+      locus,
+      detail: `profile.level must be a string, not ${describeValueType(level)}. ${expected}`,
+    });
+    return;
+  }
+  if ((PROFILE_LEVELS as readonly string[]).includes(level)) return;
+  out.push({
+    locus,
+    detail: `profile.level "${boundedToken(level)}" is not a conformance profile level. ${expected}`,
+  });
+}
+
+/**
+ * The methodology's implementable-level terminus, as the sentence every refusal
+ * of that claim ends with. Written out rather than derived from the code set
+ * `level.ts` holds: those codes are a set the check reads, this is prose about a
+ * rule, and joining a frozen array into English reads worse than the English
+ * does.
+ *
+ * @internal
+ */
+const IMPLEMENTABLE_TERMINUS =
+  "An implementable profile has removed all optionality, so each element is either supported (R or RE) or it is not (X), " +
+  "and a declared conditional's outcomes are drawn from the same three.";
+
+/**
+ * The IMPLEMENTABLE-level gate on one rule's usage, applied to segment, field
+ * and component rules alike, and applied ONLY when the profile claims that
+ * level.
+ *
+ * The methodology's terminus is that in an implementable profile ultimately
+ * only two possibilities are allowed: either a specific element is supported
+ * (`R` or `RE`) or it is not (`X`), and a conditional usage's true and false
+ * outcomes must also be defined only as `R`, `RE` or `X`. So the level is a
+ * checkable claim rather than a label, and the two ways to break it are the two
+ * defects below.
+ *
+ * 1. **A rule that declares no usage at all.** An omitted usage means Optional,
+ *    and the level asserts optionality has been removed, so silence is a claim
+ *    the profile cannot make here. This is the one place an omitted usage is
+ *    refused, and it is refused because the profile ASKED to be held to it.
+ * 2. **A usage the level does not admit**: `C`, `CE`, `O` or `B`, or a declared
+ *    conditional carrying any of them as an outcome. `C` and `CE` are refused
+ *    even though this engine knows outcomes for them, because the methodology
+ *    requires an implementable profile's conditional outcomes to be DEFINED,
+ *    and a bare code defines them nowhere in the profile. An author who means
+ *    `C` at this level writes `C(R/X)` and says so.
+ *
+ * A token the declarable-usage grammar does not admit at all is skipped:
+ * {@link checkUsage} has already reported it, and a level complaint derived
+ * from a token that means nothing would only restate it.
+ *
+ * @internal
+ */
+function checkImplementableUsage(usage: unknown, locus: FindingLocus, out: ProfileDefect[]): void {
+  const where = describe(locus);
+
+  if (usage === undefined) {
+    out.push({
+      locus,
+      detail:
+        `${where} declares no usage, and this profile claims the implementable level. ` +
+        `An omitted usage means Optional. ${IMPLEMENTABLE_TERMINUS}`,
+    });
+    return;
+  }
+  if (typeof usage !== "string" || parseUsageToken(usage) === undefined) return;
+  if (usageIsImplementable(usage)) return;
+  out.push({
+    locus,
+    detail:
+      `${where} declares usage "${boundedToken(usage)}", which this profile's claim of the implementable level does not admit. ` +
+      IMPLEMENTABLE_TERMINUS,
+  });
+}
+
+/**
  * Validate a field rule's declared component rules: the list itself, each
  * entry's index, usage and severity, and the one constraint a component rule
  * may NOT carry.
@@ -239,6 +345,7 @@ function checkUsageCardinalityCoherence(
 function checkComponentRules(
   rule: Record<string, unknown>,
   fieldLocus: FindingLocus,
+  implementable: boolean,
   out: ProfileDefect[],
 ): void {
   const comps = rule["components"];
@@ -282,6 +389,7 @@ function checkComponentRules(
     }
     seen.add(index);
     checkUsage(comp["usage"], compLocus, out);
+    if (implementable) checkImplementableUsage(comp["usage"], compLocus, out);
     checkSeverity(comp["severity"], compLocus, out);
     if (comp["cardinality"] !== undefined) {
       out.push({
@@ -313,6 +421,11 @@ export function collectProfileDefects(profile: unknown): readonly ProfileDefect[
   if (typeof profile["name"] !== "string" || profile["name"].trim().length === 0) {
     out.push({ locus: root, detail: "profile.name must be a non-empty string." });
   }
+  checkLevel(profile["level"], out);
+  // A claim of standard or constrainable imposes nothing on any element: both
+  // levels are DEFINED as leaving optionality in place, so there is nothing to
+  // check. Only the implementable claim opens the gate below.
+  const implementable = claimsImplementable(profile);
   const segments = profile["segments"];
   if (!Array.isArray(segments)) {
     out.push({ locus: root, detail: "profile.segments must be an array of segment rules." });
@@ -335,6 +448,7 @@ export function collectProfileDefects(profile: unknown): readonly ProfileDefect[
     }
     const segLocus: FindingLocus = { segment: name };
     checkUsage(seg["usage"], segLocus, out);
+    if (implementable) checkImplementableUsage(seg["usage"], segLocus, out);
     checkCondition(seg["condition"], seg["usage"], segLocus, out);
     checkSeverity(seg["severity"], segLocus, out);
     checkCardinality(seg["cardinality"], segLocus, out);
@@ -347,7 +461,7 @@ export function collectProfileDefects(profile: unknown): readonly ProfileDefect[
         continue;
       }
       for (let j = 0; j < fields.length; j++) {
-        checkFieldRule(fields[j], name, j, out);
+        checkFieldRule(fields[j], name, j, implementable, out);
       }
     }
   }
@@ -533,7 +647,13 @@ function checkCodingSystem(
 }
 
 /** Validate one field rule object. @internal */
-function checkFieldRule(rule: unknown, segment: string, index: number, out: ProfileDefect[]): void {
+function checkFieldRule(
+  rule: unknown,
+  segment: string,
+  index: number,
+  implementable: boolean,
+  out: ProfileDefect[],
+): void {
   const locus: FindingLocus = { segment };
   if (!isObject(rule)) {
     out.push({ locus, detail: `segment "${segment}" fields[${String(index)}] must be an object.` });
@@ -549,6 +669,7 @@ function checkFieldRule(rule: unknown, segment: string, index: number, out: Prof
   }
   const fieldLocus: FindingLocus = { segment, field };
   checkUsage(rule["usage"], fieldLocus, out);
+  if (implementable) checkImplementableUsage(rule["usage"], fieldLocus, out);
   checkCondition(rule["condition"], rule["usage"], fieldLocus, out);
   checkSeverity(rule["severity"], fieldLocus, out);
   checkCardinality(rule["cardinality"], fieldLocus, out);
@@ -583,7 +704,7 @@ function checkFieldRule(rule: unknown, segment: string, index: number, out: Prof
     }
   }
   checkCodingSystem(rule, fieldLocus, out);
-  checkComponentRules(rule, fieldLocus, out);
+  checkComponentRules(rule, fieldLocus, implementable, out);
 }
 
 /**

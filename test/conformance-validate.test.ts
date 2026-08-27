@@ -1316,3 +1316,62 @@ describe("a field rule that declares no component rules is untouched by componen
     }
   });
 });
+
+describe("a profile that declares no level is untouched by levels existing", () => {
+  // A level is a CLAIM plus its gate, and a profile authored before the
+  // declaration existed makes no claim. So every such profile must produce
+  // exactly the findings it produced before, for every message: the level is
+  // additive or it is a regression, and there is no third option. The fixture
+  // profile and every inline profile in this file declare no level, so the
+  // sweep below is the whole corpus this suite already pins.
+  const CORPUS = [WITH_SEX, WITHOUT_SEX, THREE_SEX_REPS, LONG_SEX, MSH_ONLY];
+  const PROFILES: readonly ConformanceProfile[] = [
+    MIN_PROFILE,
+    pid8Profile("R"),
+    pid8Profile("RE"),
+    pid8Profile("C"),
+    pid8Profile("CE"),
+    pid8Profile("O"),
+    pid8Profile("X"),
+    pid8Profile("B"),
+    pid8Profile("C(RE/X)"),
+    pid8Profile("R", { valueSet: ["M", "F", "U"], length: 1 }),
+  ];
+
+  it("every profile x message pair in the corpus is assessed as constrainable", () => {
+    for (const raw of CORPUS) {
+      for (const profile of PROFILES) {
+        expect(validateAgainstProfile(parseHL7(raw), profile).level, raw).toBe("constrainable");
+      }
+    }
+  });
+
+  it("declaring constrainable explicitly changes not one finding", () => {
+    for (const raw of CORPUS) {
+      for (const profile of PROFILES) {
+        const declared: ConformanceProfile = { ...profile, level: "constrainable" };
+        expect(validateAgainstProfile(parseHL7(raw), declared).findings, raw).toEqual(
+          validateAgainstProfile(parseHL7(raw), profile).findings,
+        );
+      }
+    }
+  });
+
+  it("the fixture corpus still produces exactly the findings it always did, and echoes constrainable", () => {
+    const pass = validateAgainstProfile(parseHL7(readFix("adt-pass.hl7")), MIN_PROFILE);
+    expect(pass.findings).toEqual([]);
+    expect(pass.level).toBe("constrainable");
+    for (const [fixture, code] of [
+      ["adt-missing-required.hl7", FINDING_CODES.PROFILE_REQUIRED_ABSENT],
+      ["adt-cardinality.hl7", FINDING_CODES.PROFILE_CARDINALITY],
+      ["adt-value-not-in-set.hl7", FINDING_CODES.PROFILE_VALUE_NOT_IN_SET],
+    ] as const) {
+      const result = validateAgainstProfile(parseHL7(readFix(fixture)), MIN_PROFILE);
+      expect(
+        result.findings.map((f) => f.code),
+        fixture,
+      ).toEqual([code]);
+      expect(result.level, fixture).toBe("constrainable");
+    }
+  });
+});

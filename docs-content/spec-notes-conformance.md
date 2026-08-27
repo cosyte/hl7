@@ -27,7 +27,10 @@ The design boundary is deliberate and load-bearing:
   profile checked was violated_: never "this message is conformant." The profile
   only covers what you declared; everything undeclared is unchecked, and hl7
   issues no conformance certification. This is not a substitute for an accredited
-  validator (e.g. NIST GVT).
+  validator (e.g. NIST GVT). What an empty result _does_ tell you depends on the
+  profile's [level](#profile-levels), which every result echoes: only an
+  implementable profile has removed all its own optionality, so only there is the
+  assessment against that profile complete.
 
 ## The four invariants
 
@@ -402,11 +405,84 @@ carries no definition text for it, so the reading taken here is the one that
 imposes no presence obligation while preserving what the profile author
 declared, and the same silence is why `B` may not carry a predicate.
 
-A declared conditional's outcomes may be any simple code here, because this
-engine targets the constrainable profile level. The methodology separately
-restricts an _implementable_ profile to `R`, `RE` or `X` per element, and its
-conditional outcomes likewise; a profile cannot yet declare which level it
-claims, so that restriction is not enforced.
+A declared conditional's outcomes may be any simple code at the constrainable
+level, which is what a profile claims when it declares no level. The
+methodology separately restricts an _implementable_ profile to `R`, `RE` or `X`
+per element, and its conditional outcomes likewise: a profile that claims that
+level is held to it, which the next section is about.
+
+## Profile levels
+
+An empty findings list means two different things at two different levels, and
+that is the whole reason this exists. The methodology defines three **profile
+levels**, and draws the completeness line between them: a complete assessment
+of an interface declaring conformance to an implementable profile can be
+determined, while for standard-level and constrainable-level profiles not all
+aspects can be. So "zero findings" from a constrainable profile is consistent
+with parts of the message never having been assessed at all.
+
+| Level               | The methodology's definition                                                                   | What this engine does with it                                     |
+| ------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `standard`          | the base definitions and constraints as-is; considerable openness still exists                 | echoes it; imposes no level-derived constraint on any element     |
+| `constrainable`     | further constrains a parent, but not all element attributes are fully constrained               | echoes it; imposes no level-derived constraint on any element     |
+| `implementable`     | defines all elements such that all optionality and openness have been removed                  | echoes it **only if the claim checks out**, else `PROFILE_MALFORMED` |
+
+`PROFILE_LEVELS` exports them as a frozen listing, ordered from the least
+constrained to the most. Unlike `USAGE_CODES` this listing **is** the
+accept-set: a `level` outside it is `PROFILE_MALFORMED`, and the `ProfileLevel`
+type refuses it at compile time.
+
+**Every result carries the level in force**, beside the profile name, and it is
+there on every result including one whose profile was too malformed for even its
+name to be read:
+
+```ts
+const { profileName, level, findings } = validateAgainstProfile(msg, profile);
+```
+
+**Declaring no level claims `constrainable`.** That is the fail-safe direction:
+it is the weaker of the two claims a working profile can make, so a profile that
+says nothing never reads as an implementable one, and every profile written
+before the declaration existed keeps behaving exactly as it did.
+
+### An implementable claim is checked, not believed
+
+The methodology's terminus is that in an implementable profile ultimately only
+two possibilities are allowed: either a specific element is supported (`R` or
+`RE`) or it is not (`X`); and for a conditional usage the true and false
+outcomes must also be defined only as `R`, `RE` or `X`. A profile that claims
+the level is held to exactly that, when the profile is **defined**. Three things
+refuse the claim, each `PROFILE_MALFORMED` naming the offending rule's
+structural locus and the offending declaration:
+
+- **A usage the level does not admit**: `C`, `CE`, `O` or `B`. Note that `C` and
+  `CE` are refused even though this engine knows outcomes for them: the
+  methodology requires an implementable profile's conditional outcomes to be
+  _defined_, and a bare code defines them nowhere in the profile. Write
+  `C(R/X)` and say so.
+- **A declared conditional carrying an outcome the level does not admit**, such
+  as `C(R/O)`.
+- **A rule that declares no usage at all.** An omitted usage means Optional
+  everywhere else and is never refused there; at this level the profile has
+  asserted that optionality is gone, so silence is a claim it cannot make. It
+  applies to segment, field and component rules alike.
+
+A refused claim is **never** the level echoed on the result: it falls back to
+`constrainable`, because a run that returned diagnostics instead of assessing
+the message verified no claim of completeness. That holds for any profile defect,
+not only a level-derived one, since a defect anywhere can stop the gate from
+reaching the rules below it.
+
+**The level changes no message check.** It alters nothing about which findings
+fire for a given message, their severity, cardinality behaviour, predicate
+evaluation, or the value-set and coding-system checks. It decides whether the
+_profile_ is refused, never what the _message_ is found to be.
+
+**And it is still not an attestation.** The level is the author's claim, checked
+for internal consistency against the profile itself: never an external,
+third-party or accredited statement. Zero findings at `implementable` level
+means the profile removed its own optionality and nothing it declared was
+violated. It does not mean anyone certified the interface.
 
 ## Binding a value set to the coding system its codes come from
 
@@ -706,6 +782,10 @@ const profile: ConformanceProfile = {
 const result = validateAgainstProfile(parseHL7(raw), profile);
 
 result.profileName; // => "our-adt-intake"
+// The profile declares no level, so it claims the weaker one and is assessed
+// at it: parts of a message an all-optional rule never constrained were never
+// asserted either way.
+result.level; // => "constrainable"
 result.findings.length; // => 1
 
 const f = result.findings[0];
