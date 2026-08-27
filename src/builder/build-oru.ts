@@ -147,7 +147,8 @@ export function buildOru(init: BuildOruInit): Hl7Message {
     init.patient === undefined
   ) {
     throw new TypeError(
-      "buildOru: `patient` is required. An ORU is never emitted with a fabricated subject.",
+      "buildOru: ORU^R01 requires `patient` (PID). An ORU is never emitted with a fabricated " +
+        "subject.",
     );
   }
   // Note: intentionally NOT `Array.isArray`: that narrows a `readonly T[]` to
@@ -158,7 +159,7 @@ export function buildOru(init: BuildOruInit): Hl7Message {
     init.observations.length === 0
   ) {
     throw new TypeError(
-      "buildOru: at least one `observations` entry (OBX) is required. An ORU with no " +
+      "buildOru: ORU^R01 requires at least one `observations` entry (OBX). An ORU with no " +
         "result is a typed error, never a fabricated observation.",
     );
   }

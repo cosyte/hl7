@@ -9,11 +9,19 @@
  *   MRG segment contains the non-surviving information." The merge direction
  *   is spec-explicit and constant: **MRG (prior) → PID (surviving)**: this
  *   helper NEVER infers it from content and never reverses it.
- * - Merge family (§3.3.34–§3.3.42): A34/A35/A36 (v2.3-era merges), A39 merge
- *   person, A40 merge patient identifier list, A41 merge account, A42 merge
- *   visit; move family: A43 move patient info, A44 move account info; link
- *   family: A24 link / A37 unlink (two PID groups, NO MRG); person add/update:
- *   A28 / A31 (PID only, no MRG).
+ * - Merge family (§3.3.34 to §3.3.42): A34/A35/A36 (v2.3-era merges), A39
+ *   merge person, A40 merge patient identifier list, A41 merge account, A42
+ *   merge visit; move family: A43 move patient info, A44 move account info,
+ *   A45 move visit info; change family (§3.3.46 to §3.3.51): A47 change
+ *   patient identifier list, A49 change account number, A50 change visit
+ *   number, A51 change alternate visit ID; link family: A24 link / A37 unlink
+ *   (two PID groups, NO MRG); person add/update: A28 / A31 (PID only, no MRG).
+ * - The recognized set is FLOORED BY THE PUBLISHED STRUCTURES: every ADT
+ *   trigger event whose published structure REQUIRES MRG is recognized here,
+ *   so the read side can never fall behind the structures the parser validates
+ *   against. An MRG-requiring event carrying no hand-classified kind is
+ *   surfaced as `change`, never `merge`: a consumer keying on `merge` must not
+ *   begin merging records on an event nobody classified.
  * - MRG field map is **version-scoped** (v2.5.1 §3.4.10): MRG-1 prior patient
  *   identifier list (CX, repeating), MRG-3 prior patient account number (CX),
  *   MRG-4 prior patient ID (CX, backward-compat only: **withdrawn as of
@@ -36,6 +44,7 @@
  * consumer's / integration engine's job: this helper only surfaces it.
  */
 
+import { MESSAGE_STRUCTURE_DEFINITIONS } from "../parser/message-structure.js";
 import type { Hl7Position } from "../parser/types.js";
 import type { Hl7ParseWarning } from "../parser/warnings.js";
 import { mergeMissingPriorOrSurvivor } from "../parser/warnings.js";
@@ -48,8 +57,14 @@ import type { XPN } from "../model/types/xpn.js";
 /**
  * Classification of a recognized identity trigger event.
  *
- * - `merge`: A18 / A34 / A35 / A36 / A39 / A40 / A41 / A42 (MRG expected)
- * - `move`: A43 / A44 (MRG expected)
+ * - `merge`: A18 / A34 / A35 / A36 / A39 / A40 / A41 / A42 (MRG expected).
+ *   Two patient records become one; the prior record is retired.
+ * - `move`: A43 / A44 / A45 (MRG expected). Information moves between
+ *   identifier lists, accounts or visits that both go on existing.
+ * - `change`: A47 / A49 / A50 / A51, the change-identifier family (MRG
+ *   expected). One identifier is replaced by another on the SAME record:
+ *   the direction is still MRG (prior) to PID (surviving), but no records are
+ *   being conflated, so a consumer must not treat it as a patient merge.
  * - `link` / `unlink`: A24 / A37 (two PID groups, no MRG)
  * - `add` / `update`: A28 / A31 (person add/update, no MRG)
  *
@@ -59,7 +74,7 @@ import type { XPN } from "../model/types/xpn.js";
  * const kind: IdentityEventKind = "merge";
  * ```
  */
-export type IdentityEventKind = "merge" | "move" | "link" | "unlink" | "add" | "update";
+export type IdentityEventKind = "merge" | "move" | "change" | "link" | "unlink" | "add" | "update";
 
 /**
  * Role of one party in an identity event. `surviving` / `subject` / `linked`
@@ -119,8 +134,8 @@ export interface IdentityParty {
 }
 
 /**
- * One recognized patient-identity event. For `merge` / `move` kinds the
- * `surviving` (PID/PV1-sourced) and `prior` (MRG-sourced) parties are also
+ * One recognized patient-identity event. For `merge` / `move` / `change` kinds
+ * the `surviving` (PID/PV1-sourced) and `prior` (MRG-sourced) parties are also
  * exposed directly, with the spec-constant `direction: "MRG_TO_PID"`: the
  * prior identifiers are the ones being retired in favour of the surviving
  * ones, never the reverse (HL7 v2 Ch. 3, A18/A39/A40).
@@ -153,13 +168,16 @@ export interface IdentityEvent {
   readonly kind: IdentityEventKind;
   /** Every party in document order, role-labelled: the complete surface. */
   readonly parties: readonly IdentityParty[];
-  /** The surviving party (merge/move): ONLY ever sourced from PID/PV1. */
+  /** The surviving party (merge/move/change): ONLY ever sourced from PID/PV1. */
   readonly surviving?: IdentityParty;
-  /** The prior (non-surviving) party (merge/move): ONLY ever sourced from MRG. */
+  /**
+   * The prior (non-surviving) party (merge/move/change): ONLY ever sourced
+   * from MRG.
+   */
   readonly prior?: IdentityParty;
   /**
-   * Spec-constant merge/move direction: the MRG (prior) identifiers merge
-   * INTO the PID (surviving) identifiers. Present on `merge` / `move` events
+   * Spec-constant direction: the MRG (prior) identifiers are retired INTO the
+   * PID (surviving) identifiers. Present on `merge` / `move` / `change` events
    * only; never inferred from content.
    */
   readonly direction?: "MRG_TO_PID";
@@ -167,8 +185,14 @@ export interface IdentityEvent {
   readonly warnings: readonly Hl7ParseWarning[];
 }
 
-/** Trigger-event → kind map for the recognized identity family. @internal */
-const IDENTITY_TRIGGERS: ReadonlyMap<string, IdentityEventKind> = new Map<
+/**
+ * Trigger-event → kind map, hand-classified from HL7 v2 Ch. 3. The kind is a
+ * clinical-safety judgement the published structures do not encode (they say
+ * only which segments a structure requires), so it is curated here and the
+ * registry is applied as a floor on membership, not as the source of kinds.
+ * @internal
+ */
+const CURATED_IDENTITY_TRIGGERS: ReadonlyMap<string, IdentityEventKind> = new Map<
   string,
   IdentityEventKind
 >([
@@ -182,11 +206,56 @@ const IDENTITY_TRIGGERS: ReadonlyMap<string, IdentityEventKind> = new Map<
   ["A42", "merge"], // merge visit - visit number
   ["A43", "move"], // move patient information - patient identifier list
   ["A44", "move"], // move account information - patient account number
+  ["A45", "move"], // move visit information - visit number
+  ["A47", "change"], // change patient identifier list
+  ["A49", "change"], // change patient account number
+  ["A50", "change"], // change visit number
+  ["A51", "change"], // change alternate visit ID
   ["A24", "link"], // link patient information
   ["A37", "unlink"], // unlink patient information
   ["A28", "add"], // add person information
   ["A31", "update"], // update person information
 ]);
+
+/** Kinds that carry the MRG (prior) → PID (surviving) pair. @internal */
+const PAIRED_KINDS: ReadonlySet<IdentityEventKind> = new Set<IdentityEventKind>([
+  "merge",
+  "move",
+  "change",
+]);
+
+/**
+ * True for a kind whose event exposes `surviving`, `prior` and the constant
+ * `direction`. @internal
+ */
+function isPairedKind(kind: IdentityEventKind): kind is "merge" | "move" | "change" {
+  return PAIRED_KINDS.has(kind);
+}
+
+/**
+ * The curated map above, FLOORED BY THE PUBLISHED STRUCTURES: every ADT
+ * trigger event whose structure requires MRG is recognized, whether or not it
+ * was hand-classified. This is the single source of truth shared with the
+ * emit side (which decides "does this event need an MRG?" from the same
+ * registry), so the two can never drift apart again. An MRG-requiring event
+ * with no curated kind is `change`, the conservative classification: it still
+ * surfaces its prior and surviving parties, but a consumer keying on `merge`
+ * does not begin conflating records on an event nobody reviewed. @internal
+ */
+function deriveIdentityTriggers(): ReadonlyMap<string, IdentityEventKind> {
+  const out = new Map<string, IdentityEventKind>(CURATED_IDENTITY_TRIGGERS);
+  for (const def of MESSAGE_STRUCTURE_DEFINITIONS) {
+    if (def.messageCode !== "ADT") continue;
+    if (!def.requiredSegments.includes("MRG")) continue;
+    for (const event of def.triggerEvents) {
+      if (!out.has(event)) out.set(event, "change");
+    }
+  }
+  return out;
+}
+
+/** Trigger-event → kind map for the recognized identity family. @internal */
+const IDENTITY_TRIGGERS: ReadonlyMap<string, IdentityEventKind> = deriveIdentityTriggers();
 
 /**
  * True when MSH-12 declares HL7 v2.7 or later: the era in which the
@@ -348,11 +417,11 @@ function positionOf(seg: Segment | undefined): Hl7Position {
   return { segmentIndex: seg === undefined ? 0 : seg.absoluteIndex };
 }
 
-/** Finalize one merge/move event from one group. @internal */
+/** Finalize one merge/move/change event from one group. @internal */
 function buildMergeEvent(
   group: IdentityGroup,
   eventType: string,
-  kind: "merge" | "move",
+  kind: "merge" | "move" | "change",
   msg: Hl7Message,
   legacyWithdrawn: boolean,
 ): IdentityEvent {
@@ -406,8 +475,8 @@ function buildMergeEvent(
  * message (mirrors `orders()`).
  *
  * Event shapes:
- * - `merge` / `move`: one event per PID-led group (repeating groups yield
- *   one event each); `surviving` + `prior` + constant `direction`.
+ * - `merge` / `move` / `change`: one event per PID-led group (repeating groups
+ *   yield one event each); `surviving` + `prior` + constant `direction`.
  * - `link` / `unlink`: ONE event; every PID group is a `linked` party.
  * - `add` / `update`: one event per PID group; the party role is `subject`.
  *
@@ -436,10 +505,10 @@ export function identityEvents(msg: Hl7Message): readonly IdentityEvent[] {
   const groups = splitGroups(msg);
   const events: IdentityEvent[] = [];
 
-  if (kind === "merge" || kind === "move") {
+  if (isPairedKind(kind)) {
     if (groups.length === 0) {
-      // Trigger says merge/move but the message carries neither PID nor MRG:
-      // one event recording both missing roles (position falls back to MSH).
+      // Trigger says merge/move/change but the message carries neither PID nor
+      // MRG: one event recording both missing roles (position falls to MSH).
       events.push(buildMergeEvent({}, eventType, kind, msg, legacyWithdrawn));
     } else {
       for (const group of groups) {

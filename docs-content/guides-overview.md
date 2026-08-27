@@ -109,11 +109,22 @@ control id. Field array elements are raw field _values_: any delimiter character
 
 ## Author a message from typed objects
 
-`buildAdt` and `buildOru` are the typed, high-level counterparts of the read helpers (`msg.patient`,
-`msg.observations`): pass structured values (an `XPN` name, `CX` identifiers, a `TS` timestamp) and
-the builder assembles the required segments (MSH + EVN + PID + PV1 for ADT; MSH + PID + OBR + OBX for
-ORU) with correct `^`/`&`/`~` structure. No hand-assembly of delimiters, and any delimiter embedded in
-a value is **escaped, never injected**. The result is spec-clean and re-parses with **zero warnings**.
+The typed builders are the high-level counterparts of the read helpers (`msg.patient`,
+`msg.observations`, `msg.orders`, …): pass structured values (an `XPN` name, `CX` identifiers, a `TS`
+timestamp) and the builder assembles the segments the message type requires with correct `^`/`&`/`~`
+structure. No hand-assembly of delimiters, and any delimiter embedded in a value is **escaped, never
+injected**. The result is spec-clean and re-parses with **zero warnings**.
+
+| builder | message | read it back with |
+| --- | --- | --- |
+| `buildAdt(event, init)` | `ADT` admit, discharge, transfer, merge, move and identifier change | `msg.patient`, `msg.visit`, `msg.identityEvents()` |
+| `buildOru(init)` | `ORU^R01` observation result | `msg.observations()` |
+| `buildOrm(init)` | `ORM^O01` general order | `msg.orders()` |
+| `buildSiu(event, init)` | `SIU` scheduling notification | `msg.appointments()` |
+| `buildMdm(event, init)` | `MDM` clinical document | `msg.documents()` |
+| `buildDft(event, init)` | `DFT` detail financial transaction | `msg.charges()` |
+| `buildVxu(init)` | `VXU^V04` vaccination record update | `msg.immunizations()` |
+| `buildAck(inbound, options)` | `ACK` acknowledgment | `interpretAck(msg)` |
 
 ```ts runnable
 import { buildAdt, parseHL7 } from "@cosyte/hl7";
@@ -136,11 +147,74 @@ round.patient?.familyName; // => "Test"
 round.warnings.length; // => 0
 ```
 
+Every family works the same way. A scheduling notification, for example, takes the appointment and
+its resource groups and reads back through `msg.appointments()`:
+
+```ts runnable
+import { buildSiu, parseHL7 } from "@cosyte/hl7";
+
+const msg = buildSiu("S12", {
+  sendingApp: "SCHEDULING",
+  receivingApp: "EHR",
+  appointment: {
+    fillerAppointmentId: "FL-2002",
+    startDateTime: "20260801090000",
+    endDateTime: "20260801093000",
+    fillerStatusCode: { identifier: "Booked" },
+  },
+  resourceGroups: [
+    {
+      setId: "1",
+      resources: [
+        { kind: "location", code: { identifier: "OR-1" } },
+        { kind: "personnel", person: { idNumber: "9990", familyName: "Welby" } },
+      ],
+    },
+  ],
+});
+
+const appt = parseHL7(msg.toString()).appointments()[0];
+appt?.fillerAppointmentId; // => "FL-2002"
+appt?.startDateTime?.raw; // => "20260801090000"
+appt?.resources.length; // => 2
+```
+
 Builders **never fabricate**: only values you supply are emitted, an omitted optional field stays
-absent, and a required-but-absent input (`patient`, or at least one ORU observation) is a typed
-`TypeError`, never a guessed value. For a lower-level typed set on an existing message, use
-`msg.setComposite(path, kind, value)` (e.g. `msg.setComposite("PID.5", "XPN", { familyName: "Doe" })`),
-or `encodeComposite(kind, value)` to build a field directly.
+absent, and content the message type requires but the init does not carry is a typed `TypeError`,
+never a guessed value.
+
+```ts runnable throws
+import { buildDft } from "@cosyte/hl7";
+
+// A financial transaction message needs at least one transaction:
+buildDft("P03", {
+  patient: { identifiers: { idNumber: "MRN12345" } },
+  charges: [],
+});
+```
+
+### Which message types can be authored
+
+`SUPPORTED_BUILDER_MESSAGES` publishes the (message code, trigger event) pairs the typed builders can
+author as structurally complete messages, and `supportsBuilderMessage(code, event)` answers for one
+pair. The set is derived from the same published message structures the parser checks against, so it
+never claims a pair whose structure needs a segment no typed init can supply.
+
+```ts runnable
+import { SUPPORTED_BUILDER_MESSAGES, supportsBuilderMessage } from "@cosyte/hl7";
+
+supportsBuilderMessage("SIU", "S12"); // => true
+supportsBuilderMessage("ADT", "A20"); // => false
+SUPPORTED_BUILDER_MESSAGES.some((m) => m.messageCode === "VXU"); // => true
+```
+
+A `false` answer is not a refusal. A builder that takes a trigger event still emits the content you
+supply for an event outside the set; the structure summary on the re-parsed message then reports what
+is missing, exactly as it does for a message that arrived from anywhere else.
+
+For a lower-level typed set on an existing message, use `msg.setComposite(path, kind, value)` (e.g.
+`msg.setComposite("PID.5", "XPN", { familyName: "Doe" })`), or `encodeComposite(kind, value)` to build
+a field directly.
 
 ## Next
 

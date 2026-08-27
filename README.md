@@ -283,7 +283,9 @@ The repeat pattern (Table 0335) is surfaced **verbatim**: hl7 never normalizes a
 
 ### Patient merges and identity events
 
-`msg.identityEvents()` recognizes the ADT identity-management trigger events: merges (A18/A34/A35/A36/A39/A40/A41/A42), moves (A43/A44), link/unlink (A24/A37), and person add/update (A28/A31). It surfaces every party **labelled by role**. On a merge, the MRG segment carries the _prior_ (non-surviving) identifiers and the PID carries the _surviving_ ones; the direction is the spec constant `MRG_TO_PID` and is never inferred from content.
+`msg.identityEvents()` recognizes the ADT identity-management trigger events: merges (A18/A34/A35/A36/A39/A40/A41/A42), moves (A43/A44/A45), identifier changes (A47/A49/A50/A51), link/unlink (A24/A37), and person add/update (A28/A31). It surfaces every party **labelled by role**. On a merge, move or change, the MRG segment carries the _prior_ (non-surviving) identifiers and the PID carries the _surviving_ ones; the direction is the spec constant `MRG_TO_PID` and is never inferred from content.
+
+The recognized set is floored by the published message structures: every ADT trigger event whose structure requires an MRG segment is recognized, so the read side cannot fall behind the structures the parser validates against. `kind` stays meaningful across that floor: an identifier change (`"change"`) replaces one identifier on one record and is never reported as a `"merge"`, so a consumer that acts only on `kind === "merge"` never starts conflating records on an event it did not expect.
 
 ```ts
 import { parseHL7 } from "@cosyte/hl7";

@@ -1,0 +1,8 @@
+MSH|^~\&|CLINIC|MAIN|EHR|REF|20260801101500||ORM^O01|CTRL0000042|P|2.5
+PID|1||MRN001^^^HOSP||Test^Jane||19880705|F
+ORC|NW|PL-1001
+OBR|1|PL-1001|FL-2002|CBC^Complete Blood Count^L|||20260801080000|||||||||9990^Welby^Marcus|||||||||O
+OBX|1|ST|NOTE||Fasting
+ORC|NW
+OBR|2|PL-1002||BMP^Basic Metabolic Panel|||||||||||||||||||||O
+

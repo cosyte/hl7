@@ -204,9 +204,53 @@ export {
 } from "./builder/encode-composite.js";
 export type { CompositeKind, CompositeValueByKind } from "./builder/encode-composite.js";
 export { buildAdt } from "./builder/build-adt.js";
-export type { AdtEvent, AdtPatient, AdtVisit, BuildAdtInit } from "./builder/build-adt.js";
+export type {
+  AdtEvent,
+  AdtPatient,
+  AdtPriorIdentity,
+  AdtVisit,
+  BuildAdtInit,
+} from "./builder/build-adt.js";
 export { buildOru } from "./builder/build-oru.js";
 export type { BuildOruInit, OruObservation, OruOrder, OruPatient } from "./builder/build-oru.js";
+
+export { buildDft } from "./builder/build-dft.js";
+export type { BuildDftInit, DftAmount, DftCharge, DftPatient } from "./builder/build-dft.js";
+export { buildMdm } from "./builder/build-mdm.js";
+export type { BuildMdmInit, MdmDocument, MdmObservation, MdmPatient } from "./builder/build-mdm.js";
+export { buildOrm } from "./builder/build-orm.js";
+export type { BuildOrmInit, OrmObservation, OrmOrder, OrmPatient } from "./builder/build-orm.js";
+export { buildSiu } from "./builder/build-siu.js";
+export type {
+  BuildSiuInit,
+  SiuAppointment,
+  SiuPatient,
+  SiuResource,
+  SiuResourceGroup,
+  SiuResourceKind,
+} from "./builder/build-siu.js";
+export { buildVxu } from "./builder/build-vxu.js";
+export type {
+  BuildVxuInit,
+  VxuImmunization,
+  VxuObservation,
+  VxuPatient,
+  VxuRoute,
+} from "./builder/build-vxu.js";
+
+// The published support claim for the typed builders: which (message code,
+// trigger event) pairs they can author as spec-clean, zero-warning messages.
+// Derived from the structure registry, so a pair whose published structure
+// requires a segment no typed init can supply is excluded by construction.
+export {
+  SUPPORTED_BUILDER_MESSAGES,
+  TYPED_BUILDER_COVERAGE,
+  supportsBuilderMessage,
+} from "./builder/supported-messages.js";
+export type {
+  SupportedBuilderMessage,
+  TypedBuilderCoverage,
+} from "./builder/supported-messages.js";
 
 // Phase C: ACK / response generation. `buildAck` is the single upstream ACK
 // *content* primitive (`@cosyte/mllp`'s ack-from-hl7 adapts over it);

@@ -28,12 +28,26 @@ HL7 v2 Chapter 3 (Patient Administration):
   future transactions"* once merged into the target identifiers in PID.
 - Recognized triggers and their classification:
   - `merge`: A18, A34, A35, A36 (v2.3-era merges), A39, A40, A41 (account),
-    A42 (visit)
-  - `move`: A43 (patient identifier list), A44 (account)
+    A42 (visit). Two records become one; the prior record is retired.
+  - `move`: A43 (patient identifier list), A44 (account), A45 (visit).
+    Information moves between identifier lists, accounts or visits that both
+    go on existing.
+  - `change`: A47 (patient identifier list), A49 (account number), A50 (visit
+    number), A51 (alternate visit ID). One identifier is replaced by another
+    on the **same** record: the direction is still MRG (prior) to PID
+    (surviving), but nothing is being conflated, so a consumer keying on
+    `merge` must not act on them.
   - `link` / `unlink`: A24 / A37 (two or more PID groups; the conformant
     shape carries **no MRG**, a nonconforming MRG is still surfaced, see the
     fail-safe section)
   - `add` / `update`: A28 / A31 (person add/update, no MRG)
+- **The recognized set is floored by the published structures.** Every ADT
+  trigger event whose published structure *requires* MRG is recognized,
+  whether or not it is hand-classified above, so the read side can never fall
+  behind the structures the parser validates against. An MRG-requiring event
+  with no hand-classified kind is surfaced as `change` rather than `merge`:
+  the conservative choice, because a consumer keying on `merge` must not begin
+  conflating records on an event nobody reviewed.
 - **MRG field map (version-scoped, v2.5.1 §3.4.10):** MRG-1 prior patient
   identifier list (CX, repeating) → `prior.identifiers`; MRG-3 prior patient
   account number → `prior.accountNumber`; MRG-4 prior patient ID
@@ -88,14 +102,17 @@ missing), never an identifier, name, or any other field value (no PHI).
   the integration engine's / consumer's responsibility.
 - No patient matching or probabilistic linkage, ever.
 - **Not modelled** (these triggers return `[]`): **A30** (merge person
-  information, the v2.3 backward-compat sibling of A34–A36), **A45** (move
-  visit information, the third member of the move family), and the
-  change-identifier family **A46–A51** (change patient ID / identifier list /
-  alternate ID / account number / visit number / alternate visit ID). They
-  also carry MRG, so a consumer that needs them can read the raw segments
+  information, the v2.3 backward-compat sibling of A34 to A36), **A46**
+  (change patient ID) and **A48** (change alternate patient ID). The published
+  structures this library ships do not name them, so there is no structure to
+  floor them against; a consumer that needs them can read the raw segments
   meanwhile.
 - MRG-2 / MRG-6 (prior *alternate* patient/visit IDs, withdrawn v2.7) are
-  deliberately not surfaced.
+  deliberately not surfaced. **A51** (change alternate visit ID) is recognized
+  and its parties are surfaced, but its own merge key is MRG-6: an A51 whose
+  only prior content is an alternate visit ID carries no usable prior
+  identity field and therefore warns, exactly as the fail-safe above
+  describes.
 - `identityEvents()` keys on the trigger event alone (MSH-9.2, falling back
   to EVN-1). It does not require MSH-9.1 to be `ADT` (lenient toward vendor
   quirks).
