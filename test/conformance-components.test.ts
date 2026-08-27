@@ -281,6 +281,32 @@ describe("content at an undeclared component is a typed finding (AC5, AC6)", () 
     expect(findings[0]?.locus.component).toBe(5);
   });
 
+  it("an EMPTY list declares NO component rules, so it closes nothing (AC7)", () => {
+    // The rule carries no component rule, which is what "declares none" means:
+    // depth is declared by the RULES, not by the key. Read as a declaration of
+    // depth zero it would instead make all five components undeclared content.
+    expect(validate(withPid3("MRN12345^^^HOSP^MR"), [])).toEqual([]);
+    // Identical to leaving the member out, which is the property that matters.
+    expect(validate(withPid3("MRN12345^^^HOSP^MR"), undefined)).toEqual(
+      validate(withPid3("MRN12345^^^HOSP^MR"), []),
+    );
+  });
+
+  it("an EMPTY list fires nothing per repetition or per occurrence either (AC7)", () => {
+    const raw = [HEAD, "PID|1||A^B^C^D~E^F^G^H||Doe^John", "PID|2||A^B^C^D~E^F^G^H||Roe^Jane"].join(
+      "\r",
+    );
+    expect(validateAgainstProfile(parseHL7(raw), pid3Profile([])).findings).toEqual([]);
+  });
+
+  it("an EMPTY list still leaves the field's OWN rules in force (AC7)", () => {
+    // "Declares no component rules" scopes the component walk and nothing else:
+    // the field rule is evaluated exactly as it is without the member.
+    const findings = validate(withPid3(""), [], { usage: "R" });
+    expect(codes(findings)).toEqual([FINDING_CODES.PROFILE_REQUIRED_ABSENT]);
+    expect(findings[0]?.locus.component).toBeUndefined();
+  });
+
   it("a declared component may sit BEYOND the content, and nothing fires for it", () => {
     expect(validate(withPid3("MRN12345"), [...FIRST_THREE, { component: 9, usage: "O" }])).toEqual(
       [],
@@ -522,6 +548,19 @@ describe("a malformed component rule is reported, never thrown (AC13, AC14)", ()
     expect(validateAgainstProfile(parseHL7(withPid3("MRN12345^^^HOSP")), profile).findings).toEqual(
       [],
     );
+    expect(() => defineConformanceProfile(profile)).not.toThrow();
+  });
+
+  it("an EMPTY `components` list is not a declaration either, so nothing is refused", () => {
+    // Accepted by both entry points, on the same terms an omitted list is: a
+    // list carrying no component rule says nothing, and refusing it would newly
+    // refuse a profile whose only fault is saying nothing.
+    const profile = pid3Profile([]);
+    const findings = validateAgainstProfile(
+      parseHL7(withPid3("MRN12345^^^HOSP")),
+      profile,
+    ).findings;
+    expect(findings).toEqual([]);
     expect(() => defineConformanceProfile(profile)).not.toThrow();
   });
 

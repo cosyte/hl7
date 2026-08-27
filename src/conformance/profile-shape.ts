@@ -227,7 +227,12 @@ function checkUsageCardinalityCoherence(
  * order would decide an element's usage by accident of authoring order.
  *
  * An OMITTED `components` is not a declaration, so it is not walked and no
- * field rule that authored cleanly before is newly refused.
+ * field rule that authored cleanly before is newly refused. An EMPTY list is
+ * not a declaration either and is accepted on the same terms: a rule carrying
+ * no component rules declares no depth, the validator checks it exactly as it
+ * checks a rule that omits the list, and refusing it here would newly refuse a
+ * profile whose only fault is saying nothing. There is nothing to walk, so this
+ * function has nothing to report about it.
  *
  * @internal
  */

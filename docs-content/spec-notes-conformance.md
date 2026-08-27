@@ -601,11 +601,24 @@ extra[0]?.locus.component; // => 6
 // the message carries the locus plus how many components the rule declares.
 extra[0]?.message.includes("SURPRISE"); // => false
 extra[0]?.message.includes("component 6"); // => true
+
+// An EMPTY list carries no component rule, so it says exactly what leaving the
+// member out says: no depth declared, nothing closed, nothing reported.
+const noDepth: ConformanceProfile = {
+  name: "no-depth",
+  segments: [{ segment: "PID", fields: [{ field: 3, components: [] }] }],
+};
+const raw = parseHL7([head, "PID|1||MRN12345^^^HOSP^MR^SURPRISE||Doe^John"].join("\r"));
+validateAgainstProfile(raw, noDepth).findings.length; // => 0
 ```
 
-**Omitting `components` changes nothing.** A field rule that declares none
-declares no depth, is checked exactly as it always has been, and can never emit
-`PROFILE_UNDECLARED_CONTENT`. The check is additive and opt-in per rule.
+**Omitting `components` changes nothing, and an empty list is omitting it.** A
+field rule that declares none declares no depth, is checked exactly as it always
+has been, and can never emit `PROFILE_UNDECLARED_CONTENT`. The check is additive
+and opt-in per rule. `components: []` declares no component rule, so it means
+"no depth declared" and never "this field has no components": a list built by a
+filter that matched nothing constrains nothing, rather than making every
+component of every repetition undeclared content.
 
 `components` (plural) is not `component` (singular). The singular one says
 which component the `length` and `valueSet` checks read; it declares no
@@ -651,8 +664,8 @@ apart by whether the finding's `locus.field` is set, not by separate codes.
 - `PROFILE_CODING_SYSTEM_MISMATCH`: a present repetition does not carry the
   coding system the rule binds its value set to.
 - `PROFILE_UNDECLARED_CONTENT`: a present repetition carries content at a
-  component index the field rule does not declare. Only a rule that declares
-  `components` can emit it.
+  component index the field rule does not declare. Only a rule carrying at least
+  one `components` entry can emit it.
 - `PROFILE_MALFORMED`: the profile itself is structurally malformed (a diagnostic).
 
 Length and value-set checks read the value at the rule's `component` (default

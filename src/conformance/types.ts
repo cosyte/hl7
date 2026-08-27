@@ -572,7 +572,10 @@ export interface Cardinality {
  * repetition carrying a non-empty value at an index the rule does not declare
  * is {@link FINDING_CODES.PROFILE_UNDECLARED_CONTENT}. A field rule that
  * declares NONE declares no depth and is checked exactly as it always was: the
- * undeclared-content check can never fire for it.
+ * undeclared-content check can never fire for it. "None" means no component
+ * rule reaches the engine, so an EMPTY list says exactly what omitting the
+ * member says; it is never read as a declaration that the field has no
+ * components.
  *
  * @example
  * ```ts
@@ -685,10 +688,13 @@ export interface FieldRule {
    * (its own worked example is data in a fourth component where the profile
    * defines three).
    *
-   * **Omitting them changes nothing.** A field rule that declares no component
-   * rules declares no depth: it is checked exactly as it always has been, and
-   * the undeclared-content check can never fire for it. This is additive and
-   * opt-in, per field rule.
+   * **Omitting them changes nothing, and an empty list is omitting them.** A
+   * field rule that declares no component rules declares no depth: it is
+   * checked exactly as it always has been, and the undeclared-content check can
+   * never fire for it. `components: []` carries no component rule, so it says
+   * precisely that and is never read as "this field has no components" (which
+   * would make every component of every repetition undeclared content). This is
+   * additive and opt-in, per field rule.
    *
    * Each component's cardinality is IMPLIED by its usage and may not be
    * declared: see {@link ComponentRule}.
@@ -874,9 +880,10 @@ export const FINDING_CODES = {
    * A distinct code on purpose: "a value we do not accept" and "content in an
    * element the profile never specified" are two problems with two remedies,
    * and the second is the one an author cannot see from any other finding. It
-   * fires only for a field rule that declares {@link FieldRule.components},
-   * because declaring them is what closes the component set; a rule that
-   * declares none can never emit it.
+   * fires only for a field rule carrying at least one
+   * {@link FieldRule.components} entry, because declaring component rules is
+   * what closes the component set; a rule that declares none (the member
+   * omitted, or an empty list) can never emit it.
    */
   PROFILE_UNDECLARED_CONTENT: "PROFILE_UNDECLARED_CONTENT",
   /** The profile ITSELF is structurally malformed (a diagnostic, not a message finding). */

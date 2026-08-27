@@ -295,8 +295,9 @@ function checkCardinality(
  * in an element the profile does not specify as a conformance violation, and
  * its own worked example is data in a fourth component where the profile
  * defines three. A field rule that declares NO component rules declares no
- * depth and never reaches here, so the check is opt-in per field rule and can
- * never fire on a profile authored before it existed.
+ * depth and never reaches here, whether it omits the list or carries an EMPTY
+ * one, so the check is opt-in per field rule and can never fire on a profile
+ * authored before it existed.
  *
  * A conditional usage on a component rule is never decided: a component rule
  * declares no condition predicate and a caller resolution cannot name a
@@ -392,12 +393,21 @@ function checkFields(
     // on each one would report the same absent repetition once per declared
     // component, and firing undeclared-content on it would report content that
     // is not there.
-    if (rule.components !== undefined) {
+    //
+    // The gate is "this rule CARRIES component rules", not "the key is set". An
+    // EMPTY list declares no component rules, so it declares no depth and is
+    // checked exactly as an omitted list is. Reading `[]` as a declaration of
+    // depth ZERO would instead make every non-empty component undeclared
+    // content, one finding per component per repetition per occurrence, from a
+    // rule that constrains nothing; and `[]` is reachable by accident (a list
+    // built by a filter, or read from configuration) with no cast at all.
+    const componentRules = rule.components;
+    if (componentRules !== undefined && componentRules.length > 0) {
       for (let r = 0; r < reps.length; r++) {
         const rep = reps[r];
         if (rep === undefined || !repetitionHasValue(rep)) continue;
         checkComponents(
-          rule.components,
+          componentRules,
           rep,
           { segment: seg.type, field: rule.field, repetition: r, occurrence },
           severity,

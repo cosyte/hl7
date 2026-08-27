@@ -327,10 +327,12 @@ export { batchCountMismatch, batchMissingTrailer } from "./parser/warnings.js";
 // [0..0]; a component has no repetition construct, so those reduce to presence).
 // Declaring them CLOSES the field's component set, so a present repetition
 // carrying content at an undeclared index is PROFILE_UNDECLARED_CONTENT. A
-// field rule that declares none is checked exactly as before and can never emit
-// it. The usage/cardinality coherence the methodology states (R needs min >= 1;
-// a non-R usage needs min 0, RE being the documented exception; X admits only
-// max 0) is refused when the profile is DEFINED, for segment and field rules.
+// field rule that declares none (the member omitted, or an EMPTY list, which
+// carries no component rule and so says the same thing) is checked exactly as
+// before and can never emit it. The usage/cardinality coherence the methodology
+// states (R needs min >= 1; a non-R usage needs min 0, RE being the documented
+// exception; X admits only max 0) is refused when the profile is DEFINED, for
+// segment and field rules.
 export { validateAgainstProfile } from "./conformance/validate-against-profile.js";
 export { defineConformanceProfile } from "./conformance/profile-shape.js";
 export { usageOutcomes } from "./conformance/usage.js";

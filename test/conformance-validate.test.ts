@@ -1215,6 +1215,21 @@ describe("a field rule that declares no component rules is untouched by componen
     name: "bare-value-set",
     segments: [{ segment: "PID", fields: [{ field: 8, valueSet: ["M", "F", "U"], length: 1 }] }],
   };
+  // An EMPTY `components` list carries no component rule, so the rule declares
+  // none: "declares no component rules" is a statement about the RULES, not
+  // about the key being absent. Reading `[]` as a declaration of depth ZERO
+  // would make every non-empty component undeclared content, which is the
+  // false-positive storm the check is scoped to avoid, and `[]` is reachable
+  // with no cast at all (a list built by a filter, or read from configuration).
+  const EMPTY_COMPONENTS: ConformanceProfile = {
+    name: "empty-components",
+    segments: [{ segment: "PID", fields: [{ field: 3, usage: "R", components: [] }] }],
+  };
+  /** The same rule with the member left out: the behaviour `[]` has to match. */
+  const NO_COMPONENTS_KEY: ConformanceProfile = {
+    name: "empty-components",
+    segments: [{ segment: "PID", fields: [{ field: 3, usage: "R" }] }],
+  };
 
   it("emits no PROFILE_UNDECLARED_CONTENT for ANY message in the corpus", () => {
     for (const raw of [
@@ -1225,7 +1240,13 @@ describe("a field rule that declares no component rules is untouched by componen
       MSH_ONLY,
       MULTI_COMPONENT,
     ]) {
-      for (const profile of [MIN_PROFILE, BARE_VALUE_SET, pid8Profile("R"), pid8Profile("X")]) {
+      for (const profile of [
+        MIN_PROFILE,
+        BARE_VALUE_SET,
+        pid8Profile("R"),
+        pid8Profile("X"),
+        EMPTY_COMPONENTS,
+      ]) {
         expect(
           validateWith(raw, profile, undefined).some(
             (f) => f.code === FINDING_CODES.PROFILE_UNDECLARED_CONTENT,
@@ -1246,6 +1267,36 @@ describe("a field rule that declares no component rules is untouched by componen
       ],
     };
     expect(validateWith(MULTI_COMPONENT, profile, undefined)).toEqual([]);
+  });
+
+  it("an EMPTY `components` list declares no component rules, so nothing fires", () => {
+    expect(validateWith(MULTI_COMPONENT, EMPTY_COMPONENTS, undefined)).toEqual([]);
+  });
+
+  it("an EMPTY list and an omitted one are findings-identical, across the corpus", () => {
+    for (const raw of [WITH_SEX, WITHOUT_SEX, THREE_SEX_REPS, MSH_ONLY, MULTI_COMPONENT]) {
+      expect(validateWith(raw, EMPTY_COMPONENTS, undefined), raw).toEqual(
+        validateWith(raw, NO_COMPONENTS_KEY, undefined),
+      );
+    }
+  });
+
+  it("an EMPTY list fires nothing across every repetition and every occurrence either", () => {
+    // Two PID occurrences, two repetitions each, four components each: the
+    // shape that would render 16 findings from a rule constraining nothing.
+    const raw = [
+      "MSH|^~\\&|A|B|C|D|20260101||ADT^A01|MSG1|P|2.5",
+      "PID|1||MRN12345^^^H~MRN67890^^^H||Doe^John^Q",
+      "PID|2||MRN22222^^^H~MRN33333^^^H||Roe^Jane^Q",
+    ].join("\r");
+    expect(validateWith(raw, EMPTY_COMPONENTS, undefined)).toEqual([]);
+  });
+
+  it("an EMPTY list is accepted at profile-definition time, exactly as an omitted one is", () => {
+    expect(() => defineConformanceProfile(EMPTY_COMPONENTS)).not.toThrow();
+    expect(
+      validateWith(MULTI_COMPONENT, EMPTY_COMPONENTS, undefined).some(isProfileMalformed),
+    ).toBe(false);
   });
 
   it("the fixture corpus produces exactly the findings it always did", () => {
