@@ -1,0 +1,558 @@
+{
+  "grammar": "date-token-grammar",
+  "revision": 1,
+  "description": "Conformance cases for the shared date-format token grammar. Pure data: no expression, no code, no syntax belonging to any one parser. A parser proves it implements the grammar by running every case and producing the stated expectation.",
+  "tokens": [
+    "YYYY",
+    "MM",
+    "M",
+    "MMM",
+    "MMMM",
+    "DD",
+    "D",
+    "HH",
+    "H",
+    "hh",
+    "h",
+    "mm",
+    "ss",
+    "SSSS",
+    "A"
+  ],
+  "refusalRules": [
+    "two-digit-year",
+    "stray-character",
+    "missing-meridiem",
+    "missing-twelve-hour",
+    "missing-seconds",
+    "variable-width-adjacency",
+    "unterminated-escape",
+    "no-token"
+  ],
+  "precisionLevels": ["year", "month", "day", "hour", "minute", "second", "fraction"],
+  "noMatchReasons": ["range", "month-name", "meridiem-name", "length", "literal", "empty"],
+  "cases": [
+    {
+      "id": "accept-year-only",
+      "kind": "accept",
+      "format": "YYYY",
+      "tokens": ["YYYY"],
+      "input": "1988",
+      "precision": "year",
+      "expect": { "year": 1988 },
+      "note": "A four-digit year alone keeps year precision: no zero-filled month or day."
+    },
+    {
+      "id": "accept-month-precision",
+      "kind": "accept",
+      "format": "YYYY-MM",
+      "tokens": ["YYYY", "MM"],
+      "input": "1988-07",
+      "precision": "month",
+      "expect": { "year": 1988, "month": 7 },
+      "note": "MM is exactly two digits and the month is spec-native 1 to 12."
+    },
+    {
+      "id": "accept-day-precision-fixed-width",
+      "kind": "accept",
+      "format": "YYYY-MM-DD",
+      "tokens": ["YYYY", "MM", "DD"],
+      "input": "1988-07-05",
+      "precision": "day",
+      "expect": { "year": 1988, "month": 7, "day": 5 },
+      "note": "The all-fixed-width shape every parser already had."
+    },
+    {
+      "id": "accept-single-digit-month-and-day",
+      "kind": "accept",
+      "format": "M/D/YYYY",
+      "tokens": ["M", "D", "YYYY"],
+      "input": "7/5/1988",
+      "precision": "day",
+      "expect": { "year": 1988, "month": 7, "day": 5 },
+      "note": "M and D accept one digit."
+    },
+    {
+      "id": "accept-two-digit-month-and-day-under-tolerant-tokens",
+      "kind": "accept",
+      "format": "M/D/YYYY",
+      "tokens": ["M", "D", "YYYY"],
+      "input": "12/25/1988",
+      "precision": "day",
+      "expect": { "year": 1988, "month": 12, "day": 25 },
+      "note": "The same tolerant format accepts two digits at both positions: the width is per value, not per format."
+    },
+    {
+      "id": "accept-month-abbreviation-upper",
+      "kind": "accept",
+      "format": "DD-MMM-YYYY",
+      "tokens": ["DD", "MMM", "YYYY"],
+      "input": "05-JUL-1988",
+      "precision": "day",
+      "expect": { "year": 1988, "month": 7, "day": 5 },
+      "note": "MMM is exactly three letters and resolves to the month NUMBER, never a 0-based index."
+    },
+    {
+      "id": "accept-month-abbreviation-mixed-case",
+      "kind": "accept",
+      "format": "DD-MMM-YYYY",
+      "tokens": ["DD", "MMM", "YYYY"],
+      "input": "05-Jul-1988",
+      "precision": "day",
+      "expect": { "year": 1988, "month": 7, "day": 5 },
+      "note": "Alphabetic content is compared case-insensitively on the INPUT."
+    },
+    {
+      "id": "accept-month-abbreviation-lower",
+      "kind": "accept",
+      "format": "DD-MMM-YYYY",
+      "tokens": ["DD", "MMM", "YYYY"],
+      "input": "05-jul-1988",
+      "precision": "day",
+      "expect": { "year": 1988, "month": 7, "day": 5 },
+      "note": "Third casing of the same value, so a parser cannot pass by folding one way only."
+    },
+    {
+      "id": "accept-month-full-name",
+      "kind": "accept",
+      "format": "MMMM D, YYYY",
+      "tokens": ["MMMM", "D", "YYYY"],
+      "input": "July 5, 1988",
+      "precision": "day",
+      "expect": { "year": 1988, "month": 7, "day": 5 },
+      "note": "MMMM is the full English name; its width varies with the name."
+    },
+    {
+      "id": "accept-month-full-name-september",
+      "kind": "accept",
+      "format": "MMMM D, YYYY",
+      "tokens": ["MMMM", "D", "YYYY"],
+      "input": "september 30, 2025",
+      "precision": "day",
+      "expect": { "year": 2025, "month": 9, "day": 30 },
+      "note": "The longest month name, lower case, with a two-digit day under the tolerant D."
+    },
+    {
+      "id": "accept-hour-precision",
+      "kind": "accept",
+      "format": "YYYY-MM-DD HH",
+      "tokens": ["YYYY", "MM", "DD", "HH"],
+      "input": "1988-07-05 14",
+      "precision": "hour",
+      "expect": { "year": 1988, "month": 7, "day": 5, "hour": 14 },
+      "note": "Hour precision: the format populates no minute, so the value does not claim one."
+    },
+    {
+      "id": "accept-minute-precision",
+      "kind": "accept",
+      "format": "YYYY-MM-DD HH:mm",
+      "tokens": ["YYYY", "MM", "DD", "HH", "mm"],
+      "input": "1988-07-05 14:30",
+      "precision": "minute",
+      "expect": { "year": 1988, "month": 7, "day": 5, "hour": 14, "minute": 30 },
+      "note": "mm is minute; MM is month. Token spellings are case-sensitive."
+    },
+    {
+      "id": "accept-second-precision",
+      "kind": "accept",
+      "format": "YYYY-MM-DD HH:mm:ss",
+      "tokens": ["YYYY", "MM", "DD", "HH", "mm", "ss"],
+      "input": "1988-07-05 14:30:45",
+      "precision": "second",
+      "expect": { "year": 1988, "month": 7, "day": 5, "hour": 14, "minute": 30, "second": 45 },
+      "note": "Second precision."
+    },
+    {
+      "id": "accept-fraction-precision",
+      "kind": "accept",
+      "format": "YYYY-MM-DD HH:mm:ss.SSSS",
+      "tokens": ["YYYY", "MM", "DD", "HH", "mm", "ss", "SSSS"],
+      "input": "1988-07-05 14:30:45.5",
+      "precision": "fraction",
+      "expect": {
+        "year": 1988,
+        "month": 7,
+        "day": 5,
+        "hour": 14,
+        "minute": 30,
+        "second": 45,
+        "fractionalSeconds": "5"
+      },
+      "note": "SSSS takes one to four digits and the digits are preserved verbatim, never rounded."
+    },
+    {
+      "id": "accept-fraction-four-digits",
+      "kind": "accept",
+      "format": "YYYY-MM-DD HH:mm:ss.SSSS",
+      "tokens": ["YYYY", "MM", "DD", "HH", "mm", "ss", "SSSS"],
+      "input": "1988-07-05 14:30:45.0500",
+      "precision": "fraction",
+      "expect": {
+        "year": 1988,
+        "month": 7,
+        "day": 5,
+        "hour": 14,
+        "minute": 30,
+        "second": 45,
+        "fractionalSeconds": "0500"
+      },
+      "note": "Leading zeros in the fraction are significant, so the digits are carried as written."
+    },
+    {
+      "id": "accept-twelve-hour-afternoon",
+      "kind": "accept",
+      "format": "M/D/YYYY h:mm A",
+      "tokens": ["M", "D", "YYYY", "h", "mm", "A"],
+      "input": "7/5/1988 2:30 PM",
+      "precision": "minute",
+      "expect": { "year": 1988, "month": 7, "day": 5, "hour": 14, "minute": 30 },
+      "note": "The result is the 24-hour value and the meridiem does NOT survive into the fields."
+    },
+    {
+      "id": "accept-twelve-hour-midnight",
+      "kind": "accept",
+      "format": "M/D/YYYY h:mm A",
+      "tokens": ["M", "D", "YYYY", "h", "mm", "A"],
+      "input": "7/5/1988 12:00 AM",
+      "precision": "minute",
+      "expect": { "year": 1988, "month": 7, "day": 5, "hour": 0, "minute": 0 },
+      "note": "12 AM is hour 0. Getting this wrong dates a value a day out."
+    },
+    {
+      "id": "accept-twelve-hour-noon",
+      "kind": "accept",
+      "format": "M/D/YYYY h:mm A",
+      "tokens": ["M", "D", "YYYY", "h", "mm", "A"],
+      "input": "7/5/1988 12:00 PM",
+      "precision": "minute",
+      "expect": { "year": 1988, "month": 7, "day": 5, "hour": 12, "minute": 0 },
+      "note": "12 PM is hour 12, not hour 24 and not hour 0."
+    },
+    {
+      "id": "accept-twelve-hour-lowercase-meridiem",
+      "kind": "accept",
+      "format": "M/D/YYYY h:mm A",
+      "tokens": ["M", "D", "YYYY", "h", "mm", "A"],
+      "input": "7/5/1988 2:30 pm",
+      "precision": "minute",
+      "expect": { "year": 1988, "month": 7, "day": 5, "hour": 14, "minute": 30 },
+      "note": "The meridiem is matched in any case."
+    },
+    {
+      "id": "accept-twelve-hour-padded",
+      "kind": "accept",
+      "format": "YYYY-MM-DD hh:mm A",
+      "tokens": ["YYYY", "MM", "DD", "hh", "mm", "A"],
+      "input": "1988-07-05 02:30 PM",
+      "precision": "minute",
+      "expect": { "year": 1988, "month": 7, "day": 5, "hour": 14, "minute": 30 },
+      "note": "hh is the zero-padded 12-hour clock; the conversion is the same."
+    },
+    {
+      "id": "accept-tolerant-hour-single-digit",
+      "kind": "accept",
+      "format": "H:mm",
+      "tokens": ["H", "mm"],
+      "input": "9:05",
+      "precision": null,
+      "expect": { "hour": 9, "minute": 5 },
+      "note": "H accepts one digit. The format populates no year, so it carries no date precision."
+    },
+    {
+      "id": "accept-tolerant-hour-two-digits",
+      "kind": "accept",
+      "format": "H:mm",
+      "tokens": ["H", "mm"],
+      "input": "19:05",
+      "precision": null,
+      "expect": { "hour": 19, "minute": 5 },
+      "note": "The same tolerant format accepts two digits."
+    },
+    {
+      "id": "accept-escaped-literal-separator",
+      "kind": "accept",
+      "format": "YYYY-MM-DD[T]HH:mm:ss",
+      "tokens": ["YYYY", "MM", "DD", "HH", "mm", "ss"],
+      "input": "1988-07-05T14:30:45",
+      "precision": "second",
+      "expect": { "year": 1988, "month": 7, "day": 5, "hour": 14, "minute": 30, "second": 45 },
+      "note": "A literal letter is written inside square brackets and matches verbatim."
+    },
+    {
+      "id": "accept-escaped-literal-word",
+      "kind": "accept",
+      "format": "D [of] MMMM YYYY",
+      "tokens": ["D", "MMMM", "YYYY"],
+      "input": "5 of July 1988",
+      "precision": "day",
+      "expect": { "year": 1988, "month": 7, "day": 5 },
+      "note": "A bracketed escape may hold more than one character."
+    },
+    {
+      "id": "accept-escaped-literal-digit",
+      "kind": "accept",
+      "format": "YYYY[Q]M",
+      "tokens": ["YYYY", "M"],
+      "input": "1988Q7",
+      "precision": "month",
+      "expect": { "year": 1988, "month": 7 },
+      "note": "A literal separates the two numeric tokens, so the adjacency rule is satisfied."
+    },
+    {
+      "id": "accept-no-separator-fixed-width",
+      "kind": "accept",
+      "format": "YYYYMMDDHHmmss",
+      "tokens": ["YYYY", "MM", "DD", "HH", "mm", "ss"],
+      "input": "19880705143045",
+      "precision": "second",
+      "expect": { "year": 1988, "month": 7, "day": 5, "hour": 14, "minute": 30, "second": 45 },
+      "note": "Fixed-width numeric tokens may sit adjacent: the digit run splits deterministically."
+    },
+    {
+      "id": "accept-lowest-year",
+      "kind": "accept",
+      "format": "YYYY",
+      "tokens": ["YYYY"],
+      "input": "0001",
+      "precision": "year",
+      "expect": { "year": 1 },
+      "note": "The bottom of the year range. A leading-zero year is not remapped into the 1900s."
+    },
+    {
+      "id": "accept-highest-values",
+      "kind": "accept",
+      "format": "YYYY-MM-DD HH:mm:ss",
+      "tokens": ["YYYY", "MM", "DD", "HH", "mm", "ss"],
+      "input": "9999-12-31 23:59:59",
+      "precision": "second",
+      "expect": { "year": 9999, "month": 12, "day": 31, "hour": 23, "minute": 59, "second": 59 },
+      "note": "The top of every range, all in one value."
+    },
+    {
+      "id": "reject-two-digit-year",
+      "kind": "reject-format",
+      "format": "MM/DD/YY",
+      "rule": "two-digit-year",
+      "note": "No century window is applied, so a two-digit year cannot be resolved without guessing. The vocabulary has no such token."
+    },
+    {
+      "id": "reject-two-digit-year-leading",
+      "kind": "reject-format",
+      "format": "YY-MM-DD",
+      "rule": "two-digit-year",
+      "note": "Position does not matter; the refusal is about the token."
+    },
+    {
+      "id": "reject-stray-letter-run",
+      "kind": "reject-format",
+      "format": "YYY/MM",
+      "rule": "stray-character",
+      "note": "Three Y characters form no token. This is a typo, not a two-digit year, and is reported as one."
+    },
+    {
+      "id": "reject-stray-letters-trailing",
+      "kind": "reject-format",
+      "format": "MM/DD/YYYY hrs",
+      "rule": "stray-character",
+      "note": "An unescaped letter that forms no token is refused. Write it as an escaped literal instead."
+    },
+    {
+      "id": "reject-stray-digit",
+      "kind": "reject-format",
+      "format": "YYYY-MM-DD 0",
+      "rule": "stray-character",
+      "note": "The rule covers digits as well as letters: an unescaped digit would be indistinguishable from data."
+    },
+    {
+      "id": "reject-twelve-hour-without-meridiem",
+      "kind": "reject-format",
+      "format": "h:mm",
+      "rule": "missing-meridiem",
+      "note": "A 12-hour reading is not a clock hour until AM or PM is applied."
+    },
+    {
+      "id": "reject-padded-twelve-hour-without-meridiem",
+      "kind": "reject-format",
+      "format": "YYYY-MM-DD hh:mm",
+      "rule": "missing-meridiem",
+      "note": "hh is the same rule as h."
+    },
+    {
+      "id": "reject-meridiem-without-twelve-hour",
+      "kind": "reject-format",
+      "format": "YYYY-MM-DD HH:mm A",
+      "rule": "missing-twelve-hour",
+      "note": "A meridiem beside a 24-hour clock has nothing to convert, so it would be read and discarded."
+    },
+    {
+      "id": "reject-fraction-without-seconds",
+      "kind": "reject-format",
+      "format": "YYYY-MM-DD HH:mm.SSSS",
+      "rule": "missing-seconds",
+      "note": "A fraction is only meaningful at full second precision."
+    },
+    {
+      "id": "reject-variable-width-adjacency",
+      "kind": "reject-format",
+      "format": "MDYYYY",
+      "rule": "variable-width-adjacency",
+      "note": "M and D are both variable width, so nothing can split the digit run deterministically."
+    },
+    {
+      "id": "reject-variable-width-adjacency-fraction",
+      "kind": "reject-format",
+      "format": "YYYY-MM-DD HH:mm:ssSSSS",
+      "rule": "variable-width-adjacency",
+      "note": "ss is fixed width but SSSS is not, and one variable side is enough to make the run ambiguous."
+    },
+    {
+      "id": "reject-unterminated-escape",
+      "kind": "reject-format",
+      "format": "YYYY-MM-DD[T",
+      "rule": "unterminated-escape",
+      "note": "A literal escape that never closes is not a permitted literal."
+    },
+    {
+      "id": "reject-empty-format",
+      "kind": "reject-format",
+      "format": "",
+      "rule": "no-token",
+      "note": "An empty format matches nothing and would sit in the list forever."
+    },
+    {
+      "id": "reject-separators-only",
+      "kind": "reject-format",
+      "format": "--/--",
+      "rule": "no-token",
+      "note": "Punctuation alone is a permitted literal run, but it carries no date."
+    },
+    {
+      "id": "no-match-month-out-of-range",
+      "kind": "no-match",
+      "format": "M/D/YYYY",
+      "input": "13/45/1988",
+      "reason": "range",
+      "note": "Month 13 and day 45 are out of range: no match, never a substituted value."
+    },
+    {
+      "id": "no-match-day-out-of-range",
+      "kind": "no-match",
+      "format": "YYYY-MM-DD",
+      "input": "1988-07-32",
+      "reason": "range",
+      "note": "Day 32 does not exist in any month."
+    },
+    {
+      "id": "no-match-hour24-out-of-range",
+      "kind": "no-match",
+      "format": "YYYY-MM-DD HH:mm",
+      "input": "1988-07-05 24:00",
+      "reason": "range",
+      "note": "The 24-hour clock ends at 23."
+    },
+    {
+      "id": "no-match-minute-out-of-range",
+      "kind": "no-match",
+      "format": "YYYY-MM-DD HH:mm",
+      "input": "1988-07-05 14:60",
+      "reason": "range",
+      "note": "Minute 60 is out of range."
+    },
+    {
+      "id": "no-match-second-out-of-range",
+      "kind": "no-match",
+      "format": "YYYY-MM-DD HH:mm:ss",
+      "input": "1988-07-05 14:30:60",
+      "reason": "range",
+      "note": "No leap seconds are modelled."
+    },
+    {
+      "id": "no-match-twelve-hour-out-of-range",
+      "kind": "no-match",
+      "format": "h:mm A",
+      "input": "13:00 PM",
+      "reason": "range",
+      "note": "The 12-hour clock ends at 12, so 13 is not a reading a meridiem can fix."
+    },
+    {
+      "id": "no-match-year-out-of-range",
+      "kind": "no-match",
+      "format": "YYYY",
+      "input": "0000",
+      "reason": "range",
+      "note": "The year range starts at 0001."
+    },
+    {
+      "id": "no-match-unknown-month-abbreviation",
+      "kind": "no-match",
+      "format": "DD-MMM-YYYY",
+      "input": "05-JUX-1988",
+      "reason": "month-name",
+      "note": "Only the twelve English abbreviations resolve. A near miss is a miss."
+    },
+    {
+      "id": "no-match-abbreviation-where-full-name-required",
+      "kind": "no-match",
+      "format": "MMMM D, YYYY",
+      "input": "Jul 5, 1988",
+      "reason": "month-name",
+      "note": "MMMM is the full name; the abbreviation is MMM and the two are not interchangeable."
+    },
+    {
+      "id": "no-match-unknown-meridiem",
+      "kind": "no-match",
+      "format": "M/D/YYYY h:mm A",
+      "input": "7/5/1988 2:30 XM",
+      "reason": "meridiem-name",
+      "note": "A meridiem is AM or PM and nothing else."
+    },
+    {
+      "id": "no-match-empty-input",
+      "kind": "no-match",
+      "format": "MM/DD/YYYY",
+      "input": "",
+      "reason": "empty",
+      "note": "An empty input reports no match and does not raise."
+    },
+    {
+      "id": "no-match-input-ends-early",
+      "kind": "no-match",
+      "format": "MM/DD/YYYY",
+      "input": "01/02/20",
+      "reason": "length",
+      "note": "The literals line up and then the input runs out: no match, and no partial value."
+    },
+    {
+      "id": "no-match-trailing-characters",
+      "kind": "no-match",
+      "format": "MM/DD/YYYY",
+      "input": "01/02/2025 99",
+      "reason": "length",
+      "note": "The whole input must be consumed."
+    },
+    {
+      "id": "no-match-literal-mismatch",
+      "kind": "no-match",
+      "format": "MM/DD/YYYY",
+      "input": "01-02-2025",
+      "reason": "literal",
+      "note": "A literal must match exactly; a different separator is a different format."
+    },
+    {
+      "id": "no-match-escaped-literal-mismatch",
+      "kind": "no-match",
+      "format": "YYYY-MM-DD[T]HH:mm:ss",
+      "input": "1988-07-05 14:30:45",
+      "reason": "literal",
+      "note": "An escaped literal matches verbatim, so a space is not a T."
+    },
+    {
+      "id": "no-match-non-digit-in-numeric-token",
+      "kind": "no-match",
+      "format": "MM/DD/YYYY",
+      "input": "1X/02/2025",
+      "reason": "literal",
+      "note": "A numeric token takes digits only."
+    }
+  ]
+}

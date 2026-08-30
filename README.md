@@ -445,6 +445,8 @@ const msg = parseHL7(raw, {
 console.log(msg.meta.timestamp?.matchedFormat); // e.g. "MM/DD/YYYY" (which fallback won)
 ```
 
+A format is written from a fixed token vocabulary (`SUPPORTED_DATE_TOKENS`) that covers month names (`05-JUL-1988`), a 12-hour clock with AM/PM (`7/5/1988 2:30 PM`), single-digit tolerance (`M`, `D`, `H`) and escaped literals (`YYYY-MM-DD[T]HH:mm:ss`). It carries no two-digit-year token, because resolving one needs a century window and a wrong window moves a date of birth by a hundred years without failing. `defineProfile()` refuses a format the vocabulary cannot honour, at definition time, rather than accepting it and never matching. The whole grammar, with every token, rule and exclusion, is the `Date token grammar` page in the documentation.
+
 When a fallback format wins, the parser emits a `TIMESTAMP_FALLBACK_FORMAT` warning with the matched format on `msg.warnings`. Built-in vendor profiles (`profiles.epic`, `profiles.genericLab`, etc.) already carry the date formats common to that vendor. Reach for a profile instead of hand-listing formats when one fits.
 
 ### Stripping MLLP framing

@@ -1,6 +1,7 @@
 /**
  * Cerner Millennium HL7 quirks. Ships ISO-8601-with-T format
- * (`YYYY-MM-DDTHH:mm:ss`) plus ISO-date-only (`YYYY-MM-DD`), observed
+ * (`YYYY-MM-DD[T]HH:mm:ss`, where `[T]` is the escaped literal separator)
+ * plus ISO-date-only (`YYYY-MM-DD`), observed
  * across Millennium's native outbound feeds. Z-segments: `ZDS`
  * (discharge summary text) and `ZCO` (comment overflow for long fields).
  * BIP-02.
@@ -29,7 +30,7 @@ import { defineProfile } from "./define.js";
 export const cerner = defineProfile({
   name: "cerner",
   description: "Cerner Millennium: ISO-style timestamps and common Z-segments",
-  dateFormats: ["YYYY-MM-DDTHH:mm:ss", "YYYY-MM-DD"],
+  dateFormats: ["YYYY-MM-DD[T]HH:mm:ss", "YYYY-MM-DD"],
   customSegments: {
     ZDS: { fields: { summaryText: 3 } },
     ZCO: { fields: { commentText: 3, continuationFlag: 5 } },

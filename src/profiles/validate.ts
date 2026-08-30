@@ -13,8 +13,15 @@
  * @internal
  */
 
-import { SUPPORTED_DATE_TOKENS } from "../parser/dates.js";
+import {
+  SUPPORTED_DATE_TOKENS,
+  isBareAlphanumericLiteral,
+  isNumericToken,
+  isVariableWidthToken,
+  tokeniseDateFormat,
+} from "../parser/date-tokens.js";
 import { ProfileDefinitionError } from "../parser/errors.js";
+import type { DateFormatPart, DateFormatToken } from "../parser/date-tokens.js";
 import type { CustomSegmentDefinition } from "../parser/types.js";
 
 import type { DefineProfileOptions } from "./define.js";
@@ -43,16 +50,6 @@ const KNOWN_OPTION_KEYS: readonly string[] = [
   "onWarning",
   "extends",
 ];
-
-/**
- * Regex that matches any of the supported date-format tokens. Used by
- * `validateDateFormats` (D-08) to confirm each user-supplied format string
- * contains at least one recognised token: empty strings and dead formats
- * (`"YYY/MM"`, `"foo"`) fail fast.
- *
- * @internal
- */
-const TOKEN_MATCH_RE = new RegExp(`(${SUPPORTED_DATE_TOKENS.join("|")})`, "u");
 
 /**
  * Iterative DP Levenshtein distance (edit distance) between two strings.
@@ -181,20 +178,149 @@ export function validateCustomSegments(
 }
 
 /**
- * Validate date-format strings (D-08): each MUST contain at least one
- * supported token from `SUPPORTED_DATE_TOKENS`. Catches typos like
- * `"YYY/MM"` (missing a `Y`) and empty strings before they reach the
- * parser's timestamp cascade.
+ * The vocabulary, rendered for an error message. Kept as one expression so a
+ * token added to the grammar reaches every diagnostic that lists it.
+ *
+ * @internal
+ */
+const TOKEN_LIST = SUPPORTED_DATE_TOKENS.join(", ");
+
+/** @internal `true` when the part is a bare, unescaped `Y` the tokeniser left over. */
+function isBareY(part: DateFormatPart | undefined): boolean {
+  return (
+    part !== undefined && part.kind === "literal" && part.source === "bare" && part.value === "Y"
+  );
+}
+
+/**
+ * Length of the MAXIMAL run of consecutive bare `Y` literals beginning at
+ * `index`, or 0 when `index` is not the start of one. This is how a two-digit
+ * year is told apart from a `Y`-count typo: `YYYY` tokenises to one token and
+ * leaves no run at all, `YY` leaves a run of exactly two, and `YYY` or `YYYYY`
+ * leave runs of some other length. Measuring from the MIDDLE of a run would
+ * read the tail of `YYY` as a `YY`, which is a typo reported as the wrong
+ * refusal.
+ *
+ * @internal
+ */
+function bareYRunLength(parts: readonly DateFormatPart[], index: number): number {
+  if (index > 0 && isBareY(parts[index - 1])) return 0;
+  let run = 0;
+  for (let i = index; i < parts.length && isBareY(parts[i]); i++) run += 1;
+  return run;
+}
+
+/**
+ * Validate ONE date-format string against the token grammar: every character
+ * must be a token or a permitted literal, the `h`/`A` and `SSSS`/`ss` pairings
+ * must hold, and two numeric tokens must not sit adjacent when either is
+ * variable width. Returns the reason a format is unusable, or `undefined` when
+ * it is well formed.
+ *
+ * The rules are checked in the order a reader would want them reported: the
+ * escape that never closed, then the two-digit year (a refusal with its own
+ * reason), then any other stray letter or digit, then a format holding no
+ * token at all, then the pairings, then the adjacency.
+ *
+ * @internal
+ */
+function dateFormatProblem(format: string): string | undefined {
+  const parts = tokeniseDateFormat(format);
+
+  for (const part of parts) {
+    if (part.kind === "literal" && part.source === "unterminated") {
+      return (
+        `the literal escape opened at position ${String(part.at)} is never closed. ` +
+        `Write a literal letter or digit inside square brackets, e.g. [T].`
+      );
+    }
+  }
+
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
+    if (part === undefined || part.kind !== "literal") continue;
+    if (!isBareAlphanumericLiteral(part)) continue;
+    if (part.value === "Y" && bareYRunLength(parts, i) === 2) {
+      return (
+        `'YY' at position ${String(part.at)} is a two-digit year, which this vocabulary ` +
+        `does not contain. No century window is applied, so a two-digit year cannot be ` +
+        `resolved to a calendar year without guessing. Use 'YYYY'.`
+      );
+    }
+  }
+
+  for (const part of parts) {
+    if (part.kind !== "literal" || !isBareAlphanumericLiteral(part)) continue;
+    return (
+      `'${part.value}' at position ${String(part.at)} is not part of any token. Every ` +
+      `unescaped letter and digit must belong to one of ${TOKEN_LIST}; write a literal ` +
+      `letter or digit inside square brackets, e.g. [${part.value}].`
+    );
+  }
+
+  const tokens: DateFormatToken[] = [];
+  for (const part of parts) if (part.kind === "token") tokens.push(part.token);
+  if (tokens.length === 0) {
+    return `it contains no date token. It must contain at least one of ${TOKEN_LIST}.`;
+  }
+
+  const has = (token: DateFormatToken): boolean => tokens.includes(token);
+  const has12Hour = has("h") || has("hh");
+  if (has12Hour && !has("A")) {
+    return (
+      `it uses a 12-hour token ('h' or 'hh') with no meridiem token 'A'. A 12-hour ` +
+      `reading is not a clock hour until AM/PM is applied, so add 'A', or use 'H'/'HH' ` +
+      `for a 24-hour clock.`
+    );
+  }
+  if (has("A") && !has12Hour) {
+    return (
+      `it uses the meridiem token 'A' with no 12-hour token ('h' or 'hh'). 'A' only has ` +
+      `meaning beside a 12-hour clock.`
+    );
+  }
+  if (has("SSSS") && !has("ss")) {
+    return (
+      `it uses the fractional-seconds token 'SSSS' with no seconds token 'ss'. A fraction ` +
+      `is only meaningful at full second precision.`
+    );
+  }
+
+  for (let i = 0; i + 1 < parts.length; i++) {
+    const left = parts[i];
+    const right = parts[i + 1];
+    if (left === undefined || right === undefined) continue;
+    if (left.kind !== "token" || right.kind !== "token") continue;
+    if (!isNumericToken(left.token) || !isNumericToken(right.token)) continue;
+    if (!isVariableWidthToken(left.token) && !isVariableWidthToken(right.token)) continue;
+    return (
+      `the numeric tokens '${left.token}' and '${right.token}' are adjacent at position ` +
+      `${String(left.at)} with no literal between them, and at least one is variable ` +
+      `width, so nothing can split the digit run deterministically. Separate them with a ` +
+      `literal, or use fixed-width tokens.`
+    );
+  }
+
+  return undefined;
+}
+
+/**
+ * Validate date-format strings (D-08): EVERY character of each format must be
+ * a supported token or a permitted literal, and the grammar's pairing and
+ * adjacency rules must hold. A format that cannot be honoured is refused here,
+ * at profile definition time, rather than accepted and then silently never
+ * matched at parse time.
  *
  * @internal
  */
 export function validateDateFormats(formats: readonly string[], profileName: string): void {
   for (let i = 0; i < formats.length; i++) {
     const f = formats[i] ?? "";
-    if (!TOKEN_MATCH_RE.test(f)) {
+    const problem = dateFormatProblem(f);
+    if (problem !== undefined) {
       throw new ProfileDefinitionError(
-        `Profile '${profileName}' dateFormats[${String(i)}] = ${JSON.stringify(f)} is malformed: ` +
-          `must contain at least one of ${SUPPORTED_DATE_TOKENS.join("/")}.`,
+        `Profile '${profileName}' dateFormats[${String(i)}] = ${JSON.stringify(f)} is ` +
+          `malformed: ${problem}`,
         profileName,
       );
     }

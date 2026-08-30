@@ -24,6 +24,7 @@
         "spec-notes-batch",
         "spec-notes-stream",
         "spec-notes-datetime-precision",
+        "date-token-grammar",
         "spec-notes-timing",
         "spec-notes-charset",
         "spec-notes-escapes",

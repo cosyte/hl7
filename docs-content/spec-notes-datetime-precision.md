@@ -40,7 +40,10 @@ for one.
   silent UTC).
 - `parseDtmCascade(raw, opts): DtmParts`: lenient wrapper for non-composite callers (`meta`): try
   `parseDtm`; else user/builtin fallback formats → parts from the matched tokens + `matchedFormat` +
-  `TIMESTAMP_FALLBACK_FORMAT` warning. `BUILTIN_DATE_FALLBACKS`/`SUPPORTED_DATE_TOKENS` unchanged.
+  `TIMESTAMP_FALLBACK_FORMAT` warning. `BUILTIN_DATE_FALLBACKS` is `ISO-8601`, `YYYY-MM-DD`,
+  `MM/DD/YYYY`, `MM/DD/YYYY HH:mm:ss`, in that order. What a user format may contain is
+  `SUPPORTED_DATE_TOKENS`, stated in full by the
+  [Date token grammar](./date-token-grammar.md).
 
 ### TS composite: `src/model/types/ts.ts`
 - `TS` is the `DtmParts` shape (raw, valid, precision?, parts, hasTimezone, offsetMinutes?). Frozen.

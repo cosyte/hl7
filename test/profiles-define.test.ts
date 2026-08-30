@@ -9,10 +9,16 @@ import {
 } from "../src/profiles/define.js";
 
 describe("SUPPORTED_DATE_TOKENS", () => {
-  it("exports exactly 7 tokens including YYYY and SSSS", () => {
-    expect(SUPPORTED_DATE_TOKENS).toHaveLength(7);
+  it("exports the whole vocabulary, including YYYY and SSSS", () => {
+    expect(SUPPORTED_DATE_TOKENS).toHaveLength(15);
     expect(SUPPORTED_DATE_TOKENS).toContain("YYYY");
     expect(SUPPORTED_DATE_TOKENS).toContain("SSSS");
+    expect(SUPPORTED_DATE_TOKENS).toContain("MMM");
+    expect(SUPPORTED_DATE_TOKENS).toContain("A");
+  });
+
+  it("contains no two-digit-year token", () => {
+    expect(SUPPORTED_DATE_TOKENS).not.toContain("YY");
   });
 });
 
@@ -231,9 +237,171 @@ describe("defineProfile: D-08 date format validation", () => {
     }
   });
 
-  it("accepts format with only SSSS (fractional seconds)", () => {
-    const p = defineProfile({ name: "ok", dateFormats: ["SSSS"] });
-    expect(p.dateFormats).toEqual(["SSSS"]);
+  it("refuses SSSS with no seconds token, which used to construct and never match", () => {
+    // Previously accepted: the validator recognised the token and the matcher
+    // could not, so the format sat in the list matching nothing.
+    expect(() => defineProfile({ name: "bad", dateFormats: ["SSSS"] })).toThrow(
+      ProfileDefinitionError,
+    );
+    expect(defineProfile({ name: "ok", dateFormats: ["ss.SSSS"] }).dateFormats).toEqual([
+      "ss.SSSS",
+    ]);
+  });
+});
+
+/** Every message must name the offending format so a developer can find it. */
+function refusalMessage(format: string): string {
+  try {
+    defineProfile({ name: "vendor", dateFormats: [format] });
+  } catch (err) {
+    if (err instanceof ProfileDefinitionError) return err.message;
+    throw err;
+  }
+  throw new Error(`expected ${JSON.stringify(format)} to be refused, and it was accepted`);
+}
+
+describe("defineProfile: dateFormats refuses a two-digit year", () => {
+  it.each(["MM/DD/YY", "YY-MM-DD", "DD/MM/YY HH:mm"])("refuses %s", (format) => {
+    expect(() => defineProfile({ name: "vendor", dateFormats: [format] })).toThrow(
+      ProfileDefinitionError,
+    );
+  });
+
+  it("names the format, names two-digit years, and says no century window is applied", () => {
+    const message = refusalMessage("MM/DD/YY");
+    expect(message).toContain('"MM/DD/YY"');
+    expect(message).toContain("two-digit year");
+    expect(message).toContain("century window");
+  });
+
+  it("a two-digit year inside a literal escape is a literal, not a year", () => {
+    expect(() => defineProfile({ name: "vendor", dateFormats: ["YYYY[YY]MM"] })).not.toThrow();
+  });
+});
+
+describe("defineProfile: dateFormats refuses an unescaped letter or digit that forms no token", () => {
+  it.each([
+    ["MM/DD/YYYY hrs", "r"],
+    ["YYY/MM", "Y"],
+    ["YYYY-MM-DD 0", "0"],
+    ["nope", "n"],
+    ["YYYY/MM/DD x", "x"],
+  ])("refuses %s naming the character %s", (format, character) => {
+    const message = refusalMessage(format);
+    expect(message).toContain(JSON.stringify(format));
+    expect(message).toContain(`'${character}'`);
+  });
+
+  it("YYY is reported as a stray character, not as a two-digit year", () => {
+    const message = refusalMessage("YYY/MM");
+    expect(message).not.toContain("two-digit year");
+    expect(message).toContain("not part of any token");
+  });
+
+  it("accepts the same characters once they are escaped", () => {
+    expect(
+      defineProfile({ name: "ok", dateFormats: ["YYYY-MM-DD[T]HH:mm:ss"] }).dateFormats,
+    ).toEqual(["YYYY-MM-DD[T]HH:mm:ss"]);
+    expect(() => defineProfile({ name: "ok", dateFormats: ["MM/DD/YYYY [hrs]"] })).not.toThrow();
+  });
+
+  it("refuses a literal escape that is never closed", () => {
+    const message = refusalMessage("YYYY-MM-DD[T");
+    expect(message).toContain("never closed");
+  });
+});
+
+describe("defineProfile: dateFormats refuses a broken token pairing", () => {
+  it("refuses a 12-hour token with no meridiem, naming the missing pairing", () => {
+    for (const format of ["h:mm", "YYYY-MM-DD hh:mm", "YYYY-MM-DD h"]) {
+      const message = refusalMessage(format);
+      expect(message).toContain(JSON.stringify(format));
+      expect(message).toContain("meridiem");
+    }
+  });
+
+  it("refuses a meridiem with no 12-hour token, naming the missing pairing", () => {
+    const message = refusalMessage("YYYY-MM-DD HH:mm A");
+    expect(message).toContain('"YYYY-MM-DD HH:mm A"');
+    expect(message).toContain("12-hour");
+  });
+
+  it("refuses fractional seconds with no seconds token, naming the missing pairing", () => {
+    const message = refusalMessage("YYYY-MM-DD HH:mm.SSSS");
+    expect(message).toContain('"YYYY-MM-DD HH:mm.SSSS"');
+    expect(message).toContain("'ss'");
+  });
+
+  it("accepts each pairing once it is complete", () => {
+    expect(() => defineProfile({ name: "ok", dateFormats: ["M/D/YYYY h:mm A"] })).not.toThrow();
+    expect(() =>
+      defineProfile({ name: "ok", dateFormats: ["YYYY-MM-DD hh:mm:ss A"] }),
+    ).not.toThrow();
+    expect(() =>
+      defineProfile({ name: "ok", dateFormats: ["YYYY-MM-DD HH:mm:ss.SSSS"] }),
+    ).not.toThrow();
+  });
+});
+
+describe("defineProfile: dateFormats refuses an ambiguous adjacency", () => {
+  it.each([
+    ["MDYYYY", "M", "D"],
+    ["YYYYMD", "YYYY", "M"],
+    ["HHmmssSSSS", "ss", "SSSS"],
+    ["YYYYMMD", "MM", "D"],
+    ["HMM", "H", "MM"],
+  ])("refuses %s, naming %s beside %s", (format, left, right) => {
+    const message = refusalMessage(format);
+    expect(message).toContain(JSON.stringify(format));
+    expect(message).toContain(`'${left}'`);
+    expect(message).toContain(`'${right}'`);
+    expect(message).toContain("adjacent");
+  });
+
+  it("accepts two adjacent FIXED-width numeric tokens, which split deterministically", () => {
+    expect(() => defineProfile({ name: "ok", dateFormats: ["YYYYMMDDHHmmss"] })).not.toThrow();
+  });
+
+  it("accepts the same tokens once a literal separates them", () => {
+    expect(() => defineProfile({ name: "ok", dateFormats: ["M/D/YYYY"] })).not.toThrow();
+    expect(() => defineProfile({ name: "ok", dateFormats: ["YYYY[Q]M"] })).not.toThrow();
+  });
+
+  it("a letter token beside a numeric token is not ambiguous", () => {
+    expect(() => defineProfile({ name: "ok", dateFormats: ["MMMD, YYYY"] })).not.toThrow();
+  });
+});
+
+describe("defineProfile: dateFormats accepts the whole widened vocabulary", () => {
+  it.each([
+    "YYYY",
+    "YYYY-MM",
+    "YYYY-MM-DD",
+    "M/D/YYYY",
+    "DD-MMM-YYYY",
+    "MMMM D, YYYY",
+    "YYYY-MM-DD HH:mm:ss",
+    "M/D/YYYY h:mm A",
+    "YYYY-MM-DD hh:mm A",
+    "YYYY-MM-DD HH:mm:ss.SSSS",
+    "YYYY-MM-DD[T]HH:mm:ss",
+    "D [of] MMMM YYYY",
+    "H:mm",
+  ])("accepts %s", (format) => {
+    expect(defineProfile({ name: "ok", dateFormats: [format] }).dateFormats).toEqual([format]);
+  });
+
+  it("still accepts every format the built-in profiles ship", () => {
+    for (const format of [
+      "MM/DD/YYYY",
+      "MM/DD/YYYY HH:mm:ss",
+      "YYYY-MM-DD",
+      "YYYY-MM-DD[T]HH:mm:ss",
+      "YYYYMMDD HHmm",
+      "YYYYMMDDHHmm",
+    ]) {
+      expect(() => defineProfile({ name: "ok", dateFormats: [format] })).not.toThrow();
+    }
   });
 });
 

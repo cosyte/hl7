@@ -24,8 +24,13 @@
  *
  * Zero runtime deps: only the JS stdlib `Date` / `Date.UTC` APIs and
  * hand-rolled regex / token matchers. No date-fns, no luxon, no moment.
+ *
+ * The format-string vocabulary those fallbacks are written in lives in
+ * `date-tokens.ts`, which both this module and the profile `dateFormats`
+ * validator read, so the published token list and the matcher cannot diverge.
  */
 
+import { buildFallbackParts, matchTokenParts } from "./date-tokens.js";
 import { timestampFallbackFormat } from "./warnings.js";
 import type { Hl7ParseWarning } from "./warnings.js";
 import type { Hl7Position } from "./types.js";
@@ -126,27 +131,10 @@ export const BUILTIN_DATE_FALLBACKS: readonly string[] = [
 ] as const;
 
 /**
- * Every date-format token the library's format-string matcher and
- * `defineProfile()` D-08 validator recognize. Re-exported so profile authors
- * can introspect the valid token set. `SSSS` (fractional seconds) is
- * recognised by the D-08 validator only.
- *
- * @example
- * ```ts
- * import { SUPPORTED_DATE_TOKENS } from "@cosyte/hl7";
- * console.log(SUPPORTED_DATE_TOKENS);
- * // ["YYYY", "MM", "DD", "HH", "mm", "ss", "SSSS"]
- * ```
+ * The date-format token vocabulary, re-exported here so it sits beside the
+ * parser that consumes it. Declared in `date-tokens.ts`.
  */
-export const SUPPORTED_DATE_TOKENS: readonly string[] = [
-  "YYYY",
-  "MM",
-  "DD",
-  "HH",
-  "mm",
-  "ss",
-  "SSSS",
-] as const;
+export { SUPPORTED_DATE_TOKENS } from "./date-tokens.js";
 
 /**
  * The empty / unparseable result: `valid: false`, no parts, no timezone.
@@ -445,83 +433,6 @@ function emitFallback(opts: ParseDtmCascadeOptions, matchedFormat: string): void
 }
 
 /**
- * Token set recognised by the minimal format-string matcher. `MM` is month and
- * `mm` is minute (case-sensitive, moment.js-style).
- *
- * @internal
- */
-const TOKENS = ["YYYY", "MM", "DD", "HH", "mm", "ss"] as const;
-
-/** @internal Digit-width of each token. */
-const TOKEN_LENGTHS: Readonly<Record<(typeof TOKENS)[number], number>> = {
-  YYYY: 4,
-  MM: 2,
-  DD: 2,
-  HH: 2,
-  mm: 2,
-  ss: 2,
-};
-
-/**
- * Minimal format-string matcher over the tokens `YYYY MM DD HH mm ss`. Anything
- * else in `format` is a literal. Returns fidelity {@link DtmParts} (no offset,
- * these formats carry none) or `undefined` on mismatch. Parsing is strictly
- * linear so untrusted format strings cannot cause exponential backtracking.
- *
- * @internal
- */
-function matchTokenParts(input: string, format: string): DtmParts | undefined {
-  type Token = (typeof TOKENS)[number];
-  type Part =
-    | { readonly kind: "token"; readonly token: Token }
-    | { readonly kind: "lit"; readonly value: string };
-
-  const parts: Part[] = [];
-  let i = 0;
-  while (i < format.length) {
-    let matched: Token | undefined;
-    for (const t of TOKENS) {
-      if (format.slice(i, i + t.length) === t) {
-        matched = t;
-        break;
-      }
-    }
-    if (matched !== undefined) {
-      parts.push({ kind: "token", token: matched });
-      i += matched.length;
-    } else {
-      parts.push({ kind: "lit", value: format.charAt(i) });
-      i += 1;
-    }
-  }
-
-  const got: Partial<Record<Token, number>> = {};
-  let j = 0;
-  for (const p of parts) {
-    if (p.kind === "lit") {
-      if (input.charAt(j) !== p.value) return undefined;
-      j += 1;
-    } else {
-      const len = TOKEN_LENGTHS[p.token];
-      const chunk = input.slice(j, j + len);
-      if (chunk.length !== len || !/^\d+$/u.test(chunk)) return undefined;
-      got[p.token] = parseInt(chunk, 10);
-      j += len;
-    }
-  }
-  if (j !== input.length) return undefined; // trailing chars = mismatch
-
-  return buildFallbackParts({
-    year: got.YYYY,
-    month: got.MM,
-    day: got.DD,
-    hour: got.HH,
-    minute: got.mm,
-    second: got.ss,
-  });
-}
-
-/**
  * Parse an ISO-8601 string into fidelity {@link DtmParts} behind a strict shape
  * guard (requires at least `YYYY-MM-DD` so raw HL7 digit strings never match
  * here). Preserves an explicit `Z`/`+HH:MM` offset as timezone fidelity.
@@ -561,64 +472,4 @@ function parseIsoParts(raw: string): DtmParts | undefined {
     hasTimezone,
     offsetMinutes,
   });
-}
-
-/**
- * Assemble validated {@link DtmParts} from a fallback match, computing the
- * precision from which fields are present and range-checking each. Returns
- * `undefined` when any field is out of range.
- *
- * @internal
- */
-function buildFallbackParts(f: {
-  year: number | undefined;
-  month?: number | undefined;
-  day?: number | undefined;
-  hour?: number | undefined;
-  minute?: number | undefined;
-  second?: number | undefined;
-  fractionalSeconds?: string | undefined;
-  hasTimezone?: boolean | undefined;
-  offsetMinutes?: number | undefined;
-}): DtmParts | undefined {
-  if (f.year === undefined) return undefined;
-  if (
-    (f.month !== undefined && (f.month < 1 || f.month > 12)) ||
-    (f.day !== undefined && (f.day < 1 || f.day > 31)) ||
-    (f.hour !== undefined && f.hour > 23) ||
-    (f.minute !== undefined && f.minute > 59) ||
-    (f.second !== undefined && f.second > 59)
-  ) {
-    return undefined;
-  }
-
-  const precision: DtmPrecision =
-    f.fractionalSeconds !== undefined
-      ? "fraction"
-      : f.second !== undefined
-        ? "second"
-        : f.minute !== undefined
-          ? "minute"
-          : f.hour !== undefined
-            ? "hour"
-            : f.day !== undefined
-              ? "day"
-              : f.month !== undefined
-                ? "month"
-                : "year";
-
-  return {
-    raw: "", // caller overwrites with the real raw string
-    valid: true,
-    precision,
-    year: f.year,
-    ...(f.month !== undefined ? { month: f.month } : {}),
-    ...(f.day !== undefined ? { day: f.day } : {}),
-    ...(f.hour !== undefined ? { hour: f.hour } : {}),
-    ...(f.minute !== undefined ? { minute: f.minute } : {}),
-    ...(f.second !== undefined ? { second: f.second } : {}),
-    ...(f.fractionalSeconds !== undefined ? { fractionalSeconds: f.fractionalSeconds } : {}),
-    hasTimezone: f.hasTimezone ?? false,
-    ...(f.offsetMinutes !== undefined ? { offsetMinutes: f.offsetMinutes } : {}),
-  };
 }
