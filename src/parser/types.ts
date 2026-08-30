@@ -82,6 +82,18 @@ export type OnWarningCallback = (warning: Hl7ParseWarning) => void;
 export interface ParseOptions {
   readonly strict?: boolean;
   readonly onWarning?: OnWarningCallback;
+  /**
+   * Date formats your sender writes, tried in order after the canonical HL7
+   * shape fails. They reach **every** datetime the library returns, from
+   * `msg.meta.timestamp` to `patient.dateOfBirth` to an appointment's start
+   * time, and a `TS` that matched one names it on `matchedFormat`.
+   *
+   * These are tried ahead of an applied profile's own `dateFormats`, and they
+   * are the ONLY non-canonical formats a typed datetime field accepts: a value
+   * you have not described stays `valid: false` rather than being guessed at.
+   * Tokens come from `SUPPORTED_DATE_TOKENS`; an entry with no supported token
+   * matches nothing rather than throwing.
+   */
   readonly dateFormats?: readonly string[];
   readonly stripMllpFraming?: boolean;
   readonly trimFields?: boolean;
@@ -151,6 +163,11 @@ export interface Profile {
   readonly name: string;
   readonly description?: string;
   readonly lineage?: readonly string[];
+  /**
+   * Date formats this vendor writes. Merged after `ParseOptions.dateFormats`
+   * and honoured on every datetime the library returns, exactly as the option
+   * form is.
+   */
   readonly dateFormats?: readonly string[];
   readonly customSegments?: Readonly<Record<string, CustomSegmentDefinition>>;
   readonly onWarning?: OnWarningCallback;

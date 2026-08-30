@@ -1,0 +1,17 @@
+---
+"@cosyte/hl7": patch
+---
+
+The date formats you declare now reach every datetime the library returns, not just the message header timestamp.
+
+`dateFormats`, from `parseHL7(raw, { dateFormats })` or from an applied vendor profile, only ever reached `msg.meta.timestamp`. Every other datetime went through a strict HL7 parse, so a feed writing `1988-07-05` or `07/05/1988 00:00:00` in PID-7 gave you `patient.dateOfBirth` with `valid: false` even though you had told the parser that exact format, and there was no way to fix it from the outside. The escape hatch missed the fields worth escaping for.
+
+It reaches all of them now: `patient.dateOfBirth`, `visit.admitDateTime` and `dischargeDateTime`, each observation's `observedDateTime` and its `TS`/`DT` typed value, allergy onset dates, diagnosis date/times, insurance effective and expiration dates, immunization administered and expiration dates, charge transaction dates, document activity date/times, order and medication timings, and appointment start and end times. A `TS` that matched a declared format names it on `matchedFormat`, which is already public; a canonical HL7 value parses strictly and leaves `matchedFormat` unset, however many formats you declared. Option formats are tried ahead of a profile's, deduplicated first-occurrence-wins, which is the order `msg.dateFormats` already reported.
+
+**Only the formats you declare are tried on those fields, and that limit is the point.** `BUILTIN_DATE_FALLBACKS` is a US-order list carrying `MM/DD/YYYY` and no day-first form, so wiring it to these fields would read a day-first `05/07/1988` date of birth as a confident May 7 with `valid: true`. A wrong date of birth that looks right is a patient misidentification, and nothing downstream re-checks it. So a value matching no format you declared stays `valid: false` with its `raw` text intact, and the built-in list remains a last resort for `msg.meta.timestamp` alone.
+
+Two timing values that read their datetime straight out of a subcomponent rather than through the typed field, SCH-11 appointment start and end, and the start and end of a legacy embedded TQ in ORC-7 or RXE-1, honour your formats too. They were the two places where "every datetime" would otherwise have been false.
+
+Unchanged, deliberately: with no `dateFormats` declared by either route, every one of these fields parses exactly as it did before, byte for byte, including `1988-07-05` staying invalid. `SUPPORTED_DATE_TOKENS` is the same seven tokens, with no two-digit-year token; `BUILTIN_DATE_FALLBACKS` has the same entries in the same order; `defineProfile()` still refuses a format string carrying no supported token, while a `ParseOptions` entry carrying none simply matches nothing rather than throwing. A format that matches a value's shape but yields an impossible calendar date, `13/45/1988` against `MM/DD/YYYY`, is rejected rather than wrapped, and the remaining formats are still tried. An empty field, the HL7 explicit null `""`, and a position past the end of its segment all still give you `{ raw: "", valid: false, hasTimezone: false }` without throwing.
+
+The documentation of all this was wrong in two ways and is corrected: it did not say that `dateFormats` stopped at the header timestamp, and it promised a `TIMESTAMP_FALLBACK_FORMAT` warning on `msg.warnings` that no parse has ever produced. `matchedFormat` on the `TS` is the signal that a declared format answered a value; there is no warning for it.

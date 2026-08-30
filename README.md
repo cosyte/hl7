@@ -431,9 +431,10 @@ Use `parseDtm` / `formatDtm` / `dtmToDate` directly on a raw string when you're 
 
 #### Non-standard timestamp formats
 
-HL7's canonical `YYYYMMDDHHmmss` parses with zero warnings. Everything else (vendor-quirky
-`MM/DD/YYYY`, ISO `YYYY-MM-DD`, legacy `YYYYMMDD HHmm`) parses via the `dateFormats` option, which
-tries each format in order and populates the same fidelity `TS`.
+HL7's canonical `YYYYMMDDHHmmss` parses with zero warnings. For everything else (vendor-quirky
+`MM/DD/YYYY`, ISO `YYYY-MM-DD`, legacy `YYYYMMDD HHmm`), tell the parser what your sender writes
+using the `dateFormats` option. Each format is tried in order, the first match wins, and it
+populates the same fidelity `TS`.
 
 ```ts
 import { parseHL7 } from "@cosyte/hl7";
@@ -442,10 +443,29 @@ const msg = parseHL7(raw, {
   dateFormats: ["MM/DD/YYYY HH:mm:ss", "MM/DD/YYYY", "YYYY-MM-DD"],
 });
 
-console.log(msg.meta.timestamp?.matchedFormat); // e.g. "MM/DD/YYYY" (which fallback won)
+console.log(msg.meta.timestamp?.matchedFormat); // e.g. "MM/DD/YYYY": which declared format won
+console.log(msg.patient?.dateOfBirth?.matchedFormat); // the same list reaches PID-7
 ```
 
-When a fallback format wins, the parser emits a `TIMESTAMP_FALLBACK_FORMAT` warning with the matched format on `msg.warnings`. Built-in vendor profiles (`profiles.epic`, `profiles.genericLab`, etc.) already carry the date formats common to that vendor. Reach for a profile instead of hand-listing formats when one fits.
+**The formats you declare reach every datetime the library returns**, not just the message header
+timestamp: `patient.dateOfBirth`, `visit.admitDateTime` / `dischargeDateTime`, each
+`observations()` entry's `observedDateTime` and its `TS`/`DT` typed value, `allergies()`
+onset dates, `diagnoses()` date/times, `insurance()` effective and expiration dates,
+`immunizations()` administered and expiration dates, `charges()` transaction dates,
+`documents()` activity date/times, order and medication `timings` (a `TQ1` segment and the legacy
+embedded `TQ` alike), and `appointments()` start and end times.
+
+`matchedFormat` is how you tell which answer you got: it names the declared format that matched,
+and is absent when the value was canonical HL7 and parsed strictly. There is no parse warning for
+either case.
+
+**Only the formats you declare are tried on those fields.** A date the parser was not told about
+stays `valid: false` with its `raw` text intact, rather than being guessed at: guessing is how a
+day-first `05/07/1988` becomes a confident May 7 on a date of birth, and a plausible wrong date is
+worse than a missing one. `BUILTIN_DATE_FALLBACKS` (ISO-8601 and the US-order slash forms) is a
+last resort for `msg.meta.timestamp` alone and never runs on a typed datetime field.
+
+Built-in vendor profiles (`profiles.epic`, `profiles.genericLab`, etc.) already carry the date formats common to that vendor, and an option format is tried ahead of a profile's. Reach for a profile instead of hand-listing formats when one fits.
 
 ### Stripping MLLP framing
 

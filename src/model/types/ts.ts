@@ -1,6 +1,7 @@
 /**
  * TS/DTM: HL7 v2 Time Stamp composite. Delegates parsing to the parser
- * helper `src/parser/dates.ts::parseDtm` (D-10 "zero duplicate date logic").
+ * helper `src/parser/dates.ts::parseDtmDeclared` (D-10 "zero duplicate date
+ * logic").
  *
  * The composite is fidelity-preserving: rather than a `{ raw, date }` shape
  * that would zero-fill truncations and assume UTC for a missing offset, it is
@@ -9,10 +10,10 @@
  * opt in explicitly via `dtmToDate(ts, opts)`: which refuses to guess a zone
  * for an offset-less value rather than silently defaulting to UTC.
  *
- * Zero runtime deps: delegates to `parseDtm` + `unescape`.
+ * Zero runtime deps: delegates to `parseDtmDeclared` + `unescape`.
  */
 
-import { parseDtm } from "../../parser/dates.js";
+import { parseDtmDeclared } from "../../parser/dates.js";
 import type { DtmParts } from "../../parser/dates.js";
 import type { EncodingCharacters, RawRepetition } from "../../parser/types.js";
 
@@ -40,11 +41,18 @@ import type { EncodingCharacters, RawRepetition } from "../../parser/types.js";
 export type TS = DtmParts;
 
 /**
- * Parse an HL7 v2 TS/DTM repetition into fidelity {@link TS} parts. Delegates
- * to `parseDtm`: the same structural parser that backs every timestamp in the
- * library. No user `dateFormats` at this layer; non-composite callers (e.g.
- * `msg.meta.timestamp`) that know `ParseOptions.dateFormats` use
- * `parseDtmCascade` directly.
+ * Parse an HL7 v2 TS/DTM repetition into fidelity {@link TS} parts. The
+ * canonical HL7 shape is tried first; `dateFormats`, when the caller declared
+ * any, is then tried in order and a match reports itself on `matchedFormat`.
+ * Nothing else is tried: the library's built-in fallback list is reserved for
+ * the non-composite `msg.meta.timestamp` path, because guessing `MM/DD/YYYY`
+ * on a date of birth a vendor wrote day-first produces a plausible wrong date
+ * rather than a visible failure.
+ *
+ * `dateFormats` reaches this parser from `Hl7Message.dateFormats`, which is
+ * `ParseOptions.dateFormats` followed by the applied profile's, deduplicated
+ * first-occurrence-wins. Omit it (or pass an empty list) and the parse is
+ * exactly the strict HL7 one.
  *
  * The result is frozen so the immutability guarantee holds for callers that
  * destructure or retain it.
@@ -57,15 +65,23 @@ export type TS = DtmParts;
  * console.log(ts.raw);                     // "20250102153045-0500"
  * console.log(ts.precision, ts.hasTimezone); // "second" true
  * console.log(dtmToDate(ts)?.toISOString()); // "2025-01-02T20:30:45.000Z"
+ *
+ * const vendor = { components: [{ subcomponents: ["07/05/1988"] }] };
+ * const dob = parseTs(vendor, DEFAULT_ENCODING_CHARACTERS, ["MM/DD/YYYY"]);
+ * console.log(dob.month, dob.matchedFormat); // 7 "MM/DD/YYYY"
  * ```
  */
-export function parseTs(rep: RawRepetition, _enc: EncodingCharacters): TS {
+export function parseTs(
+  rep: RawRepetition,
+  _enc: EncodingCharacters,
+  dateFormats?: readonly string[],
+): TS {
   const comp = rep.components[0];
   // The tokenizer already unescaped every subcomponent on parse (parser-02), so
   // the stored value is decoded: use it directly, never a second unescape (that
   // would double-decode a value whose bytes look like an escape). `_enc` is kept
   // for composite-parser signature uniformity.
   const raw = comp?.subcomponents[0] ?? "";
-  // `parseDtm` already returns a frozen `DtmParts`.
-  return parseDtm(raw);
+  // `parseDtmDeclared` already returns a frozen `DtmParts`.
+  return parseDtmDeclared(raw, dateFormats);
 }

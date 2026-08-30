@@ -18,9 +18,12 @@
  *  - `dtmToDate(parts, opts)` materializes an absolute `Date` **only on
  *    explicit caller request**, refusing to guess a zone for an offset-less
  *    value unless the caller supplies one.
+ *  - `parseDtmDeclared(raw, formats)` is the composite path's parse: strict DTM
+ *    → the formats the CALLER declared, and nothing after that.
  *  - `parseDtmCascade(raw, opts)` is the lenient wrapper (strict DTM → user
  *    formats → built-in fallbacks) used by non-composite callers such as
- *    `msg.meta.timestamp`; it emits `TIMESTAMP_FALLBACK_FORMAT` on a fallback.
+ *    `msg.meta.timestamp`; it can raise `TIMESTAMP_FALLBACK_FORMAT` on a
+ *    fallback, for a caller that hands it an emit hook.
  *
  * Zero runtime deps: only the JS stdlib `Date` / `Date.UTC` APIs and
  * hand-rolled regex / token matchers. No date-fns, no luxon, no moment.
@@ -99,8 +102,10 @@ export interface DtmParts {
   /** Signed minutes east of UTC; present iff `hasTimezone` is `true`. */
   readonly offsetMinutes?: number;
   /**
-   * The fallback format that matched (`parseDtmCascade` only), e.g.
-   * `"MM/DD/YYYY"` or `"ISO-8601"`. Absent for a strict HL7 DTM parse.
+   * The non-canonical format that matched, e.g. `"MM/DD/YYYY"`: normally one
+   * the caller declared in `dateFormats`, or `"ISO-8601"` and the other
+   * {@link BUILTIN_DATE_FALLBACKS} entries, which only `msg.meta.timestamp`
+   * can reach. Absent for a strict HL7 DTM parse.
    */
   readonly matchedFormat?: string;
 }
@@ -394,12 +399,51 @@ export interface ParseDtmCascadeOptions {
 }
 
 /**
+ * Datetime parse for the TS composite path: strict HL7 DTM via
+ * {@link parseDtm} first, then the formats the caller DECLARED
+ * (`ParseOptions.dateFormats` merged with the applied profile's), in order,
+ * first match wins. **{@link BUILTIN_DATE_FALLBACKS} is deliberately not
+ * consulted here**, and that omission is the safety property, not an oversight:
+ * the built-in list carries `MM/DD/YYYY` and no day-first form, so a feed
+ * writing `05/07/1988` for 5 July would yield a confident May 7 on a date of
+ * birth. A declared format is the caller stating what their sender means; a
+ * built-in fallback is the library guessing, and it does not guess on a
+ * clinical datetime.
+ *
+ * Always returns {@link DtmParts}: a declared-format match sets `matchedFormat`
+ * and `valid: true` with the parts that format supplied (absent fields stay
+ * absent, never zero-filled); a value matching nothing returns an invalid
+ * result. Never throws, and a format string carrying no supported token simply
+ * matches nothing.
+ *
+ * @internal
+ */
+export function parseDtmDeclared(raw: string, formats: readonly string[] | undefined): DtmParts {
+  if (raw === "") return invalidDtm(raw);
+
+  const strict = parseDtm(raw);
+  if (strict.valid) return strict;
+
+  for (const format of formats ?? []) {
+    const matched = matchTokenParts(raw, format);
+    if (matched !== undefined) {
+      return Object.freeze({ ...matched, raw, matchedFormat: format });
+    }
+  }
+
+  return invalidDtm(raw);
+}
+
+/**
  * Lenient datetime parse for non-composite callers (e.g. `msg.meta.timestamp`):
  *
  * 1. Strict HL7 DTM via {@link parseDtm}: no warning (spec-preferred).
  * 2. User-supplied formats, in order: first match wins, emits
  *    `TIMESTAMP_FALLBACK_FORMAT`.
  * 3. Built-in {@link BUILTIN_DATE_FALLBACKS}, in order: emits on match.
+ *
+ * Steps 1 and 2 are {@link parseDtmDeclared}; step 3 is what this wrapper adds
+ * and is what keeps it off the composite path.
  *
  * Always returns {@link DtmParts}; a fallback match sets `matchedFormat` and
  * `valid: true` with the parts it could recover. A total miss returns an
@@ -410,15 +454,11 @@ export interface ParseDtmCascadeOptions {
 export function parseDtmCascade(raw: string, opts: ParseDtmCascadeOptions): DtmParts {
   if (raw === "") return invalidDtm(raw);
 
-  const strict = parseDtm(raw);
-  if (strict.valid) return strict;
-
-  for (const format of opts.userFormats ?? []) {
-    const matched = matchTokenParts(raw, format);
-    if (matched !== undefined) {
-      emitFallback(opts, format);
-      return Object.freeze({ ...matched, raw, matchedFormat: format });
-    }
+  const declared = parseDtmDeclared(raw, opts.userFormats);
+  if (declared.valid) {
+    // A `matchedFormat` here means a DECLARED format won, not the strict parse.
+    if (declared.matchedFormat !== undefined) emitFallback(opts, declared.matchedFormat);
+    return declared;
   }
 
   for (const builtin of BUILTIN_DATE_FALLBACKS) {

@@ -78,13 +78,15 @@ export function buildMeta(msg: Hl7Message): Meta {
   const controlId = msg.get("MSH.10");
   if (controlId !== undefined && controlId !== "") out.controlId = controlId;
 
-  // ─── MSH-7 timestamp (Phase N fidelity TS + D-21 merged dateFormats) ───
-  // Call parseDtmCascade DIRECTLY (not via .asTs() which hard-codes the strict
-  // HL7 shape) so Phase 6 D-21 `options.dateFormats ++ profile.dateFormats` is
-  // honoured for MSH-7. .asTs() stays strict for composite callers (Phase 3
-  // D-10 "zero duplicate date logic"); meta.ts is the non-composite caller that
-  // benefits from the lenient cascade. Phase N: `timestamp` is the fidelity
-  // TS (precision + timezone preserved), never an eager UTC-assuming Date.
+  // ─── MSH-7 timestamp (fidelity TS + D-21 merged dateFormats) ───
+  // Call parseDtmCascade DIRECTLY rather than via .asTs(). Both honour D-21's
+  // `options.dateFormats ++ profile.dateFormats`, so that is no longer the
+  // reason; what the cascade adds is BUILTIN_DATE_FALLBACKS, and MSH-7 is the
+  // one value that still reaches them. A typed datetime field must not: the
+  // built-in list is US-order and a guessed date of birth is a plausible wrong
+  // answer, where a guessed message header timestamp is a routing detail.
+  // `timestamp` is the fidelity TS (precision + timezone preserved), never an
+  // eager UTC-assuming Date.
   if (msh !== undefined) {
     const tsField = msh.field(7);
     const tsRaw = tsField.value;

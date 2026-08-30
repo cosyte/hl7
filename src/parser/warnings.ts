@@ -259,10 +259,15 @@ export function unterminatedEscapeSequence(position: Hl7Position): Hl7ParseWarni
 }
 
 /**
- * Build a `TIMESTAMP_FALLBACK_FORMAT` warning. Emitted when a date/time
- * field could not be parsed with its primary (strict HL7) format but a
- * fallback format from `ParseOptions.dateFormats` or built-in fallbacks
- * succeeded.
+ * Build a `TIMESTAMP_FALLBACK_FORMAT` warning: a date/time value that did not
+ * parse as strict HL7 but did match a fallback format.
+ *
+ * This is the warning's constructor, not its emit site. The only code path
+ * that can raise it is the lenient cascade behind `msg.meta.timestamp`, and
+ * only when a caller hands that cascade an emit callback, so a parse does not
+ * put this warning on `msg.warnings` today. Read `matchedFormat` on the `TS`
+ * to see which format answered a value; a typed datetime field never consults
+ * the built-in fallbacks at all.
  *
  * @example
  * ```ts
