@@ -91,7 +91,12 @@ export function buildMeta(msg: Hl7Message): Meta {
     if (tsRaw !== "") {
       const parsed = parseDtmCascade(tsRaw, { userFormats: msg.dateFormats });
       // `parseDtmCascade` already returns a frozen `DtmParts`.
-      if (parsed.valid) out.timestamp = parsed;
+      // An order-ambiguous value resolves to NO calendar date, and the reason
+      // travels on the value itself: `Hl7Message.warnings` is frozen in the
+      // constructor and this builder runs behind a lazy getter afterwards, so
+      // a warning appended here could never reach a consumer. `valid` stays
+      // false, so nothing reads it as a date; `ambiguity` says why.
+      if (parsed.valid || parsed.ambiguity !== undefined) out.timestamp = parsed;
     }
   }
 

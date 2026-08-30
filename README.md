@@ -447,6 +447,42 @@ console.log(msg.meta.timestamp?.matchedFormat); // e.g. "MM/DD/YYYY" (which fall
 
 When a fallback format wins, the parser emits a `TIMESTAMP_FALLBACK_FORMAT` warning with the matched format on `msg.warnings`. Built-in vendor profiles (`profiles.epic`, `profiles.genericLab`, etc.) already carry the date formats common to that vendor. Reach for a profile instead of hand-listing formats when one fits.
 
+#### Day-first vs month-first: the parser refuses to guess
+
+`05/07/1988` is 5 July to a day-first sender and May 7 to a month-first one. Both are real calendar
+dates, and nothing in the message says which was meant. When no format has been declared, the
+parser resolves **neither**: `msg.meta.timestamp` comes back `valid: false` carrying an `ambiguity`
+report that names the raw value and both readings, so a wrong date never reaches your code silently.
+
+```ts
+import { parseHL7, AMBIGUOUS_DATE_ORDER } from "@cosyte/hl7";
+
+const ts = parseHL7(raw).meta.timestamp; // MSH-7 was "05/07/1988"
+
+if (ts?.ambiguity?.code === AMBIGUOUS_DATE_ORDER) {
+  console.log(ts.ambiguity.raw); // "05/07/1988"
+  console.log(ts.ambiguity.candidates[0]); // { format: "MM/DD/YYYY", month: 5, day: 7, isoDate: "1988-05-07" }
+  console.log(ts.ambiguity.candidates[1]); // { format: "DD/MM/YYYY", month: 7, day: 5, isoDate: "1988-07-05" }
+}
+```
+
+Declaring the sender's order is the fix, and it is one line. A declared format is tried ahead of the
+built-ins, so the value resolves and no ambiguity is reported:
+
+```ts
+const dayFirst = parseHL7(raw, { dateFormats: ["DD/MM/YYYY"] });
+console.log(dayFirst.meta.timestamp?.month); // 7: 5 July 1988
+
+const monthFirst = parseHL7(raw, { dateFormats: ["MM/DD/YYYY"] });
+console.log(monthFirst.meta.timestamp?.month); // 5: May 7 1988
+```
+
+Only genuinely two-way values are refused. `07/25/1988` has one reading (there is no month 25) and
+still resolves as July 25. `05/05/1988` has two readings that agree and still resolves. Strict HL7
+timestamps, ISO-8601 values and `YYYY-MM-DD` values are untouched. Ambiguity is also a different fact
+from malformed input: a value that is illegal under both readings reports no timestamp and no
+ambiguity.
+
 ### Stripping MLLP framing
 
 MLLP (Minimum Lower Layer Protocol) wraps HL7 messages in VT / FS / CR bytes for TCP transport. The parser strips them by default and emits a `MLLP_FRAMING_STRIPPED` warning so you know preprocessing happened.

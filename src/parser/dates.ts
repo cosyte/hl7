@@ -20,7 +20,9 @@
  *    value unless the caller supplies one.
  *  - `parseDtmCascade(raw, opts)` is the lenient wrapper (strict DTM → user
  *    formats → built-in fallbacks) used by non-composite callers such as
- *    `msg.meta.timestamp`; it emits `TIMESTAMP_FALLBACK_FORMAT` on a fallback.
+ *    `msg.meta.timestamp`; it emits `TIMESTAMP_FALLBACK_FORMAT` on a fallback,
+ *    and REFUSES an order-ambiguous slash date rather than guessing the field
+ *    order (see {@link DtmAmbiguity}).
  *
  * Zero runtime deps: only the JS stdlib `Date` / `Date.UTC` APIs and
  * hand-rolled regex / token matchers. No date-fns, no luxon, no moment.
@@ -71,8 +73,9 @@ export interface DtmParts {
   readonly raw: string;
   /**
    * `true` when `raw` is a well-formed, in-range HL7 DTM (or a matched
-   * fallback format). `false` for empty, malformed, or calendar-out-of-range
-   * input: in which case only `raw` and `hasTimezone: false` are meaningful.
+   * fallback format). `false` for empty, malformed, calendar-out-of-range, or
+   * order-ambiguous input: in which case only `raw`, `hasTimezone: false` and
+   * (for the ambiguous case) {@link DtmParts.ambiguity} are meaningful.
    */
   readonly valid: boolean;
   /** Stated precision; absent when `valid` is `false`. */
@@ -103,6 +106,95 @@ export interface DtmParts {
    * `"MM/DD/YYYY"` or `"ISO-8601"`. Absent for a strict HL7 DTM parse.
    */
   readonly matchedFormat?: string;
+  /**
+   * Why an order-ambiguous slash date was refused, naming the raw value and
+   * both readings it could have had. Present ONLY when `valid` is `false`
+   * because the field order could not be established; absent on every other
+   * result, including a plain malformed one. See {@link DtmAmbiguity}.
+   */
+  readonly ambiguity?: DtmAmbiguity;
+}
+
+/**
+ * Stable identifier reported on {@link DtmParts.ambiguity} when a slash date's
+ * field order cannot be established. Compare against it to tell "ambiguous,
+ * refused" apart from "malformed" (no timestamp at all) and from "resolved via
+ * a fallback" (`valid: true` with a `matchedFormat`). Distinct from the
+ * `TIMESTAMP_FALLBACK_FORMAT` warning code, which reports the opposite
+ * outcome: a value that DID resolve.
+ *
+ * @example
+ * ```ts
+ * import { parseHL7, AMBIGUOUS_DATE_ORDER } from "@cosyte/hl7";
+ * const ts = parseHL7(raw).meta.timestamp;
+ * if (ts?.ambiguity?.code === AMBIGUOUS_DATE_ORDER) {
+ *   console.log(ts.ambiguity.message);
+ * }
+ * ```
+ */
+export const AMBIGUOUS_DATE_ORDER = "AMBIGUOUS_DATE_ORDER";
+
+/**
+ * One of the two calendar dates an order-ambiguous slash value could denote:
+ * the format that would produce it, its spec-native `month` (1-12) and `day`,
+ * and the ISO `YYYY-MM-DD` rendering of the date part. Declaring `format`
+ * through `parseHL7(raw, { dateFormats: [...] })` or a profile is what makes
+ * the parser return that reading.
+ *
+ * @example
+ * ```ts
+ * import type { DtmAmbiguityCandidate } from "@cosyte/hl7";
+ * const dayFirst: DtmAmbiguityCandidate = {
+ *   format: "DD/MM/YYYY", month: 7, day: 5, isoDate: "1988-07-05",
+ * };
+ * ```
+ */
+export interface DtmAmbiguityCandidate {
+  /** The date format that yields this reading, e.g. `"DD/MM/YYYY"`. */
+  readonly format: string;
+  /** Month under this reading, 1-12 (spec-native, NOT JS 0-11). */
+  readonly month: number;
+  /** Day of month under this reading, 1-31. */
+  readonly day: number;
+  /** The date part of this reading as ISO `YYYY-MM-DD`, e.g. `"1988-07-05"`. */
+  readonly isoDate: string;
+}
+
+/**
+ * Report attached to a timestamp the parser REFUSED to resolve because the
+ * value is order-ambiguous: a slash-separated numeric date whose first two
+ * components are both in 1-12, so a month-first and a day-first reading are
+ * each a legal calendar date and no evidence chooses between them.
+ *
+ * The parser reports the two readings rather than picking one, because picking
+ * one produces a plausible, wrong calendar date and nothing downstream can tell
+ * that it was invented. Supply the vendor's order through
+ * `parseHL7(raw, { dateFormats: ["DD/MM/YYYY"] })` or a profile's
+ * `dateFormats`, which are both tried ahead of the built-ins, and the value
+ * resolves with no report at all.
+ *
+ * @example
+ * ```ts
+ * import { parseHL7 } from "@cosyte/hl7";
+ * const ts = parseHL7(raw).meta.timestamp;      // MSH-7 was "05/07/1988"
+ * console.log(ts?.valid);                        // false: nothing was resolved
+ * console.log(ts?.ambiguity?.raw);               // "05/07/1988"
+ * console.log(ts?.ambiguity?.candidates[0]);     // MM/DD/YYYY -> 1988-05-07
+ * console.log(ts?.ambiguity?.candidates[1]);     // DD/MM/YYYY -> 1988-07-05
+ * ```
+ */
+export interface DtmAmbiguity {
+  /** Always {@link AMBIGUOUS_DATE_ORDER}: the stable identifier to compare on. */
+  readonly code: typeof AMBIGUOUS_DATE_ORDER;
+  /** The value exactly as it arrived, so the report names what was declined. */
+  readonly raw: string;
+  /**
+   * Both readings, month-first then day-first. Exactly two, and they always
+   * disagree: a value whose readings coincide is resolved, not refused.
+   */
+  readonly candidates: readonly [DtmAmbiguityCandidate, DtmAmbiguityCandidate];
+  /** A one-line explanation naming the value, both readings, and the remedy. */
+  readonly message: string;
 }
 
 /**
@@ -110,6 +202,15 @@ export interface DtmParts {
  * back to when neither the strict HL7 DTM match nor any user-supplied format
  * succeeds. ISO-8601 is tried first (most constrained); `MM/DD/YYYY HH:mm:ss`
  * last (it overlaps the date-only form).
+ *
+ * **The two `MM/DD/YYYY` entries resolve only what has a single reading.** A
+ * slash value whose first two components are both in 1-12 (`05/07/1988`) is
+ * also a legal day-first date, and no built-in decides between them: such a
+ * value is REFUSED with a {@link DtmAmbiguity} report instead of being read as
+ * May 7. `07/25/1988` has one reading and still resolves; `05/05/1988` has two
+ * that agree and still resolves. To read day-first values, declare the order:
+ * `parseHL7(raw, { dateFormats: ["DD/MM/YYYY"] })`, or a profile's
+ * `dateFormats`. Both are tried ahead of this list.
  *
  * @example
  * ```ts
@@ -399,11 +500,19 @@ export interface ParseDtmCascadeOptions {
  * 1. Strict HL7 DTM via {@link parseDtm}: no warning (spec-preferred).
  * 2. User-supplied formats, in order: first match wins, emits
  *    `TIMESTAMP_FALLBACK_FORMAT`.
- * 3. Built-in {@link BUILTIN_DATE_FALLBACKS}, in order: emits on match.
+ * 3. Built-in {@link BUILTIN_DATE_FALLBACKS}, in order: emits on match, EXCEPT
+ *    where the value is order-ambiguous, in which case nothing resolves and the
+ *    result carries a {@link DtmAmbiguity} report instead.
  *
  * Always returns {@link DtmParts}; a fallback match sets `matchedFormat` and
  * `valid: true` with the parts it could recover. A total miss returns an
- * invalid result (no throw, no warning: nothing fell back to).
+ * invalid result (no throw, no warning: nothing fell back to). A refusal is
+ * `valid: false` with `ambiguity` populated, and likewise emits no warning:
+ * nothing fell back, and the report is the finding.
+ *
+ * Step 2 is reached first, so a caller who declares the order gets that
+ * reading and never a refusal: the declaration is the evidence the built-ins
+ * lack.
  *
  * @internal
  */
@@ -423,13 +532,102 @@ export function parseDtmCascade(raw: string, opts: ParseDtmCascadeOptions): DtmP
 
   for (const builtin of BUILTIN_DATE_FALLBACKS) {
     const matched = builtin === "ISO-8601" ? parseIsoParts(raw) : matchTokenParts(raw, builtin);
-    if (matched !== undefined) {
-      emitFallback(opts, builtin);
-      return Object.freeze({ ...matched, raw, matchedFormat: builtin });
-    }
+    if (matched === undefined) continue;
+
+    const ambiguity = orderAmbiguity(raw, builtin, matched);
+    if (ambiguity !== undefined) return Object.freeze({ raw, ...INVALID_PARTS_BASE, ambiguity });
+
+    emitFallback(opts, builtin);
+    return Object.freeze({ ...matched, raw, matchedFormat: builtin });
   }
 
   return invalidDtm(raw);
+}
+
+/**
+ * The day-first twin of each month-first built-in. Used ONLY as a probe: if the
+ * twin also reads `raw` as a legal calendar date, the value has two readings
+ * and the parser has no evidence for either. A twin never resolves a value and
+ * is deliberately NOT a member of {@link BUILTIN_DATE_FALLBACKS}: adding it
+ * would widen what the library accepts by default, which is a different change
+ * from refusing to guess.
+ *
+ * @internal
+ */
+const DAY_FIRST_PROBES: ReadonlyMap<string, string> = new Map([
+  ["MM/DD/YYYY", "DD/MM/YYYY"],
+  ["MM/DD/YYYY HH:mm:ss", "DD/MM/YYYY HH:mm:ss"],
+]);
+
+/**
+ * Decide whether a built-in match is order-ambiguous, and if so build the
+ * report. The two orders differ only in which of the first two components is
+ * the month, so the day-first reading is the month-first one with `month` and
+ * `day` exchanged, and the probe's job is purely to say whether that exchange
+ * yields a legal calendar date.
+ *
+ * Returns `undefined` when the built-in has no twin (ISO-8601, `YYYY-MM-DD`),
+ * when the twin does not match (`07/25/1988`: month 25 is no month), or when
+ * both readings denote the same day (`05/05/1988`: the readings cannot
+ * disagree, so there is no wrong answer available).
+ *
+ * @internal
+ */
+function orderAmbiguity(
+  raw: string,
+  builtin: string,
+  monthFirst: DtmParts,
+): DtmAmbiguity | undefined {
+  const probe = DAY_FIRST_PROBES.get(builtin);
+  if (probe === undefined) return undefined;
+  if (matchTokenParts(raw, probe) === undefined) return undefined;
+
+  const { year, month, day } = monthFirst;
+  // A slash built-in populates all three; the guard keeps the function total
+  // rather than asserting, matching how `buildFallbackParts` handles a
+  // structurally-absent year.
+  if (year === undefined || month === undefined || day === undefined) return undefined;
+  // Exchanging the two components leaves the same calendar date.
+  if (month === day) return undefined;
+
+  const monthFirstReading = ambiguityCandidate(builtin, year, month, day);
+  const dayFirstReading = ambiguityCandidate(probe, year, day, month);
+
+  return Object.freeze({
+    code: AMBIGUOUS_DATE_ORDER,
+    raw,
+    candidates: Object.freeze<readonly [DtmAmbiguityCandidate, DtmAmbiguityCandidate]>([
+      monthFirstReading,
+      dayFirstReading,
+    ]),
+    message:
+      `Date "${raw}" is order-ambiguous: it reads as ${monthFirstReading.isoDate} under ` +
+      `${monthFirstReading.format} and as ${dayFirstReading.isoDate} under ` +
+      `${dayFirstReading.format}, and nothing in the message says which. No date was resolved. ` +
+      `Declare the sender's order to resolve it, e.g. dateFormats: ["${dayFirstReading.format}"].`,
+  });
+}
+
+/**
+ * Render one reading as a frozen {@link DtmAmbiguityCandidate}, with the date
+ * part as ISO `YYYY-MM-DD` so a consumer can see the two answers side by side
+ * without re-deriving them.
+ *
+ * @internal
+ */
+function ambiguityCandidate(
+  format: string,
+  year: number,
+  month: number,
+  day: number,
+): DtmAmbiguityCandidate {
+  const pad = (n: number, width: number): string => n.toString().padStart(width, "0");
+  return Object.freeze({
+    format,
+    month,
+    day,
+    isoDate: `${pad(year, 4)}-${pad(month, 2)}-${pad(day, 2)}`,
+  });
 }
 
 /**
