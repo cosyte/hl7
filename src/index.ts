@@ -62,8 +62,20 @@ export type {
   RawRepetition,
   RawComponent,
 } from "./parser/types.js";
-export { BUILTIN_DATE_FALLBACKS, parseDtm, formatDtm, dtmToDate } from "./parser/dates.js";
-export type { DtmParts, DtmPrecision, DtmToDateOptions } from "./parser/dates.js";
+export {
+  AMBIGUOUS_DATE_ORDER,
+  BUILTIN_DATE_FALLBACKS,
+  parseDtm,
+  formatDtm,
+  dtmToDate,
+} from "./parser/dates.js";
+export type {
+  DtmAmbiguity,
+  DtmAmbiguityCandidate,
+  DtmParts,
+  DtmPrecision,
+  DtmToDateOptions,
+} from "./parser/dates.js";
 export { unescape, reescape } from "./parser/escapes.js";
 
 // Phase R: formatted-text rendering + first-class text codec. `renderText`

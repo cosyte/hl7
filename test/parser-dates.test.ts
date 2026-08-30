@@ -1,6 +1,9 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 
 import {
+  AMBIGUOUS_DATE_ORDER,
   BUILTIN_DATE_FALLBACKS,
   dtmToDate,
   formatDtm,
@@ -286,5 +289,96 @@ describe("parser/dates: parseDtmCascade: lenient fallback for non-composite call
       "MM/DD/YYYY",
       "MM/DD/YYYY HH:mm:ss",
     ]);
+  });
+
+  it("declines an order-ambiguous slash date rather than choosing a reading", () => {
+    const { emit, warnings } = collect();
+    const p = parseDtmCascade("05/07/1988", { userFormats: [], emit, position: pos });
+    expect(p.valid).toBe(false);
+    expect(p.ambiguity?.code).toBe(AMBIGUOUS_DATE_ORDER);
+    expect(warnings).toHaveLength(0);
+  });
+});
+
+describe("parser/dates: the exported fallback list describes itself truthfully", () => {
+  const source = readFileSync(new URL("../src/parser/dates.ts", import.meta.url), "utf8");
+
+  it("the JSDoc @example output line matches the constant at runtime", () => {
+    // The example prints the constant, so the comment beneath it is a claim
+    // about the value a consumer will see on hover and in `dist/*.d.ts`.
+    const printed = /console\.log\(BUILTIN_DATE_FALLBACKS\);\n\s*\*\s*\/\/ (\[.*\])/u.exec(source);
+    expect(printed).not.toBeNull();
+    expect(JSON.parse(printed?.[1] ?? "null")).toEqual(BUILTIN_DATE_FALLBACKS);
+  });
+
+  it("no entry is documented as resolving a value the parser now declines", () => {
+    // The prose has to name the refusal, because two of the four entries no
+    // longer resolve every value they structurally match.
+    expect(source).toMatch(/resolve only what has a single reading/u);
+
+    for (const format of BUILTIN_DATE_FALLBACKS) {
+      if (!format.startsWith("MM/DD/YYYY")) continue;
+      const withTime = format.includes("HH") ? " 13:45:00" : "";
+      // Structurally matches the entry, and is refused rather than resolved.
+      const refused = parseDtmCascade(`05/07/1988${withTime}`, { userFormats: [] });
+      expect(refused.valid).toBe(false);
+      expect(refused.matchedFormat).toBeUndefined();
+      // Single reading: the entry still resolves it, exactly as documented.
+      const resolved = parseDtmCascade(`07/25/1988${withTime}`, { userFormats: [] });
+      expect(resolved).toMatchObject({ valid: true, month: 7, day: 25, matchedFormat: format });
+    }
+  });
+
+  it("the documented remedy works: declaring the order resolves the value", () => {
+    expect(parseDtmCascade("05/07/1988", { userFormats: ["DD/MM/YYYY"] })).toMatchObject({
+      valid: true,
+      month: 7,
+      day: 5,
+      matchedFormat: "DD/MM/YYYY",
+    });
+  });
+});
+
+describe("parser/dates: values outside the ambiguous class are byte-for-byte unchanged", () => {
+  it.each([
+    ["19880705", { valid: true, precision: "day", year: 1988, month: 7, day: 5 }],
+    ["1970", { valid: true, precision: "year", year: 1970 }],
+    [
+      "20250102153045.5-0500",
+      {
+        valid: true,
+        precision: "fraction",
+        fractionalSeconds: "5",
+        hasTimezone: true,
+        offsetMinutes: -300,
+      },
+    ],
+  ])("strict DTM %s keeps its precision and zone through the cascade", (raw, expected) => {
+    const p = parseDtmCascade(raw, { userFormats: [] });
+    expect(p).toMatchObject(expected);
+    expect(p.matchedFormat).toBeUndefined();
+    expect(p.ambiguity).toBeUndefined();
+    expect(formatDtm(p)).toBe(raw);
+  });
+
+  it("ISO-8601 and YYYY-MM-DD keep their matchedFormat and parts", () => {
+    const iso = parseDtmCascade("2025-01-02T15:30:45-05:00", { userFormats: [] });
+    expect(iso).toMatchObject({
+      valid: true,
+      year: 2025,
+      month: 1,
+      day: 2,
+      second: 45,
+      hasTimezone: true,
+      offsetMinutes: -300,
+      matchedFormat: "ISO-8601",
+    });
+    expect(iso.ambiguity).toBeUndefined();
+
+    // A hyphenated date-only value is claimed by the ISO-8601 shape guard
+    // first; either way it resolves and reports no ambiguity.
+    const dashed = parseDtmCascade("2025-01-02", { userFormats: [] });
+    expect(dashed).toMatchObject({ valid: true, precision: "day", year: 2025, month: 1, day: 2 });
+    expect(dashed.ambiguity).toBeUndefined();
   });
 });

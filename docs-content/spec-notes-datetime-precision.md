@@ -26,7 +26,8 @@ for one.
 ### Core: `src/parser/dates.ts`
 - `type DtmPrecision = "year"|"month"|"day"|"hour"|"minute"|"second"|"fraction"`.
 - `interface DtmParts { raw; valid; precision?; year?; month?(1–12, spec-native); day?; hour?; minute?;
-  second?; fractionalSeconds?(verbatim digits, no dot); hasTimezone; offsetMinutes?(signed, iff tz) }`.
+  second?; fractionalSeconds?(verbatim digits, no dot); hasTimezone; offsetMinutes?(signed, iff tz);
+  matchedFormat?(cascade only); ambiguity?(order refused, see below) }`.
 - `parseDtm(raw): DtmParts`: pure structural parse of the HL7 DTM shape. **No zero-fill, no `Date`, no
   UTC.** Precision from populated length. Calendar-range check (month 1–12, day 1–31, hour 0–23,
   min/sec 0–59, offset hours ≤ 24 with minutes ≤ 59) → on bad shape/range `valid:false`, raw kept, parts omitted, never a
@@ -41,6 +42,33 @@ for one.
 - `parseDtmCascade(raw, opts): DtmParts`: lenient wrapper for non-composite callers (`meta`): try
   `parseDtm`; else user/builtin fallback formats → parts from the matched tokens + `matchedFormat` +
   `TIMESTAMP_FALLBACK_FORMAT` warning. `BUILTIN_DATE_FALLBACKS`/`SUPPORTED_DATE_TOKENS` unchanged.
+  One exception, below: an order-ambiguous slash date resolves to nothing.
+
+## Order ambiguity: `05/07/1988` is refused, not guessed
+
+`BUILTIN_DATE_FALLBACKS` carries `MM/DD/YYYY` and not `DD/MM/YYYY`. A day-first sender's
+`05/07/1988` therefore used to read as May 7, with no failure and no signal that the field order had
+been assumed. In a PHI-bearing library that is the worst shape of wrong: plausible, confident and
+invisible.
+
+A slash-separated numeric date whose first two components are **both in 1-12** has two legal
+readings. When no declared format has matched, the built-ins now resolve **neither**: the result is
+`valid: false` with an `ambiguity` report (`code: AMBIGUOUS_DATE_ORDER`, the raw value, and both
+`candidates` as `{ format, month, day, isoDate }`). `msg.meta.timestamp` carries it, so
+`ambiguity` distinguishes "refused" from "malformed" (no timestamp at all) and from "resolved via a
+fallback" (`valid: true` + `matchedFormat`).
+
+- **Declared formats still win.** `parseHL7(raw, { dateFormats: ["DD/MM/YYYY"] })` and a profile's
+  `dateFormats` are tried ahead of the built-ins, resolve the value, keep the existing
+  `TIMESTAMP_FALLBACK_FORMAT` semantics, and never report ambiguity. Options precede profile.
+- **One reading still resolves.** `07/25/1988` (no month 25) and `05/05/1988` (both readings agree)
+  are unaffected, as are strict DTM, ISO-8601 and `YYYY-MM-DD`.
+- **The built-in list did not change.** `DD/MM/YYYY` is used only as a probe for the second reading
+  and never resolves a value: an unambiguous day-first value such as `25/07/1988` still fails
+  loudly. Declaring the order is the route for a day-first feed.
+- **No warning code was added or renamed.** `Hl7Message.warnings` is frozen at construction and
+  `msg.meta` is built lazily afterwards, so the report travels on the value rather than the warnings
+  collection.
 
 ### TS composite: `src/model/types/ts.ts`
 - `TS` is the `DtmParts` shape (raw, valid, precision?, parts, hasTimezone, offsetMinutes?). Frozen.
