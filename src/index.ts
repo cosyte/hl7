@@ -76,6 +76,17 @@ export type {
   DtmPrecision,
   DtmToDateOptions,
 } from "./parser/dates.js";
+
+// The shared `@cosyte` datetime conversion surface: the same three names, with
+// the same semantics, in every parser in the suite. A read layer over
+// `DtmParts`: `formatDtm` remains the byte-exact round trip and is unchanged.
+// Because the names are identical across packages, a file consuming two of
+// them aliases its imports (`import { toISO as hl7ToISO } from "@cosyte/hl7"`).
+// `ToDateOptions` is the suite-wide spelling of the options type; it is an
+// alias of the pre-existing `DtmToDateOptions`, which is unchanged and still
+// exported above.
+export { toObject, toISO, toDate } from "./parser/date-conversion.js";
+export type { DateParts, ToDateOptions } from "./parser/date-conversion.js";
 export { unescape, reescape } from "./parser/escapes.js";
 
 // Phase R: formatted-text rendering + first-class text codec. `renderText`
