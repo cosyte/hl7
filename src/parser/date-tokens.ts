@@ -233,7 +233,7 @@ export function isBareAlphanumericLiteral(part: DateFormatPart): boolean {
  *
  * @internal
  */
-export function isNumericToken(token: DateFormatToken): boolean {
+function isNumericToken(token: DateFormatToken): boolean {
   const spec = DATE_TOKEN_SPECS[token];
   return spec.kind === "digits" || spec.kind === "fraction";
 }
@@ -245,10 +245,68 @@ export function isNumericToken(token: DateFormatToken): boolean {
  *
  * @internal
  */
-export function isVariableWidthToken(token: DateFormatToken): boolean {
+function isVariableWidthToken(token: DateFormatToken): boolean {
   const spec = DATE_TOKEN_SPECS[token];
   if (spec.kind === "digits" || spec.kind === "fraction") return spec.minWidth !== spec.maxWidth;
   return false;
+}
+
+/**
+ * `true` for a literal that consumes nothing, which is the empty escape `[]`
+ * and nothing else. It is the one literal that cannot separate two tokens.
+ *
+ * @internal
+ */
+function isZeroWidthLiteral(part: DateFormatPart): boolean {
+  return part.kind === "literal" && part.value.length === 0;
+}
+
+/** @internal An unsplittable digit run: which two tokens, and how it was written. */
+export interface AmbiguousAdjacency {
+  readonly left: DateFormatToken;
+  readonly right: DateFormatToken;
+  readonly at: number;
+  readonly throughEmptyEscape: boolean;
+}
+
+/**
+ * The first pair of numeric tokens that meet in the INPUT with nothing between
+ * them where at least one is variable width, or `undefined` when the format
+ * has no such pair. Nothing can split the digit run those two produce, so the
+ * grammar refuses the format at definition time and the matcher reports no
+ * match for it rather than answering with one of several equally valid
+ * readings.
+ *
+ * Adjacency is a property of the input, not of the part list: a literal that
+ * matches the empty string separates nothing, so the scan looks straight
+ * through it and `M[]D` is the same digit run as `MD`.
+ *
+ * @internal
+ */
+export function ambiguousAdjacency(
+  parts: readonly DateFormatPart[],
+): AmbiguousAdjacency | undefined {
+  let previous: DateFormatPart | undefined;
+  let throughEmptyEscape = false;
+  for (const part of parts) {
+    if (isZeroWidthLiteral(part)) {
+      throughEmptyEscape = true;
+      continue;
+    }
+    if (
+      previous !== undefined &&
+      previous.kind === "token" &&
+      part.kind === "token" &&
+      isNumericToken(previous.token) &&
+      isNumericToken(part.token) &&
+      (isVariableWidthToken(previous.token) || isVariableWidthToken(part.token))
+    ) {
+      return { left: previous.token, right: part.token, at: previous.at, throughEmptyEscape };
+    }
+    previous = part;
+    throughEmptyEscape = false;
+  }
+  return undefined;
 }
 
 /**
@@ -438,17 +496,23 @@ export interface MatchedDateFields {
  * carrying no year cannot become {@link DtmParts}.
  *
  * The matcher is deliberately more tolerant than the definition-time
- * validator: a character it does not recognise is matched verbatim, exactly as
- * it was before the vocabulary widened, so a format supplied through the parse
- * options (which nothing validates) keeps the behaviour it had. What it will
- * NOT do is invent a value: an unpaired 12-hour token or meridiem, a fraction
- * with no seconds, and an out-of-range field each report no match rather than
- * a plausible wrong reading.
+ * validator about TEXT: a character it does not recognise is matched verbatim,
+ * so a format supplied through the parse options (which nothing validates)
+ * keeps the behaviour it had. What it will NOT do is invent a value. An
+ * unpaired 12-hour token or meridiem, a fraction with no seconds, an
+ * out-of-range field, and two numeric tokens that meet with nothing between
+ * them where either is variable width each report no match rather than a
+ * plausible wrong reading. That last one is the adjacency rule, and it holds
+ * here as well as at definition time because a digit run nothing can split
+ * has no honest answer whichever route the format arrived by.
  *
  * @internal
  */
 export function matchDateFormat(input: string, format: string): MatchedDateFields | undefined {
-  const fields = matchFields(input, tokeniseDateFormat(format));
+  const parts = tokeniseDateFormat(format);
+  if (ambiguousAdjacency(parts) !== undefined) return undefined;
+
+  const fields = matchFields(input, parts);
   if (fields === undefined) return undefined;
 
   const hour = resolveHour(fields);

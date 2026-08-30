@@ -1,6 +1,6 @@
 {
   "grammar": "date-token-grammar",
-  "revision": 1,
+  "revision": 2,
   "description": "Conformance cases for the shared date-format token grammar. Pure data: no expression, no code, no syntax belonging to any one parser. A parser proves it implements the grammar by running every case and producing the stated expectation.",
   "tokens": [
     "YYYY",
@@ -404,6 +404,13 @@
       "format": "YYYY-MM-DD HH:mm:ssSSSS",
       "rule": "variable-width-adjacency",
       "note": "ss is fixed width but SSSS is not, and one variable side is enough to make the run ambiguous."
+    },
+    {
+      "id": "reject-variable-width-adjacency-through-empty-escape",
+      "kind": "reject-format",
+      "format": "M[]D/YYYY",
+      "rule": "variable-width-adjacency",
+      "note": "An empty escape matches the empty string, so it separates nothing and M and D still meet in the input: 125 is month 12 day 5 and month 1 day 25 equally. Adjacency is a property of the input, not of how the format was written."
     },
     {
       "id": "reject-unterminated-escape",

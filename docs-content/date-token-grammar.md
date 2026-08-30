@@ -131,6 +131,27 @@ splits deterministically, which is why `YYYYMMDDHHmmss` is fine.
 `MMM`, `MMMM` and `A` consume letters rather than digits, so a numeric token
 beside one of them is never ambiguous.
 
+**Adjacent means adjacent in the input, not in the format text.** A literal
+separates two tokens only if it matches at least one character, so the **empty
+escape `[]` separates nothing** and `M[]D/YYYY` is refused exactly as
+`MD/YYYY` is. Writing it the long way does not buy a reading of `125` that the
+short way was denied.
+
+```ts runnable throws
+import { defineProfile } from "@cosyte/hl7";
+
+defineProfile({ name: "ambiguous", dateFormats: ["M[]D/YYYY"] });
+```
+
+This is the one rule that also binds the **matcher**, and it is the only rule
+that does. The others describe a format nobody can honour, so refusing it where
+it is written is enough; this one describes a value with two equally correct
+readings, and a parser that answers with one of them has produced a confident
+wrong date. So a format breaking this rule reports **no match**, whichever
+route it arrived by, including the unvalidated per-parse `dateFormats` option.
+An empty escape anywhere else is simply invisible: `YYYY[]-MM-DD` reads
+`1988-07-05` exactly as `YYYY-MM-DD` does.
+
 ### 5. A format must carry at least one token
 
 An empty format, or one made only of separators, matches nothing.
@@ -142,6 +163,8 @@ An empty format, or one made only of separators, matches nothing.
   reads `7/5/1988` and `12/25/1988` with the same format string.
 - The **whole** input must be consumed. A value that ends early, or that
   carries trailing characters, is no match.
+- A format whose numeric tokens meet with nothing between them (rule 4) is no
+  match, rather than one of the readings its digit run allows.
 - No match ever raises. It reports no match, and no parts are produced from it.
 
 ```ts runnable
@@ -244,11 +267,55 @@ syntax belonging to any one parser, and no dependency. It carries
 - at least one no-match case per range or name violation, and
 - at least one accepted case per stated precision level.
 
-Its shape is documented in `test/fixtures/date-tokens/README.md`, beside the
-data. Each case declares its own expectation, and a runner that meets a case it
+Each case declares its own expectation, and a runner that meets a case it
 cannot execute must **fail** rather than skip it: a corpus that quietly ignores
 what it does not understand proves nothing.
 
 A parser adopting this grammar reads the corpus, runs every case, and asserts
 the stated outcome. That is the whole conformance obligation, and it is the
 reason the grammar is written here once rather than re-derived per repository.
+
+### The file's shape
+
+Top level:
+
+| key               | meaning                                                                                                                                                     |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `grammar`         | Which grammar the file describes. Always `date-token-grammar`.                                                                                              |
+| `revision`        | Bumped when a case is added, removed or changed.                                                                                                            |
+| `description`     | One sentence, for a reader who arrives at the file before this page.                                                                                        |
+| `tokens`          | The whole token vocabulary. A runner asserts its own published token list equals this, which catches a parser that quietly recognizes more or fewer tokens. |
+| `refusalRules`    | Every reason a format is refused at definition time.                                                                                                        |
+| `precisionLevels` | Every stated precision level a value can carry.                                                                                                             |
+| `noMatchReasons`  | Every reason an input fails to match a well-formed format.                                                                                                  |
+| `cases`           | The cases themselves, one object each.                                                                                                                      |
+
+Every case carries an `id` (unique, stable, citable from a bug report), a
+`kind`, and a `note` saying what the case is for. The three kinds:
+
+**`kind: "accept"`** - the format is well formed AND the input matches it.
+`format` is the format string; `tokens` lists every token it uses, so
+per-token coverage is checkable without a tokenizer; `input` is the value;
+`expect` is the fields recovered, keyed `year`, `month`, `day`, `hour`,
+`minute`, `second`, `fractionalSeconds`, where a key that is absent must be
+absent from the result; and `precision` is one of `precisionLevels`, or `null`
+for a format that populates no year and so carries no date precision. `month`
+is spec-native 1 to 12, `hour` is a 24-hour reading with the meridiem already
+applied and gone, and `fractionalSeconds` is the digit string as written, with
+no leading dot and no rounding.
+
+**`kind: "reject-format"`** - the format is not well formed and must be refused
+at definition time, before any input is seen. `format` is the offending string
+and `rule` is one of `refusalRules`. A runner asserts both that the refusal
+happened and that it named the offending format: an unactionable error is a
+defect of its own.
+
+**`kind: "no-match"`** - the format is well formed and the input does not match
+it. `format`, `input`, and `reason`, one of `noMatchReasons`. The result is no
+match: never a substituted or partial value, and never a raised error.
+
+Beyond running each case, a runner asserts the corpus still covers what it
+claims: every token in `tokens` appears in some `accept` case, every rule in
+`refusalRules` in some `reject-format` case, every level in `precisionLevels`
+in some `accept` case, every reason in `noMatchReasons` in some `no-match`
+case, and every `id` is unique.

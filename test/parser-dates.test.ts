@@ -14,6 +14,7 @@ import {
   matchTokenParts,
   tokeniseDateFormat,
 } from "../src/parser/date-tokens.js";
+import { defineProfile } from "../src/index.js";
 import { WARNING_CODES, type Hl7ParseWarning } from "../src/parser/warnings.js";
 import type { DateFormatToken } from "../src/parser/date-tokens.js";
 import type { Hl7Position } from "../src/parser/types.js";
@@ -591,14 +592,49 @@ describe("parser/dates: the matcher never throws and never guesses", () => {
   });
 
   it("terminates promptly on a format built to force backtracking", () => {
-    // Twelve variable-width tokens in a row, over an input whose last
-    // character no numeric token can consume, so EVERY split is explored and
-    // every one fails. Without the memo on (part, position) that is 2^12
-    // paths; with it the walk is bounded by the state space.
-    const format = "MD".repeat(12);
+    // Twelve variable-width tokens, each separated from the next by a literal
+    // that is itself a digit, so the format is well formed (the tokens are not
+    // adjacent) and every one of them may still take one digit or two. The
+    // input's last character is one no token and no literal can consume, so
+    // EVERY split is explored and every one fails. Without the memo on
+    // (part, position) that is 2^12 paths; with it the walk is bounded by the
+    // state space.
+    const format = "M[1]".repeat(12);
+    expect(() => defineProfile({ name: "backtracking", dateFormats: [format] })).not.toThrow();
     const started = Date.now();
-    expect(matchDateFormat("1".repeat(23) + "x", format)).toBeUndefined();
+    expect(matchDateFormat("1".repeat(35) + "x", format)).toBeUndefined();
     expect(Date.now() - started).toBeLessThan(1000);
+  });
+
+  it("refuses an unsplittable digit run rather than picking one of its readings", () => {
+    // The adjacency rule is a property of the format, so it holds wherever the
+    // format arrives from. `defineProfile()` refuses these; the parse options
+    // are unvalidated, and the honest answer there is no match. "125" is month
+    // 12 day 5 and month 1 day 25, equally.
+    expect(matchDateFormat("125/1988", "MD/YYYY")).toBeUndefined();
+    expect(matchDateFormat("1231988", "MDYYYY")).toBeUndefined();
+    expect(matchDateFormat("1988-07-05 14:30:45123", "YYYY-MM-DD HH:mm:ssSSSS")).toBeUndefined();
+  });
+
+  it("sees through an empty escape, which separates nothing", () => {
+    // `[]` matches the empty string, so it cannot part two tokens: `M[]D` is
+    // the same digit run as `MD` and gets the same answer.
+    expect(matchDateFormat("125/1988", "M[]D/YYYY")).toBeUndefined();
+    expect(matchDateFormat("1231988", "M[]DYYYY")).toBeUndefined();
+    expect(matchDateFormat("125/1988", "M[][]D/YYYY")).toBeUndefined();
+  });
+
+  it("an empty escape changes nothing where no ambiguity is hidden behind it", () => {
+    expect(matchDateFormat("1988-07-05", "YYYY[]-MM-DD")).toMatchObject({
+      year: 1988,
+      month: 7,
+      day: 5,
+    });
+    expect(matchDateFormat("19880705", "YYYY[]MM[]DD")).toMatchObject({
+      year: 1988,
+      month: 7,
+      day: 5,
+    });
   });
 });
 

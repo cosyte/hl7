@@ -15,9 +15,8 @@
 
 import {
   SUPPORTED_DATE_TOKENS,
+  ambiguousAdjacency,
   isBareAlphanumericLiteral,
-  isNumericToken,
-  isVariableWidthToken,
   tokeniseDateFormat,
 } from "../parser/date-tokens.js";
 import { ProfileDefinitionError } from "../parser/errors.js";
@@ -286,18 +285,17 @@ function dateFormatProblem(format: string): string | undefined {
     );
   }
 
-  for (let i = 0; i + 1 < parts.length; i++) {
-    const left = parts[i];
-    const right = parts[i + 1];
-    if (left === undefined || right === undefined) continue;
-    if (left.kind !== "token" || right.kind !== "token") continue;
-    if (!isNumericToken(left.token) || !isNumericToken(right.token)) continue;
-    if (!isVariableWidthToken(left.token) && !isVariableWidthToken(right.token)) continue;
+  const ambiguous = ambiguousAdjacency(parts);
+  if (ambiguous !== undefined) {
     return (
-      `the numeric tokens '${left.token}' and '${right.token}' are adjacent at position ` +
-      `${String(left.at)} with no literal between them, and at least one is variable ` +
-      `width, so nothing can split the digit run deterministically. Separate them with a ` +
-      `literal, or use fixed-width tokens.`
+      `the numeric tokens '${ambiguous.left}' and '${ambiguous.right}' are adjacent at ` +
+      `position ${String(ambiguous.at)} with no literal between them, and at least one is ` +
+      `variable width, so nothing can split the digit run deterministically. ` +
+      (ambiguous.throughEmptyEscape
+        ? `An empty escape '[]' matches the empty string, so it separates nothing. `
+        : ``) +
+      `Separate them with a literal that matches at least one character, or use fixed-width ` +
+      `tokens.`
     );
   }
 

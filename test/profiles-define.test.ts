@@ -350,12 +350,29 @@ describe("defineProfile: dateFormats refuses an ambiguous adjacency", () => {
     ["HHmmssSSSS", "ss", "SSSS"],
     ["YYYYMMD", "MM", "D"],
     ["HMM", "H", "MM"],
+    // An empty escape matches the empty string, so it parts nothing: these
+    // are the shapes above in another spelling, and get the same refusal.
+    ["M[]DYYYY", "M", "D"],
+    ["M[]D/YYYY", "M", "D"],
+    ["M[][]D/YYYY", "M", "D"],
+    ["YYYY[]M", "YYYY", "M"],
   ])("refuses %s, naming %s beside %s", (format, left, right) => {
     const message = refusalMessage(format);
     expect(message).toContain(JSON.stringify(format));
     expect(message).toContain(`'${left}'`);
     expect(message).toContain(`'${right}'`);
     expect(message).toContain("adjacent");
+  });
+
+  it("says so when an empty escape is what hid the adjacency", () => {
+    expect(refusalMessage("M[]D/YYYY")).toContain("empty escape");
+    // The plain spelling is not accused of an escape it does not carry.
+    expect(refusalMessage("MD/YYYY")).not.toContain("empty escape");
+  });
+
+  it("accepts an empty escape where it hides no ambiguity", () => {
+    expect(() => defineProfile({ name: "ok", dateFormats: ["YYYY[]-MM-DD"] })).not.toThrow();
+    expect(() => defineProfile({ name: "ok", dateFormats: ["YYYY[]MM[]DD"] })).not.toThrow();
   });
 
   it("accepts two adjacent FIXED-width numeric tokens, which split deterministically", () => {
