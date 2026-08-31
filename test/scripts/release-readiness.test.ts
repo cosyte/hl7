@@ -127,15 +127,6 @@ const RECORD_TARGET = recordHeader("target");
  */
 const RECORD_IS_LIVE = manifestVersion(REPO_ROOT) === RECORD_FROM;
 
-/**
- * `Array.isArray` on an `unknown` narrows to `any[]`, which hands every element out as `any` and
- * silently ends the narrowing this file does on untrusted subprocess output. This keeps the elements
- * `unknown`, so each one still has to be checked before it is read.
- */
-function isUnknownArray(value: unknown): value is readonly unknown[] {
-  return Array.isArray(value);
-}
-
 function versionParts(version: string): [number, number, number] {
   const match = /^(\d+)\.(\d+)\.(\d+)/.exec(version);
   if (match === null) throw new Error(`not a plain semver version: ${version}`);
@@ -571,48 +562,45 @@ describe("the publishable tarball", () => {
     // Asked of the packer, not derived from `files`. `files` is editable, and an edit to it is
     // exactly what this case exists to catch.
     //
-    // `--ignore-scripts` IS LOAD-BEARING, and it was measured rather than assumed. `npm pack` runs
-    // the `prepare` lifecycle script, which here is `simple-git-hooks`, and that prints
-    // `[INFO] Successfully set the pre-commit ...` to STDOUT ahead of the JSON document. So
-    // `--json` output is only a JSON document on a machine where lifecycle scripts happen to be
-    // off, which is a machine-shaped dependency in a gate, and it took a CI run to show it. Nothing
-    // in this repo's `prepack`/`prepare` chain contributes a file to the tarball, and this case
-    // reads the file LIST, so refusing the scripts costs the measurement nothing and buys it a
-    // result that does not depend on whose npm config is in force. It also stops a test from
-    // rewriting the developer's git hooks as a side effect.
-    const packed = spawnSync("npm", ["pack", "--dry-run", "--json", "--ignore-scripts"], {
-      cwd: REPO_ROOT,
+    // THE TARBALL IS BUILT AND OPENED, rather than `npm pack --json` being parsed, and that is a
+    // correction rather than a preference: `npm pack` runs the `prepare` lifecycle script, which
+    // here is `simple-git-hooks`, and that writes `[INFO] Successfully set the pre-commit ...` to
+    // STDOUT ahead of the JSON. `--ignore-scripts` suppresses it on the npm bundled with Node 24 and
+    // does NOT on the one bundled with Node 22, so `--json` output is a JSON document on some of
+    // this repo's supported runtimes and a JSON document with a prefix on the others. Two CI runs
+    // on the same commit showed it, one green and one red. Reading the archive costs one temp
+    // directory and depends on nobody's stdout hygiene, and it measures the bytes a consumer would
+    // actually receive rather than the packer's summary of them.
+    //
+    // `--ignore-scripts` stays anyway, so a test never rewrites the developer's git hooks as a side
+    // effect. Nothing in this repo's prepack chain contributes a file to the tarball.
+    const packDir = tempDir("hl7-pack-");
+    const packed = spawnSync(
+      "npm",
+      ["pack", "--ignore-scripts", "--pack-destination", packDir, "--loglevel", "error"],
+      { cwd: REPO_ROOT, encoding: "utf8", shell: false, timeout: SLOW },
+    );
+    expect(packed.status, `${packed.stdout ?? ""}${packed.stderr ?? ""}`).toBe(0);
+
+    // Located by reading the directory, not by parsing the name off stdout, for the same reason.
+    const archives = readdirSync(packDir).filter((name) => name.endsWith(".tgz"));
+    expect(archives, `npm pack wrote no tarball into ${packDir}`).toHaveLength(1);
+
+    const listed = spawnSync("tar", ["-tzf", join(packDir, archives[0] ?? "")], {
       encoding: "utf8",
       shell: false,
       timeout: SLOW,
     });
-    expect(packed.status, `${packed.stdout ?? ""}${packed.stderr ?? ""}`).toBe(0);
+    expect(listed.status, `${listed.stdout ?? ""}${listed.stderr ?? ""}`).toBe(0);
 
-    // Named rather than left to a raw SyntaxError: if some future tool prepends chatter again, the
-    // failure has to say what it read, or the next reader debugs a parser instead of a packer.
-    const stdout = (packed.stdout ?? "").trim();
-    expect(
-      stdout.slice(0, 1),
-      `npm pack did not print JSON; stdout began: ${stdout.slice(0, 120)}`,
-    ).toBe("[");
-
-    const parsed: unknown = JSON.parse(stdout);
-    if (!isUnknownArray(parsed)) throw new Error("npm pack did not report a list of packages");
-    const first: unknown = parsed[0];
-    if (typeof first !== "object" || first === null)
-      throw new Error("npm pack reported no package");
-    const entry: Record<string, unknown> = { ...first };
-    const files = entry["files"];
-    if (!isUnknownArray(files)) throw new Error("npm pack reported no file list");
-
-    const paths = files.map((file): string => {
-      if (typeof file !== "object" || file === null)
-        throw new Error("npm pack file entry is not an object");
-      const record: Record<string, unknown> = { ...file };
-      const path = record["path"];
-      if (typeof path !== "string") throw new Error("npm pack file entry has no path");
-      return path;
-    });
+    // Every entry npm writes sits under `package/`. Directory entries are dropped: a tarball may or
+    // may not carry them, and what this case is about is files a consumer receives.
+    const paths = (listed.stdout ?? "")
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.startsWith("package/") && !line.endsWith("/"))
+      .map((line) => line.slice("package/".length))
+      .sort();
 
     // A floor first, so an empty or unreadable listing can never satisfy the exclusions vacuously.
     expect(paths).toContain("package.json");
