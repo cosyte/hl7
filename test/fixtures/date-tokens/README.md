@@ -26,6 +26,20 @@ the format is refused at definition time before any input is seen, and
 must FAIL a runner rather than be skipped**: a corpus that silently skips what
 it does not understand proves nothing.
 
+## One obligation this file cannot state
+
+Three of the grammar's rules (the two pairing rules and the adjacency rule)
+hold at **match time** as well as at definition time: an input matched against
+a format that breaks one of them reports no match rather than a value. This
+file cannot carry that, because a `no-match` case here is a **well-formed**
+format and a format breaking one of those three is not well formed, so it can
+only appear here as a `reject-format` case. Passing every case in this corpus
+therefore does not prove a parser enforces those three at match time. The
+grammar page states that obligation, under `## Matching an input`, and it
+matters because a route that skips definition-time validation (this package's
+per-parse `dateFormats` option is one) would otherwise answer `2:30` under
+`h:mm` with hour 2 for a feed that meant 14:30.
+
 ## What is deliberately absent
 
 - **No two-digit-year token.** No century window is applied, so a two-digit

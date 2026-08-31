@@ -103,6 +103,22 @@ All five are checked **at profile definition time**, when `defineProfile()`
 runs, so a format that cannot be honoured throws where you wrote it instead of
 sitting in the list quietly matching nothing.
 
+Definition time is not the only place they bind. **Rules 2, 3 and 4 bind the
+matcher as well**, and a format breaking one of them reports **no match**
+whichever route it arrived by, including the per-parse `dateFormats` option
+that nothing validates. Each of the three describes a value a parser could
+otherwise answer with a confident wrong reading: an hour that is not a clock
+hour, a fraction with no second to hang it on, a digit run with two equally
+correct splits. Enforcing them only where the format is written would leave the
+unvalidated route free to produce exactly that, so a parser adopting this
+grammar implements those three in **both** places.
+
+**Rules 1 and 5 are definition-time only.** They are about the format's text
+rather than about a value, and the matcher is deliberately more tolerant there:
+a character it does not recognise is matched verbatim, so a format supplied
+through the parse options keeps the behaviour it had. Their purpose is to tell
+the author, where the format is written, that it will not read what they meant.
+
 ### 1. Every letter and digit belongs to a token or an escape
 
 `MM/DD/YYYY hrs` is refused, naming the offending character. So is `YYY/MM`,
@@ -116,10 +132,21 @@ refused. A meridiem beside a 24-hour clock has nothing to convert, so
 `HH:mm A` is refused too. Use `H`/`HH` for a 24-hour clock and `h`/`hh` with
 `A` for a 12-hour one.
 
+This rule binds the **matcher** as well. An input matched against a format
+carrying only one half of the pair reports **no match** rather than an hour:
+`2:30` under `h:mm` is not hour 2, because the feed that wrote it may have
+meant 14:30, and `14:30 PM` under `HH:mm A` is not hour 14 either. A format may
+carry a 24-hour token and a 12-hour pair together, and then the two readings
+must agree once the meridiem is applied, or the input reports no match.
+
 ### 3. `SSSS` requires `ss`
 
 A fraction is only meaningful at full second precision, which is the same rule
 the strict parser applies to an HL7 value.
+
+This rule binds the **matcher** as well: `1988-07-05 14:30.5` under
+`YYYY-MM-DD HH:mm.SSSS` reports **no match**, rather than a value carrying a
+fraction of a minute.
 
 ### 4. Two numeric tokens may not sit adjacent when either is variable width
 
@@ -143,14 +170,12 @@ import { defineProfile } from "@cosyte/hl7";
 defineProfile({ name: "ambiguous", dateFormats: ["M[]D/YYYY"] });
 ```
 
-This is the one rule that also binds the **matcher**, and it is the only rule
-that does. The others describe a format nobody can honour, so refusing it where
-it is written is enough; this one describes a value with two equally correct
-readings, and a parser that answers with one of them has produced a confident
-wrong date. So a format breaking this rule reports **no match**, whichever
-route it arrived by, including the unvalidated per-parse `dateFormats` option.
-An empty escape anywhere else is simply invisible: `YYYY[]-MM-DD` reads
-`1988-07-05` exactly as `YYYY-MM-DD` does.
+Like rules 2 and 3, this one binds the **matcher** too. A digit run nothing can
+split has no honest answer, and a parser that picks one of its two readings has
+produced a confident wrong date. So a format breaking this rule reports **no
+match**, whichever route it arrived by, including the unvalidated per-parse
+`dateFormats` option. An empty escape anywhere else is simply invisible:
+`YYYY[]-MM-DD` reads `1988-07-05` exactly as `YYYY-MM-DD` does.
 
 ### 5. A format must carry at least one token
 
@@ -163,9 +188,23 @@ An empty format, or one made only of separators, matches nothing.
   reads `7/5/1988` and `12/25/1988` with the same format string.
 - The **whole** input must be consumed. A value that ends early, or that
   carries trailing characters, is no match.
+- A format carrying a 12-hour token with no meridiem token, or a meridiem token
+  with no 12-hour token (rule 2), is no match, rather than an hour the meridiem
+  was never applied to. A format carrying both a 24-hour token and a 12-hour
+  pair is no match unless the two readings agree after the conversion.
+- A format carrying `SSSS` with no `ss` (rule 3) is no match, rather than a
+  fraction of a minute.
 - A format whose numeric tokens meet with nothing between them (rule 4) is no
   match, rather than one of the readings its digit run allows.
 - No match ever raises. It reports no match, and no parts are produced from it.
+
+The three bullets naming rules 2, 3 and 4 are those rules holding at match time
+as well as at definition time, and that is the half of the grammar the corpus
+cannot carry for you: a `no-match` case there is a **well-formed** format, and
+a format breaking one of these three is not well formed, so it can only appear
+in the corpus as a `reject-format` case. A parser that implements them at
+definition time only answers `2:30` under `h:mm` with hour 2 and passes every
+corpus case while doing it. This page is where that obligation is written.
 
 ```ts runnable
 import { parseHL7 } from "@cosyte/hl7";

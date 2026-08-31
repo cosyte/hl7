@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -591,6 +593,14 @@ describe("parser/dates: the matcher never throws and never guesses", () => {
     expect(matchDateFormat("1988-07-05 14:30.5", "YYYY-MM-DD HH:mm.SSSS")).toBeUndefined();
   });
 
+  it("refuses a 24-hour reading and a 12-hour reading that disagree", () => {
+    // A format may carry both, and the pairing rule alone does not refuse it.
+    // Two clock readings of one value that do not agree have no honest answer,
+    // so the input reports no match rather than one of them.
+    expect(matchDateFormat("14:30 2:30 PM", "HH:mm h:mm A")).toMatchObject({ hour: 14 });
+    expect(matchDateFormat("15:30 2:30 PM", "HH:mm h:mm A")).toBeUndefined();
+  });
+
   it("terminates promptly on a format built to force backtracking", () => {
     // Twelve variable-width tokens, each separated from the next by a literal
     // that is itself a digit, so the format is well formed (the tokens are not
@@ -635,6 +645,57 @@ describe("parser/dates: the matcher never throws and never guesses", () => {
       month: 7,
       day: 5,
     });
+  });
+});
+
+describe("parser/dates: the grammar document states the rules that bind the matcher", () => {
+  // The document is normative for the other parsers in this family, and the
+  // one part of the grammar it is the SOLE carrier of is which rules hold at
+  // MATCH time as well as at definition time. The corpus structurally cannot
+  // carry that: a corpus `no-match` case is a well-formed format, and a format
+  // breaking one of these three is not well formed, so it can only appear
+  // there as a `reject-format` case. A sibling that implements them at
+  // definition time only answers "2:30" under "h:mm" with hour 2 and passes
+  // every corpus case while doing it. So the prose is pinned here, against the
+  // matcher it describes. `docs-content.test.ts` executes the page's runnable
+  // blocks; nothing but this pins its claims about no-match behaviour, which
+  // no runnable block can express.
+  const grammarDoc = readFileSync(
+    new URL("../docs-content/date-token-grammar.md", import.meta.url),
+    "utf-8",
+  );
+
+  /**
+   * The prose directly under `## Matching an input`, stopping at the first
+   * sub-heading: that list is what a sibling parser implements.
+   */
+  const matchTimeList = ((): string => {
+    const heading = "## Matching an input";
+    const start = grammarDoc.indexOf(heading);
+    expect(start).toBeGreaterThan(-1);
+    const rest = grammarDoc.slice(start + heading.length);
+    const ends = [rest.indexOf("\n## "), rest.indexOf("\n### ")].filter((i) => i !== -1);
+    return rest.slice(0, ends.length > 0 ? Math.min(...ends) : rest.length);
+  })();
+
+  it("names the unpaired 12-hour token or meridiem that reports no match", () => {
+    expect(matchDateFormat("2:30", "h:mm")).toBeUndefined();
+    expect(matchDateFormat("14:30 PM", "HH:mm A")).toBeUndefined();
+    expect(matchTimeList).toContain("meridiem");
+  });
+
+  it("names the fraction with no seconds that reports no match", () => {
+    expect(matchDateFormat("1988-07-05 14:30.5", "YYYY-MM-DD HH:mm.SSSS")).toBeUndefined();
+    expect(matchTimeList).toContain("SSSS");
+  });
+
+  it("names the unsplittable digit run that reports no match", () => {
+    expect(matchDateFormat("1231988", "MDYYYY")).toBeUndefined();
+    expect(matchTimeList).toContain("rule 4");
+  });
+
+  it("does not tell a sibling parser that one rule alone binds the matcher", () => {
+    expect(grammarDoc).not.toMatch(/only rule that/u);
   });
 });
 
