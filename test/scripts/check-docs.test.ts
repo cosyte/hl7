@@ -39,9 +39,14 @@ const REAL_DOCS = join(REPO_ROOT, "docs-content");
 const V = {
   ssn: ["123", "45", "6789"].join("-"),
   phone: ["617", "867", "5309"].join("-"),
+  longDistancePhone: ["1", "617", "867", "5309"].join("-"),
+  plusOnePhone: `+${["1", "617", "867", "5309"].join("-")}`,
   safePhone: ["617", "555", "0100"].join("-"),
+  safeLongDistancePhone: ["1", "617", "555", "0100"].join("-"),
   email: ["records", "@", "clinic", "-example", ".", "invalid"].join(""),
   safeEmail: ["records", "@", "example", ".", "com"].join(""),
+  /** An HL7 DTM to hour precision: ten unbroken digits, and not a telephone number. */
+  dtm: "2026010112",
 } as const;
 
 interface RunResult {
@@ -155,6 +160,68 @@ describe("frontmatter refusals", () => {
     expect(r.output).not.toContain("no YAML frontmatter block");
   });
 
+  /**
+   * The reader is an allow-list, so the cases that matter are blocks a real YAML parser REJECTS.
+   * Each of these is a shape js-yaml refuses; accepting one would ship a bundle the site cannot
+   * render while this gate called it clean. `title` is quoted on every spec-notes page here for
+   * exactly the first reason.
+   */
+  const UNPARSEABLE: readonly (readonly [string, string, string, string])[] = [
+    [
+      "an unquoted plain scalar carrying a colon and a space",
+      "intro.md",
+      "title: Getting started",
+      "title: Getting started: a tour",
+    ],
+    ["an unterminated flow sequence", "quickstart.md", "title: Quickstart", "title: [Quickstart"],
+    ["an unterminated flow mapping", "installation.md", "title: Installation", "title: {a: b"],
+    [
+      "a reserved indicator opening a plain scalar",
+      "benchmarks.md",
+      "title: Benchmarks & performance",
+      "title: @Benchmarks",
+    ],
+    [
+      "an alias to an anchor nothing defines",
+      "troubleshooting.md",
+      "title: Troubleshooting",
+      "title: *nowhere",
+    ],
+    [
+      "a double-quoted value that is never closed",
+      "quickstart.md",
+      "title: Quickstart",
+      'title: "Quickstart',
+    ],
+    [
+      "a single-quoted value that is never closed",
+      "quickstart.md",
+      "title: Quickstart",
+      "title: 'Quickstart",
+    ],
+  ];
+
+  for (const [label, file, from, to] of UNPARSEABLE) {
+    it(`refuses ${label}, naming the file`, () => {
+      const docs = newTree();
+      rewrite(docs, file, from, to);
+      const r = run(docs);
+      expect(r.code).not.toBe(0);
+      expect(r.output).toContain(file);
+      expect(r.output).toContain("not parseable YAML");
+      expect(r.output).not.toContain("no YAML frontmatter block");
+    });
+  }
+
+  it("still accepts the quoted and plain values the delivered pages use", () => {
+    const docs = newTree();
+    rewrite(docs, "intro.md", "title: Getting started", 'title: "Getting started: a tour"');
+    rewrite(docs, "quickstart.md", "title: Quickstart", "title: Quickstart (v2.x)");
+    const r = run(docs);
+    expect(r.output).toContain("check-docs: OK");
+    expect(r.code).toBe(0);
+  });
+
   it("refuses a stray sidebar_position, naming the file", () => {
     const docs = newTree();
     rewrite(
@@ -206,6 +273,80 @@ describe("link refusals", () => {
     expect(r.code).not.toBe(0);
     expect(r.output).toContain("quickstart.md");
     expect(r.output).toContain("resolves to no page");
+  });
+
+  /**
+   * Prose here wraps at the column limit, so a link's TEXT routinely straddles a line break:
+   * `guides-overview.md` already carries one. A per-line scan sees no link on either half, which
+   * would hide an extensionless or dangling target from every rule above.
+   */
+  it("refuses an extensionless link whose text wraps across a line break", () => {
+    const docs = newTree();
+    rewrite(
+      docs,
+      "quickstart.md",
+      "[Guides](./guides-overview.md)",
+      "[The\nGuides](./guides-overview)",
+    );
+    const r = run(docs);
+    expect(r.code).not.toBe(0);
+    expect(r.output).toContain("quickstart.md");
+    expect(r.output).toContain("[The Guides](./guides-overview)");
+  });
+
+  it("refuses a dangling link whose text wraps across a line break", () => {
+    const docs = newTree();
+    rewrite(
+      docs,
+      "quickstart.md",
+      "[Guides](./guides-overview.md)",
+      "[The\nGuides](./guides-gone.md)",
+    );
+    const r = run(docs);
+    expect(r.code).not.toBe(0);
+    expect(r.output).toContain("quickstart.md");
+    expect(r.output).toContain("resolves to no page");
+  });
+
+  it("reports the line the wrapped link opens on, not the line its target sits on", () => {
+    const docs = newTree();
+    rewrite(
+      docs,
+      "quickstart.md",
+      "[Guides](./guides-overview.md)",
+      "[The\nGuides](./guides-overview)",
+    );
+    const opensOn =
+      page(docs, "quickstart.md")
+        .split("\n")
+        .findIndex((l) => l.includes("[The")) + 1;
+    expect(opensOn).toBeGreaterThan(0);
+    const r = run(docs);
+    expect(r.output).toContain(`quickstart.md:${String(opensOn)}:`);
+  });
+
+  it("leaves an image alone but still refuses a real link to the same asset", () => {
+    const withImage = newTree();
+    rewrite(
+      withImage,
+      "quickstart.md",
+      "[Guides](./guides-overview.md)",
+      "![A diagram](./diagram.png)",
+    );
+    const image = run(withImage);
+    expect(image.output).toContain("check-docs: OK");
+    expect(image.code).toBe(0);
+
+    const withLink = newTree();
+    rewrite(
+      withLink,
+      "quickstart.md",
+      "[Guides](./guides-overview.md)",
+      "[A diagram](./diagram.png)",
+    );
+    const link = run(withLink);
+    expect(link.code).not.toBe(0);
+    expect(link.output).toContain("./diagram.png");
   });
 });
 
@@ -273,6 +414,21 @@ describe("code contract refusals", () => {
     expect(r.output).toContain("per-code meanings");
     expect(r.output).toContain("./spec-notes-primer.md");
   });
+
+  /** The original defect, reintroduced with the link text wrapped. It must still be caught. */
+  it("refuses a per-code pointer to another page when the link text wraps", () => {
+    const docs = newTree();
+    rewrite(
+      docs,
+      "troubleshooting.md",
+      "[Warning and fatal codes](./warning-and-fatal-codes.md) for what each one\nmeans.",
+      "[Warning and fatal codes](./warning-and-fatal-codes.md).\n\nSee [Core\nConcepts](./spec-notes-primer.md) for what each one means.",
+    );
+    const r = run(docs);
+    expect(r.code).not.toBe(0);
+    expect(r.output).toContain("per-code meanings");
+    expect(r.output).toContain("./spec-notes-primer.md");
+  });
 });
 
 describe("sample-data floor", () => {
@@ -312,6 +468,47 @@ describe("sample-data floor", () => {
     expect(r.code).not.toBe(0);
     expect(r.output).toMatch(/quickstart\.md:\d+:/);
     expect(r.output).toContain("email address outside");
+  });
+
+  /**
+   * `1-NPA-NXX-XXXX` is the ordinary way a ten-digit US number is written with its long-distance
+   * prefix. A lookaround that excluded a neighbouring hyphen would see the number without the `1-`
+   * and miss it with, which is the whole number published rather than half of it. This bundle is
+   * shipped in the release tarball and rendered on a public site, and `pnpm phi-scan` does not read
+   * markdown, so this floor is the only gate in front of it.
+   */
+  it("refuses a telephone number written with its leading 1, printing file and line", () => {
+    const docs = newTree();
+    const r = withSample(docs, `PID|1||MRN12345^^^HOSP^MR||Doe^John|||||||${V.longDistancePhone}`);
+    expect(r.code).not.toBe(0);
+    expect(r.output).toMatch(/quickstart\.md:\d+:/);
+    expect(r.output).toContain("exchange is not 555");
+  });
+
+  it("refuses a telephone number written +1, printing file and line", () => {
+    const docs = newTree();
+    const r = withSample(docs, `PID|1||MRN12345^^^HOSP^MR||Doe^John|||||||${V.plusOnePhone}`);
+    expect(r.code).not.toBe(0);
+    expect(r.output).toMatch(/quickstart\.md:\d+:/);
+    expect(r.output).toContain("exchange is not 555");
+  });
+
+  it("still accepts the reserved exchange when it carries a leading 1", () => {
+    const docs = newTree();
+    const r = withSample(
+      docs,
+      `PID|1||MRN12345^^^HOSP^MR||Doe^John|||||||${V.safeLongDistancePhone}`,
+    );
+    expect(r.output).toContain("check-docs: OK");
+    expect(r.code).toBe(0);
+  });
+
+  /** Ten unbroken digits are a DTM to hour precision, not a phone number. */
+  it("does not read a separator-free DTM as a telephone number", () => {
+    const docs = newTree();
+    const r = withSample(docs, `OBR|1|||||${V.dtm}|${V.dtm}0000`);
+    expect(r.output).toContain("check-docs: OK");
+    expect(r.code).toBe(0);
   });
 
   it("accepts the reserved 555 exchange and the example domains", () => {

@@ -21,7 +21,8 @@
  *   4. SIDEBAR         every page reachable exactly once from `sidebars.json`, and every id in that
  *                      file backed by a page.
  *   5. LINKS           every internal link written `./<basename>.md`, optionally anchored, and
- *                      resolving to a page that exists.
+ *                      resolving to a page that exists. Scanned whole-file, because a link's text
+ *                      wraps across lines; images are not links to a page and are left alone.
  *   6. CODE CONTRACT   exactly one page carries all of `WARNING_CODES` and `FATAL_CODES`, each with
  *                      real prose beside it, and that page invents no code the source does not
  *                      define. `troubleshooting.md` points per-code questions at that page and at
@@ -115,13 +116,31 @@ function parseOptions(argv: readonly string[]): {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Frontmatter. A YAML dependency is not available (this package ships zero runtime dependencies
-// and adding a dev one is its own reviewed change), so this accepts the flat `key: value` subset
-// these pages actually use and REFUSES everything else as unparseable. Refusing a valid but exotic
-// block is the safe direction for a gate: it reports the file rather than passing it, which is what
-// the contract asks for. Silently treating a malformed block as "no frontmatter" is the failure
-// mode being avoided, because that reads as a missing-keys error and sends the reader to the wrong
-// place.
+// Frontmatter. A YAML parser is not available here: this package ships zero runtime dependencies,
+// and adding a dev one is its own reviewed change rather than a rider on a docs gate.
+//
+// So this reader is an ALLOW-LIST, not a best-effort parse. It admits exactly the flat
+// `key: <scalar>` shapes whose YAML meaning is unambiguous, and everything else is reported as
+// unparseable, by path, at a non-zero exit. That direction is the whole point. A block this refuses
+// but YAML would accept costs a page author one pair of quotes; a block this accepted but YAML
+// rejects would ship a bundle the site cannot render, with the gate calling it clean.
+//
+// Concretely, a value is one of:
+//
+//   - empty                (YAML null)
+//   - "double quoted"      with no interior quote and no backslash escape
+//   - 'single quoted'      with no interior quote
+//   - a plain scalar       that opens with a non-indicator character and carries no `: `, no
+//                          ` #` and no trailing `:`
+//
+// The plain-scalar rules are not decoration. `title: Spec notes: NTE` unquoted is a YAML error,
+// which is why every spec-notes page here quotes its title; `[`, `{`, `*`, `&`, `@`, `|`, `>` and
+// friends open a flow collection, an alias, an anchor, a reserved word or a block scalar, none of
+// which this reader models. Refusing them is how it stays an allow-list.
+//
+// Silently treating a malformed block as "no frontmatter" is the other failure mode being avoided:
+// it reads as a missing-keys error and sends the reader to the wrong place. Hence three outcomes,
+// not two.
 // ---------------------------------------------------------------------------------------------
 
 type Frontmatter =
@@ -129,18 +148,48 @@ type Frontmatter =
   | { readonly kind: "absent" }
   | { readonly kind: "unparseable"; readonly reason: string };
 
-function unquote(raw: string): string | null {
+/** YAML indicator characters. None of them may open a plain scalar this reader will accept. */
+const PLAIN_OPENER_INDICATOR = /^[-?:,[\]{}#&*!|>'"%@`]/;
+
+type ScalarRead = { readonly value: string } | { readonly fault: string };
+
+function readScalar(raw: string): ScalarRead {
   const value = raw.trim();
-  if (value.length >= 2 && value.startsWith('"') && value.endsWith('"')) {
+  if (value === "") return { value: "" };
+
+  if (value.startsWith('"')) {
+    if (value.length < 2 || !value.endsWith('"')) {
+      return { fault: "a double-quoted value is never closed" };
+    }
     const inner = value.slice(1, -1);
-    return inner.includes('"') ? null : inner;
+    if (inner.includes('"')) return { fault: "a double-quoted value has an interior quote" };
+    if (inner.includes("\\")) return { fault: "a double-quoted value carries a backslash escape" };
+    return { value: inner };
   }
-  if (value.length >= 2 && value.startsWith("'") && value.endsWith("'")) {
+
+  if (value.startsWith("'")) {
+    if (value.length < 2 || !value.endsWith("'")) {
+      return { fault: "a single-quoted value is never closed" };
+    }
     const inner = value.slice(1, -1);
-    return inner.includes("'") ? null : inner;
+    if (inner.includes("'")) return { fault: "a single-quoted value has an interior quote" };
+    return { value: inner };
   }
-  if (value.startsWith('"') || value.startsWith("'")) return null;
-  return value;
+
+  const opener = PLAIN_OPENER_INDICATOR.exec(value);
+  if (opener !== null) {
+    return { fault: `an unquoted value opens with the YAML indicator "${opener[0]}"` };
+  }
+  if (value.includes(": ")) {
+    return { fault: 'an unquoted value contains ": ", which YAML reads as a nested mapping' };
+  }
+  if (value.endsWith(":")) {
+    return { fault: "an unquoted value ends with a colon" };
+  }
+  if (value.includes(" #")) {
+    return { fault: "an unquoted value contains what YAML reads as an inline comment" };
+  }
+  return { value };
 }
 
 function parseFrontmatter(text: string): Frontmatter {
@@ -180,11 +229,14 @@ function parseFrontmatter(text: string): Frontmatter {
     if (keys.has(key)) {
       return { kind: "unparseable", reason: `duplicate key "${key}"` };
     }
-    const value = unquote(line.slice(at + 1));
-    if (value === null) {
-      return { kind: "unparseable", reason: `value for "${key}" has unbalanced quoting` };
+    const scalar = readScalar(line.slice(at + 1));
+    if ("fault" in scalar) {
+      return {
+        kind: "unparseable",
+        reason: `line ${String(i + 1)}, the value for "${key}": ${scalar.fault}`,
+      };
     }
-    keys.set(key, value);
+    keys.set(key, scalar.value);
   }
   return { kind: "ok", keys };
 }
@@ -276,7 +328,19 @@ interface Link {
   readonly line: number;
 }
 
-const LINK_PATTERN = /\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
+/**
+ * A markdown inline link.
+ *
+ * `[^\]]*` spans newlines ON PURPOSE. Prose here wraps at the column limit, so a link's TEXT
+ * routinely straddles a line break, and a scan that walked one line at a time would see no link at
+ * all on either half. That is a hole, not a nicety: it is exactly where an extensionless or
+ * dangling target hides from every rule below. The target itself cannot wrap, so `[^)\s]+` still
+ * excludes whitespace.
+ *
+ * `(?<!!)` skips an image. `![alt](./diagram.png)` is not a link to a page, so demanding the
+ * `./<basename>.md` shape of its target would refuse the first asset anyone adds.
+ */
+const LINK_PATTERN = /(?<!!)\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
 
 /**
  * Links that leave the bundle. Everything else is treated as a link to another page here, which is
@@ -292,20 +356,30 @@ function isExternal(target: string): boolean {
   );
 }
 
+/** The 1-based line the offset sits on. */
+function lineOf(text: string, offset: number): number {
+  let line = 1;
+  for (let i = 0; i < offset; i += 1) {
+    if (text[i] === "\n") line += 1;
+  }
+  return line;
+}
+
 function internalLinks(text: string): Link[] {
   const found: Link[] = [];
-  const lines = text.split("\n");
-  for (let i = 0; i < lines.length; i += 1) {
-    const line = lines[i] ?? "";
-    LINK_PATTERN.lastIndex = 0;
-    let match = LINK_PATTERN.exec(line);
-    while (match !== null) {
-      const [, linkText, target] = match;
-      if (linkText !== undefined && target !== undefined && !isExternal(target)) {
-        found.push({ text: linkText, target, line: i + 1 });
-      }
-      match = LINK_PATTERN.exec(line);
+  LINK_PATTERN.lastIndex = 0;
+  let match = LINK_PATTERN.exec(text);
+  while (match !== null) {
+    const [, linkText, target] = match;
+    if (linkText !== undefined && target !== undefined && !isExternal(target)) {
+      found.push({
+        // Reported on one output line, so a wrapped text is folded back to single spaces.
+        text: linkText.replace(/\s+/g, " ").trim(),
+        target,
+        line: lineOf(text, match.index),
+      });
     }
+    match = LINK_PATTERN.exec(text);
   }
   return found;
 }
@@ -319,8 +393,16 @@ function internalLinks(text: string): Link[] {
 const SEGMENT_SHAPE = /(?<![A-Z0-9])[A-Z0-9]{3}\|/;
 const NINE_DIGIT_DASHED = /(?<!\d)\d{3}-\d{2}-\d{4}(?!\d)/;
 const PHONE_PARENS = /\((\d{3})\)\s?(\d{3})[-. ]?\d{4}(?!\d)/g;
-const PHONE_DASHED = /(?<![\d-])(\d{3})[-.](\d{3})[-.]\d{4}(?![\d-])/g;
-const PHONE_LOCAL = /(?<![\d.-])(\d{3})[-.](\d{4})(?![\d.-])/g;
+
+/**
+ * The lookarounds exclude a DIGIT and nothing else. Excluding a neighbouring separator too would
+ * blind these to `1-NPA-NXX-XXXX` and `+1-NPA-NXX-XXXX`, the ordinary way a ten-digit US number is
+ * written with its long-distance prefix, while still catching the same number without it. The
+ * digit exclusion is what it is for: an HL7 DTM to hour precision is ten unbroken digits, and a
+ * separator-free run must not read as a phone number.
+ */
+const PHONE_DASHED = /(?<!\d)(\d{3})[-.](\d{3})[-.]\d{4}(?!\d)/g;
+const PHONE_LOCAL = /(?<!\d)(\d{3})[-.](\d{4})(?!\d)/g;
 const EMAIL = /[A-Za-z0-9._%+-]+@([A-Za-z0-9.-]+\.[A-Za-z]{2,})/g;
 const ALLOWED_EMAIL_DOMAINS = new Set(["example.com", "example.org"]);
 const RESERVED_EXCHANGE = "555";
