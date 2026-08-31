@@ -103,12 +103,17 @@ function manifestVersion(root: string): string {
   return version;
 }
 
-/** `- key: \`value\`` on a line of its own, which is how the record states its header facts. */
+/**
+ * The record's header facts, which it states as `- key: \`value\`` lines. Read in one pass with a
+ * fixed pattern, never one assembled per key, for the same reason the row readers below do not
+ * assemble one per file name.
+ */
 function recordHeader(key: string): string {
   const text = readFileSync(RECORD_PATH, "utf8");
-  const match = new RegExp(String.raw`^- ${key}: \x60([^\x60]+)\x60\s*$`, "m").exec(text);
-  if (match?.[1] === undefined) throw new Error(`the readiness record states no \`${key}\``);
-  return match[1];
+  for (const match of text.matchAll(/^- ([a-z]+): \x60([^\x60]+)\x60[ \t]*$/gm)) {
+    if (match[1] === key && match[2] !== undefined) return match[2];
+  }
+  throw new Error(`the readiness record states no \`${key}\``);
 }
 
 const RECORD_FROM = recordHeader("from");
@@ -247,14 +252,19 @@ describe("the pending queue in this checkout", () => {
       expect(run.output).toContain("OK: ready to release");
       expect(run.status).toBe(0);
 
+      // The file name AND the bump it declares, on one line, for every file without exception.
+      // Parsed ONCE with a fixed pattern and compared as a map, rather than building a pattern per
+      // file name: interpolating a name into a regex means escaping it, and an escape that handles
+      // only the dot is the incomplete-sanitization defect in miniature.
+      const reported = new Map<string, string>();
+      for (const line of run.output.split("\n")) {
+        const match = /^\s+(\S+\.md)\s+(patch|minor|major)$/.exec(line);
+        if (match?.[1] !== undefined && match[2] !== undefined) reported.set(match[1], match[2]);
+      }
+
       const files = pendingFiles(REPO_ROOT);
       expect(files.length).toBeGreaterThan(0);
-      for (const file of files) {
-        // The file name AND the bump it declares, on one line, for every file without exception.
-        expect(run.output).toMatch(
-          new RegExp(`^\\s+${file.replace(/\./g, "\\.")}\\s+(patch|minor|major)$`, "m"),
-        );
-      }
+      expect([...reported.keys()].sort()).toEqual(files);
       expect(run.output).not.toContain("DEFECT");
     },
   );
@@ -526,14 +536,18 @@ describe("the committed readiness record", () => {
       expect(atLeast(manifestVersion(REPO_ROOT), RECORD_TARGET)).toBe(true);
       return;
     }
+    // Read every classified row once with a fixed pattern, then compare as sets. Same reasoning as
+    // above: a pattern built per file name would have to escape that name completely, and this
+    // needs no pattern building at all. A row only counts when its justification cell is non-empty.
     const text = readFileSync(RECORD_PATH, "utf8");
-    for (const file of pendingFiles(REPO_ROOT)) {
-      const row = new RegExp(
-        String.raw`^\|\s*\x60${file.replace(/\./g, "\\.")}\x60\s*\|\s*\x60(patch|minor|major)\x60\s*\|\s*\S.*\|\s*$`,
-        "m",
-      );
-      expect(text, `the record does not classify ${file}`).toMatch(row);
+    const rowPattern =
+      /^\|\s*\x60(\S+\.md)\x60\s*\|\s*\x60(patch|minor|major)\x60\s*\|\s*\S[^|]*\|\s*$/gm;
+    const classified = new Map<string, string>();
+    for (const match of text.matchAll(rowPattern)) {
+      if (match[1] !== undefined && match[2] !== undefined) classified.set(match[1], match[2]);
     }
+
+    expect([...classified.keys()].sort()).toEqual(pendingFiles(REPO_ROOT));
     expect(RECORD_FROM).toBe(manifestVersion(REPO_ROOT));
   });
 
@@ -556,7 +570,17 @@ describe("the publishable tarball", () => {
   it("excludes the readiness record and the public-export inventory", { timeout: SLOW }, () => {
     // Asked of the packer, not derived from `files`. `files` is editable, and an edit to it is
     // exactly what this case exists to catch.
-    const packed = spawnSync("npm", ["pack", "--dry-run", "--json"], {
+    //
+    // `--ignore-scripts` IS LOAD-BEARING, and it was measured rather than assumed. `npm pack` runs
+    // the `prepare` lifecycle script, which here is `simple-git-hooks`, and that prints
+    // `[INFO] Successfully set the pre-commit ...` to STDOUT ahead of the JSON document. So
+    // `--json` output is only a JSON document on a machine where lifecycle scripts happen to be
+    // off, which is a machine-shaped dependency in a gate, and it took a CI run to show it. Nothing
+    // in this repo's `prepack`/`prepare` chain contributes a file to the tarball, and this case
+    // reads the file LIST, so refusing the scripts costs the measurement nothing and buys it a
+    // result that does not depend on whose npm config is in force. It also stops a test from
+    // rewriting the developer's git hooks as a side effect.
+    const packed = spawnSync("npm", ["pack", "--dry-run", "--json", "--ignore-scripts"], {
       cwd: REPO_ROOT,
       encoding: "utf8",
       shell: false,
@@ -564,7 +588,15 @@ describe("the publishable tarball", () => {
     });
     expect(packed.status, `${packed.stdout ?? ""}${packed.stderr ?? ""}`).toBe(0);
 
-    const parsed: unknown = JSON.parse(packed.stdout);
+    // Named rather than left to a raw SyntaxError: if some future tool prepends chatter again, the
+    // failure has to say what it read, or the next reader debugs a parser instead of a packer.
+    const stdout = (packed.stdout ?? "").trim();
+    expect(
+      stdout.slice(0, 1),
+      `npm pack did not print JSON; stdout began: ${stdout.slice(0, 120)}`,
+    ).toBe("[");
+
+    const parsed: unknown = JSON.parse(stdout);
     if (!isUnknownArray(parsed)) throw new Error("npm pack did not report a list of packages");
     const first: unknown = parsed[0];
     if (typeof first !== "object" || first === null)

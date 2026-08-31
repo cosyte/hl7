@@ -222,10 +222,19 @@ function readPending(root: string, packageName: string): PendingChangeset[] {
 /* The readiness record                                                                           */
 /* -------------------------------------------------------------------------------------------- */
 
-/** `- key: \`value\`` on a line of its own, which is how the record states its header facts. */
-function headerValue(text: string, key: string): string | undefined {
-  const match = new RegExp(String.raw`^- ${key}: \x60([^\x60]+)\x60\s*$`, "m").exec(text);
-  return match?.[1];
+/**
+ * The record's header facts, which it states as `- key: \`value\`` lines.
+ *
+ * Read in one pass with a fixed pattern rather than one built per key. Nothing here is untrusted
+ * today, but a regex assembled from a variable is a regex somebody escapes incompletely later, and
+ * this needs no assembly at all.
+ */
+function headerValues(text: string): Map<string, string> {
+  const values = new Map<string, string>();
+  for (const match of text.matchAll(/^- ([a-z]+): \x60([^\x60]+)\x60[ \t]*$/gm)) {
+    if (match[1] !== undefined && match[2] !== undefined) values.set(match[1], match[2]);
+  }
+  return values;
 }
 
 function readRecord(root: string, recordPath: string): ReadinessRecord {
@@ -239,9 +248,10 @@ function readRecord(root: string, recordPath: string): ReadinessRecord {
     );
   }
 
-  const packageName = headerValue(text, "package");
-  const from = headerValue(text, "from");
-  const target = headerValue(text, "target");
+  const header = headerValues(text);
+  const packageName = header.get("package");
+  const from = header.get("from");
+  const target = header.get("target");
   if (packageName === undefined || from === undefined || target === undefined) {
     throw new RefusalError(
       `the readiness record at ${path} must state \`- package: \`…\`\`, \`- from: \`…\`\` and ` +
