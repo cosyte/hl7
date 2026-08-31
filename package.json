@@ -76,6 +76,7 @@
     "lint:fix": "eslint \"src/**/*.ts\" \"scripts/**/*.ts\" \"test/**/*.ts\" --fix --no-error-on-unmatched-pattern",
     "format": "prettier --write \"src/**/*.{ts,md}\" \"test/**/*.ts\" \"scripts/**/*.{ts,mjs}\" \"*.{json,md,yml}\"",
     "format:check": "prettier --check \"src/**/*.{ts,md}\" \"test/**/*.ts\" \"scripts/**/*.{ts,mjs}\" \"*.{json,md,yml}\"",
+    "check:docs": "tsx scripts/check-docs.ts",
     "check:no-emdash": "bash scripts/check-no-emdash.sh",
     "check:no-internal-refs": "bash scripts/check-no-internal-refs.sh",
     "test": "vitest run",

@@ -2,6 +2,7 @@
 id: spec-notes-coding-system
 title: "Spec notes: coding-system provenance"
 sidebar_label: Coding-system provenance
+description: "How the library reports the coding system a code claims, drawn from HL7 Table 0396. Provenance only: no validation, no lookup, no network, no codesets."
 ---
 
 # Spec notes: coding-system provenance

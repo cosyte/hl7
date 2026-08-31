@@ -2,6 +2,7 @@
 id: spec-notes-datetime-precision
 title: "Spec notes: datetime precision & timezone fidelity"
 sidebar_label: Datetime precision & timezone
+description: "How a DTM value keeps its precision and timezone instead of collapsing into a Date, and why an order-ambiguous slash date is refused rather than guessed."
 ---
 
 # Spec notes: datetime precision + timezone fidelity

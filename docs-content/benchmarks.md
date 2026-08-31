@@ -1,3 +1,10 @@
+---
+id: benchmarks
+title: Benchmarks & performance
+sidebar_label: Benchmarks & performance
+description: "Parse throughput, per-message memory and streaming peak memory, plus the ratio-based CI guard that fails when a change degrades any of them."
+---
+
 # Benchmarks & performance
 
 `@cosyte/hl7` is the reference cosyte parser, and interface-engine adoption asks a fair question:

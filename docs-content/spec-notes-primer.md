@@ -2,6 +2,7 @@
 id: spec-notes-primer
 title: "Spec notes: HL7 v2.x standard reference (parser-builder's primer)"
 sidebar_label: v2.x standard reference
+description: "What the HL7 v2.x standard itself says about encoding, grammar, message typing, acknowledgement and the composite data types a parser has to decode."
 ---
 
 # Spec notes: the HL7 v2.x standard, for someone building a parser

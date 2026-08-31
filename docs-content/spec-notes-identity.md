@@ -2,6 +2,7 @@
 id: spec-notes-identity
 title: "Spec notes: patient-identity / merge events"
 sidebar_label: Patient-identity & merge events
+description: "How identityEvents surfaces ADT merge and move triggers with both sides labelled by role, so a consumer can never accidentally retire the survivor."
 ---
 
 # Spec notes: patient-identity / merge events

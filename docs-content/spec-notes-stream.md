@@ -2,6 +2,7 @@
 id: spec-notes-stream
 title: "Spec notes: streaming / incremental parse"
 sidebar_label: Streaming large files
+description: "How parseStream consumes a chunked HL7 v2 source and yields one message per MSH boundary, holding one message of state rather than the whole stream."
 ---
 
 # Spec notes: streaming / incremental parse
