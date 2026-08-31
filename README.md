@@ -49,7 +49,9 @@ HL7 v2 is the format hospital systems actually speak, and reading one field out 
 
 `0.1.0`. The public API is settled and safe to depend on: the exported functions, the message and helper surfaces, and the 20 stable warning codes are what the version claims, and renaming a warning code counts as a breaking change here.
 
-Still moving, and named in [Roadmap](#roadmap) below: typed message overlays that narrow a message to its type, schema-aware structural validation of segment ordering and cardinality, a streaming parser for multi-GB batch files, and JSON Schema emission from `toJSON()`. Nothing in that list is exported yet, so nothing in it is covered by the stability claim above.
+Still moving, and named in [Roadmap](#roadmap) below: typed message overlays that narrow a message to its type, an opt-in structural validator that enforces segment ordering and cardinality against the HL7 spec, a `createHL7Stream()` iterable for multi-GB batch processing, and JSON Schema emission from `toJSON()`. Nothing in that list is exported yet, so nothing in it is covered by the stability claim above.
+
+Two of those refine something that already ships. `parseStream` is already a streaming parser for multi-GB batch files, `validateAgainstProfile` already checks usage and cardinality against a conformance profile you author, and `msg.structure` already reports which segments the published HL7 structure for a trigger event requires and the message does not carry. All three ship today and are covered by the stability claim above. What is still moving is the iterable API over the first, and the spec-derived schema that would let the second run without a profile you wrote yourself.
 
 ---
 
@@ -990,6 +992,8 @@ Not in v1, but on the roadmap for v2:
 ## Contributing
 
 Vendor-quirk fixtures, profile improvements, and standalone profile packages are all welcome. The more real-world edge cases the test suite covers, the more robust the parser gets. Every published profile package is a signal of adoption and a contribution back.
+
+Ask on the issue tracker, [github.com/cosyte/hl7/issues](https://github.com/cosyte/hl7/issues): questions, bug reports and quirk sightings all start there, and so does any refactor large enough to want discussion before a PR.
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for dev setup, how to file an issue, and how to submit a PR.
 
