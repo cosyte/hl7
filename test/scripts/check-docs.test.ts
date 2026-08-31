@@ -291,7 +291,7 @@ describe("sample-data floor", () => {
     const docs = newTree();
     const r = withSample(docs, `PID|1||${V.ssn}^^^HOSP^SS||Doe^John`);
     expect(r.code).not.toBe(0);
-    expect(r.output).toContain("quickstart.md:");
+    expect(r.output).toMatch(/quickstart\.md:\d+:/);
     expect(r.output).toContain("nine-digit dashed identifier");
   });
 
@@ -299,7 +299,7 @@ describe("sample-data floor", () => {
     const docs = newTree();
     const r = withSample(docs, `PID|1||MRN12345^^^HOSP^MR||Doe^John|||||||${V.phone}`);
     expect(r.code).not.toBe(0);
-    expect(r.output).toContain("quickstart.md:");
+    expect(r.output).toMatch(/quickstart\.md:\d+:/);
     expect(r.output).toContain("exchange is not 555");
   });
 
@@ -310,7 +310,7 @@ describe("sample-data floor", () => {
       `PID|1||MRN12345^^^HOSP^MR||Doe^John|||||||^NET^Internet^${V.email}`,
     );
     expect(r.code).not.toBe(0);
-    expect(r.output).toContain("quickstart.md:");
+    expect(r.output).toMatch(/quickstart\.md:\d+:/);
     expect(r.output).toContain("email address outside");
   });
 
