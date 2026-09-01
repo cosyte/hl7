@@ -1,5 +1,5 @@
 ---
-"@cosyte/hl7": patch
+"@cosyte/hl7": minor
 ---
 
 Message-structure awareness is now DERIVED from HL7's published, machine-readable message structures instead of hand-transcribed, it recognizes 94 (message code, trigger event) pairs instead of 32, and every warning names the missing SEGMENT and traces to the publication it came from.

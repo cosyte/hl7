@@ -1,5 +1,5 @@
 ---
-"@cosyte/hl7": patch
+"@cosyte/hl7": minor
 ---
 
 Conformance profiles: a value set can now be bound to the coding system its codes must come from.

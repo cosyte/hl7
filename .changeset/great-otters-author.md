@@ -1,5 +1,5 @@
 ---
-"@cosyte/hl7": patch
+"@cosyte/hl7": minor
 ---
 
 Five new typed builders close the gap between what the library can READ and what it can AUTHOR: orders (`buildOrm`), scheduling (`buildSiu`), clinical documents (`buildMdm`), charges (`buildDft`) and immunizations (`buildVxu`), plus optional prior-identity content on the ADT typed init so merge, move and identifier-change events can be authored spec-clean.

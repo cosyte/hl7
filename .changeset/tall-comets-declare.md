@@ -1,5 +1,5 @@
 ---
-"@cosyte/hl7": patch
+"@cosyte/hl7": minor
 ---
 
 Conformance profiles: a declared conditional usage `C(a/b)`, the `B` indicator, and caller-supplied resolutions.
