@@ -21,8 +21,10 @@
  *   4. SIDEBAR         every page reachable exactly once from `sidebars.json`, and every id in that
  *                      file backed by a page.
  *   5. LINKS           every internal link written `./<basename>.md`, optionally anchored, and
- *                      resolving to a page that exists. Scanned whole-file, because a link's text
- *                      wraps across lines; images are not links to a page and are left alone.
+ *                      resolving to a page that exists, in all four CommonMark spellings. Scanned
+ *                      whole-file, because a link's text wraps across lines and a reference link's
+ *                      target is defined elsewhere on the page; images are not links to a page and
+ *                      are left alone.
  *   6. CODE CONTRACT   exactly one page carries all of `WARNING_CODES` and `FATAL_CODES`, each with
  *                      real prose beside it, and that page invents no code the source does not
  *                      define. `troubleshooting.md` points per-code questions at that page and at
@@ -64,9 +66,14 @@ const TROUBLESHOOTING_PAGE = "troubleshooting.md";
  */
 const NOT_A_CODE = new Set(["WARNING_CODES", "FATAL_CODES"]);
 
-/** A paragraph that sends a reader looking for per-code meanings somewhere. */
+/**
+ * A paragraph that sends a reader looking for per-code meanings somewhere. A finite phrase list is
+ * an approximation of a property of prose and cannot be complete; it is deliberately biased to
+ * match, because a paragraph wrongly flagged is one visible failure an author rewords, while one
+ * missed publishes a pointer at a page that answers nothing.
+ */
 const MEANING_POINTER =
-  /\bwhat each\b|\bwhat they mean\b|\bwhat it means\b|\bper-code\b|\bmeaning of (?:each|every)\b/i;
+  /\bwhat each\b|\bwhat they mean\b|\bwhat it means\b|\bper-code\b|\bmeanings? of\b/i;
 
 interface Violation {
   readonly rule: string;
@@ -125,7 +132,8 @@ function parseOptions(argv: readonly string[]): {
 // but YAML would accept costs a page author one pair of quotes; a block this accepted but YAML
 // rejects would ship a bundle the site cannot render, with the gate calling it clean.
 //
-// Concretely, a value is one of:
+// A line is a mapping entry only when its colon is followed by a space or ends the line, which is
+// what YAML requires of a block mapping key. Concretely, a value is one of:
 //
 //   - empty                (YAML null)
 //   - "double quoted"      with no interior quote and no backslash escape
@@ -221,6 +229,18 @@ function parseFrontmatter(text: string): Frontmatter {
     const at = line.indexOf(":");
     if (at <= 0) {
       return { kind: "unparseable", reason: `line ${String(i + 1)} is not a "key: value" pair` };
+    }
+    // A block mapping key is the colon PLUS a space, or a colon that ends the line. `id:intro` is
+    // not a mapping entry at all: YAML reads the whole line as the plain scalar "id:intro", and a
+    // document that opens with a scalar and continues with a mapping is a parse error. A dropped
+    // space is the most ordinary frontmatter typo there is, so the split has to ask the question
+    // rather than leave it to the value reader below, which never sees the missing space.
+    const after = line.slice(at + 1);
+    if (after.trim() !== "" && !after.startsWith(" ")) {
+      return {
+        kind: "unparseable",
+        reason: `line ${String(i + 1)} has no space after its colon, so YAML does not read it as a key`,
+      };
     }
     const key = line.slice(0, at).trim();
     if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) {
@@ -326,10 +346,23 @@ interface Link {
   readonly text: string;
   readonly target: string;
   readonly line: number;
+  /** The reference label this link resolved through, or null when it was written inline. */
+  readonly label: string | null;
+}
+
+/** A link reference definition: the label, the destination it names, and where it was written. */
+interface Definition {
+  readonly label: string;
+  readonly target: string;
+  readonly line: number;
 }
 
 /**
- * A markdown inline link.
+ * A markdown link in any of CommonMark's four spellings: inline `[text](target)`, full reference
+ * `[text][label]`, collapsed `[text][]` and shortcut `[text]`. The last three carry their target in
+ * a link reference definition written elsewhere in the file, render as exactly the same anchor as
+ * the inline form, and would be invisible to a pattern that only knew `](`. Every rule below is
+ * built on this scan, so a form it cannot see is a form no rule reaches.
  *
  * `[^\]]*` spans newlines ON PURPOSE. Prose here wraps at the column limit, so a link's TEXT
  * routinely straddles a line break, and a scan that walked one line at a time would see no link at
@@ -337,10 +370,54 @@ interface Link {
  * dangling target hides from every rule below. The target itself cannot wrap, so `[^)\s]+` still
  * excludes whitespace.
  *
- * `(?<!!)` skips an image. `![alt](./diagram.png)` is not a link to a page, so demanding the
- * `./<basename>.md` shape of its target would refuse the first asset anyone adds.
+ * The leading `!` is captured rather than excluded. An image is NOT a link to a page, so demanding
+ * the `./<basename>.md` shape of `![alt](./diagram.png)` would refuse the first asset anyone adds;
+ * but `![alt][d]` does consume the label `d`, and a scan that never saw it would go on to call
+ * that definition unreferenced.
  */
-const LINK_PATTERN = /(?<!!)\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
+const LINK_PATTERN = /(!?)\[([^\]]*)\](?:\(([^)\s]+)(?:\s+"[^"]*")?\)|\[([^\]]*)\])?/g;
+
+/**
+ * A link reference definition on a line of its own: `[label]: destination "optional title"`. Four
+ * spaces of indent would make it an indented code block, so at most three are accepted.
+ */
+const DEFINITION_PATTERN =
+  /^ {0,3}\[([^\]]+)\]:[ \t]*(\S+)(?:[ \t]+(?:"[^"]*"|'[^']*'|\([^)]*\)))?[ \t]*\r?$/;
+
+/** CommonMark matches labels case-insensitively, with internal whitespace collapsed. */
+function normalizeLabel(label: string): string {
+  return label.replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+/** A destination may be wrapped in angle brackets, which are delimiters and not part of it. */
+function unwrapDestination(target: string): string {
+  return target.startsWith("<") && target.endsWith(">") ? target.slice(1, -1) : target;
+}
+
+/**
+ * The link reference definitions in a page, plus the page with each definition line blanked out.
+ * Blanking rather than deleting keeps every byte offset, and therefore every reported line number,
+ * exactly where it was; it stops a definition's own `[label]` from being counted a second time as
+ * a shortcut link on the line that defines it.
+ */
+function definitionsIn(text: string): { defs: Map<string, Definition>; body: string } {
+  const lines = text.split("\n");
+  const defs = new Map<string, Definition>();
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i] ?? "";
+    const match = DEFINITION_PATTERN.exec(line);
+    if (match === null) continue;
+    const [, label, destination] = match;
+    if (label === undefined || destination === undefined) continue;
+    const key = normalizeLabel(label);
+    // CommonMark: where a label is defined twice, the first definition wins.
+    if (!defs.has(key)) {
+      defs.set(key, { label: label.trim(), target: unwrapDestination(destination), line: i + 1 });
+    }
+    lines[i] = " ".repeat(line.length);
+  }
+  return { defs, body: lines.join("\n") };
+}
 
 /**
  * Links that leave the bundle. Everything else is treated as a link to another page here, which is
@@ -365,23 +442,76 @@ function lineOf(text: string, offset: number): number {
   return line;
 }
 
-function internalLinks(text: string): Link[] {
+/**
+ * Every link in a page that points inside the bundle, whichever spelling it was written in.
+ *
+ * `defs` resolves the reference forms and is taken from the WHOLE file even when `text` is one
+ * paragraph of it, because a definition sits wherever the author put it, routinely at the foot of
+ * the page. A label nothing defines is not a link at all (CommonMark renders it as literal text),
+ * so it is skipped rather than refused. `used` collects the labels that did resolve.
+ */
+function internalLinks(
+  text: string,
+  defs: ReadonlyMap<string, Definition>,
+  used?: Set<string>,
+): Link[] {
+  const { body } = definitionsIn(text);
   const found: Link[] = [];
   LINK_PATTERN.lastIndex = 0;
-  let match = LINK_PATTERN.exec(text);
+  let match = LINK_PATTERN.exec(body);
   while (match !== null) {
-    const [, linkText, target] = match;
-    if (linkText !== undefined && target !== undefined && !isExternal(target)) {
-      found.push({
-        // Reported on one output line, so a wrapped text is folded back to single spaces.
-        text: linkText.replace(/\s+/g, " ").trim(),
-        target,
-        line: lineOf(text, match.index),
-      });
+    const [, bang, rawText, inlineTarget, refLabel] = match;
+    // Reported on one output line, so a wrapped text is folded back to single spaces.
+    const linkText = (rawText ?? "").replace(/\s+/g, " ").trim();
+    const isImage = bang === "!";
+
+    let target: string;
+    let label: string | null = null;
+
+    if (inlineTarget !== undefined) {
+      target = unwrapDestination(inlineTarget);
+    } else {
+      // A reference. `[text][label]` names its label; `[text][]` and a bare `[text]` both take
+      // the text as the label.
+      const named = refLabel !== undefined && refLabel.trim() !== "" ? refLabel : (rawText ?? "");
+      const key = normalizeLabel(named);
+      const definition = defs.get(key);
+      if (definition === undefined) {
+        // `[a][b]` with `b` undefined is literal text, and its inner `[b]` may still open a link
+        // of its own. Resume from there rather than swallowing it with the outer match.
+        if (refLabel !== undefined) {
+          LINK_PATTERN.lastIndex = match.index + (bang ?? "").length + (rawText ?? "").length + 2;
+        }
+        match = LINK_PATTERN.exec(body);
+        continue;
+      }
+      // Consumed even by an image, which is what stops the definition reading as unreferenced.
+      used?.add(key);
+      target = definition.target;
+      label = definition.label;
     }
-    match = LINK_PATTERN.exec(text);
+
+    if (!isImage && !isExternal(target)) {
+      found.push({ text: linkText, target, line: lineOf(body, match.index), label });
+    }
+    match = LINK_PATTERN.exec(body);
   }
   return found;
+}
+
+/** How a link is quoted back in a violation: the form it was written in, plus where it points. */
+function describeLink(link: Link): string {
+  return link.label === null
+    ? `[${link.text}](${link.target})`
+    : `[${link.text}][${link.label}], which points at ${link.target},`;
+}
+
+/** What is wrong with an internal link target, or null when nothing is. */
+function linkFault(target: string, pages: ReadonlyMap<string, string>): string | null {
+  const shaped = /^\.\/([^/#]+\.md)(#.+)?$/.exec(target);
+  if (shaped === null) return "is not written as ./<basename>.md";
+  if (!pages.has(shaped[1] ?? "")) return "resolves to no page in docs-content/";
+  return null;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -626,22 +756,28 @@ function main(): void {
   // --- 5. Links -----------------------------------------------------------------------------
   for (const [page, text] of contents) {
     const full = join(docsDir, page);
-    for (const link of internalLinks(text)) {
-      const shaped = /^\.\/([^/#]+\.md)(#.+)?$/.exec(link.target);
-      if (shaped === null) {
-        fail(
-          "link",
-          `${full}:${String(link.line)}`,
-          `[${link.text}](${link.target}) is not written as ./<basename>.md`,
-        );
-        continue;
+    const { defs } = definitionsIn(text);
+    const used = new Set<string>();
+
+    for (const link of internalLinks(text, defs, used)) {
+      const fault = linkFault(link.target, contents);
+      if (fault !== null) {
+        fail("link", `${full}:${String(link.line)}`, `${describeLink(link)} ${fault}`);
       }
-      const targetFile = shaped[1] ?? "";
-      if (!contents.has(targetFile)) {
+    }
+
+    // A definition nothing references renders no anchor today, so it is not yet a link. It is
+    // still a target written into a published bundle, one edit away from being one, and checking
+    // it is the net under the scan above: a usage the patterns here fail to see cannot smuggle a
+    // broken target past the gate on its own.
+    for (const [key, definition] of defs) {
+      if (used.has(key) || isExternal(definition.target)) continue;
+      const fault = linkFault(definition.target, contents);
+      if (fault !== null) {
         fail(
           "link",
-          `${full}:${String(link.line)}`,
-          `[${link.text}](${link.target}) resolves to no page in docs-content/`,
+          `${full}:${String(definition.line)}`,
+          `the unreferenced definition [${definition.label}]: ${definition.target} ${fault}`,
         );
       }
     }
@@ -724,7 +860,10 @@ function main(): void {
       );
     } else {
       const wanted = `./${referencePage}`;
-      const links = internalLinks(troubleshooting);
+      // From the whole page, because a paragraph below may point through a label defined at the
+      // foot of the file rather than beside the sentence that uses it.
+      const { defs } = definitionsIn(troubleshooting);
+      const links = internalLinks(troubleshooting, defs);
       if (!links.some((link) => link.target === wanted || link.target.startsWith(`${wanted}#`))) {
         fail(
           "codes",
@@ -734,7 +873,7 @@ function main(): void {
       }
       for (const paragraph of troubleshooting.split(/\n\s*\n/)) {
         if (!MEANING_POINTER.test(paragraph.replace(/\n/g, " "))) continue;
-        for (const link of internalLinks(paragraph)) {
+        for (const link of internalLinks(paragraph, defs)) {
           if (link.target !== wanted && !link.target.startsWith(`${wanted}#`)) {
             fail(
               "codes",
