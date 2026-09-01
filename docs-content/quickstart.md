@@ -1,7 +1,8 @@
 ---
 id: quickstart
 title: Quickstart
-sidebar_position: 1
+sidebar_label: Quickstart
+description: "Parse an HL7 v2 message and read patient, order and observation fields in a few lines, using the named helpers instead of raw HL7 paths."
 ---
 
 # Quickstart
@@ -81,6 +82,6 @@ for (const w of msg.warnings) {
 
 ## Next
 
-- [Core Concepts](./spec-notes-primer): the tolerance model and the spec grounding behind it.
-- [Guides](./guides-overview): task-oriented recipes: lab results, vendor profiles, ACKs, building.
-- [Troubleshooting](./troubleshooting): warnings vs. errors, strict mode, and known limitations.
+- [Core Concepts](./spec-notes-primer.md): the tolerance model and the spec grounding behind it.
+- [Guides](./guides-overview.md): task-oriented recipes: lab results, vendor profiles, ACKs, building.
+- [Troubleshooting](./troubleshooting.md): warnings vs. errors, strict mode, and known limitations.

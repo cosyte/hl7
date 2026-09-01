@@ -2,6 +2,7 @@
 id: spec-notes-differential
 title: "Spec notes: differential testing against external oracles"
 sidebar_label: Differential testing
+description: "How the canonical fixture corpus is also parsed through an independent external HL7 v2 parser, to catch a bug one implementation alone would agree with."
 ---
 
 # Spec notes: differential testing against external oracles

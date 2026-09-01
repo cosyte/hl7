@@ -2,6 +2,7 @@
 id: spec-notes-structure
 title: "Spec notes: message-type & structure awareness"
 sidebar_label: Message-type & structure awareness
+description: "How the misroute and truncation safety net checks a message against HL7's published structure definitions and warns about a segment it should carry."
 ---
 
 # Spec notes: message-type & structure awareness

@@ -2,6 +2,7 @@
 id: spec-notes-nte
 title: "Spec notes: NTE narrative grouping"
 sidebar_label: NTE narrative grouping
+description: "How an NTE note is attached to the observation, order or patient it annotates, resolved by position and never dropped, guessed at or mis-attached."
 ---
 
 # Spec notes: NTE narrative grouping

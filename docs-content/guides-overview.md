@@ -1,14 +1,15 @@
 ---
 id: guides-overview
 title: Guides
-sidebar_position: 1
+sidebar_label: Guides
+description: "Task-oriented recipes against the real API: read lab results, branch on warnings, build and serialize messages, and follow the links into Core Concepts."
 ---
 
 # Guides
 
 Task-oriented recipes against the real API. Each stands alone. Jump to the one that matches what
 you're doing. For the _why_ behind the behavior, follow the links into [Core
-Concepts](./spec-notes-primer).
+Concepts](./spec-notes-primer.md).
 
 ## Read lab results
 
@@ -218,5 +219,5 @@ a field directly.
 
 ## Next
 
-- [Troubleshooting](./troubleshooting): warnings vs. errors, strict mode, charset, and batches.
+- [Troubleshooting](./troubleshooting.md): warnings vs. errors, strict mode, charset, and batches.
 - **API Reference**: every export, generated from source.

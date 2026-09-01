@@ -2,6 +2,7 @@
 id: spec-notes-conformance
 title: "Spec notes: conformance-profile tooling"
 sidebar_label: Conformance profiles
+description: "How validateAgainstProfile runs a profile you author against a parsed message and returns typed findings for required, repeating, sized and coded fields."
 ---
 
 # Spec notes: conformance-profile tooling

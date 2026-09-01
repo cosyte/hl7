@@ -1,7 +1,8 @@
 ---
 id: intro
 title: Getting started
-sidebar_position: 1
+sidebar_label: Getting started
+description: "Parse real-world, vendor-quirky HL7 v2 and pull fields out in one line: a lenient parser, an immutable model, named helpers, a serializer and a builder."
 ---
 
 # @cosyte/hl7

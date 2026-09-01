@@ -2,6 +2,7 @@
 id: spec-notes-charset
 title: "Spec notes: character-set / encoding decode"
 sidebar_label: Character sets (MSH-18)
+description: "How the parser resolves the character set declared in MSH-18 and decodes bytes to text before tokenization, and which sets it leaves undecoded."
 ---
 
 # Spec notes: character-set / encoding decode

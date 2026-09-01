@@ -2,6 +2,7 @@
 id: spec-notes-escapes
 title: "Spec notes: escape sequences & round-trip fidelity"
 sidebar_label: Escapes & round-trip
+description: "How the parser decodes HL7 v2 escape sequences on read while serialization re-emits the sender's exact escape bytes, keeping the round trip verbatim."
 ---
 
 # Spec notes: escape sequences & round-trip fidelity
