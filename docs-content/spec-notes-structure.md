@@ -19,6 +19,11 @@ ordering, cardinality or content, and it covers twelve message codes rather than
 the whole standard. It never throws and never rewrites the message; `strict`
 mode may promote the warning per the usual Postel's-Law model.
 
+If you want the ordering and cardinality question answered, ask for it:
+`validateMessageStructure` is an opt-in check over the same publication,
+described in its own section further down this page. It changes nothing about a
+parse that does not call it.
+
 ## Where the expectations come from
 
 Every expectation is **derived**, not transcribed. The package vendors a
@@ -118,6 +123,180 @@ each recognized (message code, trigger event) pair.
 `MSH` appears throughout because the publication requires it. It can never
 produce this warning in practice: a message with no `MSH` fails earlier, with
 the Tier-3 `NO_MSH_SEGMENT` error.
+
+## The opt-in published-structure validator
+
+`validateMessageStructure(msg)` answers the question the presence net does not:
+**does this message follow the shape the publication gives its trigger event, in
+the published order, with each segment appearing as many times as the
+publication allows?** You ask for it explicitly; nothing calls it for you.
+
+It reports three things, each under its own stable code:
+
+| Code | What it means |
+| --- | --- |
+| `STRUCTURE_SEGMENT_OUT_OF_ORDER` | The message's segment sequence stops being a beginning the published order allows, reading that order with every published bound honoured. |
+| `STRUCTURE_SEGMENT_CARDINALITY` | The segment occurs fewer times than the published minimum along the path from the structure root, or more times than the published maximum. |
+| `STRUCTURE_SEGMENT_UNEXPECTED` | The published structure does not name this segment anywhere, a `Z` segment included. It carries `severity: "warning"` rather than `"error"`, because HL7 reserves `Z` segments for exactly this. |
+
+A finding carries the code, a severity, a **PHI-free locus** (segment name,
+0-indexed occurrence, published structure id) and a human-readable message. No
+field, component or subcomponent value is ever read into one.
+
+**How the order check reads the publication.** It reads it as written: every
+node may occur as few and as many times as the publication says **at that
+locus**. A group it lets occur more than once may repeat, which is what lets a
+conformant `ORU^R01` carry `OBR OBX OBR OBX`; a group bounded at one occurrence
+may not be re-entered, so a `VXU^V04` carrying `PV2` before `PV1` inside a
+`PATIENT_VISIT` group the publication bounds at `[0..1]` is reported; and no
+occurrence of a group may begin without the child the publication requires
+first, so an `ADT^A01` carrying `IN2` before its `IN1` is reported too, though
+`INSURANCE` repeats and both counts are inside their bounds.
+
+**One bound is dropped, and only where the count check has already reported
+it.** The three questions are kept apart so that one defect is reported as one
+thing. Reading the order with every bound honoured would make an absent required
+segment stop the sequence dead, and everything after it would read as misplaced
+on top of the missing-segment finding. So for a segment name the cardinality
+check reports, that bound alone is dropped from the order reading: too few
+occurrences drops its minimum, too many drops its maximum. Every other bound
+still stands, including every bound on every other segment, so a transposition
+further down the same message is still reported.
+
+**Which occurrence the finding names: the one that arrived late.** Two segments
+in an order the publication does not allow give two candidates, the one that
+came early and the one that came late, and the finding names the late one: the
+segment the publication puts first and the message delivered second. So a `PV2`
+before its `PV1` is reported against `PV1`, and a `GSP` before its `PD1` against
+`PD1`.
+
+Where the reading stops is deliberately not what gets named. The order reading
+stops at the first segment it cannot place, and where the publication is free to
+skip past the segment the message delayed, that is somewhere else entirely: an
+`ADT^A01` carrying `GSP` before `PD1` reads cleanly as far as the `PD1`, because
+skipping the optional `PD1` is how the `GSP` was read, so it stops on the `PD1`
+and every segment after the stop is in its published place. Naming the stop
+would name a healthy segment about as often as the defect. So the question is
+asked directly instead: is there an adjacent pair the message delivered in one
+order and the publication takes in the other. Where an exchange leaves a
+sequence the publication derives, that pair is the defect and its second member
+is the finding's locus. Where more than one pair would do, the earliest is
+taken, because a message is read from the front.
+
+**Every adjacent pair is asked**, rather than a shortlist near the point the
+reading stopped, and in a message that repeats a group the two are often nowhere
+near each other. An `OML^O21` carrying three orders, with the first order's note
+delivered after the second order's `ORC`, reads on for six more segments before
+the publication runs out of places to put what arrives: the second order absorbs
+the note, and it is the third order's controller that finally has nowhere to go.
+Asking every pair is affordable because the answer for all of them comes out of
+one pass backwards over the message and one forwards, rather than one pass per
+pair, so the cost is a fixed handful of readings however long the message is.
+
+Where no exchange derives, the defect is something other than two segments in
+the wrong order and there is no second member to name. The finding then names
+the segment that belonged where the reading stopped, if the message carries one
+later, and failing that the segment that could not be placed.
+
+**The one silence left.** The order check asks whether the message so far is a
+**beginning** the publication allows. It does not ask whether the message stops
+in the middle of one. A message that ends inside a group occurrence, with a
+required child of that occurrence that never arrives, is left to the cardinality
+check, and that check reads minimums from the structure root, where a segment
+inside an optional group is not required. So a message that ends part way
+through an optional group's occurrence draws no finding. That is a missing
+segment rather than a misplaced one, and it is the end of the message alone: the
+same gap with any segment after it is reported, because that next segment cannot
+be placed.
+
+A line carrying no segment name at all is not validated. A message that ends
+with a segment terminator parses as a trailing segment whose type is the empty
+string; the publication names segments rather than blank lines, so that line
+draws no structural finding. The parse still reports it, under `UNKNOWN_SEGMENT`.
+
+```ts runnable
+import { parseHL7, validateMessageStructure } from "@cosyte/hl7";
+
+// A synthetic ADT^A01 whose PV1 arrives before its PID.
+const raw = [
+  "MSH|^~\\&|SEND|FAC|RECV|FAC|20260419101500||ADT^A01|EX00001|P|2.5.1",
+  "EVN|A01|20260419101500",
+  "PV1|1|I",
+  "PID|1||",
+].join("\r");
+
+const result = validateMessageStructure(parseHL7(raw));
+
+result.validated; // => true
+result.structureId; // => "ADT_A01-A"
+result.findings.length; // => 1
+result.findings[0]?.code; // => "STRUCTURE_SEGMENT_OUT_OF_ORDER"
+result.findings[0]?.locus.segment; // => "PID"
+result.findings[0]?.locus.occurrence; // => 0
+```
+
+### Zero findings is not an attestation
+
+An empty `findings` list means **this message did not break the published
+structure in the three ways above**. It is not a statement that the message is
+conformant, and it is not a certificate anybody issued:
+
+- Field content, components, datatypes, lengths, value sets and HL7 tables are
+  all unchecked here, and exhaustive coded-value validation is permanently out
+  of scope for this package.
+- Coverage is twelve message codes, not the standard.
+- The publication behind it is vendored at a fixed commit, and its publisher
+  states that the guide is in development and not yet production ready.
+- Where the publication splits a structure into variants, conforming to **one**
+  variant is conforming to the family, so findings come back only when every
+  variant is violated; `structureId` names the one variant the returned findings
+  belong to and `structureIds` lists the family that was considered.
+
+### Read `validated` before you read `findings`
+
+`validated: false` means the publication cannot answer for this message, which
+is a different answer from "no findings". `reason` says which case it is, and
+`reasonMessage` says it in prose:
+
+| `reason` | When |
+| --- | --- |
+| `NO_MESSAGE_TYPE` | MSH-9.1 is absent or blank. |
+| `UNRECOGNIZED_MESSAGE_TYPE` | The registry models no published structure for this message type. |
+| `RETAINED_TRANSCRIPTION` | The type is recognized only through the one retained transcription (`ORM^O01`), which has no published order or maximum behind it. |
+| `EMPTY_EXPECTATION` | The published structure resolves to no ordered expectation at all. A structure that says nothing is not a structure that forbids everything. |
+
+```ts runnable
+import { parseHL7, validateMessageStructure } from "@cosyte/hl7";
+
+const raw = "MSH|^~\\&|SEND|FAC|RECV|FAC|20260419101500||QRY^A19|EX00002|P|2.5.1\rQRD|20260419101500";
+const result = validateMessageStructure(parseHL7(raw));
+
+result.validated; // => false
+result.reason; // => "UNRECOGNIZED_MESSAGE_TYPE"
+result.findings.length; // => 0
+result.structureId; // => ""
+```
+
+### How it differs from the other two structural surfaces
+
+| | What it checks | Who wrote the rules | When it runs |
+| --- | --- | --- | --- |
+| `msg.structure` | Whether a segment the publication gives a minimum of one is **present at all** | HL7's publication | Every parse, and it is what emits `MISSING_EXPECTED_GROUP` |
+| `validateMessageStructure` | Segment **order**, **occurrence counts** and **unnamed segments** against the published structure | HL7's publication | Only when you call it |
+| `validateAgainstProfile` | Usage, cardinality, length, value sets and coding systems, down to the component | **You**, in a profile you author | Only when you call it |
+
+The two opt-in checks are complementary rather than alternatives: the published
+structure knows nothing about your interface spec, and your interface spec
+usually does not restate the publication's own message shape.
+
+### Nothing changes for a caller who does not ask
+
+No new warning code exists, `msg.warnings` is unchanged, `msg.structure` is
+unchanged, and validation is read-only: the message's segments, warnings and
+serialization are byte-identical afterwards. That separation is deliberate. The
+volume section below records what happened the last time structural expectations
+widened underneath a live channel, and folding these findings into the default
+parse would do it again to every channel that treats a warning as a rejection.
 
 ## What changed, difference by difference
 
@@ -232,8 +411,10 @@ if it does not match, rather than truncated.
 
 - **Coverage is twelve message codes.** Widening it means adding structures to
   the vendored snapshot and re-running the generator.
-- **Presence, not cardinality or order.** A message carrying one malformed `OBR`
-  satisfies an `OBR` expectation.
+- **The parse-time net is presence, not cardinality or order.** A message
+  carrying one malformed `OBR` satisfies an `OBR` expectation. Order and
+  cardinality are the opt-in validator's question, and it too stops at the
+  segment: neither surface reads a field.
 - **The publication is a moving target.** It is vendored at a fixed commit and
   its publisher states that the guide is in development and not yet production
   ready. The expectations here are that publication's, and where they differ
