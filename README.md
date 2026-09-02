@@ -49,7 +49,9 @@ HL7 v2 is the format hospital systems actually speak, and reading one field out 
 
 `0.1.0`. The public API is settled and safe to depend on: the exported functions, the message and helper surfaces, and the 20 stable warning codes are what the version claims, and renaming a warning code counts as a breaking change here.
 
-Still moving, and named in [Roadmap](#roadmap) below: typed message overlays that narrow a message to its type, an opt-in structural validator that enforces segment ordering and cardinality against the HL7 spec, a `createHL7Stream()` iterable for multi-GB batch processing, and JSON Schema emission from `toJSON()`. Nothing in that list is exported yet, so nothing in it is covered by the stability claim above.
+Still moving, and named in [Roadmap](#roadmap) below: an opt-in structural validator that enforces segment ordering and cardinality against the HL7 spec, a `createHL7Stream()` iterable for multi-GB batch processing, and JSON Schema emission from `toJSON()`. Nothing in that list is exported yet, so nothing in it is covered by the stability claim above.
+
+Typed message overlays ship and are covered by the stability claim: `msg.is("ADT^A01")` answers from the message type the parser extracted and narrows the message for the compiler, so the accessors after the check are scoped to the segments that message type's published structure requires. See [Narrow a message to its type](#narrow-a-message-to-its-type).
 
 Two of those refine something that already ships. `parseStream` is already a streaming parser for multi-GB batch files, `validateAgainstProfile` already checks usage and cardinality against a conformance profile you author, and `msg.structure` already reports which segments the published HL7 structure for a trigger event requires and the message does not carry. All three ship today and are covered by the stability claim above. What is still moving is the iterable API over the first, and the spec-derived schema that would let the second run without a profile you wrote yourself.
 
@@ -130,6 +132,7 @@ HL7 v2 messages carry patient data, so what this library does with the bytes you
 
 - **One-line extraction**: `msg.patient.mrn`, `msg.meta.timestamp`, `msg.observations()`, and friends. No segment or field numbers to memorise.
 - **Three access patterns**: named helpers, dot-paths (`msg.get("PID.5.1")`), or structural traversal (`msg.segments("OBX")[0].field(3)`). Pick the level of ceremony you need.
+- **Typed message overlays**: `msg.is("ADT^A01")` answers at run time and narrows at compile time, so the message code and trigger event become literal types and `part` / `parts` are scoped to the segments that message type's published structure requires. No cast, no per-message-type import.
 - **Real-world tolerance, four-tier**: lenient default parses vendor-quirky messages; 20 stable warning codes flag what was tolerated; strict mode escalates every deviation for CI validators; only 4 truly-structural failures are fatal.
 - **First-class profile system**: `defineProfile()` API, 8 built-in vendor profiles (Epic, Cerner, Meditech, athenahealth, generic lab, Visage 7 imaging/PACS, Philips Vue PACS, VA VistA Radiology/NucMed), plus a [publishable starter kit](./examples/profile-starter-kit/) you copy-and-ship.
 - **Round-trip safe, byte-verbatim escapes**: `parse -> modify -> toString()` emits spec-clean HL7 regardless of input quirks (Postel's Law: liberal parser, conservative emitter), and a parsed field's escape sequences (`\H\`, `\X41\`, charset/vendor escapes) re-emit **byte-for-byte**. See [Escapes & round-trip](./docs-content/spec-notes-escapes.md).
@@ -656,6 +659,35 @@ if (msg.meta.messageCode === "ORU") {
 
 Matching on `messageCode` + `triggerEvent` is more robust than string-equals on `type`, because some senders populate MSH-9.3 (`type` includes it) and some don't.
 
+### Narrow a message to its type
+
+`msg.is("ADT^A01")` does the same comparison and tells the **compiler** the answer. Inside the guard the message code and trigger event are literal types rather than `string | undefined`, and `part` / `parts` accept only the segment names that message type's published structure marks required. No cast, and no type to import per message type.
+
+```ts
+import { parseHL7 } from "@cosyte/hl7";
+
+const msg = parseHL7(raw);
+
+if (msg.is("ADT^A01")) {
+  const code: "ADT" = msg.meta.messageCode; // literal, and no longer optional
+  const event: "A01" = msg.meta.triggerEvent;
+  console.log(code, event);
+
+  const pid = msg.part("PID"); // Segment | undefined: first PID, or none
+  const evn = msg.parts("EVN"); // readonly Segment[]: every EVN, possibly empty
+  console.log(pid?.field(3).value, evn.length);
+
+  // msg.part("OBX");                    // does not compile: ADT^A01 does not require OBX
+  console.log(msg.segments("OBX").length); // the base accessor still takes any name
+}
+```
+
+A key is `"<MSH-9.1>^<MSH-9.2>"` (`"ADT^A01"`), or `"<MSH-9.1>"` alone for a message type the published structure registry matches on message code alone (`"ACK"`, whose MSH-9.2 carries the acknowledged message's trigger event). `SUPPORTED_OVERLAY_MESSAGES` enumerates every key with the segments its structure requires, derived from that registry rather than written down.
+
+The check is on the (MSH-9.1, MSH-9.2) pair the parser extracted, so a message whose MSH-9 carries the three-component `ADT^A01^ADT_A01` still answers `true` to `is("ADT^A01")`. **Any string that is not a key returns `false` and never throws**: an unrecognized type, the three-component form as a string, an empty string, or a value computed at run time (which cannot narrow anything, so it returns a plain `boolean`). For a raw comparison, `msg.meta.type` is the string MSH-9 carried.
+
+Narrowing does not promise presence. The parser is lenient by design, and an `ADT^A01` that arrives without its `PID` still answers `true` here, still warns, and still reports the absence on `msg.structure`: `part` returns `undefined` and `parts` an empty list, exactly as `segments` does.
+
 ### Spot a truncated or misrouted message
 
 For the message types it covers, `msg.structure` reports whether the segments HL7's own published message-structure definitions give a **minimum of one** for that trigger event are actually present. It's a **misroute / truncation safety net**, not a conformance validator: an `ORU^R01` that arrives with no `OBR` is almost always truncated or sent to the wrong feed.
@@ -974,7 +1006,6 @@ All three error types (and the `FATAL_CODES` / `WARNING_CODES` registries, and t
 
 Not in v1, but on the roadmap for v2:
 
-- **Typed message overlays** (`msg.is("ADT^A01")` narrows to `AdtA01Message`): message-type-aware getter narrowing.
 - **Schema-aware structure validation**: opt-in structural validator that enforces segment ordering + cardinality against the HL7 spec.
 - **Streaming parser for large batch files**: `createHL7Stream()` returning an iterable of messages, for multi-GB batch processing.
 - **JSON Schema / Zod emission for `toJSON()` output**: autogenerated schemas from the internal typed model.
