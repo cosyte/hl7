@@ -65,6 +65,42 @@ PACS imaging systems, each authored through the same public `defineProfile()` AP
 yourself. Start from the **profile starter kit** in the
 package's `examples/` to publish your own as a standalone package.
 
+### Custom segment field names are checked by the compiler
+
+A profile's `customSegments` declaration names the fields of your Z-segments, and reading one back
+by name goes through `seg.get(name)`. When the profile is one the compiler can see, the names it
+declares **for that segment type** are the only ones `get` accepts, so a typo is a build failure
+rather than a blank column on a report:
+
+```ts runnable
+import { defineProfile, parseHL7 } from "@cosyte/hl7";
+
+const vendor = defineProfile({
+  name: "vendor",
+  customSegments: {
+    ZDP: { fields: { departmentCode: 3, departmentName: 4 } },
+    ZRS: { fields: { resultStatus: 1 } },
+  },
+});
+
+const raw =
+  "MSH|^~\\&|EPIC|MAIN|LIS|REF|20260419101500||ADT^A01^ADT_A01|EX00001|P|2.5\r" +
+  "PID|1||MRN12345^^^HOSP^MR||Doe^John^Q||19800115|M\r" +
+  "ZDP|||CARDIOLOGY|Cardiology Department";
+
+const msg = parseHL7(raw, vendor);
+
+msg.part("ZDP")?.get("departmentCode")?.value; // => "CARDIOLOGY"
+// msg.part("ZDP")?.get("departmentCod");  // does not compile: not a declared name
+// msg.part("ZDP")?.get("resultStatus");   // does not compile: that name belongs to ZRS
+```
+
+Nothing about the read changed: a declared name whose position the message did not carry is still
+`undefined`, so the result stays `Field | undefined`. And the check only tightens where the
+declaration is visible. No profile, a value you typed as `Profile`, a profile registered with
+`setDefaultProfile`, a segment type the profile does not declare, or a walk over
+`msg.allSegments()` all keep accepting any `string`, exactly as before.
+
 ## Build an ACK
 
 `buildAck` turns an inbound message into a spec-clean acknowledgement, echoing the correlation id and

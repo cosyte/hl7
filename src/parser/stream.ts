@@ -55,6 +55,7 @@ import { unterminatedStreamMessage } from "./warnings.js";
 import type { Hl7ParseWarning } from "./warnings.js";
 
 import type { Hl7Message } from "../model/message.js";
+import type { ProfiledMessage } from "../profiles/typed-fields.js";
 
 /**
  * A chunked source `parseStream` can consume: a Node `Readable`, any
@@ -100,6 +101,13 @@ export type Hl7StreamSource =
  * **empty** for every message but a possibly-truncated final one. Both the entry
  * and `streamWarnings` are frozen.
  *
+ * `M` is the parsed-message type each `ok` entry carries. It is `Hl7Message`
+ * unless the stream was given a statically known profile, in which case it is
+ * that profile's narrowed view and `entry.message.part("ZDP")?.get(name)` is
+ * checked against the names the profile declares for `ZDP`.
+ *
+ * @template M - the message type an `ok` entry carries.
+ *
  * @example
  * ```ts
  * import { parseStream, WARNING_CODES } from "@cosyte/hl7";
@@ -112,10 +120,10 @@ export type Hl7StreamSource =
  * }
  * ```
  */
-export type StreamMessageEntry =
+export type StreamMessageEntry<M extends Hl7Message = Hl7Message> =
   | {
       readonly ok: true;
-      readonly message: Hl7Message;
+      readonly message: M;
       readonly raw: string;
       readonly position: Hl7Position;
       readonly streamWarnings: readonly Hl7ParseWarning[];
@@ -291,14 +299,31 @@ function parseStreamEntry(
  *   if (entry.ok) count += 1; // 2: one per MSH, streamed, released each time
  * }
  * ```
+ *
+ * @example
+ * ```ts
+ * import { defineProfile, parseStream } from "@cosyte/hl7";
+ * const vendor = defineProfile({
+ *   name: "vendor",
+ *   customSegments: { ZDP: { fields: { departmentCode: 3 } } },
+ * });
+ * // The profile is forwarded to every message, narrowing each one's reader:
+ * for await (const entry of parseStream(source, vendor)) {
+ *   if (entry.ok) console.log(entry.message.part("ZDP")?.get("departmentCode")?.value);
+ * }
+ * ```
  */
 export function parseStream(
   source: Hl7StreamSource,
 ): AsyncGenerator<StreamMessageEntry, void, void>;
-export function parseStream(
+export function parseStream<P extends Profile>(
   source: Hl7StreamSource,
-  profile: Profile,
-): AsyncGenerator<StreamMessageEntry, void, void>;
+  profile: P,
+): AsyncGenerator<StreamMessageEntry<ProfiledMessage<P>>, void, void>;
+export function parseStream<P extends Profile>(
+  source: Hl7StreamSource,
+  options: ParseOptions & { readonly profile: P },
+): AsyncGenerator<StreamMessageEntry<ProfiledMessage<P>>, void, void>;
 export function parseStream(
   source: Hl7StreamSource,
   options: ParseOptions,
