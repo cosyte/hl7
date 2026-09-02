@@ -49,11 +49,13 @@ HL7 v2 is the format hospital systems actually speak, and reading one field out 
 
 `0.1.0`. The public API is settled and safe to depend on: the exported functions, the message and helper surfaces, and the 20 stable warning codes are what the version claims, and renaming a warning code counts as a breaking change here.
 
-Still moving, and named in [Roadmap](#roadmap) below: an opt-in structural validator that enforces segment ordering and cardinality against the HL7 spec, a `createHL7Stream()` iterable for multi-GB batch processing, and JSON Schema emission from `toJSON()`. Nothing in that list is exported yet, so nothing in it is covered by the stability claim above.
+Still moving, and named in [Roadmap](#roadmap) below: a `createHL7Stream()` iterable for multi-GB batch processing, and JSON Schema emission from `toJSON()`. Nothing in that list is exported yet, so nothing in it is covered by the stability claim above.
+
+The opt-in structural validator has left that list: `validateMessageStructure(msg)` ships and enforces segment ordering and cardinality against HL7's published message structures. See [Check a message against HL7's published shape](#check-a-message-against-hl7s-published-shape-validatemessagestructure).
 
 Typed message overlays ship and are covered by the stability claim: `msg.is("ADT^A01")` answers from the message type the parser extracted and narrows the message for the compiler, so the accessors after the check are scoped to the segments that message type's published structure requires. See [Narrow a message to its type](#narrow-a-message-to-its-type).
 
-Two of those refine something that already ships. `parseStream` is already a streaming parser for multi-GB batch files, `validateAgainstProfile` already checks usage and cardinality against a conformance profile you author, and `msg.structure` already reports which segments the published HL7 structure for a trigger event requires and the message does not carry. All three ship today and are covered by the stability claim above. What is still moving is the iterable API over the first, and the spec-derived schema that would let the second run without a profile you wrote yourself.
+Both of those refine something that already ships. `parseStream` is already a streaming parser for multi-GB batch files, and `toJSON()` already emits a structured projection. What is still moving is the iterable API over the first and a published schema for the second.
 
 ---
 
@@ -133,6 +135,7 @@ HL7 v2 messages carry patient data, so what this library does with the bytes you
 - **One-line extraction**: `msg.patient.mrn`, `msg.meta.timestamp`, `msg.observations()`, and friends. No segment or field numbers to memorise.
 - **Three access patterns**: named helpers, dot-paths (`msg.get("PID.5.1")`), or structural traversal (`msg.segments("OBX")[0].field(3)`). Pick the level of ceremony you need.
 - **Typed message overlays**: `msg.is("ADT^A01")` answers at run time and narrows at compile time, so the message code and trigger event become literal types and `part` / `parts` are scoped to the segments that message type's published structure requires. No cast, no per-message-type import.
+- **Opt-in published-structure validation**: `validateMessageStructure(msg)` checks segment order, occurrence counts and unnamed segments against HL7's own published message structures, derived offline from a vendored snapshot. Read-only, no new warning code, and nothing changes for a caller who does not ask.
 - **Real-world tolerance, four-tier**: lenient default parses vendor-quirky messages; 20 stable warning codes flag what was tolerated; strict mode escalates every deviation for CI validators; only 4 truly-structural failures are fatal.
 - **First-class profile system**: `defineProfile()` API, 8 built-in vendor profiles (Epic, Cerner, Meditech, athenahealth, generic lab, Visage 7 imaging/PACS, Philips Vue PACS, VA VistA Radiology/NucMed), plus a [publishable starter kit](./examples/profile-starter-kit/) you copy-and-ship.
 - **Round-trip safe, byte-verbatim escapes**: `parse -> modify -> toString()` emits spec-clean HL7 regardless of input quirks (Postel's Law: liberal parser, conservative emitter), and a parsed field's escape sequences (`\H\`, `\X41\`, charset/vendor escapes) re-emit **byte-for-byte**. See [Escapes & round-trip](./docs-content/spec-notes-escapes.md).
@@ -712,6 +715,28 @@ Expectations are **derived, not hand-picked**: the package vendors a byte-for-by
 
 It stays conservative where the publication is: a segment inside an optional group is not expected (so a conformant `OBX`-free `ORU^R01` never warns), a segment is expected only when every published variant of the structure requires it, and a type it doesn't recognize yields `recognized: false` and emits nothing. It never throws and never rewrites the message. `strict` mode may promote the warning to an error per the usual model. Recognized message codes: ADT, ORU, ORM, OML, OMG, OMP, OMI, SIU, MDM, DFT, VXU and ACK, across 94 trigger-event pairs. See [`docs-content/spec-notes-structure.md`](docs-content/spec-notes-structure.md) for the full table, the derivation rules, and what changed for consumers.
 
+### Check a message against HL7's published shape (`validateMessageStructure`)
+
+`msg.structure` asks only whether a required segment is **present**. When the question is "does this feed follow the shape the standard publishes for this trigger event?", ask for `validateMessageStructure(msg)`: an **opt-in, read-only** check over the same vendored publication, at segment granularity. Nothing calls it for you and it changes nothing: no new warning code, no change to a parse, and the message is byte-identical afterwards.
+
+```ts
+import { parseHL7, validateMessageStructure } from "@cosyte/hl7";
+
+const result = validateMessageStructure(parseHL7(raw)); // ADT^A01 with PV1 before PID
+
+console.log(result.validated); // true
+console.log(result.structureId); // "ADT_A01-A": the variant the findings are against
+console.log(result.structureIds); // the whole variant family that was considered
+for (const f of result.findings) console.log(f.severity, f.code, f.locus.segment, f.message);
+// e.g. 'error STRUCTURE_SEGMENT_OUT_OF_ORDER PID  Segment "PID" (occurrence 0) appears where published structure ADT_A01-A does not allow it.'
+```
+
+It reports three things: `STRUCTURE_SEGMENT_OUT_OF_ORDER` (the sequence stops being derivable from the published order), `STRUCTURE_SEGMENT_CARDINALITY` (fewer occurrences than the published minimum along the path from the structure root, or more than the published maximum), and `STRUCTURE_SEGMENT_UNEXPECTED` (a segment the publication does not name, a `Z` segment included, at `warning` severity). Every finding carries a **PHI-free locus**: a segment name, a 0-indexed occurrence and a published structure id, never a field value.
+
+**Read `validated` before `findings`.** A message type the registry does not model, the one retained transcription (`ORM^O01`), a structure with no ordered expectation and a message with no readable type each come back `validated: false` with a `reason` and no findings: "the publication cannot answer" is a different answer from "nothing was wrong". Where the publication splits a structure into variants, conforming to **one** variant conforms to the family, so findings appear only when every variant is violated and they are exactly one named variant's.
+
+> **Zero findings is not an attestation.** It means this message did not break the published structure in the three ways above. Field content, datatypes, value sets and HL7 tables are unchecked, coverage is twelve message codes, and the publication is vendored at a fixed commit. See [`docs-content/spec-notes-structure.md`](docs-content/spec-notes-structure.md).
+
 ### Validate against your own conformance profile (`validateAgainstProfile`)
 
 `msg.structure` checks the handful of groups the base spec marks Required. When you have a **specific interface spec** ("our ADT feed requires PID-3, sex must be M/F/U, no Z-segments"), bring it as a declarative **conformance profile** and `validateAgainstProfile(msg, profile)` returns typed findings. **You author the profile and every value set; hl7 ships none**: no bundled vendor/IHE profile, no code set, no network call.
@@ -1006,7 +1031,6 @@ All three error types (and the `FATAL_CODES` / `WARNING_CODES` registries, and t
 
 Not in v1, but on the roadmap for v2:
 
-- **Schema-aware structure validation**: opt-in structural validator that enforces segment ordering + cardinality against the HL7 spec.
 - **Streaming parser for large batch files**: `createHL7Stream()` returning an iterable of messages, for multi-GB batch processing.
 - **JSON Schema / Zod emission for `toJSON()` output**: autogenerated schemas from the internal typed model.
 - **Type-safe custom-segment field names via conditional types**: `seg.get("departmentCode")` narrows to the profile's declared field alias, not `string | undefined`.
