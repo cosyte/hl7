@@ -10,6 +10,8 @@
 
 import { parsePath, resolvePath } from "./dot-path.js";
 import { Segment } from "./segment.js";
+import { matchesOverlayKey } from "./typed-overlays.js";
+import type { OverlayKey, TypedMessage } from "./typed-overlays.js";
 import type {
   CustomSegmentDefinition,
   EncodingCharacters,
@@ -401,6 +403,87 @@ export class Hl7Message {
     }
     this._allSegments = built;
     return built;
+  }
+
+  /**
+   * The FIRST `Segment` named `segmentType` in document order, or `undefined`
+   * when the message carries none. Shorthand for `segments(segmentType)[0]`:
+   * same cache, same case-insensitive matching on both sides, same referential
+   * stability.
+   *
+   * On a message narrowed by {@link Hl7Message.is}, `segmentType` is scoped at
+   * compile time to the segment names that message type's published structure
+   * marks required. It stays `Segment | undefined` there: the parser tolerates a
+   * message that omits a required segment (and warns), so a required name is
+   * never a presence guarantee.
+   *
+   * @example
+   * ```ts
+   * const pid = msg.part("PID");
+   * console.log(pid?.field(5).value);
+   * ```
+   */
+  public part(segmentType: string): Segment | undefined {
+    return this.segments(segmentType)[0];
+  }
+
+  /**
+   * EVERY `Segment` named `segmentType` in document order, `[]` when there are
+   * none. Alias for `segments(segmentType)`: same cache, same array identity,
+   * same case-insensitive matching.
+   *
+   * On a message narrowed by {@link Hl7Message.is}, `segmentType` is scoped at
+   * compile time to the segment names that message type's published structure
+   * marks required; the returned list can still be empty, for the same reason
+   * {@link Hl7Message.part} can still return `undefined`.
+   *
+   * @example
+   * ```ts
+   * for (const obx of msg.parts("OBX")) console.log(obx.field(5).value);
+   * ```
+   */
+  public parts(segmentType: string): readonly Segment[] {
+    return this.segments(segmentType);
+  }
+
+  /**
+   * Is this message of the type `key` names, and if so, narrow it for the
+   * compiler. The check is on the (MSH-9.1, MSH-9.2) pair the parser already
+   * extracted, so a message whose MSH-9 carries the three-component form
+   * `ADT^A01^ADT_A01` answers `true` to `is("ADT^A01")`.
+   *
+   * A key is `"<MSH-9.1>^<MSH-9.2>"` (`"ADT^A01"`), or `"<MSH-9.1>"` alone for a
+   * message type the published structure registry matches on message code alone
+   * (`"ACK"`, whose MSH-9.2 carries the acknowledged message's trigger event).
+   * `SUPPORTED_OVERLAY_MESSAGES` enumerates every key.
+   *
+   * **Any other string is `false`, never a throw**: an unrecognized type, the
+   * three-component form as a string, an empty string, or a value computed at
+   * run time. `is` does not parse its own argument, and a caller who wants a raw
+   * comparison has `msg.meta.type`.
+   *
+   * Read-only: it inspects `meta` and mutates nothing.
+   *
+   * @example
+   * ```ts
+   * import { parseHL7 } from "@cosyte/hl7";
+   * const msg = parseHL7(raw);
+   * if (msg.is("ORU^R01")) {
+   *   const code: "ORU" = msg.meta.messageCode; // literal, no cast
+   *   console.log(msg.part("OBR")?.field(4).value);
+   * }
+   * console.log(msg.is("ZZZ^Z99")); // false: not a published key
+   * ```
+   */
+  public is<K extends OverlayKey>(key: K): this is TypedMessage<K>;
+  /**
+   * Answer for a key that is not known at compile time. A runtime-computed
+   * string cannot narrow anything, so this form returns a plain `boolean`.
+   */
+  public is(key: string): boolean;
+  /** Single runtime implementation behind both signatures. @internal */
+  public is(key: string): boolean {
+    return matchesOverlayKey(key, this.meta.messageCode, this.meta.triggerEvent);
   }
 
   /**

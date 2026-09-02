@@ -317,6 +317,23 @@ export type {
   CodedSystemFields,
 } from "./model/coding-system.js";
 
+// Typed message overlays: `msg.is("ADT^A01")` answers from the pair the parser
+// extracted and narrows the message for the compiler, so a message-type check
+// scopes what follows it. The published key set is derived from the structure
+// registry at module load, and the narrowed accessors are scoped to the segment
+// names that pair's published structure marks required.
+export { SUPPORTED_OVERLAY_MESSAGES } from "./model/typed-overlays.js";
+export type {
+  OverlayKey,
+  OverlayMessageCode,
+  OverlayRequiredSegment,
+  OverlayStructures,
+  OverlayTriggerEvent,
+  SupportedOverlayMessage,
+  TypedMessage,
+  TypedMeta,
+} from "./model/typed-overlays.js";
+
 // Phase G: message-type & structure awareness: a conservative misroute/
 // truncation safety net. `Hl7Message.structure` surfaces the read-side
 // summary; the parser emits an additive `MISSING_EXPECTED_GROUP` warning when
