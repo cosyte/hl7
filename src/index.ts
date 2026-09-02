@@ -293,6 +293,13 @@ export { ackNoCorrelationId } from "./parser/warnings.js";
 export { defineProfile, setDefaultProfile, getDefaultProfile, profiles } from "./profiles/index.js";
 export type { DefineProfileOptions, CustomSegmentDefinition } from "./profiles/index.js";
 
+// Typed custom-segment field names: a profile's `customSegments` declaration
+// carried into the type system, so `seg.get(name)` on a declared segment type
+// is checked against the names declared FOR THAT TYPE. Types only, no runtime
+// component: the fallback is `string` everywhere a declaration is not
+// statically known, so no existing caller gains a type error.
+export type { DefinedProfile, ProfileFieldName, ProfiledMessage } from "./profiles/index.js";
+
 // Plan 01 additive: SUPPORTED_DATE_TOKENS re-export so profile authors can
 // introspect valid date-format tokens without reaching into internals.
 export { SUPPORTED_DATE_TOKENS } from "./parser/dates.js";

@@ -43,6 +43,7 @@ import type {
 
 import { Hl7Message } from "../model/message.js";
 import { getDefaultProfile } from "../profiles/default.js";
+import type { ProfiledMessage } from "../profiles/typed-fields.js";
 
 /**
  * The list of `ParseOptions` keys that are TRULY options-only: i.e. keys
@@ -381,9 +382,26 @@ function extractMessageType(msh: RawSegment | undefined): {
  *   }
  * }
  * ```
+ *
+ * @example
+ * ```ts
+ * import { defineProfile, parseHL7 } from "@cosyte/hl7";
+ * const vendor = defineProfile({
+ *   name: "vendor",
+ *   customSegments: { ZDP: { fields: { departmentCode: 3 } } },
+ * });
+ * // A statically known profile narrows the field-name reader per segment type:
+ * const msg = parseHL7(raw, vendor);
+ * console.log(msg.part("ZDP")?.get("departmentCode")?.value);
+ * // msg.part("ZDP")?.get("departmentCod"); // does not compile: not declared
+ * ```
  */
 export function parseHL7(raw: string | Buffer): Hl7Message;
-export function parseHL7(raw: string | Buffer, profile: Profile): Hl7Message;
+export function parseHL7<P extends Profile>(raw: string | Buffer, profile: P): ProfiledMessage<P>;
+export function parseHL7<P extends Profile>(
+  raw: string | Buffer,
+  options: ParseOptions & { readonly profile: P },
+): ProfiledMessage<P>;
 export function parseHL7(raw: string | Buffer, options: ParseOptions): Hl7Message;
 /** @internal implementation signature; overload signatures above carry the public JSDoc + @example. */
 export function parseHL7(

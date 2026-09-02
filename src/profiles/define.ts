@@ -20,6 +20,7 @@
 import type { CustomSegmentDefinition, OnWarningCallback, Profile } from "../parser/types.js";
 
 import { buildDescribe } from "./describe.js";
+import type { DefinedProfile } from "./typed-fields.js";
 import {
   composeOnWarning,
   mergeCustomSegments,
@@ -90,9 +91,18 @@ export interface DefineProfileOptions {
  * are merged, `description` inherits when not supplied, and `onWarning`
  * handlers are composed. With no parent, `lineage === [opts.name]`.
  *
+ * The returned profile CARRIES ITS DECLARED FIELD NAMES IN ITS TYPE: parse
+ * with it and `seg.get(name)` on a declared segment type is checked against
+ * the names declared for that type, a typo failing to compile instead of
+ * silently reading `undefined`. That is additive, and the value stays
+ * assignable to the general `Profile` interface with no cast; a caller who
+ * annotates the variable `Profile` gives the narrowing up rather than hitting
+ * an error, and one who passes an options object typed as
+ * `DefineProfileOptions` never had it in the first place.
+ *
  * @example
  * ```ts
- * import { defineProfile } from "@cosyte/hl7";
+ * import { defineProfile, parseHL7 } from "@cosyte/hl7";
  * const epic = defineProfile({
  *   name: "epic",
  *   description: "Epic-specific quirks and ADT date formats",
@@ -105,9 +115,12 @@ export interface DefineProfileOptions {
  * console.log(epic.name); // "epic"
  * console.log(epic.lineage); // ["epic"]
  * console.log(epic.describe?.());
+ * const msg = parseHL7(raw, epic);
+ * console.log(msg.part("ZDP")?.get("departmentCode")?.value); // narrowed
+ * // msg.part("ZDP")?.get("resultStatus"); // does not compile: that is a ZRS name
  * ```
  */
-export function defineProfile(opts: DefineProfileOptions): Profile {
+export function defineProfile<O extends DefineProfileOptions>(opts: O): DefinedProfile<O> {
   // D-01 fail-fast: name validation FIRST so downstream throws can
   // include `opts.name` as the second `ProfileDefinitionError` ctor arg.
   validateProfileName(opts);
@@ -167,5 +180,13 @@ export function defineProfile(opts: DefineProfileOptions): Profile {
   // `lineage` / `dateFormats` stay `readonly` at the type level but
   // mutable at runtime per D-30 cost doctrine (matches Phase 5
   // `src/serialize/to-json.ts:139`).
-  return Object.freeze(profile) as Profile;
+  //
+  // The one assertion in this factory, and the only place the assembled value
+  // meets its statically derived view. `mergeCustomSegments` above IS the
+  // merge `DeclaredSegments<O>` describes -- parents in order, then self --
+  // so the keys and field names in the frozen map are the keys and field
+  // names in the type. Nothing narrower can be inferred from a `Map`
+  // accumulator, and widening the return type instead would throw the
+  // declaration away again, which is the whole point of carrying it.
+  return Object.freeze(profile) as DefinedProfile<O>;
 }
