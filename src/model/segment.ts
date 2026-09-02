@@ -18,6 +18,14 @@ import type { EncodingCharacters, RawField, RawSegment } from "../parser/types.j
  * `seg.field(3) === seg.field(3)`: referential stability is guaranteed per
  * segment instance.
  *
+ * `FieldName` is the set of names {@link Segment.get} accepts. It is `string`
+ * for every segment whose profile-declared field names are not statically
+ * known, which is the default and covers every segment reached without a
+ * statically known profile; a segment obtained for a declared segment type from
+ * a message parsed with one carries that type's declared names instead.
+ *
+ * @template FieldName - the names `get` accepts; `string` when not known.
+ *
  * @example
  * ```ts
  * import { parseHL7 } from "@cosyte/hl7";
@@ -26,7 +34,7 @@ import type { EncodingCharacters, RawField, RawSegment } from "../parser/types.j
  * if (pid !== undefined) console.log(pid.field(5).value);
  * ```
  */
-export class Segment {
+export class Segment<FieldName extends string = string> {
   /**
    * Segment identifier: three characters with a leading letter, e.g. `"PID"`,
    * `"OBX"`, `"ZPI"`.
@@ -179,13 +187,32 @@ export class Segment {
    * from "name declared but position missing in the raw message" only at
    * the presence level (both collapse to `undefined` per D-14).
    *
+   * **`name` is checked at compile time when the declaration is statically
+   * known.** On a segment obtained by type from a message parsed with a
+   * statically known profile, `name` is scoped to the names that profile
+   * declares FOR THAT SEGMENT TYPE, so a typo is a type error rather than a
+   * silent `undefined`. Everywhere the declaration is not statically known
+   * (no profile, a value typed as the general `Profile` interface, the
+   * process-wide default profile, an undeclared segment type, an empty field
+   * map, or the undifferentiated `allSegments()` walk) `name` stays `string`.
+   * The return type is unchanged either way: a declared name is not a promise
+   * that the wire message carried it.
+   *
    * @example
    * ```ts
-   * const zpi = msg.allSegments().find((s) => s.type === "ZPI");
-   * console.log(zpi?.get("encounterId")?.value);
+   * import { defineProfile, parseHL7 } from "@cosyte/hl7";
+   * const profile = defineProfile({
+   *   name: "vendor",
+   *   customSegments: { ZPI: { fields: { encounterId: 3 } } },
+   * });
+   * const msg = parseHL7(raw, profile);
+   * console.log(msg.part("ZPI")?.get("encounterId")?.value); // narrowed, no cast
+   * // msg.part("ZPI")?.get("encounterld"); // does not compile: not declared
+   * const walked = msg.allSegments().find((s) => s.type === "ZPI");
+   * console.log(walked?.get("encounterId")?.value); // a walk takes any name
    * ```
    */
-  public get(name: string): Field | undefined {
+  public get(name: FieldName): Field | undefined {
     const position = this.customFields?.[name];
     if (position === undefined) return undefined;
     // Delegate to field(n) for MSH-offset + wrapper-cache consistency.
