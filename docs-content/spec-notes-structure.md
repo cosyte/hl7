@@ -163,13 +163,29 @@ occurrences drops its minimum, too many drops its maximum. Every other bound
 still stands, including every bound on every other segment, so a transposition
 further down the same message is still reported.
 
-**Which occurrence the finding names.** Two segments in an order the publication
-does not allow give two candidates: the one that arrived early and the one that
-arrived late. Where the sequence parts company with the publication, the check
-knows which segment names were allowed there; if the message carries one of them
-later, that later occurrence is named, so `PV2` before `PV1` is reported against
-`PV1`. Where nothing later explains the divergence, the segment that could not
-be placed is named instead.
+**Which occurrence the finding names: the one that arrived late.** Two segments
+in an order the publication does not allow give two candidates, the one that
+came early and the one that came late, and the finding names the late one: the
+segment the publication puts first and the message delivered second. So a `PV2`
+before its `PV1` is reported against `PV1`, and a `GSP` before its `PD1` against
+`PD1`.
+
+Where the reading stops is deliberately not what gets named. The order reading
+stops at the first segment it cannot place, and where the publication is free to
+skip past the segment the message delayed, that is somewhere else entirely: an
+`ADT^A01` carrying `GSP` before `PD1` reads cleanly as far as the `PD1`, because
+skipping the optional `PD1` is how the `GSP` was read, so it stops on the `PD1`
+and every segment after the stop is in its published place. Naming the stop
+would name a healthy segment about as often as the defect. So the question is
+asked directly instead: is there an adjacent pair the message delivered in one
+order and the publication takes in the other. Where an exchange leaves a
+sequence the publication derives, that pair is the defect and its second member
+is the finding's locus.
+
+Where no exchange derives, the defect is something other than two segments in
+the wrong order and there is no second member to name. The finding then names
+the segment that belonged where the reading stopped, if the message carries one
+later, and failing that the segment that could not be placed.
 
 **The one silence left.** The order check asks whether the message so far is a
 **beginning** the publication allows. It does not ask whether the message stops

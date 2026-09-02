@@ -34,15 +34,34 @@
  * is why a group's required leading segment can no longer be skipped on one
  * occurrence and consumed on the next.
  *
- * WHICH OCCURRENCE THE FINDING NAMES. Two segments in an order the publication
- * does not allow give two candidate loci: the one that arrived early and the one
- * that arrived late. Where the sequence parts company with the publication, the
- * automaton knows which segment names were allowed there; when the message does
- * carry one of those names, later, that later occurrence is the one out of place
- * and is the one named. A `VXU^V04` carrying `PV2` before `PV1` is reported
- * against `PV1`, because `PV1` is what belonged where `PV2` arrived. When
- * nothing later explains the divergence, the segment that could not be placed is
- * named instead.
+ * WHICH SEGMENT THE FINDING NAMES: THE ONE THAT ARRIVED LATE. Two segments in an
+ * order the publication does not allow give two candidate loci, the one that
+ * came early and the one that came late, and the finding names the late one -
+ * the segment the publication puts first and the message delivered second.
+ *
+ * WHERE THE WALK STOPS IS NOT THAT SEGMENT. The automaton stops at the first
+ * segment it cannot place, and where the publication could skip past the segment
+ * the message delayed, it stops somewhere else entirely: an `ADT^A01` carrying
+ * `GSP` before `PD1` is derivable as far as the `PD1`, because `PD1` is optional
+ * and skipping it is how `GSP` was read, so the stop lands on `PD1` and the
+ * segments AFTER the stop are in their published places. Naming the stop, or the
+ * next allowed name after it, therefore names a healthy segment about as often
+ * as it names the defect.
+ *
+ * So the question the criterion asks is asked directly: is there an adjacent
+ * pair the message delivered in one order and the publication takes in the
+ * other. An exchange that leaves a sequence the publication derives has found
+ * that pair, and its SECOND member is the one delivered late. Only four pairs
+ * are ever tried, the ones touching either the segment the walk could not place
+ * or the segment whose arrival closed that name's window, so the search costs a
+ * fixed few passes however long the message is.
+ *
+ * Where no exchange derives, the defect is something other than two segments in
+ * the wrong order and there is no second member to name. The finding then names
+ * the first later occurrence of a name the publication allowed where the walk
+ * stopped, which is the segment that belonged there - an `ADT^A01` carrying
+ * `PV2` before `PV1` reports `PV1` either way - and failing that the segment
+ * that could not be placed.
  */
 
 import type {
@@ -293,6 +312,13 @@ interface OrderDivergence {
   readonly index: number;
   /** The segment names the publication allows at that point. */
   readonly expected: ReadonlySet<string>;
+  /**
+   * For each segment name, the last earlier position at which the publication
+   * allowed it, so the position whose segment closed that name's window. A
+   * diverging segment named here had a window and the message missed it; one
+   * absent from here has no window yet.
+   */
+  readonly lapsed: ReadonlyMap<string, number>;
 }
 
 /**
@@ -308,29 +334,81 @@ function firstDivergence(
   observed: readonly ObservedSegment[],
 ): OrderDivergence | undefined {
   let active = epsilonClosure(automaton, [automaton.start]);
+  const lapsed = new Map<string, number>();
   for (const [index, segment] of observed.entries()) {
+    const expected = expectedNames(automaton, active);
     const advanced: number[] = [];
     for (const state of active) {
       const edge = automaton.consume[state];
       if (edge !== undefined && edge.name === segment.name) advanced.push(edge.to);
     }
-    if (advanced.length === 0) {
-      return { segment, index, expected: expectedNames(automaton, active) };
-    }
+    if (advanced.length === 0) return { segment, index, expected, lapsed };
+    // This step closes every window the publication had open here, so each of
+    // those names records this position as the last one that would have taken it.
+    for (const name of expected) lapsed.set(name, index);
     active = epsilonClosure(automaton, advanced);
   }
   return undefined;
 }
 
+/** Does the publication derive the sequence with the segments at `at` and `at + 1` exchanged? */
+function derivesExchanged(
+  automaton: OrderAutomaton,
+  observed: readonly ObservedSegment[],
+  at: number,
+): boolean {
+  const early = observed[at];
+  const late = observed[at + 1];
+  // Exchanging one name for itself leaves the same sequence, which the walk has
+  // already refused.
+  if (early === undefined || late === undefined || early.name === late.name) return false;
+  const exchanged = [...observed];
+  exchanged[at] = late;
+  exchanged[at + 1] = early;
+  return firstDivergence(automaton, exchanged) === undefined;
+}
+
 /**
- * The occurrence an ordering finding names: the first later occurrence of a
- * segment the publication allowed where the sequence diverged, and failing
- * that, the segment that could not be placed.
+ * The adjacent pairs worth asking about, earliest first.
+ *
+ * The walk implicates exactly two positions: the segment it could not place, and
+ * the segment whose arrival closed that name's window. An exchange that repairs
+ * the sequence has to move one of those two, so it is one of the four pairs each
+ * of them belongs to, and the search is that short whatever the message's
+ * length. A diverging segment with no window at all was not late but early, and
+ * the position that closed its window reads as the divergence itself, which
+ * leaves the pair it makes with what follows it.
+ */
+function exchangeSites(divergence: OrderDivergence): readonly number[] {
+  const closedAt = divergence.lapsed.get(divergence.segment.name) ?? divergence.index;
+  const sites = [closedAt - 1, closedAt, divergence.index - 1, divergence.index];
+  return sites.filter((site, index) => site >= 0 && sites.indexOf(site) === index);
+}
+
+/**
+ * The occurrence an ordering finding names: the segment that arrived late.
+ *
+ * The case being reported is two segments in an order the publication does not
+ * allow, so the question asked first is that one exactly: is there an adjacent
+ * pair the message delivered in one order and the publication takes in the
+ * other. Where there is, the finding names the SECOND of the two, which is the
+ * segment the publication puts first and the message delivered late.
+ *
+ * Where no exchange derives, the defect is not two segments in the wrong order
+ * and there is no second member to name. Then the first later occurrence of a
+ * name the publication allowed where the sequence diverged is named - that is
+ * the segment which belonged where the divergence arrived - and failing that the
+ * segment that could not be placed.
  */
 function misplacedSegment(
+  automaton: OrderAutomaton,
   observed: readonly ObservedSegment[],
   divergence: OrderDivergence,
 ): ObservedSegment {
+  for (const site of exchangeSites(divergence)) {
+    const late = observed[site + 1];
+    if (late !== undefined && derivesExchanged(automaton, observed, site)) return late;
+  }
   for (let index = divergence.index + 1; index < observed.length; index += 1) {
     const candidate = observed[index];
     if (candidate !== undefined && divergence.expected.has(candidate.name)) return candidate;
@@ -417,9 +495,10 @@ export function findingsForSchema(
   }
 
   const ordering: StructureFinding[] = [];
-  const divergence = firstDivergence(buildOrderAutomaton(schema.nodes, reported), named);
+  const automaton = buildOrderAutomaton(schema.nodes, reported);
+  const divergence = firstDivergence(automaton, named);
   if (divergence !== undefined) {
-    const misplaced = misplacedSegment(named, divergence);
+    const misplaced = misplacedSegment(automaton, named, divergence);
     ordering.push(
       frozen({
         code: STRUCTURE_FINDING_CODES.STRUCTURE_SEGMENT_OUT_OF_ORDER,

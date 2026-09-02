@@ -73,9 +73,13 @@ export const STRUCTURE_FINDING_CODES = {
    *
    * Where two segments arrive in an order the publication does not allow, the
    * finding names the one that arrived late: the segment the published order
-   * expected where the sequence diverged, at the occurrence the message
-   * actually carries. Where nothing later explains the divergence, it names the
-   * segment that could not be placed.
+   * puts first and the message delivered second, at the occurrence the message
+   * carries it. That is not always where the reading stopped, because the
+   * publication is often free to skip past the segment a message delayed, so an
+   * adjacent pair whose exchange the publication derives is what identifies the
+   * two. Where no exchange derives, the defect is not two segments in the wrong
+   * order: the finding then names the segment that belonged where the reading
+   * stopped, and failing that the one that could not be placed.
    */
   STRUCTURE_SEGMENT_OUT_OF_ORDER: "STRUCTURE_SEGMENT_OUT_OF_ORDER",
   /**

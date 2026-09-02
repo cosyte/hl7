@@ -495,6 +495,108 @@ describe("AC7: the published order is read with every published bound honoured",
   });
 });
 
+describe("AC7: the ordering finding names the segment that arrived late", () => {
+  /**
+   * Where the EARLIER member of the pair is optional at its locus, the
+   * publication skips it and takes the other, so the sequence parts company on
+   * the LATE member rather than on the early one. Each row is checked three
+   * ways, all of them through a parsed message: the published order of the same
+   * segments is silent; deleting the late member leaves a message that is also
+   * silent, which is what proves every other segment is in its published place;
+   * and the transposition names the late member.
+   */
+  const lateArrival: readonly {
+    readonly label: string;
+    readonly structureId: string;
+    readonly messageType: string;
+    readonly published: readonly string[];
+    readonly transposed: readonly string[];
+    readonly withoutLate: readonly string[];
+    readonly locus: string;
+  }[] = [
+    {
+      label: "an optional segment delivered after the one the publication puts behind it",
+      structureId: "ADT_A01-A",
+      messageType: "ADT^A01",
+      published: ["EVN||20250102", "PID|||", "PD1|||", "GSP|||", "PV1||I"],
+      transposed: ["EVN||20250102", "PID|||", "GSP|||", "PD1|||", "PV1||I"],
+      withoutLate: ["EVN||20250102", "PID|||", "GSP|||", "PV1||I"],
+      locus: "PD1",
+    },
+    {
+      label: "two optional header segments delivered the other way round",
+      structureId: "ORU_R01-A",
+      messageType: "ORU^R01",
+      published: ["SFT|||", "UAC|||", "PID|||", "OBR|1|", "OBX|1|"],
+      transposed: ["UAC|||", "SFT|||", "PID|||", "OBR|1|", "OBX|1|"],
+      withoutLate: ["UAC|||", "PID|||", "OBR|1|", "OBX|1|"],
+      locus: "SFT",
+    },
+    {
+      label: "a pair the message carries last, where nothing follows to blame",
+      structureId: "ADT_A01-A",
+      messageType: "ADT^A01",
+      published: ["EVN||20250102", "PID|||", "PV1||I", "PV2|||", "DB1|||"],
+      transposed: ["EVN||20250102", "PID|||", "PV1||I", "DB1|||", "PV2|||"],
+      withoutLate: ["EVN||20250102", "PID|||", "PV1||I", "DB1|||"],
+      locus: "PV2",
+    },
+  ];
+
+  it.each(lateArrival)(
+    "names the late member, not a healthy neighbour: $label",
+    ({ structureId, messageType, published, transposed, withoutLate, locus }) => {
+      const clean = validate(message(messageType, ...published));
+      expect(clean.structureId).toBe(structureId);
+      expect(clean.findings).toEqual([]);
+
+      const repaired = validate(message(messageType, ...withoutLate));
+      expect(repaired.findings).toEqual([]);
+
+      const result = validate(message(messageType, ...transposed));
+      const ordering = result.findings.filter(
+        (finding) => finding.code === STRUCTURE_FINDING_CODES.STRUCTURE_SEGMENT_OUT_OF_ORDER,
+      );
+      expect(ordering).toHaveLength(1);
+      expect(ordering[0]?.locus).toEqual({ segment: locus, occurrence: 0, structureId });
+    },
+  );
+
+  it("names one of the two exchanged segments for every transposition, in every structure", () => {
+    // Every published structure's own once-each instance, with each adjacent
+    // pair of distinct names exchanged in turn. The instance itself is silent,
+    // so the pair is the only thing about the sequence that changed and the
+    // segment AC7 calls out of place can only be one of those two names. This is
+    // the guard on WHICH segment the finding names, at the breadth of the
+    // snapshot: the sweep above guards that it fires at all.
+    const wrong: string[] = [];
+    let considered = 0;
+    for (const schema of GENERATED_STRUCTURE_SCHEMAS) {
+      const canonical = conformantSequence(schema.nodes, 1);
+      if (findingsForSchema(schema, withOccurrences(canonical)).length > 0) continue;
+      for (let index = 0; index + 1 < canonical.length; index += 1) {
+        const left = canonical[index];
+        const right = canonical[index + 1];
+        if (left === undefined || right === undefined || left === right) continue;
+        const exchanged = [...canonical];
+        exchanged[index] = right;
+        exchanged[index + 1] = left;
+        const named = findingsForSchema(schema, withOccurrences(exchanged)).find(
+          (finding) => finding.code === STRUCTURE_FINDING_CODES.STRUCTURE_SEGMENT_OUT_OF_ORDER,
+        )?.locus.segment;
+        // Whether every such sequence draws a finding at all is the sweep above.
+        if (named === undefined) continue;
+        considered += 1;
+        if (named !== left && named !== right) {
+          wrong.push(`${schema.structureId}: ${left} before ${right} named ${named}`);
+        }
+      }
+    }
+    expect(considered).toBeGreaterThan(2000);
+    expect(wrong).toEqual([]);
+  });
+});
+
 describe("AC8: too few occurrences of a required segment are reported", () => {
   it("names the segment, the published minimum and the observed count", () => {
     const result = validate(message("ADT^A02", "PID|||", "PV1||I"));
