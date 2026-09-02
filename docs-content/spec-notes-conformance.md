@@ -15,6 +15,18 @@ segment groups the base spec marks Required, a conformance profile checks the
 rules **your** interface declares: which fields are required, how many times
 they may repeat, how long they may be, and which coded values you accept.
 
+There is a third structural surface beside those two, and it is the one this
+page is most often confused with.
+[`validateMessageStructure`](./spec-notes-structure.md) runs **HL7's own
+published** message structure against a message: segment order, segment
+occurrence counts, and segments the publication does not name. Nobody authors it
+and nobody can tune it, because it is read off the vendored publication rather
+than declared. Reach for it when the question is "does this feed follow the
+standard's shape for this trigger event?", and for `validateAgainstProfile`
+when the question is "does this feed meet our spec?". They are complementary:
+the publication knows nothing about your interface, and your interface rarely
+restates the publication's message shape.
+
 The design boundary is deliberate and load-bearing:
 
 - **You bring the profile, and every value set.** hl7 ships **no** vendor / IHE /

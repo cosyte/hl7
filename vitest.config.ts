@@ -3,7 +3,8 @@ import { cosyteVitest } from "@cosyte/vitest-config";
 /**
  * Vitest config for @cosyte/hl7 from the shared @cosyte/vitest-config standard.
  *
- * Per-directory >= 90 gates on every core dir (parser/model/helpers/serialize/builder/profiles).
+ * Per-directory >= 90 gates on every core dir (parser/model/helpers/serialize/builder/profiles/
+ * text/conformance/structure).
  * The parser/serialize branch floors that the Vitest 1 -> 4 upgrade temporarily knocked under 90
  * (the @vitest/coverage-v8 branch-accounting change) were restored to the canonical 90: targeted
  * branch tests put parser at ~94% and serialize at 100%.
@@ -17,7 +18,17 @@ import { cosyteVitest } from "@cosyte/vitest-config";
  * remaining relaxation.
  */
 export default cosyteVitest({
-  coverageDirs: ["parser", "model", "helpers", "serialize", "builder", "profiles", "text", "conformance"],
+  coverageDirs: [
+    "parser",
+    "model",
+    "helpers",
+    "serialize",
+    "builder",
+    "profiles",
+    "text",
+    "conformance",
+    "structure",
+  ],
   coverageThresholds: {
     branches: 90,
     "src/parser/**": { lines: 90, branches: 90, functions: 90, statements: 90 },
@@ -25,6 +36,7 @@ export default cosyteVitest({
     "src/profiles/**": { lines: 90, branches: 90, functions: 90, statements: 90 },
     "src/text/**": { lines: 90, branches: 90, functions: 90, statements: 90 },
     "src/conformance/**": { lines: 90, branches: 90, functions: 90, statements: 90 },
+    "src/structure/**": { lines: 90, branches: 90, functions: 90, statements: 90 },
   },
   test: {
     globals: false,

@@ -366,6 +366,31 @@ export type {
   MessageStructure,
 } from "./parser/message-structure.js";
 
+// The OPT-IN published-structure validator, a third structural surface beside
+// the two above it. `msg.structure` asks only whether a required segment is
+// present and runs on every parse; `validateAgainstProfile` runs a profile the
+// CALLER authored. `validateMessageStructure` runs HL7's OWN published
+// structure at segment granularity: order, occurrence counts, and segments the
+// publication does not name, off the same vendored snapshot the registry is
+// derived from. Nobody authors it and nobody tunes it. It is asked for
+// explicitly and it changes nothing: no new warning code, no change to a parse,
+// and the message is untouched. Where the publication splits a structure into
+// variants, findings come back only when EVERY variant is violated, and they
+// are one named variant's. `validated: false` means the publication cannot
+// answer (unmodelled type, retained transcription, no readable type), which is
+// not the same answer as zero findings, and zero findings is still not a
+// conformance attestation.
+export { validateMessageStructure } from "./structure/validate.js";
+export {
+  STRUCTURE_FINDING_CODES,
+  STRUCTURE_NOT_VALIDATED_REASONS,
+  type StructureFinding,
+  type StructureFindingCode,
+  type StructureFindingLocus,
+  type StructureNotValidatedReason,
+  type StructureValidationResult,
+} from "./structure/types.js";
+
 // Roadmap Phase L: batch / file envelope splitting. `splitBatch` is a
 // top-level utility (symmetric with `parseHL7`) that demarcates the individual
 // MSH-led messages inside an `[FHS]{[BHS]{MSH…}[BTS]}[FTS]` stream, parses each
