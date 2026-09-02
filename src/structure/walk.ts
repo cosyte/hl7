@@ -48,13 +48,20 @@
  * next allowed name after it, therefore names a healthy segment about as often
  * as it names the defect.
  *
- * So the question the criterion asks is asked directly: is there an adjacent
- * pair the message delivered in one order and the publication takes in the
- * other. An exchange that leaves a sequence the publication derives has found
- * that pair, and its SECOND member is the one delivered late. Only four pairs
- * are ever tried, the ones touching either the segment the walk could not place
- * or the segment whose arrival closed that name's window, so the search costs a
- * fixed few passes however long the message is.
+ * So the question is asked directly: is there an adjacent pair the message
+ * delivered in one order and the publication takes in the other. An exchange
+ * that leaves a sequence the publication derives has found that pair, and its
+ * SECOND member is the one delivered late; the earliest such pair is the answer,
+ * because the message is read from the front.
+ *
+ * EVERY PAIR IS ASKED, AND WHAT IS BOUNDED IS THE COST RATHER THAN THE SEARCH.
+ * Where a group occurs more than once the repairing pair can sit far in front of
+ * the point the walk stopped, so any rule that picks candidate pairs out of that
+ * stopping point names a healthy segment on exactly the messages it was not
+ * measured over. Instead a single backward pass records, for each position, the
+ * states from which the rest of the message still reads; a single forward pass
+ * then carries the prefix and tries each pair against that record. The search is
+ * exhaustive and still costs a fixed number of walks however long the message.
  *
  * Where no exchange derives, the defect is something other than two segments in
  * the wrong order and there is no second member to name. The finding then names
@@ -304,6 +311,23 @@ function expectedNames(automaton: OrderAutomaton, states: Iterable<number>): Rea
   return names;
 }
 
+/**
+ * Where a walk that had reached `states` arrives after reading one segment
+ * called `name`, empty when the publication does not allow that name here.
+ */
+function step(
+  automaton: OrderAutomaton,
+  states: Iterable<number>,
+  name: string,
+): ReadonlySet<number> {
+  const advanced: number[] = [];
+  for (const state of states) {
+    const edge = automaton.consume[state];
+    if (edge !== undefined && edge.name === name) advanced.push(edge.to);
+  }
+  return epsilonClosure(automaton, advanced);
+}
+
 /** Where the message's sequence and the published order part company. */
 interface OrderDivergence {
   /** The observed segment the published order cannot place. */
@@ -312,13 +336,6 @@ interface OrderDivergence {
   readonly index: number;
   /** The segment names the publication allows at that point. */
   readonly expected: ReadonlySet<string>;
-  /**
-   * For each segment name, the last earlier position at which the publication
-   * allowed it, so the position whose segment closed that name's window. A
-   * diverging segment named here had a window and the message missed it; one
-   * absent from here has no window yet.
-   */
-  readonly lapsed: ReadonlyMap<string, number>;
 }
 
 /**
@@ -334,55 +351,187 @@ function firstDivergence(
   observed: readonly ObservedSegment[],
 ): OrderDivergence | undefined {
   let active = epsilonClosure(automaton, [automaton.start]);
-  const lapsed = new Map<string, number>();
   for (const [index, segment] of observed.entries()) {
-    const expected = expectedNames(automaton, active);
-    const advanced: number[] = [];
-    for (const state of active) {
-      const edge = automaton.consume[state];
-      if (edge !== undefined && edge.name === segment.name) advanced.push(edge.to);
+    const advanced = step(automaton, active, segment.name);
+    if (advanced.size === 0) {
+      return { segment, index, expected: expectedNames(automaton, active) };
     }
-    if (advanced.length === 0) return { segment, index, expected, lapsed };
-    // This step closes every window the publication had open here, so each of
-    // those names records this position as the last one that would have taken it.
-    for (const name of expected) lapsed.set(name, index);
-    active = epsilonClosure(automaton, advanced);
+    active = advanced;
   }
   return undefined;
 }
 
-/** Does the publication derive the sequence with the segments at `at` and `at + 1` exchanged? */
-function derivesExchanged(
-  automaton: OrderAutomaton,
-  observed: readonly ObservedSegment[],
-  at: number,
-): boolean {
-  const early = observed[at];
-  const late = observed[at + 1];
-  // Exchanging one name for itself leaves the same sequence, which the walk has
-  // already refused.
-  if (early === undefined || late === undefined || early.name === late.name) return false;
-  const exchanged = [...observed];
-  exchanged[at] = late;
-  exchanged[at + 1] = early;
-  return firstDivergence(automaton, exchanged) === undefined;
+/** How many states one word of a state set holds. */
+const STATES_PER_WORD = 32;
+
+/** How many bytes that word occupies. */
+const BYTES_PER_WORD = 4;
+
+/**
+ * One set of automaton states per message position, packed into a single array.
+ *
+ * A position's set is `width` consecutive words, one bit per state. Packing it
+ * this way is what makes a table over a whole message affordable: the widest
+ * published structure builds an automaton of a few hundred states, so a position
+ * costs a handful of words rather than a `Set`.
+ */
+interface StatesByPosition {
+  /**
+   * `width` words per position, position 0 first, behind a `DataView` because
+   * that reads a word as a number rather than as a number that might be absent:
+   * every index below is in range by construction, and a fallback written for
+   * one that never is would be a branch no test could reach.
+   */
+  readonly words: DataView;
+  /** Words one position's set occupies. */
+  readonly width: number;
+}
+
+/** Byte offset of the word of a packed set that carries `state`. */
+function wordOf(state: number): number {
+  return Math.trunc(state / STATES_PER_WORD) * BYTES_PER_WORD;
+}
+
+/** The bit within that word. */
+function bitOf(state: number): number {
+  return 1 << (state % STATES_PER_WORD);
+}
+
+/** Byte offset where the set recorded at `position` begins. */
+function setAt(table: StatesByPosition, position: number): number {
+  return position * table.width * BYTES_PER_WORD;
+}
+
+/** Is `state` in the set recorded at `position`? */
+function holds(table: StatesByPosition, position: number, state: number): boolean {
+  return (table.words.getUint32(setAt(table, position) + wordOf(state)) & bitOf(state)) !== 0;
+}
+
+/** One reading state, and the state reading it arrives at. */
+interface Consumer {
+  /** The state that reads the segment. */
+  readonly state: number;
+  /** Where reading it leads. */
+  readonly to: number;
+}
+
+/** The states one free edge away from each state, the other way round. */
+function epsilonPredecessors(automaton: OrderAutomaton): (readonly number[])[] {
+  const predecessors: number[][] = automaton.epsilon.map(() => []);
+  automaton.epsilon.forEach((targets, from) => {
+    for (const to of targets) predecessors[to]?.push(from);
+  });
+  return predecessors;
+}
+
+/** The states that read each segment name, so a backward step touches only those. */
+function consumersByName(automaton: OrderAutomaton): ReadonlyMap<string, readonly Consumer[]> {
+  const byName = new Map<string, Consumer[]>();
+  automaton.consume.forEach((edge, state) => {
+    if (edge === undefined) return;
+    const reading = byName.get(edge.name);
+    if (reading === undefined) byName.set(edge.name, [{ state, to: edge.to }]);
+    else reading.push({ state, to: edge.to });
+  });
+  return byName;
 }
 
 /**
- * The adjacent pairs worth asking about, earliest first.
+ * For every position of the message, the states from which the publication can
+ * read the REST of it: the set at `k` holds each state a walk could sit in and
+ * still consume `observed[k]` through to the end.
  *
- * The walk implicates exactly two positions: the segment it could not place, and
- * the segment whose arrival closed that name's window. An exchange that repairs
- * the sequence has to move one of those two, so it is one of the four pairs each
- * of them belongs to, and the search is that short whatever the message's
- * length. A diverging segment with no window at all was not late but early, and
- * the position that closed its window reads as the divergence itself, which
- * leaves the pair it makes with what follows it.
+ * The last entry, at `observed.length`, is every state - a message that has been
+ * read to its end asks nothing more of the walk. Each earlier position is one
+ * step backwards: the states that read the segment there into a state the next
+ * position already allows, plus everything that reaches one of those for free.
+ *
+ * It is one backward pass over the message, and it is what lets the pair search
+ * below ask its question of EVERY pair for the price of a walk or two, instead
+ * of re-walking the message once per pair.
  */
-function exchangeSites(divergence: OrderDivergence): readonly number[] {
-  const closedAt = divergence.lapsed.get(divergence.segment.name) ?? divergence.index;
-  const sites = [closedAt - 1, closedAt, divergence.index - 1, divergence.index];
-  return sites.filter((site, index) => site >= 0 && sites.indexOf(site) === index);
+function suffixStates(
+  automaton: OrderAutomaton,
+  observed: readonly ObservedSegment[],
+): StatesByPosition {
+  const width = Math.max(1, Math.ceil(automaton.epsilon.length / STATES_PER_WORD));
+  const packed = new Uint32Array((observed.length + 1) * width);
+  packed.fill(0xffffffff, observed.length * width);
+  const table: StatesByPosition = { words: new DataView(packed.buffer), width };
+
+  const consumers = consumersByName(automaton);
+  const predecessors = epsilonPredecessors(automaton);
+  // One scratch queue and one scratch marker, reused down the whole message:
+  // a message is long and an automaton is not, so the per-position work has to
+  // be the automaton's size and nothing else.
+  const pending: number[] = [];
+  const queued = new Uint8Array(automaton.epsilon.length);
+  let position = observed.length;
+  for (const segment of [...observed].reverse()) {
+    position -= 1;
+    const base = setAt(table, position);
+    queued.fill(0);
+    for (const reading of consumers.get(segment.name) ?? []) {
+      if (queued[reading.state] === 1) continue;
+      if (!holds(table, position + 1, reading.to)) continue;
+      queued[reading.state] = 1;
+      pending.push(reading.state);
+    }
+    // A state that reaches a reading state for free reads the same segment.
+    for (;;) {
+      const state = pending.pop();
+      if (state === undefined) break;
+      const at = base + wordOf(state);
+      table.words.setUint32(at, table.words.getUint32(at) | bitOf(state));
+      for (const before of predecessors[state] ?? []) {
+        if (queued[before] === 1) continue;
+        queued[before] = 1;
+        pending.push(before);
+      }
+    }
+  }
+  return table;
+}
+
+/**
+ * The EARLIEST adjacent pair whose exchange leaves a sequence the publication
+ * derives, or `undefined` where no exchange does.
+ *
+ * EVERY pair is asked, with no bound on how far the search may look, because a
+ * bound is only ever measured over the messages someone thought to try: the pair
+ * that repairs an `OML^O21` carrying three orders sits six segments before the
+ * point the walk stopped, and no rule drawn from that stopping point reaches it.
+ * What needed bounding was the COST, and the suffix table above bounds that
+ * instead - one backward pass, then one forward pass carrying the prefix, so the
+ * whole search is a fixed number of walks however long the message is.
+ *
+ * Only pairs at or before the divergence are asked, and that is a proof rather
+ * than a heuristic: exchanging a later pair leaves the segment the walk could not
+ * place exactly where it is, so the same prefix fails again.
+ *
+ * The earliest is the answer because the message is read from the front: a later
+ * pair whose exchange also derives repairs a sequence that was already wrong.
+ */
+function repairingExchange(
+  automaton: OrderAutomaton,
+  observed: readonly ObservedSegment[],
+  divergenceIndex: number,
+): number | undefined {
+  const suffix = suffixStates(automaton, observed);
+  let active = epsilonClosure(automaton, [automaton.start]);
+  for (let at = 0; at <= divergenceIndex; at += 1) {
+    const early = observed[at];
+    const late = observed[at + 1];
+    if (early === undefined || late === undefined) return undefined;
+    // Exchanging one name for itself leaves the sequence the walk already refused.
+    if (early.name !== late.name) {
+      const read = step(automaton, step(automaton, active, late.name), early.name);
+      for (const state of read) if (holds(suffix, at + 2, state)) return at;
+    }
+    active = step(automaton, active, early.name);
+    if (active.size === 0) return undefined;
+  }
+  return undefined;
 }
 
 /**
@@ -405,10 +554,9 @@ function misplacedSegment(
   observed: readonly ObservedSegment[],
   divergence: OrderDivergence,
 ): ObservedSegment {
-  for (const site of exchangeSites(divergence)) {
-    const late = observed[site + 1];
-    if (late !== undefined && derivesExchanged(automaton, observed, site)) return late;
-  }
+  const site = repairingExchange(automaton, observed, divergence.index);
+  const late = site === undefined ? undefined : observed[site + 1];
+  if (late !== undefined) return late;
   for (let index = divergence.index + 1; index < observed.length; index += 1) {
     const candidate = observed[index];
     if (candidate !== undefined && divergence.expected.has(candidate.name)) return candidate;

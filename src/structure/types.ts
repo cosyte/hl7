@@ -77,9 +77,12 @@ export const STRUCTURE_FINDING_CODES = {
    * carries it. That is not always where the reading stopped, because the
    * publication is often free to skip past the segment a message delayed, so an
    * adjacent pair whose exchange the publication derives is what identifies the
-   * two. Where no exchange derives, the defect is not two segments in the wrong
-   * order: the finding then names the segment that belonged where the reading
-   * stopped, and failing that the one that could not be placed.
+   * two. Every adjacent pair is asked, not a shortlist near the stop: in a
+   * message that repeats a group the pair can sit well in front of it. Where
+   * more than one pair would do, the earliest is named. Where no exchange
+   * derives, the defect is not two segments in the wrong order: the finding then
+   * names the segment that belonged where the reading stopped, and failing that
+   * the one that could not be placed.
    */
   STRUCTURE_SEGMENT_OUT_OF_ORDER: "STRUCTURE_SEGMENT_OUT_OF_ORDER",
   /**

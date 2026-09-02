@@ -109,6 +109,39 @@ function conformantSequence(
   return expand(-1);
 }
 
+/**
+ * The same expansion, but taking every node the publication lets repeat TWICE
+ * down to `depth` levels of nesting and once below that. Depth is the dial that
+ * matters and the one that costs: the published structures nest groups several
+ * deep, so doubling all the way down multiplies rather than adds.
+ */
+function repeatedToDepth(
+  nodes: readonly StructureExpectationNode[],
+  depth: number,
+): readonly string[] {
+  const children = new Map<number, number[]>();
+  nodes.forEach((node, index) => {
+    const siblings = children.get(node.parent);
+    if (siblings === undefined) children.set(node.parent, [index]);
+    else siblings.push(index);
+  });
+  const expand = (parent: number, level: number): string[] => {
+    const sequence: string[] = [];
+    for (const index of children.get(parent) ?? []) {
+      const node = nodes[index];
+      if (node === undefined) continue;
+      const wanted = Math.max(node.min, level <= depth ? 2 : 1);
+      const count = node.max === "*" ? wanted : Math.min(wanted, node.max);
+      for (let copy = 0; copy < count; copy += 1) {
+        if (node.kind === "segment") sequence.push(node.name);
+        else sequence.push(...expand(index, level + 1));
+      }
+    }
+    return sequence;
+  };
+  return expand(-1, 1);
+}
+
 const CONFORMANT_A01 = message("ADT^A01", "EVN||20250102", "PID|||", "PV1||I");
 
 describe("AC6: a conformant message validates clean and names the structure it used", () => {
@@ -595,6 +628,271 @@ describe("AC7: the ordering finding names the segment that arrived late", () => 
     expect(considered).toBeGreaterThan(2000);
     expect(wrong).toEqual([]);
   });
+});
+
+/**
+ * THE SAME CRITERION, ASKED OF MESSAGES THAT REPEAT A GROUP.
+ *
+ * Every case above expands each published structure ONCE, so no group has a
+ * second occurrence and the pair the publication objects to always sits within
+ * a segment or two of the point the reading stops. That is a population, not the
+ * criterion, and a rule for finding the pair can pass all of it while naming a
+ * healthy segment the moment a message carries a second order: the reading gets
+ * further, because the second occurrence takes the segments the first one was
+ * missing, and stops a long way past the pair that caused it.
+ *
+ * So the cases below repeat what the publication lets repeat. The two messages
+ * are minimal - reduced by deletion until nothing further could go - and each is
+ * checked four ways: the same segments in the published order are silent; the
+ * transposition is reported; the finding names one of the two segments the
+ * message exchanged; and deleting the segment the finding names leaves a message
+ * that is STILL reported, while deleting the late-arriving member leaves one
+ * that is silent. The last of those is what separates a locus that is the defect
+ * from one that merely sits near it.
+ */
+describe("AC7: the locus holds where a group occurs more than once", () => {
+  const repeatedGroup: readonly {
+    readonly label: string;
+    readonly structureId: string;
+    readonly messageType: string;
+    readonly published: readonly string[];
+    readonly transposed: readonly string[];
+    readonly withoutLate: readonly string[];
+    readonly withoutNamed: readonly string[];
+    readonly locus: string;
+  }[] = [
+    {
+      // Three orders, and the first order's note delivered after the second
+      // order's ORC. The reading gets as far as the THIRD order's ORC, six
+      // segments past the pair, because the second order absorbs the note.
+      label: "a note delivered after the next order's controller, in three orders",
+      structureId: "OML_O21",
+      messageType: "OML^O21",
+      published: [
+        "ORC|NW",
+        "OBR|1|",
+        "NTE|1||first order note",
+        "ORC|NW",
+        "OBR|2|",
+        "PRT|1|",
+        "DEV|1|",
+        "OBX|1|",
+        "ORC|NW",
+        "OBR|3|",
+        "OBX|2|",
+      ],
+      transposed: [
+        "ORC|NW",
+        "OBR|1|",
+        "ORC|NW",
+        "NTE|1||first order note",
+        "OBR|2|",
+        "PRT|1|",
+        "DEV|1|",
+        "OBX|1|",
+        "ORC|NW",
+        "OBR|3|",
+        "OBX|2|",
+      ],
+      withoutLate: [
+        "ORC|NW",
+        "OBR|1|",
+        "ORC|NW",
+        "OBR|2|",
+        "PRT|1|",
+        "DEV|1|",
+        "OBX|1|",
+        "ORC|NW",
+        "OBR|3|",
+        "OBX|2|",
+      ],
+      withoutNamed: [
+        "ORC|NW",
+        "OBR|1|",
+        "ORC|NW",
+        "NTE|1||first order note",
+        "OBR|2|",
+        "PRT|1|",
+        "DEV|1|",
+        "OBX|1|",
+        "ORC|NW",
+        "OBR|3|",
+      ],
+      locus: "NTE",
+    },
+    {
+      label: "the same pair under a specimen-led structure",
+      structureId: "OML_O35",
+      messageType: "OML^O35",
+      published: [
+        "SPM|1|",
+        "SAC|1|",
+        "ORC|NW",
+        "OBR|1|",
+        "NTE|1||first order note",
+        "ORC|NW",
+        "OBR|2|",
+        "PRT|1|",
+        "DEV|1|",
+        "OBX|1|",
+        "ORC|NW",
+        "OBR|3|",
+        "OBX|2|",
+      ],
+      transposed: [
+        "SPM|1|",
+        "SAC|1|",
+        "ORC|NW",
+        "OBR|1|",
+        "ORC|NW",
+        "NTE|1||first order note",
+        "OBR|2|",
+        "PRT|1|",
+        "DEV|1|",
+        "OBX|1|",
+        "ORC|NW",
+        "OBR|3|",
+        "OBX|2|",
+      ],
+      withoutLate: [
+        "SPM|1|",
+        "SAC|1|",
+        "ORC|NW",
+        "OBR|1|",
+        "ORC|NW",
+        "OBR|2|",
+        "PRT|1|",
+        "DEV|1|",
+        "OBX|1|",
+        "ORC|NW",
+        "OBR|3|",
+        "OBX|2|",
+      ],
+      withoutNamed: [
+        "SPM|1|",
+        "SAC|1|",
+        "ORC|NW",
+        "OBR|1|",
+        "ORC|NW",
+        "NTE|1||first order note",
+        "OBR|2|",
+        "PRT|1|",
+        "DEV|1|",
+        "OBX|1|",
+        "ORC|NW",
+        "OBR|3|",
+      ],
+      locus: "NTE",
+    },
+  ];
+
+  it.each(repeatedGroup)(
+    "names the exchanged segment, not one the reading merely stopped near: $label",
+    ({ structureId, messageType, published, transposed, withoutLate, withoutNamed, locus }) => {
+      const clean = validate(message(messageType, ...published));
+      expect(clean.structureId).toBe(structureId);
+      expect(clean.findings).toEqual([]);
+
+      const repaired = validate(message(messageType, ...withoutLate));
+      expect(repaired.findings).toEqual([]);
+
+      const result = validate(message(messageType, ...transposed));
+      const ordering = result.findings.filter(
+        (finding) => finding.code === STRUCTURE_FINDING_CODES.STRUCTURE_SEGMENT_OUT_OF_ORDER,
+      );
+      expect(ordering).toHaveLength(1);
+      expect(ordering[0]?.locus).toEqual({ segment: locus, occurrence: 0, structureId });
+
+      // Deleting what the finding names must NOT repair the message: a locus
+      // that could be removed with no complaint was never the thing complained
+      // about. This is the assertion the four-site search failed.
+      expect(validate(message(messageType, ...withoutNamed)).findings.length).toBeGreaterThan(0);
+    },
+  );
+
+  /**
+   * One instance per structure that repeats as much as it can afford to.
+   *
+   * How DEEPLY the repetition nests is the thing that matters, and it is not
+   * free: the published structures nest groups four and five deep, so taking
+   * every repeatable node twice all the way down multiplies, and `OML^O35` alone
+   * reaches sixteen hundred segments. So each structure gets the deepest
+   * doubling that stays under `REPEAT_CAP`, which keeps every structure in the
+   * sweep rather than dropping the deeply nested ones - and those are precisely
+   * the ones that carry the defect this block exists for. Measured against the
+   * search this replaced, doubling one and two levels down reported the right
+   * locus everywhere and only the third level exposed it.
+   */
+  const REPEAT_CAP = 320;
+
+  function repeatedInstance(nodes: readonly StructureExpectationNode[]): readonly string[] {
+    let deepest = conformantSequence(nodes, 1);
+    for (let depth = 1; depth <= 12; depth += 1) {
+      const candidate = repeatedToDepth(nodes, depth);
+      if (candidate.length > REPEAT_CAP) break;
+      if (candidate.length === deepest.length && depth > 1) break;
+      deepest = candidate;
+    }
+    return deepest;
+  }
+
+  const instances = GENERATED_STRUCTURE_SCHEMAS.map((schema) => ({
+    structureId: schema.structureId,
+    schema,
+    sequence: repeatedInstance(schema.nodes),
+  }));
+
+  it("sweeps instances that really do repeat, across every published structure", () => {
+    // The guard on the sweep below: if the instances ever collapsed back to one
+    // occurrence of everything, each case would still pass and would be testing
+    // the population the four-site search was already fitted to.
+    const pairs = instances.reduce(
+      (total, one) =>
+        total + one.sequence.filter((name, at) => at > 0 && name !== one.sequence[at - 1]).length,
+      0,
+    );
+    expect(instances.length).toBe(GENERATED_STRUCTURE_SCHEMAS.length);
+    expect(pairs).toBeGreaterThan(4000);
+    expect(Math.max(...instances.map((one) => one.sequence.length))).toBeGreaterThan(250);
+  });
+
+  it.each(instances)(
+    "names one of the two exchanged segments throughout a repeating $structureId",
+    ({ schema, sequence }) => {
+      // The instance is silent, so an exchanged adjacent pair is the only thing
+      // about the sequence that changed, and the segment AC7 calls out of place
+      // can only be one of those two. Exchanging two adjacent names leaves both
+      // occurrence indices where they were, so the pair is compared on name AND
+      // occurrence, which is what makes this a check on the OCCURRENCE too.
+      const observed = withOccurrences(sequence);
+      expect(findingsForSchema(schema, observed)).toEqual([]);
+      const wrong: string[] = [];
+      for (let index = 0; index + 1 < sequence.length; index += 1) {
+        const left = observed[index];
+        const right = observed[index + 1];
+        if (left === undefined || right === undefined || left.name === right.name) continue;
+        const exchanged = [...sequence];
+        exchanged[index] = right.name;
+        exchanged[index + 1] = left.name;
+        const named = findingsForSchema(schema, withOccurrences(exchanged)).find(
+          (finding) => finding.code === STRUCTURE_FINDING_CODES.STRUCTURE_SEGMENT_OUT_OF_ORDER,
+        )?.locus;
+        // Whether every refused sequence draws a finding at all is the sweep above.
+        if (named === undefined) continue;
+        const onPair = [left, right].some(
+          (member) =>
+            member.name === named.segment && member.occurrence === (named.occurrence ?? -1),
+        );
+        if (!onPair) {
+          wrong.push(
+            `${left.name}#${String(left.occurrence)} before ${right.name}#${String(right.occurrence)} ` +
+              `named ${named.segment}#${String(named.occurrence ?? -1)}`,
+          );
+        }
+      }
+      expect(wrong).toEqual([]);
+    },
+  );
 });
 
 describe("AC8: too few occurrences of a required segment are reported", () => {

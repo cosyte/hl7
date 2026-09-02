@@ -180,7 +180,18 @@ would name a healthy segment about as often as the defect. So the question is
 asked directly instead: is there an adjacent pair the message delivered in one
 order and the publication takes in the other. Where an exchange leaves a
 sequence the publication derives, that pair is the defect and its second member
-is the finding's locus.
+is the finding's locus. Where more than one pair would do, the earliest is
+taken, because a message is read from the front.
+
+**Every adjacent pair is asked**, rather than a shortlist near the point the
+reading stopped, and in a message that repeats a group the two are often nowhere
+near each other. An `OML^O21` carrying three orders, with the first order's note
+delivered after the second order's `ORC`, reads on for six more segments before
+the publication runs out of places to put what arrives: the second order absorbs
+the note, and it is the third order's controller that finally has nowhere to go.
+Asking every pair is affordable because the answer for all of them comes out of
+one pass backwards over the message and one forwards, rather than one pass per
+pair, so the cost is a fixed handful of readings however long the message is.
 
 Where no exchange derives, the defect is something other than two segments in
 the wrong order and there is no second member to name. The finding then names
