@@ -60,15 +60,22 @@ import type { FindingSeverity } from "../conformance/types.js";
 export const STRUCTURE_FINDING_CODES = {
   /**
    * A segment appears where the published structure does not allow it: the
-   * message's segment sequence stops being derivable from the published order
-   * at this segment.
+   * message's segment sequence stops being a beginning the published order
+   * allows.
    *
-   * The order is read with **how often** a segment occurs set aside, because
-   * that question has its own code: a segment may repeat where it stands, and a
-   * missing one is never reported here. What is not set aside is the
-   * publication's group structure, so a group the publication lets occur at
-   * most once may not be re-entered, and its children arriving in another order
-   * are reported here.
+   * The order is read against the publication's own bounds, at every locus: a
+   * node may occur as few and as many times as the publication says there, so a
+   * group's required leading segment cannot be skipped on one occurrence and
+   * consumed on the next, whether or not that group repeats. The one bound
+   * dropped for a segment name is the one the cardinality check already
+   * reported for it, so that too few or too many occurrences is one finding
+   * rather than two.
+   *
+   * Where two segments arrive in an order the publication does not allow, the
+   * finding names the one that arrived late: the segment the published order
+   * expected where the sequence diverged, at the occurrence the message
+   * actually carries. Where nothing later explains the divergence, it names the
+   * segment that could not be placed.
    */
   STRUCTURE_SEGMENT_OUT_OF_ORDER: "STRUCTURE_SEGMENT_OUT_OF_ORDER",
   /**

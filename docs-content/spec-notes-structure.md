@@ -135,7 +135,7 @@ It reports three things, each under its own stable code:
 
 | Code | What it means |
 | --- | --- |
-| `STRUCTURE_SEGMENT_OUT_OF_ORDER` | The message's segment sequence stops being derivable from the published order at this segment, reading that order with **how often** each segment occurs set aside. |
+| `STRUCTURE_SEGMENT_OUT_OF_ORDER` | The message's segment sequence stops being a beginning the published order allows, reading that order with every published bound honoured. |
 | `STRUCTURE_SEGMENT_CARDINALITY` | The segment occurs fewer times than the published minimum along the path from the structure root, or more times than the published maximum. |
 | `STRUCTURE_SEGMENT_UNEXPECTED` | The published structure does not name this segment anywhere, a `Z` segment included. It carries `severity: "warning"` rather than `"error"`, because HL7 reserves `Z` segments for exactly this. |
 
@@ -143,18 +143,44 @@ A finding carries the code, a severity, a **PHI-free locus** (segment name,
 0-indexed occurrence, published structure id) and a human-readable message. No
 field, component or subcomponent value is ever read into one.
 
-**What "set aside" means for the order check.** The three questions are kept
-apart so that one defect is reported as one thing, so the order is read with
-every occurrence count relaxed: a segment may repeat where it stands and a
-segment that is missing altogether is the cardinality check's business, not this
-one. The publication's **group structure is not relaxed**. A group it lets occur
-more than once may repeat, which is what lets a conformant `ORU^R01` carry `OBR
-OBX OBR OBX`; a group bounded at one occurrence may not be re-entered, so a
-`VXU^V04` carrying `PV2` before `PV1` inside a `PATIENT_VISIT` group the
-publication bounds at `[0..1]` is reported here. The residue of the relaxation
-is worth knowing: where a required segment is missing from one occurrence of a
-**repeating** group, the rest of that group can read as a second occurrence, so
-the order check stays silent and the message is judged on its counts alone.
+**How the order check reads the publication.** It reads it as written: every
+node may occur as few and as many times as the publication says **at that
+locus**. A group it lets occur more than once may repeat, which is what lets a
+conformant `ORU^R01` carry `OBR OBX OBR OBX`; a group bounded at one occurrence
+may not be re-entered, so a `VXU^V04` carrying `PV2` before `PV1` inside a
+`PATIENT_VISIT` group the publication bounds at `[0..1]` is reported; and no
+occurrence of a group may begin without the child the publication requires
+first, so an `ADT^A01` carrying `IN2` before its `IN1` is reported too, though
+`INSURANCE` repeats and both counts are inside their bounds.
+
+**One bound is dropped, and only where the count check has already reported
+it.** The three questions are kept apart so that one defect is reported as one
+thing. Reading the order with every bound honoured would make an absent required
+segment stop the sequence dead, and everything after it would read as misplaced
+on top of the missing-segment finding. So for a segment name the cardinality
+check reports, that bound alone is dropped from the order reading: too few
+occurrences drops its minimum, too many drops its maximum. Every other bound
+still stands, including every bound on every other segment, so a transposition
+further down the same message is still reported.
+
+**Which occurrence the finding names.** Two segments in an order the publication
+does not allow give two candidates: the one that arrived early and the one that
+arrived late. Where the sequence parts company with the publication, the check
+knows which segment names were allowed there; if the message carries one of them
+later, that later occurrence is named, so `PV2` before `PV1` is reported against
+`PV1`. Where nothing later explains the divergence, the segment that could not
+be placed is named instead.
+
+**The one silence left.** The order check asks whether the message so far is a
+**beginning** the publication allows. It does not ask whether the message stops
+in the middle of one. A message that ends inside a group occurrence, with a
+required child of that occurrence that never arrives, is left to the cardinality
+check, and that check reads minimums from the structure root, where a segment
+inside an optional group is not required. So a message that ends part way
+through an optional group's occurrence draws no finding. That is a missing
+segment rather than a misplaced one, and it is the end of the message alone: the
+same gap with any segment after it is reported, because that next segment cannot
+be placed.
 
 A line carrying no segment name at all is not validated. A message that ends
 with a segment terminator parses as a trailing segment whose type is the empty

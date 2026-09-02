@@ -12,28 +12,37 @@
  *      against the minimum and maximum the publication implies along the path
  *      from the structure root: a segment inside an optional group is not
  *      required, and a segment inside a repeating group inherits its repetition.
- *   3. **Is the sequence derivable from the published order?** Asked with a
- *      SEGMENT's occurrence bounds relaxed to "any number of times", precisely
- *      so that a count violation cannot masquerade as an ordering violation.
- *      What is left is the ordering question alone: may this segment appear
- *      HERE, after the ones before it.
+ *   3. **Is the sequence derivable from the published order?** Asked against the
+ *      published bounds themselves: each node may occur as few and as many times
+ *      as the publication says at that locus, and no oftener.
  *
  * Question 3 is answered by simulating a tiny automaton built from the ordered
  * expectation, which is what makes a repeating group work: an `ORU^R01` may
- * legitimately carry `OBR OBX OBR OBX`, and a rule that demanded a segment
- * never appear after one that follows it in the publication would report that
+ * legitimately carry `OBR OBX OBR OBX`, and a rule that demanded a segment never
+ * appear after one that follows it in the publication would report that
  * conformant message. The simulation is linear in the message and in the
- * structure, never backtracks, and reports the FIRST segment it cannot place:
- * once the sequence has diverged, every position after it is measured against a
- * place in the structure nothing established.
+ * structure, never backtracks, and asks only whether the message so far is a
+ * beginning the publication allows.
  *
- * THE RELAXATION STOPS AT THE GROUP, and that boundary is the whole reason the
- * check catches anything at all. A group the publication bounds at one
- * occurrence may not be re-entered, so its children may not come back round in
- * a different order: a `VXU^V04` carrying `PV2` before `PV1` inside a
- * `PATIENT_VISIT` group bounded at `[0..1]` is an ordering violation and is
- * reported as one. Relaxing that too would grant a loop the publication does not
- * and would accept any permutation of a non-repeating group's children.
+ * THE ONE RELAXATION IS THE ONE THE COUNT CHECK HAS ALREADY REPORTED. Reading
+ * the order with every bound honoured means an absent required segment stops
+ * the sequence dead, and that would report a count defect twice: once as the
+ * missing segment and again as everything that follows it being out of place.
+ * So the bound the cardinality check reports for a segment name, and only that
+ * bound, is dropped from the order automaton for that name: too few occurrences
+ * drops its minimum, too many drops its maximum. Every other bound stands, which
+ * is why a group's required leading segment can no longer be skipped on one
+ * occurrence and consumed on the next.
+ *
+ * WHICH OCCURRENCE THE FINDING NAMES. Two segments in an order the publication
+ * does not allow give two candidate loci: the one that arrived early and the one
+ * that arrived late. Where the sequence parts company with the publication, the
+ * automaton knows which segment names were allowed there; when the message does
+ * carry one of those names, later, that later occurrence is the one out of place
+ * and is the one named. A `VXU^V04` carrying `PV2` before `PV1` is reported
+ * against `PV1`, because `PV1` is what belonged where `PV2` arrived. When
+ * nothing later explains the divergence, the segment that could not be placed is
+ * named instead.
  */
 
 import type {
@@ -114,85 +123,142 @@ export function occurrenceBounds(
 }
 
 /**
- * The published order as an automaton, with a SEGMENT's occurrence bounds
- * relaxed to "any number of times" and a GROUP's published maximum honoured.
+ * Which published bound the cardinality check already reports for one segment
+ * name: `"minimum"` where the message carries too few, `"maximum"` where it
+ * carries too many. That bound, and only it, is dropped from the order
+ * automaton for that name.
+ */
+type ReportedBound = "minimum" | "maximum";
+
+/** One consuming edge: the segment name a state reads, and where reading it leads. */
+interface SegmentEdge {
+  /** The segment name this edge consumes. */
+  readonly name: string;
+  /** The state reading it arrives at. */
+  readonly to: number;
+}
+
+/**
+ * The published order as an automaton over segment names.
  *
- * State `0` is the structure root's entry. A segment node gets one state, which
- * consumes that segment name and stays put: that is the relaxation, and it is
- * why an over-repeated segment is a cardinality finding rather than an ordering
- * one. A group node gets TWO states, an entry and an exit, so that leaving a
- * group and re-entering it are separate edges rather than the same one. Entry
- * leads to the group's first child and, skipping it, straight to the exit; the
- * group's last child leads to the exit; and only a group the publication lets
- * occur more than once gets the edge back from exit to entry.
+ * Every node of the expectation contributes an entry state and an exit state,
+ * so entering a node, leaving it and coming back round to it are separate edges
+ * rather than the same one. A node the publication makes optional gets an edge
+ * that skips it; a node it lets repeat gets an edge back from its body's exit to
+ * that body's entry; a node it bounds at a finite maximum above one gets that
+ * many copies of its body, the ones past the minimum skippable. Nothing else is
+ * added, so the automaton accepts exactly the beginnings the publication allows.
  */
 interface OrderAutomaton {
   /** Edges that consume nothing, by state. */
-  readonly epsilon: ReadonlyMap<number, readonly number[]>;
-  /** The segment name a state consumes to stay put. Absent for a group state. */
-  readonly consumes: ReadonlyMap<number, string>;
+  readonly epsilon: readonly (readonly number[])[];
+  /** The edge a state consumes, where it has one. Absent for a structural state. */
+  readonly consume: readonly (SegmentEdge | undefined)[];
+  /** The state a walk of the whole structure starts from. */
+  readonly start: number;
 }
 
-/** Whether the publication lets a node occur more than once at this locus. */
-function repeats(node: StructureExpectationNode): boolean {
-  return node.max === UNBOUNDED || node.max > 1;
+/** One node of the expectation, with the index its children point at. */
+interface IndexedNode {
+  /** The node's index in the expectation's node list. */
+  readonly index: number;
+  /** The node itself. */
+  readonly node: StructureExpectationNode;
 }
 
 /** Build the order automaton for one variant's ordered expectation. */
-function buildOrderAutomaton(nodes: readonly StructureExpectationNode[]): OrderAutomaton {
-  const epsilon = new Map<number, number[]>();
-  const consumes = new Map<number, string>();
-  /** Per node index: the state a walk arrives at, and the state it leaves from. */
-  const entryOf: number[] = [];
-  const exitOf: number[] = [];
-  /** The exit state of the last child seen under each parent index (`-1` = root). */
-  const lastChildExit = new Map<number, number>();
-  /** State `0` is the structure root's entry; every other state is allocated here. */
-  let stateCount = 1;
+function buildOrderAutomaton(
+  nodes: readonly StructureExpectationNode[],
+  reported: ReadonlyMap<string, ReportedBound>,
+): OrderAutomaton {
+  const epsilon: number[][] = [];
+  const consume: (SegmentEdge | undefined)[] = [];
 
+  const newState = (): number => {
+    epsilon.push([]);
+    consume.push(undefined);
+    return epsilon.length - 1;
+  };
   const connect = (from: number, to: number): void => {
-    const edges = epsilon.get(from);
-    if (edges === undefined) epsilon.set(from, [to]);
-    else edges.push(to);
+    epsilon[from]?.push(to);
   };
 
-  for (const node of nodes) {
-    // A node follows its previous sibling, or opens its parent's child chain.
-    const from =
-      lastChildExit.get(node.parent) ?? (node.parent < 0 ? 0 : (entryOf[node.parent] ?? 0));
-    if (node.kind === "segment") {
-      const state = stateCount++;
-      entryOf.push(state);
-      exitOf.push(state);
-      consumes.set(state, node.name);
-      connect(from, state);
-      lastChildExit.set(node.parent, state);
-      continue;
+  // Children by enclosing group, in publication order. A node whose parent is
+  // not a group earlier in the list sits at the structure root, which is the
+  // reading the occurrence bounds take of it too.
+  const children = new Map<number, IndexedNode[]>();
+  nodes.forEach((node, index) => {
+    const enclosing =
+      node.parent >= 0 && node.parent < index && nodes[node.parent]?.kind === "group"
+        ? node.parent
+        : -1;
+    const siblings = children.get(enclosing);
+    if (siblings === undefined) children.set(enclosing, [{ index, node }]);
+    else siblings.push({ index, node });
+  });
+
+  /** Chain a run of nodes, each following the one before it. */
+  function chain(from: number, run: readonly IndexedNode[]): number {
+    let cursor = from;
+    for (const child of run) {
+      const [entry, exit] = repeated(child);
+      connect(cursor, entry);
+      cursor = exit;
     }
-    const entry = stateCount++;
-    const exit = stateCount++;
-    entryOf.push(entry);
-    exitOf.push(exit);
-    connect(from, entry);
-    // Skipping the group: the ordering question relaxes every minimum, so an
-    // absent group is the cardinality check's business, not this one.
-    connect(entry, exit);
-    // Repeating it: only where the publication grants a second occurrence.
-    if (repeats(node)) connect(exit, entry);
-    lastChildExit.set(node.parent, exit);
+    return cursor;
   }
 
-  // A group's children lead to its exit. A childless group already has the
-  // entry-to-exit edge, and the structure root has no exit: a message is one
-  // message and never loops back.
-  for (const [index, node] of nodes.entries()) {
-    if (node.kind !== "group") continue;
-    const childExit = lastChildExit.get(index);
-    const exit = exitOf[index];
-    if (childExit !== undefined && exit !== undefined) connect(childExit, exit);
+  /** ONE occurrence of a node: the segment it reads, or its children in order. */
+  function body(child: IndexedNode): readonly [number, number] {
+    const entry = newState();
+    const exit = newState();
+    if (child.node.kind === "segment") {
+      consume[entry] = { name: child.node.name, to: exit };
+      return [entry, exit];
+    }
+    connect(chain(entry, children.get(child.index) ?? []), exit);
+    return [entry, exit];
   }
 
-  return { epsilon, consumes };
+  /** A node as often as the publication lets it occur at this locus, and no oftener. */
+  function repeated(child: IndexedNode): readonly [number, number] {
+    const relaxed = child.node.kind === "segment" ? reported.get(child.node.name) : undefined;
+    const min = relaxed === "minimum" ? 0 : child.node.min;
+    const max = relaxed === "maximum" ? UNBOUNDED : child.node.max;
+    const entry = newState();
+    const exit = newState();
+    if (max === UNBOUNDED) {
+      // The last required occurrence carries the loop, so an unbounded node
+      // costs one copy of its body per required occurrence and no more.
+      let cursor = entry;
+      const required = Math.max(min, 1);
+      for (let copy = 0; copy < required; copy += 1) {
+        const [bodyEntry, bodyExit] = body(child);
+        connect(cursor, bodyEntry);
+        if (copy === required - 1) connect(bodyExit, bodyEntry);
+        cursor = bodyExit;
+      }
+      connect(cursor, exit);
+      if (min === 0) connect(entry, exit);
+      return [entry, exit];
+    }
+    let cursor = entry;
+    for (let copy = 0; copy < max; copy += 1) {
+      // Past the minimum, every further occurrence may be the one left out.
+      if (copy >= min) connect(cursor, exit);
+      const [bodyEntry, bodyExit] = body(child);
+      connect(cursor, bodyEntry);
+      cursor = bodyExit;
+    }
+    connect(cursor, exit);
+    return [entry, exit];
+  }
+
+  // The structure root has no exit state: a message is one message, and where
+  // it ends is the cardinality check's question rather than this one's.
+  const start = newState();
+  chain(start, children.get(-1) ?? []);
+  return { epsilon, consume, start };
 }
 
 /** Every state reachable from `states` without consuming a segment. */
@@ -204,36 +270,72 @@ function epsilonClosure(automaton: OrderAutomaton, states: Iterable<number>): Re
     if (state === undefined) break;
     if (reached.has(state)) continue;
     reached.add(state);
-    for (const next of automaton.epsilon.get(state) ?? []) pending.push(next);
+    for (const next of automaton.epsilon[state] ?? []) pending.push(next);
   }
   return reached;
 }
 
+/** The segment names the automaton can consume from any of these states. */
+function expectedNames(automaton: OrderAutomaton, states: Iterable<number>): ReadonlySet<string> {
+  const names = new Set<string>();
+  for (const state of states) {
+    const edge = automaton.consume[state];
+    if (edge !== undefined) names.add(edge.name);
+  }
+  return names;
+}
+
+/** Where the message's sequence and the published order part company. */
+interface OrderDivergence {
+  /** The observed segment the published order cannot place. */
+  readonly segment: ObservedSegment;
+  /** Its position in the observed sequence. */
+  readonly index: number;
+  /** The segment names the publication allows at that point. */
+  readonly expected: ReadonlySet<string>;
+}
+
 /**
- * The first segment the published order cannot place, or `undefined` when the
- * whole sequence is derivable from it.
+ * The first point the published order cannot place, or `undefined` when the
+ * whole sequence is a beginning the publication allows.
  *
  * Every segment handed in must be one the variant names: an unexpected segment
  * is a different finding and would otherwise stop the walk at a position the
  * publication says nothing about.
- *
- * @internal
  */
-export function firstUnplaceableSegment(
-  nodes: readonly StructureExpectationNode[],
+function firstDivergence(
+  automaton: OrderAutomaton,
   observed: readonly ObservedSegment[],
-): ObservedSegment | undefined {
-  const automaton = buildOrderAutomaton(nodes);
-  let active = epsilonClosure(automaton, [0]);
-  for (const segment of observed) {
-    const consumed: number[] = [];
+): OrderDivergence | undefined {
+  let active = epsilonClosure(automaton, [automaton.start]);
+  for (const [index, segment] of observed.entries()) {
+    const advanced: number[] = [];
     for (const state of active) {
-      if (automaton.consumes.get(state) === segment.name) consumed.push(state);
+      const edge = automaton.consume[state];
+      if (edge !== undefined && edge.name === segment.name) advanced.push(edge.to);
     }
-    if (consumed.length === 0) return segment;
-    active = epsilonClosure(automaton, consumed);
+    if (advanced.length === 0) {
+      return { segment, index, expected: expectedNames(automaton, active) };
+    }
+    active = epsilonClosure(automaton, advanced);
   }
   return undefined;
+}
+
+/**
+ * The occurrence an ordering finding names: the first later occurrence of a
+ * segment the publication allowed where the sequence diverged, and failing
+ * that, the segment that could not be placed.
+ */
+function misplacedSegment(
+  observed: readonly ObservedSegment[],
+  divergence: OrderDivergence,
+): ObservedSegment {
+  for (let index = divergence.index + 1; index < observed.length; index += 1) {
+    const candidate = observed[index];
+    if (candidate !== undefined && divergence.expected.has(candidate.name)) return candidate;
+  }
+  return divergence.segment;
 }
 
 /** Freeze one finding and its locus: nothing a caller holds is mutable. */
@@ -245,6 +347,9 @@ function frozen(finding: StructureFinding): StructureFinding {
  * Every finding one variant raises against one message's segment sequence, in a
  * stable order: the ordering finding, then cardinality findings by segment name,
  * then unexpected segments in the order the message carries them.
+ *
+ * The cardinality check runs first because what it reports is what the order
+ * walk relaxes: one defect, one finding.
  *
  * @internal
  */
@@ -276,26 +381,13 @@ export function findingsForSchema(
     counts.set(segment.name, (counts.get(segment.name) ?? 0) + 1);
   }
 
-  const ordering: StructureFinding[] = [];
-  const misplaced = firstUnplaceableSegment(schema.nodes, named);
-  if (misplaced !== undefined) {
-    ordering.push(
-      frozen({
-        code: STRUCTURE_FINDING_CODES.STRUCTURE_SEGMENT_OUT_OF_ORDER,
-        severity: "error",
-        locus: { segment: misplaced.name, occurrence: misplaced.occurrence, structureId },
-        message:
-          `Segment "${misplaced.name}" (occurrence ${String(misplaced.occurrence)}) appears where ` +
-          `published structure ${structureId} does not allow it.`,
-      }),
-    );
-  }
-
   const cardinality: StructureFinding[] = [];
+  const reported = new Map<string, ReportedBound>();
   const byName = [...bounds.entries()].sort(([left], [right]) => left.localeCompare(right, "en"));
   for (const [name, bound] of byName) {
     const count = counts.get(name) ?? 0;
     if (count < bound.min) {
+      reported.set(name, "minimum");
       cardinality.push(
         frozen({
           code: STRUCTURE_FINDING_CODES.STRUCTURE_SEGMENT_CARDINALITY,
@@ -309,6 +401,7 @@ export function findingsForSchema(
       continue;
     }
     if (bound.max !== UNBOUNDED && count > bound.max) {
+      reported.set(name, "maximum");
       cardinality.push(
         frozen({
           code: STRUCTURE_FINDING_CODES.STRUCTURE_SEGMENT_CARDINALITY,
@@ -321,6 +414,22 @@ export function findingsForSchema(
         }),
       );
     }
+  }
+
+  const ordering: StructureFinding[] = [];
+  const divergence = firstDivergence(buildOrderAutomaton(schema.nodes, reported), named);
+  if (divergence !== undefined) {
+    const misplaced = misplacedSegment(named, divergence);
+    ordering.push(
+      frozen({
+        code: STRUCTURE_FINDING_CODES.STRUCTURE_SEGMENT_OUT_OF_ORDER,
+        severity: "error",
+        locus: { segment: misplaced.name, occurrence: misplaced.occurrence, structureId },
+        message:
+          `Segment "${misplaced.name}" (occurrence ${String(misplaced.occurrence)}) appears where ` +
+          `published structure ${structureId} does not allow it.`,
+      }),
+    );
   }
 
   return [...ordering, ...cardinality, ...unexpected];

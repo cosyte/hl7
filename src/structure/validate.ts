@@ -142,7 +142,14 @@ export function validateSegmentSequence(
   return Object.freeze({
     validated: true,
     structureId: chosen.schema.structureId,
-    structureIds: Object.freeze(schemas.map((schema) => schema.structureId)),
+    // Sorted here rather than inherited from the registry's order: the result
+    // type states that the family comes back sorted, and a published promise
+    // that holds only while a generator happens to emit one order is not one.
+    structureIds: Object.freeze(
+      schemas
+        .map((schema) => schema.structureId)
+        .sort((left, right) => left.localeCompare(right, "en")),
+    ),
     reason: "",
     reasonMessage: "",
     findings: Object.freeze(chosen.findings),

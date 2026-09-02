@@ -41,7 +41,11 @@ import {
   validateMessageStructure,
   type StructureFinding,
 } from "../src/index.js";
-import type { PublishedStructureSchema } from "../src/parser/structure-types.js";
+import { GENERATED_STRUCTURE_SCHEMAS } from "../src/parser/generated/message-structure-schemas.js";
+import type {
+  PublishedStructureSchema,
+  StructureExpectationNode,
+} from "../src/parser/structure-types.js";
 import { validateSegmentSequence } from "../src/structure/validate.js";
 import { findPublishedStructureSchema } from "../src/structure/schemas.js";
 import { findingsForSchema } from "../src/structure/walk.js";
@@ -61,6 +65,48 @@ function validate(raw: string): ReturnType<typeof validateMessageStructure> {
 /** Codes only, for the cases that care about which checks fired. */
 function codes(findings: readonly StructureFinding[]): readonly string[] {
   return findings.map((finding) => finding.code);
+}
+
+/** Pair each segment name with its 0-indexed occurrence, as the validator does. */
+function withOccurrences(names: readonly string[]): { name: string; occurrence: number }[] {
+  const seen = new Map<string, number>();
+  return names.map((name) => {
+    const occurrence = seen.get(name) ?? 0;
+    seen.set(name, occurrence + 1);
+    return { name, occurrence };
+  });
+}
+
+/**
+ * One segment sequence a published structure permits, expanded from its
+ * committed nodes alone: every node repeated its published minimum times, or
+ * `atLeast` times where that is more and its published maximum allows it.
+ */
+function conformantSequence(
+  nodes: readonly StructureExpectationNode[],
+  atLeast: number,
+): readonly string[] {
+  const children = new Map<number, number[]>();
+  nodes.forEach((node, index) => {
+    const siblings = children.get(node.parent);
+    if (siblings === undefined) children.set(node.parent, [index]);
+    else siblings.push(index);
+  });
+  const expand = (parent: number): string[] => {
+    const sequence: string[] = [];
+    for (const index of children.get(parent) ?? []) {
+      const node = nodes[index];
+      if (node === undefined) continue;
+      const wanted = Math.max(node.min, atLeast);
+      const count = node.max === "*" ? wanted : Math.min(wanted, node.max);
+      for (let copy = 0; copy < count; copy += 1) {
+        if (node.kind === "segment") sequence.push(node.name);
+        else sequence.push(...expand(index));
+      }
+    }
+    return sequence;
+  };
+  return expand(-1);
 }
 
 const CONFORMANT_A01 = message("ADT^A01", "EVN||20250102", "PID|||", "PV1||I");
@@ -128,11 +174,11 @@ describe("AC7: a segment out of the published order is reported, with its occurr
    * order at all. The multiset is identical either way, so no count question is
    * in play and an ordering finding is the only thing that can report it.
    *
-   * `locus` is the first segment the published order cannot place, per the
-   * finding's own definition. In the OML family it is not `PV1`: those
-   * structures name a SECOND patient-visit group later, in the prior-result
-   * section, so the transposed `PV1` is placed there and the first thing that
-   * can then no longer be placed is the `IN1` that follows it.
+   * The finding names `PV1` in every row, including the OML family, whose
+   * structures name a SECOND patient-visit group later in the prior-result
+   * section: no occurrence of either group may begin with `PV2`, because `PV1`
+   * leads both, so the sequence parts company with the publication where `PV2`
+   * arrives and `PV1` is the segment that belonged there.
    */
   const maxOneGroupOrder: readonly {
     readonly structureId: string;
@@ -167,28 +213,28 @@ describe("AC7: a segment out of the published order is reported, with its occurr
       messageType: "OML^O21",
       published: ["PID|||", "PV1||I", "PV2|||", "IN1|1|", "ORC|NW|"],
       transposed: ["PID|||", "PV2|||", "PV1||I", "IN1|1|", "ORC|NW|"],
-      locus: "IN1",
+      locus: "PV1",
     },
     {
       structureId: "OML_O33",
       messageType: "OML^O33",
       published: ["PID|||", "PV1||I", "PV2|||", "IN1|1|", "SPM|1|", "ORC|NW|"],
       transposed: ["PID|||", "PV2|||", "PV1||I", "IN1|1|", "SPM|1|", "ORC|NW|"],
-      locus: "IN1",
+      locus: "PV1",
     },
     {
       structureId: "OML_O35",
       messageType: "OML^O35",
       published: ["PID|||", "PV1||I", "PV2|||", "IN1|1|", "SPM|1|", "SAC|1|", "ORC|NW|"],
       transposed: ["PID|||", "PV2|||", "PV1||I", "IN1|1|", "SPM|1|", "SAC|1|", "ORC|NW|"],
-      locus: "IN1",
+      locus: "PV1",
     },
     {
       structureId: "OML_O59",
       messageType: "OML^O59_A",
       published: ["PID|||", "PV1||I", "PV2|||", "IN1|1|", "ORC|NW|"],
       transposed: ["PID|||", "PV2|||", "PV1||I", "IN1|1|", "ORC|NW|"],
-      locus: "IN1",
+      locus: "PV1",
     },
   ];
 
@@ -212,13 +258,14 @@ describe("AC7: a segment out of the published order is reported, with its occurr
     },
   );
 
-  it("draws the line at the group's published maximum, not at every group", () => {
-    // The same two segments, the same transposition, one published structure
-    // apart: `AAA` before `BBB` inside a group. Where the publication bounds
-    // that group at one occurrence the sequence `BBB, AAA` cannot be derived
-    // from it at all, and where the publication lets the group repeat the same
-    // sequence reads as two occurrences carrying one segment each, which is
-    // why relaxing the bound for every group reported neither.
+  it("holds a group's published minimum whether or not the group repeats", () => {
+    // The same two segments, the same transposition, one published bound apart:
+    // `AAA` leads a group and `BBB` follows it. Neither `[0..1]` nor `[0..*]`
+    // lets an occurrence of that group begin with `BBB`, because `AAA` carries
+    // a published minimum of one INSIDE it, so `BBB, AAA` is derivable from
+    // neither. Reading a repeating group as "any child, any order, any number
+    // of times" is what let the repeating row through, and it is exactly what
+    // the publication does not say.
     const schema = (max: 1 | "*"): PublishedStructureSchema => ({
       structureId: "SYNTHETIC",
       nodes: [
@@ -231,14 +278,15 @@ describe("AC7: a segment out of the published order is reported, with its occurr
       { name: "BBB", occurrence: 0 },
       { name: "AAA", occurrence: 0 },
     ];
-    const bounded = findingsForSchema(schema(1), transposed);
-    expect(codes(bounded)).toEqual([STRUCTURE_FINDING_CODES.STRUCTURE_SEGMENT_OUT_OF_ORDER]);
-    expect(bounded[0]?.locus).toEqual({
-      segment: "AAA",
-      occurrence: 0,
-      structureId: "SYNTHETIC",
-    });
-    expect(findingsForSchema(schema("*"), transposed)).toEqual([]);
+    for (const max of [1, "*"] as const) {
+      const findings = findingsForSchema(schema(max), transposed);
+      expect(codes(findings)).toEqual([STRUCTURE_FINDING_CODES.STRUCTURE_SEGMENT_OUT_OF_ORDER]);
+      expect(findings[0]?.locus).toEqual({
+        segment: "AAA",
+        occurrence: 0,
+        structureId: "SYNTHETIC",
+      });
+    }
 
     // And the published order itself is silent under either bound.
     const asPublished = [
@@ -247,15 +295,203 @@ describe("AC7: a segment out of the published order is reported, with its occurr
     ];
     expect(findingsForSchema(schema(1), asPublished)).toEqual([]);
     expect(findingsForSchema(schema("*"), asPublished)).toEqual([]);
+
+    // What the repeat DOES buy: a second complete occurrence of the group,
+    // which the bounded structure has no room for.
+    const twice = [
+      { name: "AAA", occurrence: 0 },
+      { name: "BBB", occurrence: 0 },
+      { name: "AAA", occurrence: 1 },
+      { name: "BBB", occurrence: 1 },
+    ];
+    expect(findingsForSchema(schema("*"), twice)).toEqual([]);
+    expect(codes(findingsForSchema(schema(1), twice))).toContain(
+      STRUCTURE_FINDING_CODES.STRUCTURE_SEGMENT_CARDINALITY,
+    );
   });
 
   it("still lets a bounded group's own segment repeat where it stands", () => {
-    // The relaxation that survives: how OFTEN a segment occurs is the
-    // cardinality check's question, so a repeat inside a group bounded at one
-    // occurrence is reported under that code and not as an ordering violation.
+    // The relaxation that survives, and it survives BECAUSE the count check
+    // reports it: how often PV1 occurs is that check's question, so the order
+    // walk drops the bound it already reported and the repeat is one finding.
     const result = validate(message("VXU^V04", "PID|||", "PV1||I", "PV1||I", "PV2|||"));
     expect(codes(result.findings)).toEqual([STRUCTURE_FINDING_CODES.STRUCTURE_SEGMENT_CARDINALITY]);
     expect(result.findings[0]?.locus.segment).toBe("PV1");
+  });
+});
+
+/**
+ * The order check reads the publication's bounds as the publication states
+ * them, at every locus and for every node, not only for a group it bounds at one
+ * occurrence. A group it lets REPEAT is the case that makes the difference: its
+ * required leading segment may not be skipped on one occurrence and consumed on
+ * the next, because no occurrence of that group may begin without it.
+ *
+ * Two sweeps back the individual cases, and both read their ground truth off the
+ * committed expectation rather than off the walk: one says every leader
+ * transposition the snapshot admits is reported, the other says every structure
+ * still accepts its own conformant instances. A checker that fired on messages
+ * the publication permits would be worse than no checker at all.
+ */
+describe("AC7: the published order is read with every published bound honoured", () => {
+  it("reports a repeating group's required leader arriving after a later child", () => {
+    // Every ADT_A01 variant names IN1 as the required first child of an
+    // INSURANCE group bounded [0..*], and IN2 as a later child, so no
+    // occurrence of it can begin with IN2 and no variant derives this message.
+    const published = ["EVN||20250102", "PID|||", "PV1||I", "IN1|1|", "IN2|1|"];
+    expect(validate(message("ADT^A01", ...published)).findings).toEqual([]);
+
+    const transposed = ["EVN||20250102", "PID|||", "PV1||I", "IN2|1|", "IN1|1|"];
+    const result = validate(message("ADT^A01", ...transposed));
+    expect(result.validated).toBe(true);
+    expect(codes(result.findings)).toEqual([
+      STRUCTURE_FINDING_CODES.STRUCTURE_SEGMENT_OUT_OF_ORDER,
+    ]);
+    expect(result.findings[0]?.locus).toEqual({
+      segment: "IN1",
+      occurrence: 0,
+      structureId: "ADT_A01-A",
+    });
+  });
+
+  it("reports every leader transposition the published structures admit", () => {
+    // The same shape, swept across all 81 committed expectations: a repeating
+    // group whose first child is a required segment, paired with each later
+    // segment child of that group, both names at exactly one locus in the
+    // structure so no alternative placement exists. Such a sequence is
+    // derivable from that structure under no reading of it.
+    const silent: string[] = [];
+    let considered = 0;
+    for (const schema of GENERATED_STRUCTURE_SCHEMAS) {
+      const nodes = schema.nodes;
+      const loci = new Map<string, number>();
+      for (const node of nodes) {
+        if (node.kind === "segment") loci.set(node.name, (loci.get(node.name) ?? 0) + 1);
+      }
+      const spine = nodes
+        .filter((node) => node.parent === -1 && node.kind === "segment" && node.min >= 1)
+        .map((node) => node.name);
+      nodes.forEach((group, groupIndex) => {
+        if (group.kind !== "group" || !(group.max === "*" || group.max > 1)) return;
+        const children = nodes.filter((node) => node.parent === groupIndex);
+        const leader = children[0];
+        if (leader === undefined || leader.kind !== "segment" || leader.min < 1) return;
+        if (loci.get(leader.name) !== 1) return;
+        for (const child of children.slice(1)) {
+          if (child.kind !== "segment" || loci.get(child.name) !== 1) continue;
+          considered += 1;
+          const sequence = [...spine, child.name, leader.name];
+          if (findingsForSchema(schema, withOccurrences(sequence)).length === 0) {
+            silent.push(`${schema.structureId}: ${child.name} before ${leader.name}`);
+          }
+        }
+      });
+    }
+    expect(considered).toBeGreaterThan(100);
+    expect(silent).toEqual([]);
+  });
+
+  it("stays silent on every published structure's own conformant instances", () => {
+    // Two instances per structure, expanded from the committed nodes alone:
+    // every node at its published minimum, and every node once (bounded by its
+    // published maximum). Both are messages the publication permits.
+    const noisy: string[] = [];
+    for (const schema of GENERATED_STRUCTURE_SCHEMAS) {
+      for (const [label, atLeast] of [
+        ["minimum", 0],
+        ["once", 1],
+      ] as const) {
+        const findings = findingsForSchema(
+          schema,
+          withOccurrences(conformantSequence(schema.nodes, atLeast)),
+        );
+        if (findings.length > 0) {
+          noisy.push(`${schema.structureId} (${label}): ${codes(findings).join(", ")}`);
+        }
+      }
+    }
+    expect(noisy).toEqual([]);
+  });
+
+  it("reports a transposition even where another segment's count is already reported", () => {
+    // EVN is missing, which the count check reports, so the order walk drops
+    // EVN's minimum and nothing else: the transposed insurance pair further
+    // down is still reported. The relaxation is per segment name, not a blanket
+    // "some count was wrong, so say nothing about the order".
+    const result = validate(message("ADT^A01", "PID|||", "PV1||I", "IN2|1|", "IN1|1|"));
+    expect(codes(result.findings)).toEqual([
+      STRUCTURE_FINDING_CODES.STRUCTURE_SEGMENT_OUT_OF_ORDER,
+      STRUCTURE_FINDING_CODES.STRUCTURE_SEGMENT_CARDINALITY,
+    ]);
+    expect(result.findings[0]?.locus).toEqual({
+      segment: "IN1",
+      occurrence: 0,
+      structureId: "ADT_A01-A",
+    });
+    expect(result.findings[1]?.locus.segment).toBe("EVN");
+  });
+
+  it("names the segment that could not be placed when nothing later explains it", () => {
+    // BBB alone inside a group whose required leader AAA never arrives: there
+    // is no later occurrence of an allowed name to blame, so the finding names
+    // the segment the published order could not place. AAA draws no cardinality
+    // finding of its own, because its minimum along the path from the structure
+    // root is zero.
+    const schema: PublishedStructureSchema = {
+      structureId: "SYNTHETIC",
+      nodes: [
+        { name: "GRP", kind: "group", position: 1, min: 0, max: "*", parent: -1 },
+        { name: "AAA", kind: "segment", position: 1, min: 1, max: 1, parent: 0 },
+        { name: "BBB", kind: "segment", position: 2, min: 0, max: 1, parent: 0 },
+      ],
+    };
+    const findings = findingsForSchema(schema, [{ name: "BBB", occurrence: 0 }]);
+    expect(codes(findings)).toEqual([STRUCTURE_FINDING_CODES.STRUCTURE_SEGMENT_OUT_OF_ORDER]);
+    expect(findings[0]?.locus).toEqual({
+      segment: "BBB",
+      occurrence: 0,
+      structureId: "SYNTHETIC",
+    });
+  });
+
+  it("honours a bound above one, and an unbounded node with a minimum above one", () => {
+    // Nothing in the vendored snapshot carries these bounds today, but the
+    // derivation preserves whatever the publication states, so the walk reads
+    // them rather than assuming zero-or-one and unbounded.
+    const bounded: PublishedStructureSchema = {
+      structureId: "SYNTHETIC",
+      nodes: [
+        { name: "AAA", kind: "segment", position: 1, min: 2, max: 3, parent: -1 },
+        { name: "BBB", kind: "segment", position: 2, min: 0, max: 1, parent: -1 },
+      ],
+    };
+    const runOf = (count: number): readonly string[] => Array.from({ length: count }, () => "AAA");
+    expect(findingsForSchema(bounded, withOccurrences(runOf(2)))).toEqual([]);
+    expect(findingsForSchema(bounded, withOccurrences(runOf(3)))).toEqual([]);
+    // Four occurrences break the maximum, which the count check reports and the
+    // order walk therefore does not repeat.
+    expect(codes(findingsForSchema(bounded, withOccurrences(runOf(4))))).toEqual([
+      STRUCTURE_FINDING_CODES.STRUCTURE_SEGMENT_CARDINALITY,
+    ]);
+    // One occurrence is short of the minimum, and BBB after it is still placed.
+    expect(codes(findingsForSchema(bounded, withOccurrences(["AAA", "BBB"])))).toEqual([
+      STRUCTURE_FINDING_CODES.STRUCTURE_SEGMENT_CARDINALITY,
+    ]);
+
+    const unbounded: PublishedStructureSchema = {
+      structureId: "SYNTHETIC",
+      nodes: [
+        { name: "GRP", kind: "group", position: 1, min: 2, max: "*", parent: -1 },
+        { name: "AAA", kind: "segment", position: 1, min: 1, max: 1, parent: 0 },
+        { name: "BBB", kind: "segment", position: 2, min: 0, max: 1, parent: 0 },
+      ],
+    };
+    expect(findingsForSchema(unbounded, withOccurrences(["AAA", "AAA", "BBB", "AAA"]))).toEqual([]);
+    // The second occurrence may not begin with BBB, whatever the group's
+    // minimum, and AAA arriving after it is what the finding names.
+    expect(
+      codes(findingsForSchema(unbounded, withOccurrences(["AAA", "BBB", "BBB", "AAA"]))),
+    ).toEqual([STRUCTURE_FINDING_CODES.STRUCTURE_SEGMENT_OUT_OF_ORDER]);
   });
 });
 
@@ -443,6 +679,28 @@ describe("AC11: a variant family is violated only when every variant is", () => 
     expect(codes(violated.findings)).toEqual([
       STRUCTURE_FINDING_CODES.STRUCTURE_SEGMENT_UNEXPECTED,
     ]);
+  });
+});
+
+describe("AC11: the family a result reports is the family, sorted", () => {
+  it("sorts the variants it considered, whatever order it read them in", () => {
+    // The result type states that the family comes back sorted. It is sorted
+    // where the result is built rather than inherited from the order the
+    // registry happens to hold, so a future change to that order cannot
+    // falsify a published promise with nothing to catch it.
+    const nodes: readonly StructureExpectationNode[] = [
+      { name: "PID", kind: "segment", position: 1, min: 1, max: 1, parent: -1 },
+    ];
+    const labels = new Map([
+      ["ADT_A01-A", "SYNTHETIC-Z"],
+      ["ADT_A01-B", "SYNTHETIC-M"],
+      ["ADT_A01-C", "SYNTHETIC-A"],
+    ]);
+    const result = validateSegmentSequence("ADT", "A01", ["PID"], (structureId) => {
+      const label = labels.get(structureId);
+      return label === undefined ? undefined : { structureId: label, nodes };
+    });
+    expect(result.structureIds).toEqual(["SYNTHETIC-A", "SYNTHETIC-M", "SYNTHETIC-Z"]);
   });
 });
 
