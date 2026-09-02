@@ -91,6 +91,28 @@ function toMutableArray<T>(arr: readonly T[]): T[] {
 }
 
 /**
+ * Resolve one declaration map against a segment's WIRE name and return the
+ * field-name → position slice it declares, or `undefined` when it declares
+ * none.
+ *
+ * Canonical spelling first, then the wire spelling, and both matter. A profile
+ * built by `defineProfile` is keyed canonically, so a sender's `pid` finds its
+ * declared names only once the name is folded; a hand-rolled `Profile` literal
+ * gets no such validation and may be keyed in the sender's own lowercase. The
+ * order is exactly the one the parser's profile-claim check uses, so a segment
+ * cannot be claimed by the profile yet miss its own field map.
+ *
+ * @internal
+ */
+function segmentFieldMap(
+  map: Readonly<Record<string, CustomSegmentDefinition>> | undefined,
+  rawName: string,
+): Readonly<Record<string, number>> | undefined {
+  const entry = map?.[canonicalSegmentName(rawName)] ?? map?.[rawName];
+  return entry?.fields;
+}
+
+/**
  * Constructor init shape for `Hl7Message`. Exposed for advanced use (e.g.
  * constructing synthetic messages in tests or higher-level builders) but
  * most consumers should rely on `parseHL7` to produce `Hl7Message`
@@ -120,6 +142,15 @@ export interface Hl7MessageInit {
    * positions (PROF-07). Absent when no profile was applied.
    */
   readonly customSegments?: Readonly<Record<string, CustomSegmentDefinition>>;
+  /**
+   * Merged `segmentOverrides` map from the applied profile: field names the
+   * profile binds on STANDARD segment types. Threaded to the same
+   * `Segment.get(name)` resolution the custom-segment map feeds, consulted only
+   * where that map declares nothing for the segment, so no segment that
+   * resolved a name before resolves a different one now. Absent when no
+   * profile was applied, or when it declares no overrides.
+   */
+  readonly segmentOverrides?: Readonly<Record<string, CustomSegmentDefinition>>;
   /**
    * Merged `dateFormats` list: `options.dateFormats ++ profile.dateFormats`
    * deduped first-occurrence per D-21. Consumed by `msg.meta.timestamp` and
@@ -194,6 +225,14 @@ export class Hl7Message {
    * @internal
    */
   private _customSegments: Readonly<Record<string, CustomSegmentDefinition>> | undefined;
+
+  /**
+   * Merged `segmentOverrides` map from the applied profile: the standard-segment
+   * half of the same name resolution. Undefined when no profile was applied or
+   * the profile declares no overrides.
+   * @internal
+   */
+  private _segmentOverrides: Readonly<Record<string, CustomSegmentDefinition>> | undefined;
 
   /**
    * Lazily built cache of Segment wrappers keyed by segment type. Built on
@@ -272,6 +311,11 @@ export class Hl7Message {
     // per-segment slices to Segment constructors. Conditional assignment
     // under exactOptionalPropertyTypes: absent key stays undefined.
     if (init.customSegments !== undefined) this._customSegments = init.customSegments;
+    // The standard-segment half of the same map. Stored separately, never
+    // folded into `_customSegments`: that map also answers "did the profile
+    // claim this segment?" for UNKNOWN_SEGMENT suppression, and a standard
+    // name inside it would change that answer.
+    if (init.segmentOverrides !== undefined) this._segmentOverrides = init.segmentOverrides;
     // D-21: merged dateFormats list (options ++ profile). Empty array when
     // neither source supplied any formats so the public field is always
     // defined (simpler consumer contract than `readonly string[] | undefined`).
@@ -385,16 +429,18 @@ export class Hl7Message {
       // `seg.get(name)` can resolve named positions. Conditional-pass under
       // exactOptionalPropertyTypes so the optional 4th ctor param stays
       // truly absent (not explicitly undefined) when no profile applied.
-      // Canonical key first, then the wire spelling: profile customSegments
-      // keys are validated to /^Z[A-Z0-9]{2}$/ at defineProfile time, so a wire
-      // `zpi` only finds its declared field names once the name is folded, but
-      // a hand-rolled Profile literal gets no such validation and may be keyed
-      // in the sender's own lowercase. Both spellings are tried, in exactly the
-      // order the parser's profile-claim check uses, so a segment cannot be
-      // claimed by the profile yet miss its own field map.
-      const customSegment =
-        this._customSegments?.[canonicalSegmentName(raw.name)] ?? this._customSegments?.[raw.name];
-      const customFields = customSegment?.fields;
+      //
+      // The CUSTOM-SEGMENT map is consulted first and the standard-segment
+      // override map only where it declared nothing, which is what makes an
+      // override incapable of re-pointing an existing read: every segment that
+      // resolved a field map before resolves the same one, and a name reaches
+      // the override map only on a segment type the custom map never claimed.
+      // For a profile built by `defineProfile` the two key sets cannot even
+      // intersect (Z-only vs standard-only); the order is what holds the
+      // property for a hand-rolled `Profile` literal, which gets no validation.
+      const customFields =
+        segmentFieldMap(this._customSegments, raw.name) ??
+        segmentFieldMap(this._segmentOverrides, raw.name);
       if (customFields !== undefined) {
         built.push(new Segment(raw, this.encodingCharacters, i, customFields));
       } else {

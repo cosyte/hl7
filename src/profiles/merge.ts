@@ -3,10 +3,11 @@
  * supplied. Every helper takes a `readonly parents[]` + a self value and
  * returns the merged result; none mutate input. Implements D-03 (lineage),
  * D-09 (scalar last-wins), D-10 (dateFormats concat+dedupe), D-11
- * (customSegments deep-merge), D-12 (onWarning chain composition).
+ * (customSegments deep-merge, shared with the standard-segment override map),
+ * D-12 (onWarning chain composition).
  *
  * Zero runtime deps. A local `Set` is used for first-occurrence dedup
- * tracking across lineage + dateFormats helpers; `mergeCustomSegments`
+ * tracking across lineage + dateFormats helpers; the declaration-map reducer
  * uses a position-indexed `Map` accumulator so later layers overwrite
  * same-position entries while non-colliding positions survive additively.
  *
@@ -104,6 +105,50 @@ export function mergeCustomSegments(
   parents: readonly Profile[],
   selfMap: Readonly<Record<string, CustomSegmentDefinition>>,
 ): Readonly<Record<string, CustomSegmentDefinition>> {
+  return mergeSegmentDeclarations(
+    parents.map((p) => p.customSegments),
+    selfMap,
+  );
+}
+
+/**
+ * Merge `segmentOverrides` across `extends`. Same reducer, same rule, the
+ * other map: fields at distinct positions merge additively, the child wins on
+ * a position conflict, and a parent's binding at a position the child does not
+ * declare survives.
+ *
+ * It shares {@link mergeSegmentDeclarations} with `customSegments` rather than
+ * restating the algorithm, so "the same semantics the custom-segment map
+ * already uses" is a structural fact and not a claim two copies have to keep
+ * agreeing on.
+ *
+ * Post-merge re-validation (standard-segment keys; duplicate-name defense-in-
+ * depth) is the CALLER's responsibility, as it is for the sibling helper.
+ *
+ * @internal
+ */
+export function mergeSegmentOverrides(
+  parents: readonly Profile[],
+  selfMap: Readonly<Record<string, CustomSegmentDefinition>>,
+): Readonly<Record<string, CustomSegmentDefinition>> {
+  return mergeSegmentDeclarations(
+    parents.map((p) => p.segmentOverrides),
+    selfMap,
+  );
+}
+
+/**
+ * The position-indexed reducer behind both declaration maps. `parentMaps` are
+ * layered left-to-right, then `selfMap` last, into a per-segment
+ * position → field-name accumulator, so a later layer overwrites only the
+ * POSITIONS it re-declares and every other parent binding survives.
+ *
+ * @internal
+ */
+function mergeSegmentDeclarations(
+  parentMaps: readonly (Readonly<Record<string, CustomSegmentDefinition>> | undefined)[],
+  selfMap: Readonly<Record<string, CustomSegmentDefinition>>,
+): Readonly<Record<string, CustomSegmentDefinition>> {
   // Accumulate per-segment: position → field-name. Child overrides
   // position collisions; parent position entries at non-colliding
   // positions survive.
@@ -125,8 +170,8 @@ export function mergeCustomSegments(
       }
     }
   };
-  for (const p of parents) {
-    layer(p.customSegments);
+  for (const map of parentMaps) {
+    layer(map);
   }
   layer(selfMap);
 
