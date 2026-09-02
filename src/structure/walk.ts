@@ -12,11 +12,11 @@
  *      against the minimum and maximum the publication implies along the path
  *      from the structure root: a segment inside an optional group is not
  *      required, and a segment inside a repeating group inherits its repetition.
- *   3. **Is the sequence derivable from the published order?** Asked with every
- *      occurrence bound relaxed to "any number of times", precisely so that a
- *      count violation cannot masquerade as an ordering violation. What is left
- *      is the ordering question alone: may this segment appear HERE, after the
- *      ones before it.
+ *   3. **Is the sequence derivable from the published order?** Asked with a
+ *      SEGMENT's occurrence bounds relaxed to "any number of times", precisely
+ *      so that a count violation cannot masquerade as an ordering violation.
+ *      What is left is the ordering question alone: may this segment appear
+ *      HERE, after the ones before it.
  *
  * Question 3 is answered by simulating a tiny automaton built from the ordered
  * expectation, which is what makes a repeating group work: an `ORU^R01` may
@@ -26,6 +26,14 @@
  * structure, never backtracks, and reports the FIRST segment it cannot place:
  * once the sequence has diverged, every position after it is measured against a
  * place in the structure nothing established.
+ *
+ * THE RELAXATION STOPS AT THE GROUP, and that boundary is the whole reason the
+ * check catches anything at all. A group the publication bounds at one
+ * occurrence may not be re-entered, so its children may not come back round in
+ * a different order: a `VXU^V04` carrying `PV2` before `PV1` inside a
+ * `PATIENT_VISIT` group bounded at `[0..1]` is an ordering violation and is
+ * reported as one. Relaxing that too would grant a loop the publication does not
+ * and would accept any permutation of a non-repeating group's children.
  */
 
 import type {
@@ -106,14 +114,17 @@ export function occurrenceBounds(
 }
 
 /**
- * The published order as an automaton, with every occurrence bound relaxed to
- * "any number of times".
+ * The published order as an automaton, with a SEGMENT's occurrence bounds
+ * relaxed to "any number of times" and a GROUP's published maximum honoured.
  *
- * State `0` is the structure root's entry; the state for node `i` is `i + 1`.
- * A segment node's state consumes that segment name and stays put, which is the
- * relaxation. A group node's state is both the way into the group and the way
- * back out of it, so entering, skipping and repeating a group are all reachable
- * without consuming anything.
+ * State `0` is the structure root's entry. A segment node gets one state, which
+ * consumes that segment name and stays put: that is the relaxation, and it is
+ * why an over-repeated segment is a cardinality finding rather than an ordering
+ * one. A group node gets TWO states, an entry and an exit, so that leaving a
+ * group and re-entering it are separate edges rather than the same one. Entry
+ * leads to the group's first child and, skipping it, straight to the exit; the
+ * group's last child leads to the exit; and only a group the publication lets
+ * occur more than once gets the edge back from exit to entry.
  */
 interface OrderAutomaton {
   /** Edges that consume nothing, by state. */
@@ -122,12 +133,22 @@ interface OrderAutomaton {
   readonly consumes: ReadonlyMap<number, string>;
 }
 
-/** Build the relaxed order automaton for one variant's ordered expectation. */
+/** Whether the publication lets a node occur more than once at this locus. */
+function repeats(node: StructureExpectationNode): boolean {
+  return node.max === UNBOUNDED || node.max > 1;
+}
+
+/** Build the order automaton for one variant's ordered expectation. */
 function buildOrderAutomaton(nodes: readonly StructureExpectationNode[]): OrderAutomaton {
   const epsilon = new Map<number, number[]>();
   const consumes = new Map<number, string>();
-  /** The last child state seen under each parent state, for the sibling chain. */
-  const lastChild = new Map<number, number>();
+  /** Per node index: the state a walk arrives at, and the state it leaves from. */
+  const entryOf: number[] = [];
+  const exitOf: number[] = [];
+  /** The exit state of the last child seen under each parent index (`-1` = root). */
+  const lastChildExit = new Map<number, number>();
+  /** State `0` is the structure root's entry; every other state is allocated here. */
+  let stateCount = 1;
 
   const connect = (from: number, to: number): void => {
     const edges = epsilon.get(from);
@@ -135,19 +156,40 @@ function buildOrderAutomaton(nodes: readonly StructureExpectationNode[]): OrderA
     else edges.push(to);
   };
 
-  for (const [index, node] of nodes.entries()) {
-    const state = index + 1;
-    const parentState = node.parent + 1;
-    connect(lastChild.get(parentState) ?? parentState, state);
-    lastChild.set(parentState, state);
-    if (node.kind === "segment") consumes.set(state, node.name);
+  for (const node of nodes) {
+    // A node follows its previous sibling, or opens its parent's child chain.
+    const from =
+      lastChildExit.get(node.parent) ?? (node.parent < 0 ? 0 : (entryOf[node.parent] ?? 0));
+    if (node.kind === "segment") {
+      const state = stateCount++;
+      entryOf.push(state);
+      exitOf.push(state);
+      consumes.set(state, node.name);
+      connect(from, state);
+      lastChildExit.set(node.parent, state);
+      continue;
+    }
+    const entry = stateCount++;
+    const exit = stateCount++;
+    entryOf.push(entry);
+    exitOf.push(exit);
+    connect(from, entry);
+    // Skipping the group: the ordering question relaxes every minimum, so an
+    // absent group is the cardinality check's business, not this one.
+    connect(entry, exit);
+    // Repeating it: only where the publication grants a second occurrence.
+    if (repeats(node)) connect(exit, entry);
+    lastChildExit.set(node.parent, exit);
   }
 
-  // Close every group: its last child leads back to the group's own state, which
-  // is what lets the group repeat and what lets the walk leave it again. State 0
-  // is the structure root, and a message is one message: it never loops back.
-  for (const [parentState, childState] of lastChild) {
-    if (parentState !== 0) connect(childState, parentState);
+  // A group's children lead to its exit. A childless group already has the
+  // entry-to-exit edge, and the structure root has no exit: a message is one
+  // message and never loops back.
+  for (const [index, node] of nodes.entries()) {
+    if (node.kind !== "group") continue;
+    const childExit = lastChildExit.get(index);
+    const exit = exitOf[index];
+    if (childExit !== undefined && exit !== undefined) connect(childExit, exit);
   }
 
   return { epsilon, consumes };

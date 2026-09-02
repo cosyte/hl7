@@ -62,6 +62,13 @@ export const STRUCTURE_FINDING_CODES = {
    * A segment appears where the published structure does not allow it: the
    * message's segment sequence stops being derivable from the published order
    * at this segment.
+   *
+   * The order is read with **how often** a segment occurs set aside, because
+   * that question has its own code: a segment may repeat where it stands, and a
+   * missing one is never reported here. What is not set aside is the
+   * publication's group structure, so a group the publication lets occur at
+   * most once may not be re-entered, and its children arriving in another order
+   * are reported here.
    */
   STRUCTURE_SEGMENT_OUT_OF_ORDER: "STRUCTURE_SEGMENT_OUT_OF_ORDER",
   /**
@@ -73,6 +80,11 @@ export const STRUCTURE_FINDING_CODES = {
    * A segment the published structure does not name anywhere, a `Z` segment
    * included. Distinct from the other two on purpose: a segment the publication
    * never mentions has no position to be out of and no count to exceed.
+   *
+   * A line carrying no segment name at all is not one of these. A message
+   * ending with a segment terminator parses as a trailing segment whose type is
+   * the empty string, and the publication names segments rather than blank
+   * lines; the parse reports that line, under `UNKNOWN_SEGMENT`.
    */
   STRUCTURE_SEGMENT_UNEXPECTED: "STRUCTURE_SEGMENT_UNEXPECTED",
 } as const;

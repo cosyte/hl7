@@ -58,11 +58,22 @@ function notValidated(reason: StructureNotValidatedReason): StructureValidationR
   });
 }
 
-/** Pair every segment name with its 0-indexed occurrence among its namesakes. */
+/**
+ * Pair every segment name with its 0-indexed occurrence among its namesakes.
+ *
+ * A line carrying no name at all is dropped rather than validated. A message
+ * that ends with a segment terminator, which this package's own builder emits
+ * and which real feeds send constantly, parses as a trailing segment whose type
+ * is the empty string. The publication names segments, not blank lines, so
+ * there is nothing there for any of the three checks to be about, and a finding
+ * whose locus named the empty string would be one no caller could act on. The
+ * parse already reports it, as the `UNKNOWN_SEGMENT` warning it always did.
+ */
 function withOccurrences(segmentNames: readonly string[]): readonly ObservedSegment[] {
   const seen = new Map<string, number>();
   const observed: ObservedSegment[] = [];
   for (const name of segmentNames) {
+    if (name.trim() === "") continue;
     const occurrence = seen.get(name) ?? 0;
     seen.set(name, occurrence + 1);
     observed.push({ name, occurrence });

@@ -135,13 +135,31 @@ It reports three things, each under its own stable code:
 
 | Code | What it means |
 | --- | --- |
-| `STRUCTURE_SEGMENT_OUT_OF_ORDER` | The message's segment sequence stops being derivable from the published order at this segment. |
+| `STRUCTURE_SEGMENT_OUT_OF_ORDER` | The message's segment sequence stops being derivable from the published order at this segment, reading that order with **how often** each segment occurs set aside. |
 | `STRUCTURE_SEGMENT_CARDINALITY` | The segment occurs fewer times than the published minimum along the path from the structure root, or more times than the published maximum. |
 | `STRUCTURE_SEGMENT_UNEXPECTED` | The published structure does not name this segment anywhere, a `Z` segment included. It carries `severity: "warning"` rather than `"error"`, because HL7 reserves `Z` segments for exactly this. |
 
 A finding carries the code, a severity, a **PHI-free locus** (segment name,
 0-indexed occurrence, published structure id) and a human-readable message. No
 field, component or subcomponent value is ever read into one.
+
+**What "set aside" means for the order check.** The three questions are kept
+apart so that one defect is reported as one thing, so the order is read with
+every occurrence count relaxed: a segment may repeat where it stands and a
+segment that is missing altogether is the cardinality check's business, not this
+one. The publication's **group structure is not relaxed**. A group it lets occur
+more than once may repeat, which is what lets a conformant `ORU^R01` carry `OBR
+OBX OBR OBX`; a group bounded at one occurrence may not be re-entered, so a
+`VXU^V04` carrying `PV2` before `PV1` inside a `PATIENT_VISIT` group the
+publication bounds at `[0..1]` is reported here. The residue of the relaxation
+is worth knowing: where a required segment is missing from one occurrence of a
+**repeating** group, the rest of that group can read as a second occurrence, so
+the order check stays silent and the message is judged on its counts alone.
+
+A line carrying no segment name at all is not validated. A message that ends
+with a segment terminator parses as a trailing segment whose type is the empty
+string; the publication names segments rather than blank lines, so that line
+draws no structural finding. The parse still reports it, under `UNKNOWN_SEGMENT`.
 
 ```ts runnable
 import { parseHL7, validateMessageStructure } from "@cosyte/hl7";

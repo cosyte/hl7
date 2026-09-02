@@ -25,6 +25,10 @@
  * case itself, whose planted values are obvious non-clinical markers.
  */
 
+import { readFileSync, readdirSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -37,6 +41,7 @@ import {
   validateMessageStructure,
   type StructureFinding,
 } from "../src/index.js";
+import type { PublishedStructureSchema } from "../src/parser/structure-types.js";
 import { validateSegmentSequence } from "../src/structure/validate.js";
 import { findPublishedStructureSchema } from "../src/structure/schemas.js";
 import { findingsForSchema } from "../src/structure/walk.js";
@@ -113,6 +118,144 @@ describe("AC7: a segment out of the published order is reported, with its occurr
     expect(ordering).toHaveLength(1);
     expect(ordering[0]?.locus.segment).toBe("PID");
     expect(ordering[0]?.locus.occurrence).toBe(1);
+  });
+
+  /**
+   * Every published structure that names `PV1` before `PV2` inside a group the
+   * publication bounds at ONE occurrence. Each row is the same segments twice:
+   * in the published order, where the message is conformant and silent, and
+   * with that one pair transposed, where it is not derivable from the published
+   * order at all. The multiset is identical either way, so no count question is
+   * in play and an ordering finding is the only thing that can report it.
+   *
+   * `locus` is the first segment the published order cannot place, per the
+   * finding's own definition. In the OML family it is not `PV1`: those
+   * structures name a SECOND patient-visit group later, in the prior-result
+   * section, so the transposed `PV1` is placed there and the first thing that
+   * can then no longer be placed is the `IN1` that follows it.
+   */
+  const maxOneGroupOrder: readonly {
+    readonly structureId: string;
+    readonly messageType: string;
+    readonly published: readonly string[];
+    readonly transposed: readonly string[];
+    readonly locus: string;
+  }[] = [
+    {
+      structureId: "VXU_V04",
+      messageType: "VXU^V04",
+      published: ["PID|||", "PV1||I", "PV2|||"],
+      transposed: ["PID|||", "PV2|||", "PV1||I"],
+      locus: "PV1",
+    },
+    {
+      structureId: "ADT_A60",
+      messageType: "ADT^A60",
+      published: ["EVN||20250102", "PID|||", "PV1||I", "PV2|||"],
+      transposed: ["EVN||20250102", "PID|||", "PV2|||", "PV1||I"],
+      locus: "PV1",
+    },
+    {
+      structureId: "OML_O39",
+      messageType: "OML^O39",
+      published: ["PID|||", "PV1||I", "PV2|||", "ORC|NW|"],
+      transposed: ["PID|||", "PV2|||", "PV1||I", "ORC|NW|"],
+      locus: "PV1",
+    },
+    {
+      structureId: "OML_O21",
+      messageType: "OML^O21",
+      published: ["PID|||", "PV1||I", "PV2|||", "IN1|1|", "ORC|NW|"],
+      transposed: ["PID|||", "PV2|||", "PV1||I", "IN1|1|", "ORC|NW|"],
+      locus: "IN1",
+    },
+    {
+      structureId: "OML_O33",
+      messageType: "OML^O33",
+      published: ["PID|||", "PV1||I", "PV2|||", "IN1|1|", "SPM|1|", "ORC|NW|"],
+      transposed: ["PID|||", "PV2|||", "PV1||I", "IN1|1|", "SPM|1|", "ORC|NW|"],
+      locus: "IN1",
+    },
+    {
+      structureId: "OML_O35",
+      messageType: "OML^O35",
+      published: ["PID|||", "PV1||I", "PV2|||", "IN1|1|", "SPM|1|", "SAC|1|", "ORC|NW|"],
+      transposed: ["PID|||", "PV2|||", "PV1||I", "IN1|1|", "SPM|1|", "SAC|1|", "ORC|NW|"],
+      locus: "IN1",
+    },
+    {
+      structureId: "OML_O59",
+      messageType: "OML^O59_A",
+      published: ["PID|||", "PV1||I", "PV2|||", "IN1|1|", "ORC|NW|"],
+      transposed: ["PID|||", "PV2|||", "PV1||I", "IN1|1|", "ORC|NW|"],
+      locus: "IN1",
+    },
+  ];
+
+  it.each(maxOneGroupOrder)(
+    "reports a pair transposed inside a group $structureId bounds at one occurrence",
+    ({ structureId, messageType, published, transposed, locus }) => {
+      const clean = validate(message(messageType, ...published));
+      expect(clean.validated).toBe(true);
+      expect(clean.structureId).toBe(structureId);
+      expect(clean.findings).toEqual([]);
+
+      const result = validate(message(messageType, ...transposed));
+      expect(result.validated).toBe(true);
+      expect(result.structureId).toBe(structureId);
+      const ordering = result.findings.filter(
+        (finding) => finding.code === STRUCTURE_FINDING_CODES.STRUCTURE_SEGMENT_OUT_OF_ORDER,
+      );
+      expect(ordering).toHaveLength(1);
+      expect(ordering[0]?.locus).toEqual({ segment: locus, occurrence: 0, structureId });
+      expect(ordering[0]?.severity).toBe("error");
+    },
+  );
+
+  it("draws the line at the group's published maximum, not at every group", () => {
+    // The same two segments, the same transposition, one published structure
+    // apart: `AAA` before `BBB` inside a group. Where the publication bounds
+    // that group at one occurrence the sequence `BBB, AAA` cannot be derived
+    // from it at all, and where the publication lets the group repeat the same
+    // sequence reads as two occurrences carrying one segment each, which is
+    // why relaxing the bound for every group reported neither.
+    const schema = (max: 1 | "*"): PublishedStructureSchema => ({
+      structureId: "SYNTHETIC",
+      nodes: [
+        { name: "GRP", kind: "group", position: 1, min: 0, max, parent: -1 },
+        { name: "AAA", kind: "segment", position: 1, min: 1, max: 1, parent: 0 },
+        { name: "BBB", kind: "segment", position: 2, min: 0, max: 1, parent: 0 },
+      ],
+    });
+    const transposed = [
+      { name: "BBB", occurrence: 0 },
+      { name: "AAA", occurrence: 0 },
+    ];
+    const bounded = findingsForSchema(schema(1), transposed);
+    expect(codes(bounded)).toEqual([STRUCTURE_FINDING_CODES.STRUCTURE_SEGMENT_OUT_OF_ORDER]);
+    expect(bounded[0]?.locus).toEqual({
+      segment: "AAA",
+      occurrence: 0,
+      structureId: "SYNTHETIC",
+    });
+    expect(findingsForSchema(schema("*"), transposed)).toEqual([]);
+
+    // And the published order itself is silent under either bound.
+    const asPublished = [
+      { name: "AAA", occurrence: 0 },
+      { name: "BBB", occurrence: 0 },
+    ];
+    expect(findingsForSchema(schema(1), asPublished)).toEqual([]);
+    expect(findingsForSchema(schema("*"), asPublished)).toEqual([]);
+  });
+
+  it("still lets a bounded group's own segment repeat where it stands", () => {
+    // The relaxation that survives: how OFTEN a segment occurs is the
+    // cardinality check's question, so a repeat inside a group bounded at one
+    // occurrence is reported under that code and not as an ordering violation.
+    const result = validate(message("VXU^V04", "PID|||", "PV1||I", "PV1||I", "PV2|||"));
+    expect(codes(result.findings)).toEqual([STRUCTURE_FINDING_CODES.STRUCTURE_SEGMENT_CARDINALITY]);
+    expect(result.findings[0]?.locus.segment).toBe("PV1");
   });
 });
 
@@ -191,6 +334,36 @@ describe("AC10: a segment the published structure does not name is reported unde
   it("does not let an unexpected segment also stop the ordering walk", () => {
     const result = validate(message("ADT^A02", "EVN||20250102", "ZPI|1|", "PID|||", "PV1||I"));
     expect(codes(result.findings)).toEqual([STRUCTURE_FINDING_CODES.STRUCTURE_SEGMENT_UNEXPECTED]);
+  });
+
+  it("says nothing about a line carrying no segment name at all", () => {
+    // A message ending with a segment terminator parses as a trailing segment
+    // whose type is the empty string. The publication names segments, not
+    // blank lines, and a locus naming "" is one no caller could act on. The
+    // parse still reports the line, under the warning it always did.
+    const parsed = parseHL7(message("ADT^A02", "EVN||20250102", "PID|||", "PV1||I") + "\r\r");
+    expect(parsed.allSegments().map((segment) => segment.type)).toContain("");
+    expect(parsed.warnings.map((warning) => warning.code)).toContain(WARNING_CODES.UNKNOWN_SEGMENT);
+
+    const result = validateMessageStructure(parsed);
+    expect(result.validated).toBe(true);
+    expect(result.findings).toEqual([]);
+  });
+
+  it("reports nothing on this package's own builder output", () => {
+    // The golden files the builder suite pins are this package's own emitted
+    // HL7, and they end with a terminator. Reporting their trailing blank line
+    // as an unexpected segment would have this validator disagree with the
+    // serializer that wrote it.
+    const goldenDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "fixtures", "build");
+    const goldens = readdirSync(goldenDir).filter((name) => name.endsWith(".golden.hl7"));
+    expect(goldens.length).toBeGreaterThan(0);
+    for (const name of goldens) {
+      const result = validateMessageStructure(
+        parseHL7(readFileSync(path.join(goldenDir, name), "utf8")),
+      );
+      expect(result.findings.map((finding) => finding.locus.segment)).not.toContain("");
+    }
   });
 });
 
