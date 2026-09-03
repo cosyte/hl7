@@ -192,6 +192,29 @@ export { buildMessage } from "./builder/build-message.js";
 export type { BuildMessageInit } from "./builder/build-message.js";
 export type { SerializedMessage } from "./serialize/to-json.js";
 
+// Schema emission for the serialized projection. The library authors the
+// description of the object `toJSON()` returns, so a consumer validating a
+// snapshot does not have to transcribe a shape they do not own and keep the
+// transcription in step by hand. `messageJsonSchema` returns a JSON Schema
+// document at the 2020-12 dialect; `messageZodSource` returns Zod schemas as
+// TypeScript SOURCE TEXT to paste into a consumer's own codebase, never an
+// imported `zod` value: this package still ships zero runtime dependencies.
+// `emitMessageSchema` is the named-target route over both, and refuses a target
+// it does not support rather than returning a partial artifact.
+//
+// This is DESCRIPTION, not validation: nothing here evaluates a schema against
+// a value, inspects a message, or produces a finding.
+export {
+  SCHEMA_EMIT_TARGETS,
+  SchemaTargetError,
+  emitMessageSchema,
+  isSchemaEmitTarget,
+} from "./serialize/schema/emit.js";
+export type { SchemaEmitTarget } from "./serialize/schema/emit.js";
+export { JSON_SCHEMA_DIALECT, messageJsonSchema } from "./serialize/schema/json-schema.js";
+export type { JsonSchemaDocument, JsonSchemaNode } from "./serialize/schema/json-schema.js";
+export { messageZodSource } from "./serialize/schema/zod.js";
+
 // Phase T: typed emit symmetry: the conservative-emit mirror of the read
 // helpers. `encodeComposite` (and the per-type `encodeXpn`/`encodeCx`/… it
 // dispatches to) turn a typed composite into a spec-clean field using the
