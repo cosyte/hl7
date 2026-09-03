@@ -76,8 +76,10 @@ export class Segment<FieldName extends string = string> {
   /**
    * Lookup map from profile-declared field name → 1-indexed HL7 position.
    * Absent when no profile was applied to the parent message, or when the
-   * applied profile does not declare `customSegments` for this segment's
-   * type. Consumed by `get(name)` to resolve named-field access (PROF-07).
+   * applied profile declares no field names for this segment's type in either
+   * of its declaration maps (`customSegments` for a Z-segment,
+   * `segmentOverrides` for a standard one). Consumed by `get(name)` to resolve
+   * named-field access (PROF-07).
    * @internal
    */
   public readonly customFields: Readonly<Record<string, number>> | undefined;
@@ -91,9 +93,9 @@ export class Segment<FieldName extends string = string> {
    * `msg.allSegments()`.
    *
    * The optional `customFields` parameter is the per-segment portion of the
-   * applied profile's merged `customSegments` map (PROF-07 / D-16). When
-   * supplied, `get(name)` resolves names against it; otherwise `get(name)`
-   * always returns `undefined`.
+   * applied profile's merged declarations for this segment type (PROF-07 /
+   * D-16). When supplied, `get(name)` resolves names against it; otherwise
+   * `get(name)` always returns `undefined`.
    * @internal
    */
   public constructor(
@@ -175,11 +177,17 @@ export class Segment<FieldName extends string = string> {
    * missing names return `undefined`, NOT a synthetic empty Field, so
    * typos surface instead of silently resolving to an empty string (D-14).
    *
-   * For segments without a profile-declared customSegments slice (most
-   * non-Z segments, and any Z-segment whose host message had no profile
-   * applied), this method always returns `undefined` (D-15 defense-in-depth
-   *: D-05 already rejects standard-segment overlays at `defineProfile()`
-   * time).
+   * Two declaration maps feed it, and which one a name may come from depends
+   * on the segment: `customSegments` names fields on a Z-segment,
+   * `segmentOverrides` names fields on a standard one. Both are read-side
+   * ALIASES. A name resolves to whatever `field(n)` returns for its declared
+   * position and nothing else moves: the positional accessor, dot-paths, the
+   * typed clinical accessors (`msg.patient`, `msg.allergies()`, ...), the
+   * warning list and both serializations are unaffected by a declaration.
+   *
+   * For segments the profile in force declares nothing for (and for every
+   * segment when no profile was applied), this method always returns
+   * `undefined`.
    *
    * When the declared position is out of range for the underlying
    * `RawSegment.fields`, `get(name)` returns `undefined` (NOT a

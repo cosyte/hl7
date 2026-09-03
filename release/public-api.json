@@ -706,7 +706,8 @@
         "description?: string | undefined",
         "extends?: Profile | readonly Profile[] | undefined",
         "name: string",
-        "onWarning?: OnWarningCallback | undefined"
+        "onWarning?: OnWarningCallback | undefined",
+        "segmentOverrides?: Readonly<Record<string, CustomSegmentDefinition>> | undefined"
       ]
     },
     {
@@ -720,7 +721,8 @@
         "description?: string | undefined",
         "lineage?: readonly string[] | undefined",
         "name: string",
-        "onWarning?: OnWarningCallback | undefined"
+        "onWarning?: OnWarningCallback | undefined",
+        "segmentOverrides?: Readonly<Record<string, CustomSegmentDefinition>> | undefined"
       ]
     },
     {
@@ -1752,7 +1754,7 @@
       "kind": "type",
       "type": "",
       "members": [
-        "__@iterator@475: () => StringIterator<string>",
+        "__@iterator@477: () => StringIterator<string>",
         "anchor: (name: string) => string",
         "at: (index: number) => string | undefined",
         "big: () => string",
@@ -1809,7 +1811,7 @@
       "kind": "type",
       "type": "",
       "members": [
-        "__@iterator@475: () => StringIterator<string>",
+        "__@iterator@477: () => StringIterator<string>",
         "anchor: (name: string) => string",
         "at: (index: number) => string | undefined",
         "big: () => string",
@@ -1968,7 +1970,7 @@
       "kind": "type",
       "type": "",
       "members": [
-        "__@iterator@475: () => StringIterator<string>",
+        "__@iterator@477: () => StringIterator<string>",
         "anchor: (name: string) => string",
         "at: (index: number) => string | undefined",
         "big: () => string",
@@ -2155,7 +2157,8 @@
         "description?: string | undefined",
         "lineage?: readonly string[] | undefined",
         "name: string",
-        "onWarning?: OnWarningCallback | undefined"
+        "onWarning?: OnWarningCallback | undefined",
+        "segmentOverrides?: Readonly<Record<string, CustomSegmentDefinition>> | undefined"
       ]
     },
     {
@@ -2178,7 +2181,7 @@
       "kind": "type",
       "type": "",
       "members": [
-        "__@iterator@475: () => StringIterator<string>",
+        "__@iterator@477: () => StringIterator<string>",
         "anchor: (name: string) => string",
         "at: (index: number) => string | undefined",
         "big: () => string",

@@ -103,12 +103,18 @@ export interface ParseOptions {
 }
 
 /**
- * Shape of a single custom Z-segment declaration used by profile authoring
+ * Shape of a single segment field-name declaration used by profile authoring
  * (`defineProfile()`). `fields` maps a caller-visible field NAME to its
  * 1-indexed HL7 position within the segment. Declared here (alongside
  * `Profile`) to keep the parser's type module the single source of truth;
  * `src/profiles/define.ts` re-exports this type, so consumers can write
  * `import type { CustomSegmentDefinition } from "@cosyte/hl7"`.
+ *
+ * It is the value shape of BOTH declaration maps, and which map a declaration
+ * sits in is what decides where the name may be used: `customSegments` names
+ * fields on a custom Z-segment, `segmentOverrides` names fields on a standard
+ * HL7 v2 segment. The shape is identical because the meaning of a position is:
+ * a 1-indexed HL7 field position, read exactly as `Segment.field(n)` reads it.
  *
  * @example
  * ```ts
@@ -144,6 +150,9 @@ export interface CustomSegmentDefinition {
  *   customSegments: {
  *     ZDP: { fields: { departmentCode: 3, departmentName: 4 } },
  *   },
+ *   segmentOverrides: {
+ *     PID: { fields: { siteMrn: 19 } },
+ *   },
  * };
  * ```
  */
@@ -153,6 +162,21 @@ export interface Profile {
   readonly lineage?: readonly string[];
   readonly dateFormats?: readonly string[];
   readonly customSegments?: Readonly<Record<string, CustomSegmentDefinition>>;
+  /**
+   * Site-specific field NAMES bound to positions on STANDARD HL7 v2 segments,
+   * keyed by canonical segment name (`PID`, `AL1`, `MSH`, ...). A separate map
+   * from {@link Profile.customSegments}, which stays Z-segment-only: a
+   * standard name appearing there would change which segments the parser
+   * treats as profile-claimed, and an author skimming a profile literal can
+   * see at a glance which declarations touch standard clinical fields.
+   *
+   * Read-side aliases, and ADDITIVE ONLY. A declaration here creates a new
+   * name for `Segment.get(name)` to resolve on segments of that type, and
+   * changes no existing read: positional access, dot-paths, the typed clinical
+   * accessors, the warning list and both serializations are what they were
+   * without it.
+   */
+  readonly segmentOverrides?: Readonly<Record<string, CustomSegmentDefinition>>;
   readonly onWarning?: OnWarningCallback;
   readonly describe?: () => string;
 }

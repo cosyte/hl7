@@ -15,6 +15,7 @@
 
 import { SUPPORTED_DATE_TOKENS } from "../parser/dates.js";
 import { ProfileDefinitionError } from "../parser/errors.js";
+import { KNOWN_SEGMENTS, canonicalSegmentName } from "../parser/known-segments.js";
 import type { CustomSegmentDefinition } from "../parser/types.js";
 
 import type { DefineProfileOptions } from "./define.js";
@@ -40,6 +41,7 @@ const KNOWN_OPTION_KEYS: readonly string[] = [
   "description",
   "dateFormats",
   "customSegments",
+  "segmentOverrides",
   "onWarning",
   "extends",
 ];
@@ -155,27 +157,93 @@ export function validateCustomSegments(
         profileName,
       );
     }
-    const entry = map[key];
-    if (
-      entry === undefined ||
-      entry === null ||
-      typeof entry.fields !== "object" ||
-      entry.fields === null
-    ) {
+    validateFieldMap(map[key], "customSegments", key, profileName);
+  }
+}
+
+/**
+ * Validate a `segmentOverrides` map: the standard-segment counterpart of
+ * `validateCustomSegments`, and deliberately its MIRROR IMAGE on the key rule.
+ * A key must be a standard HL7 v2 segment name in {@link KNOWN_SEGMENTS};
+ * every field position must be a positive integer, checked by the same
+ * `validateFieldMap` the custom-segment path uses so one shape rule serves both
+ * maps.
+ *
+ * The two key refusals are separate because they need separate remedies. A
+ * Z-segment key is a right declaration in the wrong map, so the message points
+ * at `customSegments` rather than saying the name is unrecognized: the author
+ * has the declaration, they just need the other option. Anything else
+ * unrecognized names the key and, when only the SPELLING is wrong (a wire-cased
+ * `pid`), names the canonical form: keys are matched exactly, so a
+ * lowercase key would otherwise define a name that silently never resolves.
+ *
+ * Runs pre-merge and post-merge, exactly like the custom-segment validator, so
+ * a hand-crafted parent profile that never went through `defineProfile` cannot
+ * smuggle an unvalidated key in through `extends`.
+ *
+ * @internal
+ */
+export function validateSegmentOverrides(
+  map: Readonly<Record<string, CustomSegmentDefinition>>,
+  profileName: string,
+): void {
+  for (const key of Object.keys(map)) {
+    if (Z_SEGMENT_RE.test(key)) {
       throw new ProfileDefinitionError(
-        `Profile '${profileName}' customSegments['${key}'] must be an object with a 'fields' map.`,
+        `Profile '${profileName}' declares segmentOverrides for '${key}': that is a Z-segment. ` +
+          `Declare Z-segment fields with the 'customSegments' option instead; ` +
+          `'segmentOverrides' names fields on STANDARD HL7 v2 segments.`,
         profileName,
       );
     }
-    for (const fieldName of Object.keys(entry.fields)) {
-      const pos = entry.fields[fieldName];
-      if (typeof pos !== "number" || !Number.isInteger(pos) || pos < 1) {
-        throw new ProfileDefinitionError(
-          `Profile '${profileName}' customSegments['${key}'].fields['${fieldName}'] ` +
-            `must be a positive integer (1-indexed). Received: ${JSON.stringify(pos)}.`,
-          profileName,
-        );
-      }
+    if (!KNOWN_SEGMENTS.has(key)) {
+      const canonical = canonicalSegmentName(key);
+      const hint = KNOWN_SEGMENTS.has(canonical) ? ` Did you mean '${canonical}'?` : "";
+      throw new ProfileDefinitionError(
+        `Profile '${profileName}' declares segmentOverrides for '${key}': not a standard HL7 v2 ` +
+          `segment this library recognises.${hint} Keys must be a canonical segment name from ` +
+          `KNOWN_SEGMENTS (for example 'PID', 'AL1', 'RXA').`,
+        profileName,
+      );
+    }
+    validateFieldMap(map[key], "segmentOverrides", key, profileName);
+  }
+}
+
+/**
+ * Shared shape rule for ONE segment declaration, whichever map it came from:
+ * the entry is an object carrying a `fields` map, and every position in that
+ * map is a positive integer (1-indexed, per the HL7 convention
+ * `Segment.field(n)` reads). `optionKey` and `segmentName` only shape the
+ * error text, so a reader is pointed at the exact declaration that is wrong.
+ *
+ * @internal
+ */
+function validateFieldMap(
+  entry: CustomSegmentDefinition | undefined,
+  optionKey: string,
+  segmentName: string,
+  profileName: string,
+): void {
+  if (
+    entry === undefined ||
+    entry === null ||
+    typeof entry.fields !== "object" ||
+    entry.fields === null
+  ) {
+    throw new ProfileDefinitionError(
+      `Profile '${profileName}' ${optionKey}['${segmentName}'] must be an object with a 'fields' map.`,
+      profileName,
+    );
+  }
+  for (const fieldName of Object.keys(entry.fields)) {
+    const pos = entry.fields[fieldName];
+    if (typeof pos !== "number" || !Number.isInteger(pos) || pos < 1) {
+      throw new ProfileDefinitionError(
+        `Profile '${profileName}' ${optionKey}['${segmentName}'].fields['${fieldName}'] ` +
+          `must be a positive integer (1-indexed). Received: ${JSON.stringify(pos)}.`,
+        profileName,
+      );
     }
   }
 }
@@ -229,11 +297,17 @@ export function validateDateFormats(formats: readonly string[], profileName: str
  * a duplicate-name-different-position case, because that case is
  * unreachable today.
  *
+ * `optionKey` names the map under inspection in the error text. It defaults to
+ * the custom-segment map so existing call sites read unchanged; the
+ * standard-segment override map merges through the same reducer and so gets
+ * the same guard, under its own name.
+ *
  * @internal
  */
 export function validateUniqueFieldNames(
   map: Readonly<Record<string, CustomSegmentDefinition>>,
   profileName: string,
+  optionKey = "customSegments",
 ): void {
   for (const segName of Object.keys(map)) {
     const entry = map[segName];
@@ -245,7 +319,7 @@ export function validateUniqueFieldNames(
       const prior = positionsByName.get(fieldName);
       if (prior !== undefined && prior !== pos) {
         throw new ProfileDefinitionError(
-          `Profile '${profileName}' customSegments['${segName}']: field name '${fieldName}' ` +
+          `Profile '${profileName}' ${optionKey}['${segName}']: field name '${fieldName}' ` +
             `maps to BOTH position ${String(prior)} AND position ${String(pos)} after extends merge. ` +
             `Each field name within a segment must map to exactly one position.`,
           profileName,

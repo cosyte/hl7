@@ -646,6 +646,12 @@ export function parseHL7(
     mergedFormats.length > 0 ? Object.freeze(mergedFormats) : undefined;
 
   const mergedCustomSegments = effectiveProfile?.customSegments;
+  // The standard-segment override map rides alongside, never inside, the
+  // custom-segment map: Step 11.5 above reads `customSegments` to decide which
+  // segments the profile CLAIMS, and folding a standard name into it would
+  // change which segments report UNKNOWN_SEGMENT. It reaches only
+  // `Segment.get(name)`.
+  const mergedSegmentOverrides = effectiveProfile?.segmentOverrides;
 
   // exactOptionalPropertyTypes: conditionally assign each optional init key.
   type Init = {
@@ -655,6 +661,7 @@ export function parseHL7(
     warnings: readonly Hl7ParseWarning[];
     profile?: { readonly name: string; readonly lineage: readonly string[] };
     customSegments?: Readonly<Record<string, CustomSegmentDefinition>>;
+    segmentOverrides?: Readonly<Record<string, CustomSegmentDefinition>>;
     dateFormats?: readonly string[];
   };
   const init: Init = {
@@ -665,6 +672,7 @@ export function parseHL7(
   };
   if (profileInit !== undefined) init.profile = profileInit;
   if (mergedCustomSegments !== undefined) init.customSegments = mergedCustomSegments;
+  if (mergedSegmentOverrides !== undefined) init.segmentOverrides = mergedSegmentOverrides;
   if (mergedDateFormats !== undefined) init.dateFormats = mergedDateFormats;
 
   return new Hl7Message(init);
