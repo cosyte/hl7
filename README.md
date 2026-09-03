@@ -813,7 +813,7 @@ Profiles are the growth loop. Built-ins cover the common vendor patterns; real i
 
 ### Authoring a profile
 
-`defineProfile({ name, customSegments, dateFormats, onWarning, description })` returns a frozen `Profile` object. `customSegments` is a record mapping segment name -> `{ fields: { aliasName: 1-indexedPosition } }`.
+`defineProfile({ name, customSegments, segmentOverrides, dateFormats, onWarning, description })` returns a frozen `Profile` object. `customSegments` is a record mapping Z-segment name -> `{ fields: { aliasName: 1-indexedPosition } }`; `segmentOverrides` is the same shape for STANDARD segment names (see [Naming fields on standard segments](#naming-fields-on-standard-segments)).
 
 ```ts
 import { defineProfile, type CustomSegmentDefinition } from "@cosyte/hl7";
@@ -831,6 +831,71 @@ const myhospital = defineProfile({
 ```
 
 Invalid input (missing name, malformed Z-segment name, unsupported date tokens, unknown option keys) throws `ProfileDefinitionError` with an actionable message. See [Error Handling](#error-handling).
+
+### Naming fields on standard segments
+
+`customSegments` names fields on your Z-segments. `segmentOverrides` does the same job for the STANDARD segments, for the case every real integration eventually hits: a site that stuffs its own value into a standard field. A second MRN in PID-19, a local severity code in AL1-4, a site dose qualifier in RXA-6. Give it a name once in the profile and read it by that name everywhere, instead of scattering a hand-typed position through your code.
+
+```ts
+import { defineProfile, parseHL7 } from "@cosyte/hl7";
+
+const site = defineProfile({
+  name: "myhospital-adt",
+  segmentOverrides: {
+    PID: { fields: { siteMrn: 19 } },
+    AL1: { fields: { localSeverityCode: 4 } },
+    RXA: { fields: { doseQualifier: 6 } },
+  },
+});
+
+const msg = parseHL7(raw, site);
+msg.part("PID")?.get("siteMrn")?.value; // the value at PID-19
+msg.part("AL1")?.get("localSeverityCode")?.value; // the value at AL1-4
+```
+
+**Positions are 1-indexed HL7 positions**, identical in meaning to the argument of `seg.field(n)`, including the MSH numbering convention: a binding at `1` is MSH-1 (the field separator) and a binding at `3` is MSH-3 (the sending application). `get(name)` and `field(position)` always agree.
+
+**A name that is not declared, and a declared position the message did not carry, both read `undefined`**, never an empty string. A typo surfaces instead of quietly reading blank. The HL7 explicit null (`""`) is a value the sender chose to send, so it still comes back as a `Field`.
+
+**Inheritance follows the same rule as `customSegments`.** Layer profiles with `extends` and, per segment type, the child's binding wins at any POSITION both declare while the parent's bindings at other positions survive:
+
+```ts
+const parent = defineProfile({
+  name: "parent",
+  segmentOverrides: { PID: { fields: { parentAlias: 19, countyCode: 12 } } },
+});
+
+const child = defineProfile({
+  name: "child",
+  extends: parent,
+  segmentOverrides: { PID: { fields: { childAlias: 19 } } },
+});
+
+// child.segmentOverrides.PID.fields === { childAlias: 19, countyCode: 12 }
+```
+
+**What `defineProfile()` refuses, at definition time**, throwing `ProfileDefinitionError` and returning no profile:
+
+| Declaration                                                         | Why it is refused                                                                                                                                                        |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| a Z-segment key (`ZPI`)                                             | that is a custom segment: the error points you at the `customSegments` option                                                                                            |
+| a name that is not a standard HL7 v2 segment (`QQQ`, `pid`, `PIDX`) | keys are matched against `KNOWN_SEGMENTS` in their canonical uppercase spelling, so a key that would never resolve is rejected rather than silently defining a dead name |
+| a position that is not a positive integer (`0`, `-1`, `2.5`, `"3"`) | the error names the profile, the segment and the field                                                                                                                   |
+| a misspelled option key (`segmentOverride`)                         | reported with `segmentOverrides` as the suggestion                                                                                                                       |
+
+An empty map (`segmentOverrides: {}`), or a declared segment with an empty field map, is accepted and behaves exactly like declaring nothing.
+
+#### Limitations
+
+**Overrides add named reads. They change nothing that already reads.** This is the whole design, and it is deliberate: HL7 v2 traffic is PHI, and an alias that re-pointed an existing accessor would hand a downstream consumer a different clinical value with no warning and nothing to notice. Specifically, a `segmentOverrides` declaration does NOT:
+
+- **re-point the typed clinical accessors.** `msg.patient`, `msg.visit`, `msg.allergies()`, `msg.medications()`, `msg.observations()` and every other typed helper keep reading the positions the HL7 standard assigns. Declaring `siteMrn: 19` does not make `msg.patient?.mrn` read PID-19; it still reads PID-3.
+- **add a dot-path.** Dot-paths stay positional: `msg.get("PID.19")` works, `msg.get("PID.siteMrn")` is a syntax error. The named accessor is the one route to a declared name.
+- **change serialization.** `toString()` is byte-for-byte what it was, `toJSON()` is unchanged, and the message still round-trips verbatim.
+- **change the warning list.** An undeclared Z-segment still emits `UNKNOWN_SEGMENT`, and naming a standard segment in the override map does not suppress or add any warning.
+- **touch the write path.** `setField`, `setComposite`, `buildMessage` and the typed builders take positions, not names.
+
+Parse one message with the overrides and again without them and every one of those observables is equal. Only the new names differ.
 
 ### Extending profiles
 
@@ -862,6 +927,7 @@ When `extends` resolves parents, fields are merged per-key with the following ru
 - **Scalars** (`description`): later layers overwrite earlier ones.
 - **Arrays** (`dateFormats`, `lineage`): concatenate + dedupe, preserving first-seen order.
 - **`customSegments` map**: deep-merge per key; same-segment-name in two parents reconciles positional fields.
+- **`segmentOverrides` map**: the same reducer, on the standard-segment declarations. See [Naming fields on standard segments](#naming-fields-on-standard-segments).
 - **`onWarning` handlers**: compose into a chain, invoked in lineage order (parents before children). Errors thrown by one handler do not stop subsequent handlers.
 - **`name`**: never inherited, always the profile's own.
 

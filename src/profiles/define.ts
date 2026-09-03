@@ -3,8 +3,9 @@
  * validation + `describe()` attached (PROF-01, PROF-04, PROF-05).
  *
  * `opts.extends` is honoured: parents are merged into the returned
- * profile (lineage, `dateFormats`, `customSegments`, `description` and
- * `onWarning`), and the merged result is re-validated before it is frozen.
+ * profile (lineage, `dateFormats`, `customSegments`, `segmentOverrides`,
+ * `description` and `onWarning`), and the merged result is re-validated before
+ * it is frozen.
  *
  * Zero runtime deps. Matches CLAUDE.md engineering guardrails: no `any`,
  * JSDoc `@example` on every public export, immutability at the return
@@ -27,6 +28,7 @@ import {
   mergeDateFormats,
   mergeLineage,
   mergeScalar,
+  mergeSegmentOverrides,
   normaliseParents,
 } from "./merge.js";
 import {
@@ -34,6 +36,7 @@ import {
   validateDateFormats,
   validateOptionKeys,
   validateProfileName,
+  validateSegmentOverrides,
   validateUniqueFieldNames,
 } from "./validate.js";
 
@@ -74,6 +77,16 @@ export interface DefineProfileOptions {
   readonly description?: string;
   readonly dateFormats?: readonly string[];
   readonly customSegments?: Readonly<Record<string, CustomSegmentDefinition>>;
+  /**
+   * Field names bound to positions on STANDARD HL7 v2 segments, keyed by
+   * canonical segment name. Sibling of `customSegments`, never a relaxation of
+   * it: a Z-segment key here is refused and pointed back at `customSegments`,
+   * and a key that is not a standard segment name is refused outright.
+   *
+   * Every binding is a NEW read. Declaring one changes nothing an existing
+   * caller sees; see {@link Profile.segmentOverrides}.
+   */
+  readonly segmentOverrides?: Readonly<Record<string, CustomSegmentDefinition>>;
   readonly onWarning?: OnWarningCallback;
   readonly extends?: Profile | readonly Profile[];
 }
@@ -87,9 +100,14 @@ export interface DefineProfileOptions {
  *
  * `opts.extends` accepts a single parent `Profile` or an array of them.
  * Parents are merged into the result: `lineage` is the parents' lineages
- * followed by this profile's own name, `dateFormats` and `customSegments`
- * are merged, `description` inherits when not supplied, and `onWarning`
- * handlers are composed. With no parent, `lineage === [opts.name]`.
+ * followed by this profile's own name, `dateFormats`, `customSegments` and
+ * `segmentOverrides` are merged, `description` inherits when not supplied, and
+ * `onWarning` handlers are composed. With no parent, `lineage === [opts.name]`.
+ *
+ * `segmentOverrides` names fields on STANDARD segments and is ADDITIVE ONLY: a
+ * declaration there gives `seg.get(name)` a new name to resolve and changes no
+ * existing read. Keys must be standard segment names, so a Z-segment key is
+ * refused and pointed back at `customSegments`.
  *
  * The returned profile CARRIES ITS DECLARED FIELD NAMES IN ITS TYPE: parse
  * with it and `seg.get(name)` on a declared segment type is checked against
@@ -132,6 +150,8 @@ export function defineProfile<O extends DefineProfileOptions>(opts: O): DefinedP
   // profile flagged, not the composed lineage).
   const selfCustomSegments = opts.customSegments ?? {};
   validateCustomSegments(selfCustomSegments, opts.name);
+  const selfSegmentOverrides = opts.segmentOverrides ?? {};
+  validateSegmentOverrides(selfSegmentOverrides, opts.name);
   const selfDateFormats = opts.dateFormats ?? [];
   validateDateFormats(selfDateFormats, opts.name);
 
@@ -141,6 +161,7 @@ export function defineProfile<O extends DefineProfileOptions>(opts: O): DefinedP
   const lineage = mergeLineage(parents, opts.name);
   const dateFormats = mergeDateFormats(parents, selfDateFormats);
   const customSegments = mergeCustomSegments(parents, selfCustomSegments);
+  const segmentOverrides = mergeSegmentOverrides(parents, selfSegmentOverrides);
   const description = mergeScalar(parents, opts.description, "description");
   const onWarning = composeOnWarning([...parents.map((p) => p.onWarning), opts.onWarning]);
 
@@ -155,6 +176,8 @@ export function defineProfile<O extends DefineProfileOptions>(opts: O): DefinedP
   // per defineProfile call.
   validateCustomSegments(customSegments, opts.name);
   validateUniqueFieldNames(customSegments, opts.name);
+  validateSegmentOverrides(segmentOverrides, opts.name);
+  validateUniqueFieldNames(segmentOverrides, opts.name, "segmentOverrides");
 
   // Assemble the frozen Profile. exactOptionalPropertyTypes discipline:
   // conditionally assign optional fields rather than writing
@@ -165,6 +188,7 @@ export function defineProfile<O extends DefineProfileOptions>(opts: O): DefinedP
     name: opts.name,
     lineage,
     customSegments,
+    segmentOverrides,
     dateFormats,
   };
   if (description !== undefined) profile.description = description;
