@@ -519,6 +519,114 @@ hl7 preserves precision + timezone **fidelity**; it does **not** localize, conve
 timestamps. A consumer needing an absolute instant applies the sender's zone via `assumeOffsetMinutes`.
 Use `parseDtm` / `formatDtm` / `dtmToDate` directly on a raw string when you're outside the message model.
 
+#### Converting a datetime: `toObject`, `toISO`, `toDate`
+
+Three conversion helpers sit on top of the fidelity `TS`. Every `@cosyte` parser exposes these same
+three names with the same semantics, so you learn the conversion story once and it holds across the
+suite.
+
+| function                  | returns                            | gives you                                              |
+| ------------------------- | ---------------------------------- | ------------------------------------------------------ |
+| `toObject(value)`         | frozen `DateParts`, or `undefined` | the stated calendar components as a plain object       |
+| `toISO(value)`            | `string`, or `undefined`           | ISO-8601, truncated to the stated precision            |
+| `toDate(value, options?)` | `Date`, or `undefined`             | an absolute instant, only when the zone is determinate |
+
+```ts
+import { parseDtm, toObject, toISO } from "@cosyte/hl7";
+
+toObject(parseDtm("19880705"));
+// { year: 1988, month: 7, day: 5 }: exactly the stated components, nothing zero-filled
+
+toISO(parseDtm("19880705")); // "1988-07-05": truncated to the stated precision, no fabricated Z
+toISO(parseDtm("20250102153045.5-0500")); // "2025-01-02T15:30:45.5-05:00": digits verbatim
+```
+
+`toObject` carries only the components the value stated, so `Object.keys()` recovers its precision and
+nothing is invented: no `raw`, no `valid`, no `precision`. `month` is spec-native 1 to 12, which is
+exactly what `Temporal.PlainDateTime.from({...})` and luxon's `DateTime.fromObject({...})` accept:
+delete `offsetMinutes` and hand the rest over with no key rename and no value adjustment. Neither
+library is a dependency here, and neither needs to be. `millisecond` is the first three fractional
+digits taken verbatim and right-padded, so `.5` is 500 ms and `.0500` is 50 ms, never a float
+multiplication that loses the last digit. `offsetMinutes` appears if and only if the value carried an
+explicit offset, and is never synthesised from the host machine's zone.
+
+**`toDate` never guesses a zone.** An offset-less value returns `undefined` unless you say which zone
+it was written in:
+
+```ts
+import { parseDtm, toDate } from "@cosyte/hl7";
+
+toDate(parseDtm("20250102")); // undefined: no offset stated, and none assumed
+toDate(parseDtm("20250102"), { assumeOffsetMinutes: 0 }); // 2025-01-02T00:00:00.000Z: you chose UTC
+toDate(parseDtm("20250102"), { assumeOffsetMinutes: -300 }); // 2025-01-02T05:00:00.000Z
+
+// A stated offset always wins, and assumeOffsetMinutes is ignored rather than blended:
+toDate(parseDtm("20250102153045-0500")); // 2025-01-02T20:30:45.000Z
+toDate(parseDtm("20250102153045-0500"), { assumeOffsetMinutes: 600 }); // the same instant
+```
+
+The host machine's timezone is never read and UTC is never assumed, so the answer does not depend on
+where your code ran. Components below the stated precision fill to their lowest legal value for the
+instant only, leaving the value's own precision untouched, and a four-digit year below 100 stays that
+year (`00500101` is year 50, never 1950).
+
+**`toISO` renders, `formatDtm` round-trips.** A stated zero offset renders as `Z`, including HL7's
+`-0000` form, so the two answers differ by design and `formatDtm` remains the byte-exact route back to
+the wire:
+
+```ts
+import { formatDtm, parseDtm, toISO } from "@cosyte/hl7";
+
+const ts = parseDtm("20250102153045-0000");
+toISO(ts); // "2025-01-02T15:30:45Z"
+formatDtm(ts); // "20250102153045-0000": byte-exact, sign preserved
+```
+
+All three return `undefined` rather than throwing for a value the parser marked invalid, for
+`undefined` and for `null`.
+
+**An impossible date converts to nothing, never to the day after it.** A value stating a day its
+month does not have is refused by all three, whole, rather than rolled over into the following
+month. February really has 28 days, or 29 in a leap year under the full 4/100/400 rule:
+
+```ts
+import { parseDtm, toDate, toISO, toObject } from "@cosyte/hl7";
+
+toObject(parseDtm("20240230")); // undefined: February has no 30th
+toISO(parseDtm("20230229")); // undefined: 2023 is not a leap year
+toDate(parseDtm("21000229"), { assumeOffsetMinutes: 0 }); // undefined: 2100 is not one either
+
+toISO(parseDtm("20240229")); // "2024-02-29": 2024 is, so this one converts
+```
+
+`month` is bounded 1 to 12, `day` by the month it is in, `hour` 0 to 23, and `minute` and `second`
+0 to 59. The parser itself is unchanged and stays deliberately liberal, so `parseDtm("20240230")`
+is still `valid: true` and `formatDtm` still round-trips those bytes: the refusal is in the
+conversion, which is where a wrong answer would otherwise look right. Rendering it would be worse
+than throwing, because `new Date("2024-02-30")` is 1 March in every JavaScript runtime, so a
+consumer reading the string gets a silent one-day shift instead of an error.
+
+**Using two `@cosyte` parsers in one file.** The three names are identical in every `@cosyte` parser,
+so importing two of them into one file collides. Alias on import:
+
+```ts
+import { parseDtm, toISO as hl7ToISO } from "@cosyte/hl7";
+import { toISO as x12ToISO } from "@cosyte/x12";
+
+hl7ToISO(parseDtm("19880705")); // "1988-07-05"
+// x12ToISO does the same for an X12 date value: same three names, same semantics.
+```
+
+...or namespace-import, which keeps the package of origin visible at every call site:
+
+```ts
+import * as hl7 from "@cosyte/hl7";
+import * as x12 from "@cosyte/x12";
+
+hl7.toISO(hl7.parseDtm("19880705")); // "1988-07-05"
+// x12.toISO(...) is the same call, against an X12 date value.
+```
+
 #### Non-standard timestamp formats
 
 HL7's canonical `YYYYMMDDHHmmss` parses with zero warnings. Everything else (vendor-quirky

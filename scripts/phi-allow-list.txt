@@ -183,6 +183,11 @@ DOB 20000101
 DOB 20180405
 DOB 20190810
 DOB 20200101
+# `test/conversion-surface.test.ts` (PID-7). 30 February is not a date anyone
+# was born on: it is the impossible day the conversion surface must refuse
+# rather than roll over into 1 March, carried end to end through a message so
+# the refusal is proved where it matters, on a date of birth.
+DOB 20240230
 
 # --- Synthetic street addresses (XAD component 1, e.g. PID-11) ---
 ADDR 123 Main St
