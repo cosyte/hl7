@@ -585,6 +585,27 @@ formatDtm(ts); // "20250102153045-0000": byte-exact, sign preserved
 All three return `undefined` rather than throwing for a value the parser marked invalid, for
 `undefined` and for `null`.
 
+**An impossible date converts to nothing, never to the day after it.** A value stating a day its
+month does not have is refused by all three, whole, rather than rolled over into the following
+month. February really has 28 days, or 29 in a leap year under the full 4/100/400 rule:
+
+```ts
+import { parseDtm, toDate, toISO, toObject } from "@cosyte/hl7";
+
+toObject(parseDtm("20240230")); // undefined: February has no 30th
+toISO(parseDtm("20230229")); // undefined: 2023 is not a leap year
+toDate(parseDtm("21000229"), { assumeOffsetMinutes: 0 }); // undefined: 2100 is not one either
+
+toISO(parseDtm("20240229")); // "2024-02-29": 2024 is, so this one converts
+```
+
+`month` is bounded 1 to 12, `day` by the month it is in, `hour` 0 to 23, and `minute` and `second`
+0 to 59. The parser itself is unchanged and stays deliberately liberal, so `parseDtm("20240230")`
+is still `valid: true` and `formatDtm` still round-trips those bytes: the refusal is in the
+conversion, which is where a wrong answer would otherwise look right. Rendering it would be worse
+than throwing, because `new Date("2024-02-30")` is 1 March in every JavaScript runtime, so a
+consumer reading the string gets a silent one-day shift instead of an error.
+
 **Using two `@cosyte` parsers in one file.** The three names are identical in every `@cosyte` parser,
 so importing two of them into one file collides. Alias on import:
 

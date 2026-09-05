@@ -14,6 +14,8 @@ Working with a parsed HL7 datetime used to mean either reading `DtmParts` field 
 
 All three return `undefined` rather than throwing for a value the parser marked invalid, for `undefined` and for `null`. That includes a value refused as order-ambiguous: the report on it is bookkeeping and never reaches the converted object.
 
+They also refuse a value whose stated components do not name a real point on the calendar: month 1 to 12, day 1 to the last day that month has under the full 4/100/400 leap rule, hour 0 to 23, minute and second 0 to 59. `20240230` and `20230229` convert to `undefined` rather than rolling over into 1 March, and the whole value is refused rather than an in-range prefix of it converted. Rendering such a date would be worse than refusing it, because `new Date("2024-02-30")` is 1 March in every JavaScript runtime, so a consumer reading the string would get a date of birth a day out with nothing thrown and nothing warned. `parseDtm` itself is unchanged and stays deliberately liberal, so `formatDtm` still round-trips those wire bytes: the bound is part of the conversion, which is the step that would otherwise answer confidently and wrongly.
+
 `ToDateOptions` is added as a second spelling of the existing `DtmToDateOptions`. It is an alias, so the two names denote one type and either may be used; it exists because every parser in the suite spells this options type the same way, and a consumer writing across two of them should not have to spell it differently in each.
 
 The change is additive: no existing export was removed, renamed or changed, and the package still has zero runtime dependencies.

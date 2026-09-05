@@ -16,6 +16,11 @@
  *    zero-filled, so the value's precision is recoverable from
  *    `Object.keys()`. `month` is spec-native 1 to 12, matching what
  *    `Temporal.PlainDateTime.from` and luxon's `DateTime.fromObject` accept.
+ *  - All three REFUSE a value whose stated components do not name a real
+ *    point on the calendar: `20240230` states a day February does not have,
+ *    so every one of them answers `undefined` rather than rolling the value
+ *    over into 1 March. A wrong date that looks right is the one answer this
+ *    surface never gives.
  *  - `toISO(value)` renders ISO-8601 truncated to the stated precision, with
  *    the fractional digits verbatim. A stated zero offset renders `Z`, so this
  *    is deliberately NOT a byte round trip: `formatDtm` remains the round-trip
@@ -128,12 +133,79 @@ function pad2(n: number): string {
   return n.toString().padStart(2, "0");
 }
 
+/** The months that are 30 days long. February is handled on its own.
+ *
+ * @internal
+ */
+const THIRTY_DAY_MONTHS: ReadonlySet<number> = new Set([4, 6, 9, 11]);
+
+/**
+ * Whether a year is a leap year under the proleptic Gregorian rule: divisible
+ * by 4, except centuries, except centuries divisible by 400. So 2024 and 2000
+ * are leap years and 2023 and 2100 are not.
+ *
+ * @internal
+ */
+function isLeapYear(year: number): boolean {
+  return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+}
+
+/**
+ * The last day the given month really has. February is 29 in a leap year, 28
+ * otherwise, and 29 when the value stated no year at all: with no year there
+ * is no leap rule to apply, so the bound is the most permissive real one.
+ *
+ * @internal
+ */
+function longestDayOfMonth(year: number | undefined, month: number | undefined): number {
+  if (month === undefined) return 31;
+  if (month === 2) return year === undefined || isLeapYear(year) ? 29 : 28;
+  return THIRTY_DAY_MONTHS.has(month) ? 30 : 31;
+}
+
+/**
+ * Whether a stated component is a whole number inside its bounds. A component
+ * the value did not state is vacuously in range: absence is a precision, not
+ * an error.
+ *
+ * @internal
+ */
+function withinBounds(component: number | undefined, low: number, high: number): boolean {
+  if (component === undefined) return true;
+  return Number.isInteger(component) && component >= low && component <= high;
+}
+
+/**
+ * Whether the components a value stated name a real point on the calendar and
+ * the clock: year 0 to 9999, month 1 to 12, day 1 to the last day THAT month
+ * has, hour 0 to 23, minute 0 to 59, second 0 to 59.
+ *
+ * The day bound is the one worth spelling out: `20240230` passes a 1-to-31
+ * day check and still names no day, and rolling it over produces 1 March,
+ * which is a date of birth off by one with nothing to notice. So the whole
+ * value is refused rather than an in-range prefix of it converted.
+ *
+ * @internal
+ */
+function statesARealCalendarDate(value: DtmParts): boolean {
+  return (
+    withinBounds(value.year, 0, 9999) &&
+    withinBounds(value.month, 1, 12) &&
+    withinBounds(value.day, 1, longestDayOfMonth(value.year, value.month)) &&
+    withinBounds(value.hour, 0, 23) &&
+    withinBounds(value.minute, 0, 59) &&
+    withinBounds(value.second, 0, 59)
+  );
+}
+
 /**
  * Project a parsed HL7 datetime onto the shared {@link DateParts} shape: a
  * frozen plain object carrying ONLY the calendar components the value stated.
  *
  * Returns `undefined` for a value the parser marked invalid, for a value
- * stating no components at all, and for `undefined` / `null`. Never throws.
+ * stating no components at all, for a value whose stated components do not
+ * name a real calendar date (`20240230` names no day: February has no 30th),
+ * and for `undefined` / `null`. Never throws.
  *
  * The value's own stated precision is untouched by the call: this is a
  * projection, not a conversion of the parsed value.
@@ -150,11 +222,14 @@ function pad2(n: number): string {
  * //   millisecond: 50, offsetMinutes: -270 }
  *
  * toObject(parseDtm("not-a-date")); // undefined
+ * toObject(parseDtm("20240230"));   // undefined: February has no 30th
+ * toObject(parseDtm("20240229"));   // { year: 2024, month: 2, day: 29 }: 2024 is a leap year
  * ```
  */
 export function toObject(value: DtmParts | null | undefined): DateParts | undefined {
   if (value === undefined || value === null) return undefined;
   if (!value.valid) return undefined;
+  if (!statesARealCalendarDate(value)) return undefined;
 
   const parts: DateParts = {
     ...(value.year !== undefined ? { year: value.year } : {}),
@@ -193,8 +268,11 @@ export function toObject(value: DtmParts | null | undefined): DateParts | undefi
  *
  * Returns `undefined` for a value the parser marked invalid, for a value with
  * no stated year (the HL7 DTM datatype mandates a leading four-digit year, so
- * this parser produces no time-only value), and for `undefined` / `null`.
- * Never throws.
+ * this parser produces no time-only value), for a value whose stated
+ * components do not name a real calendar date, and for `undefined` / `null`.
+ * Never throws. A string this returns always names a day the calendar has:
+ * `"2024-02-30"` is never rendered, because every ISO-8601 reader silently
+ * moves it to 1 March.
  *
  * @example
  * ```ts
@@ -204,11 +282,13 @@ export function toObject(value: DtmParts | null | undefined): DateParts | undefi
  * toISO(parseDtm("19700705"));                    // "1970-07-05": no fabricated Z
  * toISO(parseDtm("20250102153045.5-0500"));       // "2025-01-02T15:30:45.5-05:00"
  * toISO(parseDtm("20250102153045-0000"));         // "2025-01-02T15:30:45Z"
+ * toISO(parseDtm("20230229"));                    // undefined: 2023 is not a leap year
  * ```
  */
 export function toISO(value: DtmParts | null | undefined): string | undefined {
   if (value === undefined || value === null) return undefined;
   if (!value.valid || value.year === undefined) return undefined;
+  if (!statesARealCalendarDate(value)) return undefined;
 
   let out = value.year.toString().padStart(4, "0");
   if (value.month !== undefined) {
@@ -259,8 +339,11 @@ export function toISO(value: DtmParts | null | undefined): string | undefined {
  * value returns exactly what it returned before. A four-digit year below 100
  * stays that year: `0050` is year 50, never 1950.
  *
- * Returns `undefined` for an invalid value, an unresolvable zone, and for
- * `undefined` / `null`. Never throws.
+ * Returns `undefined` for an invalid value, an unresolvable zone, a value
+ * whose stated components do not name a real calendar date, and for
+ * `undefined` / `null`. Never throws. An impossible day is refused rather
+ * than rolled into the following month, so no instant this returns is a day
+ * away from the value the sender wrote.
  *
  * @example
  * ```ts
@@ -271,6 +354,8 @@ export function toISO(value: DtmParts | null | undefined): string | undefined {
  * // "2025-01-02T00:00:00.000Z": the caller chose UTC
  * toDate(parseDtm("20250102153045-0500"))?.toISOString();
  * // "2025-01-02T20:30:45.000Z": exact, offset-derived
+ * toDate(parseDtm("20240230"), { assumeOffsetMinutes: 0 });
+ * // undefined: February has no 30th, and 1 March is not what was written
  * ```
  */
 export function toDate(
@@ -278,5 +363,6 @@ export function toDate(
   options: ToDateOptions = {},
 ): Date | undefined {
   if (value === undefined || value === null) return undefined;
+  if (!statesARealCalendarDate(value)) return undefined;
   return dtmToDate(value, options);
 }
