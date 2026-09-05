@@ -12,6 +12,7 @@
 
 import { describe, expect, it } from "vitest";
 
+import { parseHL7 } from "../src/index.js";
 import { toDate, toISO, toObject } from "../src/parser/date-conversion.js";
 import type { ToDateOptions } from "../src/parser/date-conversion.js";
 import { formatDtm, parseDtm, parseDtmCascade } from "../src/parser/dates.js";
@@ -422,6 +423,187 @@ describe("conversion surface: package root", () => {
     );
     expect(mod.dtmToDate(parseDtm("20250102"), viaRepoName)?.toISOString()).toBe(
       "2025-01-02T05:00:00.000Z",
+    );
+  });
+});
+
+/**
+ * COMPONENT BOUNDS: the out-of-range companion to the shared case table above.
+ *
+ * Every row R1 to R11 states a well-formed value, so none of them exercises
+ * this class, and the class is where a conversion surface answers WRONGLY
+ * rather than not at all: `20240230` states a day February does not have, and
+ * a converter that projects it produces `"2024-02-30"`, which every ISO-8601
+ * reader (`new Date(...)` included) silently moves to 1 March. A date of birth
+ * a day out, with nothing thrown and nothing warned, is the failure this
+ * surface exists to refuse, so all three functions refuse the WHOLE value.
+ *
+ * The refusal lives in the conversion layer, not in the parser: `parseDtm`
+ * keeps the bounds it has always applied (1 to 31, month-blind), which the
+ * first test below pins so the split is deliberate rather than accidental.
+ */
+describe("conversion surface: component bounds", () => {
+  /**
+   * Days no calendar has. 1900, 2023 and 2100 are common years and 2000 and
+   * 2024 are leap years, so the set also separates the full 4/100/400 rule
+   * from a naive divisible-by-four one.
+   */
+  const IMPOSSIBLE = [
+    "20240230",
+    "20230229",
+    "19000229",
+    "21000229",
+    "20240431",
+    "20240631",
+    "20240931",
+    "20241131",
+  ];
+
+  /** Real days beside them, so the refusal can never be "refuse February". */
+  const REAL: readonly (readonly [string, string])[] = [
+    ["20240229", "2024-02-29"],
+    ["20000229", "2000-02-29"],
+    ["20240430", "2024-04-30"],
+    ["20240531", "2024-05-31"],
+    ["20231231", "2023-12-31"],
+  ];
+
+  /** A DtmParts assembled by hand, which is a shape no parse produced. */
+  const handBuilt = (stated: Partial<DtmParts>): DtmParts => ({
+    raw: "hand-built",
+    valid: true,
+    precision: "day",
+    hasTimezone: false,
+    ...stated,
+  });
+
+  it("leaves parseDtm exactly as it was: the bound is added by the conversion layer", () => {
+    // The parser is unchanged and still accepts a month-blind 1-to-31 day, so
+    // `formatDtm` still round-trips the wire bytes and no pinned behaviour
+    // moved. What changed is that CONVERTING such a value answers nothing.
+    const parts = parseDtm("20240230");
+
+    expect(parts.valid).toBe(true);
+    expect(parts.day).toBe(30);
+    expect(formatDtm(parts)).toBe("20240230");
+  });
+
+  it("refuses a day the month does not have, from all three functions", () => {
+    for (const raw of IMPOSSIBLE) {
+      const parts = parseDtm(raw);
+
+      expect(() => toObject(parts)).not.toThrow();
+      expect(() => toISO(parts)).not.toThrow();
+      expect(() => toDate(parts, { assumeOffsetMinutes: 0 })).not.toThrow();
+
+      expect(toObject(parts)).toBeUndefined();
+      expect(toISO(parts)).toBeUndefined();
+      expect(toDate(parts)).toBeUndefined();
+      expect(toDate(parts, { assumeOffsetMinutes: 0 })).toBeUndefined();
+    }
+  });
+
+  it("still converts every real calendar day, including 29 February in a leap year", () => {
+    for (const [raw, iso] of REAL) {
+      const parts = parseDtm(raw);
+
+      expect(toObject(parts)).toEqual({
+        year: Number(raw.slice(0, 4)),
+        month: Number(raw.slice(4, 6)),
+        day: Number(raw.slice(6, 8)),
+      });
+      expect(toISO(parts)).toBe(iso);
+      expect(toDate(parts, { assumeOffsetMinutes: 0 })?.toISOString()).toBe(`${iso}T00:00:00.000Z`);
+    }
+  });
+
+  it("refuses the WHOLE value, never an in-range prefix of it", () => {
+    // Second precision with a stated offset: the zone is determinate and every
+    // component except the day is in range, and the answer is still nothing.
+    const parts = parseDtm("20240230153045-0500");
+
+    expect(parts.valid).toBe(true);
+    expect(toObject(parts)).toBeUndefined();
+    expect(toISO(parts)).toBeUndefined();
+    expect(toDate(parts)).toBeUndefined();
+  });
+
+  it("bounds every component, not the day alone", () => {
+    // parseDtm already refuses each of these on the wire, so a hand-built
+    // value is the only route to them. The bound holds on that route too.
+    const outOfRange: readonly Partial<DtmParts>[] = [
+      { year: -1, month: 1, day: 1 },
+      { year: 10000, month: 1, day: 1 },
+      { year: 2024, month: 0, day: 1 },
+      { year: 2024, month: 13, day: 1 },
+      { year: 2024, month: 1, day: 0 },
+      { year: 2024, month: 1, day: 32 },
+      { year: 2024, month: 1, day: 1, hour: 24 },
+      { year: 2024, month: 1, day: 1, hour: 12, minute: 60 },
+      { year: 2024, month: 1, day: 1, hour: 12, minute: 30, second: 60 },
+      // Not a whole number of days, which no comparison against a bound
+      // catches on its own: NaN fails every comparison and would slip past.
+      { year: 2024, month: 1, day: 1.5 },
+      { year: 2024, month: 1, day: Number.NaN },
+    ];
+
+    for (const stated of outOfRange) {
+      const parts = handBuilt(stated);
+
+      expect(toObject(parts)).toBeUndefined();
+      expect(toISO(parts)).toBeUndefined();
+      expect(toDate(parts, { assumeOffsetMinutes: 0 })).toBeUndefined();
+    }
+  });
+
+  it("closes the hand-built path: parts the parser never produced are bounded too", () => {
+    const impossible = handBuilt({ raw: "20240230", year: 2024, month: 2, day: 30 });
+    const real = handBuilt({ raw: "20240229", year: 2024, month: 2, day: 29 });
+
+    expect(toObject(impossible)).toBeUndefined();
+    expect(toISO(impossible)).toBeUndefined();
+    expect(toDate(impossible, { assumeOffsetMinutes: 0 })).toBeUndefined();
+
+    expect(toObject(real)).toEqual({ year: 2024, month: 2, day: 29 });
+    expect(toISO(real)).toBe("2024-02-29");
+    expect(toDate(real, { assumeOffsetMinutes: 0 })?.toISOString()).toBe(
+      "2024-02-29T00:00:00.000Z",
+    );
+  });
+
+  it("bounds an unstated year's February at 29, the most permissive real bound", () => {
+    // With no year there is no leap rule to apply, so 29 February is allowed
+    // and 30 February still is not. HL7 DTM cannot state this shape (the
+    // four-digit year is mandatory), so it arrives only by hand.
+    expect(toObject(handBuilt({ precision: "day", month: 2, day: 29 }))).toEqual({
+      month: 2,
+      day: 29,
+    });
+    expect(toObject(handBuilt({ precision: "day", month: 2, day: 30 }))).toBeUndefined();
+  });
+
+  it("never converts a date of birth off a real message into a confident wrong instant", () => {
+    // End to end through the public message parser: PID-7 is a date of birth,
+    // and this is where the day-shifted answer would reach a patient record.
+    const impossibleDob = parseHL7(
+      "MSH|^~\\&|SENDER|FAC|RECV|FAC|20240101120000||ADT^A01|MSG1|P|2.5\r" +
+        "PID|1||LAB124^^^FAC^MR||Roe^John||20240230|M\r",
+    ).patient?.dateOfBirth;
+
+    expect(impossibleDob?.raw).toBe("20240230");
+    expect(toObject(impossibleDob)).toBeUndefined();
+    expect(toISO(impossibleDob)).toBeUndefined();
+    expect(toDate(impossibleDob, { assumeOffsetMinutes: 0 })).toBeUndefined();
+
+    const realDob = parseHL7(
+      "MSH|^~\\&|SENDER|FAC|RECV|FAC|20240101120000||ADT^A01|MSG2|P|2.5\r" +
+        "PID|1||LAB124^^^FAC^MR||Roe^John||19880705|M\r",
+    ).patient?.dateOfBirth;
+
+    expect(toObject(realDob)).toEqual({ year: 1988, month: 7, day: 5 });
+    expect(toISO(realDob)).toBe("1988-07-05");
+    expect(toDate(realDob, { assumeOffsetMinutes: 0 })?.toISOString()).toBe(
+      "1988-07-05T00:00:00.000Z",
     );
   });
 });
