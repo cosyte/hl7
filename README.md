@@ -629,6 +629,29 @@ conversion, which is where a wrong answer would otherwise look right. Rendering 
 than throwing, because `new Date("2024-02-30")` is 1 March in every JavaScript runtime, so a
 consumer reading the string gets a silent one-day shift instead of an error.
 
+**The offset a value states is bounded on the same terms.** When a value claims an explicit offset,
+that offset has to be a whole number of minutes within 23 hours 59 minutes of UTC, which is exactly
+what `+HH:MM` can state and what an ISO-8601 reader accepts. Anything else names no zone, so the
+value converts to `undefined` rather than being reported as an offset, rendered into a string no
+reader can read back, or turned into an instant:
+
+```ts
+import { parseHL7, toDate, toISO } from "@cosyte/hl7";
+
+// A timestamp on the wire, read by the lenient fallback, stating +99:99:
+const ts = parseHL7("MSH|^~\\&|SEND|FAC|RECV|FAC|2024-02-29T12:00:00+99:99||ADT^A01|MSG1|P|2.5\r")
+  .meta.timestamp;
+
+toISO(ts); // undefined: 6039 minutes east of UTC is no zone, and "+100:39" is unreadable
+toDate(ts); // undefined: an offset that names no zone yields no instant
+```
+
+The same bound catches an `offsetMinutes` a JavaScript caller puts on a value by hand, where a
+`"0"`, a `true` or an `[]` would otherwise multiply to `0` and answer a confident UTC instant, and
+it catches `NaN`, which would otherwise render as `+NaN:NaN`. Every real zone on Earth is far inside
+it (the widest in use is 14 hours east), a stated offset still wins outright over any
+`assumeOffsetMinutes` beside it, and `parseDtm`, `formatDtm` and `dtmToDate` are unchanged.
+
 **Using two `@cosyte` parsers in one file.** The three names are identical in every `@cosyte` parser,
 so importing two of them into one file collides. Alias on import:
 

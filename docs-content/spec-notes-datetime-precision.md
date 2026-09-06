@@ -119,6 +119,17 @@ it never re-parses, and it changes nothing about how a value was parsed.
   round-trips those bytes: the refusal is in the conversion, which is where a wrong answer would
   look right. `new Date("2024-02-30")` is 1 March in V8, so rendering it would shift a date of
   birth by a day with nothing to notice.
+- **The stated offset is a bounded component too, when the value claims one:** a whole number of
+  minutes within `+/-23:59` of UTC, which is both what the `+HH:MM` rendering can state and what an
+  ISO-8601 reader accepts (`new Date("2024-02-29T12:00:00+24:00")` is an `Invalid Date`). The same
+  helper does it, so a string, a boolean, an array, `NaN` and a fractional minute are refused with
+  it. Two routes reach that field without a cast: a hand-built `DtmParts`, and `msg.meta.timestamp`,
+  whose fallback read range-checks the calendar components and not the offset, so a wire MSH-7 of
+  `2024-02-29T12:00:00+99:99` states 6039 minutes east. Unbounded, `toObject` reports a non-number
+  in a `number` slot, `toISO` renders `+NaN:NaN` or a three-digit hour, and `toDate` multiplies a
+  `null` or a `"0"` to zero and answers a confident UTC instant. `parseDtm` (up to `+2400`),
+  `formatDtm` and `dtmToDate` are untouched, exactly as for the calendar bound above. An
+  `offsetMinutes` on a value with `hasTimezone: false` states nothing and is ignored, not refused.
 - The three names are identical across the `@cosyte` parsers, so a consumer importing two of them
   aliases (`import { toISO as hl7ToISO } from "@cosyte/hl7"`) or namespace-imports.
 

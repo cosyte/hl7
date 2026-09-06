@@ -20,16 +20,20 @@
  *    point on the calendar: `20240230` states a day February does not have,
  *    so every one of them answers `undefined` rather than rolling the value
  *    over into 1 March. A wrong date that looks right is the one answer this
- *    surface never gives.
+ *    surface never gives. The offset a value states is bounded on the same
+ *    terms as its day: a whole number of minutes inside a day of UTC is a
+ *    zone, and anything else is refused rather than reported, rendered or
+ *    shifted by.
  *  - `toISO(value)` renders ISO-8601 truncated to the stated precision, with
  *    the fractional digits verbatim. A stated zero offset renders `Z`, so this
  *    is deliberately NOT a byte round trip: `formatDtm` remains the round-trip
  *    route and is unchanged.
  *  - `toDate(value, options)` delegates to {@link dtmToDate}, which is where
  *    the timezone honesty and the sub-100 year handling already live, after
- *    checking that the options bag actually names a zone. An offset that is
- *    not a finite number names none, so it answers `undefined` rather than
- *    being coerced into one.
+ *    checking that the zone in play actually is one. An offset that is not a
+ *    finite number names none, whether the caller assumed it or the value
+ *    stated it, so the answer is `undefined` rather than an instant coerced
+ *    out of it.
  *
  * None of the three ever throws, for any input, on either parameter, and none
  * of them reads the host machine's timezone.
@@ -143,6 +147,23 @@ function pad2(n: number): string {
 const THIRTY_DAY_MONTHS: ReadonlySet<number> = new Set([4, 6, 9, 11]);
 
 /**
+ * The widest offset from UTC this surface will report or render: 23 hours 59
+ * minutes either side, in minutes.
+ *
+ * The bound is the rendering's own. An offset is appended as `+HH:MM` or
+ * `-HH:MM`, where `HH` is a two-digit hour of the day, and that is also
+ * exactly the range an ISO-8601 reader accepts: `new Date` answers an Invalid
+ * Date for `+24:00` and for everything past it. So an offset outside this
+ * range has no rendering here that anyone could read back, and the value
+ * stating it is refused whole rather than rendered into a string that lies.
+ * Every zone the world has ever kept sits far inside it; the widest in use is
+ * 14 hours east.
+ *
+ * @internal
+ */
+const MAX_OFFSET_MINUTES = 23 * 60 + 59;
+
+/**
  * Whether a year is a leap year under the proleptic Gregorian rule: divisible
  * by 4, except centuries, except centuries divisible by 400. So 2024 and 2000
  * are leap years and 2023 and 2100 are not.
@@ -180,13 +201,21 @@ function withinBounds(component: number | undefined, low: number, high: number):
 
 /**
  * Whether the components a value stated name a real point on the calendar and
- * the clock: year 0 to 9999, month 1 to 12, day 1 to the last day THAT month
- * has, hour 0 to 23, minute 0 to 59, second 0 to 59.
+ * the clock, in a real zone: year 0 to 9999, month 1 to 12, day 1 to the last
+ * day THAT month has, hour 0 to 23, minute 0 to 59, second 0 to 59, and, when
+ * the value claims an explicit offset, that offset within
+ * {@link MAX_OFFSET_MINUTES} of UTC.
  *
  * The day bound is the one worth spelling out: `20240230` passes a 1-to-31
  * day check and still names no day, and rolling it over produces 1 March,
  * which is a date of birth off by one with nothing to notice. So the whole
  * value is refused rather than an in-range prefix of it converted.
+ *
+ * The offset is bounded for the same reason and by the same helper, which
+ * settles the arithmetic too: a whole number of minutes inside the range is
+ * one this surface can report, render and shift by, and anything else is not
+ * a zone at all. From JavaScript that field can hold a string, a boolean or
+ * `NaN`, none of which `Number.isInteger` accepts.
  *
  * @internal
  */
@@ -197,7 +226,9 @@ function statesARealCalendarDate(value: DtmParts): boolean {
     withinBounds(value.day, 1, longestDayOfMonth(value.year, value.month)) &&
     withinBounds(value.hour, 0, 23) &&
     withinBounds(value.minute, 0, 59) &&
-    withinBounds(value.second, 0, 59)
+    withinBounds(value.second, 0, 59) &&
+    (!value.hasTimezone ||
+      withinBounds(value.offsetMinutes, -MAX_OFFSET_MINUTES, MAX_OFFSET_MINUTES))
   );
 }
 
@@ -207,8 +238,11 @@ function statesARealCalendarDate(value: DtmParts): boolean {
  *
  * Returns `undefined` for a value the parser marked invalid, for a value
  * stating no components at all, for a value whose stated components do not
- * name a real calendar date (`20240230` names no day: February has no 30th),
- * and for `undefined` / `null`. Never throws.
+ * name a real calendar date (`20240230` names no day: February has no 30th)
+ * or a real zone (an offset has to be a whole number of minutes within a day
+ * of UTC), and for `undefined` / `null`. Never throws. Every value in the
+ * object it returns is therefore a finite number, which is what makes
+ * `offsetMinutes` safe to read as minutes east of UTC.
  *
  * The value's own stated precision is untouched by the call: this is a
  * projection, not a conversion of the parsed value.
@@ -272,10 +306,11 @@ export function toObject(value: DtmParts | null | undefined): DateParts | undefi
  * Returns `undefined` for a value the parser marked invalid, for a value with
  * no stated year (the HL7 DTM datatype mandates a leading four-digit year, so
  * this parser produces no time-only value), for a value whose stated
- * components do not name a real calendar date, and for `undefined` / `null`.
- * Never throws. A string this returns always names a day the calendar has:
- * `"2024-02-30"` is never rendered, because every ISO-8601 reader silently
- * moves it to 1 March.
+ * components do not name a real calendar date or a real zone, and for
+ * `undefined` / `null`. Never throws. A string this returns is always one an
+ * ISO-8601 reader reads back: `"2024-02-30"` is never rendered, because every
+ * reader silently moves it to 1 March, and neither is an offset past
+ * `+23:59`, because every reader answers an Invalid Date for it.
  *
  * @example
  * ```ts
@@ -286,6 +321,7 @@ export function toObject(value: DtmParts | null | undefined): DateParts | undefi
  * toISO(parseDtm("20250102153045.5-0500"));       // "2025-01-02T15:30:45.5-05:00"
  * toISO(parseDtm("20250102153045-0000"));         // "2025-01-02T15:30:45Z"
  * toISO(parseDtm("20230229"));                    // undefined: 2023 is not a leap year
+ * toISO(parseDtm("20250102153045+2400"));         // undefined: no zone is 24 hours east
  * ```
  */
 export function toISO(value: DtmParts | null | undefined): string | undefined {
@@ -345,6 +381,13 @@ export function toISO(value: DtmParts | null | undefined): string | undefined {
  * that simply arithmetics them hands back an instant the caller never asked
  * for, and `0` in particular is silent UTC.
  *
+ * The offset the VALUE states is held to the same account, one step earlier:
+ * it wins outright over any assumption, so it is checked to be a zone before
+ * it is allowed to win. A `hasTimezone` value whose `offsetMinutes` is a
+ * string, a boolean, an array, `NaN` or a count of minutes a whole day or
+ * more from UTC states no zone either, and coercing it would fabricate exactly
+ * the confident instant this function exists to refuse.
+ *
  * Components below the stated precision fill to their lowest legal value
  * (month to 1, day to 1, time to 0) FOR INSTANT CONSTRUCTION ONLY; the value's
  * stated precision is unchanged, and a later `toObject` or `toISO` on the same
@@ -352,10 +395,11 @@ export function toISO(value: DtmParts | null | undefined): string | undefined {
  * stays that year: `0050` is year 50, never 1950.
  *
  * Returns `undefined` for an invalid value, an unresolvable zone, a value
- * whose stated components do not name a real calendar date, and for
- * `undefined` / `null`. Never throws, for any input, on either parameter. An
- * impossible day is refused rather than rolled into the following month, so no
- * instant this returns is a day away from the value the sender wrote.
+ * whose stated components do not name a real calendar date or a real zone,
+ * and for `undefined` / `null`. Never throws, for any input, on either
+ * parameter. An impossible day is refused rather than rolled into the
+ * following month, so no instant this returns is a day away from the value the
+ * sender wrote.
  *
  * @example
  * ```ts
@@ -378,7 +422,9 @@ export function toDate(
   if (!statesARealCalendarDate(value)) return undefined;
 
   // A stated offset wins outright and the assumption is ignored, so the guard
-  // below must never reach a value that carries one.
+  // below must never reach a value that carries one. The guard above has
+  // already established that this offset IS one: a value claiming a zone it
+  // cannot name never gets this far, so winning outright is safe.
   if (value.hasTimezone) return dtmToDate(value, {});
 
   // `options?.` rather than a default parameter: a default fires for

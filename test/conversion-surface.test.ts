@@ -762,3 +762,222 @@ describe("conversion surface: the options bag", () => {
     ).toBeInstanceOf(Date);
   });
 });
+
+/**
+ * THE OFFSET THE VALUE STATES: the other half of the class the options bag
+ * covers, and the third companion to the shared case table.
+ *
+ * Rows R5 and R6 state an offset only as a well-formed number of minutes, and
+ * the block above guards only the offset the CALLER supplies. Neither reaches
+ * the field the VALUE carries, and two routes populate it without a cast in
+ * sight: `DtmParts` is an exported structural interface, so a hand-built value
+ * is a supported input, and `msg.meta.timestamp` goes through the lenient
+ * fallback cascade, whose ISO-8601 read range-checks the calendar components
+ * and not the offset. `2024-02-29T12:00:00+99:99` off the wire is 6039 minutes
+ * east of UTC, which is no zone at all.
+ *
+ * The same field feeds all three functions, and each does something different
+ * and silent with an offset that is not one:
+ *
+ *  - `toObject` reports it in a slot documented as a number of minutes east of
+ *    UTC, so `"0"` arrives as a string and `NaN` as a number that is not one;
+ *  - `toISO` renders it into the two-digit `+HH:MM` slot, producing `+NaN:NaN`
+ *    or a three-digit hour, which every ISO-8601 reader answers an Invalid
+ *    Date for, so the value the sender wrote cannot be recovered from it;
+ *  - `toDate` multiplies it, and `null`, `"0"` and `[]` all multiply to zero,
+ *    which is silent UTC: the one instant the timezone rule exists to refuse.
+ *
+ * The third is the worst, and it is the same harm the options bag has, one
+ * field over: a stated offset wins outright over any assumption, so it has to
+ * be a zone before it is allowed to win.
+ */
+describe("conversion surface: the offset the value states", () => {
+  /**
+   * A well-formed second-precision value for 29 February 2024 that CLAIMS an
+   * explicit offset, with that offset set to `off`. Cast at the boundary
+   * because the point is the runtime behaviour of published JavaScript, not
+   * what the compiler admits.
+   */
+  const stating = (off: unknown): DtmParts =>
+    ({
+      raw: "20240229120000+0000",
+      valid: true,
+      precision: "second",
+      year: 2024,
+      month: 2,
+      day: 29,
+      hour: 12,
+      minute: 0,
+      second: 0,
+      hasTimezone: true,
+      offsetMinutes: off,
+    }) as unknown as DtmParts;
+
+  /**
+   * Offsets that name no zone. The numeric ones are as important as the type
+   * confusions: 30.5 is not a whole minute, 1440 is one minute past the widest
+   * offset `+HH:MM` can render, and 6039 is what the wire produced above.
+   */
+  const NOT_A_ZONE: readonly (readonly [string, unknown])[] = [
+    ["null", null],
+    ['"0" (string)', "0"],
+    ['"-300" (string)', "-300"],
+    ["true", true],
+    ["[] (array)", []],
+    ["{} (object)", {}],
+    ["NaN", Number.NaN],
+    ["Infinity", Number.POSITIVE_INFINITY],
+    ["-Infinity", Number.NEGATIVE_INFINITY],
+    ["30.5 (not a whole minute)", 30.5],
+    ["1440 (one minute past +23:59)", 1440],
+    ["-1440 (one minute past -23:59)", -1440],
+    ["6039 (the +99:99 a message can state)", 6039],
+    ["1e6", 1e6],
+    ["MAX_SAFE_INTEGER", Number.MAX_SAFE_INTEGER],
+  ];
+
+  /**
+   * Offsets that do name one, with the rendering and the instant each owes.
+   * The last two are the ends of the range, computed from the rendering rather
+   * than guessed: `+23:59` is the widest a two-digit hour states, and it is
+   * also the widest `new Date` reads back.
+   */
+  const A_ZONE: readonly (readonly [number, string, string])[] = [
+    [0, "2024-02-29T12:00:00Z", "2024-02-29T12:00:00.000Z"],
+    [-0, "2024-02-29T12:00:00Z", "2024-02-29T12:00:00.000Z"],
+    [-300, "2024-02-29T12:00:00-05:00", "2024-02-29T17:00:00.000Z"],
+    [330, "2024-02-29T12:00:00+05:30", "2024-02-29T06:30:00.000Z"],
+    [720, "2024-02-29T12:00:00+12:00", "2024-02-29T00:00:00.000Z"],
+    [-570, "2024-02-29T12:00:00-09:30", "2024-02-29T21:30:00.000Z"],
+    [840, "2024-02-29T12:00:00+14:00", "2024-02-28T22:00:00.000Z"],
+    [1439, "2024-02-29T12:00:00+23:59", "2024-02-28T12:01:00.000Z"],
+    [-1439, "2024-02-29T12:00:00-23:59", "2024-03-01T11:59:00.000Z"],
+  ];
+
+  it("never throws, whatever the value states as its offset", () => {
+    for (const [label, off] of NOT_A_ZONE) {
+      expect(() => toObject(stating(off)), label).not.toThrow();
+      expect(() => toISO(stating(off)), label).not.toThrow();
+      expect(() => toDate(stating(off)), label).not.toThrow();
+      expect(() => toDate(stating(off), { assumeOffsetMinutes: 0 }), label).not.toThrow();
+    }
+  });
+
+  it("reports no offset it cannot report as a number of minutes east of UTC", () => {
+    for (const [label, off] of NOT_A_ZONE) {
+      expect(toObject(stating(off)), label).toBeUndefined();
+    }
+  });
+
+  it("renders no offset an ISO-8601 reader would answer an Invalid Date for", () => {
+    for (const [label, off] of NOT_A_ZONE) {
+      const iso = toISO(stating(off));
+
+      expect(iso, label).toBeUndefined();
+      expect(iso === undefined || !Number.isNaN(new Date(iso).getTime()), label).toBe(true);
+    }
+  });
+
+  it("fabricates no zone from a stated offset that names none", () => {
+    // The harm the options bag has, on the value's own field: `null`, `"0"`
+    // and `[]` all multiply to zero, so an unguarded delegation answers the
+    // UTC instant nobody asked for, and an assumption beside it cannot rescue
+    // the value because a stated offset wins outright.
+    for (const [label, off] of NOT_A_ZONE) {
+      expect(toDate(stating(off)), label).toBeUndefined();
+      expect(toDate(stating(off), { assumeOffsetMinutes: 0 }), label).toBeUndefined();
+    }
+  });
+
+  it("still converts every offset that does name a zone, to the ends of the rendering", () => {
+    // Non-vacuity: the bound refuses what names no zone and nothing else, and
+    // a real stated offset still wins outright, exactly as R5 requires.
+    for (const [off, iso, instant] of A_ZONE) {
+      const label = `offsetMinutes ${off}`;
+
+      // `0 + off` normalises the negative zero exactly as R6 requires, and
+      // `toBe` compares with `Object.is`, which would otherwise separate them.
+      expect(toObject(stating(off))?.offsetMinutes, label).toBe(0 + off);
+      expect(toISO(stating(off)), label).toBe(iso);
+      expect(toDate(stating(off))?.toISOString(), label).toBe(instant);
+      expect(toDate(stating(off), { assumeOffsetMinutes: 600 })?.toISOString(), label).toBe(
+        instant,
+      );
+      expect(new Date(iso).toISOString(), label).toBe(instant);
+    }
+  });
+
+  it("ignores an offset field on a value that claims no zone, rather than refusing it", () => {
+    // `offsetMinutes` is present if and only if `hasTimezone`, so a value
+    // claiming no zone states no offset whatever that field holds: nothing
+    // reads it, nothing renders it, and the day still converts. The bound is
+    // on the offset a value CLAIMS, which is the only one that reaches an
+    // answer.
+    const unclaimed = {
+      raw: "20240229",
+      valid: true,
+      precision: "day",
+      year: 2024,
+      month: 2,
+      day: 29,
+      hasTimezone: false,
+      offsetMinutes: "nonsense",
+    } as unknown as DtmParts;
+
+    expect(toObject(unclaimed)).toEqual({ year: 2024, month: 2, day: 29 });
+    expect(toISO(unclaimed)).toBe("2024-02-29");
+    expect(toDate(unclaimed)).toBeUndefined();
+    expect(toDate(unclaimed, { assumeOffsetMinutes: 0 })?.toISOString()).toBe(
+      "2024-02-29T00:00:00.000Z",
+    );
+  });
+
+  it("refuses an impossible offset a real message states, with nothing built by hand", () => {
+    // End to end through the public message parser. MSH-7 is the message's own
+    // timestamp, and this ISO-8601 form reaches the fallback cascade, which
+    // range-checks the calendar components and not the offset: no cast, no
+    // hand-built value, and 6039 minutes east of UTC.
+    const impossible = parseHL7(
+      "MSH|^~\\&|SENDER|FAC|RECV|FAC|2024-02-29T12:00:00+99:99||ADT^A01|MSG1|P|2.5\r",
+    ).meta.timestamp;
+
+    expect(impossible?.matchedFormat).toBe("ISO-8601");
+    expect(impossible?.offsetMinutes).toBe(6039);
+    expect(toObject(impossible)).toBeUndefined();
+    expect(toISO(impossible)).toBeUndefined();
+    expect(toDate(impossible)).toBeUndefined();
+
+    const real = parseHL7(
+      "MSH|^~\\&|SENDER|FAC|RECV|FAC|2024-02-29T12:00:00-05:00||ADT^A01|MSG2|P|2.5\r",
+    ).meta.timestamp;
+
+    expect(toObject(real)?.offsetMinutes).toBe(-300);
+    expect(toISO(real)).toBe("2024-02-29T12:00:00-05:00");
+    expect(toDate(real)?.toISOString()).toBe("2024-02-29T17:00:00.000Z");
+  });
+
+  it("leaves parseDtm and dtmToDate, the pinned exports, exactly as they were", () => {
+    // The parser still accepts every offset it always accepted, up to a stated
+    // `+2400`, so `formatDtm` still round-trips those bytes and `dtmToDate`
+    // still answers for them: no published behaviour moved. The refusal is the
+    // conversion layer's, at the point where an offset that cannot be rendered
+    // would otherwise be rendered anyway.
+    const pastTheEnd = parseDtm("20250102153045+2400");
+
+    expect(pastTheEnd.valid).toBe(true);
+    expect(pastTheEnd.offsetMinutes).toBe(1440);
+    expect(formatDtm(pastTheEnd)).toBe("20250102153045+2400");
+    expect(dtmToDate(pastTheEnd)?.toISOString()).toBe("2025-01-01T15:30:45.000Z");
+
+    expect(toObject(pastTheEnd)).toBeUndefined();
+    expect(toISO(pastTheEnd)).toBeUndefined();
+    expect(toDate(pastTheEnd)).toBeUndefined();
+
+    // ...and one minute inside the end still converts, from the same route.
+    const atTheEnd = parseDtm("20250102153045+2359");
+
+    expect(toObject(atTheEnd)?.offsetMinutes).toBe(1439);
+    expect(toISO(atTheEnd)).toBe("2025-01-02T15:30:45+23:59");
+    expect(toDate(atTheEnd)?.toISOString()).toBe("2025-01-01T15:31:45.000Z");
+  });
+});
