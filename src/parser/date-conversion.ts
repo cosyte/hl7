@@ -26,10 +26,13 @@
  *    is deliberately NOT a byte round trip: `formatDtm` remains the round-trip
  *    route and is unchanged.
  *  - `toDate(value, options)` delegates to {@link dtmToDate}, which is where
- *    the timezone honesty and the sub-100 year handling already live.
+ *    the timezone honesty and the sub-100 year handling already live, after
+ *    checking that the options bag actually names a zone. An offset that is
+ *    not a finite number names none, so it answers `undefined` rather than
+ *    being coerced into one.
  *
- * None of the three ever throws, for any input, and none of them reads the
- * host machine's timezone.
+ * None of the three ever throws, for any input, on either parameter, and none
+ * of them reads the host machine's timezone.
  *
  * Zero runtime deps: JS stdlib only, exactly like the module it sits beside.
  */
@@ -328,10 +331,19 @@ export function toISO(value: DtmParts | null | undefined): string | undefined {
  *
  *  - the value carries an explicit offset: the exact instant from THAT offset,
  *    and `options.assumeOffsetMinutes` is ignored;
- *  - no offset and `assumeOffsetMinutes` supplied: that offset is applied,
- *    including an explicit `0` meaning "treat this naive value as UTC";
- *  - no offset and no option: `undefined`. The host timezone is NEVER read and
- *    UTC is NEVER assumed.
+ *  - no offset and `assumeOffsetMinutes` supplied as a finite number: that
+ *    offset is applied, including an explicit `0` meaning "treat this naive
+ *    value as UTC";
+ *  - no offset and no usable option: `undefined`. The host timezone is NEVER
+ *    read and UTC is NEVER assumed.
+ *
+ * "Usable" is checked rather than assumed, because a published package is
+ * called from JavaScript as well as from TypeScript. An options bag that is
+ * `null`, or an `assumeOffsetMinutes` that is not a finite number, names no
+ * zone: it answers `undefined` rather than coercing to one. A string `"0"`, a
+ * `true` and an `[]` all multiply to a number in JavaScript, so a converter
+ * that simply arithmetics them hands back an instant the caller never asked
+ * for, and `0` in particular is silent UTC.
  *
  * Components below the stated precision fill to their lowest legal value
  * (month to 1, day to 1, time to 0) FOR INSTANT CONSTRUCTION ONLY; the value's
@@ -341,9 +353,9 @@ export function toISO(value: DtmParts | null | undefined): string | undefined {
  *
  * Returns `undefined` for an invalid value, an unresolvable zone, a value
  * whose stated components do not name a real calendar date, and for
- * `undefined` / `null`. Never throws. An impossible day is refused rather
- * than rolled into the following month, so no instant this returns is a day
- * away from the value the sender wrote.
+ * `undefined` / `null`. Never throws, for any input, on either parameter. An
+ * impossible day is refused rather than rolled into the following month, so no
+ * instant this returns is a day away from the value the sender wrote.
  *
  * @example
  * ```ts
@@ -360,9 +372,22 @@ export function toISO(value: DtmParts | null | undefined): string | undefined {
  */
 export function toDate(
   value: DtmParts | null | undefined,
-  options: ToDateOptions = {},
+  options?: ToDateOptions | null,
 ): Date | undefined {
   if (value === undefined || value === null) return undefined;
   if (!statesARealCalendarDate(value)) return undefined;
-  return dtmToDate(value, options);
+
+  // A stated offset wins outright and the assumption is ignored, so the guard
+  // below must never reach a value that carries one.
+  if (value.hasTimezone) return dtmToDate(value, {});
+
+  // `options?.` rather than a default parameter: a default fires for
+  // `undefined` only, so `toDate(value, null)` would otherwise read a property
+  // off `null` and throw.
+  const assumed = options?.assumeOffsetMinutes;
+  if (assumed === undefined) return dtmToDate(value, {});
+  // `Number.isFinite` does not coerce, so a string, a boolean, an array and an
+  // object are refused alongside `NaN` and the infinities.
+  if (!Number.isFinite(assumed)) return undefined;
+  return dtmToDate(value, { assumeOffsetMinutes: assumed });
 }

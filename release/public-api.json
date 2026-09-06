@@ -3709,7 +3709,7 @@
     {
       "name": "toDate",
       "kind": "function",
-      "type": "(value: DtmParts | null | undefined, options?: ToDateOptions) => Date | undefined",
+      "type": "(value: DtmParts | null | undefined, options?: ToDateOptions | null) => Date | undefined",
       "members": []
     },
     {

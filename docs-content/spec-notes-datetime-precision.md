@@ -101,6 +101,15 @@ it never re-parses, and it changes nothing about how a value was parsed.
 - `toDate(value, opts?): Date | undefined`: delegates to `dtmToDate`, so the zone rule and the
   sub-100-year handling are the existing ones, unchanged.
 - All three accept `undefined` / `null` and return `undefined`. **None ever throws, for any input.**
+- **Options bounds, on the second parameter as well as the first:** the bag may be `null` or absent
+  (`opts?.` is read, not defaulted, because a default parameter fires for `undefined` only), and
+  `assumeOffsetMinutes` must be a **finite number** or the answer is `undefined`. `"0"`, `true` and
+  `[]` all multiply to `0` in JS, so an unguarded delegation hands back a UTC instant the caller
+  never asked for; `NaN`, the infinities and an offset past the range a `Date` represents are
+  refused for the same reason, so no answer is ever an `Invalid Date`. A value stating its own
+  offset never reaches the guard: its offset wins and the assumption is ignored, per the Contract.
+  `dtmToDate` is a published name and keeps its own coercing behaviour: the guard is added by the
+  conversion layer, exactly as the component bound below is.
 - **Component bounds, applied by all three to the WHOLE value:** year 0-9999, month 1-12, day 1 to
   the last day THAT month has (full 4/100/400 leap rule; an unstated year bounds February at 29),
   hour 0-23, minute 0-59, second 0-59. `20240230` and `20230229` convert to `undefined` rather than

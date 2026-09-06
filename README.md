@@ -570,6 +570,29 @@ where your code ran. Components below the stated precision fill to their lowest 
 instant only, leaving the value's own precision untouched, and a four-digit year below 100 stays that
 year (`00500101` is year 50, never 1950).
 
+**An offset that is not a finite number is no offset at all.** `assumeOffsetMinutes` is signed
+minutes east of UTC, and anything else names no zone, so `toDate` answers `undefined` rather than
+coercing it into one. That matters from JavaScript, where the type is not checked for you:
+
+```ts
+import { parseDtm, toDate } from "@cosyte/hl7";
+
+const dob = parseDtm("20240229"); // day precision, no offset stated
+
+toDate(dob, null); // undefined: no options bag is not a zone, and this does not throw
+toDate(dob, {}); // undefined: same answer as passing nothing
+toDate(dob, { assumeOffsetMinutes: "0" }); // undefined: a string is not a number of minutes
+toDate(dob, { assumeOffsetMinutes: Number.NaN }); // undefined: neither is NaN
+
+toDate(dob, { assumeOffsetMinutes: 0 }); // 2024-02-29T00:00:00.000Z: a real choice, honoured
+```
+
+`"0"`, `true` and `[]` all multiply to `0` in JavaScript, so a converter that simply did the
+arithmetic would hand back a UTC instant nobody asked for, which is the guess this surface exists to
+refuse. An offset large enough to leave the range a `Date` represents is refused the same way, so no
+answer is ever an `Invalid Date`. A value that states its own offset is unaffected: its offset wins
+outright, so an unusable assumption beside one is ignored rather than fatal.
+
 **`toISO` renders, `formatDtm` round-trips.** A stated zero offset renders as `Z`, including HL7's
 `-0000` form, so the two answers differ by design and `formatDtm` remains the byte-exact route back to
 the wire:

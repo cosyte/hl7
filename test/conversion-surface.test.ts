@@ -15,7 +15,7 @@ import { describe, expect, it } from "vitest";
 import { parseHL7 } from "../src/index.js";
 import { toDate, toISO, toObject } from "../src/parser/date-conversion.js";
 import type { ToDateOptions } from "../src/parser/date-conversion.js";
-import { formatDtm, parseDtm, parseDtmCascade } from "../src/parser/dates.js";
+import { dtmToDate, formatDtm, parseDtm, parseDtmCascade } from "../src/parser/dates.js";
 import type { DtmParts, DtmToDateOptions } from "../src/parser/dates.js";
 
 /** A value the parser marked invalid, without going through `parseDtm`. */
@@ -605,5 +605,160 @@ describe("conversion surface: component bounds", () => {
     expect(toDate(realDob, { assumeOffsetMinutes: 0 })?.toISOString()).toBe(
       "1988-07-05T00:00:00.000Z",
     );
+  });
+});
+
+/**
+ * THE OPTIONS BAG: the second companion to the shared case table above.
+ *
+ * Rows R3, R4 and R5 pass `assumeOffsetMinutes` only as a well-formed number,
+ * so no row of the shared table states what happens when the SECOND argument
+ * is hostile. That matters because this is a published package: TypeScript
+ * types the options bag, and a JavaScript consumer can still pass anything at
+ * all. Two ways the value can go wrong, both of them silent:
+ *
+ *  - the bag itself is `null`. A default parameter fires for `undefined` only,
+ *    so reading a property off it throws a `TypeError` where the surface
+ *    promises never to throw;
+ *  - `assumeOffsetMinutes` is a non-number. JavaScript's `*` coerces `null`,
+ *    `[]` and `"0"` to 0, so a converter that just multiplies hands back a UTC
+ *    instant the caller never asked for, and `true` becomes a one-minute zone
+ *    that exists nowhere on Earth.
+ *
+ * The second is the worse of the two: an offset-less value converting to a
+ * confident UTC instant is the exact fabrication the timezone rule exists to
+ * refuse, and unlike a throw it leaves nothing behind to notice.
+ */
+describe("conversion surface: the options bag", () => {
+  /** A well-formed, offset-less, day-precision value: 29 February 2024 is real. */
+  const OFFSET_LESS = parseDtm("20240229");
+
+  /** The same instant, stated with its own offset, for the precedence rule. */
+  const OFFSET_BEARING = parseDtm("20240229120000-0500");
+
+  /**
+   * Option shapes a JavaScript caller can pass that the TypeScript type does
+   * not admit. Typed `unknown` and cast at the call site, because the point is
+   * the runtime behaviour of published JavaScript, not what the compiler
+   * allows.
+   */
+  const UNUSABLE_OPTIONS: readonly (readonly [string, unknown])[] = [
+    ["null (the bag itself)", null],
+    ['"0" (the bag itself)', "0"],
+    ["0 (the bag itself)", 0],
+    ["{ assumeOffsetMinutes: null }", { assumeOffsetMinutes: null }],
+    ['{ assumeOffsetMinutes: "0" }', { assumeOffsetMinutes: "0" }],
+    ['{ assumeOffsetMinutes: "-300" }', { assumeOffsetMinutes: "-300" }],
+    ["{ assumeOffsetMinutes: true }", { assumeOffsetMinutes: true }],
+    ["{ assumeOffsetMinutes: [] }", { assumeOffsetMinutes: [] }],
+    ["{ assumeOffsetMinutes: {} }", { assumeOffsetMinutes: {} }],
+    ["{ assumeOffsetMinutes: NaN }", { assumeOffsetMinutes: Number.NaN }],
+    ["{ assumeOffsetMinutes: Infinity }", { assumeOffsetMinutes: Number.POSITIVE_INFINITY }],
+    ["{ assumeOffsetMinutes: -Infinity }", { assumeOffsetMinutes: Number.NEGATIVE_INFINITY }],
+    ["{ assumeOffsetMinutes: 1e15 } (past the representable range)", { assumeOffsetMinutes: 1e15 }],
+    ["{ assumeOffsetMinutes: MAX_SAFE_INTEGER }", { assumeOffsetMinutes: Number.MAX_SAFE_INTEGER }],
+  ];
+
+  /** Bags that supply no offset at all, which is the R2 answer, not an error. */
+  const SILENT_OPTIONS: readonly (readonly [string, unknown])[] = [
+    ["undefined", undefined],
+    ["{}", {}],
+    ["{ assumeOffsetMinutes: undefined }", { assumeOffsetMinutes: undefined }],
+    ["{ nope: 1 } (an unknown key only)", { nope: 1 }],
+  ];
+
+  const call = (parts: DtmParts, options: unknown): Date | undefined =>
+    toDate(parts, options as ToDateOptions);
+
+  it("never throws, whatever the second argument is", () => {
+    for (const [label, options] of [...UNUSABLE_OPTIONS, ...SILENT_OPTIONS]) {
+      expect(() => call(OFFSET_LESS, options), label).not.toThrow();
+      expect(() => call(OFFSET_BEARING, options), label).not.toThrow();
+    }
+  });
+
+  it("assumes no zone for an option that names none, and never falls back to UTC", () => {
+    for (const [label, options] of UNUSABLE_OPTIONS) {
+      expect(call(OFFSET_LESS, options), label).toBeUndefined();
+    }
+  });
+
+  it("answers undefined, never an Invalid Date, for an unusable offset", () => {
+    // An Invalid Date satisfies the declared `Date | undefined` return and
+    // defeats its point: a caller cannot tell one from a real instant without
+    // testing `getTime()` for `NaN`, and `toISOString()` on it throws.
+    for (const [label, options] of UNUSABLE_OPTIONS) {
+      const out = call(OFFSET_LESS, options);
+      expect(out === undefined || !Number.isNaN(out.getTime()), label).toBe(true);
+    }
+  });
+
+  it("treats a bag that supplies no offset exactly as R2 does: undefined", () => {
+    for (const [label, options] of SILENT_OPTIONS) {
+      expect(call(OFFSET_LESS, options), label).toBeUndefined();
+    }
+  });
+
+  it("lets a stated offset win over an unusable assumption, rather than refusing", () => {
+    // The Contract says a stated offset wins and the assumption is IGNORED, so
+    // the guard on the assumption must never reach a value that carries one.
+    const expected = "2024-02-29T17:00:00.000Z";
+
+    expect(toDate(OFFSET_BEARING)?.toISOString()).toBe(expected);
+    for (const [label, options] of [...UNUSABLE_OPTIONS, ...SILENT_OPTIONS]) {
+      expect(call(OFFSET_BEARING, options)?.toISOString(), label).toBe(expected);
+    }
+  });
+
+  it("still converts every offset that does name a zone, including the odd ones", () => {
+    // Non-vacuity: the guard refuses what carries no zone and nothing else. The
+    // last two rows are the boundary of what a JS `Date` represents, computed
+    // rather than guessed, which is where an off-by-one in a range check lives.
+    const wall = Date.UTC(2024, 1, 29);
+    const limit = 8.64e15;
+
+    expect(toDate(OFFSET_LESS, { assumeOffsetMinutes: 0 })?.toISOString()).toBe(
+      "2024-02-29T00:00:00.000Z",
+    );
+    expect(toDate(OFFSET_LESS, { assumeOffsetMinutes: -0 })?.toISOString()).toBe(
+      "2024-02-29T00:00:00.000Z",
+    );
+    expect(toDate(OFFSET_LESS, { assumeOffsetMinutes: -300 })?.toISOString()).toBe(
+      "2024-02-29T05:00:00.000Z",
+    );
+    expect(toDate(OFFSET_LESS, { assumeOffsetMinutes: 720 })?.toISOString()).toBe(
+      "2024-02-28T12:00:00.000Z",
+    );
+    // Fractional minutes are a real, if unusual, offset: half a minute west.
+    expect(toDate(OFFSET_LESS, { assumeOffsetMinutes: 30.5 })?.toISOString()).toBe(
+      "2024-02-28T23:29:30.000Z",
+    );
+    expect(toDate(OFFSET_LESS, { assumeOffsetMinutes: (wall - limit) / 60_000 })?.getTime()).toBe(
+      limit,
+    );
+    expect(toDate(OFFSET_LESS, { assumeOffsetMinutes: (wall + limit) / 60_000 })?.getTime()).toBe(
+      -limit,
+    );
+    // ...and one minute past each end is not an instant, so it is undefined.
+    expect(
+      toDate(OFFSET_LESS, { assumeOffsetMinutes: (wall - limit) / 60_000 - 1 }),
+    ).toBeUndefined();
+    expect(
+      toDate(OFFSET_LESS, { assumeOffsetMinutes: (wall + limit) / 60_000 + 1 }),
+    ).toBeUndefined();
+  });
+
+  it("leaves dtmToDate, the pinned export, exactly as it was", () => {
+    // The guard is added by the conversion layer. `dtmToDate` is a published
+    // name whose behaviour may not move, so it still coerces as it always did,
+    // and this test says so out loud rather than letting the split look like an
+    // oversight.
+    expect(dtmToDate(OFFSET_LESS, { assumeOffsetMinutes: 0 })?.toISOString()).toBe(
+      "2024-02-29T00:00:00.000Z",
+    );
+    expect(dtmToDate(OFFSET_LESS)).toBeUndefined();
+    expect(
+      dtmToDate(OFFSET_LESS, { assumeOffsetMinutes: "0" } as unknown as DtmToDateOptions),
+    ).toBeInstanceOf(Date);
   });
 });
