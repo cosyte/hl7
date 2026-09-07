@@ -948,6 +948,7 @@
         "asXcn: () => XCN",
         "asXpn: () => XPN",
         "asXtn: () => XTN",
+        "dateFormats: readonly string[]",
         "enc: EncodingCharacters",
         "isNull: boolean",
         "position: Hl7Position",
@@ -2445,6 +2446,7 @@
       "members": [
         "absoluteIndex: number",
         "customFields: Readonly<Record<string, number>> | undefined",
+        "dateFormats: readonly string[]",
         "enc: EncodingCharacters",
         "field: (n: number) => Field",
         "fields: readonly RawField[]",
@@ -3578,7 +3580,7 @@
     {
       "name": "parseTs",
       "kind": "function",
-      "type": "(rep: RawRepetition, _enc: EncodingCharacters) => TS",
+      "type": "(rep: RawRepetition, _enc: EncodingCharacters, dateFormats?: readonly string[]) => TS",
       "members": []
     },
     {

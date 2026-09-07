@@ -35,6 +35,13 @@ import { parseXtn, type XTN } from "./types/xtn.js";
 const DEFAULT_POSITION: Hl7Position = { segmentIndex: 0 };
 
 /**
+ * Shared frozen empty list for a Field built without declared date formats:
+ * a hand-built Field, and the `Field.empty()` sentinel, which carries no
+ * content to parse in the first place. @internal
+ */
+const NO_DATE_FORMATS: readonly string[] = Object.freeze([]);
+
+/**
  * Wrapper over a `RawField` exposing HL7 null/empty discrimination
  * (`isNull`), the repetitions tree, and a decoded `value` getter.
  * `seg.field(3) === seg.field(3)`: Field instances are referentially stable
@@ -67,16 +74,33 @@ export class Field {
   public readonly raw: RawField;
 
   /**
+   * The date formats the caller declared for this message
+   * (`ParseOptions.dateFormats` ++ the applied profile's, deduplicated
+   * first-occurrence-wins), threaded down from `Hl7Message.dateFormats` so a
+   * typed `TS` coercion can honour them. Empty when neither route declared
+   * any, which is the strict-only parse. Read by `asTs()` and by the two
+   * helper sites that parse a datetime subcomponent directly.
+   * @internal
+   */
+  public readonly dateFormats: readonly string[];
+
+  /**
    * Construct a new `Field`. Called internally by `Segment.field(n)`; user
    * code should obtain `Field` instances via `msg.segments(type)[i].field(n)`.
    * @internal
    */
-  public constructor(raw: RawField, enc: EncodingCharacters, position: Hl7Position) {
+  public constructor(
+    raw: RawField,
+    enc: EncodingCharacters,
+    position: Hl7Position,
+    dateFormats?: readonly string[],
+  ) {
     this.raw = raw;
     this.isNull = raw.isNull;
     this.repetitions = raw.repetitions;
     this.enc = enc;
     this.position = position;
+    this.dateFormats = dateFormats ?? NO_DATE_FORMATS;
   }
 
   /**
@@ -178,7 +202,9 @@ export class Field {
    *
    * The `enc` argument is accepted for API symmetry but ignored: the
    * synthetic field carries no content, so unescape would be a no-op
-   * regardless of the active encoding characters.
+   * regardless of the active encoding characters. For the same reason the
+   * sentinel carries no declared `dateFormats`: there is no value to match one
+   * against, and `asTs()` on it is the empty invalid `TS` either way.
    *
    * @example
    * ```ts
@@ -296,14 +322,25 @@ export class Field {
    * `false` on unparseable input (no throw). Build an absolute instant only on
    * explicit request via `dtmToDate(ts)`.
    *
+   * The canonical HL7 shape is tried first. A value that is not canonical is
+   * then matched against the `dateFormats` the caller declared for this
+   * message, and a match reports which format won on `matchedFormat`. Nothing
+   * beyond those declared formats is tried, so a vendor date the caller has
+   * not described stays `valid: false` rather than becoming a plausible wrong
+   * date.
+   *
    * @example
    * ```ts
    * const ts = msg.segments("MSH")[0]?.field(7)?.asTs();
    * console.log(ts?.raw, ts?.precision, ts?.hasTimezone);
+   *
+   * // parseHL7(raw, { dateFormats: ["MM/DD/YYYY"] }) on a PID-7 of "07/05/1988":
+   * const dob = msg.segments("PID")[0]?.field(7)?.asTs();
+   * console.log(dob?.month, dob?.matchedFormat); // 7 "MM/DD/YYYY"
    * ```
    */
   public asTs(): TS {
-    return parseTs(this.repetitions[0] ?? EMPTY_REP, this.enc);
+    return parseTs(this.repetitions[0] ?? EMPTY_REP, this.enc, this.dateFormats);
   }
 
   /**

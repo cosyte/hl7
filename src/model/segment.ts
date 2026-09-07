@@ -13,6 +13,9 @@ import { canonicalSegmentName } from "../parser/known-segments.js";
 import { boundedIdentifier } from "../parser/tokens.js";
 import type { EncodingCharacters, RawField, RawSegment } from "../parser/types.js";
 
+/** Shared frozen empty list for a Segment built without declared date formats. @internal */
+const EMPTY_DATE_FORMATS: readonly string[] = Object.freeze([]);
+
 /**
  * Wrapper over a `RawSegment` exposing typed per-position `Field` instances.
  * `seg.field(3) === seg.field(3)`: referential stability is guaranteed per
@@ -84,6 +87,15 @@ export class Segment<FieldName extends string = string> {
    */
   public readonly customFields: Readonly<Record<string, number>> | undefined;
 
+  /**
+   * The message's merged `dateFormats` (D-21), handed to every `Field` this
+   * segment builds so a typed `TS` coercion honours what the caller declared.
+   * Empty when neither `ParseOptions.dateFormats` nor the applied profile
+   * declared any.
+   * @internal
+   */
+  public readonly dateFormats: readonly string[];
+
   /** Lazy cache of Field wrappers: one per fields[] position. @internal */
   private _fieldWrappers: Field[] | undefined;
 
@@ -96,6 +108,9 @@ export class Segment<FieldName extends string = string> {
    * applied profile's merged declarations for this segment type (PROF-07 /
    * D-16). When supplied, `get(name)` resolves names against it; otherwise
    * `get(name)` always returns `undefined`.
+   *
+   * The optional `dateFormats` parameter is the message's merged date-format
+   * list; it is passed straight through to each `Field`.
    * @internal
    */
   public constructor(
@@ -103,6 +118,7 @@ export class Segment<FieldName extends string = string> {
     enc: EncodingCharacters,
     absoluteIndex: number,
     customFields?: Readonly<Record<string, number>>,
+    dateFormats?: readonly string[],
   ) {
     this.raw = raw;
     // Canonicalized THEN bounded, in that order, and both steps matter.
@@ -128,6 +144,7 @@ export class Segment<FieldName extends string = string> {
     this.enc = enc;
     this.absoluteIndex = absoluteIndex;
     this.customFields = customFields;
+    this.dateFormats = dateFormats ?? EMPTY_DATE_FORMATS;
   }
 
   /**
@@ -157,10 +174,15 @@ export class Segment<FieldName extends string = string> {
       // Build the full wrapper array. O(k) where k = fields.length; cached.
       this._fieldWrappers = this.fields.map(
         (rf, i) =>
-          new Field(rf, this.enc, {
-            segmentIndex: this.absoluteIndex,
-            fieldIndex: i,
-          }),
+          new Field(
+            rf,
+            this.enc,
+            {
+              segmentIndex: this.absoluteIndex,
+              fieldIndex: i,
+            },
+            this.dateFormats,
+          ),
       );
     }
     // MSH offset: HL7 MSH-1 lives at fields[0] (separator), MSH-2 at fields[1]
