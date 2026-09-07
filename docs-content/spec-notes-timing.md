@@ -2,6 +2,7 @@
 id: spec-notes-timing
 title: "Spec notes: order / medication timing"
 sidebar_label: Order & medication timing
+description: "How order and medication timings are read from TQ1 or the legacy embedded TQ type. The structure is surfaced, never interpreted into a schedule."
 ---
 
 # Spec notes: order / medication timing

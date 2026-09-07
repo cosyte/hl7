@@ -43,6 +43,7 @@ import type {
 
 import { Hl7Message } from "../model/message.js";
 import { getDefaultProfile } from "../profiles/default.js";
+import type { ProfiledMessage } from "../profiles/typed-fields.js";
 
 /**
  * The list of `ParseOptions` keys that are TRULY options-only: i.e. keys
@@ -381,9 +382,26 @@ function extractMessageType(msh: RawSegment | undefined): {
  *   }
  * }
  * ```
+ *
+ * @example
+ * ```ts
+ * import { defineProfile, parseHL7 } from "@cosyte/hl7";
+ * const vendor = defineProfile({
+ *   name: "vendor",
+ *   customSegments: { ZDP: { fields: { departmentCode: 3 } } },
+ * });
+ * // A statically known profile narrows the field-name reader per segment type:
+ * const msg = parseHL7(raw, vendor);
+ * console.log(msg.part("ZDP")?.get("departmentCode")?.value);
+ * // msg.part("ZDP")?.get("departmentCod"); // does not compile: not declared
+ * ```
  */
 export function parseHL7(raw: string | Buffer): Hl7Message;
-export function parseHL7(raw: string | Buffer, profile: Profile): Hl7Message;
+export function parseHL7<P extends Profile>(raw: string | Buffer, profile: P): ProfiledMessage<P>;
+export function parseHL7<P extends Profile>(
+  raw: string | Buffer,
+  options: ParseOptions & { readonly profile: P },
+): ProfiledMessage<P>;
 export function parseHL7(raw: string | Buffer, options: ParseOptions): Hl7Message;
 /** @internal implementation signature; overload signatures above carry the public JSDoc + @example. */
 export function parseHL7(
@@ -628,6 +646,12 @@ export function parseHL7(
     mergedFormats.length > 0 ? Object.freeze(mergedFormats) : undefined;
 
   const mergedCustomSegments = effectiveProfile?.customSegments;
+  // The standard-segment override map rides alongside, never inside, the
+  // custom-segment map: Step 11.5 above reads `customSegments` to decide which
+  // segments the profile CLAIMS, and folding a standard name into it would
+  // change which segments report UNKNOWN_SEGMENT. It reaches only
+  // `Segment.get(name)`.
+  const mergedSegmentOverrides = effectiveProfile?.segmentOverrides;
 
   // exactOptionalPropertyTypes: conditionally assign each optional init key.
   type Init = {
@@ -637,6 +661,7 @@ export function parseHL7(
     warnings: readonly Hl7ParseWarning[];
     profile?: { readonly name: string; readonly lineage: readonly string[] };
     customSegments?: Readonly<Record<string, CustomSegmentDefinition>>;
+    segmentOverrides?: Readonly<Record<string, CustomSegmentDefinition>>;
     dateFormats?: readonly string[];
   };
   const init: Init = {
@@ -647,6 +672,7 @@ export function parseHL7(
   };
   if (profileInit !== undefined) init.profile = profileInit;
   if (mergedCustomSegments !== undefined) init.customSegments = mergedCustomSegments;
+  if (mergedSegmentOverrides !== undefined) init.segmentOverrides = mergedSegmentOverrides;
   if (mergedDateFormats !== undefined) init.dateFormats = mergedDateFormats;
 
   return new Hl7Message(init);

@@ -35,11 +35,22 @@
  *      inside a family means the publication does not settle the question, and
  *      a warning heuristic must take the silent side of an unsettled question.
  *
+ *   5. ORDERED EXPECTATION PER VARIANT. Rules 1 to 4 answer "which segments
+ *      must be present", and throw away everything else the publication says.
+ *      The second artifact keeps it: for every structure read, one ordered node
+ *      per published element, carrying its published position among its
+ *      siblings, its minimum, its maximum and its enclosing group. It is read
+ *      off the same elements in the same pass; nothing is hand-picked and no
+ *      structure is filtered out, so the ordered expectation covers whatever
+ *      the snapshot covers rather than whatever the registry happens to use.
+ *
  * WHAT IT REFUSES. An unreadable file, a file that is not valid JSON, a file
  * with no `differential.element` array, an element the tree cannot be built
- * from, and a read file with no recorded upstream URL all THROW, naming the
- * file. Every output is built in memory and written only once all of it
- * exists, so a refusal never leaves a partial registry on disk.
+ * from, an element whose occurrence maximum is neither the unbounded marker nor
+ * a non-negative integer at least as large as its minimum, and a read file with
+ * no recorded upstream URL all THROW, naming the file. Every output is built in
+ * memory and written only once all of it exists, so a refusal never leaves a
+ * partial registry on disk.
  */
 
 import { createHash } from "node:crypto";
@@ -120,8 +131,46 @@ interface StructureElement {
   readonly id: string;
   readonly parentId: string | undefined;
   readonly min: number;
+  /** Published occurrence maximum: a non-negative integer, or `"*"`. */
+  readonly max: number | "*";
+  /**
+   * 1-based published position among this element's siblings, read off the
+   * ordinal the publication puts in front of the element's own id segment
+   * (`ADT_A01-A.5-EVN` is the fifth child of the structure root). Zero for the
+   * structure root, which the publication gives no ordinal.
+   */
+  readonly position: number;
   /** Segment name when the element is a segment, `undefined` for a group. */
   readonly segment: string | undefined;
+  /** Published group name when the element is a group, `undefined` otherwise. */
+  readonly group: string | undefined;
+}
+
+/**
+ * One node of a structure variant's ordered expectation: exactly what the
+ * publication says about one element, in the publication's own order.
+ */
+export interface DerivedStructureNode {
+  /** Segment name for a segment node, published group name for a group node. */
+  readonly name: string;
+  /** Whether the node is a segment or a group of nodes. */
+  readonly kind: "segment" | "group";
+  /** 1-based published position among the node's siblings. */
+  readonly position: number;
+  /** Published occurrence minimum at this locus. */
+  readonly min: number;
+  /** Published occurrence maximum at this locus, `"*"` when unbounded. */
+  readonly max: number | "*";
+  /** Index of the enclosing group in the same node list; `-1` at the root. */
+  readonly parent: number;
+}
+
+/** One structure variant's ordered expectation, in publication order. */
+export interface DerivedStructureSchema {
+  /** The published structure id, e.g. `"ADT_A01-A"`. */
+  readonly structureId: string;
+  /** Every published element below the root, parents before their children. */
+  readonly nodes: readonly DerivedStructureNode[];
 }
 
 /** A (message code, trigger event) pair read off `messages.json`. */
@@ -175,6 +224,8 @@ export interface GeneratedRegistry {
   readonly snapshotTakenAt: string;
   readonly files: readonly SnapshotFile[];
   readonly entries: readonly DerivedEntry[];
+  /** One ordered expectation per structure read, by structure id. */
+  readonly schemas: readonly DerivedStructureSchema[];
   readonly families: readonly {
     readonly structureId: string;
     readonly members: readonly string[];
@@ -186,6 +237,10 @@ export interface GeneratedRegistry {
 
 const SEGMENT_TYPE_PREFIX = "http://hl7.org/v2/StructureDefinition/";
 const VARIANT_SUFFIX = /^-[A-Z]$/;
+/** The publication's own marker for "repeats without an upper bound". */
+const UNBOUNDED = "*";
+/** A child element's own id segment: the sibling ordinal, then its name. */
+const CHILD_ID_TAIL = /^(\d+)-(.+)$/;
 
 /** Read a file as UTF-8, failing with the path when it cannot be read. */
 function readText(file: string): string {
@@ -211,12 +266,37 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /**
+ * Read one element's occurrence maximum.
+ *
+ * The publication writes it as a string (`"1"`, `"*"`), so the digit spelling
+ * and the numeric spelling are both accepted and everything else is refused
+ * naming the file. `"*"` is carried through AS the unbounded marker rather than
+ * collapsed to a large number: a segment the publication lets repeat freely
+ * must never be able to produce an upper-bound violation, and a sentinel that
+ * is a number can be exceeded.
+ *
+ * A finite maximum below the element's own minimum is refused too. It is not a
+ * range this generator can narrow to something safe: the publication would be
+ * saying the element is both required and not permitted that many times, and
+ * picking either reading is the guessing this generator exists to stop.
+ */
+function readMax(raw: unknown, min: number, id: string, file: string): number | "*" {
+  if (raw === UNBOUNDED) return UNBOUNDED;
+  const value = typeof raw === "string" && /^\d+$/.test(raw) ? Number(raw) : raw;
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 0 || value < min) {
+    throw new Error(`differential.element carries an unusable occurrence max at "${id}": ${file}`);
+  }
+  return value;
+}
+
+/**
  * Validate and flatten one structure definition's `differential.element` array.
  *
  * Fails naming the file when the array is missing, when an element carries no
- * usable `id`/`min`, or when an element's parent is not in the file: a tree
- * that cannot be walked cannot yield an effective minimum, and guessing one is
- * exactly what this generator exists to stop.
+ * usable `id`/`min`/`max`, when an element's own id segment carries no sibling
+ * ordinal, or when an element's parent is not in the file: a tree that cannot
+ * be walked cannot yield an effective minimum, and guessing one is exactly what
+ * this generator exists to stop.
  */
 export function readStructureElements(file: string): readonly StructureElement[] {
   const doc = readJson(file);
@@ -239,10 +319,17 @@ export function readStructureElements(file: string): readonly StructureElement[]
     if (typeof min !== "number" || !Number.isInteger(min) || min < 0) {
       throw new Error(`differential.element carries a non-integer min at "${id}": ${file}`);
     }
+    const max = readMax(item["max"], min, id, file);
     const dot = id.lastIndexOf(".");
     const parentId = dot === -1 ? undefined : id.slice(0, dot);
     if (parentId !== undefined && !seen.has(parentId)) {
       throw new Error(`differential.element references an unknown parent "${parentId}": ${file}`);
+    }
+    const tail = parentId === undefined ? undefined : CHILD_ID_TAIL.exec(id.slice(dot + 1));
+    const ordinal = tail?.[1];
+    const localName = tail?.[2];
+    if (parentId !== undefined && (ordinal === undefined || localName === undefined)) {
+      throw new Error(`differential.element carries no sibling ordinal at "${id}": ${file}`);
     }
     const types = item["type"];
     const code = Array.isArray(types) && isRecord(types[0]) ? types[0]["code"] : undefined;
@@ -251,7 +338,18 @@ export function readStructureElements(file: string): readonly StructureElement[]
         ? code.slice(SEGMENT_TYPE_PREFIX.length)
         : undefined;
     seen.add(id);
-    elements.push({ id, parentId, min, segment });
+    elements.push({
+      id,
+      parentId,
+      min,
+      max,
+      position: ordinal === undefined ? 0 : Number(ordinal),
+      segment,
+      // A non-root element the publication does not type as a segment is a
+      // group, and its name is the one in its own id segment: the publication
+      // gives a group no `type[0].code` to read a name off.
+      group: segment === undefined ? localName : undefined,
+    });
   }
   if (elements.length === 0) {
     throw new Error(`Vendored structure carries an empty differential.element array: ${file}`);
@@ -281,6 +379,39 @@ export function requiredSegmentsOfVariant(elements: readonly StructureElement[])
     if (own && el.segment !== undefined) required.add(el.segment);
   }
   return required;
+}
+
+/**
+ * The ordered expectation for one structure variant: every published element
+ * below the root, in the publication's own order, parents before children.
+ *
+ * The structure root is dropped rather than emitted as a node. It is the
+ * message itself, it carries no sibling ordinal, and the publication gives
+ * several roots a minimum of zero and a maximum of `"*"`, neither of which says
+ * anything about a message that exists; its children carry `-1` for "at the
+ * structure root" instead.
+ */
+export function orderedNodesOfVariant(
+  elements: readonly StructureElement[],
+): readonly DerivedStructureNode[] {
+  const indexById = new Map<string, number>();
+  const nodes: DerivedStructureNode[] = [];
+  for (const el of elements) {
+    if (el.parentId === undefined) continue;
+    // `readStructureElements` refuses an element whose parent is not in the
+    // file, so an id missing here is the root, which is deliberately not a node.
+    const parent = indexById.get(el.parentId) ?? -1;
+    indexById.set(el.id, nodes.length);
+    nodes.push({
+      name: el.segment ?? el.group ?? "",
+      kind: el.segment === undefined ? "group" : "segment",
+      position: el.position,
+      min: el.min,
+      max: el.max,
+      parent,
+    });
+  }
+  return nodes;
 }
 
 /** Read a structure id's family out of the ids the snapshot actually carries. */
@@ -461,10 +592,13 @@ export function deriveRegistry(vendorDir: string): GeneratedRegistry {
 
   const available = new Set(structureFiles.map((n) => n.slice(0, -".json".length)));
   const requiredByStructure = new Map<string, Set<string>>();
+  const schemas: DerivedStructureSchema[] = [];
   for (const name of structureFiles) {
     const id = name.slice(0, -".json".length);
     const file = path.join(structureDir, name);
-    requiredByStructure.set(id, requiredSegmentsOfVariant(readStructureElements(file)));
+    const elements = readStructureElements(file);
+    requiredByStructure.set(id, requiredSegmentsOfVariant(elements));
+    schemas.push({ structureId: id, nodes: orderedNodesOfVariant(elements) });
   }
 
   const messagesRel = path.join("control-manifests", "messages.json");
@@ -616,6 +750,7 @@ export function deriveRegistry(vendorDir: string): GeneratedRegistry {
     snapshotTakenAt,
     files,
     entries,
+    schemas,
     families,
     pairs,
     unresolved,
@@ -738,6 +873,61 @@ export const GENERATED_STRUCTURE_REGISTRY_PROVENANCE: StructureRegistryProvenanc
   return format(source, { ...options, parser: "typescript" });
 }
 
+const SCHEMAS_HEADER = `/**
+ * GENERATED FILE. DO NOT EDIT BY HAND.
+ *
+ * Written by \`pnpm generate:structures\` (\`scripts/generate-message-structures.ts\`)
+ * from the vendored snapshot in \`vendor/hl7-v2ig/\`. Re-running the generator in a
+ * checkout with no network access reproduces this file byte for byte; a diff here
+ * that the generator does not reproduce is an edit that should not have happened.
+ *
+ * One entry per structure definition in the snapshot, carrying the publication's
+ * own ordered elements: for each segment and each group, its position among its
+ * siblings, its minimum and maximum occurrences, and the index of the group that
+ * encloses it (\`-1\` at the structure root). Parents always precede their
+ * children. Nothing here is hand-picked, nothing is filtered, and \`"*"\` is the
+ * publication's unbounded marker carried through as itself.
+ */`;
+
+/** Render one ordered node as a TypeScript object literal. */
+function renderNode(node: DerivedStructureNode): string {
+  const max = node.max === UNBOUNDED ? lit(UNBOUNDED) : String(node.max);
+  return (
+    `{ name: ${lit(node.name)}, kind: ${lit(node.kind)}, position: ${String(node.position)}, ` +
+    `min: ${String(node.min)}, max: ${max}, parent: ${String(node.parent)} }`
+  );
+}
+
+/** Render the generated ordered-expectation module. Formatted with the repo's prettier. */
+export async function renderSchemasModule(
+  model: GeneratedRegistry,
+  repoRoot: string,
+): Promise<string> {
+  const schemas = model.schemas
+    .map(
+      (s) => `{
+    structureId: ${lit(s.structureId)},
+    nodes: [
+      ${s.nodes.map(renderNode).join(",\n      ")},
+    ],
+  }`,
+    )
+    .join(",\n  ");
+
+  const source = `${SCHEMAS_HEADER}
+
+import type { PublishedStructureSchema } from "../structure-types.js";
+
+/** Every published structure the snapshot carries, with its ordered elements. */
+export const GENERATED_STRUCTURE_SCHEMAS: readonly PublishedStructureSchema[] = [
+  ${schemas},
+];
+`;
+
+  const options = (await resolveConfig(path.join(repoRoot, SCHEMAS_MODULE_PATH))) ?? {};
+  return format(source, { ...options, parser: "typescript" });
+}
+
 /** Render the committed derivation report: coverage, families, unresolved pairs. */
 export function renderDerivationReport(model: GeneratedRegistry): string {
   return `${JSON.stringify(
@@ -770,6 +960,8 @@ export function renderDerivationReport(model: GeneratedRegistry): string {
 
 /** Repo-root-relative paths this generator owns. */
 export const REGISTRY_MODULE_PATH = "src/parser/generated/message-structures.ts";
+/** Repo-root-relative path of the committed ordered-expectation module. */
+export const SCHEMAS_MODULE_PATH = "src/parser/generated/message-structure-schemas.ts";
 /** Repo-root-relative path of the committed derivation report. */
 export const DERIVATION_REPORT_PATH = "src/parser/generated/derivation-report.json";
 /** Repo-root-relative path of the vendored publication snapshot. */
@@ -779,14 +971,18 @@ export const VENDOR_DIR = "vendor/hl7-v2ig";
 export async function main(repoRoot: string): Promise<void> {
   const model = deriveRegistry(path.join(repoRoot, VENDOR_DIR));
   const moduleSource = await renderRegistryModule(model, repoRoot);
+  const schemasSource = await renderSchemasModule(model, repoRoot);
   const report = renderDerivationReport(model);
   mkdirSync(path.dirname(path.join(repoRoot, REGISTRY_MODULE_PATH)), { recursive: true });
   writeFileSync(path.join(repoRoot, REGISTRY_MODULE_PATH), moduleSource);
+  writeFileSync(path.join(repoRoot, SCHEMAS_MODULE_PATH), schemasSource);
   writeFileSync(path.join(repoRoot, DERIVATION_REPORT_PATH), report);
+  const nodes = model.schemas.reduce((sum, s) => sum + s.nodes.length, 0);
   process.stdout.write(
     `generate:structures: ${String(model.entries.length)} registry entries from ` +
       `${String(model.files.length)} vendored files; ${String(model.pairs.length)} pairs resolved, ` +
-      `${String(model.unresolved.length)} unresolved.\n`,
+      `${String(model.unresolved.length)} unresolved; ${String(model.schemas.length)} ordered ` +
+      `expectations carrying ${String(nodes)} published elements.\n`,
   );
 }
 

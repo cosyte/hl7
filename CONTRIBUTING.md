@@ -21,10 +21,11 @@ Before filing, please:
 
 1. Fork and branch from `main`.
 2. Run the full pipeline locally before pushing. See [Dev setup](#dev-setup).
-3. If your change is user-visible, add a changeset (`pnpm changeset`,
-   pick **patch**). Its summary is what the release writes into
-   [CHANGELOG.md](./CHANGELOG.md), so write it for a reader of the
-   package. Do not hand-edit `CHANGELOG.md`.
+3. If your change is user-visible, add a changeset (`pnpm changeset`).
+   Pick **minor** when it adds behaviour a consumer can call and
+   **patch** when it corrects behaviour. Its summary is what the release
+   writes into [CHANGELOG.md](./CHANGELOG.md), so write it for a reader
+   of the package. Do not hand-edit `CHANGELOG.md`.
 4. Keep PRs focused: one logical change per PR. Large refactors
    should start as an issue for discussion.
 5. Write a descriptive commit message. Imperative mood

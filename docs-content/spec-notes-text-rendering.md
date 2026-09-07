@@ -2,6 +2,7 @@
 id: spec-notes-text-rendering
 title: "Spec notes: formatted-text rendering & the text codec"
 sidebar_label: Text rendering & codec
+description: "How the opt-in rendering layer turns preserved formatting escapes into readable narrative text, and how the encoder puts them back on the way out."
 ---
 
 # Spec notes: formatted-text rendering & the text codec

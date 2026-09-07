@@ -1,7 +1,8 @@
 ---
 id: troubleshooting
 title: Troubleshooting
-sidebar_position: 1
+sidebar_label: Troubleshooting
+description: "Common surprises when parsing vendor-quirky HL7 v2: warnings versus errors, strict mode, the fatal codes, garbled text, batches and known limitations."
 ---
 
 # Troubleshooting
@@ -27,7 +28,8 @@ msg.warnings.some((w) => w.code === "UNKNOWN_SEGMENT"); // => true
 ```
 
 The 20 warning codes are a **public, versioned contract**. They won't be renamed under you without a
-breaking change. See [Core Concepts](./spec-notes-primer) for what each one means.
+breaking change. See [Warning and fatal codes](./warning-and-fatal-codes.md) for what each one
+means.
 
 ## "I want failures, not warnings"
 

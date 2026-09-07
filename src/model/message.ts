@@ -10,6 +10,8 @@
 
 import { parsePath, resolvePath } from "./dot-path.js";
 import { Segment } from "./segment.js";
+import { matchesOverlayKey } from "./typed-overlays.js";
+import type { OverlayKey, TypedMessage } from "./typed-overlays.js";
 import type {
   CustomSegmentDefinition,
   EncodingCharacters,
@@ -89,6 +91,28 @@ function toMutableArray<T>(arr: readonly T[]): T[] {
 }
 
 /**
+ * Resolve one declaration map against a segment's WIRE name and return the
+ * field-name → position slice it declares, or `undefined` when it declares
+ * none.
+ *
+ * Canonical spelling first, then the wire spelling, and both matter. A profile
+ * built by `defineProfile` is keyed canonically, so a sender's `pid` finds its
+ * declared names only once the name is folded; a hand-rolled `Profile` literal
+ * gets no such validation and may be keyed in the sender's own lowercase. The
+ * order is exactly the one the parser's profile-claim check uses, so a segment
+ * cannot be claimed by the profile yet miss its own field map.
+ *
+ * @internal
+ */
+function segmentFieldMap(
+  map: Readonly<Record<string, CustomSegmentDefinition>> | undefined,
+  rawName: string,
+): Readonly<Record<string, number>> | undefined {
+  const entry = map?.[canonicalSegmentName(rawName)] ?? map?.[rawName];
+  return entry?.fields;
+}
+
+/**
  * Constructor init shape for `Hl7Message`. Exposed for advanced use (e.g.
  * constructing synthetic messages in tests or higher-level builders) but
  * most consumers should rely on `parseHL7` to produce `Hl7Message`
@@ -119,10 +143,20 @@ export interface Hl7MessageInit {
    */
   readonly customSegments?: Readonly<Record<string, CustomSegmentDefinition>>;
   /**
+   * Merged `segmentOverrides` map from the applied profile: field names the
+   * profile binds on STANDARD segment types. Threaded to the same
+   * `Segment.get(name)` resolution the custom-segment map feeds, consulted only
+   * where that map declares nothing for the segment, so no segment that
+   * resolved a name before resolves a different one now. Absent when no
+   * profile was applied, or when it declares no overrides.
+   */
+  readonly segmentOverrides?: Readonly<Record<string, CustomSegmentDefinition>>;
+  /**
    * Merged `dateFormats` list: `options.dateFormats ++ profile.dateFormats`
-   * deduped first-occurrence per D-21. Consumed by `msg.meta.timestamp` and
-   * any future helper that calls `parseDtmCascade` directly. Absent when
-   * neither `options.dateFormats` nor `profile.dateFormats` was supplied.
+   * deduped first-occurrence per D-21. Handed to every `Segment`, and through
+   * it to every `Field`, so a typed `TS` coercion honours it; also read
+   * directly by `msg.meta.timestamp`. Absent when neither
+   * `options.dateFormats` nor `profile.dateFormats` was supplied.
    */
   readonly dateFormats?: readonly string[];
 }
@@ -180,8 +214,10 @@ export class Hl7Message {
   /**
    * Merged `dateFormats` list: `options.dateFormats ++ profile.dateFormats`
    * deduped first-occurrence per D-21. Empty array when neither source
-   * supplied any formats. Exposed publicly so helpers (`msg.meta.timestamp`)
-   * and advanced callers can introspect the active cascade.
+   * supplied any formats. This is the list every datetime in the message
+   * honours, from `meta.timestamp` to any `field.asTs()`, in exactly this
+   * order; exposed so a caller can introspect what their options and profile
+   * added up to.
    */
   public readonly dateFormats: readonly string[];
 
@@ -192,6 +228,14 @@ export class Hl7Message {
    * @internal
    */
   private _customSegments: Readonly<Record<string, CustomSegmentDefinition>> | undefined;
+
+  /**
+   * Merged `segmentOverrides` map from the applied profile: the standard-segment
+   * half of the same name resolution. Undefined when no profile was applied or
+   * the profile declares no overrides.
+   * @internal
+   */
+  private _segmentOverrides: Readonly<Record<string, CustomSegmentDefinition>> | undefined;
 
   /**
    * Lazily built cache of Segment wrappers keyed by segment type. Built on
@@ -270,6 +314,11 @@ export class Hl7Message {
     // per-segment slices to Segment constructors. Conditional assignment
     // under exactOptionalPropertyTypes: absent key stays undefined.
     if (init.customSegments !== undefined) this._customSegments = init.customSegments;
+    // The standard-segment half of the same map. Stored separately, never
+    // folded into `_customSegments`: that map also answers "did the profile
+    // claim this segment?" for UNKNOWN_SEGMENT suppression, and a standard
+    // name inside it would change that answer.
+    if (init.segmentOverrides !== undefined) this._segmentOverrides = init.segmentOverrides;
     // D-21: merged dateFormats list (options ++ profile). Empty array when
     // neither source supplied any formats so the public field is always
     // defined (simpler consumer contract than `readonly string[] | undefined`).
@@ -380,27 +429,111 @@ export class Hl7Message {
       const raw = this.rawSegments[i];
       if (raw === undefined) continue;
       // D-16: hand each Segment its per-segment customFields slice so
-      // `seg.get(name)` can resolve named positions. Conditional-pass under
-      // exactOptionalPropertyTypes so the optional 4th ctor param stays
-      // truly absent (not explicitly undefined) when no profile applied.
-      // Canonical key first, then the wire spelling: profile customSegments
-      // keys are validated to /^Z[A-Z0-9]{2}$/ at defineProfile time, so a wire
-      // `zpi` only finds its declared field names once the name is folded, but
-      // a hand-rolled Profile literal gets no such validation and may be keyed
-      // in the sender's own lowercase. Both spellings are tried, in exactly the
-      // order the parser's profile-claim check uses, so a segment cannot be
-      // claimed by the profile yet miss its own field map.
-      const customSegment =
-        this._customSegments?.[canonicalSegmentName(raw.name)] ?? this._customSegments?.[raw.name];
-      const customFields = customSegment?.fields;
-      if (customFields !== undefined) {
-        built.push(new Segment(raw, this.encodingCharacters, i, customFields));
-      } else {
-        built.push(new Segment(raw, this.encodingCharacters, i));
-      }
+      // `seg.get(name)` can resolve named positions.
+      //
+      // The CUSTOM-SEGMENT map is consulted first and the standard-segment
+      // override map only where it declared nothing, which is what makes an
+      // override incapable of re-pointing an existing read: every segment that
+      // resolved a field map before resolves the same one, and a name reaches
+      // the override map only on a segment type the custom map never claimed.
+      // For a profile built by `defineProfile` the two key sets cannot even
+      // intersect (Z-only vs standard-only); the order is what holds the
+      // property for a hand-rolled `Profile` literal, which gets no validation.
+      const customFields =
+        segmentFieldMap(this._customSegments, raw.name) ??
+        segmentFieldMap(this._segmentOverrides, raw.name);
+      // D-21: every Segment also carries the merged dateFormats, so a typed
+      // `TS` coercion anywhere in the message honours what the caller declared.
+      // `customFields` rides along positionally and may be undefined: an
+      // optional PARAMETER accepts undefined (unlike an optional property
+      // under exactOptionalPropertyTypes), and `Segment` assigns it to a
+      // `... | undefined` field either way, so the conditional pass the 4th
+      // argument used to need collapses to one call.
+      built.push(new Segment(raw, this.encodingCharacters, i, customFields, this.dateFormats));
     }
     this._allSegments = built;
     return built;
+  }
+
+  /**
+   * The FIRST `Segment` named `segmentType` in document order, or `undefined`
+   * when the message carries none. Shorthand for `segments(segmentType)[0]`:
+   * same cache, same case-insensitive matching on both sides, same referential
+   * stability.
+   *
+   * On a message narrowed by {@link Hl7Message.is}, `segmentType` is scoped at
+   * compile time to the segment names that message type's published structure
+   * marks required. It stays `Segment | undefined` there: the parser tolerates a
+   * message that omits a required segment (and warns), so a required name is
+   * never a presence guarantee.
+   *
+   * @example
+   * ```ts
+   * const pid = msg.part("PID");
+   * console.log(pid?.field(5).value);
+   * ```
+   */
+  public part(segmentType: string): Segment | undefined {
+    return this.segments(segmentType)[0];
+  }
+
+  /**
+   * EVERY `Segment` named `segmentType` in document order, `[]` when there are
+   * none. Alias for `segments(segmentType)`: same cache, same array identity,
+   * same case-insensitive matching.
+   *
+   * On a message narrowed by {@link Hl7Message.is}, `segmentType` is scoped at
+   * compile time to the segment names that message type's published structure
+   * marks required; the returned list can still be empty, for the same reason
+   * {@link Hl7Message.part} can still return `undefined`.
+   *
+   * @example
+   * ```ts
+   * for (const obx of msg.parts("OBX")) console.log(obx.field(5).value);
+   * ```
+   */
+  public parts(segmentType: string): readonly Segment[] {
+    return this.segments(segmentType);
+  }
+
+  /**
+   * Is this message of the type `key` names, and if so, narrow it for the
+   * compiler. The check is on the (MSH-9.1, MSH-9.2) pair the parser already
+   * extracted, so a message whose MSH-9 carries the three-component form
+   * `ADT^A01^ADT_A01` answers `true` to `is("ADT^A01")`.
+   *
+   * A key is `"<MSH-9.1>^<MSH-9.2>"` (`"ADT^A01"`), or `"<MSH-9.1>"` alone for a
+   * message type the published structure registry matches on message code alone
+   * (`"ACK"`, whose MSH-9.2 carries the acknowledged message's trigger event).
+   * `SUPPORTED_OVERLAY_MESSAGES` enumerates every key.
+   *
+   * **Any other string is `false`, never a throw**: an unrecognized type, the
+   * three-component form as a string, an empty string, or a value computed at
+   * run time. `is` does not parse its own argument, and a caller who wants a raw
+   * comparison has `msg.meta.type`.
+   *
+   * Read-only: it inspects `meta` and mutates nothing.
+   *
+   * @example
+   * ```ts
+   * import { parseHL7 } from "@cosyte/hl7";
+   * const msg = parseHL7(raw);
+   * if (msg.is("ORU^R01")) {
+   *   const code: "ORU" = msg.meta.messageCode; // literal, no cast
+   *   console.log(msg.part("OBR")?.field(4).value);
+   * }
+   * console.log(msg.is("ZZZ^Z99")); // false: not a published key
+   * ```
+   */
+  public is<K extends OverlayKey>(key: K): this is TypedMessage<K>;
+  /**
+   * Answer for a key that is not known at compile time. A runtime-computed
+   * string cannot narrow anything, so this form returns a plain `boolean`.
+   */
+  public is(key: string): boolean;
+  /** Single runtime implementation behind both signatures. @internal */
+  public is(key: string): boolean {
+    return matchesOverlayKey(key, this.meta.messageCode, this.meta.triggerEvent);
   }
 
   /**

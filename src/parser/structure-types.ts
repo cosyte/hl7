@@ -79,6 +79,54 @@ export interface MessageStructureDefinition {
   readonly retainedReason: string;
 }
 
+/** Whether an ordered-expectation node is a segment or a group of nodes. */
+export type StructureNodeKind = "segment" | "group";
+
+/**
+ * One node of a published structure's ORDERED expectation: what the publication
+ * says about one element of one structure variant.
+ *
+ * {@link ExpectedSegmentGroup} answers "must this segment be present at all",
+ * which is the only question the parse-time safety net asks. This answers the
+ * three the safety net drops on the floor: where the element sits among its
+ * siblings, how many times it may occur, and which group encloses it.
+ */
+export interface StructureExpectationNode {
+  /** Segment name for a segment node, published group name for a group node. */
+  readonly name: string;
+  /** Whether this node is a segment or a group of further nodes. */
+  readonly kind: StructureNodeKind;
+  /** 1-based published position among this node's siblings. */
+  readonly position: number;
+  /** Published minimum occurrences at this locus. */
+  readonly min: number;
+  /**
+   * Published maximum occurrences at this locus. The publication's unbounded
+   * marker is carried through as `"*"` rather than as a large number, so a
+   * segment it lets repeat freely can never yield an upper-bound violation.
+   */
+  readonly max: number | "*";
+  /**
+   * Index of the enclosing group in the same node list, or `-1` when the node
+   * sits at the structure root. A parent always precedes its children.
+   */
+  readonly parent: number;
+}
+
+/**
+ * One published structure variant's ordered expectation, in publication order.
+ *
+ * A variant, not a family: the publication splits some structures into
+ * single-letter variants that differ in shape, and a message conforms to a
+ * family by conforming to one of its members.
+ */
+export interface PublishedStructureSchema {
+  /** The published structure id, e.g. `"ADT_A01-A"`. */
+  readonly structureId: string;
+  /** Every published element below the structure root, parents before children. */
+  readonly nodes: readonly StructureExpectationNode[];
+}
+
 /**
  * One vendored publication file the shipped registry was derived from.
  */

@@ -33,6 +33,17 @@ export function buildDescribe(p: Profile): string {
       `  customSegments: ${String(keys.length)}` + (keys.length > 0 ? ` (${keys.join(", ")})` : ""),
     );
   }
+  // Its own line, under its own label, rather than folded in with the
+  // custom segments above: these names sit on STANDARD clinical segments, and
+  // a reader skimming a description to see what a profile touches should not
+  // have to know which of a joint list was which.
+  if (p.segmentOverrides !== undefined) {
+    const keys = Object.keys(p.segmentOverrides);
+    lines.push(
+      `  segmentOverrides: ${String(keys.length)}` +
+        (keys.length > 0 ? ` (${keys.join(", ")})` : ""),
+    );
+  }
   if (p.dateFormats !== undefined && p.dateFormats.length > 0) {
     lines.push(`  dateFormats: ${String(p.dateFormats.length)}`);
   }

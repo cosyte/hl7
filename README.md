@@ -1,7 +1,7 @@
 <a href="https://cosyte.com">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://cosyte.com/tile/cosyte-lockup-tile-on-dark-1200x300.png">
-    <img alt="Cosyte: a plus mark set in two overlapping rounded squares, one solid and one outlined, beside the Cosyte wordmark" src="https://cosyte.com/tile/cosyte-lockup-tile-on-light-1200x300.png">
+    <img alt="The Cosyte logo on its own white ground: the icon beside the word Cosyte." src="https://cosyte.com/tile/cosyte-lockup-tile-on-light-1200x300.png">
   </picture>
 </a>
 
@@ -18,25 +18,113 @@ A developer-focused HL7 v2 parser and utility library for Node.js and TypeScript
 
 ---
 
-## Quickstart
+## Contents
 
-Three lines of useful output after install + parse. No HL7 spec knowledge required.
+- [Why this exists](#why-this-exists)
+- [Status](#status)
+- [Install](#install)
+- [Usage](#usage)
+- [PHI and safety](#phi-and-safety)
+- [Features](#features)
+- [HL7 in 90 seconds](#hl7-in-90-seconds)
+- [Access patterns](#access-patterns)
+- [Cookbook](#cookbook)
+- [Profiles](#profiles)
+- [Real-World Tolerance](#real-world-tolerance)
+- [Error Handling](#error-handling)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [Trademarks](#trademarks)
+- [License](#license)
+
+---
+
+## Why this exists
+
+HL7 v2 is the format hospital systems actually speak, and reading one field out of it usually costs you a detour through a 2,000-page specification to learn that the patient's medical record number is `PID-3.1` and the message time is `MSH-7`. This library is for the application developer who has to consume that traffic and would rather not become an HL7 expert first: `msg.patient?.mrn` and `msg.meta.timestamp` are the whole learning curve. The nearest alternative is splitting on `|` and `^` yourself, or reaching for a parser that hands back a positional tree and still expects you to know the segment and field numbers. Those give you structure; this gives you the fields, keeps the positional tree underneath for when you need it, and treats vendor-quirky real-world input as the normal case rather than an error.
+
+---
+
+## Status
+
+`0.1.0`. The public API is settled and safe to depend on: the exported functions, the message and helper surfaces, and the 20 stable warning codes are what the version claims, and renaming a warning code counts as a breaking change here.
+
+Nothing is queued as forthcoming: [Roadmap](#roadmap) below names no future work, only what is permanently out of scope. `parseStream` parses multi-GB batch files incrementally and yields the messages as an async iterable, and `emitMessageSchema` produces JSON Schema and Zod descriptions of what `toJSON()` returns. Both are exported, so both are covered by the stability claim above.
+
+The opt-in structural validator ships too: `validateMessageStructure(msg)` enforces segment ordering and cardinality against HL7's published message structures. See [Check a message against HL7's published shape](#check-a-message-against-hl7s-published-shape-validatemessagestructure).
+
+Typed message overlays ship and are covered by the stability claim: `msg.is("ADT^A01")` answers from the message type the parser extracted and narrows the message for the compiler, so the accessors after the check are scoped to the segments that message type's published structure requires. See [Narrow a message to its type](#narrow-a-message-to-its-type).
+
+---
+
+## Install
 
 ```bash
 # pnpm (recommended). Also works with: npm install @cosyte/hl7  |  yarn add @cosyte/hl7
 pnpm add @cosyte/hl7
 ```
 
+Requires Node `>=22`. The package ships dual ESM and CommonJS builds with type declarations for both, so `import` and `require` both work and neither needs a compatibility shim. There are zero runtime dependencies: the Node standard library is all it loads.
+
+---
+
+## Usage
+
+Parse a message, read fields off it. No HL7 spec knowledge required.
+
 ```ts
 import { parseHL7 } from "@cosyte/hl7";
 
-const msg = parseHL7(rawHL7);
-console.log(msg.patient?.fullName); // "John Q. Doe"
-console.log(msg.patient?.mrn); // "MRN12345"
-console.log(msg.meta.timestamp?.raw); // "20260419101500" (fidelity TS: precision + zone preserved)
+// An ADT^A01 admit. HL7 v2 separates segments with a carriage return.
+const raw = [
+  "MSH|^~\\&|EPIC|MAIN|LIS|REF|20260419101500||ADT^A01^ADT_A01|EX00001|P|2.5",
+  "EVN|A01|20260419101500",
+  "PID|1||MRN12345^^^HOSP^MR||Doe^John^Q||19800115|M",
+  "PV1|1|I|ICU^101^A^HOSP",
+].join("\r");
+
+const msg = parseHL7(raw);
+
+console.log("Patient record number:", msg.patient?.mrn);
+console.log("Full name:", msg.patient?.fullName);
+console.log("Date of birth:", msg.patient?.dateOfBirth?.raw);
+console.log("Precision:", msg.patient?.dateOfBirth?.precision);
+console.log("Message type:", msg.meta.type);
+console.log("Sent at:", msg.meta.timestamp?.raw);
+console.log("Ward:", msg.visit?.location?.pointOfCare);
 ```
 
-That's the whole pitch: no config, no schema upload, no spec lookup. The parser accepts vendor-quirky input by default, strips MLLP framing if it's there, normalises casing, and tolerates the dozen-or-so deviations real HL7 traffic routinely carries. You reach for strict mode, dot-paths, or profiles when you want them, not before.
+```text
+Patient record number: MRN12345
+Full name: John Q Doe
+Date of birth: 19800115
+Precision: day
+Message type: ADT^A01^ADT_A01
+Sent at: 20260419101500
+Ward: ICU
+```
+
+That block is [`examples/readme-usage.ts`](./examples/readme-usage.ts), which `pnpm examples` runs and which fails if the output above ever stops matching what the code prints.
+
+Note `precision`: a birth date is a day, not an instant, and every datetime is a fidelity `TS` that keeps the precision and timezone it arrived with rather than guessing a `Date`.
+
+That is the whole pitch: no config, no schema upload, no spec lookup. The parser accepts vendor-quirky input by default, strips MLLP framing if it's there, normalises casing, and tolerates the dozen-or-so deviations real HL7 traffic routinely carries. You reach for strict mode, dot-paths, or profiles when you want them, not before.
+
+---
+
+## PHI and safety
+
+HL7 v2 messages carry patient data, so what this library does with the bytes you hand it is part of its contract.
+
+**It does not log.** There is no logger, no debug channel and no `console` call anywhere in the library: diagnostics are returned to you, never printed. Tolerated deviations come back as `Hl7ParseWarning` values carrying a stable code, a bounded message and a position (`segmentIndex`, `fieldIndex`), never the field value that triggered them, so a warning is safe to log as-is.
+
+**One field is an exception, and it is deliberate.** `Hl7ParseError.snippet` carries up to 40 characters of your input verbatim and unredacted so a fatal parse failure is actionable. It is the only field that echoes input without filtering, the library does not redact it, and it is the first thing to strip if your compliance posture requires it. `Hl7ParseError.message` is bounded rather than absolutely content-free: it echoes a token only where the token matches a shape the spec defines (a three-character segment identifier, a message type, a version, a known charset label) and withholds anything else.
+
+**It retains nothing you do not hold.** Parsing returns an `Hl7Message` and the message content lives on that object and nowhere else. There is no cache, no pool and no module-level store of message data, so the content is released when you drop your reference to it. The one piece of process-wide state the library keeps is an optional registered default profile, which holds parsing configuration, not patient data.
+
+**It writes nothing and sends nothing.** No file is opened, no directory is written and no network connection is made: the library imports only `node:buffer` and `node:crypto` from the standard library and has zero runtime dependencies. `parseStream` reads a stream you supply and opens nothing itself. `toString()`, `toJSON()` and `prettyPrint()` hand the message content back to you by design; where it goes next is your call, and `prettyPrint()` in particular is a debug view of real patient data, not a redacted one.
+
+**What stays yours.** Transport security, storage, retention and audit, redaction before anything reaches a log or an error tracker, and access control are all the consuming application's. A parser cannot make a system HIPAA-compliant, and this one does not claim to.
 
 ---
 
@@ -44,6 +132,8 @@ That's the whole pitch: no config, no schema upload, no spec lookup. The parser 
 
 - **One-line extraction**: `msg.patient.mrn`, `msg.meta.timestamp`, `msg.observations()`, and friends. No segment or field numbers to memorise.
 - **Three access patterns**: named helpers, dot-paths (`msg.get("PID.5.1")`), or structural traversal (`msg.segments("OBX")[0].field(3)`). Pick the level of ceremony you need.
+- **Typed message overlays**: `msg.is("ADT^A01")` answers at run time and narrows at compile time, so the message code and trigger event become literal types and `part` / `parts` are scoped to the segments that message type's published structure requires. No cast, no per-message-type import.
+- **Opt-in published-structure validation**: `validateMessageStructure(msg)` checks segment order, occurrence counts and unnamed segments against HL7's own published message structures, derived offline from a vendored snapshot. Read-only, no new warning code, and nothing changes for a caller who does not ask.
 - **Real-world tolerance, four-tier**: lenient default parses vendor-quirky messages; 20 stable warning codes flag what was tolerated; strict mode escalates every deviation for CI validators; only 4 truly-structural failures are fatal.
 - **First-class profile system**: `defineProfile()` API, 8 built-in vendor profiles (Epic, Cerner, Meditech, athenahealth, generic lab, Visage 7 imaging/PACS, Philips Vue PACS, VA VistA Radiology/NucMed), plus a [publishable starter kit](./examples/profile-starter-kit/) you copy-and-ship.
 - **Round-trip safe, byte-verbatim escapes**: `parse -> modify -> toString()` emits spec-clean HL7 regardless of input quirks (Postel's Law: liberal parser, conservative emitter), and a parsed field's escape sequences (`\H\`, `\X41\`, charset/vendor escapes) re-emit **byte-for-byte**. See [Escapes & round-trip](./docs-content/spec-notes-escapes.md).
@@ -62,7 +152,7 @@ A typical ADT message looks like this:
 Message
  ├── MSH    (header: sender, receiver, type, timestamp)
  ├── EVN    (event details for ADT)
- ├── PID    (patient identification: name, MRN, DOB)
+ ├── PID    (patient identification: name, record number, DOB)
  ├── PV1    (visit: class, location, attending)
  └── OBX×N  (observations: repeats for labs, vitals)
 
@@ -143,7 +233,7 @@ Runnable recipes for the tasks developers hit most often. Every snippet imports 
 
 ### Patient demographics
 
-Reach for the `msg.patient` helper for the name/MRN/DOB trio that covers 95% of demographic extractions.
+Reach for the `msg.patient` helper for the name, record-number and date-of-birth trio that covers 95% of demographic extractions.
 
 ```ts
 import { parseHL7 } from "@cosyte/hl7";
@@ -302,7 +392,7 @@ for (const ev of msg.identityEvents()) {
 }
 ```
 
-A mis-applied merge conflates two patients or orphans data under a retired MRN, so the helper is deliberately conservative: an incomplete pair (no MRG, an orphaned MRG, or a PID with no surviving identifier) surfaces whatever _is_ present plus a `MERGE_MISSING_PRIOR_OR_SURVIVOR` warning on the event: the MRG is never dropped, and the direction is never guessed. The MRG field map is version-scoped: the backward-compat single-ID fields (PID-2 / MRG-4, withdrawn as of HL7 v2.7) are not read when MSH-12 declares v2.7+. Note that `@cosyte/hl7` _surfaces_ the merge. Actually re-pointing stored data to the survivor is your integration engine's job.
+A mis-applied merge conflates two patients or orphans data under a retired record number, so the helper is deliberately conservative: an incomplete pair (no MRG, an orphaned MRG, or a PID with no surviving identifier) surfaces whatever _is_ present plus a `MERGE_MISSING_PRIOR_OR_SURVIVOR` warning on the event: the MRG is never dropped, and the direction is never guessed. The MRG field map is version-scoped: the backward-compat single-ID fields (PID-2 / MRG-4, withdrawn as of HL7 v2.7) are not read when MSH-12 declares v2.7+. Note that `@cosyte/hl7` _surfaces_ the merge. Actually re-pointing stored data to the survivor is your integration engine's job.
 
 ### Write your first profile in 10 minutes
 
@@ -431,9 +521,10 @@ Use `parseDtm` / `formatDtm` / `dtmToDate` directly on a raw string when you're 
 
 #### Non-standard timestamp formats
 
-HL7's canonical `YYYYMMDDHHmmss` parses with zero warnings. Everything else (vendor-quirky
-`MM/DD/YYYY`, ISO `YYYY-MM-DD`, legacy `YYYYMMDD HHmm`) parses via the `dateFormats` option, which
-tries each format in order and populates the same fidelity `TS`.
+HL7's canonical `YYYYMMDDHHmmss` parses with zero warnings. For everything else (vendor-quirky
+`MM/DD/YYYY`, ISO `YYYY-MM-DD`, legacy `YYYYMMDD HHmm`), tell the parser what your sender writes
+using the `dateFormats` option. Each format is tried in order, the first match wins, and it
+populates the same fidelity `TS`.
 
 ```ts
 import { parseHL7 } from "@cosyte/hl7";
@@ -442,12 +533,72 @@ const msg = parseHL7(raw, {
   dateFormats: ["MM/DD/YYYY HH:mm:ss", "MM/DD/YYYY", "YYYY-MM-DD"],
 });
 
-console.log(msg.meta.timestamp?.matchedFormat); // e.g. "MM/DD/YYYY" (which fallback won)
+console.log(msg.meta.timestamp?.matchedFormat); // e.g. "MM/DD/YYYY": which declared format won
+console.log(msg.patient?.dateOfBirth?.matchedFormat); // the same list reaches PID-7
 ```
+
+**The formats you declare reach every datetime the library returns**, not just the message header
+timestamp: `patient.dateOfBirth`, `visit.admitDateTime` / `dischargeDateTime`, each
+`observations()` entry's `observedDateTime` and its `TS`/`DT` typed value, `allergies()`
+onset dates, `diagnoses()` date/times, `insurance()` effective and expiration dates,
+`immunizations()` administered and expiration dates, `charges()` transaction dates,
+`documents()` activity date/times, order and medication `timings` (a `TQ1` segment and the legacy
+embedded `TQ` alike), and `appointments()` start and end times.
+
+`matchedFormat` is how you tell which answer you got: it names the declared format that matched,
+and is absent when the value was canonical HL7 and parsed strictly. There is no parse warning for
+either case.
+
+**Only the formats you declare are tried on those fields.** A date the parser was not told about
+stays `valid: false` with its `raw` text intact, rather than being guessed at: guessing is how a
+day-first `05/07/1988` becomes a confident May 7 on a date of birth, and a plausible wrong date is
+worse than a missing one. `BUILTIN_DATE_FALLBACKS` (ISO-8601 and the US-order slash forms) is a
+last resort for `msg.meta.timestamp` alone and never runs on a typed datetime field.
 
 A format is written from a fixed token vocabulary (`SUPPORTED_DATE_TOKENS`) that covers month names (`05-JUL-1988`), a 12-hour clock with AM/PM (`7/5/1988 2:30 PM`), single-digit tolerance (`M`, `D`, `H`) and escaped literals (`YYYY-MM-DD[T]HH:mm:ss`). It carries no two-digit-year token, because resolving one needs a century window and a wrong window moves a date of birth by a hundred years without failing. `defineProfile()` refuses a format the vocabulary cannot honour, at definition time, rather than accepting it and never matching. The whole grammar, with every token, rule and exclusion, is the `Date token grammar` page in the documentation.
 
-When a fallback format wins, the parser emits a `TIMESTAMP_FALLBACK_FORMAT` warning with the matched format on `msg.warnings`. Built-in vendor profiles (`profiles.epic`, `profiles.genericLab`, etc.) already carry the date formats common to that vendor. Reach for a profile instead of hand-listing formats when one fits.
+Built-in vendor profiles (`profiles.epic`, `profiles.genericLab`, etc.) already carry the date formats common to that vendor, and an option format is tried ahead of a profile's. Reach for a profile instead of hand-listing formats when one fits.
+
+#### Day-first vs month-first: the parser refuses to guess
+
+`05/07/1988` is 5 July to a day-first sender and May 7 to a month-first one. Both are real calendar
+dates, and nothing in the message says which was meant. When no format has been declared, the
+parser resolves **neither**: `msg.meta.timestamp` comes back `valid: false` carrying an `ambiguity`
+report that names the raw value and both readings, so a wrong date never reaches your code silently.
+
+```ts
+import { parseHL7, AMBIGUOUS_DATE_ORDER } from "@cosyte/hl7";
+
+const ts = parseHL7(raw).meta.timestamp; // MSH-7 was "05/07/1988"
+
+if (ts?.ambiguity?.code === AMBIGUOUS_DATE_ORDER) {
+  console.log(ts.ambiguity.raw); // "05/07/1988"
+  console.log(ts.ambiguity.candidates[0]); // { format: "MM/DD/YYYY", month: 5, day: 7, isoDate: "1988-05-07" }
+  console.log(ts.ambiguity.candidates[1]); // { format: "DD/MM/YYYY", month: 7, day: 5, isoDate: "1988-07-05" }
+}
+```
+
+Declaring the sender's order is the fix, and it is one line. A declared format is tried ahead of the
+built-ins, so the value resolves and no ambiguity is reported:
+
+```ts
+const dayFirst = parseHL7(raw, { dateFormats: ["DD/MM/YYYY"] });
+console.log(dayFirst.meta.timestamp?.month); // 7: 5 July 1988
+
+const monthFirst = parseHL7(raw, { dateFormats: ["MM/DD/YYYY"] });
+console.log(monthFirst.meta.timestamp?.month); // 5: May 7 1988
+```
+
+Only genuinely two-way values are refused. `07/25/1988` has one reading (there is no month 25) and
+still resolves as July 25. `05/05/1988` has two readings that agree and still resolves. Strict HL7
+timestamps, ISO-8601 values and `YYYY-MM-DD` values are untouched. Ambiguity is also a different fact
+from malformed input: a value that is illegal under both readings reports no timestamp and no
+ambiguity.
+
+The report belongs to `msg.meta.timestamp`, because it is the built-in list that produces the second
+reading and that list runs there and nowhere else. On a typed datetime field, an undeclared
+`05/07/1988` is simply `valid: false` with its `raw` intact and no `ambiguity`: nothing tried to read
+it, so there was no guess to refuse. Declaring the order resolves it on every field at once.
 
 ### Stripping MLLP framing
 
@@ -536,6 +687,35 @@ if (msg.meta.messageCode === "ORU") {
 
 Matching on `messageCode` + `triggerEvent` is more robust than string-equals on `type`, because some senders populate MSH-9.3 (`type` includes it) and some don't.
 
+### Narrow a message to its type
+
+`msg.is("ADT^A01")` does the same comparison and tells the **compiler** the answer. Inside the guard the message code and trigger event are literal types rather than `string | undefined`, and `part` / `parts` accept only the segment names that message type's published structure marks required. No cast, and no type to import per message type.
+
+```ts
+import { parseHL7 } from "@cosyte/hl7";
+
+const msg = parseHL7(raw);
+
+if (msg.is("ADT^A01")) {
+  const code: "ADT" = msg.meta.messageCode; // literal, and no longer optional
+  const event: "A01" = msg.meta.triggerEvent;
+  console.log(code, event);
+
+  const pid = msg.part("PID"); // Segment | undefined: first PID, or none
+  const evn = msg.parts("EVN"); // readonly Segment[]: every EVN, possibly empty
+  console.log(pid?.field(3).value, evn.length);
+
+  // msg.part("OBX");                    // does not compile: ADT^A01 does not require OBX
+  console.log(msg.segments("OBX").length); // the base accessor still takes any name
+}
+```
+
+A key is `"<MSH-9.1>^<MSH-9.2>"` (`"ADT^A01"`), or `"<MSH-9.1>"` alone for a message type the published structure registry matches on message code alone (`"ACK"`, whose MSH-9.2 carries the acknowledged message's trigger event). `SUPPORTED_OVERLAY_MESSAGES` enumerates every key with the segments its structure requires, derived from that registry rather than written down.
+
+The check is on the (MSH-9.1, MSH-9.2) pair the parser extracted, so a message whose MSH-9 carries the three-component `ADT^A01^ADT_A01` still answers `true` to `is("ADT^A01")`. **Any string that is not a key returns `false` and never throws**: an unrecognized type, the three-component form as a string, an empty string, or a value computed at run time (which cannot narrow anything, so it returns a plain `boolean`). For a raw comparison, `msg.meta.type` is the string MSH-9 carried.
+
+Narrowing does not promise presence. The parser is lenient by design, and an `ADT^A01` that arrives without its `PID` still answers `true` here, still warns, and still reports the absence on `msg.structure`: `part` returns `undefined` and `parts` an empty list, exactly as `segments` does.
+
 ### Spot a truncated or misrouted message
 
 For the message types it covers, `msg.structure` reports whether the segments HL7's own published message-structure definitions give a **minimum of one** for that trigger event are actually present. It's a **misroute / truncation safety net**, not a conformance validator: an `ORU^R01` that arrives with no `OBR` is almost always truncated or sent to the wrong feed.
@@ -559,6 +739,30 @@ if (msg.warnings.some((w) => w.code === WARNING_CODES.MISSING_EXPECTED_GROUP)) {
 Expectations are **derived, not hand-picked**: the package vendors a byte-for-byte snapshot of the published structures and derives the registry from it offline, with no network call at build time or run time. `STRUCTURE_REGISTRY_PROVENANCE` carries the publication, its commit, the sha256 of every vendored file and the structure behind every recognized pair, so a warning can be audited without leaving the package.
 
 It stays conservative where the publication is: a segment inside an optional group is not expected (so a conformant `OBX`-free `ORU^R01` never warns), a segment is expected only when every published variant of the structure requires it, and a type it doesn't recognize yields `recognized: false` and emits nothing. It never throws and never rewrites the message. `strict` mode may promote the warning to an error per the usual model. Recognized message codes: ADT, ORU, ORM, OML, OMG, OMP, OMI, SIU, MDM, DFT, VXU and ACK, across 94 trigger-event pairs. See [`docs-content/spec-notes-structure.md`](docs-content/spec-notes-structure.md) for the full table, the derivation rules, and what changed for consumers.
+
+### Check a message against HL7's published shape (`validateMessageStructure`)
+
+`msg.structure` asks only whether a required segment is **present**. When the question is "does this feed follow the shape the standard publishes for this trigger event?", ask for `validateMessageStructure(msg)`: an **opt-in, read-only** check over the same vendored publication, at segment granularity. Nothing calls it for you and it changes nothing: no new warning code, no change to a parse, and the message is byte-identical afterwards.
+
+```ts
+import { parseHL7, validateMessageStructure } from "@cosyte/hl7";
+
+const result = validateMessageStructure(parseHL7(raw)); // ADT^A01 with PV1 before PID
+
+console.log(result.validated); // true
+console.log(result.structureId); // "ADT_A01-A": the variant the findings are against
+console.log(result.structureIds); // the whole variant family that was considered
+for (const f of result.findings) console.log(f.severity, f.code, f.locus.segment, f.message);
+// e.g. 'error STRUCTURE_SEGMENT_OUT_OF_ORDER PID  Segment "PID" (occurrence 0) appears where published structure ADT_A01-A does not allow it.'
+```
+
+It reports three things: `STRUCTURE_SEGMENT_OUT_OF_ORDER` (the sequence stops being a beginning the published order allows), `STRUCTURE_SEGMENT_CARDINALITY` (fewer occurrences than the published minimum along the path from the structure root, or more than the published maximum), and `STRUCTURE_SEGMENT_UNEXPECTED` (a segment the publication does not name, a `Z` segment included, at `warning` severity). Every finding carries a **PHI-free locus**: a segment name, a 0-indexed occurrence and a published structure id, never a field value.
+
+The order check reads the publication's bounds as written, at every locus: a group it lets repeat may repeat, which is what lets a conformant `ORU^R01` carry `OBR OBX OBR OBX`, a group bounded at one occurrence may not be re-entered, so a `VXU^V04` whose `PV2` arrives before its `PV1` is reported, and no occurrence of a group may begin without the child the publication requires first, so an `ADT^A01` whose `IN2` arrives before its `IN1` is reported as well. The three questions are still kept apart so one defect is reported once: the one bound dropped for a segment name is the one the cardinality check has already reported for it, so a missing or over-repeated segment does not also read as everything after it being out of place. Where two segments arrive in an order the publication does not allow, the finding names **the one that arrived late**: the segment the publication puts first and the message delivered second, which is not always where the reading stopped, because the publication is often free to skip past a segment the message delayed. The pair is found by exchanging adjacent segments and asking whether the publication derives the result, and every adjacent pair is asked rather than a shortlist near the stop: in a message that repeats a group the pair can sit well in front of it, as in an `OML^O21` carrying three orders whose first order's note is delivered after the second order's `ORC`. Where more than one pair would do, the earliest is named.
+
+**Read `validated` before `findings`.** A message type the registry does not model, the one retained transcription (`ORM^O01`), a structure with no ordered expectation and a message with no readable type each come back `validated: false` with a `reason` and no findings: "the publication cannot answer" is a different answer from "nothing was wrong". Where the publication splits a structure into variants, conforming to **one** variant conforms to the family, so findings appear only when every variant is violated and they are exactly one named variant's.
+
+> **Zero findings is not an attestation.** It means this message did not break the published structure in the three ways above. Field content, datatypes, value sets and HL7 tables are unchecked, coverage is twelve message codes, and the publication is vendored at a fixed commit. See [`docs-content/spec-notes-structure.md`](docs-content/spec-notes-structure.md).
 
 ### Validate against your own conformance profile (`validateAgainstProfile`)
 
@@ -634,7 +838,7 @@ Profiles are the growth loop. Built-ins cover the common vendor patterns; real i
 
 ### Authoring a profile
 
-`defineProfile({ name, customSegments, dateFormats, onWarning, description })` returns a frozen `Profile` object. `customSegments` is a record mapping segment name -> `{ fields: { aliasName: 1-indexedPosition } }`.
+`defineProfile({ name, customSegments, segmentOverrides, dateFormats, onWarning, description })` returns a frozen `Profile` object. `customSegments` is a record mapping Z-segment name -> `{ fields: { aliasName: 1-indexedPosition } }`; `segmentOverrides` is the same shape for STANDARD segment names (see [Naming fields on standard segments](#naming-fields-on-standard-segments)).
 
 ```ts
 import { defineProfile, type CustomSegmentDefinition } from "@cosyte/hl7";
@@ -652,6 +856,71 @@ const myhospital = defineProfile({
 ```
 
 Invalid input (missing name, malformed Z-segment name, unsupported date tokens, unknown option keys) throws `ProfileDefinitionError` with an actionable message. See [Error Handling](#error-handling).
+
+### Naming fields on standard segments
+
+`customSegments` names fields on your Z-segments. `segmentOverrides` does the same job for the STANDARD segments, for the case every real integration eventually hits: a site that stuffs its own value into a standard field. A second MRN in PID-19, a local severity code in AL1-4, a site dose qualifier in RXA-6. Give it a name once in the profile and read it by that name everywhere, instead of scattering a hand-typed position through your code.
+
+```ts
+import { defineProfile, parseHL7 } from "@cosyte/hl7";
+
+const site = defineProfile({
+  name: "myhospital-adt",
+  segmentOverrides: {
+    PID: { fields: { siteMrn: 19 } },
+    AL1: { fields: { localSeverityCode: 4 } },
+    RXA: { fields: { doseQualifier: 6 } },
+  },
+});
+
+const msg = parseHL7(raw, site);
+msg.part("PID")?.get("siteMrn")?.value; // the value at PID-19
+msg.part("AL1")?.get("localSeverityCode")?.value; // the value at AL1-4
+```
+
+**Positions are 1-indexed HL7 positions**, identical in meaning to the argument of `seg.field(n)`, including the MSH numbering convention: a binding at `1` is MSH-1 (the field separator) and a binding at `3` is MSH-3 (the sending application). `get(name)` and `field(position)` always agree.
+
+**A name that is not declared, and a declared position the message did not carry, both read `undefined`**, never an empty string. A typo surfaces instead of quietly reading blank. The HL7 explicit null (`""`) is a value the sender chose to send, so it still comes back as a `Field`.
+
+**Inheritance follows the same rule as `customSegments`.** Layer profiles with `extends` and, per segment type, the child's binding wins at any POSITION both declare while the parent's bindings at other positions survive:
+
+```ts
+const parent = defineProfile({
+  name: "parent",
+  segmentOverrides: { PID: { fields: { parentAlias: 19, countyCode: 12 } } },
+});
+
+const child = defineProfile({
+  name: "child",
+  extends: parent,
+  segmentOverrides: { PID: { fields: { childAlias: 19 } } },
+});
+
+// child.segmentOverrides.PID.fields === { childAlias: 19, countyCode: 12 }
+```
+
+**What `defineProfile()` refuses, at definition time**, throwing `ProfileDefinitionError` and returning no profile:
+
+| Declaration                                                         | Why it is refused                                                                                                                                                        |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| a Z-segment key (`ZPI`)                                             | that is a custom segment: the error points you at the `customSegments` option                                                                                            |
+| a name that is not a standard HL7 v2 segment (`QQQ`, `pid`, `PIDX`) | keys are matched against `KNOWN_SEGMENTS` in their canonical uppercase spelling, so a key that would never resolve is rejected rather than silently defining a dead name |
+| a position that is not a positive integer (`0`, `-1`, `2.5`, `"3"`) | the error names the profile, the segment and the field                                                                                                                   |
+| a misspelled option key (`segmentOverride`)                         | reported with `segmentOverrides` as the suggestion                                                                                                                       |
+
+An empty map (`segmentOverrides: {}`), or a declared segment with an empty field map, is accepted and behaves exactly like declaring nothing.
+
+#### Limitations
+
+**Overrides add named reads. They change nothing that already reads.** This is the whole design, and it is deliberate: HL7 v2 traffic is PHI, and an alias that re-pointed an existing accessor would hand a downstream consumer a different clinical value with no warning and nothing to notice. Specifically, a `segmentOverrides` declaration does NOT:
+
+- **re-point the typed clinical accessors.** `msg.patient`, `msg.visit`, `msg.allergies()`, `msg.medications()`, `msg.observations()` and every other typed helper keep reading the positions the HL7 standard assigns. Declaring `siteMrn: 19` does not make `msg.patient?.mrn` read PID-19; it still reads PID-3.
+- **add a dot-path.** Dot-paths stay positional: `msg.get("PID.19")` works, `msg.get("PID.siteMrn")` is a syntax error. The named accessor is the one route to a declared name.
+- **change serialization.** `toString()` is byte-for-byte what it was, `toJSON()` is unchanged, and the message still round-trips verbatim.
+- **change the warning list.** An undeclared Z-segment still emits `UNKNOWN_SEGMENT`, and naming a standard segment in the override map does not suppress or add any warning.
+- **touch the write path.** `setField`, `setComposite`, `buildMessage` and the typed builders take positions, not names.
+
+Parse one message with the overrides and again without them and every one of those observables is equal. Only the new names differ.
 
 ### Extending profiles
 
@@ -683,6 +952,7 @@ When `extends` resolves parents, fields are merged per-key with the following ru
 - **Scalars** (`description`): later layers overwrite earlier ones.
 - **Arrays** (`dateFormats`, `lineage`): concatenate + dedupe, preserving first-seen order.
 - **`customSegments` map**: deep-merge per key; same-segment-name in two parents reconciles positional fields.
+- **`segmentOverrides` map**: the same reducer, on the standard-segment declarations. See [Naming fields on standard segments](#naming-fields-on-standard-segments).
 - **`onWarning` handlers**: compose into a chain, invoked in lineage order (parents before children). Errors thrown by one handler do not stop subsequent handlers.
 - **`name`**: never inherited, always the profile's own.
 
@@ -721,7 +991,7 @@ Eight profiles ship in the box, reachable via the `profiles` namespace:
 - `profiles.athena`: athenahealth. Ambulatory-oriented, ISO-leaning date formats.
 - `profiles.genericLab`: Generic reference-lab (LabCorp / Quest-style). Adds `YYYYMMDD HHmm` (ASTM-era) and `YYYY-MM-DD` (ISO date-only); declares `ZLB` (lab overrides) and `ZNT` (lab note) Z-segments.
 - `profiles.visage`: Visage 7 imaging/PACS RIS feeds. Declares the `ZDS` Z-segment that carries the DICOM **Study Instance UID** (field 1) so an HL7 order correlates to its DICOM study, the IHE Radiology RIS/PACS bridge segment. Grounded in the public [Visage 7 HL7 Interface Specification](https://www.visageimaging.com/downloads/Visage7/Visage7_HL7InterfaceSpecification.pdf) (V23.00, Jun 2026). Dates are HL7-native, so it adds no date formats.
-- `profiles.philips`: Philips Vue PACS ("IS Link") imaging feeds. Declares six Vue PACS Z-segments, one per filler role: `ZDS` (DICOM Study Instance UID), `ZLK` (linked studies/orders), `ZAO` (order additional details: modality, body part, transfer/acquisition status, technician + radiologist), `ZEB` (encrypted patient info), `ZAP` (patient additional details), and `ZAV` (visit additional details). Grounded in the public [Vue PACS 12.2.8 HL7 Interface Specifications](https://www.documents.philips.com/assets/Conformance%20Statements/20240409/8941f89d89aa4983aab7b14d00db578c.pdf) (Philips, doc HA1669 Rev A, §§5.11–5.16). Dates are HL7-native, so it adds no date formats.
+- `profiles.philips`: Philips Vue PACS ("IS Link") imaging feeds. Declares six Vue PACS Z-segments, one per filler role: `ZDS` (DICOM Study Instance UID), `ZLK` (linked studies/orders), `ZAO` (order additional details: modality, body part, transfer/acquisition status, technician + radiologist), `ZEB` (encrypted patient info), `ZAP` (patient additional details), and `ZAV` (visit additional details). Grounded in the public [Vue PACS 12.2.8 HL7 Interface Specifications](https://www.documents.philips.com/assets/Conformance%20Statements/20240409/8941f89d89aa4983aab7b14d00db578c.pdf) (Philips, doc HA1669 Rev A, §§5.11-5.16). Dates are HL7-native, so it adds no date formats.
 - `profiles.va`: U.S. Department of Veterans Affairs VistA Radiology/Nuclear Medicine feeds (HL7 v2.4). Declares the `ZDS` Z-segment that carries the DICOM **Study Instance UID** (field 1): the same IHE Radiology RIS↔PACS bridge as `visage`/`philips`, grounded here in a distinct **federal** spec and documented on **both ORM and ORU** (result) messages. Grounded in the public [Radiology/Nuclear Medicine 5.0 HL7 Interface Specification](https://www.va.gov/vdl/documents/clinical/radiology_nuclear_med/ra5_0hl7is.pdf) (Version 3.6, Patch RA\*5.0\*203, June 2024). Dates are HL7-native, so it adds no date formats.
 
 Use a built-in directly (`parseHL7(raw, profiles.epic)`) or as a base for your own (`defineProfile({ extends: profiles.epic, ... })`).
@@ -852,13 +1122,9 @@ All three error types (and the `FATAL_CODES` / `WARNING_CODES` registries, and t
 
 ## Roadmap
 
-Not in v1, but on the roadmap for v2:
+Nothing is queued for a future release. Three capabilities a reader might expect to find named here are available today. Batch files too large to buffer are parsed incrementally by [`parseStream`](#streaming-large-files-parsestream), which yields the messages as an async iterable. JSON Schema and Zod descriptions of what `toJSON()` returns come from `emitMessageSchema`; Zod arrives as TypeScript source text to paste into your own project, so this package still has zero runtime dependencies (see the [schema emission notes](./docs-content/schema-emission.md)). A profile's declared field names are carried into the type system, so `seg.get("departmentCode")` on a declared segment is checked against that profile's names instead of widening to `string | undefined`. All three are exported, and all three are covered by the stability claim in [Status](#status).
 
-- **Typed message overlays** (`msg.is("ADT^A01")` narrows to `AdtA01Message`): message-type-aware getter narrowing.
-- **Schema-aware structure validation**: opt-in structural validator that enforces segment ordering + cardinality against the HL7 spec.
-- **Streaming parser for large batch files**: `createHL7Stream()` returning an iterable of messages, for multi-GB batch processing.
-- **JSON Schema / Zod emission for `toJSON()` output**: autogenerated schemas from the internal typed model.
-- **Type-safe custom-segment field names via conditional types**: `seg.get("departmentCode")` narrows to the profile's declared field alias, not `string | undefined`.
+What lands next starts as a quirk sighting or a real-world edge case on the [issue tracker](https://github.com/cosyte/hl7/issues).
 
 ### Out of scope (permanently)
 
@@ -873,6 +1139,8 @@ Not in v1, but on the roadmap for v2:
 
 Vendor-quirk fixtures, profile improvements, and standalone profile packages are all welcome. The more real-world edge cases the test suite covers, the more robust the parser gets. Every published profile package is a signal of adoption and a contribution back.
 
+Ask on the issue tracker, [github.com/cosyte/hl7/issues](https://github.com/cosyte/hl7/issues): questions, bug reports and quirk sightings all start there, and so does any refactor large enough to want discussion before a PR.
+
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for dev setup, how to file an issue, and how to submit a PR.
 
 ---
@@ -884,7 +1152,7 @@ sponsored by any of them: the names identify the systems whose real-world messag
 
 ## License
 
-MIT: see [LICENSE](./LICENSE).
+MIT, copyright Cosyte. See [LICENSE](./LICENSE).
 
 ---
 

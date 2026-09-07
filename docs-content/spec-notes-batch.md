@@ -2,6 +2,7 @@
 id: spec-notes-batch
 title: "Spec notes: batch / file envelope splitting"
 sidebar_label: Batch & file envelopes
+description: "How splitBatch demarcates the MSH-led messages inside an HL7 v2 batch or file envelope, parses each independently and reconciles the declared counts."
 ---
 
 # Spec notes: batch / file envelope splitting

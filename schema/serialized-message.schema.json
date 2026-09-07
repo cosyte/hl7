@@ -1,0 +1,213 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "encodingCharacters": {
+      "$ref": "#/$defs/SerializedEncodingCharacters"
+    },
+    "segments": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/SerializedSegment"
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/SerializedWarning"
+      }
+    },
+    "profile": {
+      "$ref": "#/$defs/SerializedProfile"
+    }
+  },
+  "required": [
+    "encodingCharacters",
+    "segments",
+    "warnings"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "SerializedEncodingCharacters": {
+      "type": "object",
+      "properties": {
+        "field": {
+          "type": "string"
+        },
+        "component": {
+          "type": "string"
+        },
+        "repetition": {
+          "type": "string"
+        },
+        "escape": {
+          "type": "string"
+        },
+        "subcomponent": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "field",
+        "component",
+        "repetition",
+        "escape",
+        "subcomponent"
+      ],
+      "additionalProperties": false
+    },
+    "SerializedComponent": {
+      "type": "object",
+      "properties": {
+        "subcomponents": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "subcomponents"
+      ],
+      "additionalProperties": false
+    },
+    "SerializedRepetition": {
+      "type": "object",
+      "properties": {
+        "components": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SerializedComponent"
+          }
+        }
+      },
+      "required": [
+        "components"
+      ],
+      "additionalProperties": false
+    },
+    "SerializedField": {
+      "type": "object",
+      "properties": {
+        "repetitions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SerializedRepetition"
+          }
+        },
+        "isNull": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "repetitions",
+        "isNull"
+      ],
+      "additionalProperties": false
+    },
+    "SerializedSegment": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SerializedField"
+          }
+        }
+      },
+      "required": [
+        "name",
+        "fields"
+      ],
+      "additionalProperties": false
+    },
+    "SerializedPosition": {
+      "type": "object",
+      "properties": {
+        "segmentIndex": {
+          "type": "integer"
+        },
+        "fieldIndex": {
+          "type": "integer"
+        },
+        "repetitionIndex": {
+          "type": "integer"
+        },
+        "componentIndex": {
+          "type": "integer"
+        },
+        "subcomponentIndex": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "segmentIndex"
+      ],
+      "additionalProperties": false
+    },
+    "SerializedWarning": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "enum": [
+            "ACK_NO_CORRELATION_ID",
+            "BATCH_COUNT_MISMATCH",
+            "BATCH_MISSING_TRAILER",
+            "DUPLICATE_REQUIRED_SEGMENT",
+            "ENCODING_MISMATCH",
+            "EXTRA_FIELDS",
+            "FIELD_WHITESPACE_TRIMMED",
+            "MERGE_MISSING_PRIOR_OR_SURVIVOR",
+            "MISSING_EXPECTED_GROUP",
+            "MISSING_REQUIRED_FIELD",
+            "MLLP_FRAMING_STRIPPED",
+            "OUT_OF_ORDER_SEGMENT",
+            "SEGMENT_CASE",
+            "TIMESTAMP_FALLBACK_FORMAT",
+            "UNKNOWN_CHARSET",
+            "UNKNOWN_ESCAPE_SEQUENCE",
+            "UNKNOWN_SEGMENT",
+            "UNSUPPORTED_CHARSET",
+            "UNTERMINATED_STREAM_MESSAGE",
+            "VERSION_MISMATCH"
+          ]
+        },
+        "message": {
+          "type": "string"
+        },
+        "position": {
+          "$ref": "#/$defs/SerializedPosition"
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "position"
+      ],
+      "additionalProperties": false
+    },
+    "SerializedProfile": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "lineage": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "name",
+        "lineage"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

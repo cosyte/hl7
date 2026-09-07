@@ -12,5 +12,7 @@ Add a changeset for every meaningful change:
 pnpm changeset
 ```
 
-During pre-alpha, pick **patch**: that keeps the package on the `0.0.x` ladder until its first
-alpha. See the cosyte version ladder in the meta-repo's `documentation/conventions.md`.
+Pick the bump type the change earns: **minor** when it ADDS behaviour a consumer can call, **patch**
+when it CORRECTS behaviour. Do not pick **major** without a deliberate decision to declare this API
+stable, because below `1.0.0` that is what it resolves to. `pnpm tsx scripts/release-readiness.ts`
+reports what the pending queue resolves to.

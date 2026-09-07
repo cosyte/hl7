@@ -34,7 +34,7 @@ import type { Field } from "../model/field.js";
 import type { Hl7Message } from "../model/message.js";
 import type { Segment } from "../model/segment.js";
 import type { RawComponent } from "../parser/types.js";
-import { parseDtm } from "../parser/dates.js";
+import { parseDtmDeclared } from "../parser/dates.js";
 import { readSubcomponent } from "../model/types/_shared.js";
 import type { CWE } from "../model/types/cwe.js";
 import type { XCN } from "../model/types/xcn.js";
@@ -115,11 +115,14 @@ function finalizeAppointment(sch: Segment, resources: readonly AppointmentResour
   if (filler !== undefined) out.fillerAppointmentId = filler;
 
   // SCH-11 appointment timing quantity (TQ): TQ.4 start / TQ.5 end (DTM).
+  // Read out of a subcomponent rather than through `field.asTs()`, so the
+  // message's declared `dateFormats` are passed explicitly: an appointment
+  // time must honour the caller's vendor formats like every other datetime.
   const timing = sch.field(11);
   const startRaw = fieldSub(timing, 3, 0);
-  if (startRaw !== undefined) out.startDateTime = parseDtm(startRaw);
+  if (startRaw !== undefined) out.startDateTime = parseDtmDeclared(startRaw, timing.dateFormats);
   const endRaw = fieldSub(timing, 4, 0);
-  if (endRaw !== undefined) out.endDateTime = parseDtm(endRaw);
+  if (endRaw !== undefined) out.endDateTime = parseDtmDeclared(endRaw, timing.dateFormats);
 
   // SCH-25 filler status code (Table 0278): verbatim/provenance-only.
   const status = cweOrUndefined(sch.field(25));

@@ -28,7 +28,7 @@
  *   end (TS), TQ.6 priority (ID), TQ.12 total occurrences (NM).
  */
 
-import { parseDtm } from "../parser/dates.js";
+import { parseDtmDeclared } from "../parser/dates.js";
 import type { EncodingCharacters, RawComponent, RawRepetition } from "../parser/types.js";
 import type { Field } from "../model/field.js";
 import type { Segment } from "../model/segment.js";
@@ -246,11 +246,14 @@ export function buildLegacyTiming(field: Field): OrderTiming | undefined {
   const duration = fieldSub(field, 2, 0);
   if (duration !== undefined) out.serviceDuration = duration;
 
-  // TQ.4 / TQ.5 Start / End (TS): Phase N fidelity parse of the embedded value.
+  // TQ.4 / TQ.5 Start / End (TS): fidelity parse of the embedded value. Read
+  // out of a subcomponent rather than through `field.asTs()`, so the message's
+  // declared `dateFormats` are passed explicitly: a legacy timing must honour
+  // the caller's vendor formats exactly as a TQ1-7 does.
   const startRaw = fieldSub(field, 3, 0);
-  if (startRaw !== undefined) out.startDateTime = parseDtm(startRaw);
+  if (startRaw !== undefined) out.startDateTime = parseDtmDeclared(startRaw, field.dateFormats);
   const endRaw = fieldSub(field, 4, 0);
-  if (endRaw !== undefined) out.endDateTime = parseDtm(endRaw);
+  if (endRaw !== undefined) out.endDateTime = parseDtmDeclared(endRaw, field.dateFormats);
 
   // TQ.6 Priority (ID): surfaced as a CWE { identifier } for shape parity with TQ1-9.
   const priorityId = fieldSub(field, 5, 0);

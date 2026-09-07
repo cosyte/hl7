@@ -1,5 +1,5 @@
 ---
-"@cosyte/hl7": patch
+"@cosyte/hl7": minor
 ---
 
 Conformance profiles: a profile can now declare which conformance LEVEL it claims, every result echoes the level in force, and a claim of the implementable level is checked rather than believed.

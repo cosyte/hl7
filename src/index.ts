@@ -62,8 +62,20 @@ export type {
   RawRepetition,
   RawComponent,
 } from "./parser/types.js";
-export { BUILTIN_DATE_FALLBACKS, parseDtm, formatDtm, dtmToDate } from "./parser/dates.js";
-export type { DtmParts, DtmPrecision, DtmToDateOptions } from "./parser/dates.js";
+export {
+  AMBIGUOUS_DATE_ORDER,
+  BUILTIN_DATE_FALLBACKS,
+  parseDtm,
+  formatDtm,
+  dtmToDate,
+} from "./parser/dates.js";
+export type {
+  DtmAmbiguity,
+  DtmAmbiguityCandidate,
+  DtmParts,
+  DtmPrecision,
+  DtmToDateOptions,
+} from "./parser/dates.js";
 export { unescape, reescape } from "./parser/escapes.js";
 
 // Phase R: formatted-text rendering + first-class text codec. `renderText`
@@ -180,6 +192,29 @@ export { buildMessage } from "./builder/build-message.js";
 export type { BuildMessageInit } from "./builder/build-message.js";
 export type { SerializedMessage } from "./serialize/to-json.js";
 
+// Schema emission for the serialized projection. The library authors the
+// description of the object `toJSON()` returns, so a consumer validating a
+// snapshot does not have to transcribe a shape they do not own and keep the
+// transcription in step by hand. `messageJsonSchema` returns a JSON Schema
+// document at the 2020-12 dialect; `messageZodSource` returns Zod schemas as
+// TypeScript SOURCE TEXT to paste into a consumer's own codebase, never an
+// imported `zod` value: this package still ships zero runtime dependencies.
+// `emitMessageSchema` is the named-target route over both, and refuses a target
+// it does not support rather than returning a partial artifact.
+//
+// This is DESCRIPTION, not validation: nothing here evaluates a schema against
+// a value, inspects a message, or produces a finding.
+export {
+  SCHEMA_EMIT_TARGETS,
+  SchemaTargetError,
+  emitMessageSchema,
+  isSchemaEmitTarget,
+} from "./serialize/schema/emit.js";
+export type { SchemaEmitTarget } from "./serialize/schema/emit.js";
+export { JSON_SCHEMA_DIALECT, messageJsonSchema } from "./serialize/schema/json-schema.js";
+export type { JsonSchemaDocument, JsonSchemaNode } from "./serialize/schema/json-schema.js";
+export { messageZodSource } from "./serialize/schema/zod.js";
+
 // Phase T: typed emit symmetry: the conservative-emit mirror of the read
 // helpers. `encodeComposite` (and the per-type `encodeXpn`/`encodeCx`/… it
 // dispatches to) turn a typed composite into a spec-clean field using the
@@ -281,6 +316,13 @@ export { ackNoCorrelationId } from "./parser/warnings.js";
 export { defineProfile, setDefaultProfile, getDefaultProfile, profiles } from "./profiles/index.js";
 export type { DefineProfileOptions, CustomSegmentDefinition } from "./profiles/index.js";
 
+// Typed custom-segment field names: a profile's `customSegments` declaration
+// carried into the type system, so `seg.get(name)` on a declared segment type
+// is checked against the names declared FOR THAT TYPE. Types only, no runtime
+// component: the fallback is `string` everywhere a declaration is not
+// statically known, so no existing caller gains a type error.
+export type { DefinedProfile, ProfileFieldName, ProfiledMessage } from "./profiles/index.js";
+
 // Plan 01 additive: SUPPORTED_DATE_TOKENS re-export so profile authors can
 // introspect valid date-format tokens without reaching into internals.
 export { SUPPORTED_DATE_TOKENS } from "./parser/dates.js";
@@ -304,6 +346,23 @@ export type {
   CodingSystemInfo,
   CodedSystemFields,
 } from "./model/coding-system.js";
+
+// Typed message overlays: `msg.is("ADT^A01")` answers from the pair the parser
+// extracted and narrows the message for the compiler, so a message-type check
+// scopes what follows it. The published key set is derived from the structure
+// registry at module load, and the narrowed accessors are scoped to the segment
+// names that pair's published structure marks required.
+export { SUPPORTED_OVERLAY_MESSAGES } from "./model/typed-overlays.js";
+export type {
+  OverlayKey,
+  OverlayMessageCode,
+  OverlayRequiredSegment,
+  OverlayStructures,
+  OverlayTriggerEvent,
+  SupportedOverlayMessage,
+  TypedMessage,
+  TypedMeta,
+} from "./model/typed-overlays.js";
 
 // Phase G: message-type & structure awareness: a conservative misroute/
 // truncation safety net. `Hl7Message.structure` surfaces the read-side
@@ -329,6 +388,31 @@ export type {
   StructureSourcePair,
   MessageStructure,
 } from "./parser/message-structure.js";
+
+// The OPT-IN published-structure validator, a third structural surface beside
+// the two above it. `msg.structure` asks only whether a required segment is
+// present and runs on every parse; `validateAgainstProfile` runs a profile the
+// CALLER authored. `validateMessageStructure` runs HL7's OWN published
+// structure at segment granularity: order, occurrence counts, and segments the
+// publication does not name, off the same vendored snapshot the registry is
+// derived from. Nobody authors it and nobody tunes it. It is asked for
+// explicitly and it changes nothing: no new warning code, no change to a parse,
+// and the message is untouched. Where the publication splits a structure into
+// variants, findings come back only when EVERY variant is violated, and they
+// are one named variant's. `validated: false` means the publication cannot
+// answer (unmodelled type, retained transcription, no readable type), which is
+// not the same answer as zero findings, and zero findings is still not a
+// conformance attestation.
+export { validateMessageStructure } from "./structure/validate.js";
+export {
+  STRUCTURE_FINDING_CODES,
+  STRUCTURE_NOT_VALIDATED_REASONS,
+  type StructureFinding,
+  type StructureFindingCode,
+  type StructureFindingLocus,
+  type StructureNotValidatedReason,
+  type StructureValidationResult,
+} from "./structure/types.js";
 
 // Roadmap Phase L: batch / file envelope splitting. `splitBatch` is a
 // top-level utility (symmetric with `parseHL7`) that demarcates the individual

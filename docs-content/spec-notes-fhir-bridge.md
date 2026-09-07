@@ -2,6 +2,7 @@
 id: spec-notes-fhir-bridge
 title: "Spec notes: FHIR-bridge IR-stability contract"
 sidebar_label: FHIR-bridge IR contract
+description: "The stability contract for the parsed model a FHIR mapping consumes. This library is a mapping source and constructs no FHIR resource of its own."
 ---
 
 # Spec notes: FHIR-bridge IR-stability contract

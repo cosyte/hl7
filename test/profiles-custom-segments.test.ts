@@ -39,6 +39,11 @@ describe("Segment.get(name): happy paths (PROF-07)", () => {
     });
     const raw = BASE_MSH + "ZPI|||ENC123\r";
     const msg = parseHL7(raw, profile);
+    // The runtime answer is unchanged: an undeclared name reads `undefined`.
+    // The directive is the compile-time half of the same fact, and it is not
+    // decoration: an UNUSED @ts-expect-error is itself an error, so this line
+    // fails the typecheck if the rejection ever stops happening.
+    // @ts-expect-error "typo" is not a name this profile declares for ZPI.
     expect(msg.segments("ZPI")[0]?.get("typo")).toBeUndefined();
   });
 

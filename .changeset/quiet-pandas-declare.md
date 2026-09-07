@@ -1,5 +1,5 @@
 ---
-"@cosyte/hl7": patch
+"@cosyte/hl7": minor
 ---
 
 Conformance profiles: a field rule can now say what its components ARE, and content in a component you never declared is a finding rather than a pass.

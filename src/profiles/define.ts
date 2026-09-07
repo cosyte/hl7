@@ -3,8 +3,9 @@
  * validation + `describe()` attached (PROF-01, PROF-04, PROF-05).
  *
  * `opts.extends` is honoured: parents are merged into the returned
- * profile (lineage, `dateFormats`, `customSegments`, `description` and
- * `onWarning`), and the merged result is re-validated before it is frozen.
+ * profile (lineage, `dateFormats`, `customSegments`, `segmentOverrides`,
+ * `description` and `onWarning`), and the merged result is re-validated before
+ * it is frozen.
  *
  * Zero runtime deps. Matches CLAUDE.md engineering guardrails: no `any`,
  * JSDoc `@example` on every public export, immutability at the return
@@ -20,12 +21,14 @@
 import type { CustomSegmentDefinition, OnWarningCallback, Profile } from "../parser/types.js";
 
 import { buildDescribe } from "./describe.js";
+import type { DefinedProfile } from "./typed-fields.js";
 import {
   composeOnWarning,
   mergeCustomSegments,
   mergeDateFormats,
   mergeLineage,
   mergeScalar,
+  mergeSegmentOverrides,
   normaliseParents,
 } from "./merge.js";
 import {
@@ -33,6 +36,7 @@ import {
   validateDateFormats,
   validateOptionKeys,
   validateProfileName,
+  validateSegmentOverrides,
   validateUniqueFieldNames,
 } from "./validate.js";
 
@@ -73,6 +77,16 @@ export interface DefineProfileOptions {
   readonly description?: string;
   readonly dateFormats?: readonly string[];
   readonly customSegments?: Readonly<Record<string, CustomSegmentDefinition>>;
+  /**
+   * Field names bound to positions on STANDARD HL7 v2 segments, keyed by
+   * canonical segment name. Sibling of `customSegments`, never a relaxation of
+   * it: a Z-segment key here is refused and pointed back at `customSegments`,
+   * and a key that is not a standard segment name is refused outright.
+   *
+   * Every binding is a NEW read. Declaring one changes nothing an existing
+   * caller sees; see {@link Profile.segmentOverrides}.
+   */
+  readonly segmentOverrides?: Readonly<Record<string, CustomSegmentDefinition>>;
   readonly onWarning?: OnWarningCallback;
   readonly extends?: Profile | readonly Profile[];
 }
@@ -86,13 +100,27 @@ export interface DefineProfileOptions {
  *
  * `opts.extends` accepts a single parent `Profile` or an array of them.
  * Parents are merged into the result: `lineage` is the parents' lineages
- * followed by this profile's own name, `dateFormats` and `customSegments`
- * are merged, `description` inherits when not supplied, and `onWarning`
- * handlers are composed. With no parent, `lineage === [opts.name]`.
+ * followed by this profile's own name, `dateFormats`, `customSegments` and
+ * `segmentOverrides` are merged, `description` inherits when not supplied, and
+ * `onWarning` handlers are composed. With no parent, `lineage === [opts.name]`.
+ *
+ * `segmentOverrides` names fields on STANDARD segments and is ADDITIVE ONLY: a
+ * declaration there gives `seg.get(name)` a new name to resolve and changes no
+ * existing read. Keys must be standard segment names, so a Z-segment key is
+ * refused and pointed back at `customSegments`.
+ *
+ * The returned profile CARRIES ITS DECLARED FIELD NAMES IN ITS TYPE: parse
+ * with it and `seg.get(name)` on a declared segment type is checked against
+ * the names declared for that type, a typo failing to compile instead of
+ * silently reading `undefined`. That is additive, and the value stays
+ * assignable to the general `Profile` interface with no cast; a caller who
+ * annotates the variable `Profile` gives the narrowing up rather than hitting
+ * an error, and one who passes an options object typed as
+ * `DefineProfileOptions` never had it in the first place.
  *
  * @example
  * ```ts
- * import { defineProfile } from "@cosyte/hl7";
+ * import { defineProfile, parseHL7 } from "@cosyte/hl7";
  * const epic = defineProfile({
  *   name: "epic",
  *   description: "Epic-specific quirks and ADT date formats",
@@ -105,9 +133,12 @@ export interface DefineProfileOptions {
  * console.log(epic.name); // "epic"
  * console.log(epic.lineage); // ["epic"]
  * console.log(epic.describe?.());
+ * const msg = parseHL7(raw, epic);
+ * console.log(msg.part("ZDP")?.get("departmentCode")?.value); // narrowed
+ * // msg.part("ZDP")?.get("resultStatus"); // does not compile: that is a ZRS name
  * ```
  */
-export function defineProfile(opts: DefineProfileOptions): Profile {
+export function defineProfile<O extends DefineProfileOptions>(opts: O): DefinedProfile<O> {
   // D-01 fail-fast: name validation FIRST so downstream throws can
   // include `opts.name` as the second `ProfileDefinitionError` ctor arg.
   validateProfileName(opts);
@@ -119,6 +150,8 @@ export function defineProfile(opts: DefineProfileOptions): Profile {
   // profile flagged, not the composed lineage).
   const selfCustomSegments = opts.customSegments ?? {};
   validateCustomSegments(selfCustomSegments, opts.name);
+  const selfSegmentOverrides = opts.segmentOverrides ?? {};
+  validateSegmentOverrides(selfSegmentOverrides, opts.name);
   const selfDateFormats = opts.dateFormats ?? [];
   validateDateFormats(selfDateFormats, opts.name);
 
@@ -128,6 +161,7 @@ export function defineProfile(opts: DefineProfileOptions): Profile {
   const lineage = mergeLineage(parents, opts.name);
   const dateFormats = mergeDateFormats(parents, selfDateFormats);
   const customSegments = mergeCustomSegments(parents, selfCustomSegments);
+  const segmentOverrides = mergeSegmentOverrides(parents, selfSegmentOverrides);
   const description = mergeScalar(parents, opts.description, "description");
   const onWarning = composeOnWarning([...parents.map((p) => p.onWarning), opts.onWarning]);
 
@@ -142,6 +176,8 @@ export function defineProfile(opts: DefineProfileOptions): Profile {
   // per defineProfile call.
   validateCustomSegments(customSegments, opts.name);
   validateUniqueFieldNames(customSegments, opts.name);
+  validateSegmentOverrides(segmentOverrides, opts.name);
+  validateUniqueFieldNames(segmentOverrides, opts.name, "segmentOverrides");
 
   // Assemble the frozen Profile. exactOptionalPropertyTypes discipline:
   // conditionally assign optional fields rather than writing
@@ -152,6 +188,7 @@ export function defineProfile(opts: DefineProfileOptions): Profile {
     name: opts.name,
     lineage,
     customSegments,
+    segmentOverrides,
     dateFormats,
   };
   if (description !== undefined) profile.description = description;
@@ -167,5 +204,13 @@ export function defineProfile(opts: DefineProfileOptions): Profile {
   // `lineage` / `dateFormats` stay `readonly` at the type level but
   // mutable at runtime per D-30 cost doctrine (matches Phase 5
   // `src/serialize/to-json.ts:139`).
-  return Object.freeze(profile) as Profile;
+  //
+  // The one assertion in this factory, and the only place the assembled value
+  // meets its statically derived view. `mergeCustomSegments` above IS the
+  // merge `DeclaredSegments<O>` describes -- parents in order, then self --
+  // so the keys and field names in the frozen map are the keys and field
+  // names in the type. Nothing narrower can be inferred from a `Map`
+  // accumulator, and widening the return type instead would throw the
+  // declaration away again, which is the whole point of carrying it.
+  return Object.freeze(profile) as DefinedProfile<O>;
 }

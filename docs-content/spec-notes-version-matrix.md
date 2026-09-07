@@ -1,6 +1,7 @@
 ---
 id: spec-notes-version-matrix
 title: "Spec notes: version-sensitivity matrix"
+description: "How the parser reads HL7 v2.1 through v2.8 structurally without transforming between versions, and when a VERSION_MISMATCH warning is raised."
 sidebar_label: Version-sensitivity (v2.1–v2.8)
 ---
 

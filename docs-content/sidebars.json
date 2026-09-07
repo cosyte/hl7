@@ -17,6 +17,7 @@
       "collapsed": false,
       "items": [
         "spec-notes-primer",
+        "warning-and-fatal-codes",
         "spec-notes-coding-system",
         "spec-notes-structure",
         "spec-notes-conformance",
@@ -32,6 +33,7 @@
         "spec-notes-nte",
         "spec-notes-fhir-bridge",
         "spec-notes-version-matrix",
+        "schema-emission",
         "spec-notes-differential"
       ]
     },

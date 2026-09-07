@@ -1,7 +1,8 @@
 ---
 id: installation
 title: Installation
-sidebar_position: 1
+sidebar_label: Installation
+description: "Install the zero-dependency @cosyte/hl7 toolkit on Node 22 or newer, with dual ESM and CJS builds and per-condition TypeScript declarations."
 ---
 
 # Installation
@@ -37,7 +38,7 @@ import { VERSION } from "@cosyte/hl7";
 typeof VERSION; // => "string"
 ```
 
-If that resolves, the install is good. Head to the [Quickstart](./quickstart).
+If that resolves, the install is good. Head to the [Quickstart](./quickstart.md).
 
 ## Module systems
 

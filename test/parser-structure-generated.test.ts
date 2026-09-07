@@ -201,10 +201,12 @@ describe("AC13: a malformed input refuses, naming the file, writing nothing", ()
     writeFileSync(
       target,
       JSON.stringify({
+        // Both elements carry a `max`, so the orphan reaches the parent check
+        // rather than being refused earlier for an unusable occurrence maximum.
         differential: {
           element: [
-            { id: "ADT_A03", min: 0 },
-            { id: "ADT_A03.9-ORPHAN.1-PID", min: 1 },
+            { id: "ADT_A03", min: 0, max: "*" },
+            { id: "ADT_A03.9-ORPHAN.1-PID", min: 1, max: "1" },
           ],
         },
       }),

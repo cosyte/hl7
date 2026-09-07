@@ -2,6 +2,7 @@
 id: spec-notes-datetime-precision
 title: "Spec notes: datetime precision & timezone fidelity"
 sidebar_label: Datetime precision & timezone
+description: "How a DTM value keeps its precision and timezone instead of collapsing into a Date, and why an order-ambiguous slash date is refused rather than guessed."
 ---
 
 # Spec notes: datetime precision + timezone fidelity
@@ -14,7 +15,7 @@ explicit degree-of-precision component to the value's length (v2.5/v2.7).
 ## Why there is no `Date` by default
 
 A JavaScript `Date` is an absolute instant, and most HL7 v2 timestamps are not. `|1970|` is a year,
-`|19880705|` is a calendar day, and a value with no offset is the *sender's* local time by the
+`|19880705|` is a calendar day, and a value with no offset is the _sender's_ local time by the
 standard's own words. Materializing either as a `Date` means inventing a zone, and inventing UTC is
 how a day-only date of birth `|19880705|` becomes a UTC-midnight instant that reads back as
 **July 4** through `.getDate()` in any negative-offset zone. So this library parses DTM into typed
@@ -24,9 +25,11 @@ for one.
 ## The API
 
 ### Core: `src/parser/dates.ts`
+
 - `type DtmPrecision = "year"|"month"|"day"|"hour"|"minute"|"second"|"fraction"`.
 - `interface DtmParts { raw; valid; precision?; year?; month?(1–12, spec-native); day?; hour?; minute?;
-  second?; fractionalSeconds?(verbatim digits, no dot); hasTimezone; offsetMinutes?(signed, iff tz) }`.
+  second?; fractionalSeconds?(verbatim digits, no dot); hasTimezone; offsetMinutes?(signed, iff tz);
+  matchedFormat?(a declared or built-in format matched); ambiguity?(order refused, see below) }`.
 - `parseDtm(raw): DtmParts`: pure structural parse of the HL7 DTM shape. **No zero-fill, no `Date`, no
   UTC.** Precision from populated length. Calendar-range check (month 1–12, day 1–31, hour 0–23,
   min/sec 0–59, offset hours ≤ 24 with minutes ≤ 59) → on bad shape/range `valid:false`, raw kept, parts omitted, never a
@@ -38,25 +41,78 @@ for one.
   **for instant construction only** (precision still tells the truth). `hasTimezone`→exact instant via
   the embedded offset. else `assumeOffsetMinutes`→apply it. else→**undefined** (refuse to guess; never
   silent UTC).
-- `parseDtmCascade(raw, opts): DtmParts`: lenient wrapper for non-composite callers (`meta`): try
-  `parseDtm`; else user/builtin fallback formats → parts from the matched tokens + `matchedFormat` +
-  `TIMESTAMP_FALLBACK_FORMAT` warning. `BUILTIN_DATE_FALLBACKS` is `ISO-8601`, `YYYY-MM-DD`,
-  `MM/DD/YYYY`, `MM/DD/YYYY HH:mm:ss`, in that order. What a user format may contain is
-  `SUPPORTED_DATE_TOKENS`, stated in full by the
-  [Date token grammar](./date-token-grammar.md).
+- `parseDtmDeclared(raw, formats): DtmParts`: the TS composite path's parse: try `parseDtm`; else
+  the formats the CALLER declared, in order → parts from the matched tokens + `matchedFormat`.
+  **Stops there.** No built-in fallback, deliberately (see below).
+- `parseDtmCascade(raw, opts): DtmParts`: lenient wrapper for non-composite callers (`meta`):
+  `parseDtmDeclared` first, else `BUILTIN_DATE_FALLBACKS`, whose membership and order are
+  unchanged: `ISO-8601`, `YYYY-MM-DD`, `MM/DD/YYYY`, `MM/DD/YYYY HH:mm:ss`. What a declared
+  format may contain is `SUPPORTED_DATE_TOKENS`, stated in full by the
+  [Date token grammar](./date-token-grammar.md). One exception, below: an order-ambiguous slash
+  date resolves to nothing.
+
+## Order ambiguity: `05/07/1988` is refused, not guessed
+
+`BUILTIN_DATE_FALLBACKS` carries `MM/DD/YYYY` and not `DD/MM/YYYY`. A day-first sender's
+`05/07/1988` therefore used to read as May 7, with no failure and no signal that the field order had
+been assumed. In a PHI-bearing library that is the worst shape of wrong: plausible, confident and
+invisible.
+
+A slash-separated numeric date whose first two components are **both in 1-12** has two legal
+readings. When no declared format has matched, the built-ins now resolve **neither**: the result is
+`valid: false` with an `ambiguity` report (`code: AMBIGUOUS_DATE_ORDER`, the raw value, and both
+`candidates` as `{ format, month, day, isoDate }`). `msg.meta.timestamp` carries it, so
+`ambiguity` distinguishes "refused" from "malformed" (no timestamp at all) and from "resolved via a
+fallback" (`valid: true` + `matchedFormat`).
+
+- **Declared formats still win.** `parseHL7(raw, { dateFormats: ["DD/MM/YYYY"] })` and a profile's
+  `dateFormats` are tried ahead of the built-ins, resolve the value, keep the existing
+  `TIMESTAMP_FALLBACK_FORMAT` semantics, and never report ambiguity. Options precede profile.
+- **One reading still resolves.** `07/25/1988` (no month 25) and `05/05/1988` (both readings agree)
+  are unaffected, as are strict DTM, ISO-8601 and `YYYY-MM-DD`.
+- **The built-in list did not change.** `DD/MM/YYYY` is used only as a probe for the second reading
+  and never resolves a value: an unambiguous day-first value such as `25/07/1988` still fails
+  loudly. Declaring the order is the route for a day-first feed.
+- **No warning code was added or renamed.** `Hl7Message.warnings` is frozen at construction and
+  `msg.meta` is built lazily afterwards, so the report travels on the value rather than the warnings
+  collection.
+- **A typed datetime field never reaches this at all.** The built-ins are the only stage
+  `parseDtmDeclared` omits, so `patient.dateOfBirth` and every other typed datetime answer a
+  day-first `05/07/1988` with a plain `valid: false` and no `ambiguity` report: nothing consulted a
+  built-in, so there was no second reading to refuse. `msg.meta.timestamp` is the value that carries
+  the report.
 
 ### TS composite: `src/model/types/ts.ts`
-- `TS` is the `DtmParts` shape (raw, valid, precision?, parts, hasTimezone, offsetMinutes?). Frozen.
-  **No `.date`.** `parseTs(rep, enc)` = unescape → `parseDtm`.
-- `field.ts::asTs()` returns it.
 
-### Helpers: `TS`-typed fields (the fidelity reaches the consumer)
-`meta.timestamp` (via cascade), `patient.dateOfBirth`, `visit.admit/dischargeDateTime`,
-`observations.observedDateTime` + the `TS|DT` `TypedValue.value`, `allergies.onsetDate`,
-`diagnoses.dateTime`, `insurance.effectiveDate` / `expirationDate`,
-`immunizations.administeredDateTime` / `expirationDate`.
+- `TS` is the `DtmParts` shape (raw, valid, precision?, parts, hasTimezone, offsetMinutes?). Frozen.
+  **No `.date`.** `parseTs(rep, enc, dateFormats?)` = unescape → `parseDtmDeclared`.
+- `field.ts::asTs()` returns it, passing the message's merged `dateFormats`.
+
+### Which datetimes honour `dateFormats`
+
+`ParseOptions.dateFormats` ++ the applied profile's, deduped first-occurrence-wins, is
+`msg.dateFormats`, and **every** datetime below honours it: `meta.timestamp`,
+`patient.dateOfBirth`, `visit.admit/dischargeDateTime`, `observations.observedDateTime` + the
+`TS|DT` `TypedValue.value`, `allergies.onsetDate`, `diagnoses.dateTime`,
+`insurance.effectiveDate` / `expirationDate`, `immunizations.administeredDateTime` /
+`expirationDate`, `charges.transactionDate`, `documents.activityDateTime`, order/medication
+`timings.start/endDateTime` (`TQ1` and legacy embedded `TQ`), and
+`appointments.start/endDateTime`.
+
+**Built-in fallbacks stop at `meta.timestamp`.** `BUILTIN_DATE_FALLBACKS` carries `MM/DD/YYYY` and
+no day-first form, so letting it follow the caller's hook onto a typed datetime would read a
+day-first `05/07/1988` date of birth as a confident May 7. A declared format is the caller stating
+what their sender means; a built-in fallback is the library guessing, and it does not guess on a
+clinical datetime. A value matching no declared format stays `valid: false` with `raw` intact.
+
+**No warning marks a fallback.** `TIMESTAMP_FALLBACK_FORMAT` exists as a code and
+`parseDtmCascade` can emit it, but no parse supplies the emit hook it needs, so it does not appear
+on `msg.warnings`. `matchedFormat` on the `TS` is the caller-visible signal, and it is a structural
+value rather than a warning for the same reason missing-tz is (no noise on the overwhelmingly
+common vendor feed).
 
 ### Non-goals
+
 Fidelity only: **no** localization, timezone conversion, or arithmetic; a missing offset is **flagged
 sender-local**, never resolved. `HHMM=0000` is preserved (never rolled to the previous day). No new
 warning code. Missing-tz is the structural `hasTimezone:false`, not a warning (avoids noise on the

@@ -13,10 +13,21 @@ import { canonicalSegmentName } from "../parser/known-segments.js";
 import { boundedIdentifier } from "../parser/tokens.js";
 import type { EncodingCharacters, RawField, RawSegment } from "../parser/types.js";
 
+/** Shared frozen empty list for a Segment built without declared date formats. @internal */
+const EMPTY_DATE_FORMATS: readonly string[] = Object.freeze([]);
+
 /**
  * Wrapper over a `RawSegment` exposing typed per-position `Field` instances.
  * `seg.field(3) === seg.field(3)`: referential stability is guaranteed per
  * segment instance.
+ *
+ * `FieldName` is the set of names {@link Segment.get} accepts. It is `string`
+ * for every segment whose profile-declared field names are not statically
+ * known, which is the default and covers every segment reached without a
+ * statically known profile; a segment obtained for a declared segment type from
+ * a message parsed with one carries that type's declared names instead.
+ *
+ * @template FieldName - the names `get` accepts; `string` when not known.
  *
  * @example
  * ```ts
@@ -26,7 +37,7 @@ import type { EncodingCharacters, RawField, RawSegment } from "../parser/types.j
  * if (pid !== undefined) console.log(pid.field(5).value);
  * ```
  */
-export class Segment {
+export class Segment<FieldName extends string = string> {
   /**
    * Segment identifier: three characters with a leading letter, e.g. `"PID"`,
    * `"OBX"`, `"ZPI"`.
@@ -68,11 +79,22 @@ export class Segment {
   /**
    * Lookup map from profile-declared field name → 1-indexed HL7 position.
    * Absent when no profile was applied to the parent message, or when the
-   * applied profile does not declare `customSegments` for this segment's
-   * type. Consumed by `get(name)` to resolve named-field access (PROF-07).
+   * applied profile declares no field names for this segment's type in either
+   * of its declaration maps (`customSegments` for a Z-segment,
+   * `segmentOverrides` for a standard one). Consumed by `get(name)` to resolve
+   * named-field access (PROF-07).
    * @internal
    */
   public readonly customFields: Readonly<Record<string, number>> | undefined;
+
+  /**
+   * The message's merged `dateFormats` (D-21), handed to every `Field` this
+   * segment builds so a typed `TS` coercion honours what the caller declared.
+   * Empty when neither `ParseOptions.dateFormats` nor the applied profile
+   * declared any.
+   * @internal
+   */
+  public readonly dateFormats: readonly string[];
 
   /** Lazy cache of Field wrappers: one per fields[] position. @internal */
   private _fieldWrappers: Field[] | undefined;
@@ -83,9 +105,12 @@ export class Segment {
    * `msg.allSegments()`.
    *
    * The optional `customFields` parameter is the per-segment portion of the
-   * applied profile's merged `customSegments` map (PROF-07 / D-16). When
-   * supplied, `get(name)` resolves names against it; otherwise `get(name)`
-   * always returns `undefined`.
+   * applied profile's merged declarations for this segment type (PROF-07 /
+   * D-16). When supplied, `get(name)` resolves names against it; otherwise
+   * `get(name)` always returns `undefined`.
+   *
+   * The optional `dateFormats` parameter is the message's merged date-format
+   * list; it is passed straight through to each `Field`.
    * @internal
    */
   public constructor(
@@ -93,6 +118,7 @@ export class Segment {
     enc: EncodingCharacters,
     absoluteIndex: number,
     customFields?: Readonly<Record<string, number>>,
+    dateFormats?: readonly string[],
   ) {
     this.raw = raw;
     // Canonicalized THEN bounded, in that order, and both steps matter.
@@ -118,6 +144,7 @@ export class Segment {
     this.enc = enc;
     this.absoluteIndex = absoluteIndex;
     this.customFields = customFields;
+    this.dateFormats = dateFormats ?? EMPTY_DATE_FORMATS;
   }
 
   /**
@@ -147,10 +174,15 @@ export class Segment {
       // Build the full wrapper array. O(k) where k = fields.length; cached.
       this._fieldWrappers = this.fields.map(
         (rf, i) =>
-          new Field(rf, this.enc, {
-            segmentIndex: this.absoluteIndex,
-            fieldIndex: i,
-          }),
+          new Field(
+            rf,
+            this.enc,
+            {
+              segmentIndex: this.absoluteIndex,
+              fieldIndex: i,
+            },
+            this.dateFormats,
+          ),
       );
     }
     // MSH offset: HL7 MSH-1 lives at fields[0] (separator), MSH-2 at fields[1]
@@ -167,11 +199,17 @@ export class Segment {
    * missing names return `undefined`, NOT a synthetic empty Field, so
    * typos surface instead of silently resolving to an empty string (D-14).
    *
-   * For segments without a profile-declared customSegments slice (most
-   * non-Z segments, and any Z-segment whose host message had no profile
-   * applied), this method always returns `undefined` (D-15 defense-in-depth
-   *: D-05 already rejects standard-segment overlays at `defineProfile()`
-   * time).
+   * Two declaration maps feed it, and which one a name may come from depends
+   * on the segment: `customSegments` names fields on a Z-segment,
+   * `segmentOverrides` names fields on a standard one. Both are read-side
+   * ALIASES. A name resolves to whatever `field(n)` returns for its declared
+   * position and nothing else moves: the positional accessor, dot-paths, the
+   * typed clinical accessors (`msg.patient`, `msg.allergies()`, ...), the
+   * warning list and both serializations are unaffected by a declaration.
+   *
+   * For segments the profile in force declares nothing for (and for every
+   * segment when no profile was applied), this method always returns
+   * `undefined`.
    *
    * When the declared position is out of range for the underlying
    * `RawSegment.fields`, `get(name)` returns `undefined` (NOT a
@@ -179,13 +217,32 @@ export class Segment {
    * from "name declared but position missing in the raw message" only at
    * the presence level (both collapse to `undefined` per D-14).
    *
+   * **`name` is checked at compile time when the declaration is statically
+   * known.** On a segment obtained by type from a message parsed with a
+   * statically known profile, `name` is scoped to the names that profile
+   * declares FOR THAT SEGMENT TYPE, so a typo is a type error rather than a
+   * silent `undefined`. Everywhere the declaration is not statically known
+   * (no profile, a value typed as the general `Profile` interface, the
+   * process-wide default profile, an undeclared segment type, an empty field
+   * map, or the undifferentiated `allSegments()` walk) `name` stays `string`.
+   * The return type is unchanged either way: a declared name is not a promise
+   * that the wire message carried it.
+   *
    * @example
    * ```ts
-   * const zpi = msg.allSegments().find((s) => s.type === "ZPI");
-   * console.log(zpi?.get("encounterId")?.value);
+   * import { defineProfile, parseHL7 } from "@cosyte/hl7";
+   * const profile = defineProfile({
+   *   name: "vendor",
+   *   customSegments: { ZPI: { fields: { encounterId: 3 } } },
+   * });
+   * const msg = parseHL7(raw, profile);
+   * console.log(msg.part("ZPI")?.get("encounterId")?.value); // narrowed, no cast
+   * // msg.part("ZPI")?.get("encounterld"); // does not compile: not declared
+   * const walked = msg.allSegments().find((s) => s.type === "ZPI");
+   * console.log(walked?.get("encounterId")?.value); // a walk takes any name
    * ```
    */
-  public get(name: string): Field | undefined {
+  public get(name: FieldName): Field | undefined {
     const position = this.customFields?.[name];
     if (position === undefined) return undefined;
     // Delegate to field(n) for MSH-offset + wrapper-cache consistency.

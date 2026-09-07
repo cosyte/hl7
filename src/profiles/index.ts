@@ -2,8 +2,9 @@
  * Public barrel for the `@cosyte/hl7` profile subsystem. Assembles
  * the `profiles` namespace object (8 built-ins) and re-exports the public
  * profile API: `defineProfile`, `setDefaultProfile`, `getDefaultProfile`,
- * plus the two type exports `DefineProfileOptions` and
- * `CustomSegmentDefinition`.
+ * the two type exports `DefineProfileOptions` and `CustomSegmentDefinition`,
+ * and the typed-field-name types (`DefinedProfile`, `ProfileFieldName`,
+ * `ProfiledMessage`) that carry a profile's declarations to the compiler.
  *
  * D-26 contract: individual built-ins are NOT top-level named exports,
  * consumers access them via `profiles.epic`, `profiles.cerner`, etc.
@@ -12,6 +13,7 @@
 
 export { defineProfile } from "./define.js";
 export type { DefineProfileOptions, CustomSegmentDefinition } from "./define.js";
+export type { DefinedProfile, ProfileFieldName, ProfiledMessage } from "./typed-fields.js";
 export { setDefaultProfile, getDefaultProfile } from "./default.js";
 
 import { athena } from "./athena.js";

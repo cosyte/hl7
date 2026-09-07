@@ -9,7 +9,7 @@
 ## Status
 
 - **v2.1 milestone shipped 2026-04-21**: all 12 phases archived (97 v1 requirements delivered). No active milestone; planning v2.2.
-- Milestone is a **git milestone, not an npm release**: the package is published on npm and is still pre-alpha, on the `0.0.x`-until-first-alpha ladder. **Never quote a version here** (this line read "not published to npm" until 2026-07-31, several releases after first publish): `npm view @cosyte/hl7 version` is the only source of truth.
+- Milestone is a **git milestone, not an npm release**: the package is published on npm and is pre-alpha, below its first stable major. **Never quote a version here** (this line read "not published to npm" until 2026-07-31, several releases after first publish): `npm view @cosyte/hl7 version` is the only source of truth.
 
 ## Tech Stack (the shared `@cosyte/*` standard)
 
@@ -79,7 +79,11 @@ Mirrors the three disciplines in `documentation/conventions.md`. They bind here 
 1. **Documentation follows code**: a change to the public surface/stack/status isn't done until the
    docs are: this repo's docs content, the meta-repo `documentation/repos/hl7.md` (bump its
    "last verified" date), and the `ecosystem-map.md` status table.
-2. **Version + changelog**: a Changeset (`patch` on the `0.0.x` ladder) per meaningful change.
+2. **Version + changelog**: a Changeset per meaningful change, carrying **the bump type the change
+   earns**: `minor` when it ADDS behaviour a consumer can call, `patch` when it CORRECTS behaviour.
+   Never `major` without a deliberate decision to declare this API stable, because on a `0.x` line
+   that is what `major` resolves to. `pnpm tsx scripts/release-readiness.ts` reports what the
+   pending queue resolves to and refuses to certify a queue it could not read.
    **The changeset summary IS the changelog entry** and `CHANGELOG.md` is generated output above
    `## Released before this file was generated`: `.changeset/config.json` sets a `changelog`
    generator, so the release writes the version heading and the entry itself. **Do not hand-edit

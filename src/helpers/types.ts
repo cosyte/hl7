@@ -56,7 +56,12 @@ export interface Meta {
   readonly messageStructure?: string;
   /** MSH-10 message control ID: unique per message per sender. */
   readonly controlId?: string;
-  /** MSH-7 message date/time as the fidelity `TS`. */
+  /**
+   * MSH-7 message date/time as the fidelity `TS`. Absent when MSH-7 is empty
+   * or unparseable. Present with `valid: false` and an `ambiguity` report when
+   * the value is a slash date whose field order cannot be established: check
+   * `valid` before reading the parts.
+   */
   readonly timestamp?: TS;
   /** MSH-12 HL7 version string (e.g. "2.5", "2.5.1"). */
   readonly version?: string;

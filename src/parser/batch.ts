@@ -41,6 +41,7 @@ import { batchCountMismatch, batchMissingTrailer } from "./warnings.js";
 import type { Hl7ParseWarning } from "./warnings.js";
 
 import type { Hl7Message } from "../model/message.js";
+import type { ProfiledMessage } from "../profiles/typed-fields.js";
 
 /**
  * The four HL7 batch-protocol envelope segment names (Ch. 2 §2.10.3).
@@ -90,6 +91,13 @@ export interface BatchEnvelopeSegment {
  * (re-parseable by {@link parseHL7}); `position` is the message's `MSH` (or,
  * for pre-`MSH` stray content, its first) segment index in the stream.
  *
+ * `M` is the parsed-message type each `ok` entry carries. It is `Hl7Message`
+ * unless the split was given a statically known profile, in which case it is
+ * that profile's narrowed view and `entry.message.part("ZDP")?.get(name)` is
+ * checked against the names the profile declares for `ZDP`.
+ *
+ * @template M - the message type an `ok` entry carries.
+ *
  * @example
  * ```ts
  * import { splitBatch } from "@cosyte/hl7";
@@ -99,10 +107,10 @@ export interface BatchEnvelopeSegment {
  * }
  * ```
  */
-export type BatchMessageEntry =
+export type BatchMessageEntry<M extends Hl7Message = Hl7Message> =
   | {
       readonly ok: true;
-      readonly message: Hl7Message;
+      readonly message: M;
       readonly raw: string;
       readonly position: Hl7Position;
     }
@@ -123,6 +131,8 @@ export type BatchMessageEntry =
  * non-negative integer (it is **optional [0..1]** in the spec, so it may be
  * absent); `actualMessageCount` is always the real count.
  *
+ * @template M - the message type an `ok` entry carries.
+ *
  * @example
  * ```ts
  * import { splitBatch } from "@cosyte/hl7";
@@ -131,13 +141,13 @@ export type BatchMessageEntry =
  * batch?.actualMessageCount; // messages actually in the batch
  * ```
  */
-export interface Batch {
+export interface Batch<M extends Hl7Message = Hl7Message> {
   /** The `BHS` header, when this batch was opened by one. */
   readonly header?: BatchEnvelopeSegment;
   /** The `BTS` trailer, when this batch was closed by one. */
   readonly trailer?: BatchEnvelopeSegment;
   /** The messages in this batch, in stream order. */
-  readonly messages: readonly BatchMessageEntry[];
+  readonly messages: readonly BatchMessageEntry<M>[];
   /** BTS-1 batch message count, when declared as a non-negative integer. */
   readonly declaredMessageCount?: number;
   /** The actual number of messages split out of this batch. */
@@ -151,6 +161,8 @@ export interface Batch {
  * (count-mismatch / missing-trailer). `hadEnvelope` is `false` for a bare
  * passthrough (no FHS/BHS/BTS/FTS seen).
  *
+ * @template M - the message type an `ok` entry carries.
+ *
  * @example
  * ```ts
  * import { splitBatch } from "@cosyte/hl7";
@@ -160,16 +172,16 @@ export interface Batch {
  * result.warnings; // BATCH_COUNT_MISMATCH / BATCH_MISSING_TRAILER (counts only)
  * ```
  */
-export interface BatchSplitResult {
+export interface BatchSplitResult<M extends Hl7Message = Hl7Message> {
   /**
    * Every message split out of the stream, in order: the primary surface. This
    * includes messages that belong to no explicit batch (a bare stream, or
    * content outside any `BHS`/`BTS`), so it is a superset of the messages
    * reachable via `batches`.
    */
-  readonly messages: readonly BatchMessageEntry[];
+  readonly messages: readonly BatchMessageEntry<M>[];
   /** The explicit (`BHS`-delimited) batches, in stream order. */
-  readonly batches: readonly Batch[];
+  readonly batches: readonly Batch<M>[];
   /** The **first** `FHS` file header, when present. */
   readonly fileHeader?: BatchEnvelopeSegment;
   /** The **last** `FTS` file trailer, when present. */
@@ -339,9 +351,29 @@ function parseEntry(
  * }
  * console.log(warnings.length); // 0: declared counts match
  * ```
+ *
+ * @example
+ * ```ts
+ * import { defineProfile, splitBatch } from "@cosyte/hl7";
+ * const vendor = defineProfile({
+ *   name: "vendor",
+ *   customSegments: { ZDP: { fields: { departmentCode: 3 } } },
+ * });
+ * // The profile is forwarded to every message, narrowing each one's reader:
+ * for (const entry of splitBatch(rawBatchFile, vendor).messages) {
+ *   if (entry.ok) console.log(entry.message.part("ZDP")?.get("departmentCode")?.value);
+ * }
+ * ```
  */
 export function splitBatch(raw: string | Buffer): BatchSplitResult;
-export function splitBatch(raw: string | Buffer, profile: Profile): BatchSplitResult;
+export function splitBatch<P extends Profile>(
+  raw: string | Buffer,
+  profile: P,
+): BatchSplitResult<ProfiledMessage<P>>;
+export function splitBatch<P extends Profile>(
+  raw: string | Buffer,
+  options: ParseOptions & { readonly profile: P },
+): BatchSplitResult<ProfiledMessage<P>>;
 export function splitBatch(raw: string | Buffer, options: ParseOptions): BatchSplitResult;
 /** @internal implementation signature; overloads above carry the public JSDoc. */
 export function splitBatch(
