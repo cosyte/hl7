@@ -1,0 +1,361 @@
+---
+id: date-token-grammar
+title: "Date token grammar: vendor date formats, written down once"
+sidebar_label: Date token grammar
+description: "Every token a dateFormats string may contain, how a format is tokenised and escaped, which tokens require which, and the two exclusions."
+---
+
+# Date token grammar
+
+A vendor feed that writes `05-JUL-1988` or `7/5/1988 2:30 PM` is not writing
+HL7. The `dateFormats` option is how you teach the parser to read it anyway,
+and this page is the **normative** statement of what a format string may
+contain: the token table, how a format is split into tokens, how to write a
+literal, which tokens require which other tokens, when two tokens may sit side
+by side, how a 12-hour clock becomes a 24-hour value, and the two things this
+vocabulary deliberately does not have.
+
+It is written to be citable. Other parsers in this family adopt the same
+grammar rather than inventing a second one, and a machine-readable corpus of
+cases ships beside it so a parser can prove it agrees.
+
+```ts runnable
+import { SUPPORTED_DATE_TOKENS } from "@cosyte/hl7";
+
+SUPPORTED_DATE_TOKENS.length; // => 15
+SUPPORTED_DATE_TOKENS.includes("MMM"); // => true
+SUPPORTED_DATE_TOKENS.includes("YY"); // => false
+```
+
+## The token table
+
+Token spellings are **case-sensitive**: `MM` is month and `mm` is minute.
+Alphabetic content in the **input** is compared **case-insensitively**, and
+ASCII only, so `JUL`, `Jul` and `jul` are one value and `PM` and `pm` are one
+value.
+
+| token  | means                        | matches           | in-range values                                   |
+| ------ | ---------------------------- | ----------------- | ------------------------------------------------- |
+| `YYYY` | year                         | exactly 4 digits  | 0001 to 9999                                      |
+| `MM`   | month                        | exactly 2 digits  | 01 to 12                                          |
+| `M`    | month, single-digit tolerant | 1 or 2 digits     | 1 to 12                                           |
+| `MMM`  | month, abbreviated name      | exactly 3 letters | `Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec` |
+| `MMMM` | month, full name             | letters           | `January` through `December`                      |
+| `DD`   | day of month                 | exactly 2 digits  | 01 to 31                                          |
+| `D`    | day, single-digit tolerant   | 1 or 2 digits     | 1 to 31                                           |
+| `HH`   | hour, 24-hour clock          | exactly 2 digits  | 00 to 23                                          |
+| `H`    | hour, 24-hour, tolerant      | 1 or 2 digits     | 0 to 23                                           |
+| `hh`   | hour, 12-hour clock          | exactly 2 digits  | 01 to 12                                          |
+| `h`    | hour, 12-hour, tolerant      | 1 or 2 digits     | 1 to 12                                           |
+| `mm`   | minute                       | exactly 2 digits  | 00 to 59                                          |
+| `ss`   | second                       | exactly 2 digits  | 00 to 59                                          |
+| `SSSS` | fractional seconds           | 1 to 4 digits     | any                                               |
+| `A`    | meridiem                     | exactly 2 letters | `AM` or `PM`, any case                            |
+
+The month names are **English only**. A localized month name is not in this
+vocabulary and is not expressible; if you need one, normalize the value before
+it reaches the parser.
+
+A value outside a token's range does not match. It is never clamped, wrapped or
+substituted: `13` is not December and it is not January, it is no match at all.
+
+## Tokenising a format
+
+1. A format is read left to right and split by **longest match** against the
+   table above. `MMMM` wins over `MMM`, which wins over `MM`, which wins over
+   `M`.
+2. Every remaining character is a **literal**, and a literal matches itself.
+3. An unescaped **ASCII letter or digit** that is not part of a token is an
+   **error at definition time**. There is no such thing as an accidental
+   literal letter: a letter you meant literally must say so.
+
+### Writing a literal letter or digit
+
+Put it in square brackets. The bracketed text matches **verbatim**, including
+its case, and nothing inside brackets is read as a token.
+
+```ts runnable
+import { defineProfile } from "@cosyte/hl7";
+
+const iso = defineProfile({
+  name: "iso-style-vendor",
+  dateFormats: ["YYYY-MM-DD[T]HH:mm:ss"],
+});
+
+iso.dateFormats; // => ["YYYY-MM-DD[T]HH:mm:ss"]
+```
+
+Without the brackets that `T` is a bare letter that forms no token, and the
+profile is refused:
+
+```ts runnable throws
+import { defineProfile } from "@cosyte/hl7";
+
+defineProfile({ name: "broken", dateFormats: ["YYYY-MM-DDTHH:mm:ss"] });
+```
+
+An escape may hold more than one character (`D [of] MMMM YYYY` reads
+`5 of July 1988`), and a `[` with no closing `]` is an error at definition
+time rather than a silent swallow of the rest of the format.
+
+## Rules a format must satisfy
+
+All five are checked **at profile definition time**, when `defineProfile()`
+runs, so a format that cannot be honoured throws where you wrote it instead of
+sitting in the list quietly matching nothing.
+
+Definition time is not the only place they bind. **Rules 2, 3 and 4 bind the
+matcher as well**, and a format breaking one of them reports **no match**
+whichever route it arrived by, including the per-parse `dateFormats` option
+that nothing validates. Each of the three describes a value a parser could
+otherwise answer with a confident wrong reading: an hour that is not a clock
+hour, a fraction with no second to hang it on, a digit run with two equally
+correct splits. Enforcing them only where the format is written would leave the
+unvalidated route free to produce exactly that, so a parser adopting this
+grammar implements those three in **both** places.
+
+**Rules 1 and 5 are definition-time only.** They are about the format's text
+rather than about a value, and the matcher is deliberately more tolerant there:
+a character it does not recognise is matched verbatim, so a format supplied
+through the parse options keeps the behaviour it had. Their purpose is to tell
+the author, where the format is written, that it will not read what they meant.
+
+### 1. Every letter and digit belongs to a token or an escape
+
+`MM/DD/YYYY hrs` is refused, naming the offending character. So is `YYY/MM`,
+where three `Y` characters form no token. Punctuation and whitespace need no
+escape.
+
+### 2. `h`/`hh` and `A` require each other
+
+A 12-hour reading is not a clock hour until AM or PM is applied, so `h:mm` is
+refused. A meridiem beside a 24-hour clock has nothing to convert, so
+`HH:mm A` is refused too. Use `H`/`HH` for a 24-hour clock and `h`/`hh` with
+`A` for a 12-hour one.
+
+This rule binds the **matcher** as well. An input matched against a format
+carrying only one half of the pair reports **no match** rather than an hour:
+`2:30` under `h:mm` is not hour 2, because the feed that wrote it may have
+meant 14:30, and `14:30 PM` under `HH:mm A` is not hour 14 either. A format may
+carry a 24-hour token and a 12-hour pair together, and then the two readings
+must agree once the meridiem is applied, or the input reports no match.
+
+### 3. `SSSS` requires `ss`
+
+A fraction is only meaningful at full second precision, which is the same rule
+the strict parser applies to an HL7 value.
+
+This rule binds the **matcher** as well: `1988-07-05 14:30.5` under
+`YYYY-MM-DD HH:mm.SSSS` reports **no match**, rather than a value carrying a
+fraction of a minute.
+
+### 4. Two numeric tokens may not sit adjacent when either is variable width
+
+`M`, `D`, `H`, `h` and `SSSS` are the variable-width tokens. `MDYYYY` is
+refused: nothing can decide whether `1231988` starts with month 1 or month 12.
+Two **fixed**-width numeric tokens may sit adjacent, because the digit run
+splits deterministically, which is why `YYYYMMDDHHmmss` is fine.
+
+`MMM`, `MMMM` and `A` consume letters rather than digits, so a numeric token
+beside one of them is never ambiguous.
+
+**Adjacent means adjacent in the input, not in the format text.** A literal
+separates two tokens only if it matches at least one character, so the **empty
+escape `[]` separates nothing** and `M[]D/YYYY` is refused exactly as
+`MD/YYYY` is. Writing it the long way does not buy a reading of `125` that the
+short way was denied.
+
+```ts runnable throws
+import { defineProfile } from "@cosyte/hl7";
+
+defineProfile({ name: "ambiguous", dateFormats: ["M[]D/YYYY"] });
+```
+
+Like rules 2 and 3, this one binds the **matcher** too. A digit run nothing can
+split has no honest answer, and a parser that picks one of its two readings has
+produced a confident wrong date. So a format breaking this rule reports **no
+match**, whichever route it arrived by, including the unvalidated per-parse
+`dateFormats` option. An empty escape anywhere else is simply invisible:
+`YYYY[]-MM-DD` reads `1988-07-05` exactly as `YYYY-MM-DD` does.
+
+### 5. A format must carry at least one token
+
+An empty format, or one made only of separators, matches nothing.
+
+## Matching an input
+
+- A **variable-width** numeric token takes the longest digit run that both
+  stays in range and leaves the rest of the format matchable. So `M/D/YYYY`
+  reads `7/5/1988` and `12/25/1988` with the same format string.
+- The **whole** input must be consumed. A value that ends early, or that
+  carries trailing characters, is no match.
+- A format carrying a 12-hour token with no meridiem token, or a meridiem token
+  with no 12-hour token (rule 2), is no match, rather than an hour the meridiem
+  was never applied to. A format carrying both a 24-hour token and a 12-hour
+  pair is no match unless the two readings agree after the conversion.
+- A format carrying `SSSS` with no `ss` (rule 3) is no match, rather than a
+  fraction of a minute.
+- A format whose numeric tokens meet with nothing between them (rule 4) is no
+  match, rather than one of the readings its digit run allows.
+- No match ever raises. It reports no match, and no parts are produced from it.
+
+The three bullets naming rules 2, 3 and 4 are those rules holding at match time
+as well as at definition time, and that is the half of the grammar the corpus
+cannot carry for you: a `no-match` case there is a **well-formed** format, and
+a format breaking one of these three is not well formed, so it can only appear
+in the corpus as a `reject-format` case. A parser that implements them at
+definition time only answers `2:30` under `h:mm` with hour 2 and passes every
+corpus case while doing it. This page is where that obligation is written.
+
+```ts runnable
+import { parseHL7 } from "@cosyte/hl7";
+
+const raw =
+  "MSH|^~\\&|LAB|MAIN|EHR|REF|05-JUL-1988||ORU^R01|1|P|2.5\r" +
+  "PID|1||MRN001^^^HOSP^MR||Testpatient^Casey||19880705|F";
+
+const msg = parseHL7(raw, { dateFormats: ["DD-MMM-YYYY"] });
+msg.meta.timestamp?.year; // => 1988
+msg.meta.timestamp?.month; // => 7
+msg.meta.timestamp?.day; // => 5
+msg.meta.timestamp?.precision; // => "day"
+```
+
+### Month names resolve to a month NUMBER
+
+`MMM` and `MMMM` produce the spec-native month **1 to 12** that every parsed
+value uses, never a 0-based index. `05-JUL-1988` under `DD-MMM-YYYY` is year
+1988, month **7**, day 5, at day precision.
+
+### The meridiem is converted and then discarded
+
+`hh`/`h` plus `A` yields the 24-hour hour, and the meridiem itself never
+appears in the result. `12 AM` is hour **0**, `12 PM` is hour **12**, and
+`2 PM` is hour **14**.
+
+```ts runnable
+import { parseHL7 } from "@cosyte/hl7";
+
+const at = (stamp: string): number | undefined =>
+  parseHL7(`MSH|^~\\&|LAB|MAIN|EHR|REF|${stamp}||ORU^R01|1|P|2.5\r`, {
+    dateFormats: ["M/D/YYYY h:mm A"],
+  }).meta.timestamp?.hour;
+
+at("7/5/1988 12:00 AM"); // => 0
+at("7/5/1988 12:00 PM"); // => 12
+at("7/5/1988 2:30 PM"); // => 14
+```
+
+### Precision follows the fields the format populates
+
+A value states the precision it was given and no more. `YYYY` is year
+precision, `YYYY-MM` is month, `YYYY-MM-DD` is day, and so on through hour,
+minute, second and fraction. Nothing is zero-filled to reach a level the
+format did not populate.
+
+| the format populates through | stated precision |
+| ---------------------------- | ---------------- |
+| year                         | `year`           |
+| month                        | `month`          |
+| day                          | `day`            |
+| hour                         | `hour`           |
+| minute                       | `minute`         |
+| second                       | `second`         |
+| fractional seconds           | `fraction`       |
+
+A format that populates no year describes a time of day rather than a date.
+The token grammar matches it, but there is no dated value to produce from it,
+so it yields no timestamp.
+
+## Two exclusions, with their reasons
+
+### No two-digit year
+
+There is no `YY` token and there will not be one. Resolving a two-digit year
+needs a century window, a window is a guess, and a wrong guess moves a date of
+birth by a hundred years while producing a date that looks entirely plausible.
+Nothing downstream can detect that. So a format containing `YY` is refused, and
+the refusal says why:
+
+```ts runnable throws
+import { defineProfile } from "@cosyte/hl7";
+
+defineProfile({ name: "legacy-lab", dateFormats: ["MM/DD/YY"] });
+```
+
+If a feed really sends two-digit years, widen them to four digits at the
+ingest boundary, where the century is a decision somebody made on purpose.
+
+### No timezone token
+
+An offset cannot be captured by a user format. This is not an oversight: the
+stance on offsets is that a value carrying none is **flagged** as carrying
+none, never resolved to UTC, because assuming UTC turns a day-only date of
+birth into the previous day in every negative-offset zone. See
+[Datetime precision and timezone fidelity](./spec-notes-datetime-precision.md)
+for the whole of that argument. A value matched through `dateFormats` therefore
+never carries an offset, and the consumer decides how to localize it.
+
+## The conformance corpus
+
+`test/fixtures/date-tokens/corpus.json` in this repository is the machine-
+readable form of everything above: pure JSON, no expression language, no
+syntax belonging to any one parser, and no dependency. It carries
+
+- at least one accepted case per token in the table,
+- at least one refused-at-definition case per rule above,
+- at least one no-match case per range or name violation, and
+- at least one accepted case per stated precision level.
+
+Each case declares its own expectation, and a runner that meets a case it
+cannot execute must **fail** rather than skip it: a corpus that quietly ignores
+what it does not understand proves nothing.
+
+A parser adopting this grammar reads the corpus, runs every case, and asserts
+the stated outcome. That is the whole conformance obligation, and it is the
+reason the grammar is written here once rather than re-derived per repository.
+
+### The file's shape
+
+Top level:
+
+| key               | meaning                                                                                                                                                     |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `grammar`         | Which grammar the file describes. Always `date-token-grammar`.                                                                                              |
+| `revision`        | Bumped when a case is added, removed or changed.                                                                                                            |
+| `description`     | One sentence, for a reader who arrives at the file before this page.                                                                                        |
+| `tokens`          | The whole token vocabulary. A runner asserts its own published token list equals this, which catches a parser that quietly recognizes more or fewer tokens. |
+| `refusalRules`    | Every reason a format is refused at definition time.                                                                                                        |
+| `precisionLevels` | Every stated precision level a value can carry.                                                                                                             |
+| `noMatchReasons`  | Every reason an input fails to match a well-formed format.                                                                                                  |
+| `cases`           | The cases themselves, one object each.                                                                                                                      |
+
+Every case carries an `id` (unique, stable, citable from a bug report), a
+`kind`, and a `note` saying what the case is for. The three kinds:
+
+**`kind: "accept"`** - the format is well formed AND the input matches it.
+`format` is the format string; `tokens` lists every token it uses, so
+per-token coverage is checkable without a tokenizer; `input` is the value;
+`expect` is the fields recovered, keyed `year`, `month`, `day`, `hour`,
+`minute`, `second`, `fractionalSeconds`, where a key that is absent must be
+absent from the result; and `precision` is one of `precisionLevels`, or `null`
+for a format that populates no year and so carries no date precision. `month`
+is spec-native 1 to 12, `hour` is a 24-hour reading with the meridiem already
+applied and gone, and `fractionalSeconds` is the digit string as written, with
+no leading dot and no rounding.
+
+**`kind: "reject-format"`** - the format is not well formed and must be refused
+at definition time, before any input is seen. `format` is the offending string
+and `rule` is one of `refusalRules`. A runner asserts both that the refusal
+happened and that it named the offending format: an unactionable error is a
+defect of its own.
+
+**`kind: "no-match"`** - the format is well formed and the input does not match
+it. `format`, `input`, and `reason`, one of `noMatchReasons`. The result is no
+match: never a substituted or partial value, and never a raised error.
+
+Beyond running each case, a runner asserts the corpus still covers what it
+claims: every token in `tokens` appears in some `accept` case, every rule in
+`refusalRules` in some `reject-format` case, every level in `precisionLevels`
+in some `accept` case, every reason in `noMatchReasons` in some `no-match`
+case, and every `id` is unique.

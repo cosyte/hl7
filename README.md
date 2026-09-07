@@ -555,6 +555,8 @@ day-first `05/07/1988` becomes a confident May 7 on a date of birth, and a plaus
 worse than a missing one. `BUILTIN_DATE_FALLBACKS` (ISO-8601 and the US-order slash forms) is a
 last resort for `msg.meta.timestamp` alone and never runs on a typed datetime field.
 
+A format is written from a fixed token vocabulary (`SUPPORTED_DATE_TOKENS`) that covers month names (`05-JUL-1988`), a 12-hour clock with AM/PM (`7/5/1988 2:30 PM`), single-digit tolerance (`M`, `D`, `H`) and escaped literals (`YYYY-MM-DD[T]HH:mm:ss`). It carries no two-digit-year token, because resolving one needs a century window and a wrong window moves a date of birth by a hundred years without failing. `defineProfile()` refuses a format the vocabulary cannot honour, at definition time, rather than accepting it and never matching. The whole grammar, with every token, rule and exclusion, is the `Date token grammar` page in the documentation.
+
 Built-in vendor profiles (`profiles.epic`, `profiles.genericLab`, etc.) already carry the date formats common to that vendor, and an option format is tried ahead of a profile's. Reach for a profile instead of hand-listing formats when one fits.
 
 #### Day-first vs month-first: the parser refuses to guess

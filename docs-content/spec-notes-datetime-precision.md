@@ -45,9 +45,11 @@ for one.
   the formats the CALLER declared, in order → parts from the matched tokens + `matchedFormat`.
   **Stops there.** No built-in fallback, deliberately (see below).
 - `parseDtmCascade(raw, opts): DtmParts`: lenient wrapper for non-composite callers (`meta`):
-  `parseDtmDeclared` first, else `BUILTIN_DATE_FALLBACKS`.
-  `BUILTIN_DATE_FALLBACKS`/`SUPPORTED_DATE_TOKENS` unchanged. One exception, below: an
-  order-ambiguous slash date resolves to nothing.
+  `parseDtmDeclared` first, else `BUILTIN_DATE_FALLBACKS`, whose membership and order are
+  unchanged: `ISO-8601`, `YYYY-MM-DD`, `MM/DD/YYYY`, `MM/DD/YYYY HH:mm:ss`. What a declared
+  format may contain is `SUPPORTED_DATE_TOKENS`, stated in full by the
+  [Date token grammar](./date-token-grammar.md). One exception, below: an order-ambiguous slash
+  date resolves to nothing.
 
 ## Order ambiguity: `05/07/1988` is refused, not guessed
 
