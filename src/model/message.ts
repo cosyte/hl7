@@ -153,9 +153,10 @@ export interface Hl7MessageInit {
   readonly segmentOverrides?: Readonly<Record<string, CustomSegmentDefinition>>;
   /**
    * Merged `dateFormats` list: `options.dateFormats ++ profile.dateFormats`
-   * deduped first-occurrence per D-21. Consumed by `msg.meta.timestamp` and
-   * any future helper that calls `parseDtmCascade` directly. Absent when
-   * neither `options.dateFormats` nor `profile.dateFormats` was supplied.
+   * deduped first-occurrence per D-21. Handed to every `Segment`, and through
+   * it to every `Field`, so a typed `TS` coercion honours it; also read
+   * directly by `msg.meta.timestamp`. Absent when neither
+   * `options.dateFormats` nor `profile.dateFormats` was supplied.
    */
   readonly dateFormats?: readonly string[];
 }
@@ -213,8 +214,10 @@ export class Hl7Message {
   /**
    * Merged `dateFormats` list: `options.dateFormats ++ profile.dateFormats`
    * deduped first-occurrence per D-21. Empty array when neither source
-   * supplied any formats. Exposed publicly so helpers (`msg.meta.timestamp`)
-   * and advanced callers can introspect the active cascade.
+   * supplied any formats. This is the list every datetime in the message
+   * honours, from `meta.timestamp` to any `field.asTs()`, in exactly this
+   * order; exposed so a caller can introspect what their options and profile
+   * added up to.
    */
   public readonly dateFormats: readonly string[];
 
@@ -426,9 +429,7 @@ export class Hl7Message {
       const raw = this.rawSegments[i];
       if (raw === undefined) continue;
       // D-16: hand each Segment its per-segment customFields slice so
-      // `seg.get(name)` can resolve named positions. Conditional-pass under
-      // exactOptionalPropertyTypes so the optional 4th ctor param stays
-      // truly absent (not explicitly undefined) when no profile applied.
+      // `seg.get(name)` can resolve named positions.
       //
       // The CUSTOM-SEGMENT map is consulted first and the standard-segment
       // override map only where it declared nothing, which is what makes an
@@ -441,11 +442,14 @@ export class Hl7Message {
       const customFields =
         segmentFieldMap(this._customSegments, raw.name) ??
         segmentFieldMap(this._segmentOverrides, raw.name);
-      if (customFields !== undefined) {
-        built.push(new Segment(raw, this.encodingCharacters, i, customFields));
-      } else {
-        built.push(new Segment(raw, this.encodingCharacters, i));
-      }
+      // D-21: every Segment also carries the merged dateFormats, so a typed
+      // `TS` coercion anywhere in the message honours what the caller declared.
+      // `customFields` rides along positionally and may be undefined: an
+      // optional PARAMETER accepts undefined (unlike an optional property
+      // under exactOptionalPropertyTypes), and `Segment` assigns it to a
+      // `... | undefined` field either way, so the conditional pass the 4th
+      // argument used to need collapses to one call.
+      built.push(new Segment(raw, this.encodingCharacters, i, customFields, this.dateFormats));
     }
     this._allSegments = built;
     return built;

@@ -42,7 +42,7 @@ promoted to a thrown `Hl7ParseError` instead.
 | `MLLP_FRAMING_STRIPPED`           | The input arrived wrapped in MLLP transport framing bytes. They were removed before parsing and the message itself is untouched.                    |
 | `FIELD_WHITESPACE_TRIMMED`        | Leading or trailing whitespace was trimmed from a field value. The warning carries only the character counts, never the value.                      |
 | `UNKNOWN_ESCAPE_SEQUENCE`         | An escape was not recognisable HL7 escape grammar, or ran to end of input unterminated. It is preserved verbatim in the parsed value.               |
-| `TIMESTAMP_FALLBACK_FORMAT`       | A timestamp did not match the strict HL7 shape, but a declared or built-in fallback format resolved it. The matched format is named.                |
+| `TIMESTAMP_FALLBACK_FORMAT`       | A timestamp did not match the strict HL7 shape, but a declared or built-in fallback format resolved it. Not produced by a parse: see below.         |
 | `SEGMENT_CASE`                    | A segment identifier carried a lowercase letter. It resolves as the segment it names, and the spelling that arrived is re-emitted unchanged.        |
 | `EXTRA_FIELDS`                    | A segment carries more fields than the active profile declares. The extras are preserved on the raw segment rather than dropped.                    |
 | `UNKNOWN_SEGMENT`                 | No standard segment carries that name, compared ignoring case, and no active profile claims it as a custom segment either.                          |
@@ -64,6 +64,13 @@ Three of these are emitted by a surface other than `parseHL7`, and arrive on tha
 result rather than on `msg.warnings`: `ACK_NO_CORRELATION_ID` from the acknowledgement builder,
 `MERGE_MISSING_PRIOR_OR_SURVIVOR` from `identityEvents()`, and the two batch codes plus
 `UNTERMINATED_STREAM_MESSAGE` from `splitBatch()` and `parseStream()`.
+
+`TIMESTAMP_FALLBACK_FORMAT` is a fourth exception, of a different kind: it is a published, stable
+code with no emit site a parse reaches, so it does not appear on `msg.warnings` at all. Read
+`matchedFormat` on the timestamp instead. It names the format that resolved a non-canonical value,
+and is absent when the value was canonical HL7 and parsed strictly. The code is documented here
+because it is exported and would otherwise be an undocumented member of `WARNING_CODES`; do not
+write a check that waits for it to arrive.
 
 ## Fatals
 
