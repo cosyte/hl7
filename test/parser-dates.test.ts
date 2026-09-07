@@ -17,7 +17,7 @@ import {
   matchTokenParts,
   tokeniseDateFormat,
 } from "../src/parser/date-tokens.js";
-import { defineProfile } from "../src/index.js";
+import { defineProfile, parseHL7 } from "../src/index.js";
 import { WARNING_CODES, type Hl7ParseWarning } from "../src/parser/warnings.js";
 import type { DateFormatToken } from "../src/parser/date-tokens.js";
 import type { Hl7Position } from "../src/parser/types.js";
@@ -831,5 +831,75 @@ describe("parser/dates: formats valid under the previous vocabulary are unchange
     expect(p).toMatchObject({ matchedFormat: "ISO-8601", hasTimezone: true, offsetMinutes: 0 });
     // The sentinel is not a token format: matching it as one recovers nothing.
     expect(matchDateFormat("2025-01-02T15:30:45Z", "ISO-8601")).toBeUndefined();
+  });
+});
+
+/**
+ * The widened vocabulary reaches this repository through the whole message
+ * path, not only through `matchDateFormat`, and two behaviours already on that
+ * path have to survive it: the order-ambiguity refusal, which is produced by
+ * the built-in stage and probes `DD/MM/YYYY` through the same matcher this
+ * change rewrites, and the rule that a declared format is honoured on every
+ * typed datetime rather than the header alone. A tolerant token is a new way to
+ * declare an order, so the two meet: declaring `M/D/YYYY` or `D/M/YYYY` has to
+ * resolve the value the built-ins refuse, and refusing to declare has to still
+ * be refused.
+ */
+describe("parser/dates: the widened vocabulary and the message path hold together", () => {
+  const ambiguousHeader = "MSH|^~\\&|APP|FAC|RECV|RFAC|05/07/1988||ADT^A01|MSG1|P|2.5\r";
+
+  function patientMessage(dob: string): string {
+    return (
+      "MSH|^~\\&|APP|FAC|RECV|RFAC|19880705||ADT^A01|MSG1|P|2.5\r" +
+      `PID|1||MRN1^^^HOSP^MR||Smith^Jane||${dob}|F\r`
+    );
+  }
+
+  it("an undeclared order-ambiguous slash date is still refused, never resolved", () => {
+    const ts = parseHL7(ambiguousHeader).meta.timestamp;
+    expect(ts?.valid).toBe(false);
+    expect(ts?.ambiguity?.code).toBe(AMBIGUOUS_DATE_ORDER);
+    expect(ts?.month).toBeUndefined();
+  });
+
+  it("a tolerant declared format resolves that value in the order it declares", () => {
+    expect(parseHL7(ambiguousHeader, { dateFormats: ["M/D/YYYY"] }).meta.timestamp).toMatchObject({
+      valid: true,
+      month: 5,
+      day: 7,
+      matchedFormat: "M/D/YYYY",
+    });
+    expect(parseHL7(ambiguousHeader, { dateFormats: ["D/M/YYYY"] }).meta.timestamp).toMatchObject({
+      valid: true,
+      month: 7,
+      day: 5,
+      matchedFormat: "D/M/YYYY",
+    });
+    expect(
+      parseHL7(ambiguousHeader, { dateFormats: ["D/M/YYYY"] }).meta.timestamp?.ambiguity,
+    ).toBeUndefined();
+  });
+
+  it("a declared month-name format reaches a typed datetime, not only the header", () => {
+    expect(
+      parseHL7(patientMessage("05-JUL-1988"), { dateFormats: ["DD-MMM-YYYY"] }).patient
+        ?.dateOfBirth,
+    ).toMatchObject({ valid: true, year: 1988, month: 7, day: 5, precision: "day" });
+  });
+
+  it("a declared 12-hour format reaches a typed datetime as the 24-hour value", () => {
+    const dob = parseHL7(patientMessage("7/5/1988 2:30 PM"), {
+      dateFormats: ["M/D/YYYY h:mm A"],
+    }).patient?.dateOfBirth;
+    expect(dob).toMatchObject({ valid: true, month: 7, day: 5, hour: 14, minute: 30 });
+    expect(dob).not.toHaveProperty("meridiem");
+  });
+
+  it("a typed datetime the caller never described stays valid: false, with no ambiguity", () => {
+    // Read through the field rather than `patient`, which omits an invalid
+    // datetime rather than surfacing one.
+    const dob = parseHL7(patientMessage("05-JUL-1988")).segments("PID")[0]?.field(7).asTs();
+    expect(dob).toEqual({ raw: "05-JUL-1988", valid: false, hasTimezone: false });
+    expect(dob?.ambiguity).toBeUndefined();
   });
 });
