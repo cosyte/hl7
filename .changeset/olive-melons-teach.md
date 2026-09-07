@@ -1,5 +1,5 @@
 ---
-"@cosyte/hl7": patch
+"@cosyte/hl7": minor
 ---
 
 Vendor date formats gain month names, AM/PM, 12-hour clocks and single-digit tolerance, and `dateFormats` validation is now strict: a format that previously constructed and then never matched will now throw where you wrote it.
@@ -23,6 +23,6 @@ So a profile that constructs today may throw at import after this release. That 
 
 A format built from the previous seven tokens and non-alphanumeric separators parses to the identical result. `BUILTIN_DATE_FALLBACKS` keeps its membership and its order, and the `ISO-8601` sentinel is untouched.
 
-One shape does change, and it is worth checking for, because the per-parse `dateFormats` option is not validated and so cannot warn you. `M`, `D`, `H`, `h`, `A` and `S` used to be ordinary letters that a format matched byte for byte; they are tokens now. A parse-option format that carried one of them as text (`"MM/DD/YYYY HH:mm Uhr"`, `"MM/DD/YYYY May"`) therefore stops matching, silently, where before it matched. Escape the literal letters (`"MM/DD/YYYY HH:mm [Uhr]"`) and the format reads as it did. The same string passed to `defineProfile()` throws instead, naming the character, which is the loud half of the same change.
+One shape does change, and it is worth checking for, because the per-parse `dateFormats` option is not validated and so cannot warn you. `M`, `D`, `H`, `h`, `A` and `S` used to be ordinary letters that a format matched byte for byte; they are tokens now. A parse-option format that carried one of them as text (`"MM/DD/YYYY HH:mm Uhr"`, `"MM/DD/YYYY May"`) therefore stops matching, silently, where before it matched, and a declared format now reaches every typed datetime the library returns rather than `msg.meta.timestamp` alone, so check the whole list rather than the header. Escape the literal letters (`"MM/DD/YYYY HH:mm [Uhr]"`) and the format reads as it did. The same string passed to `defineProfile()` throws instead, naming the character, which is the loud half of the same change.
 
 The grammar is now written down once, as a published `Date token grammar` page carrying the token table, the tokenisation and escaping rules, the pairing and adjacency rules, the meridiem conversion, the precision mapping and both exclusions with their reasons. A machine-readable corpus of cases ships beside it as plain JSON with no syntax belonging to any one parser, so a sibling parser can adopt the same grammar and prove it agrees rather than re-deriving it.

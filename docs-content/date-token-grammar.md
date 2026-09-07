@@ -2,6 +2,7 @@
 id: date-token-grammar
 title: "Date token grammar: vendor date formats, written down once"
 sidebar_label: Date token grammar
+description: "Every token a dateFormats string may contain, how a format is tokenised and escaped, which tokens require which, and the two exclusions."
 ---
 
 # Date token grammar
