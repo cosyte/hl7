@@ -167,8 +167,15 @@ function changeset(bump: string, summary: string): string {
 }
 
 /**
- * A throwaway checkout: a manifest, a `.changeset/` directory, and a readiness record. Every
- * unhappy-path case builds its own so that the one thing it is about is the only thing wrong.
+ * A throwaway checkout: a manifest, a `.changeset/` directory, a readiness record and a
+ * public-export inventory. Every unhappy-path case builds its own so that the one thing it is about
+ * is the only thing wrong.
+ *
+ * EVERY OPTION DEFAULTS TO WELL FORMED, and `null` is how a case removes a part of the record rather
+ * than corrupting it. That distinction is what keeps a case about an absent break-candidate section
+ * from also being a case about a wrong count: the negative control at the end of this file builds
+ * the same fixture with no options at all and requires exit 0, so a fixture that drifted into being
+ * unbuildable would take that case down rather than making every refusal above pass vacuously.
  */
 function makeRoot(options: {
   version?: string;
@@ -177,6 +184,16 @@ function makeRoot(options: {
   recordRows?: Record<string, string>;
   from?: string;
   target?: string;
+  /** The counts the record states. `null` omits that line from the record entirely. */
+  statedPending?: number | string | null;
+  statedMinor?: number | string | null;
+  statedExports?: number | string | null;
+  /** The body of the break-candidate section. `null` omits the whole section. */
+  breakSection?: string | null;
+  /** `exportCount` the written inventory records. */
+  inventoryExports?: number;
+  /** Raw inventory text, written verbatim. `null` writes no inventory file at all. */
+  inventory?: string | null;
 }): string {
   const dir = tempDir("hl7-readiness-");
   const version = options.version ?? "0.0.10";
@@ -201,9 +218,39 @@ function makeRoot(options: {
   }
 
   mkdirSync(join(dir, "release"));
+
+  // The inventory the record's stated export count is graded against.
+  const inventoryExports = options.inventoryExports ?? 42;
+  if (options.inventory !== null) {
+    writeFileSync(
+      join(dir, INVENTORY_RELATIVE),
+      options.inventory ??
+        `${JSON.stringify({ typescript: "5.9.3", exportCount: inventoryExports, exports: Array.from({ length: inventoryExports }, (_unused, index) => ({ name: `export${String(index)}`, kind: "variable", type: "string", members: [] })) }, null, 2)}\n`,
+    );
+  }
+
+  // Counted from the declarations themselves, never from the record's own rows: the point of the
+  // check is that the two can disagree, so the fixture's default has to come from the queue.
+  const countedMinor = Object.values(changesets).filter((body) =>
+    /"@cosyte\/hl7":\s*minor\s*$/m.test(body),
+  ).length;
+
   const table = Object.entries(rows)
     .map(([name, bump]) => `| \`${name}\` | \`${bump}\` | a synthetic justification |`)
     .join("\n");
+
+  const cause = Object.keys(changesets)[0] ?? Object.keys(rows)[0];
+  const defaultBreak =
+    cause === undefined
+      ? "1. **A synthetic narrowing.** Nothing causes it."
+      : `1. **A synthetic narrowing.** \`${cause}\`. It narrows something.`;
+
+  /** `- key: \`value\`` when the case states one, and no line at all when it states `null`. */
+  function stated(key: string, value: number | string | null | undefined, fallback: number) {
+    if (value === null) return [];
+    return [`- ${key}: \`${String(value ?? fallback)}\``];
+  }
+
   writeFileSync(
     join(dir, RECORD_RELATIVE),
     [
@@ -213,9 +260,21 @@ function makeRoot(options: {
       `- from: \`${options.from ?? version}\``,
       `- target: \`${options.target ?? "0.1.0"}\``,
       "",
+      "## Pending changesets",
+      "",
+      ...stated("pending", options.statedPending, Object.keys(changesets).length),
+      ...stated("minor", options.statedMinor, countedMinor),
+      "",
       "| changeset | bump | justification |",
       "| --- | --- | --- |",
       table,
+      "",
+      ...(options.breakSection === null
+        ? []
+        : ["## Break candidates", "", options.breakSection ?? defaultBreak, ""]),
+      "## Public export surface",
+      "",
+      ...stated("exports", options.statedExports, inventoryExports),
       "",
     ].join("\n"),
   );
@@ -296,6 +355,25 @@ describe("the pending queue in this checkout", () => {
     const cut = runCheck([], offline);
     expect(cut.status).toBe(online.status);
     expect(cut.output).toBe(online.output);
+
+    // THE NEW INPUT IS INSIDE THAT IDENTITY. `release/public-api.json` is read on every run, and a
+    // check that reached the same verdict because it consulted neither the registry NOR the
+    // inventory would satisfy the two assertions above without proving anything about the
+    // inventory. The report names the count it read, so both runs demonstrably read it.
+    expect(online.output).toMatch(/public exports:\s+\d+ \(release\/public-api\.json\)/);
+    expect(cut.output).toMatch(/public exports:\s+\d+ \(release\/public-api\.json\)/);
+
+    // And again on a synthetic root, so the identity is not an artifact of this checkout being the
+    // only tree either run ever looked at.
+    const root = makeRoot({
+      changesets: { "adds.md": changeset("minor", "adds something") },
+      recordRows: { "adds.md": "minor" },
+    });
+    const syntheticOnline = runCheck(["--root", root]);
+    const syntheticCut = runCheck(["--root", root], offline);
+    expect(syntheticCut.status).toBe(syntheticOnline.status);
+    expect(syntheticCut.output).toBe(syntheticOnline.output);
+    expect(syntheticOnline.status).toBe(0);
   });
 });
 
@@ -518,6 +596,286 @@ describe("the check refuses rather than certifying", () => {
 });
 
 /* -------------------------------------------------------------------------------------------- */
+/* 3b. The measurements the record STATES                                                          */
+/* -------------------------------------------------------------------------------------------- */
+
+/**
+ * The counts, the certified export-surface size and the break-candidate attributions were prose
+ * until now: they could drift arbitrarily far from `.changeset/` and `release/public-api.json` with
+ * every gate in this repository still green, which is how a readiness record accretes rather than
+ * being re-derived. Each case below is the only defect in its own throwaway root, and each asserts
+ * on the NUMBERS or the NAME in the output rather than only on the exit code, because a refusal that
+ * does not say which number disagreed sends a reader back to counting by hand.
+ */
+describe("the record's stated measurements are recounted, not believed", () => {
+  /** Two declarations, one `minor` and one `patch`: counted pending 2, counted `minor` 1. */
+  const twoDeclarations = {
+    "adds.md": changeset("minor", "adds something"),
+    "fixes.md": changeset("patch", "corrects something"),
+  };
+  const twoRows = { "adds.md": "minor", "fixes.md": "patch" };
+
+  it("names the stated and the counted number when the pending count is wrong", () => {
+    const root = makeRoot({
+      changesets: twoDeclarations,
+      recordRows: twoRows,
+      statedPending: 7,
+    });
+    const run = runCheck(["--root", root]);
+    expect(run.status).toBe(1);
+    expect(run.output).toContain("pending-declaration count");
+    expect(run.output).toContain("7");
+    expect(run.output).toContain("this run counted 2");
+    expect(run.output).not.toContain("ready to release");
+  });
+
+  it("names the stated and the counted number when the `minor` count is wrong", () => {
+    const root = makeRoot({
+      changesets: twoDeclarations,
+      recordRows: twoRows,
+      statedMinor: 2,
+    });
+    const run = runCheck(["--root", root]);
+    expect(run.status).toBe(1);
+    expect(run.output).toContain("`minor` declaration count");
+    expect(run.output).toContain("this run counted 1");
+    expect(run.output).not.toContain("ready to release");
+  });
+
+  it("reports a count the record declines to state, rather than skipping the comparison", () => {
+    // A measurement the record never made cannot be told from one that passed, so an absent count
+    // is a finding. It is exit 1 and not exit 2: every input was read, and it is the RECORD that is
+    // incomplete, not the checkout.
+    const root = makeRoot({
+      changesets: twoDeclarations,
+      recordRows: twoRows,
+      statedPending: null,
+    });
+    const run = runCheck(["--root", root]);
+    expect(run.status).toBe(1);
+    expect(run.output).toContain("states no pending-declaration count");
+    expect(run.output).not.toContain("ready to release");
+  });
+
+  it("names a stated count that is not a number at all", () => {
+    const root = makeRoot({
+      changesets: twoDeclarations,
+      recordRows: twoRows,
+      statedMinor: "several",
+    });
+    const run = runCheck(["--root", root]);
+    expect(run.status).toBe(1);
+    expect(run.output).toContain("several");
+    expect(run.output).toContain("not a number");
+    expect(run.output).not.toContain("ready to release");
+  });
+
+  it("names both numbers when the stated export-surface size is wrong", () => {
+    const root = makeRoot({
+      changesets: twoDeclarations,
+      recordRows: twoRows,
+      inventoryExports: 313,
+      statedExports: 300,
+    });
+    const run = runCheck(["--root", root]);
+    expect(run.status).toBe(1);
+    expect(run.output).toContain("public-export-surface size");
+    expect(run.output).toContain("300");
+    expect(run.output).toContain("this run counted 313");
+    expect(run.output).not.toContain("ready to release");
+  });
+
+  it("agrees when the stated export-surface size matches the inventory", () => {
+    // The negative control for the pair above: without it, a check that reported this problem
+    // unconditionally would pass every assertion in this describe block.
+    const root = makeRoot({
+      changesets: twoDeclarations,
+      recordRows: twoRows,
+      inventoryExports: 313,
+      statedExports: 313,
+    });
+    const run = runCheck(["--root", root]);
+    expect(run.output).toContain("public exports:   313");
+    expect(run.output).toContain("OK: ready to release");
+    expect(run.status).toBe(0);
+  });
+});
+
+/* -------------------------------------------------------------------------------------------- */
+/* 3c. The break candidates, held to the pending queue                                             */
+/* -------------------------------------------------------------------------------------------- */
+
+/**
+ * A break candidate is a claim that this release removes, renames or narrows something, and the
+ * pending declaration it names is what makes the claim checkable. A candidate whose cause has
+ * already shipped names a file that is no longer in `.changeset/`, and that IS the carried-over
+ * entry: the whole reason this section drifted is that nothing in the repository could tell a
+ * re-derived list from an inherited one.
+ */
+describe("the break-candidate section is held to the pending queue", () => {
+  const oneDeclaration = { "adds.md": changeset("minor", "adds something") };
+  const oneRow = { "adds.md": "minor" };
+
+  it("names a candidate attributed to a changeset that is not pending", () => {
+    const root = makeRoot({
+      changesets: oneDeclaration,
+      recordRows: oneRow,
+      breakSection: "1. **`thing` narrows.** `already-shipped.md`. Its cause landed a release ago.",
+    });
+    const run = runCheck(["--root", root]);
+    expect(run.status).toBe(1);
+    expect(run.output).toContain("already-shipped.md");
+    expect(run.output).toContain("not pending");
+    expect(run.output).not.toContain("ready to release");
+  });
+
+  it("names a stale attribution that has been moved out of the numbered list into prose", () => {
+    // The same staleness, one paragraph over. Holding only the numbered entries to the queue would
+    // leave a carried-over claim a place to sit where nothing reads it.
+    const root = makeRoot({
+      changesets: oneDeclaration,
+      recordRows: oneRow,
+      breakSection: [
+        "1. **`thing` narrows.** `adds.md`. A live candidate.",
+        "",
+        "Three further changes are additive at run time: see `already-shipped.md`.",
+      ].join("\n"),
+    });
+    const run = runCheck(["--root", root]);
+    expect(run.status).toBe(1);
+    expect(run.output).toContain("already-shipped.md");
+    expect(run.output).toContain("not pending");
+    expect(run.output).not.toContain("ready to release");
+  });
+
+  it("names a candidate that attributes itself to nothing", () => {
+    const root = makeRoot({
+      changesets: oneDeclaration,
+      recordRows: oneRow,
+      breakSection: "1. **`thing` narrows.** Something somewhere caused this.",
+    });
+    const run = runCheck(["--root", root]);
+    expect(run.status).toBe(1);
+    expect(run.output).toContain("names no changeset file");
+    expect(run.output).not.toContain("ready to release");
+  });
+
+  it("says the break-candidate section is missing rather than passing over it", () => {
+    const root = makeRoot({
+      changesets: oneDeclaration,
+      recordRows: oneRow,
+      breakSection: null,
+    });
+    const run = runCheck(["--root", root]);
+    expect(run.status).toBe(1);
+    expect(run.output).toContain("Break candidates");
+    expect(run.output).toContain("no `## Break candidates` section");
+    expect(run.output).not.toContain("ready to release");
+  });
+
+  it("reports a section it can find but from which it can read no candidate", () => {
+    // The sharper half of the case above: the heading is there, so a check that looked only for the
+    // heading would report a section it never actually read as assessed.
+    const root = makeRoot({
+      changesets: oneDeclaration,
+      recordRows: oneRow,
+      breakSection: "Nothing worth listing here, we had a look.",
+    });
+    const run = runCheck(["--root", root]);
+    expect(run.status).toBe(1);
+    expect(run.output).toContain("holds no candidate this check can read");
+    expect(run.output).not.toContain("ready to release");
+  });
+
+  it("accepts a candidate attributed to a declaration that is pending", () => {
+    // The negative control for this block.
+    const root = makeRoot({
+      changesets: oneDeclaration,
+      recordRows: oneRow,
+      breakSection: "1. **`thing` narrows.** `adds.md`. Remedy: do the other thing.",
+    });
+    const run = runCheck(["--root", root]);
+    expect(run.output).toContain("OK: ready to release");
+    expect(run.status).toBe(0);
+  });
+});
+
+/* -------------------------------------------------------------------------------------------- */
+/* 3d. The public-export inventory is an input, and a missing one refuses                           */
+/* -------------------------------------------------------------------------------------------- */
+
+/**
+ * Exit 2 throughout, and that is the whole point of these four. A run that could not read the
+ * inventory has not compared the certified surface against anything, and reporting a clean queue
+ * after one of them would certify a surface by omission: `release/public-api.json` is the only
+ * written record that the public type surface moved, and the record's claim about its size is
+ * evidence only for as long as something recomputes it.
+ */
+describe("the public-export inventory refuses rather than being skipped", () => {
+  const oneDeclaration = { "adds.md": changeset("minor", "adds something") };
+  const oneRow = { "adds.md": "minor" };
+
+  it("refuses at exit 2 when the inventory is absent, naming the file", () => {
+    const root = makeRoot({ changesets: oneDeclaration, recordRows: oneRow, inventory: null });
+    const run = runCheck(["--root", root]);
+    expect(run.status).toBe(2);
+    expect(run.output).toContain("REFUSED");
+    expect(run.output).toContain("public-api.json");
+    expect(run.output).not.toContain("ready to release");
+  });
+
+  it("refuses at exit 2 when the inventory is not valid JSON", () => {
+    const root = makeRoot({
+      changesets: oneDeclaration,
+      recordRows: oneRow,
+      inventory: "{ this is not json,\n",
+    });
+    const run = runCheck(["--root", root]);
+    expect(run.status).toBe(2);
+    expect(run.output).toContain("REFUSED");
+    expect(run.output).toContain("not valid JSON");
+    expect(run.output).not.toContain("ready to release");
+  });
+
+  it("refuses at exit 2 when the inventory carries no usable `exportCount`", () => {
+    const root = makeRoot({
+      changesets: oneDeclaration,
+      recordRows: oneRow,
+      inventory: `${JSON.stringify({ typescript: "5.9.3", exports: [] }, null, 2)}\n`,
+    });
+    const run = runCheck(["--root", root]);
+    expect(run.status).toBe(2);
+    expect(run.output).toContain("REFUSED");
+    expect(run.output).toContain("exportCount");
+    expect(run.output).not.toContain("ready to release");
+  });
+
+  it("refuses at exit 2 when the inventory's head disagrees with its own body", () => {
+    // A hand-edited count. The number the record would be graded against is then not the size of
+    // the surface the file records, so there is nothing here to compare and the run says so.
+    const root = makeRoot({
+      changesets: oneDeclaration,
+      recordRows: oneRow,
+      inventory: `${JSON.stringify(
+        {
+          typescript: "5.9.3",
+          exportCount: 313,
+          exports: [{ name: "only", kind: "variable", type: "string", members: [] }],
+        },
+        null,
+        2,
+      )}\n`,
+    });
+    const run = runCheck(["--root", root]);
+    expect(run.status).toBe(2);
+    expect(run.output).toContain("REFUSED");
+    expect(run.output).toContain("313");
+    expect(run.output).toContain("lists 1 exports");
+    expect(run.output).not.toContain("ready to release");
+  });
+});
+
+/* -------------------------------------------------------------------------------------------- */
 /* 4. The committed record, and the tarball                                                        */
 /* -------------------------------------------------------------------------------------------- */
 
@@ -554,6 +912,42 @@ describe("the committed readiness record", () => {
 
   it("states in one line that publication awaits the release frequency policy", () => {
     expect(readFileSync(RECORD_PATH, "utf8")).toMatch(/awaits the release frequency policy/);
+  });
+
+  it("says something about every pending declaration in its break-candidate section", () => {
+    // SILENCE ABOUT A DECLARATION IS THE STALENESS THIS SECTION DRIFTS INTO. The attribution check
+    // in the script catches a candidate whose cause has SHIPPED; it cannot catch a declaration that
+    // arrived after the section was written and was never assessed at all, because an absent
+    // sentence names nothing. So the record accounts for every pending file, either by causing a
+    // candidate or by saying in so many words that it removes, renames and narrows nothing, and this
+    // is what holds it to that.
+    if (!RECORD_IS_LIVE) {
+      expect(atLeast(manifestVersion(REPO_ROOT), RECORD_TARGET)).toBe(true);
+      return;
+    }
+
+    const text = readFileSync(RECORD_PATH, "utf8");
+    const lines = text.split("\n");
+    const start = lines.findIndex((line) => line.trim() === "## Break candidates");
+    expect(start, "the record carries no `## Break candidates` section").toBeGreaterThan(-1);
+    let end = lines.length;
+    for (let i = start + 1; i < lines.length; i += 1) {
+      if (/^## /.test(lines[i] ?? "")) {
+        end = i;
+        break;
+      }
+    }
+    const section = lines.slice(start + 1, end).join("\n");
+
+    // Read once with a fixed pattern and compared as a set, never one pattern built per file name:
+    // interpolating a name into a regex means escaping it, and this needs no assembly at all.
+    const named = new Set<string>();
+    for (const match of section.matchAll(/\x60([^\x60\s]+\.md)\x60/g)) {
+      if (match[1] !== undefined) named.add(match[1]);
+    }
+    for (const file of pendingFiles(REPO_ROOT)) {
+      expect(named.has(file), `the break-candidate section says nothing about ${file}`).toBe(true);
+    }
   });
 });
 
