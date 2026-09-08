@@ -1,0 +1,41 @@
+# This kit is a COPY-AND-CUSTOMIZE TEMPLATE that is installed STANDALONE, and
+# this file is what keeps that true. The repository root carries its own
+# pnpm-workspace.yaml (install hardening), and the mere presence of that file
+# makes the repository root a pnpm workspace root. Without this file pnpm walks
+# up from here, finds that root, sees this directory is not one of its members,
+# and installs the ROOT project instead: exit 0, no node_modules here, and CI's
+# `extras` job then typechecks, lints, tests and builds the kit against
+# dependencies that were never installed. Its presence makes this directory its
+# own workspace root, so `pnpm install` here installs the kit, exactly as it did
+# before the root file existed.
+#
+# There is deliberately no `packages:` key. The kit is one package, not a
+# workspace, and pnpm treats the directory holding this file as the root project
+# regardless. A consumer who grows the kit into a monorepo adds their globs here.
+
+# esbuild's build script, reached as a transitive of tsup and vite, is the only
+# one this kit installs. Declaring it here states the decision that was
+# previously implicit: pnpm 10 asks to be told, and an undeclared build script
+# makes the install exit non-zero with ERR_PNPM_IGNORED_BUILDS wherever scripts
+# are being suppressed. `true` is what this kit already gets on a CI runner, so
+# this records today's behaviour rather than changing it.
+allowBuilds:
+  esbuild: true
+
+# Mirrored from the repository root so that a consumer who copies this kit
+# inherits the same 24 hour publication cooldown. pnpm's rationale for the
+# number: "Since malware is usually detected quickly, delaying updates by 24
+# hours will most likely prevent you from installing a bad version"
+# (https://pnpm.io/supply-chain-security).
+minimumReleaseAge: 1440
+
+# trustPolicy IS DELIBERATELY NOT MIRRORED HERE, and the reason is measured
+# rather than chosen. This kit ships no lockfile on purpose, so every install is
+# a full from-scratch resolution; with trustPolicy set, that resolution reds with
+# ERR_PNPM_TRUST_DOWNGRADE (measured 2026-09-08 on pnpm 10.34.5: undici-types
+# under @types/node, then chokidar under tsup). The repository root closes that
+# with exclusions pinned to the exact versions its committed pnpm-lock.yaml
+# resolves. There is no lockfile here to pin against, so the same exclusions
+# would be unretirable guesses, and the next unrelated package to drop its
+# provenance would red this repository's CI with no change of ours. A template's
+# install is a smoke test of the template, not the estate's supply-chain gate.
