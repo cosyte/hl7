@@ -82,6 +82,57 @@ fallback" (`valid: true` + `matchedFormat`).
   built-in, so there was no second reading to refuse. `msg.meta.timestamp` is the value that carries
   the report.
 
+### Conversion surface: `src/parser/date-conversion.ts`
+
+A read layer over `DtmParts`, carrying the three names every `@cosyte` parser exposes. It converts;
+it never re-parses, and it changes nothing about how a value was parsed.
+
+- `interface DateParts { year?; month?(1-12, spec-native); day?; hour?; minute?; second?;
+  millisecond?; offsetMinutes?(signed, iff an explicit offset was stated) }`. Frozen. Names singular.
+- `toObject(value): DateParts | undefined`: only the stated components, so `Object.keys()` recovers
+  the precision. A component the value did not state is **absent**, not present-with-undefined. No
+  `raw`, `valid`, `precision`, `hasTimezone` or `matchedFormat` key. `millisecond` is the first three
+  fractional digits **verbatim**, right-padded (`.5`=500, `.0500`=50), never a float multiplication.
+  `-0000` surfaces as `offsetMinutes: 0`. `!valid` or no stated component at all -> undefined.
+- `toISO(value): string | undefined`: ISO-8601 **truncated to the stated precision**, fractional
+  digits verbatim. Offset appended as `Z` when exactly zero (`-0000` included), else `+HH:MM`/
+  `-HH:MM`; **nothing** appended when no offset was stated. So `toISO` is a rendering and
+  `formatDtm` remains the byte-exact round trip. No year (which HL7 DTM cannot state) -> undefined.
+- `toDate(value, opts?): Date | undefined`: delegates to `dtmToDate`, so the zone rule and the
+  sub-100-year handling are the existing ones, unchanged.
+- All three accept `undefined` / `null` and return `undefined`. **None ever throws, for any input.**
+- **Options bounds, on the second parameter as well as the first:** the bag may be `null` or absent
+  (`opts?.` is read, not defaulted, because a default parameter fires for `undefined` only), and
+  `assumeOffsetMinutes` must be a **finite number** or the answer is `undefined`. `"0"`, `true` and
+  `[]` all multiply to `0` in JS, so an unguarded delegation hands back a UTC instant the caller
+  never asked for; `NaN`, the infinities and an offset past the range a `Date` represents are
+  refused for the same reason, so no answer is ever an `Invalid Date`. A value stating its own
+  offset never reaches the guard: its offset wins and the assumption is ignored, per the Contract.
+  `dtmToDate` is a published name and keeps its own coercing behaviour: the guard is added by the
+  conversion layer, exactly as the component bound below is.
+- **Component bounds, applied by all three to the WHOLE value:** year 0-9999, month 1-12, day 1 to
+  the last day THAT month has (full 4/100/400 leap rule; an unstated year bounds February at 29),
+  hour 0-23, minute 0-59, second 0-59. `20240230` and `20230229` convert to `undefined` rather than
+  rolling into 1 March, and an in-range prefix is never converted in place of the refused value.
+  The bound reads the components, so a hand-built `DtmParts` is held to it exactly as a parsed one
+  is. `parseDtm` is untouched and stays liberal (day 1-31, month-blind), so `formatDtm` still
+  round-trips those bytes: the refusal is in the conversion, which is where a wrong answer would
+  look right. `new Date("2024-02-30")` is 1 March in V8, so rendering it would shift a date of
+  birth by a day with nothing to notice.
+- **The stated offset is a bounded component too, when the value claims one:** a whole number of
+  minutes within `+/-23:59` of UTC, which is both what the `+HH:MM` rendering can state and what an
+  ISO-8601 reader accepts (`new Date("2024-02-29T12:00:00+24:00")` is an `Invalid Date`). The same
+  helper does it, so a string, a boolean, an array, `NaN` and a fractional minute are refused with
+  it. Two routes reach that field without a cast: a hand-built `DtmParts`, and `msg.meta.timestamp`,
+  whose fallback read range-checks the calendar components and not the offset, so a wire MSH-7 of
+  `2024-02-29T12:00:00+99:99` states 6039 minutes east. Unbounded, `toObject` reports a non-number
+  in a `number` slot, `toISO` renders `+NaN:NaN` or a three-digit hour, and `toDate` multiplies a
+  `null` or a `"0"` to zero and answers a confident UTC instant. `parseDtm` (up to `+2400`),
+  `formatDtm` and `dtmToDate` are untouched, exactly as for the calendar bound above. An
+  `offsetMinutes` on a value with `hasTimezone: false` states nothing and is ignored, not refused.
+- The three names are identical across the `@cosyte` parsers, so a consumer importing two of them
+  aliases (`import { toISO as hl7ToISO } from "@cosyte/hl7"`) or namespace-imports.
+
 ### TS composite: `src/model/types/ts.ts`
 
 - `TS` is the `DtmParts` shape (raw, valid, precision?, parts, hasTimezone, offsetMinutes?). Frozen.
