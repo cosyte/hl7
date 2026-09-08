@@ -1,6 +1,6 @@
 {
   "name": "@cosyte/hl7",
-  "version": "0.0.10",
+  "version": "0.1.0",
   "description": "Developer-focused HL7 v2 toolkit for Node.js and TypeScript, message parsing and building, mutation and serialization, and one-line helpers.",
   "keywords": [
     "hl7",

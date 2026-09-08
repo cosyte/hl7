@@ -18,7 +18,7 @@
  * console.log(VERSION);
  * ```
  */
-export const VERSION: string = "0.0.10";
+export const VERSION: string = "0.1.0";
 
 export { parseHL7 } from "./parser/index.js";
 export { Hl7Message } from "./model/message.js";
