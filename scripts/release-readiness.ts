@@ -26,10 +26,28 @@
  *   4. THE RECORD AND THE QUEUE MUST BE THE SAME SET. A changeset the record never mentions was
  *      never classified by anyone, and a record naming a file that is gone describes a release
  *      that is not the one about to happen. Both directions are reported by name.
+ *   5. A NUMBER THE RECORD STATES IS A NUMBER THIS CHECK RECOUNTS. The record states how many
+ *      declarations are pending and how many of them are `minor`. Those were prose until now, so
+ *      they could drift arbitrarily far from `.changeset/` with every gate in the repository still
+ *      green. Both are recounted from the queue and both are named, stated beside counted, when
+ *      they disagree. A record that states neither is a finding too: a measurement the record
+ *      declines to make is not a measurement that passed.
+ *   6. THE CERTIFIED EXPORT SURFACE IS THE COMMITTED ONE. The record states the size of the public
+ *      export surface it certifies, and that number is compared against `exportCount` in
+ *      `release/public-api.json`. An inventory that is absent, is not JSON, or whose head disagrees
+ *      with its own body is a MISSING INPUT (exit 2), never a skipped check reported as a clean
+ *      queue: the surface a release owner is being asked to certify would then be one nothing read.
+ *   7. A BREAK CANDIDATE NAMES A DECLARATION THAT IS STILL PENDING. The break-candidate section is
+ *      the list of public exports and stable codes this release removes, renames or narrows, and it
+ *      is the section most easily carried forward from a previous release: a candidate whose cause
+ *      has already shipped is exactly a stale entry, and it is detected by requiring every changeset
+ *      file the section names to be pending in `.changeset/`. A candidate naming no file at all, a
+ *      section holding no readable candidate, and an absent section are each a finding rather than
+ *      a section stepped over.
  *
  * IT READS THE CHECKOUT AND NOTHING ELSE. No network call, no registry lookup, no subprocess: the
- * verdict is a function of `package.json`, `.changeset/` and the record. A gate that needs the
- * network cannot run in the place where a release is decided.
+ * verdict is a function of `package.json`, `.changeset/`, the record and `release/public-api.json`.
+ * A gate that needs the network cannot run in the place where a release is decided.
  *
  * IT COMPUTES THE RESOLVED VERSION, IT DOES NOT REPLACE THE RELEASE TOOL. The arithmetic here is
  * "apply the strongest pending bump to the manifest version", which is what Changesets does for a
@@ -76,12 +94,39 @@ interface RecordRow {
   readonly justification: string;
 }
 
+/**
+ * One entry in the record's break-candidate list: a public export or a stable code this release
+ * removes, renames or narrows, and the pending declaration or declarations that cause it.
+ *
+ * `files` is every changeset name the entry cites, and it is allowed to be EMPTY here rather than
+ * being made a condition of recognising the entry at all. An entry citing nothing has to be visible
+ * to the verdict as an unattributed candidate; recognising candidates only by their citation would
+ * make the same defect disappear from the report instead.
+ */
+interface BreakCandidate {
+  readonly ordinal: string;
+  readonly title: string;
+  readonly files: readonly string[];
+}
+
+/** The record's break-candidate section, or `undefined` when it carries no such section at all. */
+interface BreakSection {
+  readonly candidates: readonly BreakCandidate[];
+  /** Every changeset name the whole section cites, candidate or prose. */
+  readonly citedFiles: readonly string[];
+}
+
 interface ReadinessRecord {
   readonly path: string;
   readonly packageName: string;
   readonly from: string;
   readonly target: string;
   readonly rows: readonly RecordRow[];
+  /** The counts the record states, verbatim; absent when it states none. Recounted, never trusted. */
+  readonly statedPending: string | undefined;
+  readonly statedMinor: string | undefined;
+  readonly statedExports: string | undefined;
+  readonly breakSection: BreakSection | undefined;
 }
 
 /** An input the run needed and could not read. Distinct from an unready queue, and exits 2. */
@@ -219,6 +264,70 @@ function readPending(root: string, packageName: string): PendingChangeset[] {
 }
 
 /* -------------------------------------------------------------------------------------------- */
+/* The committed public-export inventory                                                          */
+/* -------------------------------------------------------------------------------------------- */
+
+/** Where `scripts/api-surface.ts` writes the surface, and where this check reads it back. */
+const INVENTORY_RELATIVE = "release/public-api.json";
+
+/**
+ * The one fact this check needs out of `release/public-api.json`: how many exports the committed
+ * inventory records.
+ *
+ * EVERY WAY OF NOT GETTING THAT NUMBER IS A REFUSAL, exit 2. Absent, unparseable, or carrying no
+ * usable `exportCount` are all "the surface I was asked to certify was never read", and reporting a
+ * clean queue after one of them would certify a surface by omission. A count of zero is refused on
+ * the same terms `scripts/api-surface.ts` refuses an empty baseline: a zero-export inventory can
+ * only ever agree with a build that produced nothing.
+ *
+ * The head is also checked against the body. `exports.length` is what `--write` puts in
+ * `exportCount`, so a file where the two disagree has been edited by hand, and the number this
+ * check would compare the record against is then not the size of the surface the file records.
+ */
+function readInventoryExportCount(root: string): number {
+  const path = join(root, INVENTORY_RELATIVE);
+  let text: string;
+  try {
+    text = readFileSync(path, "utf8");
+  } catch (error) {
+    throw new RefusalError(
+      `could not read the public-export inventory at ${path}: ${error instanceof Error ? error.message : String(error)}. ` +
+        "Generate it with `tsx scripts/api-surface.ts --write`.",
+    );
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch (error) {
+    throw new RefusalError(
+      `the public-export inventory at ${path} is not valid JSON: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+  if (typeof parsed !== "object" || parsed === null) {
+    throw new RefusalError(`the public-export inventory at ${path} did not parse to an object`);
+  }
+
+  const inventory: Record<string, unknown> = { ...parsed };
+  const exportCount = inventory["exportCount"];
+  if (typeof exportCount !== "number" || !Number.isInteger(exportCount) || exportCount <= 0) {
+    throw new RefusalError(
+      `the public-export inventory at ${path} has no usable \`exportCount\`: expected a positive integer`,
+    );
+  }
+
+  const exports = inventory["exports"];
+  if (Array.isArray(exports) && exports.length !== exportCount) {
+    throw new RefusalError(
+      `the public-export inventory at ${path} states \`exportCount\` ${String(exportCount)} and ` +
+        `lists ${String(exports.length)} exports. Regenerate it with \`tsx scripts/api-surface.ts --write\`.`,
+    );
+  }
+
+  return exportCount;
+}
+
+/* -------------------------------------------------------------------------------------------- */
 /* The readiness record                                                                           */
 /* -------------------------------------------------------------------------------------------- */
 
@@ -235,6 +344,62 @@ function headerValues(text: string): Map<string, string> {
     if (match[1] !== undefined && match[2] !== undefined) values.set(match[1], match[2]);
   }
   return values;
+}
+
+/** The heading the break-candidate section is written under, matched exactly. */
+const BREAK_HEADING = "## Break candidates";
+
+/** Every changeset file name a stretch of the record cites, as `` `name.md` `` code spans. */
+function citedChangesets(text: string): string[] {
+  const names: string[] = [];
+  for (const match of text.matchAll(/\x60([^\x60\s]+\.md)\x60/g)) {
+    if (match[1] !== undefined) names.push(match[1]);
+  }
+  return names;
+}
+
+/**
+ * The record's break-candidate section, read as a numbered list.
+ *
+ * A candidate is a numbered list item opening in bold (`1. **`buildAdt` narrows.**`), and its body
+ * runs to the next such item or to the end of the section. That grammar is deliberately the one the
+ * record already used, so nothing about the record's shape is invented here to make it checkable.
+ *
+ * Returns `undefined` when the record carries no such section, which the verdict reports rather
+ * than passing over: an absent section and a section listing nothing are the two ways a stale
+ * break list hides, and neither is a skip.
+ */
+function readBreakSection(text: string): BreakSection | undefined {
+  const lines = text.split(/\r?\n/);
+  const start = lines.findIndex((line) => line.trim() === BREAK_HEADING);
+  if (start === -1) return undefined;
+
+  let end = lines.length;
+  for (let i = start + 1; i < lines.length; i += 1) {
+    if (/^## /.test(lines[i] ?? "")) {
+      end = i;
+      break;
+    }
+  }
+  const body = lines.slice(start + 1, end);
+
+  const opens: number[] = [];
+  for (let i = 0; i < body.length; i += 1) {
+    if (/^\d+\.\s+\*\*/.test(body[i] ?? "")) opens.push(i);
+  }
+
+  const candidates = opens.map((open, index): BreakCandidate => {
+    const stop = opens[index + 1] ?? body.length;
+    const entry = body.slice(open, stop).join("\n");
+    const heading = /^(\d+)\.\s+\*\*(.+?)\*\*/.exec(body[open] ?? "");
+    return {
+      ordinal: heading?.[1] ?? String(index + 1),
+      title: heading?.[2] ?? "",
+      files: citedChangesets(entry),
+    };
+  });
+
+  return { candidates, citedFiles: citedChangesets(body.join("\n")) };
 }
 
 function readRecord(root: string, recordPath: string): ReadinessRecord {
@@ -287,7 +452,17 @@ function readRecord(root: string, recordPath: string): ReadinessRecord {
     seen.add(row.file);
   }
 
-  return { path, packageName, from, target, rows };
+  return {
+    path,
+    packageName,
+    from,
+    target,
+    rows,
+    statedPending: header.get("pending"),
+    statedMinor: header.get("minor"),
+    statedExports: header.get("exports"),
+    breakSection: readBreakSection(text),
+  };
 }
 
 /* -------------------------------------------------------------------------------------------- */
@@ -353,6 +528,38 @@ function parseArgs(argv: readonly string[]): Options {
   return target === undefined ? { root, record } : { root, record, target };
 }
 
+/**
+ * Compare one number the record STATES against the number this run COUNTED, and return the problem
+ * to report, or nothing.
+ *
+ * A record that states no number at all is a problem, not a check skipped: an unstated measurement
+ * is indistinguishable from a measurement nobody made, and stepping over it is precisely how the
+ * prose in this record came to drift from the tree in the first place. This is an unready queue and
+ * not a refusal, though, because the check read every input it needed to; exit 2 stays reserved for
+ * a run that could not.
+ */
+function countProblem(
+  label: string,
+  key: string,
+  stated: string | undefined,
+  counted: number,
+): string | undefined {
+  const what = `the ${label} (\`- ${key}: \`…\`\`)`;
+  if (stated === undefined) {
+    return (
+      `the record states no ${label}. It must carry \`- ${key}: \`<number>\`\` on a line of its ` +
+      `own, so the number a release owner reads is the number this check recounted (${String(counted)})`
+    );
+  }
+  if (!/^\d+$/.test(stated)) {
+    return `${what} the record states is \`${stated}\`, which is not a number; this run counted ${String(counted)}`;
+  }
+  if (Number(stated) !== counted) {
+    return `${what} the record states is ${stated}; this run counted ${String(counted)}`;
+  }
+  return undefined;
+}
+
 function report(options: Options): { code: number; lines: string[] } {
   const out: string[] = [];
   const problems: string[] = [];
@@ -361,6 +568,7 @@ function report(options: Options): { code: number; lines: string[] } {
   const record = readRecord(options.root, options.record);
   const target = options.target ?? record.target;
   const pending = readPending(options.root, manifest.name);
+  const inventoryExports = readInventoryExportCount(options.root);
 
   out.push(`release-readiness: ${manifest.name}`);
   out.push(`  manifest version: ${manifest.version}`);
@@ -371,6 +579,7 @@ function report(options: Options): { code: number; lines: string[] } {
   // EVERY pending file is listed with what it declares, defect or not. The report is the artifact a
   // reviewer reads, so a file that could not be classified has to appear IN it, not be missing from
   // it: an omitted line is indistinguishable from a file that was never there.
+  out.push(`  public exports:   ${String(inventoryExports)} (${INVENTORY_RELATIVE})`);
   out.push(`  pending changesets (${String(pending.length)}):`);
   for (const entry of pending) {
     const width = Math.max(...pending.map((p) => p.file.length));
@@ -435,6 +644,59 @@ function report(options: Options): { code: number; lines: string[] } {
     }
     if (row.justification.length === 0) {
       problems.push(`the record gives no justification for \`${row.file}\``);
+    }
+  }
+
+  // The measurements the record STATES, each recounted from the input it is a measurement of.
+  const countedMinor = pending.filter((entry) => entry.bump === "minor").length;
+  for (const problem of [
+    countProblem("pending-declaration count", "pending", record.statedPending, pending.length),
+    countProblem("`minor` declaration count", "minor", record.statedMinor, countedMinor),
+    countProblem("public-export-surface size", "exports", record.statedExports, inventoryExports),
+  ]) {
+    if (problem !== undefined) problems.push(problem);
+  }
+
+  // THE BREAK CANDIDATES, ATTRIBUTED. A candidate is a claim that this release removes, renames or
+  // narrows something, and the pending declaration it names is what makes that claim checkable: a
+  // candidate whose cause has already shipped names a file that is no longer in `.changeset/`, and
+  // that is exactly the carried-over entry this looks for.
+  if (record.breakSection === undefined) {
+    problems.push(
+      `the record carries no \`${BREAK_HEADING}\` section. A release whose break candidates were ` +
+        "never enumerated has not been assessed for them, so the section is required rather than " +
+        "assumed empty",
+    );
+  } else {
+    const { candidates, citedFiles } = record.breakSection;
+    if (candidates.length === 0) {
+      problems.push(
+        `the record's \`${BREAK_HEADING}\` section holds no candidate this check can read. ` +
+          "Expected numbered entries shaped ``1. **What narrows.** `cause.md`. …``",
+      );
+    }
+    for (const candidate of candidates) {
+      if (candidate.files.length === 0) {
+        problems.push(
+          `break candidate ${candidate.ordinal} (${candidate.title}) names no changeset file: an ` +
+            "unattributed candidate cannot be told from one whose cause has already shipped",
+        );
+      }
+    }
+    // Every name the section cites, candidate or prose. A stale entry moved into a paragraph is the
+    // same stale entry, so the whole section is held to the pending queue rather than the list alone.
+    for (const file of [...new Set(citedFiles)].sort()) {
+      if (!pendingNames.has(file)) {
+        const owner = candidates.find((candidate) => candidate.files.includes(file));
+        const where =
+          owner === undefined
+            ? `the \`${BREAK_HEADING}\` section`
+            : `break candidate ${owner.ordinal} (${owner.title})`;
+        problems.push(
+          `${where} attributes itself to \`${file}\`, which is not pending in \`.changeset/\`: its ` +
+            "cause has already shipped, so the candidate was carried over rather than re-derived",
+        );
+      }
     }
   }
 
