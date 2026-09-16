@@ -94,6 +94,12 @@
 #   * LICENSE              shipped inside the npm tarball
 #   * docs-content/        every tracked file, including sidebars.json: this is the
 #                          content published to docs.cosyte.com
+#   * documentation/       the reference pages README.md links to and a reader browses on
+#                          the way in. This text WAS README.md, so it was already inside
+#                          this gate's surface; splitting it into files of its own must not
+#                          quietly take it out. Not published to docs.cosyte.com and not in
+#                          the npm tarball, so it is public because the repo is public,
+#                          which is the same reason LICENSE is listed.
 #   * package.json         the npm-visible metadata ONLY (`description`, `keywords`),
 #                          extracted and scanned as text. Named explicitly by the
 #                          convention. The rest of package.json is not public prose, and
@@ -593,7 +599,7 @@ fail_with_hits() {
 cd "$(git rev-parse --show-toplevel)"
 
 # The public surface, as paths. Each is justified in the SCAN SURFACE note at the top.
-SURFACE_PATHS=(README.md TRADEMARKS.md LICENSE docs-content)
+SURFACE_PATHS=(README.md TRADEMARKS.md LICENSE docs-content documentation)
 
 # Every named surface path must still be tracked. Without this, renaming or deleting
 # README.md makes the gate scan less and still print OK, which is the same silent-green
