@@ -8,6 +8,14 @@ name: Em-dash gate
 # to keep it that way. A green run on a clean tree proves nothing on its own, which is
 # why the script it calls refuses to print OK from a scan that did not read everything.
 #
+# THE IMPLEMENTATION IS NOT IN THIS REPOSITORY. Both steps below run the one em-dash gate
+# for the estate, published as `@cosyte/script-utils` and executed out of `node_modules`;
+# this repository tracks no copy of it, so there is nothing here to drift. What this
+# repository decides for itself is what its scan leaves out, and that is declared in
+# `scripts/check-no-emdash.exclude`. `pnpm run check:no-emdash -- --self-id` prints the
+# sha256 of the bytes that actually ran, so "are we executing the canonical" is answered
+# by a command rather than by reading two files side by side.
+#
 # WHY A SEPARATE WORKFLOW, and not a job in ci.yml:
 #
 #   The reusable pipeline is not an option. hl7's `ci` job calls
@@ -28,9 +36,12 @@ name: Em-dash gate
 #   cost for no extra safety. Same call website made (website#52), for the same reason.
 #
 #   Both halves live here rather than splitting the file scan back into ci.yml (which is
-#   how website ended up): the file scan is a checkout and one grep, so it costs nothing
-#   to re-run on `edited`, and one file is one thing to read. knowledgebase runs the two
-#   halves as two steps of one job for the same reason (knowledgebase#12).
+#   how website ended up): one file is one thing to read, and the two halves share one
+#   checkout and one install. The install is what the file scan costs now that the gate
+#   is a published package instead of a script in this repository, and it is still a
+#   fraction of the ci.yml ladder an `edited` trigger would otherwise drive twice over.
+#   knowledgebase runs the two halves as two steps of one job for the same reason
+#   (knowledgebase#12).
 #
 # Run it locally with `pnpm check:no-emdash`, which is also on `scripts/verify.sh hl7`'s
 # ladder in the meta-repo.
@@ -60,8 +71,18 @@ jobs:
           # and the default shallow clone does not contain the base commit.
           fetch-depth: 0
 
+      # The gate is a devDependency, so it has to be installed before either step can run
+      # it. Frozen, so the version that runs is the one the lockfile pins and a drifted
+      # manifest fails here instead of silently resolving something else.
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: "22"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
       - name: Check tracked files
-        run: bash scripts/check-no-emdash.sh
+        run: pnpm run check:no-emdash
 
       # The rule names commit messages explicitly, and a squash merge composes its
       # message from the PR title, the PR body, and the branch commits, so all three are
@@ -87,5 +108,5 @@ jobs:
             printf '%s\n' "$PR_BODY"
             git log --format=%B "$BASE_SHA..$HEAD_SHA"
           } > "$RUNNER_TEMP/pr-messages.txt"
-          bash scripts/check-no-emdash.sh --stdin "the PR title, body, or commit messages" \
+          pnpm run check:no-emdash -- --stdin "the PR title, body, or commit messages" \
             < "$RUNNER_TEMP/pr-messages.txt"
