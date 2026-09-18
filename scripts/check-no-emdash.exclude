@@ -1,0 +1,28 @@
+# What this repository's em-dash scan leaves out, and why.
+#
+# One entry per line. An entry ending in / is a path prefix and covers every
+# tracked path beneath it. Blank lines and lines whose first non-space character
+# is # are ignored. Entries are read verbatim, so no leading or trailing space.
+#
+# THE TWO PREFIXES BELOW ARE THE VERBATIM BYTES OF A VENDORED PUBLICATION: 83
+# files committed byte for byte so the shipped message-structure registry can be
+# derived offline and audited. Exactly one of them,
+# vendor/hl7-v2ig/message-structure/ACK-Scheduling.json, carries the JavaScript
+# backslash-u spelling of the banned character inside HL7's own description text.
+# There is no rewrite available. Editing a vendored byte forfeits the point of
+# vendoring it, and dropping that structure would change what the registry
+# derives. The ban is a rule about prose that people write, and these are
+# grounded data rather than brand copy.
+#
+# THE EXCLUDED BYTES ARE NOT UNGUARDED. vendor/hl7-v2ig/snapshot.json records a
+# sha256 for every one of the 83, and test/parser-structure-provenance.test.ts
+# recomputes all 83 on every run, so a file edited to smuggle anything in reds
+# the suite.
+#
+# THE EXCLUSION IS THESE TWO SUBDIRECTORIES AND NOTHING ELSE. This repository's
+# own writing under vendor/ (README.md, snapshot.json) is still scanned, so
+# nobody can put prose behind this exclusion by choosing a directory. Widening
+# the set here is the move that would quietly weaken the gate: prefer rewriting
+# the sentence with a period, a colon, a comma, or parentheses.
+vendor/hl7-v2ig/message-structure/
+vendor/hl7-v2ig/control-manifests/
