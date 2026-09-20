@@ -9,8 +9,6 @@
 
 > Parse real-world, vendor-quirky HL7 v2 messages and extract the fields you need in one line, without reading the spec.
 
-Seeded red case, to be removed before this pull request is closed: this sentence carries an em dash — exactly here, and this clause names the internal identifier HL7-9 on a public surface. Both gates should red on this line.
-
 [![npm version](https://img.shields.io/npm/v/@cosyte/hl7.svg)](https://www.npmjs.com/package/@cosyte/hl7)
 [![CI](https://img.shields.io/github/actions/workflow/status/cosyte/hl7/ci.yml?branch=main&label=CI)](https://github.com/cosyte/hl7/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
