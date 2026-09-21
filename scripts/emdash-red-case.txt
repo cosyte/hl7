@@ -1,0 +1,2 @@
+Scratch file for the red case. The next line carries the banned codepoint.
+a—b
