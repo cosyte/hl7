@@ -6,11 +6,17 @@ name: Em-dash gate
 # clean tree proves nothing on its own, which is why the script it calls refuses to print OK
 # from a scan that did not read everything.
 #
-# WHAT ACTUALLY SCANS. `pnpm check:no-emdash`, which is this repository's own
-# `scripts/check-no-emdash.sh`. The job below delegates the plumbing (checkout, pnpm, Node)
-# to the shared gate workflow, and that workflow carries no pattern, no allow-list and no
-# file selection of its own: it prepares the tree, runs the command, and lets the command's
-# exit status decide the job. So the rule lives here and only the harness is shared.
+# WHAT ACTUALLY SCANS. `pnpm check:no-emdash`, which reaches the one em-dash gate the
+# estate publishes in `@cosyte/script-utils`. This repository tracks no implementation of
+# its own and declares only what its scan leaves out. The job below delegates the plumbing
+# (checkout, pnpm, Node) to the shared gate workflow, and that workflow carries no pattern,
+# no allow-list and no file selection of its own: it prepares the tree, runs the command,
+# and lets the command's exit status decide the job.
+#
+# THERE IS NO INSTALL STEP ON THIS PATH, and none can be added: a reusable workflow takes
+# no install and a job that calls one carries no steps of its own. The command installs
+# from the committed lockfile itself when the package is not on disk, and exits non-zero
+# naming what it could not reach rather than reporting a clean tree.
 #
 # TWO CONTEXTS, NOT ONE, AND THE JOB ID IS LOAD-BEARING. A called job's check run is named
 # `<caller job id> / <inner job id>`, so the job id `no-emdash` below publishes

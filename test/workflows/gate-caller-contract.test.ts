@@ -15,8 +15,8 @@
  *   A MOVING REF hands another repository the power to change what these gates enforce.
  *   `@main`, a branch, a tag and an abbreviated SHA all resolve on the day they run.
  *
- *   A CALLER THAT SCANS is a second, divergent copy of a rule this repository keeps in
- *   `scripts/check-no-emdash.sh` and `scripts/check-no-internal-refs.sh`.
+ *   A CALLER THAT SCANS is a second, divergent copy of a rule this repository reaches
+ *   through `pnpm check:no-emdash` and `scripts/check-no-internal-refs.sh`.
  *
  * The audit itself is in `test/_helpers/gate-caller-contract.ts`: one file read with
  * `node:fs`, inspected as indented text. No YAML dependency, no network, no credentials, so
