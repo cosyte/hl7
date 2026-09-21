@@ -2,12 +2,13 @@
  * THE DIFFERENTIAL CORPUS for the public-surface gate: one input and one expected verdict
  * per case, run against whatever `pnpm check:no-internal-refs` invokes.
  *
- * WHY THIS FILE EXISTS. `check-no-internal-refs: OK` reads exactly the same whether the gate
- * scanned 26 files against 6 rules or 0 files against 0. This repository is replacing its own
- * 1044-line `scripts/check-no-internal-refs.sh` with the published `./internal-refs` subpath of
- * `@cosyte/script-utils` (S0340), and no amount of reading the new caller shows that the
- * replacement still sees what the shell script saw. Only a corpus proved GREEN AGAINST THE OLD
- * IMPLEMENTATION FIRST, and then run unchanged against the new one, shows it.
+ * WHY THIS FILE EXISTS. `internal-refs: OK` reads exactly the same whether the gate scanned 26
+ * files against 6 rules or 0 files against 0. This repository replaced its own 1044-line shell
+ * scanner with the published `./internal-refs` subpath of `@cosyte/script-utils` (S0340), and no
+ * amount of reading the new caller shows that the replacement still sees what the shell script
+ * saw. Only a corpus proved GREEN AGAINST THE OLD IMPLEMENTATION FIRST, and then run unchanged
+ * against the new one, shows it. That is what happened here: every case below was written and
+ * committed against the old scanner, and not one expectation moved for the swap.
  *
  * THE CORPUS IS THE REFEREE AND IS NEVER THE VARIABLE. If a case reds after the swap, the swap
  * is wrong; the case is not "updated to match". A refusal that became an acceptance is the

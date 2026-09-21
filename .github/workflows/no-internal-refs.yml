@@ -10,15 +10,23 @@ name: Public-surface gate
 # workflow accordingly. This needs to not happen again." A sweep regresses the first time
 # someone writes `(CCDA-P8)` into a README; a job that reds does not.
 #
-# WHAT ACTUALLY SCANS. `pnpm check:no-internal-refs`, which is this repository's own
-# `scripts/check-no-internal-refs.sh`. The job below delegates the plumbing (checkout, pnpm,
-# Node) to the shared gate workflow, which carries no pattern, no allow-list and no file
-# selection of its own: it prepares the tree, runs the command, and lets the command's exit
-# status decide the job. The detection rules, the self-tests and the known project prefixes
-# all stay in that script. It self-tests before it reports: it proves each rule still
-# matches its own positive sample AND still lets through the reference material it was most
-# likely to destroy (`MSH-2`, `PID-3`, `TQ1-7`, `ICD-10-CM`, `FHIR-bridge`), and it refuses
-# to print OK from a scan that did not read all of its input.
+# WHAT ACTUALLY SCANS. `pnpm check:no-internal-refs`, which runs `scripts/check-no-internal-refs.mjs`,
+# a caller that hands this repository's own axes to the published `@cosyte/script-utils`
+# internal-reference gate: the prefixes, the standards designations that must never be flagged,
+# the public surface, the tarball accounting and the source doc-comment pass. The rules, the
+# self-test floor and every refusal live in that package, in ONE copy across the estate. The job
+# below delegates the plumbing (checkout, pnpm, Node) to the shared gate workflow, which carries
+# no pattern, no allow-list and no file selection of its own: it prepares the tree, runs the
+# command, and lets the command's exit status decide the job.
+#
+# THE GATE NEEDS THE INSTALL, DELIBERATELY, AND FAILS CLOSED WITHOUT IT. Reaching a published
+# package by specifier means this can no longer run before dependencies are installed. The
+# property traded away is "the gate runs even if the install is broken"; what replaces it is that
+# an install that failed, or an implementation that cannot be reached, EXITS NON-ZERO and never
+# prints the OK line. The scan still self-tests before it reports: each rule must still match its
+# own positive sample AND still let through the reference material it was most likely to destroy
+# (`MSH-2`, `PID-3`, `TQ1-7`, `ICD-10-CM`, `FHIR-bridge`), and it still refuses to print OK from
+# a scan that did not read all of its input.
 #
 # THE JOB ID IS LOAD-BEARING. A called job's check run is named
 # `<caller job id> / <inner job id>`, so the job id `no-internal-refs` below publishes
