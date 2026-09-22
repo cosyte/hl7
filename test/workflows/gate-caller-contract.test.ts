@@ -40,8 +40,6 @@ import {
   GATE_CALLERS,
   INTERNAL_REFS_CALLER,
   problemsFor,
-  PUBLISHED_REFERENCE,
-  REUSABLE_COMMIT,
   type CallerSpec,
   type Problem,
   type ProblemId,
@@ -139,8 +137,8 @@ describe("the gate callers satisfy the shared pipeline's caller-side contract", 
     "AC-1: $path pins the reusable workflow to the 40-character commit",
     (spec) => {
       expectClean(spec, ["uses-missing", "uses-target", "uses-ref", "uses-reference-comment"]);
-      expect(textOf(spec)).toContain("@" + REUSABLE_COMMIT);
-      expect(textOf(spec)).toContain(PUBLISHED_REFERENCE);
+      expect(textOf(spec)).toContain("@" + spec.commit);
+      expect(textOf(spec)).toContain(spec.reference);
     },
   );
 
@@ -177,16 +175,20 @@ describe("the gate callers satisfy the shared pipeline's caller-side contract", 
 });
 
 describe("the audit reds on every way a gate caller can regress", () => {
+  // Each caller carries its own pin, so the ref a mutation writes is derived from the caller
+  // under test rather than from one shared constant.
   it.each([
-    ["main", "a BRANCH or tag name"],
-    [PUBLISHED_REFERENCE, "a TAG"],
-    ["84ecccd771cb", "an ABBREVIATED SHA"],
-    ["0000000000000000000000000000000000000000", "another commit"],
-  ])("AC-1: names the file and the ref when the pin becomes %s", (ref, shape) => {
+    ["a branch name", "a BRANCH or tag name", () => "main"],
+    ["the published reference tag", "a TAG", (spec: CallerSpec) => spec.reference],
+    ["an abbreviated SHA", "an ABBREVIATED SHA", (spec: CallerSpec) => spec.commit.slice(0, 12)],
+    ["another commit", "another commit", () => "0".repeat(40)],
+  ])("AC-1: names the file and the ref when the pin becomes %s", (_label, shape, refFor) => {
     for (const spec of GATE_CALLERS) {
+      const ref = refFor(spec);
+      expect(ref).not.toBe(spec.commit);
       const problems = auditText(
         spec,
-        replaceOnce(spec, textOf(spec), "@" + REUSABLE_COMMIT, "@" + ref),
+        replaceOnce(spec, textOf(spec), "@" + spec.commit, "@" + ref),
       );
       expect(idsOf(problems)).toContain("uses-ref");
       const message = messageFor(problems, "uses-ref");
@@ -198,12 +200,9 @@ describe("the audit reds on every way a gate caller can regress", () => {
 
   it("AC-1: reds when the published reference comment is dropped from the uses line", () => {
     for (const spec of GATE_CALLERS) {
-      const problems = auditText(
-        spec,
-        replaceOnce(spec, textOf(spec), " # " + PUBLISHED_REFERENCE, ""),
-      );
+      const problems = auditText(spec, replaceOnce(spec, textOf(spec), " # " + spec.reference, ""));
       expect(idsOf(problems)).toContain("uses-reference-comment");
-      expect(messageFor(problems, "uses-reference-comment")).toContain(PUBLISHED_REFERENCE);
+      expect(messageFor(problems, "uses-reference-comment")).toContain(spec.reference);
     }
   });
 
@@ -385,7 +384,7 @@ describe("the audit accepts the legal spellings of a compliant caller", () => {
 
   it.each(GATE_CALLERS)("accepts a quoted uses: value in $path", (spec) => {
     const text = textOf(spec);
-    const target = spec.reusable + "@" + REUSABLE_COMMIT;
+    const target = spec.reusable + "@" + spec.commit;
     expect(
       auditText(spec, replaceOnce(spec, text, "uses: " + target, 'uses: "' + target + '"')),
     ).toEqual([]);

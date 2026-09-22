@@ -46,12 +46,14 @@
  * HOW THE INVOCATION IS FOUND, WHICH IS ITSELF GRADED (AC-13). Nothing here hardcodes a
  * command. The command is read from `package.json`'s `check:no-internal-refs` script, which is
  * the one tracked file the `Public-surface gate` workflow also uses: that workflow is a thin
- * caller of a reusable workflow which prepares the tree and runs the package script. So a
- * change to what the gate IS reaches this corpus automatically, and a change to the WORKFLOW
- * that moved the invocation out of the package script would leave the corpus exercising a
- * command the workflow no longer runs. That is why one case below reads
+ * caller of a reusable workflow which prepares the tree, installs the committed lockfile and
+ * runs the package script. So a change to what the gate IS reaches this corpus automatically,
+ * and a change to the WORKFLOW that moved the invocation out of the package script would leave
+ * the corpus exercising a command the workflow no longer runs. That is why one case below reads
  * `.github/workflows/no-internal-refs.yml` and refuses a caller that carries an invocation of
- * its own: a workflow change this corpus cannot see must FAIL it rather than pass silently.
+ * its own: a workflow change this corpus cannot see must FAIL it rather than pass silently. The
+ * same case reads WHICH shared workflow is named, because the two forms the shared repository
+ * publishes differ in whether the scan is handed an install, and this gate needs one.
  *
  * WHAT IS ASSERTED ON THE OUTPUT, AND WHAT IS NOT. Rule names are asserted, because a hit has
  * to name the rule it broke and the rule names are part of the shared contract. Sentence
@@ -743,7 +745,13 @@ describe("AC-13 the gate run the way the Public-surface gate workflow runs it", 
       .split("\n")
       .filter((line) => !line.trimStart().startsWith("#"))
       .join("\n");
-    expect(body).toContain("uses: cosyte/.github/.github/workflows/gate-no-internal-refs.yml@");
+    // The INSTALLING form of the shared gate, because the command of record reaches an
+    // installed package: the other form hands the scan a tree with no `node_modules` and the
+    // gate then refuses, correctly and every time. The `-install` suffix is the whole of the
+    // opt-in, since a caller that delegates carries no `with:` key to select an input with.
+    expect(body).toContain(
+      "uses: cosyte/.github/.github/workflows/gate-no-internal-refs-install.yml@",
+    );
     expect(body).not.toMatch(/^\s*run:/m);
     expect(body).not.toMatch(/^\s*steps:/m);
     expect(body).not.toMatch(/^\s*with:/m);

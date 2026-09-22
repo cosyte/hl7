@@ -28,6 +28,19 @@ name: Public-surface gate
 # (`MSH-2`, `PID-3`, `TQ1-7`, `ICD-10-CM`, `FHIR-bridge`), and it still refuses to print OK from
 # a scan that did not read all of its input.
 #
+# WHICH IS WHY THIS NAMES THE INSTALLING FORM OF THE SHARED GATE. `cosyte/.github` publishes two
+# forms of this workflow that differ in one step: `gate-no-internal-refs.yml` hands the scan a
+# tree with pnpm and Node prepared and no `node_modules`, which is right for a gate that is a
+# dependency-free shell script, and `gate-no-internal-refs-install.yml` runs
+# `pnpm install --frozen-lockfile` from the caller's committed lockfile first. The scan here
+# reaches an installed package, so it takes the second, and the choice is the `uses:` LINE
+# rather than an input: a caller job that delegates carries no `with:` key, and
+# `test/workflows/gate-caller-contract.test.ts` refuses one. Both forms publish the same
+# `public-surface` job id, so the check-run context and every ruleset entry naming it are
+# unchanged. The install is not a fallback and does not soften the refusal above: a failed
+# install reds the job before the scan runs, and the scan still refuses when it cannot reach
+# the implementation.
+#
 # THE JOB ID IS LOAD-BEARING. A called job's check run is named
 # `<caller job id> / <inner job id>`, so the job id `no-internal-refs` below publishes
 # `no-internal-refs / public-surface`, which is the context a branch ruleset requires.
@@ -64,7 +77,7 @@ jobs:
     # deleted by anyone who gains write access to the workflow's repository, so a tag is not
     # an immutable reference and is not a pin. The trailing comment is the published
     # reference that commit was released as, so the release note stays findable from here.
-    uses: cosyte/.github/.github/workflows/gate-no-internal-refs.yml@84ecccd771cbc9c1ece003a3f8ff61415360395b # workflows-2026-09-18-84ecccd771cb
+    uses: cosyte/.github/.github/workflows/gate-no-internal-refs-install.yml@acaa6cbe1745e950837e61849ed84bf9e34fec68 # workflows-2026-09-22-acaa6cbe1745
     # No more than the scan needs. A called workflow's GITHUB_TOKEN can only be downgraded
     # by its caller, and this gate reads the tree and nothing else.
     permissions:
