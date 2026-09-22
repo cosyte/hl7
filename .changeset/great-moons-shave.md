@@ -1,0 +1,5 @@
+---
+"@cosyte/hl7": patch
+---
+
+**Repository tooling only. Nothing about the published package changed.** The em-dash brand gate now runs the one shared implementation published in `@cosyte/script-utils` instead of this repository's own copy of it, and that copy, `scripts/check-no-emdash.sh`, is deleted. `pnpm check:no-emdash` keeps its name, its two modes and its exit codes, and what it detects is unchanged: the same six banned forms over the same set of tracked files, proved by enumerating both sets and comparing them in both directions rather than by comparing two filter expressions. What this repository leaves out of the scan is now a tracked declaration, `scripts/check-no-emdash.exclude`, instead of two patterns inside a scanner, and it leaves out exactly what it left out before: the two directories of verbatim vendored HL7 publication bytes, which are still checksummed by the vendor snapshot and its provenance test. No runtime dependency is added, `dependencies` stays empty, and the published files, the API and the types are untouched, so nothing here reaches your install.

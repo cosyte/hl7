@@ -36,8 +36,8 @@
 #     public defect before it was caught, and a reader who has not hit them will tidy the
 #     guard away as over-complication.
 #
-#   * THE SCAN HARNESS is the shape that already works in this repo for
-#     `scripts/check-no-emdash.sh`: its own CI job, a tracked-file scan, a refusal to
+#   * THE SCAN HARNESS is the shape that already works in this repo for the em-dash
+#     gate `pnpm check:no-emdash`: its own CI job, a tracked-file scan, a refusal to
 #     report green from a scan that did not read all of its input, and every known
 #     silent-green route closed and checked RED rather than assumed. Specifically it takes
 #     mllp's variant of that shape ([mllp#35](https://github.com/cosyte/mllp/pull/35),
@@ -166,7 +166,7 @@
 #         exactly like prose. That is deliberate (a reader sees it either way), but it
 #         means a legitimate quotation of an internal path in an example would have to be
 #         rewritten rather than escaped.
-#   (iv)  This gate does not check the em dash. `scripts/check-no-emdash.sh` owns that
+#   (iv)  This gate does not check the em dash. `pnpm check:no-emdash` owns that
 #         rule and scans a wider surface; duplicating it here would put the same red in
 #         two places with two wordings.
 #   (v)   IT CATCHES IDENTIFIERS, NOT PROSE ABOUT OUR PROCESS. The founder's rule bans
