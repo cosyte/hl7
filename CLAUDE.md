@@ -99,14 +99,25 @@ Mirrors the three disciplines in `documentation/conventions.md`. They bind here 
    meta-repo paths and "how this got built" commentary belong in the changeset, `CHANGELOG.md`, the
    commit, the PR and the roadmap. It is a **translation** at the boundary, not a deletion, and when
    you strip an identifier off the front of a line, repair the head: a fragment reads worse than the
-   text it replaced. Gated by `pnpm check:no-internal-refs`. The gate keys on known project prefixes,
-   so **a new programme prefix has to be added to it by hand**; and it catches identifiers, not
-   English sentences about our process, so the reviewer still owns half the rule.
+   text it replaced. Gated by `pnpm check:no-internal-refs`, which is a **caller**
+   (`scripts/check-no-internal-refs.mjs`) over the published `@cosyte/script-utils`
+   internal-reference gate, pinned to an exact version. **The rules, the self-test floor and every
+   refusal live in that package, in one copy across the estate**; what this repository supplies is
+   its axes: the project prefixes, the standards designations that must never be flagged
+   (`HL7-V2`, `FHIR-R4`, `DICOM-SR`, `NCPDP-SCRIPT`, `X12-837P`), the public surface, the tarball
+   accounting, and its own measured reference material as extra self-test samples. The gate keys on
+   known project prefixes, so **a new programme prefix is still added by hand, now in the caller's
+   axis list rather than in a local scanner**; a widened rule is caught by the shared floor plus our
+   samples; and it catches identifiers, not English sentences about our process, so the reviewer
+   still owns half the rule. **It needs `pnpm install` first and fails closed without it**: an
+   implementation it cannot reach exits non-zero and never prints the OK line.
+   `test/scripts/internal-refs-gate.test.ts` is the differential corpus that proved the swap.
 
    **`src/` JSDoc is public surface too, and is gated.** Doc comments (`/** */`) compile into
    `dist/index.d.ts` / `dist/index.d.cts`, which `files` ships and which every consumer's editor
-   renders on hover. So the same rule applies to them, enforced by the same command's third pass,
-   which has its own rule array and its own self-tests. **`//` and `/* */` comments are NOT gated
+   renders on hover. So the same rule applies to them, enforced by the same command's source
+   doc-comment pass, which extracts doc blocks alone and runs the same rules over them. **`//` and
+   `/* */` comments are NOT gated
    and identifiers are welcome in them** -- they do not reach `dist`, and that is precisely the line:
    what a _consumer receives_ is public, what only a _maintainer reads_ is not. Two consequences:
    a doc comment is not the place for build-order or "which phase added this" framing, and

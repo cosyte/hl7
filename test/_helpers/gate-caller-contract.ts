@@ -41,12 +41,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-/** The commit in `cosyte/.github` both callers are pinned to. */
-export const REUSABLE_COMMIT = "84ecccd771cbc9c1ece003a3f8ff61415360395b";
-
-/** The published reference that commit was released as, carried as a trailing comment. */
-export const PUBLISHED_REFERENCE = "workflows-2026-09-18-84ecccd771cb";
-
 /** The coverage identifier a clause belongs to, from the cross-repo contract. */
 export type CoverageFact = "E1" | "E7" | "I1" | "I5";
 
@@ -91,6 +85,15 @@ export interface CallerSpec {
   readonly jobId: string;
   /** The reusable workflow that job delegates to, without its ref. */
   readonly reusable: string;
+  /**
+   * The 40-character commit in `cosyte/.github` this caller is pinned to. It is PER CALLER and
+   * not one shared constant: the two gates name different reusable workflows, which are
+   * published and adopted independently, so a shared pin would force a repository moving one
+   * gate to move the other in the same change.
+   */
+  readonly commit: string;
+  /** The published reference that commit was released as, carried as a trailing comment. */
+  readonly reference: string;
   /** The job ids the reusable publishes, for naming the contexts a rename would move. */
   readonly innerJobIds: readonly string[];
   /** The `pull_request` activity types the caller must trigger on, or null for the default set. */
@@ -106,17 +109,31 @@ export const EMDASH_CALLER: CallerSpec = {
   path: ".github/workflows/no-emdash.yml",
   jobId: "no-emdash",
   reusable: "cosyte/.github/.github/workflows/gate-no-emdash.yml",
+  commit: "84ecccd771cbc9c1ece003a3f8ff61415360395b",
+  reference: "workflows-2026-09-18-84ecccd771cb",
   innerJobIds: ["tracked-files", "messages"],
   pullRequestTypes: ["opened", "synchronize", "reopened", "edited"],
   triggerFact: "E1",
   ceilingFact: "E7",
 };
 
-/** The public-surface gate caller: one context, and deliberately no `edited` type. */
+/**
+ * The public-surface gate caller: one context, and deliberately no `edited` type.
+ *
+ * IT NAMES THE INSTALLING FORM OF THE SHARED GATE, and that is load-bearing rather than a
+ * spelling. `pnpm check:no-internal-refs` reaches an installed package, so a runner handed a
+ * tree with no `node_modules` cannot reach the implementation and the gate refuses, correctly
+ * and permanently. The shared repository publishes the install as a SECOND WORKFLOW rather than
+ * as an input, because selecting an input needs a `with:` key in the caller and the contract
+ * below refuses one. Both forms publish the same `public-surface` job id, so this choice moves
+ * no check-run context and no ruleset entry.
+ */
 export const INTERNAL_REFS_CALLER: CallerSpec = {
   path: ".github/workflows/no-internal-refs.yml",
   jobId: "no-internal-refs",
-  reusable: "cosyte/.github/.github/workflows/gate-no-internal-refs.yml",
+  reusable: "cosyte/.github/.github/workflows/gate-no-internal-refs-install.yml",
+  commit: "acaa6cbe1745e950837e61849ed84bf9e34fec68",
+  reference: "workflows-2026-09-22-acaa6cbe1745",
   innerJobIds: ["public-surface"],
   pullRequestTypes: null,
   triggerFact: "I1",
@@ -426,7 +443,7 @@ export function auditGateCaller(spec: CallerSpec, source: WorkflowSource): Probl
         ),
       );
     }
-    if (ref !== REUSABLE_COMMIT) {
+    if (ref !== spec.commit) {
       const shape = FULL_SHA.test(ref)
         ? "another commit"
         : ref === ""
@@ -440,7 +457,7 @@ export function auditGateCaller(spec: CallerSpec, source: WorkflowSource): Probl
         problem(
           "uses-ref",
           label + ": the " + jobLabel + " job names the reusable workflow at `" + ref + "`,",
-          "which is " + shape + ", not the pinned 40-character commit `" + REUSABLE_COMMIT + "`.",
+          "which is " + shape + ", not the pinned 40-character commit `" + spec.commit + "`.",
           "A branch, `main`, a tag or an abbreviated SHA resolves to whatever that name points at",
           "on the day the workflow runs, and a tag can be moved or deleted by anyone who gains",
           "write access to the workflow's repository, so none of them is an immutable reference.",
@@ -448,12 +465,12 @@ export function auditGateCaller(spec: CallerSpec, source: WorkflowSource): Probl
         ),
       );
     }
-    if (!uses.comment.includes(PUBLISHED_REFERENCE)) {
+    if (!uses.comment.includes(spec.reference)) {
       problems.push(
         problem(
           "uses-reference-comment",
           label + ": the " + jobLabel + " job's `uses:` line carries no trailing comment naming",
-          "the published reference `" + PUBLISHED_REFERENCE + "`",
+          "the published reference `" + spec.reference + "`",
           uses.comment === "" ? "(there is no comment)." : "(it reads `" + uses.comment + "`).",
           "A 40-character SHA is a pin and not a name: without the reference beside it, the",
           "release note describing what this commit changed is unreachable from here.",
