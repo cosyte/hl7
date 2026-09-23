@@ -60,12 +60,22 @@ export function section(markdown: string, heading: string): string {
  * The HL7 message a first-use example builds: the string literals assigned to `const raw`,
  * concatenated. Each literal is decoded by the JSON string grammar, which is the JavaScript one
  * for every escape these examples use (`\\`, `\r`). `undefined` when the example assigns none.
+ *
+ * The literals are read one at a time with a sticky pattern rather than by one pattern with a
+ * repeated group, which would backtrack exponentially on a long run of empty literals.
  */
 export function messageLiteral(code: string): string | undefined {
-  const assigned = /const raw =((?:\s*"(?:[^"\\\n]|\\.)*"\s*\+?)+)\s*;/.exec(code);
-  if (assigned === null) return undefined;
-  const parts = (assigned[1] ?? "").match(/"(?:[^"\\\n]|\\.)*"/g) ?? [];
-  return parts.map((part) => JSON.parse(part) as string).join("");
+  const head = "const raw =";
+  const start = code.indexOf(head);
+  if (start === -1) return undefined;
+  const literal = /\s*("(?:[^"\\\n]|\\.)*")[ \t]*(\+)?/y;
+  literal.lastIndex = start + head.length;
+  const parts: string[] = [];
+  for (let match = literal.exec(code); match !== null; match = literal.exec(code)) {
+    parts.push(JSON.parse(match[1] ?? '""') as string);
+    if (match[2] === undefined) break;
+  }
+  return parts.length === 0 ? undefined : parts.join("");
 }
 
 /** Every file under `dir`, keyed by its exact contents, mapped to its path from `root`. */
