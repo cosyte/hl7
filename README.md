@@ -75,13 +75,12 @@ Parse a message, read fields off it. No HL7 spec knowledge required.
 ```ts
 import { parseHL7 } from "@cosyte/hl7";
 
-// An ADT^A01 admit. HL7 v2 separates segments with a carriage return.
-const raw = [
-  "MSH|^~\\&|EPIC|MAIN|LIS|REF|20260419101500||ADT^A01^ADT_A01|EX00001|P|2.5",
-  "EVN|A01|20260419101500",
-  "PID|1||MRN12345^^^HOSP^MR||Doe^John^Q||19800115|M",
-  "PV1|1|I|ICU^101^A^HOSP",
-].join("\r");
+// A synthetic ADT^A01 admit. HL7 v2 ends every segment with a carriage return.
+const raw =
+  "MSH|^~\\&|EPIC|MAIN|LIS|REF|20260419101500||ADT^A01^ADT_A01|MSG00001|P|2.5\r" +
+  "EVN|A01|20260419101500\r" +
+  "PID|1||MRN12345^^^HOSP^MR||Doe^John^Q||19800115|M|||123 Main St^^Boston^MA^02101||^PRN^PH^^^617^5551212\r" +
+  "PV1|1|I|ICU^101^A^HOSP|||||ATTEND^Smith^Jane^^^^MD|||||||||||VISIT001\r";
 
 const msg = parseHL7(raw);
 
@@ -104,7 +103,7 @@ Sent at: 20260419101500
 Ward: ICU
 ```
 
-That block is [`examples/readme-usage.ts`](./examples/readme-usage.ts), which `pnpm examples` runs and which fails if the output above ever stops matching what the code prints.
+The test suite reads that block out of this README, runs it against the package, and fails if the output above ever stops matching what the code prints. The message is a copy of a synthetic fixture from the repository's test corpus.
 
 Note `precision`: a birth date is a day, not an instant, and every datetime is a fidelity `TS` that keeps the precision and timezone it arrived with rather than guessing a `Date`.
 

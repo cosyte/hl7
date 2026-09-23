@@ -20,13 +20,12 @@ knowledge required**:
 ```ts runnable
 import { parseHL7 } from "@cosyte/hl7";
 
-// Synthetic ADT^A01: segments are CR-delimited per the spec.
-const raw = [
-  "MSH|^~\\&|EPIC|MAIN|LIS|REF|20260419101500||ADT^A01^ADT_A01|EX00001|P|2.5",
-  "EVN|A01|20260419101500",
-  "PID|1||MRN12345^^^HOSP^MR||Doe^John^Q||19800115|M|||123 Main St^^Boston^MA^02101",
-  "PV1|1|I|ICU^101^A^HOSP|||||ATTEND123^Smith^Jane^A^^^MD",
-].join("\r");
+// Synthetic ADT^A01: each segment ends with a carriage return, per the spec.
+const raw =
+  "MSH|^~\\&|EPIC|MAIN|LIS|REF|20260419101500||ADT^A01^ADT_A01|MSG00001|P|2.5\r" +
+  "EVN|A01|20260419101500\r" +
+  "PID|1||MRN12345^^^HOSP^MR||Doe^John^Q||19800115|M|||123 Main St^^Boston^MA^02101||^PRN^PH^^^617^5551212\r" +
+  "PV1|1|I|ICU^101^A^HOSP|||||ATTEND^Smith^Jane^^^^MD|||||||||||VISIT001\r";
 
 const msg = parseHL7(raw);
 
