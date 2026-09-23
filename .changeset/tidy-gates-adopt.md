@@ -1,0 +1,9 @@
+---
+"@cosyte/hl7": patch
+---
+
+**Repository tooling only. Nothing about the published package changed.** The `attw` publish gate, which checks that the tarball carries the type declarations `package.json` promises before a release goes out, now runs the one shared implementation published as `@cosyte/script-utils/attw` instead of this repository's own copy of it. That copy is deleted. The files, the exports, the API and the types are untouched, and `dependencies` stays empty: `@cosyte/script-utils` is a devDependency pinned to an exact version, so nothing here reaches your install. This change reaches the registry only as this changelog entry in the next release.
+
+**The gate checks more than it did.** It still refuses a release whose declared files are missing or empty on disk, and one whose tarball carries no types while `attw` itself exits 0. It now also checks that every path `package.json` declares is in the tarball npm would publish, and, because this package sets `publishConfig`, that every path in the manifest pnpm would publish is in the tarball pnpm would write. It reads `attw`'s structured output rather than a sentence of its prose, and it accepts only the two arguments it can vouch for (`--profile` with a value, and `--no-definitely-typed`), refusing everything else by default instead of refusing a list of known spellings.
+
+**If you started a profile package from `examples/profile-starter-kit`**, the kit's `scripts/attw.mjs` is now the same short caller, and the kit's `package.json` lists `@cosyte/script-utils` at `0.1.0` in `devDependencies`. A package copied from an earlier kit keeps working as it is; to take the stronger gate, copy the new `scripts/attw.mjs` and add that devDependency. Keep the `attw` script as `node scripts/attw.mjs` and keep `@arethetypeswrong/cli` installed, since the gate runs your package's own `attw`.

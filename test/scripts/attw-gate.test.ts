@@ -1,55 +1,57 @@
 /**
- * Tests for scripts/attw.mjs: the wrapper that makes the `attw` publish gate
- * report its own failure.
+ * Tests for the `attw` publish gate as this repository runs it: `scripts/attw.mjs`, a CALLER of
+ * the shared body published as `@cosyte/script-utils/attw`.
  *
- * WHAT THESE PIN, AND WHY EACH ONE IS HERE:
+ * The gate's nets, its argument allow-list and the measurements behind them are documented once,
+ * in the docblock at the top of `node_modules/@cosyte/script-utils/attw.js`, and are not restated
+ * here. What this suite grades is what this repository relies on the gate for, each behavioural
+ * case on a throwaway package built in a temp dir and each one paired with a control, so a gate
+ * that always fails cannot pass it:
  *
- *  1. THE FALSE GREEN ITSELF, on the invocation this repo used to run. `attw`
- *     prints "This package does not contain types." and exits **0**, both when
- *     the declarations were left out of the tarball and when the build never
- *     produced them. A fix whose test only shows green on a good pack proves
- *     nothing, so the defect is asserted here before the remedy is. If a future
- *     `attw` upgrade fixes that exit code or rewords the sentence, these two
- *     tests red, which is the point: a guard that silently stops matching is
- *     worse than no guard, and the sentence is the one net in `attw.mjs` that
- *     depends on a string.
- *  2. That the wrapper turns that exit 0 into a failure, on both shapes.
- *  3. That the preflight names the missing file, which is what makes a red
- *     actionable rather than a puzzle.
- *  4. A NEGATIVE CONTROL. On a package whose tarball really does carry types the
- *     wrapper is transparent: same exit status as `attw` itself, and green. A
- *     gate that only ever fails is not a gate, and a false red here would cost
- *     every later run an hour.
- *  5. THE GATE'S MOST BASIC OBLIGATION: that a real `attw` failure still fails.
- *     Without this, every other test here would pass on a wrapper that swallowed
- *     attw's own exit status, because net 2 reds the untyped fixture regardless.
- *  6. The refusals that keep net 2 readable. Each of these argument and config
- *     routes was measured against this repo's own untyped tree to hide the
- *     sentence and hand back exit 0, which is the exact false green this file
- *     exists to close.
+ *   - the false greens bare `attw` hands back, closed (a tarball with no types, a declared file
+ *     missing or empty on disk, a `publishConfig` override naming a file the tarball lacks);
+ *   - the controls (a well-formed package is green, a real `attw` finding keeps attw's status);
+ *   - the argument allow-list (every measured blinding spelling refused, `--profile node16`
+ *     accepted);
+ *   - that no second copy of the gate lives in this repository, and that every manifest carrying
+ *     an `attw` script, derived rather than recalled, runs the caller at the same pinned version;
+ *   - that the caller fails closed when the shared body cannot be reached.
  *
- * The fixtures are minimal throwaway packages in a temp dir. Nothing here touches
- * this repo's own build, so the suite does not need one and cannot race one.
- * `attw` is invoked with `--no-definitely-typed` so the runs stay offline; the
- * wrapper forwards arguments, which is what makes that possible.
+ * The real `attw` binary, `npm` and `pnpm` run in every behavioural case; nothing is doubled.
+ * `attw` is invoked with `--no-definitely-typed` so the runs stay offline.
  *
- * SECURITY: every subprocess call here uses spawnSync with array args. No exec,
- * no shell-form.
+ * SECURITY: every subprocess call here uses spawnSync with array args. No exec, no shell-form.
  */
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 const REPO_ROOT = process.cwd();
-const WRAPPER = join(REPO_ROOT, "scripts", "attw.mjs");
+const CALLER = join(REPO_ROOT, "scripts", "attw.mjs");
 const ATTW_BIN = join(REPO_ROOT, "node_modules", ".bin", "attw");
-const UNTYPED = "This package does not contain types.";
+const SPECIFIER = "@cosyte/script-utils/attw";
 const OFFLINE = ["--no-definitely-typed"];
-// Each case shells out to `attw --pack`, which runs a real `npm pack`; two of
-// those in one test comfortably exceeds this suite's 10s default.
+/** The shared body's pass line and refusal prefix. */
+const PASS = "✓ attw gate";
+const REFUSAL = "✗ attw gate";
+/** Three dot-separated numbers: no range, tag, path, protocol or workspace specifier. */
+const EXACT_VERSION = /^\d+\.\d+\.\d+$/;
+// Each gate run shells out to `attw --pack` (a real `npm pack`), then `npm pack --dry-run`, and,
+// when the manifest sets `publishConfig`, a real `pnpm pack`. Two runs in one case comfortably
+// exceed this suite's 10s default.
 const SPAWN_TIMEOUT = 120_000;
 
 interface RunResult {
@@ -63,8 +65,48 @@ function run(bin: string, args: string[], cwd: string): RunResult {
 }
 
 const runAttw = (cwd: string): RunResult => run(ATTW_BIN, ["--pack", ".", ...OFFLINE], cwd);
-const runWrapper = (cwd: string, args: string[] = OFFLINE): RunResult =>
-  run(process.execPath, [WRAPPER, ...args], cwd);
+const runGate = (cwd: string, args: string[] = OFFLINE): RunResult =>
+  run(process.execPath, [CALLER, ...args], cwd);
+
+/** The string at `obj[path[0]][path[1]]...`, or undefined when a step is absent or not that shape. */
+function stringAt(obj: unknown, ...path: string[]): string | undefined {
+  let node: unknown = obj;
+  for (const key of path) {
+    if (node === null || typeof node !== "object") return undefined;
+    node = Reflect.get(node, key);
+  }
+  return typeof node === "string" ? node : undefined;
+}
+
+function readJson(path: string): unknown {
+  const parsed: unknown = JSON.parse(readFileSync(path, "utf8"));
+  return parsed;
+}
+
+/** Every file under `dir`, as paths relative to the repository root. */
+function filesUnder(dir: string): string[] {
+  const abs = join(REPO_ROOT, dir);
+  if (!existsSync(abs)) return [];
+  const out: string[] = [];
+  for (const entry of readdirSync(abs, { withFileTypes: true })) {
+    const rel = `${dir}/${entry.name}`;
+    if (entry.isDirectory()) out.push(...filesUnder(rel));
+    else if (entry.isFile()) out.push(rel);
+  }
+  return out;
+}
+
+/** Every `package.json` in the repository outside `node_modules`, relative to the root. */
+function manifestsUnder(dir = ""): string[] {
+  const out: string[] = [];
+  for (const entry of readdirSync(join(REPO_ROOT, dir), { withFileTypes: true })) {
+    if (entry.name === "node_modules" || entry.name === ".git") continue;
+    const rel = dir === "" ? entry.name : `${dir}/${entry.name}`;
+    if (entry.isDirectory()) out.push(...manifestsUnder(rel));
+    else if (entry.name === "package.json") out.push(rel);
+  }
+  return out;
+}
 
 let root: string;
 
@@ -72,18 +114,33 @@ let root: string;
 let typesNotPacked: string;
 /** A package whose `package.json` points at a `dist/` that was never built. */
 let noBuild: string;
-/** A well-formed dual ESM/CJS package: the negative control. */
+/** A package whose declared declaration file is present but empty. */
+let emptyDeclaration: string;
+/** A well-formed dual ESM/CJS package: the control. */
 let wellFormed: string;
 /** A package with a real attw problem: `require` resolves to ESM. */
 let attwFails: string;
-/** Declarations present, JS entry point missing: attw itself is green on this. */
-let jsMissing: string;
+/** Well-formed on disk and to npm, but `publishConfig` rewrites `main` to a file not packed. */
+let publishOverride: string;
 
 function writePkg(dir: string, pkg: Record<string, unknown>, files: Record<string, string>): void {
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, "package.json"), JSON.stringify(pkg, null, 2));
   for (const [name, body] of Object.entries(files)) writeFileSync(join(dir, name), body);
 }
+
+const DUAL_EXPORTS = {
+  ".": {
+    import: { types: "./index.d.ts", default: "./index.js" },
+    require: { types: "./index.d.cts", default: "./index.cjs" },
+  },
+};
+const DUAL_FILES = {
+  "index.js": "export const a = 1;\n",
+  "index.d.ts": "export declare const a: number;\n",
+  "index.cjs": "module.exports.a = 1;\n",
+  "index.d.cts": "export declare const a: number;\n",
+};
 
 beforeAll(() => {
   root = mkdtempSync(join(tmpdir(), "attw-gate-"));
@@ -114,6 +171,19 @@ beforeAll(() => {
     {},
   );
 
+  emptyDeclaration = join(root, "empty-declaration");
+  writePkg(
+    emptyDeclaration,
+    {
+      name: "attw-gate-fixture-empty",
+      version: "1.0.0",
+      main: "./index.js",
+      types: "./index.d.ts",
+      files: ["index.js", "index.d.ts"],
+    },
+    { "index.js": "module.exports = {};\n", "index.d.ts": "" },
+  );
+
   wellFormed = join(root, "well-formed");
   writePkg(
     wellFormed,
@@ -121,20 +191,10 @@ beforeAll(() => {
       name: "attw-gate-fixture-wellformed",
       version: "1.0.0",
       type: "module",
-      exports: {
-        ".": {
-          import: { types: "./index.d.ts", default: "./index.js" },
-          require: { types: "./index.d.cts", default: "./index.cjs" },
-        },
-      },
-      files: ["index.js", "index.d.ts", "index.cjs", "index.d.cts"],
+      exports: DUAL_EXPORTS,
+      files: Object.keys(DUAL_FILES),
     },
-    {
-      "index.js": "export const a = 1;\n",
-      "index.d.ts": "export declare const a: number;\n",
-      "index.cjs": "module.exports.a = 1;\n",
-      "index.d.cts": "export declare const a: number;\n",
-    },
+    DUAL_FILES,
   );
 
   // ESM-only, with no `require` condition: attw's default profile reports
@@ -152,17 +212,22 @@ beforeAll(() => {
     { "index.js": "export const a = 1;\n", "index.d.ts": "export declare const a: number;\n" },
   );
 
-  jsMissing = join(root, "js-missing");
+  // Every declared path is on disk and packed, so npm's tarball is sound and bare attw is green.
+  // pnpm applies `publishConfig` as publish-time overrides and npm does not, so the manifest pnpm
+  // would publish names `./absent-override.cjs`, which no tarball carries.
+  publishOverride = join(root, "publish-override");
   writePkg(
-    jsMissing,
+    publishOverride,
     {
-      name: "attw-gate-fixture-jsmissing",
+      name: "attw-gate-fixture-publishconfig",
       version: "1.0.0",
-      main: "./dist/index.js",
-      types: "./index.d.ts",
-      files: ["index.d.ts"],
+      type: "module",
+      main: "./index.cjs",
+      exports: DUAL_EXPORTS,
+      files: Object.keys(DUAL_FILES),
+      publishConfig: { main: "./absent-override.cjs" },
     },
-    { "index.d.ts": "export declare const a: number;\n" },
+    DUAL_FILES,
   );
 });
 
@@ -170,166 +235,137 @@ afterAll(() => {
   rmSync(root, { recursive: true, force: true });
 });
 
-describe("the false green this wrapper exists to close", () => {
+describe("AC-2: the gate is the published body, and no second copy lives here", () => {
   it(
-    "bare attw reports an untyped pack and still exits 0",
+    "AC-2: scripts/attw.mjs resolves the published package and runs its body",
     () => {
-      const r = runAttw(typesNotPacked);
-      expect(r.out).toContain(UNTYPED);
-      // If this ever fails because the status is now non-zero, attw has fixed the
-      // early return in getExitCode() and net 2 of scripts/attw.mjs is redundant.
-      // Read that file's header before deleting anything.
-      expect(r.code).toBe(0);
+      const resolved = createRequire(CALLER).resolve(SPECIFIER).replaceAll("\\", "/");
+      expect(resolved).toContain("/node_modules/");
+      expect(resolved.endsWith("/@cosyte/script-utils/attw.js")).toBe(true);
+      const published = readJson(join(dirname(resolved), "package.json"));
+      const pinned = stringAt(
+        readJson(join(REPO_ROOT, "package.json")),
+        "devDependencies",
+        "@cosyte/script-utils",
+      );
+      expect(stringAt(published, "name")).toBe("@cosyte/script-utils");
+      expect(stringAt(published, "version")).toBe(pinned);
+
+      // The shared body prints this pass line; the local body this replaced never did.
+      const r = runGate(wellFormed);
+      expect(r.out).toContain(`${PASS}: attw-gate-fixture-wellformed@1.0.0`);
     },
     SPAWN_TIMEOUT,
   );
 
-  it(
-    "bare attw exits 0 when the declarations were never built, which is the shape a concurrent build produces",
-    () => {
-      const r = runAttw(noBuild);
-      expect(r.out).toContain(UNTYPED);
-      expect(r.code).toBe(0);
-    },
-    SPAWN_TIMEOUT,
-  );
+  it("AC-2: no file under scripts/ or examples/*/scripts/ carries a local implementation", () => {
+    const examples = readdirSync(join(REPO_ROOT, "examples"), { withFileTypes: true })
+      .filter((e) => e.isDirectory())
+      .map((e) => `examples/${e.name}/scripts`);
+    const files = [...filesUnder("scripts"), ...examples.flatMap((d) => filesUnder(d))];
+    expect(files, "nothing was scanned").toContain("scripts/attw.mjs");
+
+    const offenders: string[] = [];
+    for (const rel of files) {
+      const src = readFileSync(join(REPO_ROOT, rel), "utf8");
+      if (src.includes("This package does not contain types.")) {
+        offenders.push(`${rel}: the untyped-sentence literal`);
+      }
+      if (
+        /\bspawnSync\b/.test(src) &&
+        /\.bin\/attw|ATTW_BIN|spawnSync\(\s*["'`]attw["'`]/.test(src)
+      ) {
+        offenders.push(`${rel}: a spawnSync call on an attw binary`);
+      }
+      if (
+        /REFUSED_(?:LONG|SHORT)|["'`]--(?:quiet|format|config-path|definitely-typed)["'`]/.test(src)
+      ) {
+        offenders.push(`${rel}: a locally-defined refused-option list`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
 });
 
-describe("scripts/attw.mjs", () => {
+describe("AC-3 to AC-7: the false greens closed, and the controls that keep it a gate", () => {
   it(
-    "fails when the tarball carries no types, where attw exits 0",
+    "AC-3: fails when the declared .d.ts is on disk but excluded from the tarball, where bare attw exits 0",
     () => {
-      const r = runWrapper(typesNotPacked);
-      expect(r.out).toContain(UNTYPED);
+      const bare = runAttw(typesNotPacked);
+      expect(bare.code).toBe(0);
+      const r = runGate(typesNotPacked);
       expect(r.code).not.toBe(0);
+      expect(r.out).not.toContain(PASS);
     },
     SPAWN_TIMEOUT,
   );
 
   it(
-    "fails, naming the file, when a declared artifact was never built",
+    "AC-4: fails, naming the path verbatim, when a declared artifact does not exist",
     () => {
-      const r = runWrapper(noBuild);
+      const r = runGate(noBuild);
       expect(r.code).not.toBe(0);
       expect(r.out).toContain("./dist/index.d.ts");
-      expect(r.out).toContain("missing");
+      expect(r.out).toContain("./dist/index.js");
+      expect(r.out).not.toContain(PASS);
     },
     SPAWN_TIMEOUT,
   );
 
   it(
-    "fails when a declared artifact is present but empty, which a truncated write leaves behind",
+    "AC-4: fails, naming the path verbatim, when a declared artifact is empty",
     () => {
-      const dir = join(root, "empty-declaration");
-      writePkg(
-        dir,
-        {
-          name: "attw-gate-fixture-empty",
-          version: "1.0.0",
-          main: "./index.js",
-          types: "./index.d.ts",
-          files: ["index.js", "index.d.ts"],
-        },
-        { "index.js": "module.exports = {};\n", "index.d.ts": "" },
-      );
-      const r = runWrapper(dir);
+      const r = runGate(emptyDeclaration);
       expect(r.code).not.toBe(0);
       expect(r.out).toContain("./index.d.ts");
-      expect(r.out).toContain("empty");
+      expect(r.out).not.toContain(PASS);
     },
     SPAWN_TIMEOUT,
   );
 
   it(
-    "catches a declared artifact written WITHOUT a leading ./, which is legal and is the npm docs' spelling",
+    "AC-5: fails when publishConfig rewrites a declared path to a file the published tarball lacks",
     () => {
-      // `exports` targets must start with `./`, but main/module/types/typings are
-      // relative to the package root either way. A guard that skipped a bare path
-      // dropped exactly those four fields with no output at all, which would leave
-      // the preflight narrower than every sentence describing it.
-      const dir = join(root, "bare-relative-paths");
-      writePkg(
-        dir,
-        {
-          name: "attw-gate-fixture-barepaths",
-          version: "1.0.0",
-          main: "dist/index.js",
-          types: "dist/index.d.ts",
-          files: ["dist"],
-        },
-        {},
-      );
-      const r = runWrapper(dir);
-      expect(r.code).not.toBe(0);
-      expect(r.out).toContain("./dist/index.d.ts");
-      expect(r.out).toContain("./dist/index.js");
-      expect(r.out).toContain("missing");
-    },
-    SPAWN_TIMEOUT,
-  );
-
-  it(
-    "refuses a manifest that declares no artifacts at all, rather than passing a preflight that checked nothing",
-    () => {
-      const dir = join(root, "declares-nothing");
-      writePkg(dir, { name: "attw-gate-fixture-nothing", version: "1.0.0" }, {});
-      const r = runWrapper(dir);
-      expect(r.code).not.toBe(0);
-      expect(r.out).toContain("checked nothing");
-    },
-    SPAWN_TIMEOUT,
-  );
-
-  it(
-    "does not claim attw would have said 'untyped' when only JS is missing",
-    () => {
-      // Measured: with the declarations intact, bare attw reports no problems and
-      // exits 0 on this fixture. The preflight still reds it, but must not tell the
-      // reader something about attw's behaviour that is false for this case.
-      const bare = runAttw(jsMissing);
-      expect(bare.out).toContain("No problems found");
+      // Bare attw packs through npm, which leaves publishConfig alone, so it sees nothing wrong.
+      const bare = runAttw(publishOverride);
       expect(bare.code).toBe(0);
-      const r = runWrapper(jsMissing);
+      const r = runGate(publishOverride);
       expect(r.code).not.toBe(0);
-      expect(r.out).toContain("./dist/index.js");
-      expect(r.out).not.toContain(UNTYPED);
+      expect(r.out).toContain("./absent-override.cjs");
+      expect(r.out).not.toContain(PASS);
     },
     SPAWN_TIMEOUT,
   );
 
   it(
-    "still fails when attw itself fails, with attw's own status",
+    "AC-6: passes a well-formed dual package that ships its declarations, with bare attw's status",
+    () => {
+      const bare = runAttw(wellFormed);
+      const r = runGate(wellFormed);
+      expect(bare.code).toBe(0);
+      expect(r.code).toBe(bare.code);
+    },
+    SPAWN_TIMEOUT,
+  );
+
+  it(
+    "AC-7: a real attw finding exits with attw's own non-zero status",
     () => {
       const bare = runAttw(attwFails);
       expect(bare.code).not.toBe(0);
-      expect(bare.out).not.toContain(UNTYPED);
-      const wrapped = runWrapper(attwFails);
-      expect(wrapped.code).toBe(bare.code);
-    },
-    SPAWN_TIMEOUT,
-  );
-
-  it(
-    "is transparent on a package that really does ship types",
-    () => {
-      const bare = runAttw(wellFormed);
-      const wrapped = runWrapper(wellFormed);
-      expect(bare.out).not.toContain(UNTYPED);
-      expect(wrapped.code).toBe(bare.code);
-      expect(wrapped.code).toBe(0);
+      const r = runGate(attwFails);
+      expect(r.code).toBe(bare.code);
+      expect(r.out).not.toContain(PASS);
     },
     SPAWN_TIMEOUT,
   );
 });
 
-describe("the refusals that keep the post-check readable", () => {
-  // Each of these was measured against this package's own untyped tree to make
-  // bare attw exit 0 with the untyped sentence unreadable. The three bundled
-  // short forms are `--format json` and `--quiet` in another spelling:
-  // `commander` lets short options cluster and lets a value ride on the end. A
-  // guard that matched whole tokens let `-fjson` and `-Pf json` through to exit 0
-  // on the fixture below, which is why short options are matched by LETTER
-  // ANYWHERE IN THE CLUSTER rather than by token.
+describe("AC-8 and AC-9: the argument allow-list", () => {
+  // Each row is refused on the WELL-FORMED package, so the refusal is the only reason for a red.
+  // The bundled short forms are the load-bearing rows: `commander` lets short options cluster
+  // and lets a value ride on the end, and a guard matching whole tokens was measured to hand back
+  // exit 0 on `-fjson` and `-Pf json`.
   it.each([
     ["--quiet", ["--quiet"]],
     ["-q", ["-q"]],
@@ -339,127 +375,89 @@ describe("the refusals that keep the post-check readable", () => {
     ["-fjson", ["-fjson"]],
     ["-qP", ["-qP"]],
     ["-Pf json", ["-Pf", "json"]],
-    ["--config-path", ["--config-path", "other.json"]],
-    // Not blinding: the four below exit 0 with a non-empty transcript and no
-    // untyped sentence, without analysing anything at all, so neither net can tell
-    // that from a pass. Measured on the untyped fixture.
+    ["--config-path other.json", ["--config-path", "other.json"]],
     ["--help", ["--help"]],
     ["-h", ["-h"]],
     ["--version", ["--version"]],
     ["-V", ["-V"]],
-    // `--definitely-typed` is refused BY INFERENCE, not by measurement, and this
-    // row's own value is why the distinction is kept: with a version range the
-    // untyped sentence still printed, because the CLI's `dtIsPath` branch needs a
-    // value that looks like a path before it merges external declarations. The
-    // refusal is by option NAME, so this row pins the refusal, not the route.
-    ["--definitely-typed", ["--definitely-typed", "4.9"]],
-  ])("refuses %s", (_name, extra) => {
-    const r = runWrapper(typesNotPacked, [...OFFLINE, ...extra]);
-    expect(r.code).not.toBe(0);
-    expect(r.out).toContain("attw gate");
-    expect(r.out).not.toContain("🌟");
+    ["--definitely-typed 4.9", ["--definitely-typed", "4.9"]],
+  ])("AC-8: refuses %s with exit 1 and no pass", (_name, extra) => {
+    const r = runGate(wellFormed, [...OFFLINE, ...extra]);
+    expect(r.code).toBe(1);
+    expect(r.out).toContain(REFUSAL);
+    expect(r.out).not.toContain(PASS);
   });
 
   it(
-    "was right to refuse the bundled short forms: bare attw hides the sentence and exits 0 on one",
+    "AC-9: accepts --profile node16 --no-definitely-typed on the well-formed package",
     () => {
-      // The refusals are only worth their over-strictness if the routes are real.
-      // This asserts the route rather than the guard: on the fixture whose tarball
-      // carries no types, `-fjson` gets exit 0 with nothing for the post-check to
-      // read.
-      const r = run(ATTW_BIN, ["--pack", ".", ...OFFLINE, "-fjson"], typesNotPacked);
+      const r = runGate(wellFormed, ["--profile", "node16", "--no-definitely-typed"]);
       expect(r.code).toBe(0);
-      expect(r.out).not.toContain(UNTYPED);
-    },
-    SPAWN_TIMEOUT,
-  );
-
-  it(
-    "does not refuse the option forms that blind nothing",
-    () => {
-      // The control on a wholesale refusal: it would be a false-red generator if it
-      // reached past the options that actually hide the sentence. Measured on this
-      // package's own untyped tree, each of these still prints it.
-      const r = runWrapper(wellFormed, [
-        ...OFFLINE,
-        "--no-summary",
-        "--no-emoji",
-        "--no-color",
-        "--profile",
-        "node16",
-      ]);
-      expect(r.out).not.toContain("attw gate");
-      expect(r.code).toBe(0);
-    },
-    SPAWN_TIMEOUT,
-  );
-
-  it(
-    "refuses a .attw.json that sets quiet or format",
-    () => {
-      const dir = join(root, "config-blinded");
-      writePkg(
-        dir,
-        {
-          name: "attw-gate-fixture-configblind",
-          version: "1.0.0",
-          main: "./index.js",
-          types: "./index.d.ts",
-          files: ["index.js"],
-        },
-        {
-          "index.js": "module.exports = {};\n",
-          "index.d.ts": "export declare const a: number;\n",
-          ".attw.json": JSON.stringify({ quiet: true }),
-        },
-      );
-      // Bare attw takes the config and goes silent: exit 0 over an untyped pack.
-      const bare = runAttw(dir);
-      expect(bare.code).toBe(0);
-      expect(bare.out).not.toContain(UNTYPED);
-
-      const r = runWrapper(dir);
-      expect(r.code).not.toBe(0);
-      expect(r.out).toContain(".attw.json");
+      expect(r.out).not.toContain(REFUSAL);
     },
     SPAWN_TIMEOUT,
   );
 });
 
-describe("the starter kit ships the same gate", () => {
-  // The census that matters is manifests, not repo roots: this repo carries two
-  // package.json files with an `attw` script, and examples/profile-starter-kit is
-  // a template a consumer copies out and publishes from. Leaving the bare CLI
-  // there would re-mint the false green in every package generated from the kit.
-  it("invokes the wrapper rather than the bare CLI, in every manifest that has an attw script", () => {
-    const manifests = ["package.json", "examples/profile-starter-kit/package.json"];
-    for (const rel of manifests) {
-      const raw = readFileSync(join(REPO_ROOT, rel), "utf8");
-      const scripts = (JSON.parse(raw) as { scripts?: Record<string, string> }).scripts ?? {};
-      expect(scripts["attw"], `${rel} has no attw script`).toBeDefined();
-      expect(scripts["attw"], `${rel} still runs the bare CLI`).toBe("node scripts/attw.mjs");
-      const wrapper = join(REPO_ROOT, rel.replace(/package\.json$/, "scripts/attw.mjs"));
-      expect(existsSync(wrapper), `${wrapper} is missing`).toBe(true);
+describe("AC-10: every manifest with an attw script runs the caller", () => {
+  it("AC-10: the census is derived, and each member runs the caller at the root's exact pin", () => {
+    const census = manifestsUnder().filter(
+      (rel) => stringAt(readJson(join(REPO_ROOT, rel)), "scripts", "attw") !== undefined,
+    );
+    expect(census, "the root manifest carries an attw script").toContain("package.json");
+
+    const rootPin = stringAt(
+      readJson(join(REPO_ROOT, "package.json")),
+      "devDependencies",
+      "@cosyte/script-utils",
+    );
+    expect(rootPin, "the root does not pin @cosyte/script-utils exactly").toMatch(EXACT_VERSION);
+
+    for (const rel of census) {
+      const pkg = readJson(join(REPO_ROOT, rel));
+      expect(stringAt(pkg, "scripts", "attw"), `${rel} attw script`).toBe("node scripts/attw.mjs");
+      const caller = join(REPO_ROOT, rel.replace(/package\.json$/, "scripts/attw.mjs"));
+      expect(existsSync(caller), `${caller} is missing`).toBe(true);
+      const src = readFileSync(caller, "utf8");
+      expect(src, `${caller} does not import ${SPECIFIER}`).toMatch(
+        /["']@cosyte\/script-utils\/attw["']/,
+      );
+      expect(src, `${caller} does not pass its own import.meta.url`).toMatch(
+        /runAttwGate\(\{\s*callerUrl:\s*import\.meta\.url\s*\}\)/,
+      );
+      expect(stringAt(pkg, "devDependencies", "@cosyte/script-utils"), `${rel} pin`).toBe(rootPin);
     }
   });
+});
 
-  it("carries a byte-identical implementation, so the tests above cover both copies", () => {
-    // Two copies of a gate drift, and the kit's copy is executed by nothing in
-    // this repo's CI: the kit job runs typecheck/lint/test/build, and installing
-    // its dependencies inside the unit-test job to run its wrapper directly would
-    // cost more than it proves. Pinning the code identical is what makes every
-    // behavioural test above true of the kit as well. Only the docblock differs,
-    // because one is written for a maintainer here and the other for a consumer
-    // who copied the kit out.
-    const MARKER = 'import { spawnSync } from "node:child_process";';
-    const bodyOf = (rel: string): string => {
-      const src = readFileSync(join(REPO_ROOT, rel), "utf8");
-      const at = src.indexOf(MARKER);
-      expect(at, `${rel} does not contain the import marker`).toBeGreaterThan(-1);
-      return src.slice(at);
-    };
-    expect(bodyOf("examples/profile-starter-kit/scripts/attw.mjs")).toBe(
-      bodyOf("scripts/attw.mjs"),
-    );
+describe("AC-14: the caller fails closed when the shared body cannot be reached", () => {
+  // A package holding a copy of each caller, beside a `@cosyte/script-utils` whose `exports` has
+  // no `./attw` (the shape of every version before the subpath shipped), or none at all.
+  it.each([
+    ["scripts/attw.mjs", "a version without the ./attw subpath"],
+    ["scripts/attw.mjs", "no @cosyte/script-utils installed"],
+    ["examples/profile-starter-kit/scripts/attw.mjs", "a version without the ./attw subpath"],
+    ["examples/profile-starter-kit/scripts/attw.mjs", "no @cosyte/script-utils installed"],
+  ])("AC-14: %s exits non-zero naming the specifier with %s", (callerRel, shape) => {
+    const dir = mkdtempSync(join(root, "unreachable-"));
+    writePkg(dir, { name: "attw-gate-fixture-unreachable", version: "1.0.0", type: "module" }, {});
+    mkdirSync(join(dir, "scripts"));
+    copyFileSync(join(REPO_ROOT, callerRel), join(dir, "scripts", "attw.mjs"));
+    if (shape.startsWith("a version")) {
+      writePkg(
+        join(dir, "node_modules", "@cosyte", "script-utils"),
+        {
+          name: "@cosyte/script-utils",
+          version: "0.0.2",
+          type: "module",
+          exports: { ".": "./index.js" },
+        },
+        { "index.js": "export {};\n" },
+      );
+    }
+    const r = run(process.execPath, ["scripts/attw.mjs"], dir);
+    expect(r.code).not.toBe(0);
+    expect(r.out).toContain(SPECIFIER);
+    expect(r.out).not.toContain(PASS);
   });
 });
