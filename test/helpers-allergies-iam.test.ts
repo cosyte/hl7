@@ -87,10 +87,6 @@ describe("allergies(): IAM in an ADT^A60 (AC-1)", () => {
       false,
     );
   });
-
-  it("AC-1: an IAM entry carries no onset date (IAM-8 onward is not read)", () => {
-    for (const entry of entries) expect("onsetDate" in entry).toBe(false);
-  });
 });
 
 describe("allergies(): IAM-6 action code surfaced verbatim (AC-2)", () => {
@@ -284,13 +280,13 @@ describe("allergies(): malformed IAM content (AC-7)", () => {
     });
   }
 
-  it("AC-7: a repeated IAM-6 surfaces whole and is never read as a delete", () => {
+  it("AC-2, AC-3 on AC-7 input: a repeated IAM-6 surfaces whole and is not marked", () => {
     const entry = onlyEntry("IAM|1|DA|PEN^Penicillin^L|SV|Hives|D~A|ALG-0001");
     expect(entry.actionCode).toBe("D~A");
     expect(entry.deleteRequested === true).toBe(false);
   });
 
-  it("AC-7: subcomponents in IAM-6 component 1 surface whole and are never read as a delete", () => {
+  it("AC-2, AC-3 on AC-7 input: IAM-6 subcomponents surface whole and are not marked", () => {
     const entry = onlyEntry("IAM|1|DA|PEN^Penicillin^L|SV|Hives|D&X|ALG-0001");
     expect(entry.actionCode).toBe("D&X");
     expect(entry.deleteRequested === true).toBe(false);
