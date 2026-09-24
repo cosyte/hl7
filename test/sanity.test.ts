@@ -19,7 +19,7 @@ function manifestVersion(manifest: unknown): string {
 describe("toolchain sanity", () => {
   it("package exports VERSION matching package.json", () => {
     // Compared against package.json, never a hardcoded literal. `changeset version` bumps
-    // package.json alone, so a release that skipped `scripts/sync-version.mjs` (wired into the
+    // package.json alone, so a release that skipped `cosyte-process sync-version` (wired into the
     // `version` script) would otherwise publish a VERSION export that lies about the release,
     // and a literal-vs-literal assertion would have stayed green while it happened.
     expect(VERSION).toBe(manifestVersion(pkg));
