@@ -744,12 +744,23 @@ export class Hl7Message {
   }
 
   /**
-   * Every AL1 as an Allergy in document order. D-05: returns `[]` when no
-   * AL1 present.
+   * Every AL1 and every IAM as an Allergy, one entry per segment in document
+   * order, each naming the segment it was read from (`source`). An ADT^A60
+   * carries its allergies in IAM, so it is read here too. D-05: returns `[]`
+   * when neither is present.
+   *
+   * Limits: the IAR and NTE segments under an IAM are not read, nor IAM-1 or
+   * IAM-8 onward (reach them with `msg.segments("IAM")`). IAM-6 is surfaced as
+   * `actionCode`, and an exact `D` sets `deleteRequested`, but no action is ever
+   * applied: a delete entry is still returned, an update never replaces an
+   * earlier entry, and an AL1 and an IAM for the same allergen are two entries.
    *
    * @example
    * ```ts
-   * for (const al of msg.allergies()) console.log(al.code?.text, al.severity);
+   * for (const al of msg.allergies()) {
+   *   const kind = al.deleteRequested === true ? "delete request" : "allergy";
+   *   console.log(kind, al.source, al.code?.text, al.severity, al.actionCode);
+   * }
    * ```
    */
   public allergies(): readonly Allergy[] {

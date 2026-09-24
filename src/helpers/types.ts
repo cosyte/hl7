@@ -466,12 +466,68 @@ export interface NextOfKin {
 }
 
 /**
- * AL1-derived allergy entry (HELPERS-06). `onsetDate` is the fidelity `TS`.
+ * The segment an {@link Allergy} entry was read from: `"AL1"` (Patient Allergy
+ * Information) or `"IAM"` (Patient Adverse Reaction Information, the segment an
+ * ADT^A60 carries in place of AL1).
+ *
+ * @example
+ * ```ts
+ * import type { AllergySource } from "@cosyte/hl7";
+ * const source: AllergySource = "IAM";
+ * ```
+ */
+export type AllergySource = "AL1" | "IAM";
+
+/**
+ * IAM-7 allergy unique identifier (EI): the sender's identifier for one
+ * allergy, which an update or delete for that allergy repeats. Components 1
+ * and 2 only; each key is OMITTED when its component is empty. It is never
+ * filled from IAM-3 or any other field when IAM-7 is absent.
+ *
+ * @example
+ * ```ts
+ * import type { AllergyUniqueIdentifier } from "@cosyte/hl7";
+ * const id: AllergyUniqueIdentifier = { entityIdentifier: "ALG-0001", namespaceId: "LAB" };
+ * ```
+ */
+export interface AllergyUniqueIdentifier {
+  /**
+   * EI-1 entity identifier, verbatim.
+   *
+   * @example
+   * ```ts
+   * msg.allergies()[0]?.uniqueIdentifier?.entityIdentifier; // "ALG-0001"
+   * ```
+   */
+  readonly entityIdentifier?: string;
+  /**
+   * EI-2 namespace ID of the application that assigned the identifier, verbatim.
+   *
+   * @example
+   * ```ts
+   * msg.allergies()[0]?.uniqueIdentifier?.namespaceId; // "LAB"
+   * ```
+   */
+  readonly namespaceId?: string;
+}
+
+/**
+ * One allergy entry, read from an AL1 or an IAM segment (see `source`). Both
+ * segments fill `type`, `code`, `severity` and `reaction` in the same shapes;
+ * `onsetDate` comes from AL1 only, and `actionCode`, `deleteRequested` and
+ * `uniqueIdentifier` from IAM only. Every key but `source` is OMITTED when the
+ * field it reads is empty: none is defaulted.
+ *
+ * An entry is a report of what one segment said, never the result of applying
+ * it. An IAM entry whose action code is `D` is a request to delete an allergy
+ * sent earlier, and it is still returned: it is marked by `deleteRequested`,
+ * and nothing is removed, merged or updated on the caller's behalf.
  *
  * @example
  * ```ts
  * import type { Allergy } from "@cosyte/hl7";
  * const al: Allergy = {
+ *   source: "AL1",
  *   type: "DA",
  *   code: { identifier: "PEN", text: "Penicillin" },
  *   severity: "SV",
@@ -480,16 +536,64 @@ export interface NextOfKin {
  * ```
  */
 export interface Allergy {
-  /** AL1-2 allergy type (DA=drug, FA=food, EA=environmental, ...). */
+  /**
+   * The segment this entry was read from. Always present.
+   *
+   * @example
+   * ```ts
+   * const fromIam = msg.allergies().filter((al) => al.source === "IAM");
+   * ```
+   */
+  readonly source: AllergySource;
+  /** AL1-2 or IAM-2 allergen type, component 1 (DA=drug, FA=food, EA=environmental, ...). */
   readonly type?: string;
-  /** AL1-3 allergen code. */
+  /** AL1-3 or IAM-3 allergen code. */
   readonly code?: CWE;
-  /** AL1-4 severity (SV=severe, MO=moderate, MI=mild). */
+  /** AL1-4 or IAM-4 severity, component 1 (SV=severe, MO=moderate, MI=mild). */
   readonly severity?: string;
-  /** AL1-5 allergy reaction description (first value). */
+  /** AL1-5 or IAM-5 allergy reaction (first repetition). */
   readonly reaction?: string;
   /** AL1-6 onset date as the fidelity `TS`. */
   readonly onsetDate?: TS;
+  /**
+   * IAM-6 allergy action code (Table 0206), component 1 exactly as sent: no
+   * case-folding, no mapping, and an unlisted code surfaced as it arrived.
+   * OMITTED when IAM-6 is empty, never defaulted to `A`. Absent on AL1 entries.
+   * IAM-6 does not repeat: a malformed repeated IAM-6 surfaces every
+   * repetition's component 1, joined by the message's repetition separator
+   * (`D~A`), rather than its first piece.
+   *
+   * @example
+   * ```ts
+   * for (const al of msg.allergies()) {
+   *   if (al.actionCode === "U") console.log("update to", al.uniqueIdentifier?.entityIdentifier);
+   * }
+   * ```
+   */
+  readonly actionCode?: string;
+  /**
+   * `true` when `actionCode` is exactly `D`: this entry asks the receiver to
+   * delete an allergy sent earlier, identified by `uniqueIdentifier`. OMITTED on
+   * every other entry, including a lowercase `d`, an unknown or malformed code,
+   * an empty IAM-6 and every AL1 entry. The entry itself is still returned, with
+   * every field it carries; the delete is never applied here.
+   *
+   * @example
+   * ```ts
+   * const current = msg.allergies().filter((al) => al.deleteRequested !== true);
+   * ```
+   */
+  readonly deleteRequested?: true;
+  /**
+   * IAM-7 allergy unique identifier, components 1 and 2. OMITTED when IAM-7 is
+   * empty; never filled from IAM-3. Absent on AL1 entries.
+   *
+   * @example
+   * ```ts
+   * msg.allergies()[0]?.uniqueIdentifier?.entityIdentifier; // "ALG-0001"
+   * ```
+   */
+  readonly uniqueIdentifier?: AllergyUniqueIdentifier;
 }
 
 /**

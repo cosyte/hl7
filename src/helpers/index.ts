@@ -11,6 +11,8 @@
 
 export type {
   Allergy,
+  AllergySource,
+  AllergyUniqueIdentifier,
   Appointment,
   AppointmentResource,
   Charge,
