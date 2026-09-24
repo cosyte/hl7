@@ -10,7 +10,7 @@ import {
   runSnippet,
 } from "@cosyte/vitest-config/snippets";
 
-import { fences, fixturesByContent, messageLiteral } from "./_helpers/first-use.js";
+import { compileErrors, fences, fixturesByContent, messageLiteral } from "./_helpers/first-use.js";
 
 /**
  * Doc/code-agreement gate. Every ```` ```ts runnable ```` block in `docs-content/` is extracted,
@@ -50,6 +50,13 @@ const firstBlock = fences(quickstart)[0];
 const firstRunnable = extractRunnableSnippets(quickstart)[0];
 /** Temp modules for the explicit first-use runs; removed below. Inside the root, as the harness requires. */
 const firstUseTmp = join(root, ".cosyte-first-use-snippets");
+/**
+ * The harness above strips types without checking them, so compiling is checked separately, the
+ * way a reader's new TypeScript project compiles the block, against the source entry point the
+ * bundler compiles into the published types.
+ */
+const sourceEntry = join(root, "src", "index.ts");
+const COMPILE_TIMEOUT = 60_000;
 
 afterAll(() => {
   rmSync(firstUseTmp, { recursive: true, force: true });
@@ -62,6 +69,27 @@ describe("the quickstart's first example", () => {
     expect(firstBlock?.tags).not.toContain("throws");
     expect(firstRunnable?.code).toBe(firstBlock?.body);
   });
+
+  it(
+    "AC-HL1: compiles in a new TypeScript project against the package's types",
+    () => {
+      expect(compileErrors(root, "@cosyte/hl7", sourceEntry, firstBlock?.body ?? "")).toEqual([]);
+    },
+    COMPILE_TIMEOUT,
+  );
+
+  it(
+    "AC-HL1: a block that does not compile is reported, so it turns this suite red",
+    () => {
+      const code = firstBlock?.body ?? "";
+      expect(code.split("msg.patient?.mrn").length - 1).toBe(1);
+      const mutated = code.replace("msg.patient?.mrn", "msg.patient.mrn");
+      expect(compileErrors(root, "@cosyte/hl7", sourceEntry, mutated)).toEqual([
+        expect.stringContaining("TS18048"),
+      ]);
+    },
+    COMPILE_TIMEOUT,
+  );
 
   it("AC-HL1: runs against the built package and every claimed value holds", async () => {
     expect(firstRunnable).toBeDefined();

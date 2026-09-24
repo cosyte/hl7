@@ -30,4 +30,18 @@ describe("the documented install specifier", () => {
       "@cosyte/hl7",
     ]);
   });
+
+  it("AC-HL6: every install command form a reader may copy is read, inline code included", () => {
+    const forms = [
+      "pnpm i @cosyte/hl8",
+      "pnpm install @cosyte/hl8",
+      "npm add @cosyte/hl8",
+      "deno add npm:@cosyte/hl8",
+      "run `npm install @cosyte/hl8` first",
+      "then run npm install @cosyte/hl8.",
+    ];
+    for (const form of forms) expect(installSpecifiers(form), form).toEqual(["@cosyte/hl8"]);
+    expect(installSpecifiers("pnpm install\npnpm install --frozen-lockfile")).toEqual([]);
+    expect(installSpecifiers("pnpm add file:../hl7")).toEqual([]);
+  });
 });

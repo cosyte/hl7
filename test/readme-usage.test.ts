@@ -5,7 +5,13 @@ import { join } from "node:path";
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { fences, fixturesByContent, messageLiteral, section } from "./_helpers/first-use.js";
+import {
+  compileErrors,
+  fences,
+  fixturesByContent,
+  messageLiteral,
+  section,
+} from "./_helpers/first-use.js";
 
 /**
  * The `## Usage` example in README.md is EXECUTED here, and the output block printed beside it in
@@ -67,6 +73,27 @@ describe("the README ## Usage example", () => {
       expect(r.stderr).toBe("");
       expect(r.code).toBe(0);
       expect(r.stdout).toBe(`${shown?.body ?? ""}\n`);
+    },
+    CASE_TIMEOUT,
+  );
+
+  it(
+    "AC-HL2: compiles in a new TypeScript project against the package's types",
+    () => {
+      expect(compileErrors(root, "@cosyte/hl7", entryPoint, example?.body ?? "")).toEqual([]);
+    },
+    CASE_TIMEOUT,
+  );
+
+  it(
+    "AC-HL2: a block that does not compile is reported, so it turns this suite red",
+    () => {
+      const body = example?.body ?? "";
+      expect(body.split("msg.patient?.mrn").length - 1).toBe(1);
+      const mutated = body.replace("msg.patient?.mrn", "msg.patient.mrn");
+      expect(compileErrors(root, "@cosyte/hl7", entryPoint, mutated)).toEqual([
+        expect.stringContaining("TS18048"),
+      ]);
     },
     CASE_TIMEOUT,
   );

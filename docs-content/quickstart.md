@@ -29,9 +29,10 @@ const raw =
 
 const msg = parseHL7(raw);
 
-msg.patient.mrn; // => "MRN12345"
-msg.patient.fullName; // => "John Q Doe"
-msg.patient.sex; // => "M"
+// `msg.patient` is `undefined` when the message has no PID segment.
+msg.patient?.mrn; // => "MRN12345"
+msg.patient?.fullName; // => "John Q Doe"
+msg.patient?.sex; // => "M"
 msg.meta.type; // => "ADT^A01^ADT_A01"
 
 // A clean, spec-conformant message parses with no tolerance warnings.
