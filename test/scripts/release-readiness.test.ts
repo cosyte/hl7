@@ -14,9 +14,10 @@
  *  1. THE REAL QUEUE, THROUGH THE REAL SCRIPT. Run as a subprocess so argv parsing, the report and
  *     the exit code are all exercised, against this checkout's own `.changeset/`, `package.json`
  *     and record.
- *  2. END TO END, AGAINST THE REAL TOOL. The pending declarations, this repo's `CHANGELOG.md`,
- *     `src/index.ts` and `scripts/sync-version.mjs` are copied into a throwaway package and the real
- *     `changeset version` is run there, followed by the real version-sync script, exactly as the
+ *  2. END TO END, AGAINST THE REAL TOOL. The pending declarations, this repo's `CHANGELOG.md` and
+ *     `src/index.ts` are copied into a throwaway package and the real `changeset version` is run
+ *     there, followed by the real version sync, `cosyte-process sync-version` from the pinned
+ *     `@cosyte/process` (reached through `test/_helpers/sync-version-fixture.ts`), exactly as the
  *     `version` script chains them. A check that computed the resolved version and stopped would
  *     prove only that it agrees with itself. This is what proves the arithmetic in the script
  *     matches what the release will actually do, and it is what catches a release that bumps the
@@ -58,6 +59,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { afterAll, describe, expect, it } from "vitest";
+
+import { runCanonicalSyncVersion } from "../_helpers/sync-version-fixture.js";
 
 const REPO_ROOT = process.cwd();
 const TSX_BIN = join(REPO_ROOT, "node_modules", ".bin", "tsx");
@@ -394,9 +397,13 @@ describe("the release tooling applied to a throwaway copy of the checkout", () =
       const dir = tempDir("hl7-release-sim-");
       const version = manifestVersion(REPO_ROOT);
 
+      // S0345 AC-14, AC-15: the version sync is the pinned `@cosyte/process` entry point, run with
+      // this throwaway package as its root, and nothing in this repository is copied in to stand
+      // in for it (AC-2). The three assertions below are unchanged by that swap.
+      //
       // The real pending declarations, the real changelog, the real barrel and the real version-sync
-      // script. Nothing here is a stand-in except the manifest, which is trimmed to what the two
-      // tools read and marked private so the copy is unpublishable.
+      // entry point. Nothing here is a stand-in except the manifest, which is trimmed to what the
+      // two tools read and marked private so the copy is unpublishable.
       mkdirSync(join(dir, ".changeset"));
       copyFileSync(join(CHANGESET_DIR, "config.json"), join(dir, ".changeset", "config.json"));
       for (const file of pendingFiles(REPO_ROOT)) {
@@ -405,11 +412,6 @@ describe("the release tooling applied to a throwaway copy of the checkout", () =
       copyFileSync(join(REPO_ROOT, "CHANGELOG.md"), join(dir, "CHANGELOG.md"));
       mkdirSync(join(dir, "src"));
       copyFileSync(join(REPO_ROOT, "src", "index.ts"), join(dir, "src", "index.ts"));
-      mkdirSync(join(dir, "scripts"));
-      copyFileSync(
-        join(REPO_ROOT, "scripts", "sync-version.mjs"),
-        join(dir, "scripts", "sync-version.mjs"),
-      );
       writeFileSync(
         join(dir, "package.json"),
         `${JSON.stringify({ name: "@cosyte/hl7", version, private: true, prettier: "@cosyte/prettier-config" }, null, 2)}\n`,
@@ -436,18 +438,13 @@ describe("the release tooling applied to a throwaway copy of the checkout", () =
       });
       expect(versioned.status, `${versioned.stdout ?? ""}${versioned.stderr ?? ""}`).toBe(0);
 
-      const synced = spawnSync(process.execPath, [join(dir, "scripts", "sync-version.mjs")], {
-        cwd: dir,
-        encoding: "utf8",
-        shell: false,
-        timeout: 60_000,
-      });
-      expect(synced.status, `${synced.stdout ?? ""}${synced.stderr ?? ""}`).toBe(0);
+      const synced = runCanonicalSyncVersion(dir);
+      expect(synced.status, `${synced.stdout}${synced.stderr}`).toBe(0);
 
       // 1. The manifest.
       expect(manifestVersion(dir)).toBe(RECORD_TARGET);
 
-      // 2. The exported VERSION value, produced by the real sync script from the real barrel.
+      // 2. The exported VERSION value, produced by the real sync entry point from the real barrel.
       expect(readFileSync(join(dir, "src", "index.ts"), "utf8")).toContain(
         `export const VERSION: string = "${RECORD_TARGET}";`,
       );

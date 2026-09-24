@@ -85,9 +85,9 @@
     "test:coverage": "vitest run --coverage",
     "clean": "rm -rf dist coverage",
     "examples": "tsx scripts/run-examples.ts",
-    "pack:docs": "bash scripts/build-docs-artifacts.sh",
+    "pack:docs": "cosyte-process pack-docs",
     "attw": "node scripts/attw.mjs",
-    "version": "changeset version && node scripts/sync-version.mjs && prettier --write package.json src/index.ts",
+    "version": "changeset version && cosyte-process sync-version && prettier --write package.json src/index.ts",
     "release": "changeset publish",
     "prepublishOnly": "pnpm clean && pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm attw",
     "prepare": "command -v simple-git-hooks >/dev/null 2>&1 && simple-git-hooks 1>&2 || true"
