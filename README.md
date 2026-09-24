@@ -304,7 +304,7 @@ const outbound = msg.toString(); // spec-clean HL7 wire format
 
 ### Allergies
 
-`msg.allergies()` walks every `AL1` segment and returns a typed list.
+`msg.allergies()` walks every `AL1` and every `IAM` segment and returns a typed list, one entry per segment in document order. An ADT^A60 carries its allergies in `IAM` and no `AL1`, so it is read too. Each entry names the segment it came from in `source`.
 
 ```ts
 import { parseHL7 } from "@cosyte/hl7";
@@ -312,12 +312,24 @@ import { parseHL7 } from "@cosyte/hl7";
 const msg = parseHL7(raw);
 
 for (const al of msg.allergies()) {
-  console.log(al.code?.text, al.severity, al.reaction);
-  // "Penicillin" "SV" "Hives"
+  console.log(al.source, al.code?.text, al.severity, al.reaction);
+  // "IAM" "Penicillin" "SV" "Hives"
+  if (al.deleteRequested === true) {
+    // IAM-6 was "D": the sender asks you to delete the allergy it sent earlier
+    // under al.uniqueIdentifier?.entityIdentifier. Nothing was deleted for you.
+  }
 }
 ```
 
-Fields are parsed into their spec-typed shapes (`code` is a `CWE` composite, `onsetDate` is a fidelity `TS`). The same helper family exists for next-of-kin (`msg.nextOfKin()`), diagnoses (`msg.diagnoses()`), insurance (`msg.insurance()`), medications (`msg.medications()`), and immunizations (`msg.immunizations()`).
+Fields are parsed into their spec-typed shapes (`code` is a `CWE` composite, `onsetDate` is a fidelity `TS`). An `IAM` entry also carries `actionCode` (IAM-6 exactly as sent, absent when IAM-6 is empty rather than assumed to be `A`) and `uniqueIdentifier` (IAM-7 components 1 and 2).
+
+What it does not do:
+
+- It never applies an action. A `D` entry is still returned, marked `deleteRequested: true`; a `U` entry never replaces an earlier one; an `AL1` and an `IAM` for the same allergen are two entries. The library holds no allergy list to apply them to, so that is the receiver's call.
+- It does not read the `IAR` (adverse reaction) or `NTE` segments under an `IAM`, nor IAM-1 or IAM-8 onward, and it reads IAM-2 and IAM-4 as component 1 and IAM-5 as its first repetition. Reach the rest with `msg.segments("IAM")`.
+- A missing IAM-7 is left missing: IAM-3 is never used in its place.
+
+The same helper family exists for next-of-kin (`msg.nextOfKin()`), diagnoses (`msg.diagnoses()`), insurance (`msg.insurance()`), medications (`msg.medications()`), and immunizations (`msg.immunizations()`).
 
 ### Scheduling, documents & charges (SIU · MDM · DFT)
 
