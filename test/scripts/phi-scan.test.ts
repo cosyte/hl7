@@ -2879,3 +2879,57 @@ describe("phi-scan: the exit codes and scan roots are hl7's own, and unchanged",
     expect(refused.stdout).not.toContain("OK: no hits");
   });
 });
+
+// ---------------------------------------------------------------------------
+// What an `ID` declaration clears, and the override log that says so
+// ---------------------------------------------------------------------------
+
+describe("phi-scan: a dashed SSN declared in the ID allow-list", () => {
+  /**
+   * The outcome `phi-scan-overrides.md` STATES, read out of its sentence tagged
+   * `(AC-34)`: the first `exits **N**` after the tag. That file is machinery the
+   * scanner reads to decide a bypass, and a false sentence in it tells a
+   * developer there is no remedy when there is one, or the reverse, so the
+   * sentence is graded against the run rather than proof-read.
+   */
+  function statedExit(): number {
+    const doc = readFileSync(OVERRIDES_PATH, "utf8");
+    const stated = /\(AC-34\)[^]*?exits \*\*([0-2])\*\*/.exec(doc);
+    expect(stated, "phi-scan-overrides.md carries no `(AC-34)` sentence stating an exit").not.toBe(
+      null,
+    );
+    return Number(stated?.[1]);
+  }
+
+  /** A throwaway repo whose allow-list declares `declared` under `ID`. */
+  function repoDeclaring(declared: string): string {
+    const repo = makeScanRepo({ git: true });
+    appendFileSync(join(repo, "scripts", "phi-allow-list.txt"), `\nID ${declared}\n`);
+    return repo;
+  }
+
+  /** A fixture whose ONLY PHI-shaped value is the sentinel dashed SSN. */
+  const ONLY_SSN = msg(
+    MSH,
+    "PID|1||MRN1^^^HOSP^MR||Doe^John||19800115|M",
+    `OBX|1|TX|N^Note^L||SSN on file ${SYMLINK_SSN}||||||F`,
+  );
+
+  it("AC-34: the outcome the override log states is the outcome the scan gives, in both spellings", () => {
+    const expected = statedExit();
+    // Non-vacuity: undeclared, the same fixture is a hit, so a pass below is
+    // the declaration's doing and not a fixture the scanner never flags.
+    const bare = makeScanRepo({ git: true });
+    writeFileSync(join(bare, "test", "fixtures", "only-ssn.hl7"), ONLY_SSN);
+    const undeclared = runScannerArgsIn(bare, ["test/fixtures/only-ssn.hl7"]);
+    expect(undeclared.code, `stderr: ${undeclared.stderr}`).toBe(1);
+    expect(undeclared.stderr).toContain("dashed SSN pattern");
+
+    for (const declared of [SYMLINK_SSN, SYMLINK_SSN.replace(/-/g, "")]) {
+      const repo = repoDeclaring(declared);
+      writeFileSync(join(repo, "test", "fixtures", "only-ssn.hl7"), ONLY_SSN);
+      const r = runScannerArgsIn(repo, ["test/fixtures/only-ssn.hl7"]);
+      expect(r.code, `declared as ${declared}; stderr: ${r.stderr}`).toBe(expected);
+    }
+  });
+});
