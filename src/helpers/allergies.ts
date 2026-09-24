@@ -84,7 +84,9 @@ function wholeComponent(component: RawComponent | undefined, enc: EncodingCharac
  * delete: an unmarked entry still shows the allergy. @internal
  */
 function readActionCode(field: Field): string | undefined {
-  const perRepetition = field.repetitions.map((rep) => wholeComponent(rep.components[0], field.enc));
+  const perRepetition = field.repetitions.map((rep) =>
+    wholeComponent(rep.components[0], field.enc),
+  );
   return stringOrUndefined(joinTrimmed(perRepetition, field.enc.repetition));
 }
 
