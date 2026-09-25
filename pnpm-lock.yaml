@@ -30,8 +30,8 @@ importers:
         specifier: 0.1.0
         version: 0.1.0(@types/node@22.20.0)(postcss@8.5.10)(tsx@4.21.0)(vite@7.3.6(@types/node@22.20.0)(tsx@4.21.0))
       '@cosyte/script-utils':
-        specifier: 0.1.0
-        version: 0.1.0
+        specifier: 0.1.1
+        version: 0.1.1
       '@cosyte/tsconfig':
         specifier: ^0.0.2
         version: 0.0.2
@@ -202,8 +202,8 @@ packages:
     engines: {node: '>=22.0.0'}
     hasBin: true
 
-  '@cosyte/script-utils@0.1.0':
-    resolution: {integrity: sha512-eNUs/8QmRra9jmbsPTtObzVGGCSanDcaaXNYQRiUwmTId9FQlsoujYEy/djJdFVcLsJrTAO0QZZWk0XTB73o4Q==}
+  '@cosyte/script-utils@0.1.1':
+    resolution: {integrity: sha512-7nIZUE9F73hAPZdO5Nvw9B5m9tfQiOUVQPH2Uf4lUz67qYD0HByKAHcfXjoRim6zFx8JORHZKCS8cUodme6DVA==}
     engines: {node: '>=22.14'}
 
   '@cosyte/tsconfig@0.0.2':
@@ -2069,7 +2069,7 @@ snapshots:
       - vite
       - yaml
 
-  '@cosyte/script-utils@0.1.0': {}
+  '@cosyte/script-utils@0.1.1': {}
 
   '@cosyte/tsconfig@0.0.2': {}
 
