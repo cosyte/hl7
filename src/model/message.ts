@@ -694,9 +694,16 @@ export class Hl7Message {
    * Each medication also carries its TQ1 / legacy embedded-TQ (RXE-1) `timings`
    * (repeat pattern verbatim, never resolved to a schedule).
    *
+   * Each medication also carries `orderControl`: ORC-1 of the ORC that opened
+   * its order group (every RX* up to the next ORC shares it), exactly as sent.
+   * It is never interpreted into an active, held or discontinued state, and it
+   * is omitted when no ORC precedes the RX* or ORC-1 is empty, never carried
+   * over from an earlier group.
+   *
    * @example
    * ```ts
    * for (const med of msg.medications()) {
+   *   console.log(med.orderControl); // e.g. "NW" (new) or "DC" (discontinue), verbatim
    *   console.log(med.context, med.giveCode?.identifier, med.giveCode?.nameOfCodingSystem);
    *   console.log(med.amount?.minimum, med.strength?.value);
    *   for (const t of med.timings) console.log(t.repeatPattern?.code, t.totalOccurrences);
