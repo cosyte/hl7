@@ -149,6 +149,8 @@ export * as HL7 from "./model/types/namespace.js";
 // `.allergies()`, `.diagnoses()`, `.insurance()`). HELPERS-01..07.
 export type {
   Allergy,
+  AllergySource,
+  AllergyUniqueIdentifier,
   Appointment,
   AppointmentResource,
   Charge,
