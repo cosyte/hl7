@@ -53,7 +53,17 @@ describe("a minimal init is still spec-clean, and fabricates nothing", () => {
     );
     const imm = round.immunizations()[0];
     expect(imm?.vaccineCode).toEqual({ identifier: "115" });
-    expect(Object.keys(imm ?? {}).sort()).toEqual(["observations", "routes", "vaccineCode"]);
+    expect(Object.keys(imm ?? {}).sort()).toEqual([
+      "administrationStatus",
+      "observations",
+      "routes",
+      "vaccineCode",
+    ]);
+    // AC-10: every immunization carries `administrationStatus`. AC-4 and AC-9: an absent RXA-20
+    // classifies as undetermined and the classification invents no code.
+    expect(imm?.administrationStatus.classification).toBe("undetermined");
+    expect(imm?.administrationStatus.completionStatus).toBeUndefined();
+    expect(imm?.administrationStatus.actionCode).toBeUndefined();
     expect(round.patient?.mrn).toBe("MRN001");
     expect(round.patient?.familyName).toBeUndefined();
     expect(round.patient?.dateOfBirth).toBeUndefined();

@@ -1029,6 +1029,211 @@ export interface Insurance {
 export type ImmunizationRecordOrigin = "administered" | "historical";
 
 /**
+ * What an immunization record's administration status classifies to.
+ * `"completed"` and `"not-done"` are the target codes of HL7's published
+ * Table 0322 to Event Status map (RXA-20 `CP` and `PA` are `"completed"`,
+ * `RE` and `NA` are `"not-done"`).
+ *
+ * - `"no-vaccine-administered"`: RXA-5 carries CDC CVX code `998` ("no
+ *   vaccine administered"), whatever RXA-20 says.
+ * - `"delete-requested"`: RXA-21 is exactly `D`. The record asks the receiver
+ *   to delete an administration sent earlier; it is not a dose.
+ * - `"undetermined"`: this library's fail-safe, not a map target. It covers an
+ *   absent, empty or `""` (null) RXA-20, any RXA-20 or RXA-21 that is not
+ *   exactly one code of its table (a lowercase code, whitespace around it, a
+ *   code written as an escape sequence, a VT or FS byte inside the field, more
+ *   than one repetition, component or subcomponent), and an RXA-5 that codes
+ *   CVX `998` in one triplet and a different identifier in the other.
+ *
+ * Only `"completed"` counts as a dose given. An `"undetermined"` record is
+ * never a dose by default: read the raw codes and decide.
+ *
+ * @example
+ * ```ts
+ * import type { ImmunizationStatusClass } from "@cosyte/hl7";
+ * const notADose: readonly ImmunizationStatusClass[] = [
+ *   "not-done",
+ *   "no-vaccine-administered",
+ *   "delete-requested",
+ *   "undetermined",
+ * ];
+ * ```
+ */
+export type ImmunizationStatusClass =
+  | "completed"
+  | "not-done"
+  | "no-vaccine-administered"
+  | "delete-requested"
+  | "undetermined";
+
+/**
+ * The HL7 v2 code table an {@link ImmunizationAdministrationStatus} read:
+ * Table 0322 (Completion Status, RXA-20) or Table 0323 (Action Code, RXA-21),
+ * each at the code-system version its codes were taken from.
+ *
+ * @example
+ * ```ts
+ * import type { ImmunizationStatusTable } from "@cosyte/hl7";
+ * const table: ImmunizationStatusTable = { name: "HL7 Table 0322", version: "3.0.0" };
+ * ```
+ */
+export interface ImmunizationStatusTable {
+  /** `"HL7 Table 0322"` for RXA-20, `"HL7 Table 0323"` for RXA-21. */
+  readonly name: "HL7 Table 0322" | "HL7 Table 0323";
+  /** The code-system version the table's codes were taken from. */
+  readonly version: "3.0.0";
+}
+
+/**
+ * The published HL7 v2-to-FHIR map an RXA-20 classification followed, by
+ * canonical URL and version. The map comes from the HL7 Version 2 to FHIR
+ * Implementation Guide (STU 1, standards status Informative); a later map
+ * revision shows up here as a changed `version`.
+ *
+ * @example
+ * ```ts
+ * import type { ImmunizationStatusMap } from "@cosyte/hl7";
+ * const map: ImmunizationStatusMap = {
+ *   url: "http://hl7.org/fhir/uv/v2mappings/ConceptMap/table-hl70322-to-event-status",
+ *   version: "1.0.0",
+ * };
+ * ```
+ */
+export interface ImmunizationStatusMap {
+  /** Canonical URL of the ConceptMap whose rows the classification follows. */
+  readonly url: "http://hl7.org/fhir/uv/v2mappings/ConceptMap/table-hl70322-to-event-status";
+  /** The ConceptMap version the classification follows. */
+  readonly version: "1.0.0";
+}
+
+/**
+ * The code set an RXA-5 classification read: the CDC's CVX (Vaccines
+ * Administered) code set, and the one code of it this library reads, `998`
+ * "no vaccine administered". The CVX code set carries no version number of its
+ * own; `version` is the date the CDC last updated the `998` entry, so a later
+ * change to that entry shows up here as a changed `version`.
+ *
+ * @example
+ * ```ts
+ * import type { ImmunizationStatusCodeSet } from "@cosyte/hl7";
+ * const codeSet: ImmunizationStatusCodeSet = {
+ *   name: "CDC CVX",
+ *   code: "998",
+ *   version: "2023-03-09",
+ * };
+ * ```
+ */
+export interface ImmunizationStatusCodeSet {
+  /** The code set: the CDC's CVX (Vaccines Administered) codes. */
+  readonly name: "CDC CVX";
+  /** The CVX code read: `998`, "no vaccine administered". */
+  readonly code: "998";
+  /** The date the CDC last updated the `998` entry, as `YYYY-MM-DD`. */
+  readonly version: "2023-03-09";
+}
+
+/**
+ * What decided an {@link ImmunizationAdministrationStatus}: the RXA field the
+ * deciding rule read, and the table, map or code set it read that field
+ * against. Discriminated on `field`.
+ *
+ * - `"RXA-21"`: the action code decided (`"delete-requested"`, or
+ *   `"undetermined"` for an RXA-21 outside Table 0323).
+ * - `"RXA-5"`: the vaccine code decided (`"no-vaccine-administered"`, or
+ *   `"undetermined"` for a CVX `998` contradicted by the other triplet).
+ * - `"RXA-20"`: the completion status decided, by the Table 0322 map.
+ *
+ * @example
+ * ```ts
+ * import type { ImmunizationStatusBasis } from "@cosyte/hl7";
+ * const basis: ImmunizationStatusBasis = {
+ *   field: "RXA-21",
+ *   table: { name: "HL7 Table 0323", version: "3.0.0" },
+ * };
+ * ```
+ */
+export type ImmunizationStatusBasis =
+  | {
+      /** RXA-20 Completion Status decided. */
+      readonly field: "RXA-20";
+      /** HL7 Table 0322, the table RXA-20 was read against. */
+      readonly table: ImmunizationStatusTable & { readonly name: "HL7 Table 0322" };
+      /** The Table 0322 to Event Status map the classification followed. */
+      readonly map: ImmunizationStatusMap;
+    }
+  | {
+      /** RXA-21 Action Code decided. */
+      readonly field: "RXA-21";
+      /** HL7 Table 0323, the table RXA-21 was read against. */
+      readonly table: ImmunizationStatusTable & { readonly name: "HL7 Table 0323" };
+    }
+  | {
+      /** RXA-5 Administered Code decided. */
+      readonly field: "RXA-5";
+      /** The CDC CVX code set, for code `998`. */
+      readonly codeSet: ImmunizationStatusCodeSet;
+    };
+
+/**
+ * An immunization record's administration status, derived from that RXA's own
+ * RXA-5, RXA-20 and RXA-21: carried as `administrationStatus` on every
+ * {@link Immunization}. It tells a dose given apart from a refused or
+ * not-administered record, a CVX `998` "no vaccine administered" placeholder,
+ * and a request to delete an administration sent earlier.
+ *
+ * **Which rule decides.** Exactly one rule decides, the first that applies:
+ * 1. RXA-21 exactly `D`: `"delete-requested"`.
+ * 2. RXA-21 present but not exactly one of `A`, `D`, `U`, `X` (HL7 Table
+ *    0323): `"undetermined"`. RXA-21 `A`, `U`, `X` or empty change nothing.
+ * 3. RXA-5 carries CVX `998` in a triplet whose coding system resolves to
+ *    `CVX` (or, in the primary triplet, that names no coding system):
+ *    `"no-vaccine-administered"`, or `"undetermined"` when the other triplet
+ *    carries a different, non-empty identifier.
+ * 4. RXA-20 by HL7's Table 0322 to Event Status map: `CP` and `PA`
+ *    `"completed"`, `RE` and `NA` `"not-done"`, anything else `"undetermined"`.
+ *
+ * **Safety contract.** `"completed"` only when RXA-20 is exactly `CP` or `PA`,
+ * RXA-21 is empty or exactly `A`, `U` or `X`, and RXA-5 carries no CVX `998`.
+ * Each RXA classifies from its own fields alone: nothing is carried across
+ * segments. A status is reported, never applied: a `"delete-requested"`
+ * record is still returned, is never matched against an earlier message, and
+ * removes nothing. The object is plain data, not a FHIR element.
+ *
+ * @example
+ * ```ts
+ * import { parseHL7 } from "@cosyte/hl7";
+ * const msg = parseHL7(raw);
+ * const given = msg
+ *   .immunizations()
+ *   .filter((imm) => imm.administrationStatus.classification === "completed");
+ * for (const imm of msg.immunizations()) {
+ *   const { classification, completionStatus, actionCode, decidedBy } = imm.administrationStatus;
+ *   if (classification === "undetermined") {
+ *     console.log("not classifiable:", decidedBy.field, completionStatus, actionCode);
+ *   }
+ * }
+ * ```
+ */
+export interface ImmunizationAdministrationStatus {
+  /** The classification the deciding rule gives the record. */
+  readonly classification: ImmunizationStatusClass;
+  /**
+   * The raw RXA-20 code, byte-identical to the `completionStatus` of the same
+   * immunization: the field's first value, decoded. OMITTED exactly when
+   * `completionStatus` is (the field is absent, empty or `""`).
+   */
+  readonly completionStatus?: string;
+  /**
+   * The raw RXA-21 code, byte-identical to the `actionCode` of the same
+   * immunization: the field's first value, decoded. OMITTED exactly when
+   * `actionCode` is (the field is absent, empty or `""`).
+   */
+  readonly actionCode?: string;
+  /** The field that decided, and the table, map or code set it was read against. */
+  readonly decidedBy: ImmunizationStatusBasis;
+}
+
+/**
  * A vaccine dose extracted from one RXA (Pharmacy/Treatment Administration)
  * segment of a VXU^V04 immunization message, with its RXR
  * (route/site) and OBX (e.g. VFC eligibility / funding source) children grouped
@@ -1050,12 +1255,18 @@ export type ImmunizationRecordOrigin = "administered" | "historical";
  * - `recordOrigin` (administered vs historical) is derived only from the
  *   well-known NIP001 RXA-9.1 codes and OMITTED otherwise: see
  *   {@link ImmunizationRecordOrigin}.
+ * - `administrationStatus` tells a dose given (`"completed"`) apart from a
+ *   refused or not-administered record, a CVX `998` "no vaccine administered"
+ *   placeholder and a delete request, and is `"undetermined"` rather than a
+ *   guess: see {@link ImmunizationAdministrationStatus}. Every record is still
+ *   returned, whatever it classifies as.
  * - Malformed RXA segments never throw: absent fields are omitted keys.
  *
- * `routes` and `observations` are ALWAYS present (possibly empty). Deferred (not
- * v1): IIS-specific state profile constraints; CVX/MVX validity checks; the 2nd+
- * repetition of the repeating RXA-15/16/17 lot/expiry/manufacturer fields (only
- * the first repetition is surfaced).
+ * `routes`, `observations` and `administrationStatus` are ALWAYS present
+ * (`routes` and `observations` possibly empty). Deferred (not v1): IIS-specific
+ * state profile constraints; CVX/MVX validity checks; the 2nd+ repetition of the
+ * repeating RXA-15/16/17 lot/expiry/manufacturer fields (only the first
+ * repetition is surfaced).
  *
  * @example
  * ```ts
@@ -1069,6 +1280,19 @@ export type ImmunizationRecordOrigin = "administered" | "historical";
  *   manufacturer: { identifier: "PMC", text: "Sanofi Pasteur", nameOfCodingSystem: "MVX" },
  *   completionStatus: "CP",
  *   actionCode: "A",
+ *   administrationStatus: {
+ *     classification: "completed",
+ *     completionStatus: "CP",
+ *     actionCode: "A",
+ *     decidedBy: {
+ *       field: "RXA-20",
+ *       table: { name: "HL7 Table 0322", version: "3.0.0" },
+ *       map: {
+ *         url: "http://hl7.org/fhir/uv/v2mappings/ConceptMap/table-hl70322-to-event-status",
+ *         version: "1.0.0",
+ *       },
+ *     },
+ *   },
  *   routes: [{ route: { identifier: "IM", text: "Intramuscular" } }],
  *   observations: [],
  * };
@@ -1109,6 +1333,14 @@ export interface Immunization {
   readonly completionStatus?: string;
   /** RXA-21 action code (`A`=add, `D`=delete, `U`=update): preserved verbatim, NEVER defaulted. */
   readonly actionCode?: string;
+  /**
+   * The record's administration status, derived from this RXA's own RXA-5,
+   * RXA-20 and RXA-21, with the raw RXA-20 and RXA-21 codes beside it and the
+   * field and table, map or code set that decided it. Always present:
+   * `"undetermined"` when nothing classifies it. See
+   * {@link ImmunizationAdministrationStatus}.
+   */
+  readonly administrationStatus: ImmunizationAdministrationStatus;
   /** RXR children grouped under this RXA (Table 0162 route / Table 0163 site). Always present (possibly empty). */
   readonly routes: readonly MedicationRoute[];
   /** OBX children grouped under this RXA (VFC eligibility, funding source, …). Always present (possibly empty). */
