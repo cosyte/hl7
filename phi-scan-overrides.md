@@ -37,6 +37,37 @@ and is recorded as one. Giving those two detectors a tag would widen what can be
 declared synthetic, which is a change to what the gate permits and belongs in its
 own reviewed change, not in this one.
 
+## Where the machinery lives
+
+`scripts/phi-scan.ts` is a CALLER now, not a scanner. The machinery it used to
+carry is `@cosyte/script-utils/phi-scan`, a devDependency pinned to an exact
+published version, and it reaches this repo through a version bump rather than
+through a pull request per repo. Read that split before reading anything below,
+because it decides which side a sentence is about:
+
+- **The engine's.** Argument parsing and the three modes; reading this log and
+  `scripts/phi-allow-list.txt`; target enumeration; the union of the
+  working-tree walk with the bytes git carries at every index path, deduplicated
+  by content; **the completeness rule**; **the per-root observation rule**; the
+  **enumeration TOCTOU window**; the `--allow-fixture` admission gate and the two
+  tiers that keep a bypass from reaching exit 0; the refusal over an in-scope
+  entry that is not a regular file, on both enumerating routes; and the
+  cross-cutting SSN / email **floor**, which no caller configuration can
+  subtract. Everything under "Enumeration, and what a failed read does",
+  "The observation rule is per-root" and "The sweep reads the bytes git carries"
+  describes ENGINE behaviour; the measurements in them were taken against this
+  repo's own copy before the move, and they are kept because they are what the
+  engine is held to here.
+- **This repo's, supplied to the engine and never shipped in the package.**
+  `scripts/phi-allow-list.txt` and this log; the five per-repo axes (the exit
+  codes `0` / `1` / `2`, the scan roots, the `--staged` read filter, and the HL7
+  v2 detector); the three detection tiers below; the category-to-field map; and
+  the four documented limits of the embedded-literal pass.
+
+The exit codes stay this repo's own and are supplied rather than defaulted: the
+sibling `@cosyte/*` scanners do not agree on the numbers, so a caller that
+branches on the code must read this contract and never an inherited one.
+
 ## How the scanner detects PHI
 
 `scripts/phi-scan.ts` is HL7 v2-shape-aware: it reads the message delimiters from
