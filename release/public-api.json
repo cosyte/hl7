@@ -1398,6 +1398,7 @@
         "context: MedicationContext",
         "dosageForm?: CWE | undefined",
         "giveCode?: CWE | undefined",
+        "orderControl?: string | undefined",
         "routes: readonly MedicationRoute[]",
         "strength?: MedicationStrength | undefined",
         "timings: readonly OrderTiming[]"

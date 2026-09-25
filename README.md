@@ -329,7 +329,7 @@ What it does not do:
 - It does not read the `IAR` (adverse reaction) or `NTE` segments under an `IAM`, nor IAM-1 or IAM-8 onward, and it reads IAM-2 and IAM-4 as component 1 and IAM-5 as its first repetition. Reach the rest with `msg.segments("IAM")`.
 - A missing IAM-7 is left missing: IAM-3 is never used in its place.
 
-The same helper family exists for next-of-kin (`msg.nextOfKin()`), diagnoses (`msg.diagnoses()`), insurance (`msg.insurance()`), medications (`msg.medications()`), and immunizations (`msg.immunizations()`).
+The same helper family exists for next-of-kin (`msg.nextOfKin()`), diagnoses (`msg.diagnoses()`), insurance (`msg.insurance()`), medications (`msg.medications()`), and immunizations (`msg.immunizations()`). Each medication carries `orderControl`, the ORC-1 order control of the `ORC` that opened its order group (`NW`, `DC`, `HD` and so on) exactly as sent, never an interpreted state such as active, held or discontinued, and absent when no `ORC` opens the group or ORC-1 is empty.
 
 ### Scheduling, documents & charges (SIU · MDM · DFT)
 
