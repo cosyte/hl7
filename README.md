@@ -331,6 +331,8 @@ What it does not do:
 
 The same helper family exists for next-of-kin (`msg.nextOfKin()`), diagnoses (`msg.diagnoses()`), insurance (`msg.insurance()`), medications (`msg.medications()`), and immunizations (`msg.immunizations()`). Each medication carries `orderControl`, the ORC-1 order control of the `ORC` that opened its order group (`NW`, `DC`, `HD` and so on) exactly as sent, never an interpreted state such as active, held or discontinued, and absent when no `ORC` opens the group or ORC-1 is empty.
 
+Each immunization carries `administrationStatus`, read from that RXA's own RXA-21, RXA-5 and RXA-20: `completed` for a dose given (RXA-20 `CP` or `PA`), `not-done` for a refused or not-administered dose (`RE` or `NA`), `no-vaccine-administered` for a CVX `998` placeholder, `delete-requested` for an RXA-21 `D` asking to delete an administration sent earlier, and `undetermined` for anything not exactly mapped, never `completed`. The raw RXA-20 and RXA-21 codes ride beside it with the field and table that decided. It is reported, never applied: a `D` record is still returned and nothing is removed. See the [immunization status notes](./docs-content/spec-notes-immunization-status.md).
+
 ### Scheduling, documents & charges (SIU · MDM · DFT)
 
 Three breadth helpers cover the scheduling, medical-record, and financial message families:
