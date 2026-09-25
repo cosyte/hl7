@@ -54,7 +54,7 @@ function expectOracle(
 
 // Characters that make a sender's near-miss: every table letter in both cases, the four
 // component/repetition/escape/subcomponent delimiters, escape-sequence letters and hex digits,
-// the null quote, and whitespace the parser may trim.
+// the null quote, whitespace the parser may trim, and the VT and FS bytes it strips.
 const nearMissChar = fc.constantFrom(
   ..."ABCDFIMNOPRSUVWXYZabcdfimnoprsuvwxyz".split(""),
   "^",
@@ -69,6 +69,8 @@ const nearMissChar = fc.constantFrom(
   "T",
   " ",
   "\t",
+  "\u000B",
+  "\u001C",
   " ",
 );
 
@@ -94,6 +96,9 @@ const suppliedString = fc.oneof(
     "F~",
     "\\X46\\",
     "\\x46\\",
+    "\u000BF",
+    "F\u001C",
+    "\u000BF\u001C",
   ),
   fc.stringOf(nearMissChar, { maxLength: 6 }),
   fc.string({ maxLength: 8 }),

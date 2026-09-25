@@ -140,6 +140,9 @@ describe("AC-5: absent, empty, null and not-exactly-one-code values are undeterm
     ["a letter outside the table", "Q"],
     ["a code written as an escape sequence", "\\X46\\"],
     ["a code followed by an empty repetition", "F~"],
+    ["a code after a VT byte", "\u000BF"],
+    ["a code before an FS byte", "F\u001C"],
+    ["a code between VT and FS bytes", "\u000BW\u001C"],
   ];
 
   it.each(NOT_ONE_CODE)("AC-5: OBX-11 %s (%j) is undetermined and still returned", (_, value) => {
@@ -167,6 +170,78 @@ describe("AC-5: absent, empty, null and not-exactly-one-code values are undeterm
   it("AC-5: whitespace around a code is undetermined with field trimming off as well", () => {
     expect(observationStatus(" F", false).classification).toBe("undetermined");
     expect(orderStatus("F ", false).classification).toBe("undetermined");
+  });
+
+  // The parser removes every VT and FS byte before it splits segments, so the field reads `F`
+  // while the wire carried more. Only the byte's own field is undetermined; the MLLP block frame
+  // around the whole message is not part of any field (AC-2, AC-3 below).
+  it.each([
+    ["CR", "\r"],
+    ["LF", "\n"],
+    ["CR LF", "\r\n"],
+  ])(
+    "AC-5, AC-2, AC-3: a VT or FS inside one status field of a framed message with %s breaks leaves the others exact",
+    (_, br) => {
+      const raw =
+        "\u000B" +
+        [
+          MSH,
+          PID,
+          obr(1, "F\u001C"),
+          obx(1, "F"),
+          obx(2, "\u000BW"),
+          obr(2, "R"),
+          obx(1, "W"),
+        ].join(br) +
+        "\u001C\r";
+      const msg = parseHL7(raw);
+      expect(msg.orders().map((o) => o.resultStatus.classification)).toEqual([
+        "undetermined",
+        "partial",
+      ]);
+      expect(msg.observations().map((o) => o.resultStatus.classification)).toEqual([
+        "final",
+        "undetermined",
+        "entered-in-error",
+      ]);
+      expect(msg.observations()[1]?.status).toBe("W");
+    },
+  );
+
+  it("AC-5: a VT inside OBX-11 is undetermined with MLLP framing warnings off as well", () => {
+    const msg = parseHL7(message(obr(1, "F"), obx(1, "F\u000B")), { stripMllpFraming: false });
+    expect(msg.observations()[0]?.resultStatus.classification).toBe("undetermined");
+    expect(msg.orders()[0]?.resultStatus.classification).toBe("final");
+  });
+
+  it("AC-2, AC-3: the MLLP block frame is not part of the last field of the message", () => {
+    const framed = parseHL7("\u000B" + message(obr(1, "R"), obx(1, "F")) + "\u001C\r");
+    expect(framed.observations()[0]?.resultStatus.classification).toBe("final");
+    expect(framed.orders()[0]?.resultStatus.classification).toBe("partial");
+    const noCr = parseHL7("\u000B" + message(obr(1, "R"), obx(1, "F")) + "\u001C");
+    expect(noCr.observations()[0]?.resultStatus.classification).toBe("final");
+  });
+
+  it("AC-5: an FS ending a message with no VT start block is not a frame, so OBX-11 F\\x1C is undetermined", () => {
+    expect(observationStatus("F\u001C").classification).toBe("undetermined");
+    expect(
+      parseHL7(message(obr(1, "F"), obx(1, "F")) + "\u001C\r").observations()[0]?.resultStatus
+        .classification,
+    ).toBe("undetermined");
+  });
+
+  // What a field arrived as stays with that field when other segments are added or removed.
+  it("AC-5: an OBX-11 that arrived as ' F' stays undetermined after an unrelated segment is removed", () => {
+    const msg = parseHL7(message("NTE|1||note", obr(1, "F"), obx(1, " F")));
+    msg.removeSegment("NTE");
+    expect(msg.observations()[0]?.resultStatus.classification).toBe("undetermined");
+    expect(msg.orders()[0]?.resultStatus.classification).toBe("final");
+  });
+
+  it("AC-1: an exact OBX-11 W stays entered-in-error when a trimmed OBX before it is removed", () => {
+    const msg = parseHL7(message(obr(1, "F"), obx(1, " F"), obx(2, "W")));
+    msg.removeSegment("OBX", 0);
+    expect(msg.observations()[0]?.resultStatus.classification).toBe("entered-in-error");
   });
 });
 

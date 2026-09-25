@@ -24,6 +24,7 @@ import { canonicalCharset } from "./charset.js";
 import { normalize, normalizeBuffer } from "./normalize.js";
 import { snippet as segmentSnippet, splitSegments } from "./segments.js";
 import { tokenize } from "./tokenize.js";
+import { locateInteriorFramingBytes, recordAlteredFields } from "./wire-fidelity.js";
 import { analyzeMessageStructure, findMessageStructureDefinition } from "./message-structure.js";
 import {
   encodingMismatch,
@@ -438,6 +439,8 @@ export function parseHL7(
   // Step 4: Strip MLLP framing bytes. Even if `stripMllpFraming` is
   // disabled we still strip: leaving VT/FS in the buffer would corrupt
   // segment splitting: but we suppress the warning in that case.
+  // `unstripped` is kept so Step 11 can record which fields lost a byte here.
+  const unstripped = text;
   const mllpResult = stripMllp(text);
   text = mllpResult.stripped;
 
@@ -516,6 +519,16 @@ export function parseHL7(
     encoding,
     emit,
     options.trimFields ?? true,
+  );
+
+  // Record which fields did not arrive as the value stored for them: those
+  // trimmed above, and those a VT/FS byte was stripped from inside in Step 4.
+  // Nothing in the tree, its values or the warnings changes; readers that need
+  // a field exactly as received (the result status classification) ask.
+  recordAlteredFields(
+    rawSegments,
+    warnings,
+    mllpResult.wasFramed ? locateInteriorFramingBytes(unstripped, encoding.field) : [],
   );
 
   // Step 11.5: Emit UNKNOWN_SEGMENT for any non-standard segment name that

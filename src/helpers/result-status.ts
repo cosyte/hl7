@@ -12,58 +12,21 @@
  *
  * "Exactly one code" is read on the field as received: one repetition, one
  * component, one subcomponent, no escape sequence standing in for the letter,
- * and no whitespace the parser trimmed off it. The raw code carried beside the
- * classification is the field's decoded first value, byte-identical to the
- * `status` / `orderStatus` the same helper output already surfaces.
+ * no whitespace the parser trimmed off it, and no VT or FS byte the parser
+ * removed from inside it. The raw code carried beside the classification is
+ * the field's decoded first value, byte-identical to the `status` /
+ * `orderStatus` the same helper output already surfaces.
  */
 
 import type { Field } from "../model/field.js";
-import type { Hl7Message } from "../model/message.js";
 import type { Segment } from "../model/segment.js";
-import { WARNING_CODES } from "../parser/warnings.js";
+import { fieldArrivedAltered } from "../parser/wire-fidelity.js";
 import type {
   ResultStatusClass,
   ResultStatusClassification,
   ResultStatusMap,
   ResultStatusTable,
 } from "./types.js";
-
-/**
- * Whether the parser trimmed whitespace off field `fieldIndex` of `segment`.
- * Built once per helper call from the message's warnings by
- * {@link trimmedFieldLookup}. @internal
- */
-export type TrimmedFieldLookup = (segment: Segment, fieldIndex: number) => boolean;
-
-/** Lookup for a segment built outside a parsed message: nothing was trimmed. @internal */
-export const NOTHING_TRIMMED: TrimmedFieldLookup = () => false;
-
-/**
- * Index every `FIELD_WHITESPACE_TRIMMED` warning on `msg` by segment and field
- * position. A trimmed status field held whitespace on the wire, so it was not
- * exactly one code as received even though its stored value now is.
- *
- * @example
- * ```ts
- * const msg = parseHL7(raw); // a message whose first OBX-11 arrived as " F"
- * const trimmedAt = trimmedFieldLookup(msg);
- * const obx = msg.segments("OBX")[0];
- * if (obx !== undefined) trimmedAt(obx, 11); // true
- * ```
- *
- * @internal
- */
-export function trimmedFieldLookup(msg: Hl7Message): TrimmedFieldLookup {
-  const trimmed = new Set<string>();
-  for (const w of msg.warnings) {
-    if (w.code === WARNING_CODES.FIELD_WHITESPACE_TRIMMED) {
-      trimmed.add(`${String(w.position.segmentIndex)}:${String(w.position.fieldIndex)}`);
-    }
-  }
-  if (trimmed.size === 0) return NOTHING_TRIMMED;
-  return (segment, fieldIndex) =>
-    trimmed.has(`${String(segment.absoluteIndex)}:${String(fieldIndex)}`);
-}
 
 const TABLE_0085: ResultStatusTable = Object.freeze({ name: "HL7 Table 0085", version: "3.0.0" });
 const TABLE_0123: ResultStatusTable = Object.freeze({ name: "HL7 Table 0123", version: "3.0.0" });
@@ -108,10 +71,10 @@ const ORDER_STATUS: ReadonlyMap<string, ResultStatusClass> = new Map([
  * component, one subcomponent, written on the wire as itself. `undefined` for
  * a null, empty or structured field, for a value that arrived as an escape
  * sequence (the escape overlay records its wire bytes), and for a field the
- * parser trimmed. @internal
+ * parser altered on the way in (trimmed, or a VT or FS byte removed). @internal
  */
-function soleValue(field: Field, trimmed: boolean): string | undefined {
-  if (trimmed || field.repetitions.length !== 1) return undefined;
+function soleValue(field: Field): string | undefined {
+  if (fieldArrivedAltered(field.raw) || field.repetitions.length !== 1) return undefined;
   const components = field.repetitions[0]?.components ?? [];
   if (components.length !== 1) return undefined;
   const component = components[0];
@@ -123,12 +86,11 @@ function soleValue(field: Field, trimmed: boolean): string | undefined {
 /** Classify one status field against one map; frozen at the boundary. @internal */
 function classify(
   field: Field,
-  trimmed: boolean,
   rows: ReadonlyMap<string, ResultStatusClass>,
   table: ResultStatusTable,
   map: ResultStatusMap,
 ): ResultStatusClassification {
-  const sole = soleValue(field, trimmed);
+  const sole = soleValue(field);
   const classification = (sole === undefined ? undefined : rows.get(sole)) ?? "undetermined";
   // `Field.value` is exactly what `status` / `orderStatus` reads, so the raw
   // code stays byte-identical to it and is omitted exactly when it is.
@@ -146,17 +108,14 @@ function classify(
  * ```ts
  * const obx = msg.segments("OBX")[0];
  * if (obx !== undefined) {
- *   classifyObservationStatus(obx, trimmedFieldLookup(msg)).classification; // "final" for OBX-11 F
+ *   classifyObservationStatus(obx).classification; // "final" for OBX-11 F
  * }
  * ```
  *
  * @internal
  */
-export function classifyObservationStatus(
-  obx: Segment,
-  trimmedAt: TrimmedFieldLookup,
-): ResultStatusClassification {
-  return classify(obx.field(11), trimmedAt(obx, 11), OBSERVATION_STATUS, TABLE_0085, MAP_0085);
+export function classifyObservationStatus(obx: Segment): ResultStatusClassification {
+  return classify(obx.field(11), OBSERVATION_STATUS, TABLE_0085, MAP_0085);
 }
 
 /**
@@ -167,15 +126,12 @@ export function classifyObservationStatus(
  * ```ts
  * const obr = msg.segments("OBR")[0];
  * if (obr !== undefined) {
- *   classifyOrderStatus(obr, trimmedFieldLookup(msg)).classification; // "partial" for OBR-25 R
+ *   classifyOrderStatus(obr).classification; // "partial" for OBR-25 R
  * }
  * ```
  *
  * @internal
  */
-export function classifyOrderStatus(
-  obr: Segment,
-  trimmedAt: TrimmedFieldLookup,
-): ResultStatusClassification {
-  return classify(obr.field(25), trimmedAt(obr, 25), ORDER_STATUS, TABLE_0123, MAP_0123);
+export function classifyOrderStatus(obr: Segment): ResultStatusClassification {
+  return classify(obr.field(25), ORDER_STATUS, TABLE_0123, MAP_0123);
 }

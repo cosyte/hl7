@@ -39,7 +39,6 @@ import type { Segment } from "../model/segment.js";
 
 import { groupNotes } from "./notes.js";
 import { buildObservation } from "./observations.js";
-import { trimmedFieldLookup } from "./result-status.js";
 import type { ClinicalDocument, Observation } from "./types.js";
 
 /** Normalize HL7 empty-string to `undefined` for the helper layer. @internal */
@@ -104,7 +103,6 @@ function finalizeDocument(txa: Segment, observations: readonly Observation[]): C
  */
 export function documents(msg: Hl7Message): readonly ClinicalDocument[] {
   const noteIndex = groupNotes(msg); // Phase P: positional NTE grouping (by Segment ref)
-  const trimmedAt = trimmedFieldLookup(msg);
   const out: ClinicalDocument[] = [];
 
   let currentTxa: Segment | undefined;
@@ -123,7 +121,7 @@ export function documents(msg: Hl7Message): readonly ClinicalDocument[] {
     }
     if (currentTxa === undefined) continue; // OBX before any TXA: dropped (still on msg.observations()).
     if (seg.type === "OBX") {
-      observations.push(buildObservation(seg, noteIndex.byParent.get(seg), trimmedAt));
+      observations.push(buildObservation(seg, noteIndex.byParent.get(seg)));
     }
   }
 

@@ -51,7 +51,6 @@ import type { Segment } from "../model/segment.js";
 import type { CWE } from "../model/types/cwe.js";
 
 import { buildObservation } from "./observations.js";
-import { trimmedFieldLookup } from "./result-status.js";
 import type {
   Immunization,
   ImmunizationRecordOrigin,
@@ -213,7 +212,6 @@ function finalizeImmunization(
  * @internal
  */
 export function immunizations(msg: Hl7Message): readonly Immunization[] {
-  const trimmedAt = trimmedFieldLookup(msg);
   const out: Immunization[] = [];
 
   let pendingOrc: Segment | undefined; // accumulates ORCs since the last RXA
@@ -247,7 +245,7 @@ export function immunizations(msg: Hl7Message): readonly Immunization[] {
     if (seg.type === "RXR") {
       routes.push(buildRoute(seg));
     } else if (seg.type === "OBX") {
-      observations.push(buildObservation(seg, undefined, trimmedAt));
+      observations.push(buildObservation(seg));
     }
   }
 

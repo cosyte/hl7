@@ -30,12 +30,7 @@ import type { Segment } from "../model/segment.js";
 import type { CE } from "../model/types/ce.js";
 import type { CWE } from "../model/types/cwe.js";
 import { groupNotes } from "./notes.js";
-import {
-  classifyObservationStatus,
-  NOTHING_TRIMMED,
-  trimmedFieldLookup,
-  type TrimmedFieldLookup,
-} from "./result-status.js";
+import { classifyObservationStatus } from "./result-status.js";
 import type { Observation, ObservationBase } from "./types.js";
 
 /** Normalize HL7 empty-string to `undefined` for the helper layer (D-22). @internal */
@@ -56,13 +51,13 @@ function cweOrUndefined(field: Field): CWE | undefined {
  *
  * @internal
  */
-function buildCommon(obx: Segment, trimmedAt: TrimmedFieldLookup): ObservationBase {
+function buildCommon(obx: Segment): ObservationBase {
   type Mutable<T> = { -readonly [K in keyof T]?: T[K] };
   // `identifier` is always present (D-15): always parse OBX-3, even if empty.
   // `resultStatus` is always present too: this OBX's own OBX-11, classified.
   const base: Mutable<ObservationBase> = {
     identifier: obx.field(3).asCwe(),
-    resultStatus: classifyObservationStatus(obx, trimmedAt),
+    resultStatus: classifyObservationStatus(obx),
   };
 
   const setId = stringOrUndefined(obx.field(1).value);
@@ -164,9 +159,7 @@ function dispatchValue(valueType: string, valueField: Field, common: Observation
  * by OBX-2 per D-13; common fields follow D-15. Exported so
  * `orders()` can reuse this per-segment builder when grouping OBX under OBR
  * positionally (D-12): do NOT re-implement OBX → Observation construction
- * there. `trimmedAt` says where the parser trimmed whitespace off a field, so
- * a trimmed OBX-11 classifies as not exactly one code; pass the lookup from
- * `trimmedFieldLookup(msg)` for a segment of a parsed message.
+ * there.
  *
  * @example
  * ```ts
@@ -179,12 +172,8 @@ function dispatchValue(valueType: string, valueField: Field, common: Observation
  * }
  * ```
  */
-export function buildObservation(
-  obx: Segment,
-  notes?: readonly string[],
-  trimmedAt: TrimmedFieldLookup = NOTHING_TRIMMED,
-): Observation {
-  const base = buildCommon(obx, trimmedAt);
+export function buildObservation(obx: Segment, notes?: readonly string[]): Observation {
+  const base = buildCommon(obx);
   // Phase P: attach positionally-grouped NTE note lines when present. The
   // `notes` array is already frozen by `groupNotes`; omit the key when empty so
   // the shape stays `exactOptionalPropertyTypes`-clean.
@@ -214,10 +203,9 @@ export function buildObservation(
  */
 export function observations(msg: Hl7Message): readonly Observation[] {
   const noteIndex = groupNotes(msg);
-  const trimmedAt = trimmedFieldLookup(msg);
   const out: Observation[] = [];
   for (const obx of msg.segments("OBX")) {
-    out.push(buildObservation(obx, noteIndex.byParent.get(obx), trimmedAt));
+    out.push(buildObservation(obx, noteIndex.byParent.get(obx)));
   }
   return Object.freeze(out);
 }
