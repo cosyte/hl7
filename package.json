@@ -101,7 +101,7 @@
     "@cosyte/eslint-config": "^0.0.3",
     "@cosyte/prettier-config": "^0.0.2",
     "@cosyte/process": "0.1.0",
-    "@cosyte/script-utils": "0.1.0",
+    "@cosyte/script-utils": "0.1.1",
     "@cosyte/tsconfig": "^0.0.2",
     "@cosyte/tsup-config": "^0.0.1",
     "@cosyte/vitest-config": "^0.0.2",

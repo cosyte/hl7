@@ -26,16 +26,51 @@ refusal that names it rather than a green line that does not.
 
 **It is not the remedy for every hit, and saying it was would repeat the defect
 this change closes.** The allow-list has five tags: `NAME`, `DOB`, `ADDR`, `ID`,
-`EMAILDOMAIN`. Two detectors consult none of them, which the sections below
-already state from the other direction (a dashed SSN anywhere is _always_ a hit;
-a phone outside the `555` fake-exchange convention is _always_ a hit). Measured
-on a fixture whose only hit was a dashed SSN, with `ID`, `NAME`, `ADDR` and `DOB`
-entries for both the dashed and undashed spellings: still exit 1. **No
-declaration clears those two**, so with the file still in scope the value itself
-has to change. The bypass used to, so this is a genuine narrowing
-and is recorded as one. Giving those two detectors a tag would widen what can be
-declared synthetic, which is a change to what the gate permits and belongs in its
-own reviewed change, not in this one.
+`EMAILDOMAIN`. The two detectors that used to consult none of them now differ,
+because one of them moved into the shared engine and the other did not.
+(AC-34) **A dashed SSN whose value is declared under `ID`, in its dashed or its
+undashed spelling, is cleared by that declaration:** a fixture whose only
+PHI-shaped value is that SSN exits **0**. The engine's floor consults `ID`
+both as written and with the separators removed, so declaring a genuinely
+synthetic identifier is the remedy, exactly as for a bare-numeric MRN. That
+sentence is read by a test and compared with the run, so it cannot drift from
+what the gate does. **A phone outside the `555` fake-exchange convention is still
+cleared by no declaration**: this repo's own detector consults no tag for it, so
+with the file still in scope the value itself has to change. The bypass used to
+clear both, so losing it is a genuine narrowing and is recorded as one. Giving
+the phone detector a tag would widen what can be declared synthetic, which is a
+change to what the gate permits and belongs in its own reviewed change.
+
+## Where the machinery lives
+
+`scripts/phi-scan.ts` is a CALLER now, not a scanner. The machinery it used to
+carry is `@cosyte/script-utils/phi-scan`, a devDependency pinned to an exact
+published version, and it reaches this repo through a version bump rather than
+through a pull request per repo. Read that split before reading anything below,
+because it decides which side a sentence is about:
+
+- **The engine's.** Argument parsing and the three modes; reading this log and
+  `scripts/phi-allow-list.txt`; target enumeration; the union of the
+  working-tree walk with the bytes git carries at every index path, deduplicated
+  by content; **the completeness rule**; **the per-root observation rule**; the
+  **enumeration TOCTOU window**; the `--allow-fixture` admission gate and the two
+  tiers that keep a bypass from reaching exit 0; the refusal over an in-scope
+  entry that is not a regular file, on both enumerating routes; and the
+  cross-cutting SSN / email **floor**, which no caller configuration can
+  subtract. Everything under "Enumeration, and what a failed read does",
+  "The observation rule is per-root" and "The sweep reads the bytes git carries"
+  describes ENGINE behaviour; the measurements in them were taken against this
+  repo's own copy before the move, and they are kept because they are what the
+  engine is held to here.
+- **This repo's, supplied to the engine and never shipped in the package.**
+  `scripts/phi-allow-list.txt` and this log; the five per-repo axes (the exit
+  codes `0` / `1` / `2`, the scan roots, the `--staged` read filter, and the HL7
+  v2 detector); the three detection tiers below; the category-to-field map; and
+  the four documented limits of the embedded-literal pass.
+
+The exit codes stay this repo's own and are supplied rather than defaulted: the
+sibling `@cosyte/*` scanners do not agree on the numbers, so a caller that
+branches on the code must read this contract and never an inherited one.
 
 ## How the scanner detects PHI
 
@@ -113,7 +148,7 @@ them rather than the summary above.
 | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Patient / person names       | PID-5/-6/-9, NK1-2/-30, GT1-3, IN1-16, MRG-7, STF-3 (XPN comp1-3); PV1-7/-8/-9/-17/-52, PD1-4, ORC-10/-11/-12/-19, OBR-10/-16/-28/-32..35, OBX-16/-25, DG1-16, PR1-11, AIP-3, TXA-9/-10/-11, ROL-4 (XCN comp2-4) | each significant name token must be in the `NAME` allow-list (case-insensitive). Single Latin initials are skipped; single CJK ideographs are kept (Chinese/Korean surnames are one character); HL7 degree/suffix codes (MD, JR, …) are ignored. |
 | Date of birth                | PID-7, NK1-16                                                                                                                                                                                                    | the normalized `YYYYMMDD` / `YYYYMM` / `YYYY` (DTM precision) must be in the `DOB` allow-list. A DOB is indistinguishable from a real one by shape, so the allow-list is the only sound gate, the same choice `@cosyte/x12` made.                |
-| SSN                          | PID-19 (ST 9-digit); PID-3/-18 CX with identifier-type `SS`/`SSN`; dashed `\d{3}-\d{2}-\d{4}` anywhere                                                                                                           | a 9-digit SSN-shaped value must be in the `ID` allow-list; a dashed SSN anywhere is always a hit.                                                                                                                                                |
+| SSN                          | PID-19 (ST 9-digit); PID-3/-18 CX with identifier-type `SS`/`SSN`; dashed `\d{3}-\d{2}-\d{4}` anywhere                                                                                                           | a 9-digit SSN-shaped value must be in the `ID` allow-list; a dashed SSN anywhere is a hit unless its value is in the `ID` allow-list, dashed or undashed (the engine's floor).                                                                   |
 | MRN / account                | PID-3, PID-18 (CX comp1)                                                                                                                                                                                         | a bare 6-9 digit identifier is a real-looking MRN/account (or a misfiled SSN) and must be in the `ID` allow-list. Synthetic fixtures use prefixed shapes (`MRN…`, `ACCT…`, `FAKE…`), which pass.                                                 |
 | Address                      | PID-11, NK1-4, GT1-5, IN1-19 (XAD comp1)                                                                                                                                                                         | a `<number> <word>` street line must be in the `ADDR` allow-list.                                                                                                                                                                                |
 | Phone                        | PID-13/-14, NK1-5/-6/-7, GT1-6/-7 (XTN)                                                                                                                                                                          | a ≥10-digit number lacking the `555` fake-exchange convention is a hit.                                                                                                                                                                          |
@@ -164,7 +199,10 @@ with a v8 stack trace in place of the scanner's own diagnostic: a missing or
 unreadable `scripts/phi-allow-list.txt` (`loadAllowList()` ran outside every
 `try`), and a walk root `readdirSync` could not list. Both now refuse with exit 2
 and a named `[phi-scan]` line, and a top-level backstop catches whatever else
-throws. Nothing downstream reads the difference today, since both codes are
+throws. An engine that is not installed is one of those: `scripts/phi-scan.ts`
+loads `@cosyte/script-utils/phi-scan` inside that backstop rather than by a
+static import, so a missing package refuses with exit 2 and the resolution error
+naming it, and nothing is scanned. There is no local fallback. Nothing downstream reads the difference today, since both codes are
 non-zero and the gate blocks either way; a caller that ever split them would have
 read it exactly backwards.
 
@@ -231,9 +269,11 @@ blocks the gate forever), and git does not carry those bytes anyway, so a hit on
 them would be a claim about something no commit contains. Refusing states the
 only true thing available: there is an entry here the scan cannot account for,
 so the scan is not clean. `--staged` reads `git diff --cached --raw -z` with
-`--no-renames --diff-filter=AMTUB` so the destination mode is visible; the `T` is
-load-bearing, because replacing a **tracked** regular file with a link is neither
-an add nor a modify and `AM` deleted the record before any mode could be read.
+`--no-renames --diff-filter=d` so the destination mode is visible. The engine's
+filter is an EXCLUSION (everything except a deletion) rather than a list of
+letters, so a typechange `T` is enumerated: replacing a **tracked** regular file
+with a link is neither an add nor a modify, and an `AM` list deleted the record
+before any mode could be read.
 
 A refusal names the entry's own repo-relative path and an engine-owned kind
 token. **It never reports the link target**, which is working-tree text that can
@@ -283,9 +323,10 @@ before anything sees it. Measured on one index, three ways:
 `--diff-filter=AMTU` returns empty, `--diff-filter=B` and `--diff-filter=AMTUB`
 each return the record; through the scanner, the shipped argv exits **1** on a
 staged dashed SSN in a wholly rewritten in-scope file and the same argv plus
-`-B` prints `OK: no hits` and exits **0**. `B` is now in the filter, which costs
-the enumeration nothing (git cannot emit a broken pair without `-B`) and stops
-the flag being a silent blindfold if it is ever added. **The pin that let the
+`-B` prints `OK: no hits` and exits **0**. The engine's exclusion filter `d`
+keeps `B`, which costs the enumeration nothing (git cannot emit a broken pair
+without `-B`) and stops the flag being a silent blindfold if it is ever added;
+the corpus injects `-B` into a copy of the engine and still exits **1**. **The pin that let the
 false claim survive was a pin on a RENAME**, the one shape `-B` really does leave
 alone: a case that cannot fail proves nothing.
 
@@ -351,47 +392,45 @@ printing `[phi-scan] OK: no hits` at exit **0**: `test/fixtures` moved aside,
 first two leave all 106 non-markdown fixtures unread; the third leaves all 95
 source files unread.
 
-**The dangling case is the sharpest, and it is the one to carry when porting
-this.** `existsSync` **follows** the link and answers false, so `walk()` returns
-before `readdirSync` and the not-a-regular-file refusal never fires: that rule
-only ever classifies entries found **inside** a root, and this is the root
-itself. Absent, dangling and empty are one state to the walk. This reporter
-prints no file count, so there is not even a suspicious denominator to notice;
-a sibling that does print one reported a plausible-looking number instead.
+**The dangling case was the sharpest, and the engine answers it with a different
+rule.** The engine reads a root's KIND with `lstat` before it descends, so a
+root naming a symbolic link, dangling or not, is refused as a non-regular entry
+at exit **2**, named by its own path and never by what it points at. Absent and
+empty are still one state to the walk, and this rule is what refuses them. This
+reporter prints no file count, so there is not even a suspicious denominator to
+notice; a sibling that does print one reported a plausible-looking number
+instead.
 
-**Since `test` became a root, the dangling case is reachable on `src` and `test`
-but no longer on `test/fixtures`,** and the reason is worth porting because it is
-the general rule: the fixture root is now an **entry inside** a walked root, so a
-link there is classified by `Dirent.isSymbolicLink()` and refused by name before
-this rule is consulted. Same exit code, a better message, a different rule. A
-root whose parent nothing walks (here `src` and `test`, whose parent is the repo
-root) is still the case this rule alone covers.
+**`test/fixtures` is also an entry inside a walked root,** so a link there is
+classified by `Dirent.isSymbolicLink()` during the walk of `test` as well. Same
+exit code either way.
 
 Observing nothing at all is the **all-starved case of this one rule**, not a
 second rule beside it. `--staged` and named-path mode enumerate no root, so
 neither makes a per-root promise and neither is subject to it.
 
 **Its granularity is the declared root and nothing finer**, which is a real
-bound. Three states still exit 0, each measured with the rule in place and each
-pinned by a characterization test: a directory missing from **inside** a root
-(`mv test/fixtures/canonical ..` still prints `OK: no hits`); a root **with no
-walked parent** that is itself a symlink, which is followed, so the rule is
-satisfied by whatever is on the other side of it (measured on `src`;
-`test/fixtures` now refuses, see above); and the rule is a **floor of one**
-file.
+bound. Two states still exit 0, each pinned by a characterization test: a
+directory missing from **inside** a root (`mv test/fixtures/canonical ..` still
+prints `OK: no hits`); and the rule is a **floor of one** file. A root that is
+itself a symlink is no longer one of them: the engine refuses it rather than
+following it, so the rule can no longer be satisfied by whatever is on the other
+side of a link.
 
-**All three are statements about the WALK, and that is now less than all of a
+**Both are statements about the WALK, and that is now less than all of a
 sweep**: the bytes git carries at a tracked path are read whatever state the
-working tree is in, so a violator in any of the three exits 1. What each one
-still costs is untracked content in that state, and the fact that the sweep
-reports 0 rather than refusing. See the next section.
+working tree is in, so a violator in either exits 1. What each one still costs
+is untracked content in that state, and the fact that the sweep reports 0 rather
+than refusing. See the next section.
 
-**One shape often listed beside those is NOT open here, and porting it in as
-though it were would be wrong.** A root that is a **regular file**, or a link to
-one, refuses at exit **2**, not the **1** this gate reserves for hits: `walk()`
-already wraps `readdirSync` in a `try` and rethrows the `ENOTDIR` as an
-invocation error on the scanner's own channel, and there is a process-level
-backstop besides. Measured both ways.
+**A root that is a regular FILE is scanned as one target.** The engine derives a
+root's kind from the filesystem: a directory is walked, a regular file is read as
+one target with the same tiers any file there would get, a symbolic link is
+refused, and a directory the walk cannot list is refused at exit **2** naming the
+path, never escaping to node's own exit 1. The file-root case used to refuse at
+exit 2 here; the engine reading it instead is a recorded narrowing on the config
+side, and the corpus pins both halves: the clean file exits 0, and the same root
+carrying a dashed SSN exits 1 naming `test/fixtures`.
 
 **And one worry that looks real and is not.** Allow-fixturing the last file
 under a root cannot starve it: `parseArgs` seeds the positional path set from
@@ -410,9 +449,9 @@ do not add a per-root guard for it.
 **All mode reads every path in the git index as well as walking the working
 tree.** The two routes are a **union**: no walk root was narrowed, no clause was
 dropped, and a file the walk reads is still read from disk with exactly the
-tiers it had. The mechanism is written down in exactly one place, at
-`buildTargetsForIndex` in `scripts/phi-scan.ts`; what follows is the property,
-not a second copy of the mechanism.
+tiers it had. The mechanism is written down in exactly one place, in the
+engine's `phi-scan.js` under `node_modules/@cosyte/script-utils/`; what follows
+is the property, not a second copy of the mechanism.
 
 **Why: a reconciliation that compares path SETS is satisfied by decoy content.**
 A walk root swapped for a directory that mirrors the tracked names, over clean
@@ -445,9 +484,10 @@ three different censuses of one slice is how a number goes wrong.
    the scope and widening the recogniser are two different changes.
 4. **A tracked file absent from the working tree**, which the walk records as a
    pre-existing limit. It is read from the index instead of skipped. Now exit 1.
-5. **PHI behind a walk root that is itself a symlink.** That root is followed
-   and the per-root rule is satisfied by whatever is on the other side of it,
-   which is unchanged; the tracked corpus behind it is read anyway. Now exit 1.
+5. **PHI behind a walk root that is itself a symlink.** That root used to be
+   followed, with the per-root rule satisfied by whatever was on the other side
+   of it. The engine refuses a symlinked root outright (exit 2), naming the root
+   and none of what is behind it, so this state no longer reaches a verdict.
 6. **A tracked symlink or gitlink outside every walk root.** The walk classifies
    entries _inside_ a root, so such an entry was reached by neither route.
    Refused by mode (exit 2), and the refusal names the entry and never what is

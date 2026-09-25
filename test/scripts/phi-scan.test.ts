@@ -58,6 +58,8 @@ import {
 } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { tmpdir } from "node:os";
+import { createRequire } from "node:module";
+import { pathToFileURL } from "node:url";
 
 const REPO_ROOT = process.cwd();
 const SCANNER_PATH = join(REPO_ROOT, "scripts", "phi-scan.ts");
@@ -144,6 +146,22 @@ function scan(name: string, content: string): RunResult {
   return runScanner([path]);
 }
 
+/**
+ * A HIT NAMES A POSITION AND STOPS THERE (AC-30, AC-42). Settled the other way
+ * on the config side: `@cosyte/script-utils` 0.1.0's CHANGELOG entry "a finding
+ * names a position and stops there" says a hit report prints the locus, the
+ * locator and the rule and never the token that matched, and that "a gate test
+ * asserting that the matched identifier reaches stderr asserts on the locator
+ * and the rule instead". `phi-safety` P4 requires the same of every diagnostic.
+ * So each case that used to assert the value on stderr now asserts the locator
+ * it already named AND that the value is absent: the expected outcome flipped,
+ * and the assertion count did not drop.
+ */
+function expectPositionNotValue(stderr: string, locator: string, values: readonly string[]): void {
+  expect(stderr).toContain(locator);
+  for (const v of values) expect(stderr).not.toContain(v);
+}
+
 beforeAll(() => {
   dir = mkdtempSync(join(tmpdir(), "hl7-phi-scan-"));
 });
@@ -186,9 +204,8 @@ describe("phi-scan: names", () => {
   it("catches a real patient name in PID-5", () => {
     const r = scan("name.hl7", msg(MSH, `PID|1||MRN1^^^HOSP^MR||${V.fam}^${V.giv}||19800115|M`));
     expect(r.code).toBe(1);
-    expect(r.stderr).toMatch(/PID-5/);
-    expect(r.stderr).toContain(V.fam);
-    expect(r.stderr).toContain(V.giv);
+    // Settled: a hit names its position, not the value (script-utils 0.1.0 CHANGELOG; P4).
+    expectPositionNotValue(r.stderr, "segment=PID-5", [V.fam, V.giv]);
   });
 
   it("skips a single-letter middle initial (not identifying)", () => {
@@ -207,8 +224,8 @@ describe("phi-scan: names", () => {
       ),
     );
     expect(r.code).toBe(1);
-    expect(r.stderr).toMatch(/PV1-7/);
-    expect(r.stderr).toContain(V.provFam);
+    // Settled: a hit names its position, not the value (script-utils 0.1.0 CHANGELOG; P4).
+    expectPositionNotValue(r.stderr, "segment=PV1-7", [V.provFam, V.provGiv]);
   });
 
   it("catches a name hidden in a site-defined Z-segment", () => {
@@ -221,8 +238,8 @@ describe("phi-scan: names", () => {
       ),
     );
     expect(r.code).toBe(1);
-    expect(r.stderr).toMatch(/ZCA-5/);
-    expect(r.stderr).toMatch(/Okafor/);
+    // Settled: a hit names its position, not the value (script-utils 0.1.0 CHANGELOG; P4).
+    expectPositionNotValue(r.stderr, "segment=ZCA-5", ["Okafor", "Chidi"]);
   });
 });
 
@@ -230,8 +247,8 @@ describe("phi-scan: date of birth (PID-7)", () => {
   it("catches a DOB not in the allow-list", () => {
     const r = scan("dob.hl7", msg(MSH, `PID|1||MRN1^^^HOSP^MR||Doe^John||${V.dob}|M`));
     expect(r.code).toBe(1);
-    expect(r.stderr).toMatch(/PID-7/);
-    expect(r.stderr).toContain(V.dob);
+    // Settled: a hit names its position, not the value (script-utils 0.1.0 CHANGELOG; P4).
+    expectPositionNotValue(r.stderr, "segment=PID-7", [V.dob]);
   });
 });
 
@@ -242,8 +259,8 @@ describe("phi-scan: address (PID-11)", () => {
       msg(MSH, `PID|1||MRN1^^^HOSP^MR||Doe^John||19800115|M|||${V.street}^^Springfield^IL^62704`),
     );
     expect(r.code).toBe(1);
-    expect(r.stderr).toMatch(/PID-11/);
-    expect(r.stderr).toContain(V.street);
+    // Settled: a hit names its position, not the value (script-utils 0.1.0 CHANGELOG; P4).
+    expectPositionNotValue(r.stderr, "segment=PID-11", [V.street]);
   });
 });
 
@@ -262,8 +279,8 @@ describe("phi-scan: identifiers", () => {
   it("catches a bare-numeric MRN in PID-3", () => {
     const r = scan("mrn.hl7", msg(MSH, `PID|1||${V.mrn}^^^HOSP^MR||Doe^John||19800115|M`));
     expect(r.code).toBe(1);
-    expect(r.stderr).toMatch(/PID-3/);
-    expect(r.stderr).toContain(V.mrn);
+    // Settled: a hit names its position, not the value (script-utils 0.1.0 CHANGELOG; P4).
+    expectPositionNotValue(r.stderr, "segment=PID-3", [V.mrn]);
   });
 
   it("catches an SSN-typed CX identifier (PID-3 type SS)", () => {
@@ -272,8 +289,8 @@ describe("phi-scan: identifiers", () => {
       msg(MSH, `PID|1||MRN1^^^HOSP^MR~${V.ssnCx}^^^USA^SS||Doe^John||19800115|M`),
     );
     expect(r.code).toBe(1);
-    expect(r.stderr).toMatch(/PID-3/);
-    expect(r.stderr).toContain(V.ssnCx);
+    // Settled: a hit names its position, not the value (script-utils 0.1.0 CHANGELOG; P4).
+    expectPositionNotValue(r.stderr, "segment=PID-3", [V.ssnCx]);
   });
 
   it("passes an SSN CX rep whose id is a placeholder, not a 9-digit number", () => {
@@ -327,7 +344,8 @@ describe("phi-scan: delimiter handling", () => {
       `MSH@~&#\\@A@B@C@D@20260101@@ADT~A01@M1@P@2.5\rPID@1@@MRN1~~~HOSP~MR@@${V.fam}~${V.giv}@@19800115@M`,
     );
     expect(r.code).toBe(1);
-    expect(r.stderr).toContain(V.fam);
+    // Settled: a hit names its position, not the value (script-utils 0.1.0 CHANGELOG; P4).
+    expectPositionNotValue(r.stderr, "segment=PID-5", [V.fam, V.giv]);
   });
 });
 
@@ -364,15 +382,15 @@ describe("phi-scan: structured scan is not silently bypassed (refuter regression
       ),
     );
     expect(r.code).toBe(1);
-    expect(r.stderr).toMatch(/PD1-4/);
-    expect(r.stderr).toContain(V.pcpFam);
+    // Settled: a hit names its position, not the value (script-utils 0.1.0 CHANGELOG; P4).
+    expectPositionNotValue(r.stderr, "segment=PD1-4", [V.pcpFam, V.pcpGiv]);
   });
 
   it("catches a 6-digit YYYYMM date of birth", () => {
     const r = scan("dob6.hl7", msg(MSH, `PID|1||MRN1^^^HOSP^MR||Doe^John||${V.dob6}|M`));
     expect(r.code).toBe(1);
-    expect(r.stderr).toMatch(/PID-7/);
-    expect(r.stderr).toContain(V.dob6);
+    // Settled: a hit names its position, not the value (script-utils 0.1.0 CHANGELOG; P4).
+    expectPositionNotValue(r.stderr, "segment=PID-7", [V.dob6]);
   });
 
   it("keeps src-style .ts content (embedded MSH example) on the text-only pass", () => {
@@ -390,7 +408,9 @@ describe("phi-scan: structured scan is not silently bypassed (refuter regression
 // ---------------------------------------------------------------------------
 
 describe("phi-scan: --allow-fixture override gate", () => {
-  it("rejects --allow-fixture without an override-log entry (exit 2)", () => {
+  it("rejects --allow-fixture without an override-log entry (exit 2) [AC-35]", () => {
+    // AC-35, the first branch: no matching entry in `phi-scan-overrides.md`, so
+    // the run is rejected naming that file.
     const r = scan("gated.hl7", msg(MSH, `PID|1||MRN1^^^HOSP^MR||${V.fam}^${V.giv}||${V.dob}|M`));
     expect(r.code).toBe(1); // sanity: it is a violator
     const path = join(dir, "gated.hl7");
@@ -399,7 +419,11 @@ describe("phi-scan: --allow-fixture override gate", () => {
     expect(r2.stderr).toMatch(/phi-scan-overrides\.md/);
   });
 
-  it("admits --allow-fixture PAST the log gate, and then refuses it (exit 2)", () => {
+  it("admits --allow-fixture PAST the log gate, and then refuses it (exit 2) [AC-35]", () => {
+    // AC-35, the second branch: WITH the entry present the run still refuses
+    // rather than reaching the clean code, so a whole-file bypass cannot reach
+    // exit 0 in any mode, and that survived the port.
+    //
     // THIS CASE IS INVERTED FROM WHAT IT PINNED, DELIBERATELY. It used to assert
     // exit 0: "the override log is what flips a violator to clean". The
     // completeness rule made that assertion false and it is the assertion that
@@ -718,7 +742,9 @@ describe("phi-scan: enumeration TOCTOU", () => {
     );
     const r = runScannerIn(repo, null);
     expect(r.code, `stderr: ${r.stderr}`).toBe(1);
-    expect(r.stderr).toContain(V.fam);
+    // Settled: a hit names its position, not the value (script-utils 0.1.0 CHANGELOG; P4).
+    expect(r.stderr).toContain("HIT: test/fixtures/leak.hl7");
+    expectPositionNotValue(r.stderr, "segment=PID-5", [V.fam, V.giv, V.dob]);
   });
 });
 
@@ -842,8 +868,8 @@ describe("phi-scan: the harness is pointed at THIS package's scanner", () => {
     writeFileSync(join(repo, "test", "fixtures", "violator.hl7"), SYMLINK_PHI);
     const r = runScannerIn(repo, null);
     expect(r.code, `stderr: ${r.stderr}`).toBe(1);
-    expect(r.stderr).toContain("segment=PID-5");
-    expect(r.stderr).toContain(V.tFam);
+    // Settled: a hit names its position, not the value (script-utils 0.1.0 CHANGELOG; P4).
+    expectPositionNotValue(r.stderr, "segment=PID-5", SYMLINK_PHI_TOKENS);
   });
 });
 
@@ -855,8 +881,11 @@ describe("phi-scan: the synthetic payload is genuinely detectable", () => {
     writeFileSync(join(repo, "test", "fixtures", "violator.hl7"), SYMLINK_PHI);
     const r = runScannerIn(repo, null);
     expect(r.code, `stderr: ${r.stderr}`).toBe(1);
-    expect(r.stderr).toContain(SYMLINK_SSN);
-    expect(r.stderr).toContain(SYMLINK_EMAIL);
+    // Settled: a hit names its position, not the value (script-utils 0.1.0 CHANGELOG; P4).
+    expectPositionNotValue(r.stderr, "segment=(ssn) (dashed SSN pattern)", [SYMLINK_SSN]);
+    expectPositionNotValue(r.stderr, "segment=(email) (email with non-test domain)", [
+      SYMLINK_EMAIL,
+    ]);
   });
 
   it("a repo with no link and no violator scans clean (exit 0)", () => {
@@ -1011,8 +1040,8 @@ describe("phi-scan: the --staged route refuses a staged non-regular entry", () =
 
     const r = runScannerArgsIn(repo, ["--staged"]);
     expect(r.code, `stderr: ${r.stderr}`).toBe(1);
-    expect(r.stderr).toContain("segment=PID-5");
-    expect(r.stderr).toContain(V.tFam);
+    // Settled: a hit names its position, not the value (script-utils 0.1.0 CHANGELOG; P4).
+    expectPositionNotValue(r.stderr, "segment=PID-5", SYMLINK_PHI_TOKENS);
   });
 
   it("refuses a staged gitlink under a scanned prefix (exit 2)", () => {
@@ -1032,9 +1061,12 @@ describe("phi-scan: the --staged route refuses a staged non-regular entry", () =
     expectNoPhi(r.stderr);
   });
 
-  it("still catches a staged ORDINARY file carrying the same payload (exit 1)", () => {
+  it("still catches a staged ORDINARY file carrying the same payload (exit 1) [AC-36]", () => {
     // The regression control on the `--raw -z` reparse: reading the mode must not
-    // cost the route the ordinary files it was already enumerating.
+    // cost the route the ordinary files it was already enumerating. AC-36, the
+    // in-scope half: a staged file inside the `--staged` scope carrying an
+    // undeclared PHI-shaped value exits at the hits code, which is what the
+    // `simple-git-hooks` pre-commit hook blocks the commit on.
     const repo = makeScanRepo({ git: true });
     writeFileSync(join(repo, "test", "fixtures", "violator.hl7"), SYMLINK_PHI);
     gitIn(repo, ["add", "test/fixtures/violator.hl7"]);
@@ -1042,7 +1074,8 @@ describe("phi-scan: the --staged route refuses a staged non-regular entry", () =
     const r = runScannerArgsIn(repo, ["--staged"]);
     expect(r.code, `stderr: ${r.stderr}`).toBe(1);
     expect(r.stderr).toContain("test/fixtures/violator.hl7");
-    expect(r.stderr).toContain(SYMLINK_SSN);
+    // Settled: a hit names its position, not the value (script-utils 0.1.0 CHANGELOG; P4).
+    expectPositionNotValue(r.stderr, "segment=(ssn) (dashed SSN pattern)", SYMLINK_PHI_TOKENS);
   });
 
   it("passes a staged ordinary clean file (exit 0)", () => {
@@ -1052,10 +1085,12 @@ describe("phi-scan: the --staged route refuses a staged non-regular entry", () =
     expect(r.stdout).toMatch(/OK: no hits/);
   });
 
-  it("a staged link OUTSIDE the route's scope is left alone (the scope is unchanged)", () => {
+  it("a staged link OUTSIDE the route's scope is left alone (the scope is unchanged) [AC-36]", () => {
     // `--staged` only ever covered `test/fixtures/**` and `src/**.ts`. The mode
     // check narrows what that scope admits; it does not widen the scope, and
-    // saying otherwise would overstate what this closes.
+    // saying otherwise would overstate what this closes. AC-36, the out-of-scope
+    // half: the route does not refuse on the root half for a path its own
+    // `isStagedReadable` declines.
     const repo = makeScanRepo({ git: true });
     writePayloadOutsideRoots(repo);
     symlinkSync(TARGET_NAME, join(repo, "docs-link.md"));
@@ -1258,8 +1293,8 @@ describe("phi-scan: the --staged route is not blind to a staged rename", () => {
     const r = runScannerArgsIn(repo, ["--staged"]);
     expect(r.code, `stderr: ${r.stderr}`).toBe(1);
     expect(r.stderr).toContain("test/fixtures/draft.hl7");
-    expect(r.stderr).toContain("segment=PID-5");
-    expect(r.stderr).toContain(V.tFam);
+    // Settled: a hit names its position, not the value (script-utils 0.1.0 CHANGELOG; P4).
+    expectPositionNotValue(r.stderr, "segment=PID-5", [V.tFam, V.tGiv, V.tDob]);
   });
 
   it("catches a COPY into a scan root, which the rename fixture does not reach", () => {
@@ -1296,8 +1331,8 @@ describe("phi-scan: the --staged route is not blind to a staged rename", () => {
     const r = runScannerArgsIn(repo, ["--staged"]);
     expect(r.code, `stderr: ${r.stderr}`).toBe(1);
     expect(r.stderr).toContain("test/fixtures/copied.hl7");
-    expect(r.stderr).toContain("segment=PID-5");
-    expect(r.stderr).toContain(V.tFam);
+    // Settled: a hit names its position, not the value (script-utils 0.1.0 CHANGELOG; P4).
+    expectPositionNotValue(r.stderr, "segment=PID-5", SYMLINK_PHI_TOKENS);
   });
 
   it("a rename to a destination OUTSIDE the route's scope is still left alone", () => {
@@ -1517,19 +1552,32 @@ describe("phi-scan: a failure to scan exits 2, never 1", () => {
     expect(r.stderr).not.toContain("Node.js v");
   });
 
-  it("a walk root that cannot be enumerated is an invocation error (exit 2), not a finding", () => {
-    // A regular file where a walk root should be: `existsSync` passes and
-    // `readdirSync` throws `ENOTDIR`. Chosen over an unreadable directory
-    // because a permission bit proves nothing when the suite runs as root.
+  it("a walk root that is a regular FILE is scanned as one target, not refused", () => {
+    // A regular file where a walk root should be. SETTLED THE OTHER WAY on the
+    // config side, by config
+    // documentation/decisions/0003-the-phi-scan-engine-gap-settlements.md
+    // decision 1: a root's KIND is derived from the filesystem, and a regular
+    // file root is scanned as ONE TARGET rather than refused at exit 2. What that
+    // gives up is recorded there as narrowing N2. The directory that genuinely
+    // cannot be listed is still refused at exit 2 by the engine, naming the
+    // path; it is not reachable from this suite because a permission bit proves
+    // nothing when the suite runs as root. What still holds, and is asserted: no
+    // uncaught throw reaches node's own exit code, and the file root is READ,
+    // because the same root carrying a dashed SSN is a hit at that path.
     const repo = makeScanRepo({ git: true });
     rmSync(join(repo, "test", "fixtures"), { recursive: true, force: true });
     writeFileSync(join(repo, "test", "fixtures"), "not a directory\n");
 
     const r = runScannerIn(repo, null);
-    expect(r.code, `stderr: ${r.stderr}`).toBe(2);
-    expect(r.stderr).toContain("[phi-scan]");
-    expect(r.stderr).toContain("could not enumerate test/fixtures");
+    expect(r.code, `stderr: ${r.stderr}`).toBe(0);
+    expect(r.stdout).toContain("OK: no hits");
     expect(r.stderr).not.toContain("Node.js v");
+
+    writeFileSync(join(repo, "test", "fixtures"), `not a directory, SSN ${SYMLINK_SSN}\n`);
+    const read = runScannerIn(repo, null);
+    expect(read.code, `stderr: ${read.stderr}`).toBe(1);
+    expect(read.stderr).toContain("HIT: test/fixtures");
+    expect(read.stderr).toContain("dashed SSN pattern");
   });
 
   it("an unreadable allow-list reaches the top-level backstop (exit 2), not node's handler", () => {
@@ -1693,8 +1741,8 @@ describe("phi-scan: tracked files under test/ are in scope on BOTH routes", () =
     expect(r.stderr).toContain("segment=PID-5");
     expect(r.stderr).toContain("segment=PID-7");
     expect(r.stderr).toContain("segment=PID-3");
-    expect(r.stderr).toContain("segment=PID-11");
-    expect(r.stderr).toContain(V.tFam);
+    // Settled: a hit names its position, not the value (script-utils 0.1.0 CHANGELOG; P4).
+    expectPositionNotValue(r.stderr, "segment=PID-11", [V.tFam, V.tGiv, V.tDob, V.tMrn, V.tStreet]);
     // NON-VACUITY: the floor found nothing here, so nothing above came from it.
     expect(r.stderr).not.toContain("(ssn)");
     expect(r.stderr).not.toContain("(email)");
@@ -1836,8 +1884,8 @@ describe("phi-scan: tracked files under test/ are in scope on BOTH routes", () =
 
     const r = runScannerIn(repo, null);
     expect(r.code, `stderr: ${r.stderr}`).toBe(1);
-    expect(r.stderr).toContain("segment=PID-5");
-    expect(r.stderr).toContain(V.provFam);
+    // Settled: a hit names its position, not the value (script-utils 0.1.0 CHANGELOG; P4).
+    expectPositionNotValue(r.stderr, "segment=PID-5", [V.provFam, V.provGiv, V.dob]);
   });
 
   it("keeps a `src/` JSDoc example on the embedded pass, not the whole-file HL7 parse", () => {
@@ -1881,8 +1929,8 @@ describe("phi-scan: a blob staged at EXACTLY the fixture root gets the segment-a
     expect(r.stderr).toContain("segment=PID-5");
     expect(r.stderr).toContain("segment=PID-7");
     expect(r.stderr).toContain("segment=PID-3");
-    expect(r.stderr).toContain("segment=PID-11");
-    expect(r.stderr).toContain(V.tFam);
+    // Settled: a hit names its position, not the value (script-utils 0.1.0 CHANGELOG; P4).
+    expectPositionNotValue(r.stderr, "segment=PID-11", [V.tFam, V.tGiv, V.tDob, V.tMrn, V.tStreet]);
     // NON-VACUITY: no floor hit in this payload, so the segment tier is what ran.
     expect(r.stderr).not.toContain("(ssn)");
   });
@@ -2007,21 +2055,40 @@ describe("phi-scan: the argv the two-field stride is coupled to", () => {
     );
     expect(raw(["-B", "--diff-filter=AMTU"]), "the superseded filter loses it").toBe("");
     expect(raw(["-B", "--diff-filter=AMTUB"])).toContain(target.split(sep).join("/"));
+    // The filter the engine ships is the EXCLUSION `d` (everything but a
+    // deletion), and it keeps the broken pair too.
+    expect(raw(["-B", "--diff-filter=d"])).toContain(target.split(sep).join("/"));
 
     // End to end, through the scanner itself: the shipped argv catches it, and a
-    // copy of the scanner with `-B` injected catches it too ONLY because `B` is
-    // in the filter. On the superseded filter the injected copy exited 0.
+    // copy with `-B` injected catches it too ONLY because the filter keeps `B`.
+    // On the superseded `AMTU` filter the injected copy exited 0.
     expect(runScannerArgsIn(repo, ["--staged"]).code).toBe(1);
 
-    const source = readFileSync(SCANNER_PATH, "utf8");
-    expect(source).toContain(`"--no-renames", "--diff-filter=AMTUB"`);
+    // THE ARGV IS THE ENGINE'S NOW, so it is read out of the engine this repo
+    // actually resolves rather than out of `scripts/phi-scan.ts`, which no longer
+    // carries it. The injected copy is a copy of THAT engine, reached by a copy
+    // of this repo's caller whose one run-time import of the engine (a dynamic
+    // import inside the caller's backstop; its `import type` is erased) is
+    // re-pointed at it, so what runs is hl7's own caller over the engine's own
+    // argv plus `-B` and nothing else.
+    const enginePath = createRequire(join(REPO_ROOT, "package.json")).resolve(
+      "@cosyte/script-utils/phi-scan",
+    );
+    const shipped = `"--no-renames", "--diff-filter=d"`;
+    const engine = readFileSync(enginePath, "utf8");
+    expect(engine).toContain(shipped);
+    const injectedEngine = join(dir, "phi-scan-engine-with-B.mjs");
+    writeFileSync(
+      injectedEngine,
+      engine.replace(shipped, `"--no-renames", "-B", "--diff-filter=d"`),
+    );
+    const caller = readFileSync(SCANNER_PATH, "utf8");
+    const specifier = `import("@cosyte/script-utils/phi-scan")`;
+    expect(caller).toContain(specifier);
     const injected = join(dir, "phi-scan-with-B.ts");
     writeFileSync(
       injected,
-      source.replace(
-        `"--no-renames", "--diff-filter=AMTUB"`,
-        `"--no-renames", "-B", "--diff-filter=AMTUB"`,
-      ),
+      caller.replace(specifier, `import(${JSON.stringify(pathToFileURL(injectedEngine).href)})`),
     );
     const r = spawnSync(TSX_BIN, [injected, "--staged"], {
       cwd: repo,
@@ -2060,20 +2127,22 @@ describe("phi-scan: the observation rule is PER-ROOT, not global", () => {
 
   it("refuses (exit 2) when `src` is a DANGLING symlink, and names that root", () => {
     // THE SHARPEST CASE, and it is written on `src` because `src` is the root
-    // with no walked parent. `existsSync` FOLLOWS the link and answers false, so
-    // `walk()` returns before `readdirSync` and the not-a-regular-file rule never
-    // fires: that rule only ever classifies entries found INSIDE a root, and this
-    // IS the root. Absent, dangling and empty are one state to the walk, and
-    // nothing else in the scanner can tell any of them from a clean tree.
+    // with no walked parent. The exit code is unchanged and the RULE that reaches
+    // it is not: settled on the config side by config
+    // documentation/decisions/0003-the-phi-scan-engine-gap-settlements.md
+    // decision 1, a root's kind is read with `lstat`, so a root naming a symbolic
+    // link, dangling or not, is refused as a non-regular entry before the walk
+    // descends, rather than falling through to this block's starved-root rule.
+    // It is named by its own path and never by what it points at.
     const repo = makeScanRepo({ git: true });
     rmSync(join(repo, "src"), { recursive: true, force: true });
     symlinkSync(join(repo, "no-such-directory-anywhere"), join(repo, "src"));
 
     const r = runScannerIn(repo, null);
     expect(r.code, `stderr: ${r.stderr}`).toBe(2);
-    expect(r.stderr).toContain("1 of its 3 scan roots (src)");
-    // Not the non-regular-entry refusal wearing this rule's name.
-    expect(r.stderr).not.toContain("is not a regular file");
+    expect(r.stderr).toContain("src (a symbolic link)");
+    expect(r.stderr).not.toContain("no-such-directory-anywhere");
+    expect(r.stdout).not.toContain("OK: no hits");
   });
 
   it("a DANGLING `test/fixtures` refuses on the OTHER rule now, and still exits 2", () => {
@@ -2165,8 +2234,8 @@ describe("phi-scan: the observation rule is PER-ROOT, not global", () => {
 
     const r = runScannerIn(repo, null);
     expect(r.code, `stderr: ${r.stderr}`).toBe(2);
-    expect(r.stderr).toContain("segment=PID-5");
-    expect(r.stderr).toContain(V.tFam);
+    // Settled: a hit names its position, not the value (script-utils 0.1.0 CHANGELOG; P4).
+    expectPositionNotValue(r.stderr, "segment=PID-5", SYMLINK_PHI_TOKENS);
     expect(r.stderr).toContain("1 of its 3 scan roots (src)");
   });
 
@@ -2227,16 +2296,15 @@ describe("phi-scan: what the per-root rule does NOT cover", () => {
     expect(r.stdout).toMatch(/OK: no hits/);
   });
 
-  it("LIMIT: a root whose PARENT is not itself a root is followed when it is a symlink", () => {
-    // `normalizePath` is purely lexical (`resolve`/`relative`, never `realpath`),
-    // so every entry behind the link is attributed to the root's prefix. "A root
-    // yielded a file" is not "that root's corpus was observed".
-    //
-    // THE LIMIT IS NARROWER THAN IT WAS, AND THE BOUNDARY IS THE PARENT. `src`
-    // is used here because its parent is the repo root, which nothing walks; the
-    // case that used to be written with `test/fixtures` now REFUSES, and has its
-    // own test below. So the residual is exactly: a root nobody else enumerates
-    // is followed when it is a link.
+  it("NO LONGER A LIMIT: a root whose PARENT is not itself a root is REFUSED when it is a symlink", () => {
+    // `src` is used here because its parent is the repo root, which nothing
+    // walks, so no other rule classifies it as an entry. The expected outcome is
+    // SETTLED THE OTHER WAY on the config side, and it refuses MORE: config
+    // documentation/decisions/0003-the-phi-scan-engine-gap-settlements.md
+    // decision 1 derives a root's kind with `lstat`, and a root naming a
+    // symbolic link is refused rather than followed, so "a root yielded a file"
+    // can no longer be satisfied by whatever sits on the other side of a link.
+    // The refusal names the root and never the link target.
     const repo = makeScanRepo({ git: true });
     const elsewhere = join(repo, "elsewhere");
     mkdirSync(elsewhere);
@@ -2245,8 +2313,10 @@ describe("phi-scan: what the per-root rule does NOT cover", () => {
     symlinkSync(elsewhere, join(repo, "src"));
 
     const r = runScannerIn(repo, null);
-    expect(r.code, `stderr: ${r.stderr}`).toBe(0);
-    expect(r.stdout).toMatch(/OK: no hits/);
+    expect(r.code, `stderr: ${r.stderr}`).toBe(2);
+    expect(r.stderr).toContain("src (a symbolic link)");
+    expect(r.stderr).not.toContain("elsewhere");
+    expect(r.stdout).not.toContain("OK: no hits");
   });
 
   it("NO LONGER A LIMIT: `test/fixtures` as a symlink refuses, because `test` walks it", () => {
@@ -2257,9 +2327,9 @@ describe("phi-scan: what the per-root rule does NOT cover", () => {
     // the widening this exact repo returned `OK: no hits` at exit 0 with the
     // whole fixture corpus off disk.
     //
-    // It does NOT generalise to every root, which is why the LIMIT above is
-    // still a limit: what closed this case is `test/fixtures` having a walked
-    // parent, and `src` and `test` do not have one.
+    // What closes THIS case is `test/fixtures` having a walked parent. `src` and
+    // `test` have none, and the case above is what refuses them: the engine's
+    // own root-kind rule, not a walked parent.
     const repo = makeScanRepo({ git: true });
     const elsewhere = join(repo, "elsewhere");
     mkdirSync(elsewhere);
@@ -2339,7 +2409,8 @@ describe("phi-scan: the index corpus", () => {
     const r = runScannerIn(repo, null);
     expect(r.code, `stderr: ${r.stderr}`).toBe(1);
     expect(r.stderr).toContain("test/fixtures/patient.hl7 (git index");
-    expect(r.stderr).toContain(V.tFam);
+    // Settled: a hit names its position, not the value (script-utils 0.1.0 CHANGELOG; P4).
+    expectPositionNotValue(r.stderr, "segment=PID-5", [V.tFam, V.tGiv, V.tDob, V.tMrn, V.tStreet]);
   });
 
   it("catches one file replaced by a clean decoy, and says the bytes differ", () => {
@@ -2370,7 +2441,8 @@ describe("phi-scan: the index corpus", () => {
     const r = runScannerIn(repo, null);
     expect(r.code, `stderr: ${r.stderr}`).toBe(1);
     expect(r.stderr).toContain("examples/data/sample.hl7 (git index)");
-    expect(r.stderr).toContain(V.tDob);
+    // Settled: a hit names its position, not the value (script-utils 0.1.0 CHANGELOG; P4).
+    expectPositionNotValue(r.stderr, "segment=PID-7", [V.tFam, V.tGiv, V.tDob, V.tMrn, V.tStreet]);
   });
 
   it("catches a tracked file that is absent from the working tree", () => {
@@ -2385,14 +2457,15 @@ describe("phi-scan: the index corpus", () => {
     expect(r.stderr).toContain("test/fixtures/gone.hl7 (git index)");
   });
 
-  it("catches PHI behind a walk root that is itself a symlink", () => {
-    // A root with no walked parent is FOLLOWED, and the per-root rule is then
-    // satisfied by whatever is on the other side of it. That limit is unchanged
-    // and still recorded, but it no longer hides the tracked corpus: those
-    // bytes are read from the index. Measured on the base commit rather than
-    // reasoned from the limit it cites, because this case's base result was
-    // written from expectation first and that is the trap this item names:
-    // base exit 0, head exit 1, same repo.
+  it("refuses (exit 2) a walk root that is itself a symlink, with tracked PHI behind it", () => {
+    // Measured on the base commit before the index route existed: exit 0, with
+    // the root followed and the per-root rule satisfied by whatever was on the
+    // other side of it. The expected outcome is SETTLED THE OTHER WAY on the
+    // config side, and it refuses MORE: config
+    // documentation/decisions/0003-the-phi-scan-engine-gap-settlements.md
+    // decision 1 refuses a root naming a symbolic link rather than following it,
+    // so this state never reaches a verdict at all. It is still non-zero, so the
+    // gate still blocks, and the refusal names the root and none of the PHI.
     const repo = makeScanRepo({ git: true });
     writeFileSync(
       join(repo, "src", "leak.ts"),
@@ -2406,8 +2479,11 @@ describe("phi-scan: the index corpus", () => {
     symlinkSync(elsewhere, join(repo, "src"));
 
     const r = runScannerIn(repo, null);
-    expect(r.code, `stderr: ${r.stderr}`).toBe(1);
-    expect(r.stderr).toContain("src/leak.ts (git index)");
+    expect(r.code, `stderr: ${r.stderr}`).toBe(2);
+    expect(r.stderr).toContain("src (a symbolic link)");
+    expect(r.stderr).not.toContain("elsewhere");
+    for (const t of [V.tFam, V.tGiv, V.tDob, V.tMrn, V.tStreet]) expect(r.stderr).not.toContain(t);
+    expect(r.stdout).not.toContain("OK: no hits");
   });
 
   it("REFUSES a tracked symbolic link that sits outside every walk root", () => {
@@ -2573,7 +2649,8 @@ describe("phi-scan: an index-route refusal does not swallow a hit", () => {
     const r = runScannerIn(repo, null);
     expect(r.code, `stderr: ${r.stderr}`).toBe(2);
     expect(r.stderr).toContain("HIT: test/fixtures/leak.hl7");
-    expect(r.stderr).toContain(V.tFam);
+    // Settled: a hit names its position, not the value (script-utils 0.1.0 CHANGELOG; P4).
+    expectPositionNotValue(r.stderr, "segment=PID-5", [V.tFam, V.tGiv, V.tDob, V.tMrn, V.tStreet]);
     expect(r.stderr).toMatch(/unmerged/);
   });
 
@@ -2649,7 +2726,14 @@ describe("phi-scan: the completeness rule", () => {
     const repo = makeCompletenessRepo();
     const hit = runScannerArgsIn(repo, [VIOLATOR]);
     expect(hit.code, `stderr: ${hit.stderr}`).toBe(1);
-    expect(hit.stderr).toContain(V.tFam);
+    // Settled: a hit names its position, not the value (script-utils 0.1.0 CHANGELOG; P4).
+    expectPositionNotValue(hit.stderr, "segment=PID-5", [
+      V.tFam,
+      V.tGiv,
+      V.tDob,
+      V.tMrn,
+      V.tStreet,
+    ]);
     const clean = runScannerArgsIn(repo, [DECOY]);
     expect(clean.code, `stderr: ${clean.stderr}`).toBe(0);
     expect(clean.stdout).toContain("OK: no hits");
@@ -2672,7 +2756,8 @@ describe("phi-scan: the completeness rule", () => {
     const r = runScannerArgsIn(repo, [VIOLATOR, DECOY, "--allow-fixture", DECOY]);
     expect(r.code).toBe(2);
     expect(r.stderr).toContain(`HIT: ${VIOLATOR}`);
-    expect(r.stderr).toContain(V.tFam);
+    // Settled: a hit names its position, not the value (script-utils 0.1.0 CHANGELOG; P4).
+    expectPositionNotValue(r.stderr, "segment=PID-5", [V.tFam, V.tGiv, V.tDob, V.tMrn, V.tStreet]);
   });
 
   it("refuses the argv whose ONLY violator is the withdrawn file", () => {
@@ -2747,5 +2832,132 @@ describe("phi-scan: the completeness rule", () => {
     expect(r.code, `stderr: ${r.stderr}`).toBe(0);
     expect(r.stderr).toContain("src/transient.ts");
     expect(r.stderr).not.toContain("enumerated and never read");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// hl7's own axes, supplied to the shared engine
+// ---------------------------------------------------------------------------
+
+describe("phi-scan: the exit codes and scan roots are hl7's own, and unchanged", () => {
+  // The engine has no default for either axis, so a caller that stopped
+  // supplying one, or supplied a sibling's, would change what a commit is
+  // blocked on without any other case noticing. Pinned by behaviour, not by
+  // reading the caller's source.
+
+  it("AC-45: exits 0 clean, 1 on hits, 2 on a refusal, over exactly test/fixtures, test and src", () => {
+    // 0: a clean repo shaped like this one.
+    const clean = runScannerIn(makeScanRepo({ git: true }), null);
+    expect(clean.code, `stderr: ${clean.stderr}`).toBe(0);
+    expect(clean.stdout).toBe("[phi-scan] OK: no hits\n");
+
+    // 1: the same floor-shaped payload, UNTRACKED, under each root and under a
+    // directory outside every root. Untracked means the index route cannot reach
+    // any of them, so the hits are exactly what the WALK read, which is exactly
+    // the root list: a dropped root loses its hit, a widened one gains `docs/`.
+    const repo = makeScanRepo({ git: true });
+    const payload = `note: SSN ${SYMLINK_SSN}\n`;
+    const inside = ["test/fixtures/axis.txt", "test/axis.txt", "src/axis.ts"];
+    mkdirSync(join(repo, "docs"), { recursive: true });
+    for (const rel of [...inside, "docs/axis.txt"]) {
+      writeFileSync(join(repo, ...rel.split("/")), payload);
+    }
+    const hits = runScannerIn(repo, null);
+    expect(hits.code, `stderr: ${hits.stderr}`).toBe(1);
+    for (const rel of inside) expect(hits.stderr).toContain(`HIT: ${rel}`);
+    expect(hits.stderr).not.toContain("docs/axis.txt");
+    expect(hits.stderr).toContain(`across ${String(inside.length)} file(s)`);
+
+    // 2: every root starved, with nothing under them tracked, so the refusal is
+    // the walk's own and it names the three roots in the order hl7 declares them.
+    const starved = makeScanRepo({ git: true, track: false });
+    writeFileSync(join(starved, "README.md"), "# scratch\n");
+    gitIn(starved, ["add", "README.md"]);
+    rmSync(join(starved, "test"), { recursive: true, force: true });
+    rmSync(join(starved, "src"), { recursive: true, force: true });
+    const refused = runScannerIn(starved, null);
+    expect(refused.code, `stderr: ${refused.stderr}`).toBe(2);
+    expect(refused.stderr).toContain("3 of its 3 scan roots (test/fixtures, test, src)");
+    expect(refused.stdout).not.toContain("OK: no hits");
+  });
+
+  it("AC-32: with no engine installed the gate refuses at 2 naming the package, and scans nothing", () => {
+    // AC-32's unhappy path, and AC-45's exit contract on it: 1 is PHI found, so
+    // a gate whose engine is missing may not exit 1. A copy of this caller
+    // outside every node_modules tree is exactly that caller.
+    const orphan = join(tempDir("hl7-phi-no-engine-"), "phi-scan.ts");
+    copyFileSync(SCANNER_PATH, orphan);
+    expect(
+      () => createRequire(orphan).resolve("@cosyte/script-utils/phi-scan"),
+      "premise: the copy must not reach an installed engine",
+    ).toThrow();
+
+    // Non-vacuity: with the engine this repo resolves, the payload is a hit.
+    const repo = makeScanRepo({ git: true });
+    writeFileSync(join(repo, "test", "fixtures", "axis.txt"), `note: SSN ${SYMLINK_SSN}\n`);
+    expect(runScannerIn(repo, null).code).toBe(1);
+
+    const r = spawnSync(TSX_BIN, [orphan], { cwd: repo, encoding: "utf8", shell: false });
+    // Stack frames dropped from the message: vitest reads a frame in an assertion
+    // message as its own and chokes on the temp copy's source map.
+    const said = r.stderr.replace(/^\s+at .*$/gm, "").trim();
+    expect(r.status, `stderr: ${said}`).toBe(2);
+    expect(r.stderr).toMatch(/Cannot find (package|module) '@cosyte\/script-utils/);
+    expect(r.stderr).not.toContain("HIT:");
+    expect(r.stdout).not.toContain("OK: no hits");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// What an `ID` declaration clears, and the override log that says so
+// ---------------------------------------------------------------------------
+
+describe("phi-scan: a dashed SSN declared in the ID allow-list", () => {
+  /**
+   * The outcome `phi-scan-overrides.md` STATES, read out of its sentence tagged
+   * `(AC-34)`: the first `exits **N**` after the tag. That file is machinery the
+   * scanner reads to decide a bypass, and a false sentence in it tells a
+   * developer there is no remedy when there is one, or the reverse, so the
+   * sentence is graded against the run rather than proof-read.
+   */
+  function statedExit(): number {
+    const doc = readFileSync(OVERRIDES_PATH, "utf8");
+    const stated = /\(AC-34\)[^]*?exits \*\*([0-2])\*\*/.exec(doc);
+    expect(stated, "phi-scan-overrides.md carries no `(AC-34)` sentence stating an exit").not.toBe(
+      null,
+    );
+    return Number(stated?.[1]);
+  }
+
+  /** A throwaway repo whose allow-list declares `declared` under `ID`. */
+  function repoDeclaring(declared: string): string {
+    const repo = makeScanRepo({ git: true });
+    appendFileSync(join(repo, "scripts", "phi-allow-list.txt"), `\nID ${declared}\n`);
+    return repo;
+  }
+
+  /** A fixture whose ONLY PHI-shaped value is the sentinel dashed SSN. */
+  const ONLY_SSN = msg(
+    MSH,
+    "PID|1||MRN1^^^HOSP^MR||Doe^John||19800115|M",
+    `OBX|1|TX|N^Note^L||SSN on file ${SYMLINK_SSN}||||||F`,
+  );
+
+  it("AC-34: the outcome the override log states is the outcome the scan gives, in both spellings", () => {
+    const expected = statedExit();
+    // Non-vacuity: undeclared, the same fixture is a hit, so a pass below is
+    // the declaration's doing and not a fixture the scanner never flags.
+    const bare = makeScanRepo({ git: true });
+    writeFileSync(join(bare, "test", "fixtures", "only-ssn.hl7"), ONLY_SSN);
+    const undeclared = runScannerArgsIn(bare, ["test/fixtures/only-ssn.hl7"]);
+    expect(undeclared.code, `stderr: ${undeclared.stderr}`).toBe(1);
+    expect(undeclared.stderr).toContain("dashed SSN pattern");
+
+    for (const declared of [SYMLINK_SSN, SYMLINK_SSN.replace(/-/g, "")]) {
+      const repo = repoDeclaring(declared);
+      writeFileSync(join(repo, "test", "fixtures", "only-ssn.hl7"), ONLY_SSN);
+      const r = runScannerArgsIn(repo, ["test/fixtures/only-ssn.hl7"]);
+      expect(r.code, `declared as ${declared}; stderr: ${r.stderr}`).toBe(expected);
+    }
   });
 });
