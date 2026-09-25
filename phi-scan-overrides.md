@@ -199,7 +199,10 @@ with a v8 stack trace in place of the scanner's own diagnostic: a missing or
 unreadable `scripts/phi-allow-list.txt` (`loadAllowList()` ran outside every
 `try`), and a walk root `readdirSync` could not list. Both now refuse with exit 2
 and a named `[phi-scan]` line, and a top-level backstop catches whatever else
-throws. Nothing downstream reads the difference today, since both codes are
+throws. An engine that is not installed is one of those: `scripts/phi-scan.ts`
+loads `@cosyte/script-utils/phi-scan` inside that backstop rather than by a
+static import, so a missing package refuses with exit 2 and the resolution error
+naming it, and nothing is scanned. There is no local fallback. Nothing downstream reads the difference today, since both codes are
 non-zero and the gate blocks either way; a caller that ever split them would have
 read it exactly backwards.
 

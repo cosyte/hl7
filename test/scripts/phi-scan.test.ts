@@ -2067,8 +2067,10 @@ describe("phi-scan: the argv the two-field stride is coupled to", () => {
     // THE ARGV IS THE ENGINE'S NOW, so it is read out of the engine this repo
     // actually resolves rather than out of `scripts/phi-scan.ts`, which no longer
     // carries it. The injected copy is a copy of THAT engine, reached by a copy
-    // of this repo's caller whose one import is re-pointed at it, so what runs is
-    // hl7's own caller over the engine's own argv plus `-B` and nothing else.
+    // of this repo's caller whose one run-time import of the engine (a dynamic
+    // import inside the caller's backstop; its `import type` is erased) is
+    // re-pointed at it, so what runs is hl7's own caller over the engine's own
+    // argv plus `-B` and nothing else.
     const enginePath = createRequire(join(REPO_ROOT, "package.json")).resolve(
       "@cosyte/script-utils/phi-scan",
     );
@@ -2081,12 +2083,12 @@ describe("phi-scan: the argv the two-field stride is coupled to", () => {
       engine.replace(shipped, `"--no-renames", "-B", "--diff-filter=d"`),
     );
     const caller = readFileSync(SCANNER_PATH, "utf8");
-    const specifier = `from "@cosyte/script-utils/phi-scan"`;
+    const specifier = `import("@cosyte/script-utils/phi-scan")`;
     expect(caller).toContain(specifier);
     const injected = join(dir, "phi-scan-with-B.ts");
     writeFileSync(
       injected,
-      caller.replace(specifier, `from ${JSON.stringify(pathToFileURL(injectedEngine).href)}`),
+      caller.replace(specifier, `import(${JSON.stringify(pathToFileURL(injectedEngine).href)})`),
     );
     const r = spawnSync(TSX_BIN, [injected, "--staged"], {
       cwd: repo,
@@ -2877,6 +2879,32 @@ describe("phi-scan: the exit codes and scan roots are hl7's own, and unchanged",
     expect(refused.code, `stderr: ${refused.stderr}`).toBe(2);
     expect(refused.stderr).toContain("3 of its 3 scan roots (test/fixtures, test, src)");
     expect(refused.stdout).not.toContain("OK: no hits");
+  });
+
+  it("AC-32: with no engine installed the gate refuses at 2 naming the package, and scans nothing", () => {
+    // AC-32's unhappy path, and AC-45's exit contract on it: 1 is PHI found, so
+    // a gate whose engine is missing may not exit 1. A copy of this caller
+    // outside every node_modules tree is exactly that caller.
+    const orphan = join(tempDir("hl7-phi-no-engine-"), "phi-scan.ts");
+    copyFileSync(SCANNER_PATH, orphan);
+    expect(
+      () => createRequire(orphan).resolve("@cosyte/script-utils/phi-scan"),
+      "premise: the copy must not reach an installed engine",
+    ).toThrow();
+
+    // Non-vacuity: with the engine this repo resolves, the payload is a hit.
+    const repo = makeScanRepo({ git: true });
+    writeFileSync(join(repo, "test", "fixtures", "axis.txt"), `note: SSN ${SYMLINK_SSN}\n`);
+    expect(runScannerIn(repo, null).code).toBe(1);
+
+    const r = spawnSync(TSX_BIN, [orphan], { cwd: repo, encoding: "utf8", shell: false });
+    // Stack frames dropped from the message: vitest reads a frame in an assertion
+    // message as its own and chokes on the temp copy's source map.
+    const said = r.stderr.replace(/^\s+at .*$/gm, "").trim();
+    expect(r.status, `stderr: ${said}`).toBe(2);
+    expect(r.stderr).toMatch(/Cannot find (package|module) '@cosyte\/script-utils/);
+    expect(r.stderr).not.toContain("HIT:");
+    expect(r.stdout).not.toContain("OK: no hits");
   });
 });
 

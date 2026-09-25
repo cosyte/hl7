@@ -84,7 +84,9 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { type DetectContext, runPhiScan } from "@cosyte/script-utils/phi-scan";
+// Types only, erased at run time. The engine itself is loaded by the dynamic
+// import at the bottom of this file, inside the backstop, and nowhere else.
+import type { DetectContext } from "@cosyte/script-utils/phi-scan";
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -1028,21 +1030,37 @@ function detect(ctx: DetectContext): void {
 // binary that is not there, a `TypeError` from a misconfigured axis), so an
 // unexpected failure is reported as the invocation error it is rather than
 // impersonating a finding.
-let exitCode: number;
-try {
-  exitCode = runPhiScan({
-    // hl7's own exit contract: 0 clean, 1 hits found, 2 refusal or invocation
-    // error. Supplied rather than defaulted because THE SIBLINGS DO NOT AGREE ON
-    // THESE NUMBERS.
-    exitCodes: { clean: 0, hits: 1, refuse: 2 },
-    scanRoots: SCAN_ROOTS,
-    isStagedReadable,
-    detect,
-  });
-} catch (err) {
+//
+// THE ENGINE IS LOADED INSIDE THE BACKSTOP, NOT BY A STATIC IMPORT. A static
+// import is resolved before any line of this file runs, so an engine that is not
+// installed escaped every handler here: measured, node printed its own
+// `ERR_MODULE_NOT_FOUND` stack and exited 1, a missing gate reporting itself as
+// PHI found. Loaded here, the same state refuses at 2 and the resolution error,
+// which names the package, is on stderr. There is no local fallback behind it:
+// this repo has exactly one PHI-scan implementation, and it is the package.
+//
+// A promise chain rather than a top-level `await`, because the corpus runs
+// copies of this file from a temp directory, outside this package's
+// `"type": "module"`, where tsx compiles it as CommonJS and refuses a top-level
+// `await` outright.
+function refuseOnFailure(err: unknown): number {
   process.stderr.write(
     `[phi-scan] the scan failed and did not complete: ${err instanceof Error ? err.message : String(err)}\n`,
   );
-  exitCode = 2;
+  return 2;
 }
-process.exit(exitCode);
+
+void import("@cosyte/script-utils/phi-scan")
+  .then(({ runPhiScan }) =>
+    runPhiScan({
+      // hl7's own exit contract: 0 clean, 1 hits found, 2 refusal or invocation
+      // error. Supplied rather than defaulted because THE SIBLINGS DO NOT AGREE
+      // ON THESE NUMBERS.
+      exitCodes: { clean: 0, hits: 1, refuse: 2 },
+      scanRoots: SCAN_ROOTS,
+      isStagedReadable,
+      detect,
+    }),
+  )
+  .catch(refuseOnFailure)
+  .then((exitCode) => process.exit(exitCode));
