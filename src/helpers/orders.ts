@@ -35,6 +35,7 @@ import type { XCN } from "../model/types/xcn.js";
 
 import { groupNotes, type NoteGrouping } from "./notes.js";
 import { buildObservation } from "./observations.js";
+import { classifyOrderStatus, trimmedFieldLookup, type TrimmedFieldLookup } from "./result-status.js";
 import { buildLegacyTiming, buildTq1Timing } from "./timing.js";
 import type { Observation, Order, OrderTiming } from "./types.js";
 
@@ -71,11 +72,14 @@ function finalizeOrder(
   observations: readonly Observation[],
   tq1Segs: readonly Segment[],
   noteIndex: NoteGrouping,
+  trimmedAt: TrimmedFieldLookup,
 ): Order {
   type Mutable<T> = { -readonly [K in keyof T]?: T[K] };
   const out: Mutable<Order> = {
     observations,
     timings: buildTimings(tq1Segs, attachedOrc),
+    // This OBR's own OBR-25, classified; never derived from its OBX children.
+    resultStatus: classifyOrderStatus(obr, trimmedAt),
   };
 
   // Phase P: every order-level note (ORC-region + OBR-region) is keyed on the
@@ -134,6 +138,7 @@ function finalizeOrder(
  */
 export function orders(msg: Hl7Message): readonly Order[] {
   const noteIndex = groupNotes(msg); // Phase P: positional NTE grouping (by Segment ref)
+  const trimmedAt = trimmedFieldLookup(msg);
   const out: Order[] = [];
   let pendingOrc: Segment | undefined; // accumulates ORCs since last OBR
   let pendingTq1: Segment[] = []; // TQ1 seen before the next OBR opens (Phase M)
@@ -169,6 +174,7 @@ export function orders(msg: Hl7Message): readonly Order[] {
             Object.freeze(currentObservations.slice()),
             currentTq1,
             noteIndex,
+            trimmedAt,
           ),
         );
       }
@@ -183,7 +189,7 @@ export function orders(msg: Hl7Message): readonly Order[] {
       continue;
     }
     if (seg.type === "OBX" && currentObr !== undefined) {
-      currentObservations.push(buildObservation(seg, noteIndex.byParent.get(seg)));
+      currentObservations.push(buildObservation(seg, noteIndex.byParent.get(seg), trimmedAt));
     }
   }
 
@@ -197,6 +203,7 @@ export function orders(msg: Hl7Message): readonly Order[] {
         Object.freeze(currentObservations.slice()),
         currentTq1,
         noteIndex,
+        trimmedAt,
       ),
     );
   }

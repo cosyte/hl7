@@ -139,7 +139,15 @@ describe("a minimal init is still spec-clean, and fabricates nothing", () => {
     );
     const order = round.orders()[0];
     expect(order?.orderControl).toBe("NW");
-    expect(Object.keys(order ?? {}).sort()).toEqual(["observations", "orderControl", "timings"]);
+    expect(Object.keys(order ?? {}).sort()).toEqual([
+      "observations",
+      "orderControl",
+      "resultStatus",
+      "timings",
+    ]);
+    // The always-present status classification reports an absent OBR-25; it invents no code.
+    expect(order?.resultStatus.classification).toBe("undetermined");
+    expect(order?.resultStatus.code).toBeUndefined();
     expect(order?.observations).toEqual([]);
     expect(order?.timings).toEqual([]);
   });

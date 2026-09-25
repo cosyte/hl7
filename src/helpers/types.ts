@@ -177,6 +177,124 @@ export interface Visit {
 }
 
 /**
+ * What a result status classifies to. The first eight values are the target
+ * codes of HL7's published v2-to-FHIR status maps (Table 0085 to Observation
+ * Status for OBX-11, Table 0123 to Diagnostic Report Status for OBR-25).
+ *
+ * `"undetermined"` is this library's fail-safe, not a map target. It covers
+ * every code HL7's map leaves unmapped (OBX-11 `B`, `I`, `N`, `O`, `R`, `S`,
+ * `V`, `U`; OBR-25 `A`, `Y`, `Z`, `M`, `N`), an absent, empty or `""` (null)
+ * field, and any field that is not exactly one code of its table: a lowercase
+ * letter, a code with whitespace around it, a code written as an escape
+ * sequence, a code outside the table, or a field with more than one
+ * repetition, component or subcomponent. An `"undetermined"` value is never a
+ * current result by default: read the raw code and decide.
+ *
+ * @example
+ * ```ts
+ * import type { ResultStatusClass } from "@cosyte/hl7";
+ * const retracted: readonly ResultStatusClass[] = ["entered-in-error", "cancelled"];
+ * ```
+ */
+export type ResultStatusClass =
+  | "final"
+  | "corrected"
+  | "amended"
+  | "preliminary"
+  | "entered-in-error"
+  | "cancelled"
+  | "registered"
+  | "partial"
+  | "undetermined";
+
+/**
+ * The HL7 v2 code table a {@link ResultStatusClassification} read: Table 0085
+ * (Observation Result Status, OBX-11) or Table 0123 (Result Status, OBR-25),
+ * each at the code-system version the map was checked against.
+ *
+ * @example
+ * ```ts
+ * import type { ResultStatusTable } from "@cosyte/hl7";
+ * const table: ResultStatusTable = { name: "HL7 Table 0085", version: "3.0.0" };
+ * ```
+ */
+export interface ResultStatusTable {
+  /** `"HL7 Table 0085"` for OBX-11, `"HL7 Table 0123"` for OBR-25. */
+  readonly name: "HL7 Table 0085" | "HL7 Table 0123";
+  /** The code-system version the table's codes were taken from. */
+  readonly version: "3.0.0";
+}
+
+/**
+ * The published HL7 v2-to-FHIR map a {@link ResultStatusClassification}
+ * followed, by canonical URL and version. The maps come from the HL7 Version 2
+ * to FHIR Implementation Guide (STU 1, standards status Informative); a later
+ * map revision shows up here as a changed `version`.
+ *
+ * @example
+ * ```ts
+ * import type { ResultStatusMap } from "@cosyte/hl7";
+ * const map: ResultStatusMap = {
+ *   url: "http://hl7.org/fhir/uv/v2mappings/ConceptMap/table-hl70085-to-observation-status",
+ *   version: "1.0.0",
+ * };
+ * ```
+ */
+export interface ResultStatusMap {
+  /** Canonical URL of the ConceptMap whose rows the classification follows. */
+  readonly url:
+    | "http://hl7.org/fhir/uv/v2mappings/ConceptMap/table-hl70085-to-observation-status"
+    | "http://hl7.org/fhir/uv/v2mappings/ConceptMap/table-hl70123-queries-to-diagnostic-report-status";
+  /** The ConceptMap version the classification follows. */
+  readonly version: "1.0.0";
+}
+
+/**
+ * A result status read against its HL7 table and classified by HL7's
+ * published v2-to-FHIR status map: carried as `resultStatus` on every
+ * {@link Observation} (from OBX-11) and every {@link Order} (from OBR-25).
+ *
+ * **Safety contract.** Each OBX classifies from its own OBX-11 alone and each
+ * order from its own OBR-25 alone: nothing is inherited, propagated or
+ * reconciled across segments. A status is reported, never applied: an
+ * `"entered-in-error"` observation is still returned, and replacing or
+ * deleting an earlier result is the caller's decision. `classification` is
+ * `"final"` only when the field is exactly `F`; every value HL7's map does not
+ * map is `"undetermined"` (see {@link ResultStatusClass}), never a guess.
+ *
+ * The object is plain data, not a FHIR element: no resource is built and no
+ * terminology service is consulted.
+ *
+ * @example
+ * ```ts
+ * import { parseHL7 } from "@cosyte/hl7";
+ * const msg = parseHL7(raw);
+ * for (const obs of msg.observations()) {
+ *   const { classification, code } = obs.resultStatus;
+ *   if (classification === "entered-in-error") console.log("posted in error:", code);
+ *   else if (classification === "undetermined") console.log("not classifiable:", code);
+ * }
+ * ```
+ */
+export interface ResultStatusClassification {
+  /** The classification HL7's map gives the code, or `"undetermined"`. */
+  readonly classification: ResultStatusClass;
+  /**
+   * The raw code, byte-identical to the `status` (OBX-11) or `orderStatus`
+   * (OBR-25) the same observation or order surfaces: the field's first value,
+   * decoded. OMITTED when that field is absent, empty or `""`, exactly when
+   * `status` / `orderStatus` is. When the field carries more than one
+   * repetition, component or subcomponent this is still only the first value,
+   * and `classification` is `"undetermined"`.
+   */
+  readonly code?: string;
+  /** The HL7 table the code was read against. */
+  readonly table: ResultStatusTable;
+  /** The HL7 v2-to-FHIR map the classification followed. */
+  readonly map: ResultStatusMap;
+}
+
+/**
  * Fields shared by every `Observation` variant, regardless of the OBX-2
  * value type. Split from the discriminated union to keep the union
  * declaration readable (D-15 locked field list).
@@ -187,6 +305,14 @@ export interface Visit {
  * const base: ObservationBase = {
  *   setId: "1",
  *   identifier: { identifier: "GLU", text: "Glucose" },
+ *   resultStatus: {
+ *     classification: "undetermined",
+ *     table: { name: "HL7 Table 0085", version: "3.0.0" },
+ *     map: {
+ *       url: "http://hl7.org/fhir/uv/v2mappings/ConceptMap/table-hl70085-to-observation-status",
+ *       version: "1.0.0",
+ *     },
+ *   },
  * };
  * ```
  */
@@ -213,6 +339,13 @@ export interface ObservationBase {
   readonly abnormalFlags?: string;
   /** OBX-11 observation result status (e.g. "F"=final, "P"=preliminary). */
   readonly status?: string;
+  /**
+   * OBX-11 read against HL7 Table 0085 and classified by HL7's Table 0085 to
+   * Observation Status map. Always present: `"undetermined"` when OBX-11 is
+   * absent, unmapped or not exactly one code. See
+   * {@link ResultStatusClassification}.
+   */
+  readonly resultStatus: ResultStatusClassification;
   /** OBX-14 date/time of observation as the fidelity `TS`. */
   readonly observedDateTime?: TS;
   /**
@@ -250,6 +383,15 @@ export interface ObservationBase {
  *   referenceRange: "80-110",
  *   abnormalFlags: "H",
  *   status: "F",
+ *   resultStatus: {
+ *     classification: "final",
+ *     code: "F",
+ *     table: { name: "HL7 Table 0085", version: "3.0.0" },
+ *     map: {
+ *       url: "http://hl7.org/fhir/uv/v2mappings/ConceptMap/table-hl70085-to-observation-status",
+ *       version: "1.0.0",
+ *     },
+ *   },
  * };
  * ```
  */
@@ -401,6 +543,15 @@ export interface OrderTiming {
  *   fillerOrderNumber: "FILLER1",
  *   universalServiceId: { identifier: "GLU", text: "Glucose" },
  *   orderStatus: "F",
+ *   resultStatus: {
+ *     classification: "final",
+ *     code: "F",
+ *     table: { name: "HL7 Table 0123", version: "3.0.0" },
+ *     map: {
+ *       url: "http://hl7.org/fhir/uv/v2mappings/ConceptMap/table-hl70123-queries-to-diagnostic-report-status",
+ *       version: "1.0.0",
+ *     },
+ *   },
  *   observations: [],
  *   timings: [],
  * };
@@ -415,6 +566,14 @@ export interface Order {
   readonly universalServiceId?: CWE;
   /** OBR-25 result status (HL7 Table 0123, e.g. `"F"` final, `"P"` preliminary). */
   readonly orderStatus?: string;
+  /**
+   * OBR-25 read against HL7 Table 0123 and classified by HL7's Table 0123 to
+   * Diagnostic Report Status map. Always present: `"undetermined"` when OBR-25
+   * is absent, unmapped or not exactly one code. Classified from OBR-25 alone,
+   * never from the statuses of the order's observations, each of which carries
+   * its own. See {@link ResultStatusClassification}.
+   */
+  readonly resultStatus: ResultStatusClassification;
   /** ORC-1 order control when an ORC precedes this OBR. */
   readonly orderControl?: string;
   /** OBR-16 ordering provider (D-24a XCN). */
