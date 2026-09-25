@@ -30,6 +30,10 @@ export type {
   Patient,
   RepeatPattern,
   RepeatPatternKind,
+  ResultStatusClass,
+  ResultStatusClassification,
+  ResultStatusMap,
+  ResultStatusTable,
   TimingQuantity,
   Visit,
 } from "./types.js";

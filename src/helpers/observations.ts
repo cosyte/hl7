@@ -30,6 +30,7 @@ import type { Segment } from "../model/segment.js";
 import type { CE } from "../model/types/ce.js";
 import type { CWE } from "../model/types/cwe.js";
 import { groupNotes } from "./notes.js";
+import { classifyObservationStatus } from "./result-status.js";
 import type { Observation, ObservationBase } from "./types.js";
 
 /** Normalize HL7 empty-string to `undefined` for the helper layer (D-22). @internal */
@@ -53,8 +54,10 @@ function cweOrUndefined(field: Field): CWE | undefined {
 function buildCommon(obx: Segment): ObservationBase {
   type Mutable<T> = { -readonly [K in keyof T]?: T[K] };
   // `identifier` is always present (D-15): always parse OBX-3, even if empty.
+  // `resultStatus` is always present too: this OBX's own OBX-11, classified.
   const base: Mutable<ObservationBase> = {
     identifier: obx.field(3).asCwe(),
+    resultStatus: classifyObservationStatus(obx),
   };
 
   const setId = stringOrUndefined(obx.field(1).value);

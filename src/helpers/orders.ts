@@ -35,6 +35,7 @@ import type { XCN } from "../model/types/xcn.js";
 
 import { groupNotes, type NoteGrouping } from "./notes.js";
 import { buildObservation } from "./observations.js";
+import { classifyOrderStatus } from "./result-status.js";
 import { buildLegacyTiming, buildTq1Timing } from "./timing.js";
 import type { Observation, Order, OrderTiming } from "./types.js";
 
@@ -76,6 +77,8 @@ function finalizeOrder(
   const out: Mutable<Order> = {
     observations,
     timings: buildTimings(tq1Segs, attachedOrc),
+    // This OBR's own OBR-25, classified; never derived from its OBX children.
+    resultStatus: classifyOrderStatus(obr),
   };
 
   // Phase P: every order-level note (ORC-region + OBR-region) is keyed on the

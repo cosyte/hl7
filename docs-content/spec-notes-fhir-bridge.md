@@ -10,16 +10,25 @@ description: "The stability contract for the parsed model a FHIR mapping consume
 > **IR Contract v1.0.0** · grounds against the HL7 **v2-to-FHIR** Implementation Guide
 > **v1.0.0** (FHIR **R4**), commit `873b331b3890c8bc5d62ef9b4dabb41801aac70d`.
 
-`@cosyte/hl7` is a **mapping source**, not a FHIR converter. It does **not** know about FHIR: it
-constructs no resource, ships no ConceptMap, evaluates no FHIRPath, and translates no terminology.
-That work lives in a separate package, **`@cosyte/transform`**, which maps hl7's parsed model to
-FHIR using the public v2-to-FHIR IG.
+`@cosyte/hl7` is a **mapping source**, not a FHIR converter. With one named exception, it does
+**not** know about FHIR: it constructs no resource, ships no ConceptMap resource, evaluates no
+FHIRPath, and translates no terminology. That work lives in a separate package,
+**`@cosyte/transform`**, which maps hl7's parsed model to FHIR using the public v2-to-FHIR IG.
+
+**The one exception is result status classification.** Every observation and order carries
+`resultStatus`, which classifies OBX-11 and OBR-25 by two maps this IG publishes: Table 0085 to
+Observation Status and Table 0123 to Diagnostic Report Status, both version 1.0.0. hl7 applies the
+rows those two maps map, names the map on every classification, and reports every code they leave
+unmapped as `undetermined`. The result is a plain classification string beside the raw code, not a
+FHIR element, and no ConceptMap resource ships. See
+[result status classification](./spec-notes-result-status.md).
 
 This document is the **contract between the two**: the set of hl7 access paths `@cosyte/transform`
 may build against, and the promise that hl7 will not churn them out from under it. It is **versioned**
 so the bridge can be written once, against a pinned surface, without forcing retro-active hl7 changes.
 
-Nothing here adds a v2→FHIR mapping to hl7. It documents and versions the IR hl7 **already** exposes,
+Nothing here adds a v2→FHIR mapping to hl7; the status classification above is the only one hl7
+applies, and its own page documents it. This page documents and versions the IR hl7 **already** exposes,
 and proves (over the IG's public sample corpus) that the source paths the IG references are
 reachable from that IR (`test/fhir-bridge-coverage.test.ts`).
 
@@ -207,8 +216,10 @@ target-resource map per segment):
 
 ## What this is not
 
-- **Not a FHIR converter.** hl7 builds no resource, no Bundle, no ConceptMap; it evaluates no
-  FHIRPath and translates no terminology. That is `@cosyte/transform`.
+- **Not a FHIR converter.** hl7 builds no resource, no Bundle, no ConceptMap resource; it evaluates
+  no FHIRPath. It translates no terminology except the one named exception above: `resultStatus`
+  classifies OBX-11 and OBR-25 by the IG's two published status maps, as a plain classification
+  rather than a FHIR element. Everything else is `@cosyte/transform`.
 - **Not a terminology validator.** Code-system provenance is the **claimed** system, verbatim: never
   validated against LOINC/SNOMED/RxNorm/ICD.
 - **Not a full-corpus guarantee.** Coverage is proven over the IG's public sample (one message);
