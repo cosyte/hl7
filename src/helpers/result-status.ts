@@ -41,7 +41,17 @@ export const NOTHING_TRIMMED: TrimmedFieldLookup = () => false;
 /**
  * Index every `FIELD_WHITESPACE_TRIMMED` warning on `msg` by segment and field
  * position. A trimmed status field held whitespace on the wire, so it was not
- * exactly one code as received even though its stored value now is. @internal
+ * exactly one code as received even though its stored value now is.
+ *
+ * @example
+ * ```ts
+ * const msg = parseHL7(raw); // a message whose first OBX-11 arrived as " F"
+ * const trimmedAt = trimmedFieldLookup(msg);
+ * const obx = msg.segments("OBX")[0];
+ * if (obx !== undefined) trimmedAt(obx, 11); // true
+ * ```
+ *
+ * @internal
  */
 export function trimmedFieldLookup(msg: Hl7Message): TrimmedFieldLookup {
   const trimmed = new Set<string>();
@@ -130,7 +140,17 @@ function classify(
 
 /**
  * Classify an OBX's own OBX-11 by the Table 0085 to Observation Status map.
- * Never throws. @internal
+ * Never throws.
+ *
+ * @example
+ * ```ts
+ * const obx = msg.segments("OBX")[0];
+ * if (obx !== undefined) {
+ *   classifyObservationStatus(obx, trimmedFieldLookup(msg)).classification; // "final" for OBX-11 F
+ * }
+ * ```
+ *
+ * @internal
  */
 export function classifyObservationStatus(
   obx: Segment,
@@ -141,7 +161,17 @@ export function classifyObservationStatus(
 
 /**
  * Classify an OBR's own OBR-25 by the Table 0123 to Diagnostic Report Status
- * map. Never throws. @internal
+ * map. Never throws.
+ *
+ * @example
+ * ```ts
+ * const obr = msg.segments("OBR")[0];
+ * if (obr !== undefined) {
+ *   classifyOrderStatus(obr, trimmedFieldLookup(msg)).classification; // "partial" for OBR-25 R
+ * }
+ * ```
+ *
+ * @internal
  */
 export function classifyOrderStatus(
   obr: Segment,

@@ -35,7 +35,11 @@ import type { XCN } from "../model/types/xcn.js";
 
 import { groupNotes, type NoteGrouping } from "./notes.js";
 import { buildObservation } from "./observations.js";
-import { classifyOrderStatus, trimmedFieldLookup, type TrimmedFieldLookup } from "./result-status.js";
+import {
+  classifyOrderStatus,
+  trimmedFieldLookup,
+  type TrimmedFieldLookup,
+} from "./result-status.js";
 import { buildLegacyTiming, buildTq1Timing } from "./timing.js";
 import type { Observation, Order, OrderTiming } from "./types.js";
 
