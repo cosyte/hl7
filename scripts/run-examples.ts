@@ -4,10 +4,10 @@
  * For each example, asserts the process exits 0 and stdout contains a
  * known marker string. Exits non-zero if any example fails.
  *
- * Run from repo root (will be invoked by `pnpm examples` once Plan 08-05
- * wires the script into `package.json`):
+ * Run from repo root, after `pnpm build` (the examples import the built
+ * package by name):
  *
- *     pnpm tsx scripts/run-examples.ts
+ *     pnpm examples
  *
  * Security note (Phase 8 threat T-08-01): filenames are passed as argv
  * to spawnSync: they are NEVER concatenated into a shell template. Any
