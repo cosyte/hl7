@@ -274,8 +274,7 @@ describe("helpers/medications: ORC-1 order control of the ORC that opened the gr
       [RXE_A, "RXD|1|A^DrugA^NDC|20260419|30|CAP"], // ORC RXE RXD
     ];
     for (const [first, second] of groups) {
-      const raw =
-        MSH + PID + "ORC|HD|P1|F1||||1^Q8H^^20250101^^R^^^^^^9\r" + first + "\r" + second;
+      const raw = MSH + PID + "ORC|HD|P1|F1||||1^Q8H^^20250101^^R^^^^^^9\r" + first + "\r" + second;
       const meds = parseHL7(raw).medications();
       expect(meds).toHaveLength(2);
       expect(meds.map((med) => med.orderControl)).toEqual(["HD", "HD"]);
