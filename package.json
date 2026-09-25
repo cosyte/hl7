@@ -5,15 +5,19 @@
   "keywords": [
     "hl7",
     "hl7v2",
+    "hl7-v2",
     "parser",
+    "builder",
+    "serializer",
     "healthcare",
     "interoperability",
     "typescript",
-    "builder",
-    "serializer",
+    "adt",
+    "oru",
+    "mllp",
     "toolkit"
   ],
-  "homepage": "https://github.com/cosyte/hl7#readme",
+  "homepage": "https://docs.cosyte.com/hl7",
   "bugs": {
     "url": "https://github.com/cosyte/hl7/issues"
   },

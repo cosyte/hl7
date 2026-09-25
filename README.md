@@ -1295,9 +1295,9 @@ What lands next starts as a quirk sighting or a real-world edge case on the [iss
 
 ### Out of scope (permanently)
 
-- **MLLP framing / network transport**: a future `@cosyte/hl7-mllp` package will cover network IO; this library is parser-only.
+- **Network transport**: sending and receiving over MLLP is [`@cosyte/mllp`](https://github.com/cosyte/mllp)'s job; this library is parser-only and only strips MLLP framing on read.
 - **HL7 v3 and CDA**: different spec family entirely; not in our plans.
-- **FHIR conversion**: a future companion package could bridge, but the conversion is non-trivial and deserves its own repo.
+- **FHIR conversion**: [`@cosyte/transform`](https://github.com/cosyte/transform) converts a parsed message to FHIR R4; this library does not.
 - **Exhaustive coded-value validation**: we validate structure, not every HL7 table. Integrate a domain validator (e.g. your LIS's internal code registry) for that.
 
 ---
