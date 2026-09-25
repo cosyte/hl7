@@ -2,16 +2,18 @@
  * Phase D: integration tests for `msg.medications()` (RXO/RXE/RXD/RXA with
  * RXR/RXC grouped positionally). Covers the four contexts, give-code
  * provenance, the amount-vs-strength separation (never reconciled), positional
- * grouping, and the HELPERS-07 never-throws contract.
+ * grouping, the HELPERS-07 never-throws contract, and the ORC-1 order control
+ * each medication carries from the ORC that opened its order group.
  */
 
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, expectTypeOf, it } from "vitest";
 
 import { parseHL7 } from "../src/index.js";
+import type { Immunization, Medication, Order } from "../src/index.js";
 
 const FIXTURE_DIR = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -186,6 +188,185 @@ describe("helpers/medications: fail-safe + immutability", () => {
       // SER-02 structural round-trip.
       const rt = parseHL7(msg.toString());
       expect(rt.rawSegments).toEqual(msg.rawSegments);
+    }
+  });
+});
+
+describe("helpers/medications: ORC-1 order control of the ORC that opened the group", () => {
+  // RXE-1 (Quantity/Timing) is left empty in these RXE segments, so the ORC-7
+  // legacy timing is the only legacy source a group can read.
+  const RXE_A = "RXE||A^DrugA^RXN|1|1|TAB";
+  const RXE_B = "RXE||B^DrugB^RXN|1|1|TAB";
+
+  /** A medication with its `orderControl` key removed, for AC-3's invariance check. */
+  function withoutOrderControl(med: Medication): Record<string, unknown> {
+    return Object.fromEntries(Object.entries(med).filter(([key]) => key !== "orderControl"));
+  }
+
+  /**
+   * One pharmacy body whose every ORC carries `code` as ORC-1: four order
+   * groups exercising ORC-7 legacy timing, RXE-25/26 strength, RXR, RXC, a TQ1
+   * and all four RX* contexts, so any field that moved with the code would show.
+   */
+  function pharmacyBody(code: string): string {
+    return (
+      MSH +
+      PID +
+      `ORC|${code}|P1|F1||||1^Q8H^^20250101^^R^^^^^^9\r` +
+      "RXO|1100^Amoxicillin^RXN|250|500|mg^milligram^UCUM|CAP^capsule^UCUM\r" +
+      "RXE||1049630^Acetaminophen 325 MG Oral Tablet^RXN|2|2|TAB^tablet^UCUM||||||||||||||||||||325|mg^milligram^UCUM\r" +
+      "RXR|PO^Oral^HL70162|LA^Left Arm^HL70163\r" +
+      "RXC|B|D5W^Dextrose 5%^RXN|1000|mL^mL^UCUM\r" +
+      `ORC|${code}|P2|F2\r` +
+      "TQ1|1||Q6H\r" +
+      "RXE||2000^Ibuprofen^RXN|1|1|TAB\r" +
+      `ORC|${code}|P3|F3\r` +
+      "RXD|1|0093505601^Drug^NDC|20260419|30|CAP\r" +
+      `ORC|${code}|P4|F4\r` +
+      "RXA|0|1|20260419140000||49281041688^Influenza^CVX|0.5|mL^mL^UCUM"
+    );
+  }
+
+  it("AC-1: surfaces the opening ORC's ORC-1 verbatim on every RX* context", () => {
+    const parents = [
+      "RXO|A^DrugA^RXN|1||mg",
+      RXE_A,
+      "RXD|1|A^DrugA^NDC|20260419|30|CAP",
+      "RXA|0|1|20260419140000||A^DrugA^CVX|0.5|mL^mL^UCUM",
+    ];
+    for (const parent of parents) {
+      const meds = parseHL7(MSH + PID + "ORC|NW|P1|F1\r" + parent).medications();
+      expect(meds).toHaveLength(1);
+      expect(meds[0]?.orderControl).toBe("NW");
+    }
+  });
+
+  it("AC-2: omits orderControl when the message carries no ORC at all", () => {
+    const meds = parseHL7(MSH + PID + "RXO|A^DrugA^RXN|1||mg\r" + RXE_B).medications();
+    expect(meds).toHaveLength(2);
+    for (const med of meds) expect("orderControl" in med).toBe(false);
+  });
+
+  it("AC-2: an RX* before the first ORC gets no orderControl; the later group keeps its own", () => {
+    const raw = MSH + PID + RXE_A + "\r" + "ORC|DC|P2|F2\r" + RXE_B;
+    const meds = parseHL7(raw).medications();
+    expect(meds).toHaveLength(2);
+    expect(meds[0]?.giveCode?.identifier).toBe("A");
+    expect("orderControl" in (meds[0] ?? {})).toBe(false);
+    expect(meds[1]?.orderControl).toBe("DC");
+  });
+
+  it("AC-3: the ORC-1 code moves no other field and no other key (NW DC OD HD CA CR XO RL ZZ)", () => {
+    const baseline = parseHL7(pharmacyBody("NW")).medications();
+    expect(baseline).toHaveLength(5);
+    const baselineStripped = baseline.map(withoutOrderControl);
+    for (const code of ["NW", "DC", "OD", "HD", "CA", "CR", "XO", "RL", "ZZ"]) {
+      const meds = parseHL7(pharmacyBody(code)).medications();
+      expect(meds).toHaveLength(baseline.length);
+      for (const med of meds) expect(med.orderControl).toBe(code);
+      expect(meds.map(withoutOrderControl)).toStrictEqual(baselineStripped);
+    }
+  });
+
+  it("AC-4: every RX* of one ORC group carries its ORC-1; the ORC-7 timing stays on the first", () => {
+    const groups: readonly (readonly [string, string])[] = [
+      ["RXO|A^DrugA^RXN|1||mg", RXE_A], // ORC RXO RXE
+      [RXE_A, "RXD|1|A^DrugA^NDC|20260419|30|CAP"], // ORC RXE RXD
+    ];
+    for (const [first, second] of groups) {
+      const raw = MSH + PID + "ORC|HD|P1|F1||||1^Q8H^^20250101^^R^^^^^^9\r" + first + "\r" + second;
+      const meds = parseHL7(raw).medications();
+      expect(meds).toHaveLength(2);
+      expect(meds.map((med) => med.orderControl)).toEqual(["HD", "HD"]);
+      expect(meds[0]?.timings).toHaveLength(1);
+      expect(meds[0]?.timings[0]?.source).toBe("legacy");
+      expect(meds[0]?.timings[0]?.repeatPattern?.code).toBe("Q8H");
+      expect(meds[1]?.timings).toEqual([]);
+    }
+  });
+
+  it("AC-5: each medication carries its own group's ORC-1, never a neighbour's (NW, DC, HD)", () => {
+    const raw =
+      MSH +
+      PID +
+      "ORC|NW|P1|F1\r" +
+      RXE_A +
+      "\r" +
+      "RXR|PO^Oral^HL70162\r" +
+      "ORC|DC|P2|F2\r" +
+      "RXO|B^DrugB^RXN|1||mg\r" +
+      RXE_B +
+      "\r" +
+      "ORC|HD|P3|F3\r" +
+      "RXD|1|C^DrugC^NDC|20260419|30|CAP";
+    const meds = parseHL7(raw).medications();
+    expect(meds.map((med) => [med.giveCode?.identifier, med.orderControl])).toEqual([
+      ["A", "NW"],
+      ["B", "DC"],
+      ["B", "DC"],
+      ["C", "HD"],
+    ]);
+  });
+
+  it("AC-6: an empty ORC-1 omits orderControl: no empty string, no earlier group's code", () => {
+    // `ORC|` (ORC-1 empty), a bare `ORC` with no fields, and an ORC whose later
+    // fields are filled but ORC-1 is empty.
+    for (const opener of ["ORC|", "ORC", "ORC||P2|F2"]) {
+      const raw =
+        MSH +
+        PID +
+        "ORC|NW|P1|F1\r" +
+        RXE_A +
+        "\r" +
+        opener +
+        "\r" +
+        RXE_B +
+        "\r" +
+        "RXD|1|B^DrugB^NDC|20260419|30|CAP";
+      const meds = parseHL7(raw).medications();
+      expect(meds).toHaveLength(3);
+      expect(meds[0]?.orderControl).toBe("NW");
+      for (const med of meds.slice(1)) {
+        expect(med.giveCode?.identifier).toBe("B");
+        expect("orderControl" in med).toBe(false);
+      }
+    }
+  });
+
+  it("AC-7: a trailing ORC after the last RX* never lends its ORC-1 to an earlier medication", () => {
+    const opened = parseHL7(MSH + PID + "ORC|NW|P1|F1\r" + RXE_A + "\r" + "ORC|DC|P2|F2");
+    expect(opened.medications()).toHaveLength(1);
+    expect(opened.medications()[0]?.orderControl).toBe("NW");
+
+    const unopened = parseHL7(MSH + PID + RXE_A + "\r" + "RXR|PO^Oral^HL70162\r" + "ORC|DC|P2|F2");
+    expect(unopened.medications()).toHaveLength(1);
+    expect("orderControl" in (unopened.medications()[0] ?? {})).toBe(false);
+  });
+
+  it("AC-8: an unlisted or odd-case ORC-1 is surfaced exactly as sent and never throws", () => {
+    for (const code of ["ZZ", "dc"]) {
+      const raw = MSH + PID + `ORC|${code}|P1|F1\r` + RXE_A;
+      let meds: readonly Medication[] = [];
+      expect(() => {
+        meds = parseHL7(raw).medications();
+      }).not.toThrow();
+      expect(meds).toHaveLength(1);
+      expect(meds[0]?.orderControl).toBe(code);
+    }
+  });
+
+  it("AC-9: orderControl is typed like Order and Immunization and the medication is frozen", () => {
+    // Same name, optionality, readonly-ness and type as the two precedents.
+    expectTypeOf<Pick<Medication, "orderControl">>().toEqualTypeOf<Pick<Order, "orderControl">>();
+    expectTypeOf<Pick<Medication, "orderControl">>().toEqualTypeOf<
+      Pick<Immunization, "orderControl">
+    >();
+    const meds = parseHL7(MSH + PID + "ORC|NW|P1|F1\r" + RXE_A).medications();
+    expect(meds).toHaveLength(1);
+    for (const med of meds) {
+      const orderControl: string | undefined = med.orderControl;
+      expect(orderControl).toBe("NW");
+      expect(Object.isFrozen(med)).toBe(true);
     }
   });
 });

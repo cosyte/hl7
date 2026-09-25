@@ -759,10 +759,15 @@ export interface MedicationComponent {
  * normalized to a schedule**. Deferred (not v1): sig/frequency *interpretation*,
  * dose-range or interaction checking, pharmacologic resolution of compounds.
  *
+ * `orderControl` is ORC-1 of the ORC that opened this medication's order group,
+ * surfaced **verbatim** (`NW`, `DC`, `HD`, an unlisted code, any letter case)
+ * and never classified into an active, held or ended state.
+ *
  * @example
  * ```ts
  * import type { Medication } from "@cosyte/hl7";
  * const med: Medication = {
+ *   orderControl: "NW",
  *   context: "encoded",
  *   giveCode: { identifier: "1049630", text: "Acetaminophen 325 MG", nameOfCodingSystem: "RXN" },
  *   amount: { minimum: 2, units: { identifier: "TAB" } },
@@ -774,6 +779,15 @@ export interface MedicationComponent {
  * ```
  */
 export interface Medication {
+  /**
+   * ORC-1 order control of the ORC that opened this medication's order group
+   * (the run of segments from that ORC to the next ORC), exactly as sent: never
+   * trimmed, case-folded, looked up, or classified into an active, held or ended
+   * state. Every RX* segment in one group carries the same value. Omitted when no
+   * ORC precedes the RX* segment in the message or that ORC's ORC-1 is empty; it
+   * is never carried over from an earlier group.
+   */
+  readonly orderControl?: string;
   /** Which RX* segment this medication came from (give/dispense/administered). */
   readonly context: MedicationContext;
   /** RXO-1 / RXE-2 / RXD-2 / RXA-5 give/dispense/administered drug code, with provenance. */

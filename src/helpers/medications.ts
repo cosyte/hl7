@@ -32,6 +32,12 @@
  *     RX* parent are dropped (parity with `orders()` dropping a leading OBX /
  *     trailing ORC): they are not attached to a phantom medication.
  *   - `routes` and `components` are ALWAYS present arrays (empty when none).
+ *   - An ORC opens an order group that runs to the next ORC. Every RX* inside
+ *     it carries that ORC's ORC-1 as `orderControl`, verbatim and never
+ *     classified into a state; the key is omitted when no ORC precedes the RX*
+ *     or ORC-1 is empty, and a trailing ORC opening no RX* lends it to nothing.
+ *     The same ORC's ORC-7 legacy timing is still read by the group's first RX*
+ *     only, so it is never counted twice.
  */
 
 import type { Field } from "../model/field.js";
@@ -105,10 +111,19 @@ function buildStrength(rxe: Segment): MedicationStrength | undefined {
   return Object.keys(out).length === 0 ? undefined : Object.freeze(out);
 }
 
-/** Build the give-code + amount + (strength/form) for one RX* parent by context. @internal */
-function buildFromParent(parent: Segment, context: MedicationContext): Medication {
+/**
+ * Build the give-code + amount + (strength/form) for one RX* parent by context,
+ * plus the `orderControl` of the order group it sits in (already read from the
+ * opening ORC; `undefined` leaves the key absent). @internal
+ */
+function buildFromParent(
+  parent: Segment,
+  context: MedicationContext,
+  orderControl: string | undefined,
+): Medication {
   type Mutable<T> = { -readonly [K in keyof T]?: T[K] };
   const out: Mutable<Medication> = { context, routes: [], components: [] };
+  if (orderControl !== undefined) out.orderControl = orderControl;
 
   let giveCode: CWE | undefined;
   let amount: MedicationAmount | undefined;
@@ -215,6 +230,18 @@ function buildMedTimings(
   return Object.freeze([]);
 }
 
+/**
+ * ORC-1 of the ORC that opened a medication's order group, exactly as the
+ * decoded field reads: no trim, case change, lookup or classification. Empty
+ * (or no opening ORC) is `undefined`, so the optional key stays absent.
+ * @internal
+ */
+function orderControlOf(groupOrc: Segment | undefined): string | undefined {
+  if (groupOrc === undefined) return undefined;
+  const value = groupOrc.field(1).value;
+  return value === "" ? undefined : value;
+}
+
 /** Freeze a Medication and its grouped child arrays at the boundary (D-01). @internal */
 function finalize(
   med: Medication,
@@ -243,11 +270,16 @@ function finalize(
  * coded drug implies is never used to validate or overwrite the explicit
  * RXE-25/26 strength fields.
  *
+ * Every medication of an order group carries `orderControl`, ORC-1 of the ORC
+ * that opened the group, exactly as sent and never classified into a state.
+ * It is omitted when no ORC precedes the RX* or ORC-1 is empty.
+ *
  * @example
  * ```ts
  * import { parseHL7 } from "@cosyte/hl7";
  * const msg = parseHL7(raw);
  * for (const med of msg.medications()) {
+ *   console.log(med.orderControl); // e.g. "NW" or "DC", verbatim; undefined without an ORC
  *   console.log(med.context, med.giveCode?.identifier, med.giveCode?.nameOfCodingSystem);
  *   console.log(med.amount?.minimum, med.amount?.units?.identifier);
  *   for (const r of med.routes) console.log(r.route?.identifier);
@@ -263,6 +295,7 @@ export function medications(msg: Hl7Message): readonly Medication[] {
   let currentParent: Segment | undefined;
   let currentOrc: Segment | undefined; // ORC that opened the current group (ORC-7 legacy source)
   let pendingOrc: Segment | undefined; // ORC seen before the next RX* parent opens
+  let groupOrc: Segment | undefined; // ORC opening the order group now running (ORC-1 for every RX* in it)
   let routes: MedicationRoute[] = [];
   let components: MedicationComponent[] = [];
   let pendingTq1: Segment[] = []; // TQ1 seen before the next RX* parent opens (Phase M)
@@ -283,8 +316,11 @@ export function medications(msg: Hl7Message): readonly Medication[] {
       // of the RXE it modifies). The preceding ORC (its ORC-7 legacy timing) is
       // consumed by only this first RX*: `pendingOrc` is cleared so a sibling
       // RX* in the same ORC group never double-surfaces the ORC-7 timing.
+      // ORC-1 is NOT consumed: `groupOrc` stays set until the next ORC, so every
+      // RX* of the group carries the same order control, read now (at open) so a
+      // later ORC can never lend its ORC-1 to this medication.
       closeCurrent();
-      current = buildFromParent(seg, context);
+      current = buildFromParent(seg, context, orderControlOf(groupOrc));
       currentParent = seg;
       currentOrc = pendingOrc;
       pendingOrc = undefined;
@@ -297,9 +333,11 @@ export function medications(msg: Hl7Message): readonly Medication[] {
     }
     if (seg.type === "ORC") {
       // A new ORC starts a new order group: any following TQ1 (before that
-      // group's RX* parent) belongs to the NEXT medication, and its ORC-7
-      // carries the legacy timing for that group.
+      // group's RX* parent) belongs to the NEXT medication, its ORC-7 carries
+      // the legacy timing for that group, and its ORC-1 (even when empty)
+      // replaces the previous group's order control.
       pendingOrc = seg;
+      groupOrc = seg;
       awaitingParent = true;
       continue;
     }
