@@ -96,6 +96,12 @@ still returned:
   `FIELD_WHITESPACE_TRIMMED`, so `status` and `code` read `F`; the
   classification stays `undetermined` because the field did not arrive as
   exactly one code.
+- **A VT or FS byte inside the field.** The parser removes every VT (`0x0B`)
+  and FS (`0x1C`) byte from a message before it reads segments, wherever the
+  byte stood, so a field sent as a VT then `F` has `status` and `code` `F`. The
+  classification stays `undetermined`. Only an MLLP block frame around the whole
+  message, a VT as its first byte together with an FS as its last byte or
+  before one final CR, belongs to no field.
 - **A code written as an escape sequence.** `\X46\` decodes to `F`, and `status`
   and `code` read `F`, but the field did not carry the code as itself.
 - **More than one value.** More than one repetition, component or subcomponent,
@@ -125,10 +131,16 @@ raw code is still carried for the caller to judge.
 - **Informative maps.** Both maps are STU 1 content with standards status
   Informative. The classification follows the version it names and does not track
   later revisions.
-- **Whitespace is read from the parse warnings.** The whitespace rule matches a
-  `FIELD_WHITESPACE_TRIMMED` warning to the field's position as parsed. After a
-  segment is added or removed, those positions describe the message as it was
-  parsed, not as it is now.
+- **What a field arrived as is recorded when it is parsed.** Whether the parser
+  trimmed a field or removed a VT or FS byte from it stays with that field when
+  other segments are added or removed. A field replaced with `setField`
+  classifies from the value set. A message parsed again from `msg.toString()`
+  classifies from that text, which carries neither the whitespace nor the bytes.
+- **An MLLP frame reads as a frame.** In a message that starts with a VT and
+  ends with an FS, or with an FS and one CR, those two bytes belong to no field,
+  so a status field that ends the message classifies by its code. An FS at the
+  end of a message that does not start with a VT is not a frame, and the field
+  it follows is `undetermined`.
 
 ## Example
 
