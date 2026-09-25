@@ -20,6 +20,7 @@
  *   - RXA-18 substance/treatment refusal reason (CWE, first repetition)
  *   - RXA-20 completion status (ID: CP/RE/NA/PA)
  *   - RXA-21 action code (ID: A/D/U), preserved verbatim
+ *   - RXA-5, RXA-20, RXA-21 → administrationStatus (derived; raw codes beside it)
  *   - RXR-1/2 route (Table 0162) / site (Table 0163), grouped (reuses MedicationRoute)
  *   - ORC-1   order control of the preceding ORC, attached as orderControl
  *
@@ -27,6 +28,10 @@
  *   - Never throws: malformed RXA surfaces as omitted keys (HELPERS-07).
  *   - `actionCode` (RXA-21) is surfaced VERBATIM and never defaulted: a wrong
  *     A/D/U corrupts an IIS add/delete/update dedup.
+ *   - `administrationStatus` is `"completed"` only for RXA-20 exactly `CP` or
+ *     `PA` with RXA-21 empty or exactly `A`/`U`/`X` and no CVX `998` in RXA-5;
+ *     every code not exactly mapped is `"undetermined"`. It is reported, never
+ *     applied: a `D` record is still returned and matched against nothing.
  *   - `recordOrigin` is derived ONLY from the well-known NIP001 RXA-9.1 codes
  *     (`00` administered; `01`-`08` historical) and OMITTED otherwise: the raw
  *     RXA-9 claim is always preserved on `informationSource`. Never guessed.
@@ -45,15 +50,21 @@
  *   - `routes` and `observations` are ALWAYS present arrays (empty when none).
  */
 
+import { codingSystem } from "../model/coding-system.js";
 import type { Field } from "../model/field.js";
 import type { Hl7Message } from "../model/message.js";
 import type { Segment } from "../model/segment.js";
 import type { CWE } from "../model/types/cwe.js";
+import { fieldArrivedAltered } from "../parser/wire-fidelity.js";
 
 import { buildObservation } from "./observations.js";
+import { soleValue } from "./result-status.js";
 import type {
   Immunization,
+  ImmunizationAdministrationStatus,
   ImmunizationRecordOrigin,
+  ImmunizationStatusBasis,
+  ImmunizationStatusClass,
   MedicationRoute,
   Observation,
 } from "./types.js";
@@ -96,6 +107,120 @@ function classifyOrigin(infoSource: CWE | undefined): ImmunizationRecordOrigin |
   if (code === "00") return "administered";
   if (NIP001_HISTORICAL.has(code)) return "historical";
   return undefined;
+}
+
+const DECIDED_BY_COMPLETION_STATUS: ImmunizationStatusBasis = Object.freeze({
+  field: "RXA-20",
+  table: Object.freeze({ name: "HL7 Table 0322", version: "3.0.0" }),
+  map: Object.freeze({
+    url: "http://hl7.org/fhir/uv/v2mappings/ConceptMap/table-hl70322-to-event-status",
+    version: "1.0.0",
+  }),
+});
+
+const DECIDED_BY_ACTION_CODE: ImmunizationStatusBasis = Object.freeze({
+  field: "RXA-21",
+  table: Object.freeze({ name: "HL7 Table 0323", version: "3.0.0" }),
+});
+
+const DECIDED_BY_VACCINE_CODE: ImmunizationStatusBasis = Object.freeze({
+  field: "RXA-5",
+  codeSet: Object.freeze({ name: "CDC CVX", code: "998", version: "2023-03-09" }),
+});
+
+// Every row of the Table 0322 to Event Status map; it maps all four codes. A
+// `Map`, not an object literal, so an inherited key can never match.
+const COMPLETION_STATUS: ReadonlyMap<string, ImmunizationStatusClass> = new Map([
+  ["CP", "completed"],
+  ["PA", "completed"],
+  ["RE", "not-done"],
+  ["NA", "not-done"],
+]);
+
+// The Table 0323 codes other than `D`: each leaves the record to the next rule.
+const DEFERRING_ACTION_CODES: ReadonlySet<string> = new Set(["A", "U", "X"]);
+
+const CVX_NO_VACCINE_ADMINISTERED = "998";
+
+/**
+ * Whether the field arrived with nothing in it: absent, or empty between its
+ * delimiters. The HL7 null `""`, a lone delimiter, whitespace, and a VT or FS
+ * byte the parser removed are all something. @internal
+ */
+function arrivedEmpty(field: Field): boolean {
+  if (field.isNull || fieldArrivedAltered(field.raw)) return false;
+  return field.repetitions.length === 0 || soleValue(field) === "";
+}
+
+/**
+ * Whether one RXA-5 triplet codes CVX `998`: the identifier is exactly `998`
+ * and its coding system resolves to `CVX` by Table 0396 provenance, or, in the
+ * primary triplet only, no coding system is named. @internal
+ */
+function triplet998(
+  identifier: string | undefined,
+  system: string | undefined,
+  primary: boolean,
+): boolean {
+  if (identifier !== CVX_NO_VACCINE_ADMINISTERED) return false;
+  const provenance = codingSystem(system);
+  return provenance === undefined ? primary : provenance.id === "CVX";
+}
+
+/**
+ * RXA-5 read for CVX `998`: `undefined` when neither triplet codes it,
+ * `"undetermined"` when the other triplet carries a different, non-empty
+ * identifier, `"no-vaccine-administered"` otherwise. @internal
+ */
+function classifyVaccineCode(code: CWE | undefined): ImmunizationStatusClass | undefined {
+  if (code === undefined) return undefined;
+  const primary = triplet998(code.identifier, code.nameOfCodingSystem, true);
+  const alternate = triplet998(code.alternateIdentifier, code.nameOfAlternateCodingSystem, false);
+  if (!primary && !alternate) return undefined;
+  const other = primary ? code.alternateIdentifier : code.identifier;
+  const contradicted = other !== undefined && other !== "" && other !== CVX_NO_VACCINE_ADMINISTERED;
+  return contradicted ? "undetermined" : "no-vaccine-administered";
+}
+
+/**
+ * The first rule that applies to one RXA, and only that one: RXA-21 exactly
+ * `D`; RXA-21 present but not exactly one Table 0323 code; RXA-5 coding CVX
+ * `998`; RXA-20 by the Table 0322 map. @internal
+ */
+function decideAdministration(
+  rxa: Segment,
+  vaccineCode: CWE | undefined,
+): readonly [ImmunizationStatusClass, ImmunizationStatusBasis] {
+  const actionField = rxa.field(21);
+  const action = soleValue(actionField);
+  if (action === "D") return ["delete-requested", DECIDED_BY_ACTION_CODE];
+  const deferring = action !== undefined && DEFERRING_ACTION_CODES.has(action);
+  if (!deferring && !arrivedEmpty(actionField)) return ["undetermined", DECIDED_BY_ACTION_CODE];
+
+  const noVaccine = classifyVaccineCode(vaccineCode);
+  if (noVaccine !== undefined) return [noVaccine, DECIDED_BY_VACCINE_CODE];
+
+  const status = soleValue(rxa.field(20));
+  const mapped = status === undefined ? undefined : COMPLETION_STATUS.get(status);
+  return [mapped ?? "undetermined", DECIDED_BY_COMPLETION_STATUS];
+}
+
+/**
+ * The frozen administration status of one RXA, carrying the raw RXA-20 and
+ * RXA-21 codes the entry surfaces as `completionStatus` / `actionCode`. @internal
+ */
+function classifyAdministration(
+  rxa: Segment,
+  vaccineCode: CWE | undefined,
+  completionStatus: string | undefined,
+  actionCode: string | undefined,
+): ImmunizationAdministrationStatus {
+  const [classification, decidedBy] = decideAdministration(rxa, vaccineCode);
+  type Mutable<T> = { -readonly [K in keyof T]: T[K] };
+  const out: Mutable<ImmunizationAdministrationStatus> = { classification, decidedBy };
+  if (completionStatus !== undefined) out.completionStatus = completionStatus;
+  if (actionCode !== undefined) out.actionCode = actionCode;
+  return Object.freeze(out);
 }
 
 /** One RXR segment → a grouped `MedicationRoute` (Table 0162 route + Table 0163 site). @internal */
@@ -180,6 +305,9 @@ function finalizeImmunization(
   const actionCode = stringOrUndefined(rxa.field(21).value);
   if (actionCode !== undefined) out.actionCode = actionCode;
 
+  // Derived from RXA-5, RXA-20 and RXA-21 read above; always present.
+  out.administrationStatus = classifyAdministration(rxa, vaccineCode, completionStatus, actionCode);
+
   return Object.freeze(out) as Immunization;
 }
 
@@ -194,7 +322,8 @@ function finalizeImmunization(
  * (`vaccineCode.nameOfCodingSystem`: `CVX`); a dual-coded RXA-5 surfaces its
  * alternate (CVX/NDC) on `vaccineCode.alternateIdentifier`/`…`. The action code
  * (RXA-21) is surfaced verbatim and `recordOrigin` (administered vs historical)
- * is derived only from the well-known NIP001 RXA-9.1 codes: see
+ * is derived only from the well-known NIP001 RXA-9.1 codes; every entry carries
+ * `administrationStatus`, derived from its own RXA-5, RXA-20 and RXA-21: see
  * {@link Immunization}.
  *
  * @example
@@ -205,6 +334,7 @@ function finalizeImmunization(
  *   console.log(imm.vaccineCode?.identifier, imm.vaccineCode?.nameOfCodingSystem);
  *   console.log(imm.doseAmount, imm.doseUnits?.identifier, imm.recordOrigin);
  *   console.log(imm.actionCode, imm.completionStatus);
+ *   console.log(imm.administrationStatus.classification); // "completed" for a dose given
  *   for (const r of imm.routes) console.log(r.route?.identifier);
  * }
  * ```

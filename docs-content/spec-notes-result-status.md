@@ -122,8 +122,10 @@ raw code is still carried for the caller to judge.
   share OBX-3 and OBX-4. An order classifies from OBR-25 alone, never from its
   observations: OBR-25 `F` over an OBX-11 `W` gives a `final` order and an
   `entered-in-error` observation.
-- **Two fields only.** OBX-11 and OBR-25 are classified. ORC-1, ORC-5, RXA-20,
-  RXA-21 and every other status field are surfaced verbatim, as before.
+- **Two fields only.** OBX-11 and OBR-25 are classified here. ORC-1, ORC-5 and
+  every other status field are surfaced verbatim, as before. RXA-20 and RXA-21
+  are surfaced verbatim too, and classified separately, per immunization: see the
+  [immunization administration status](./spec-notes-immunization-status.md).
 - **Not a FHIR element.** The classification is a plain string. No Observation,
   DiagnosticReport or ConceptMap resource is built and no terminology service is
   consulted. It is the one place hl7 applies a v2-to-FHIR map; see the

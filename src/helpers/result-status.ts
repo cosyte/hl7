@@ -71,9 +71,19 @@ const ORDER_STATUS: ReadonlyMap<string, ResultStatusClass> = new Map([
  * component, one subcomponent, written on the wire as itself. `undefined` for
  * a null, empty or structured field, for a value that arrived as an escape
  * sequence (the escape overlay records its wire bytes), and for a field the
- * parser altered on the way in (trimmed, or a VT or FS byte removed). @internal
+ * parser altered on the way in (trimmed, or a VT or FS byte removed).
+ *
+ * @example
+ * ```ts
+ * const obx = msg.segments("OBX")[0];
+ * if (obx !== undefined) {
+ *   soleValue(obx.field(11)); // "F" for OBX-11 F; undefined for F~W or a trimmed " F"
+ * }
+ * ```
+ *
+ * @internal
  */
-function soleValue(field: Field): string | undefined {
+export function soleValue(field: Field): string | undefined {
   if (fieldArrivedAltered(field.raw) || field.repetitions.length !== 1) return undefined;
   const components = field.repetitions[0]?.components ?? [];
   if (components.length !== 1) return undefined;

@@ -32,6 +32,7 @@
         "spec-notes-text-rendering",
         "spec-notes-nte",
         "spec-notes-result-status",
+        "spec-notes-immunization-status",
         "spec-notes-fhir-bridge",
         "spec-notes-version-matrix",
         "schema-emission",
