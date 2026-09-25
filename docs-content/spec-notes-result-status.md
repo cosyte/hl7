@@ -54,15 +54,15 @@ when the field is empty.
 
 ## OBX-11: Table 0085 to Observation Status
 
-| OBX-11                         | `classification`                     |
-| ------------------------------ | ------------------------------------ |
-| `A`                            | `amended`                            |
-| `C`                            | `corrected`                          |
-| `D`                            | `entered-in-error`                   |
-| `F`                            | `final`                              |
-| `P`                            | `preliminary`                        |
-| `X`                            | `cancelled`                          |
-| `W`                            | `entered-in-error`                   |
+| OBX-11                                 | `classification`                         |
+| -------------------------------------- | ---------------------------------------- |
+| `A`                                    | `amended`                                |
+| `C`                                    | `corrected`                              |
+| `D`                                    | `entered-in-error`                       |
+| `F`                                    | `final`                                  |
+| `P`                                    | `preliminary`                            |
+| `X`                                    | `cancelled`                              |
+| `W`                                    | `entered-in-error`                       |
 | `B`, `I`, `N`, `O`, `R`, `S`, `V`, `U` | `undetermined` (the map: "(not mapped)") |
 
 `V` (verified), `U` (status changed to final) and `B` (appended report) read as
@@ -71,15 +71,15 @@ final to a person, but HL7's map gives them no status. They classify as
 
 ## OBR-25: Table 0123 to Diagnostic Report Status
 
-| OBR-25                        | `classification`                     |
-| ----------------------------- | ------------------------------------ |
-| `O`, `I`, `S`                 | `registered`                         |
-| `P`                           | `preliminary`                        |
-| `C`                           | `corrected`                          |
-| `R`                           | `partial`                            |
-| `F`                           | `final`                              |
-| `X`                           | `cancelled`                          |
-| `A`, `Y`, `Z`, `M`, `N`       | `undetermined` (the map: "(not mapped)") |
+| OBR-25                  | `classification`                         |
+| ----------------------- | ---------------------------------------- |
+| `O`, `I`, `S`           | `registered`                             |
+| `P`                     | `preliminary`                            |
+| `C`                     | `corrected`                              |
+| `R`                     | `partial`                                |
+| `F`                     | `final`                                  |
+| `X`                     | `cancelled`                              |
+| `A`, `Y`, `Z`, `M`, `N` | `undetermined` (the map: "(not mapped)") |
 
 ## Exactly one code, or `undetermined`
 
@@ -138,9 +138,10 @@ raw code is still carried for the caller to judge.
   classifies from that text, which carries neither the whitespace nor the bytes.
 - **An MLLP frame reads as a frame.** In a message that starts with a VT and
   ends with an FS, or with an FS and one CR, those two bytes belong to no field,
-  so a status field that ends the message classifies by its code. An FS at the
-  end of a message that does not start with a VT is not a frame, and the field
-  it follows is `undetermined`.
+  so a status field that ends the message classifies by its code. Every other VT
+  or FS is read as part of the field it stands in: an FS at the end of a message
+  that does not start with a VT, or an FS followed by anything more than one CR,
+  leaves the field before it `undetermined`.
 
 ## Example
 
