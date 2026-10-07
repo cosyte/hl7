@@ -709,13 +709,13 @@ section stubs that existed to receive the next hand-written entry. No entry was 
 
 The entries below follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the generated
 sections above use the format Changesets writes, which is a version heading and a list of the
-changes that release consumed. Versions follow the cosyte pre-alpha ladder, `0.0.x` until first
+changes that release consumed. Versions follow the Cosyte pre-alpha ladder, `0.0.x` until first
 alpha, rather than [Semantic Versioning](https://semver.org/spec/v2.0.0.html) alone. An earlier
 `0.1.0` tag was prepared but never published, which is why the public history begins at `0.0.x`.
 
 ### Added
 
-- **The cosyte brand banner heads `README.md` (`ASSETS-P8`, the consuming half).** A plain markdown
+- **The Cosyte brand banner heads `README.md` (`ASSETS-P8`, the consuming half).** A plain markdown
   image on the first line of the file, above the H1, pointing at the absolute HTTPS URL published
   for `hl7` in the `assets` repo's `published-urls.json` contract
   (`https://cosyte.com/social/cosyte-banner-hl7-1200x300.png`, `status: live` on
@@ -879,7 +879,7 @@ precision` reads worse than the text it replaced. The datetime page needed more 
   published package surface, parser behavior, or warning codes.
 - **Em-dash brand gate in CI (`scripts/check-no-emdash.sh`, `pnpm check:no-emdash`,
   `.github/workflows/no-emdash.yml`; `EMDASH-CONFORMANCE` part 1).** The founder directive of
-  2026-07-24 (`knowledgebase/06-brand/voice-and-tone.md`) bans `U+2014` outright across every cosyte
+  2026-07-24 (`knowledgebase/06-brand/voice-and-tone.md`) bans `U+2014` outright across every Cosyte
   surface and names commit messages explicitly, and the meta-repo's `documentation/conventions.md`
   has described the rule as CI-gated; it was in fact gated in only 3 repos of 10. This ports
   `knowledgebase`'s scanner (the text-only variant, correct here because hl7 tracks no binaries:
@@ -1119,7 +1119,7 @@ kind, value)`** sets one at a field or `field[rep]` dot-path. Component values a
   reports `phi-scan ✓`. Dev-tooling only: no change to the published package surface or warning codes.
 
 - **Trademark notice (`TRADEMARKS.md`).** This package names third-party systems to describe what it
-  interoperates with; the notice records that cosyte is not affiliated with, endorsed by, or
+  interoperates with; the notice records that Cosyte is not affiliated with, endorsed by, or
   sponsored by any of them, that every reference is descriptive, and that the built-in profiles are
   authored from public sources only. Added to `files` so it ships inside the published tarball, not
   just on GitHub. Documentation only: no runtime or API change.
