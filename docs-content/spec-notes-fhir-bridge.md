@@ -152,8 +152,8 @@ parseDtm(msg.get("PID.7") ?? "").precision; // => "day"
 
 ## Semver posture (the promise)
 
-The mapping surface above follows the package's `0.0.x`-until-first-alpha ladder, and once alpha,
-**semver**:
+The mapping surface above is part of the public surface the package keeps stable. Below 1.0, a
+breaking change moves the minor version and the changelog says how to migrate. From 1.0, **semver**:
 
 - **Additive** (a new composite accessor, a new optional field on a returned shape, a new helper): a
   **minor** bump. A mapper written against v1 keeps working.

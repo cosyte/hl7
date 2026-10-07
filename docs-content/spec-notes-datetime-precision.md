@@ -130,8 +130,9 @@ it never re-parses, and it changes nothing about how a value was parsed.
   `null` or a `"0"` to zero and answers a confident UTC instant. `parseDtm` (up to `+2400`),
   `formatDtm` and `dtmToDate` are untouched, exactly as for the calendar bound above. An
   `offsetMinutes` on a value with `hasTimezone: false` states nothing and is ignored, not refused.
-- The three names are identical across the `@cosyte` parsers, so a consumer importing two of them
-  aliases (`import { toISO as hl7ToISO } from "@cosyte/hl7"`) or namespace-imports.
+- The three names are identical in `@cosyte/hl7`, `@cosyte/x12`, `@cosyte/dicom`, `@cosyte/ncpdp`,
+  `@cosyte/astm` and `@cosyte/ccda`, so a consumer importing two of them aliases
+  (`import { toISO as hl7ToISO } from "@cosyte/hl7"`) or namespace-imports.
 
 ### TS composite: `src/model/types/ts.ts`
 
