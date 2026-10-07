@@ -7,7 +7,7 @@ description: "Parse throughput, per-message memory and streaming peak memory, pl
 
 # Benchmarks & performance
 
-`@cosyte/hl7` is the reference cosyte parser, and interface-engine adoption asks a fair question:
+`@cosyte/hl7` is the reference Cosyte parser, and interface-engine adoption asks a fair question:
 **is it fast enough, and does it stay bounded on a large feed?** This page answers both, with a
 reproducible benchmark suite and a CI guard that stops future changes from silently degrading
 performance.
