@@ -1314,7 +1314,7 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for dev setup, how to file an issue, an
 
 ## Trademarks
 
-Epic, Cerner, MEDITECH, athenahealth, LabCorp, Quest Diagnostics, Visage (Visage Imaging), and Philips (Vue PACS) are trademarks of their respective owners. cosyte is not affiliated with, endorsed by, or
+Epic, Cerner, MEDITECH, athenahealth, LabCorp, Quest Diagnostics, Visage (Visage Imaging), and Philips (Vue PACS) are trademarks of their respective owners. Cosyte is not affiliated with, endorsed by, or
 sponsored by any of them: the names identify the systems whose real-world message quirks the built-in profiles accommodate. See [TRADEMARKS.md](./TRADEMARKS.md).
 
 ## License
