@@ -665,8 +665,9 @@ it catches `NaN`, which would otherwise render as `+NaN:NaN`. Every real zone on
 it (the widest in use is 14 hours east), a stated offset still wins outright over any
 `assumeOffsetMinutes` beside it, and `parseDtm`, `formatDtm` and `dtmToDate` are unchanged.
 
-**Using two `@cosyte` parsers in one file.** The three names are identical in every `@cosyte` parser,
-so importing two of them into one file collides. Alias on import:
+**Using two `@cosyte` parsers in one file.** The three names are identical in `@cosyte/hl7`,
+`@cosyte/x12`, `@cosyte/dicom`, `@cosyte/ncpdp`, `@cosyte/astm` and `@cosyte/ccda`, so importing two
+of them into one file collides. Alias on import:
 
 ```ts
 import { parseDtm, toISO as hl7ToISO } from "@cosyte/hl7";

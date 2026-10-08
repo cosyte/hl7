@@ -126,8 +126,9 @@ Design around these. They're deliberate scope choices, not bugs:
   carry a field's value, but it can carry a residue of up to three characters when a malformed line
   happens to look like a segment identifier, so prefer logging `w.code` and `w.position` over
   `w.message` if your posture is strict.
-- **Pre-alpha on the `0.0.x` ladder.** The 20 warning codes are a stable contract, but the broader
-  surface may still evolve before a 1.0. For the published version, ask the registry
+- **Below 1.0.** The 20 warning codes are a stable contract, and so are the exported functions and
+  the message and helper surfaces; below 1.0 a breaking change moves the minor version, and the
+  changelog says how to migrate. For the published version, ask the registry
   (`npm view @cosyte/hl7 version`) rather than a doc page.
 
 ## Still stuck?

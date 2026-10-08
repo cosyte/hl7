@@ -11,10 +11,11 @@ description: "Install the zero-dependency @cosyte/hl7 toolkit on Node 22 or newe
 builds with per-condition type declarations, so it works from either module system without
 configuration.
 
-> **Status:** published on npm and public, still pre-alpha on the
-> `0.0.x`-until-first-alpha ladder. The `npm install` command below is live, not aspirational. For
-> the current published version, ask the registry (`npm view @cosyte/hl7 version`) rather than this
-> page.
+> **Status:** `0.1`, published on npm and public. The `npm install` command below is live. The
+> exported functions, the message and helper surfaces, and the 20 stable warning codes are the
+> surface we keep stable; below 1.0 a breaking change moves the minor version, and the changelog
+> says how to migrate. For the current published version, ask the registry
+> (`npm view @cosyte/hl7 version`) rather than this page.
 
 ## Prerequisites
 
