@@ -1,117 +1,42 @@
-# @cosyte/hl7: Project Guide for Claude
+# @cosyte/hl7
 
-## Project
+`@cosyte/hl7` is our HL7 v2 parser and utility library for Node.js and TypeScript, published to npm under MIT. It reads real-world, vendor-quirky messages leniently (a warning, not a throw, for anything short of structural corruption) and serializes spec-clean HL7, with builders, validation and vendor profiles on the same model. It has zero runtime dependencies, and this repository is public.
 
-**`@cosyte/hl7`**: a developer-focused HL7 v2 parser + utility library for Node.js/TypeScript, published under the Cosyte brand. Open-source (MIT).
+## Gate
 
-**North star:** A developer can parse a real-world, vendor-quirky HL7 v2 message and pull useful fields out in one line, without reading the HL7 spec.
+From the repo root, in this order, with pnpm 10 (the `packageManager` pin). Where `pnpm --version` prints another major, put the pinned one first on PATH, since pnpm 12 refuses the frozen install and tests shell out to bare `pnpm`: `mkdir -p ~/.pnpm10 && corepack enable --install-directory ~/.pnpm10 pnpm && export PATH="$HOME/.pnpm10:$PATH"`.
 
-## Status
+```sh
+pnpm install --frozen-lockfile
+pnpm typecheck
+pnpm lint
+pnpm format:check
+pnpm phi-scan
+pnpm test
+pnpm test:coverage
+pnpm build
+pnpm attw
+pnpm examples
+pnpm check:docs
+pnpm check:no-emdash
+pnpm check:no-internal-refs
+cd examples/profile-starter-kit && pnpm install --no-frozen-lockfile && pnpm typecheck && pnpm lint && pnpm test && pnpm build
+```
 
-- **v2.1 milestone shipped 2026-04-21**: all 12 phases archived (97 v1 requirements delivered). No active milestone; planning v2.2.
-- Milestone is a **git milestone, not an npm release**: the package is published on npm and is pre-alpha, below its first stable major. **Never quote a version here** (this line read "not published to npm" until 2026-07-31, several releases after first publish): `npm view @cosyte/hl7 version` is the only source of truth.
+The first nine are the shared `cosyte/.github` CI ladder, run on Node 22 and 24. CI alone also loads `dist/` as ESM and as CJS, runs actionlint and CodeQL, and packs the tree and installs the tarball into a clean directory.
 
-## Tech Stack (the shared `@cosyte/*` standard)
+## Hazard
 
-hl7 is the reference parser; it inherits the canonical toolchain by depending on the published
-`@cosyte/*` config packages, not by copying files. The source of truth is the meta-repo's
-`documentation/conventions.md`. This is a summary.
+Every message this library reads can carry a patient's identity and clinical record. The failure that hurts is the quiet one: a field parsed wrong but plausible travels downstream as an allergy nobody sees or a dose that is off, and nothing flags it. When a value is in doubt, warn rather than guess, and keep message text out of errors, warnings and logs.
 
-- **Language:** TypeScript (strict, full rigor set incl. `noUncheckedIndexedAccess`) via
-  `@cosyte/tsconfig`. **Target ES2023**, `NodeNext`.
-- **Build:** dual ESM + CJS + `.d.ts` via `tsup` (`@cosyte/tsup-config`); `attw` is a publish gate
-  (per-condition types: `.d.ts` for `import`, `.d.cts` for `require`). The `attw` script is
-  **`node scripts/attw.mjs`, not the bare CLI**: see the guardrail below.
-- **Node:** **>= 22** (CI matrix 22 + 24).
-- **Package manager:** `pnpm@10`.
-- **Lint/format:** **ESLint 10** + unified `typescript-eslint` (type-checked) via
-  `@cosyte/eslint-config`; Prettier via `@cosyte/prettier-config`. Lint at `--max-warnings=0`.
-- **Testing:** **Vitest 4** + v8 coverage (`@cosyte/vitest-config`), per-directory >= 90 gates.
-- **CI/CD:** thin callers of the reusable `cosyte/.github` workflows.
-- **Runtime deps:** **Zero.** Node stdlib only.
-- **License:** MIT
+## Rules that bind here
 
-## Engineering Guardrails
+Each names the failure that put it here.
 
-- No `any`. No unjustified `as` casts. Use `unknown` and narrow.
-- JSDoc (with `@example`) on every public export: feeds IntelliSense.
-- Immutable by default. Mutation only via explicit methods (`setField`, `addSegment`, `removeSegment`).
-- No `console.*` in library code. Throw typed errors or return results.
-- Short, testable functions over big parsing blobs.
-- Postel's Law: parser is liberal (lenient default + warnings), serializer is conservative (always emits spec-clean HL7).
-- Fatal errors only for unrecoverable structural corruption (4 Tier-3 codes). Everything else is a warning.
-- Coverage: per-directory >= 90% (lines/branches/functions/statements) on `src/parser/`, `src/model/`,
-  `src/helpers/`, `src/serialize/`, `src/builder/`, enforced by `pnpm test:coverage`.
-- **`attw` IS A PUBLISH GATE, AND THIS REPOSITORY RUNS THE SHARED ONE, NOT A COPY.** Bare `attw`
-  exits 0 on a package whose tarball carries no types, so the `attw` script runs a gate instead.
-  `scripts/attw.mjs` is a **caller** of `@cosyte/script-utils/attw`, pinned to an exact version: it
-  passes its own `import.meta.url` to `runAttwGate` and owns nothing else. **What the gate checks,
-  what it refuses, and every measurement behind both are documented ONCE, in the docblock at the top
-  of `node_modules/@cosyte/script-utils/attw.js`.** Read it there and do not restate it here: a rule
-  written in two places drifts. A fix to the gate is a publish of that package and a version bump
-  here, never a local edit, and vendoring the body back in re-mints the copy this replaced. The
-  caller fails closed: if the shared body cannot be imported it names the specifier and exits 1.
-  Two facts stay this repository's own. **The `attw` script body is exactly
-  `node scripts/attw.mjs`**, not the bare CLI and not a bin shim. **THE CENSUS IS MANIFESTS, NOT REPO
-  ROOTS**, and it is derived, not recalled:
-  `/usr/bin/grep -rl '"attw":' --include=package.json --exclude-dir=node_modules .` This repo has
-  two, `package.json` and `examples/profile-starter-kit/package.json`, the second a template a
-  consumer publishes from. Nothing in CI executes the kit's gate, so
-  `test/scripts/attw-gate.test.ts` derives the census and requires every manifest in it to run the
-  caller and pin the same exact `@cosyte/script-utils` version as the root. Keep
-  `@arethetypeswrong/cli` in both manifests: the gate runs the consuming package's own
-  `node_modules/.bin/attw`.
-
-## Standing disciplines (every change)
-
-Mirrors the three disciplines in `documentation/conventions.md`. They bind here too:
-
-1. **Documentation follows code**: a change to the public surface/stack/status isn't done until the
-   docs are: this repo's docs content, the meta-repo `documentation/repos/hl7.md` (bump its
-   "last verified" date), and the `ecosystem-map.md` status table.
-2. **Version + changelog**: a Changeset per meaningful change, carrying **the bump type the change
-   earns**: `minor` when it ADDS behaviour a consumer can call, `patch` when it CORRECTS behaviour.
-   Never `major` without a deliberate decision to declare this API stable, because on a `0.x` line
-   that is what `major` resolves to. `pnpm tsx scripts/release-readiness.ts` reports what the
-   pending queue resolves to and refuses to certify a queue it could not read.
-   **The changeset summary IS the changelog entry** and `CHANGELOG.md` is generated output above
-   `## Released before this file was generated`: `.changeset/config.json` sets a `changelog`
-   generator, so the release writes the version heading and the entry itself. **Do not hand-edit
-   `CHANGELOG.md`**, and do not reintroduce a hand-maintained `[Unreleased]` heading: one stood
-   there unrolled for the whole published history of this package, which is how a shipped tarball
-   came to describe its own contents as unreleased. `test/scripts/changelog-generation.test.ts`
-   pins both halves. Renaming a stable warning code is a breaking change.
-3. **Crew + knowledgebase loop**: if a parser's public API or warning codes change, flag/update the
-   matching `crew` healthcare skill (`hl7v2-message-author`) + the KB product doc.
-4. **No internal project bookkeeping on a public surface** (founder directive, 2026-07-27). What a
-   consumer reads (`README.md`, `docs-content/`, the npm `description`, a release body) says what the
-   software does and what changed. Item identifiers (`HL7-N`), phase and wave language, ADR numbers,
-   meta-repo paths and "how this got built" commentary belong in the changeset, `CHANGELOG.md`, the
-   commit, the PR and the roadmap. It is a **translation** at the boundary, not a deletion, and when
-   you strip an identifier off the front of a line, repair the head: a fragment reads worse than the
-   text it replaced. Gated by `pnpm check:no-internal-refs`, which is a **caller**
-   (`scripts/check-no-internal-refs.mjs`) over the published `@cosyte/script-utils`
-   internal-reference gate, pinned to an exact version. **The rules, the self-test floor and every
-   refusal live in that package, in one copy across the estate**; what this repository supplies is
-   its axes: the project prefixes, the standards designations that must never be flagged
-   (`HL7-V2`, `FHIR-R4`, `DICOM-SR`, `NCPDP-SCRIPT`, `X12-837P`), the public surface, the tarball
-   accounting, and its own measured reference material as extra self-test samples. The gate keys on
-   known project prefixes, so **a new programme prefix is still added by hand, now in the caller's
-   axis list rather than in a local scanner**; a widened rule is caught by the shared floor plus our
-   samples; and it catches identifiers, not English sentences about our process, so the reviewer
-   still owns half the rule. **It needs `pnpm install` first and fails closed without it**: an
-   implementation it cannot reach exits non-zero and never prints the OK line.
-   `test/scripts/internal-refs-gate.test.ts` is the differential corpus that proved the swap.
-
-   **`src/` JSDoc is public surface too, and is gated.** Doc comments (`/** */`) compile into
-   `dist/index.d.ts` / `dist/index.d.cts`, which `files` ships and which every consumer's editor
-   renders on hover. So the same rule applies to them, enforced by the same command's source
-   doc-comment pass, which extracts doc blocks alone and runs the same rules over them. **`//` and
-   `/* */` comments are NOT gated
-   and identifiers are welcome in them** -- they do not reach `dist`, and that is precisely the line:
-   what a _consumer receives_ is public, what only a _maintainer reads_ is not. Two consequences:
-   a doc comment is not the place for build-order or "which phase added this" framing, and
-   **removing a doc comment to satisfy the gate is a regression**, not a fix -- JSDoc with
-   `@example` on every public export is a hard guardrail above, and neither lint nor coverage
-   will catch its loss. What the gate CANNOT do is read `dist/` itself: `dist/` is untracked
-   build output, so this is a gate on the source of the published text, not on the published text.
+- Errors, warnings and model identifiers (`Segment.type`, `Hl7Message.version`) carry bounded tokens from `src/parser/tokens.ts`, never raw message text: a name and a record number once reached `Hl7ParseWarning.message` (#70).
+- Both `attw` scripts (root and `examples/profile-starter-kit`) stay exactly `node scripts/attw.mjs`: bare `attw` exits 0 on a tarball that carries no types (#78).
+- A change under `src/` adds a changeset: `minor` when it adds behaviour a consumer can call, `patch` when it corrects behaviour, never `major`. An all-`patch` queue once hid seven additions (#113).
+- The changeset summary is the changelog entry, so never hand-edit `CHANGELOG.md`: a hand-kept `[Unreleased]` heading shipped in every tarball (#87).
+- A changeset's first sentence becomes the release bullet: short, written for a consumer, no internal identifiers. The release refused two such sentences and published nothing (#65, #76).
+- `README.md`, `docs-content/` and `/** */` comments in `src/` (they ship in `dist/*.d.ts`) carry no internal identifiers, phase language or private paths. Translate them; never delete a doc comment to pass `pnpm check:no-internal-refs` (#62, #64).
+- `.github/workflows/release.yml` keeps all four grants (`actions: read`, `contents: write`, `id-token: write`, `pull-requests: write`): without them, every release failed at startup and logged nothing (#34, #98).
