@@ -38,6 +38,18 @@
  *     regression robustly; the *absolute* heap numbers live in the benchmark, which
  *     forces GC via `--expose-gc`, not in this gate.)
  *
+ * Each linearity timing is the parser's own time: the **minimum** over several
+ * passes, with the small and large passes **interleaved** and the main-thread
+ * **GC pauses subtracted** (`timeParsePair`). Interleaving makes a load change
+ * from test files running in parallel land on both sides, not on one block. GC is
+ * excluded because its cost does not follow the parser's algorithm: a 500-OBX
+ * tree mostly dies inside one young-gen cycle, while a 2000-OBX tree survives
+ * the scavenges that run while it is built, so it is copied and promoted. On
+ * hosted CI runners a pass over the 2000-OBX messages spent a median 14× (Node 22)
+ * to 37× (Node 24) the GC time of a pass over the 500-OBX ones, for 4× the bytes,
+ * and with GC left in, the size ratio of an unchanged parser reached 10.08 to
+ * 11.63. Over 30 full-suite runs there, the parser-time ratio peaked at 5.87.
+ *
  * There is one deliberately **coarse absolute liveness floor** (parse ≥ a few
  * dozen msgs/sec) with ~100× headroom even under coverage on a loaded runner: it
  * only trips on a catastrophic hang a ratio could miss, never on ordinary slowness.
@@ -46,13 +58,15 @@
  * parser + streamer. See `docs-content/benchmarks.md` for the methodology writeup.
  */
 
+import { PerformanceObserver, type PerformanceEntry } from "node:perf_hooks";
+
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { parseHL7, parseStream } from "../../src/index.js";
 
 /**
  * Ideal linear ratio is 4 (4× the work). 10 leaves 2.5× headroom for cold-JIT /
- * scheduler / GC noise while staying well below the ~16 a genuine super-linear
+ * scheduler noise while staying well below the ~16 a genuine super-linear
  * (O(n²)) regression on a 4× workload produces: so the guard is roomy against
  * false alarms yet still trips on a real quadratic blow-up.
  */
@@ -88,26 +102,91 @@ function oruMessage(i: number, obxCount = 8): string {
   );
 }
 
+/** One timed parse of a whole workload, as its span on the `performance.now()` clock. */
+interface Pass {
+  readonly start: number;
+  readonly end: number;
+}
+
 /**
- * **Minimum** milliseconds to parse `msgs` over `reps` runs, after an unmeasured
- * warm-up. Benchmark noise is one-sided: a GC pause or a scheduler preemption
- * only ever *adds* time: so the minimum is the cleanest estimator of true
- * compute cost, and taking the min on both sides of the linearity ratio cancels
- * transient stalls instead of letting them inflate `t(4N)` and flake the guard.
- * The parsed segment count is summed into a sink so the parse can't be eliminated
- * as dead code.
+ * Parse every message in `msgs` once and return the span it took. The parsed
+ * segment count is summed into a sink so the parse can't be eliminated as dead
+ * code.
  */
-function timeParse(msgs: readonly string[], reps: number): number {
+function timedPass(msgs: readonly string[]): Pass {
   let sink = 0;
-  for (const m of msgs) sink += parseHL7(m).segments.length; // warm-up
-  let best = Infinity;
-  for (let r = 0; r < reps; r++) {
-    const t0 = performance.now();
-    for (const m of msgs) sink += parseHL7(m).segments.length;
-    best = Math.min(best, performance.now() - t0);
-  }
+  const start = performance.now();
+  for (const m of msgs) sink += parseHL7(m).rawSegments.length;
+  const end = performance.now();
   expect(sink).toBeGreaterThan(0);
-  return best;
+  return { start, end };
+}
+
+/** Milliseconds of `pass` that fall inside a recorded GC pause. */
+function gcPauseWithin(pass: Pass, pauses: readonly PerformanceEntry[]): number {
+  let total = 0;
+  for (const p of pauses) {
+    const overlap =
+      Math.min(pass.end, p.startTime + p.duration) - Math.max(pass.start, p.startTime);
+    if (overlap > 0) total += overlap;
+  }
+  return total;
+}
+
+/**
+ * **Minimum** parser milliseconds for `small` and for `large` over `rounds`
+ * passes each, after an unmeasured warm-up of both.
+ *
+ * - Benchmark noise is one-sided: a scheduler preemption only ever *adds* time:
+ *   so the minimum is the cleanest estimator of true compute cost, and taking it
+ *   on both sides of the linearity ratio cancels transient stalls.
+ * - The two workloads alternate pass by pass (and swap order each round), so a
+ *   load change from test files running in parallel lands on both sides. Timed
+ *   as two blocks, the large block could fall entirely in a busy window and
+ *   inflate `t(large)` alone.
+ * - Main-thread GC pauses inside a pass are subtracted. Their cost depends on V8's
+ *   young-gen sizing and on free helper threads, not on the parser's algorithm,
+ *   and it grows faster than linearly in message size: a large tree survives the
+ *   scavenges that run while it is built, a small one mostly does not. A
+ *   quadratic tokenizer still shows: its extra work is parser time.
+ *
+ * GC entries reach the observer asynchronously, so the pauses are read after the
+ * timed passes, once the event loop has delivered them.
+ */
+async function timeParsePair(
+  small: readonly string[],
+  large: readonly string[],
+  rounds: number,
+): Promise<{ tSmall: number; tLarge: number }> {
+  const pauses: PerformanceEntry[] = [];
+  const observer = new PerformanceObserver((list) => {
+    pauses.push(...list.getEntries());
+  });
+  observer.observe({ entryTypes: ["gc"] });
+  try {
+    timedPass(small); // warm-up
+    timedPass(large); // warm-up
+    const smallPasses: Pass[] = [];
+    const largePasses: Pass[] = [];
+    for (let r = 0; r < rounds; r++) {
+      if (r % 2 === 0) {
+        smallPasses.push(timedPass(small));
+        largePasses.push(timedPass(large));
+      } else {
+        largePasses.push(timedPass(large));
+        smallPasses.push(timedPass(small));
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    pauses.push(...observer.takeRecords());
+    const parserTime = (pass: Pass): number => pass.end - pass.start - gcPauseWithin(pass, pauses);
+    return {
+      tSmall: Math.min(...smallPasses.map(parserTime)),
+      tLarge: Math.min(...largePasses.map(parserTime)),
+    };
+  } finally {
+    observer.disconnect();
+  }
 }
 
 describe("perf guard: parse throughput scales linearly (no super-linear regression)", () => {
@@ -117,9 +196,9 @@ describe("perf guard: parse throughput scales linearly (no super-linear regressi
   beforeAll(() => {
     let sink = 0;
     for (let r = 0; r < 3; r++) {
-      for (let i = 0; i < 500; i++) sink += parseHL7(adtMessage(i)).segments.length;
-      for (let i = 0; i < 200; i++) sink += parseHL7(oruMessage(i)).segments.length;
-      sink += parseHL7(oruMessage(0, 2_000)).segments.length;
+      for (let i = 0; i < 500; i++) sink += parseHL7(adtMessage(i)).rawSegments.length;
+      for (let i = 0; i < 200; i++) sink += parseHL7(oruMessage(i)).rawSegments.length;
+      sink += parseHL7(oruMessage(0, 2_000)).rawSegments.length;
     }
     expect(sink).toBeGreaterThan(0);
   });
@@ -128,13 +207,12 @@ describe("perf guard: parse throughput scales linearly (no super-linear regressi
     ["ADT^A01", adtMessage],
     ["ORU^R01", oruMessage],
   ] as const) {
-    it(`${label}: t(4N)/t(N) stays near the linear ideal`, () => {
+    it(`${label}: t(4N)/t(N) stays near the linear ideal`, async () => {
       const N = 1_000;
       const small = Array.from({ length: N }, (_v, i) => builder(i));
       const large = Array.from({ length: N * 4 }, (_v, i) => builder(i));
 
-      const tSmall = timeParse(small, 5);
-      const tLarge = timeParse(large, 5);
+      const { tSmall, tLarge } = await timeParsePair(small, large, 5);
 
       // Guard against a divide-by-~0 on an absurdly fast machine: only assert the
       // ratio once the small run is measurable; the linear ideal is 4.
@@ -149,7 +227,7 @@ describe("perf guard: parse throughput scales linearly (no super-linear regressi
     }, 30_000);
   }
 
-  it("scales linearly with message SIZE: catches an O(n²)-in-length tokenizer regression", () => {
+  it("scales linearly with message SIZE: catches an O(n²)-in-length tokenizer regression", async () => {
     // The count-scaling tests above hold message size fixed, so an accidental
     // super-linear cost in message *length* (e.g. an O(n²) tokenizer) would inflate
     // both runs by the same factor and slip through. This test scales the OTHER
@@ -161,8 +239,7 @@ describe("perf guard: parse throughput scales linearly (no super-linear regressi
     const small = Array.from({ length: M }, () => oruMessage(0, 500));
     const large = Array.from({ length: M }, () => oruMessage(0, 2_000));
 
-    const tSmall = timeParse(small, 5);
-    const tLarge = timeParse(large, 5);
+    const { tSmall, tLarge } = await timeParsePair(small, large, 5);
 
     if (tSmall > 0.5) {
       const ratio = tLarge / tSmall;
