@@ -79,12 +79,10 @@ catches nothing or so high it false-alarms on a slow or contended CI runner. So 
 overhead cancel:
 
 - **Throughput linearity, by message count.** Parsing 4× the messages must take about 4× the time,
-  not more: `t(4N)/t(N) ≤ 10` (2.5× the linear ideal of 4, roomy against cold-JIT/GC noise, still
-  well below the ~16 a genuine quadratic regression produces). This catches a **super-linear**
-  regression in message count while remaining immune to how fast or instrumented the runner is. Both
-  timings use the **minimum** of several runs after a warm-up. Benchmark noise is one-sided (a GC
-  pause only ever _adds_ time), so the minimum is the cleanest estimator and taking it on both sides
-  cancels transient stalls.
+  not more: `t(4N)/t(N) ≤ 10` (2.5× the linear ideal of 4, roomy against cold-JIT and scheduler
+  noise, still well below the ~16 a genuine quadratic regression produces). This catches a
+  **super-linear** regression in message count while remaining immune to how fast or instrumented
+  the runner is.
 - **Throughput linearity, by message size.** The complement, holding count fixed and scaling _length_:
   one ORU of S OBX lines vs one of 4S, each parsed an equal number of times, `t(4S)/t(S) ≤ 10`. This
   is the guard that catches an accidental **O(n²)-in-message-length** tokenizer regression. The
@@ -101,6 +99,22 @@ overhead cancel:
   > false-fail with no regression. The **absolute** memory numbers above are measured in the benchmark,
   > which forces a collection via `--expose-gc`; the CI gate relies on the count-based read-ahead
   > invariant, which needs no GC cooperation.
+
+Both linearity timings measure the parser's own time:
+
+- **The minimum of several passes, after a warm-up.** Benchmark noise is one-sided (a preemption only
+  ever _adds_ time), so the minimum is the cleanest estimator, and taking it on both sides cancels
+  transient stalls.
+- **Small and large passes interleaved.** The two workloads alternate pass by pass, so a change in
+  machine load (other test files run in parallel) lands on both sides of the ratio rather than on one
+  block of runs.
+- **Garbage-collection pauses subtracted.** The time the main thread spends in GC pauses during a pass
+  is taken out, because it does not follow the parser's algorithm. A small message's tree mostly dies
+  inside one young-generation cycle; a large one survives the collections that run while it is built
+  and is copied and promoted. On hosted CI runners a pass over the large messages spent 14× to 37×
+  the GC time of a pass over the small ones, for 4× the bytes, which alone pushed an unchanged
+  parser's size ratio past 10. A quadratic tokenizer still trips the guard: its extra work is parser
+  time, not GC time.
 
 There is one deliberately **coarse absolute liveness floor** (parse ≥ a few dozen msgs/sec, ~100×
 below real instrumented throughput). It only trips on a catastrophic hang a ratio could miss, never
