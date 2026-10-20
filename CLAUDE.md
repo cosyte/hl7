@@ -34,7 +34,7 @@ Every message this library reads can carry a patient's identity and clinical rec
 Each names the failure that put it here.
 
 - Errors, warnings and model identifiers (`Segment.type`, `Hl7Message.version`) carry bounded tokens from `src/parser/tokens.ts`, never raw message text: a name and a record number once reached `Hl7ParseWarning.message` (#70).
-- Both `attw` scripts (root and `examples/profile-starter-kit`) stay exactly `node scripts/attw.mjs`: bare `attw` exits 0 on a tarball that carries no types (#78).
+- Both `attw` scripts (root and `examples/profile-starter-kit`) stay exactly `node scripts/attw.mjs`: bare `attw` (`node_modules/.bin`, from the `@arethetypeswrong/cli` devDependency) exits 0 on a tarball that carries no types (#78).
 - A change under `src/` adds a changeset: `minor` when it adds behaviour a consumer can call, `patch` when it corrects behaviour, never `major`. An all-`patch` queue once hid seven additions (#113).
 - The changeset summary is the changelog entry, so never hand-edit `CHANGELOG.md`: a hand-kept `[Unreleased]` heading shipped in every tarball (#87).
 - A changeset's first sentence becomes the release bullet: short, written for a consumer, no internal identifiers. The release refused two such sentences and published nothing (#65, #76).
