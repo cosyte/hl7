@@ -50,7 +50,7 @@ mirroring `KNOWN_SEGMENTS`, one source of truth for how a code is treated:
 | `8859/1` (and `ISO-8859-1` synonyms) | **decode**: via Node `latin1` (**byte-exact**, never fails) |
 | `ASCII` / blank / `ISO IR6` | **decode**: strict UTF-8 (a superset; 7-bit is identical) |
 | `UNICODE UTF-8`, `UNICODE`, `UTF-8` | **decode**: strict UTF-8 |
-| `8859/2`–`8859/8`, `8859/10`, `8859/13`–`8859/16` (and `ISO-8859-N` synonyms) | **decode**: strict `TextDecoder` (C1 range faithful) |
+| `8859/2` to `8859/8`, `8859/10`, `8859/13` to `8859/16` (and `ISO-8859-N` synonyms) | **decode**: strict `TextDecoder` (C1 range faithful) |
 | `8859/9`, `8859/11` | **preserve verbatim**: no faithful Node decoder (windows-1254/874 alias) |
 | `ISO IR14/87/159`, `GB 18030-2000`, `KS X 1001`, `CNS 11643-1992`, `BIG-5` | **preserve verbatim**: recognized, not decoded |
 | `UNICODE UTF-16`, `UNICODE UTF-32` | **preserve verbatim**: recognized, not decoded |
@@ -66,12 +66,12 @@ encoding is the true ISO-8859-1 (every byte maps 1:1), so `8859/1` (by far the
 most common non-UTF-8 HL7 charset) is decoded byte-exactly.
 
 The same aliasing affects **`8859/9`** (→ windows-1254) and **`8859/11`** (→
-windows-874): Node's ICU remaps their C1 range (`0x80`–`0x9F`) to typographic
+windows-874): Node's ICU remaps their C1 range (`0x80` to `0x9F`) to typographic
 characters instead of the true ISO code page, and a strict decode does **not**
 throw on those bytes: it would silently emit a wrong, non-recoverable character.
 Since Node offers no faithful decoder for them, they are **preserved verbatim**
 (flagged `UNSUPPORTED_CHARSET`, byte-recoverable) rather than mis-decoded. The
-other ISO-8859 sets (`8859/2`–`8859/8`, `10`, `13`–`16`) decode the C1 range
+other ISO-8859 sets (`8859/2` to `8859/8`, `10`, `13` to `16`) decode the C1 range
 faithfully (audited) and are decoded normally.
 
 **Why default to UTF-8 for the ASCII/blank case.** For conformant 7-bit content

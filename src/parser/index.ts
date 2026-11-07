@@ -1,6 +1,6 @@
 /**
  * Public entry point for the `@cosyte/hl7` parser: composes every
- * parser stage built across Plans 01–05 (normalize, strip MLLP, split
+ * parser stage built across Plans 01 to 05 (normalize, strip MLLP, split
  * segments, read delimiters, tokenize) and routes every Tier-2 warning
  * through a single `emitWarning` chokepoint. The four Tier-3 fatal codes
  * (`EMPTY_INPUT`, `NO_MSH_SEGMENT`, `MSH_TOO_SHORT`,

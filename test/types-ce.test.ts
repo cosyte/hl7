@@ -58,7 +58,7 @@ describe("model/types/ce: parseCe", () => {
   });
 
   it("preserves CWE components 7+ when a CWE-shaped value is read through asCe (CE↔CWE uniformity)", () => {
-    // The same 9-component CWE, read as a CE: components 7–9 are not dropped.
+    // The same 9-component CWE, read as a CE: components 7 to 9 are not dropped.
     const out = parseCe(
       rep([
         ["GLU"],

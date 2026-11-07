@@ -27,12 +27,12 @@ for one.
 ### Core: `src/parser/dates.ts`
 
 - `type DtmPrecision = "year"|"month"|"day"|"hour"|"minute"|"second"|"fraction"`.
-- `interface DtmParts { raw; valid; precision?; year?; month?(1–12, spec-native); day?; hour?; minute?;
+- `interface DtmParts { raw; valid; precision?; year?; month?(1 to 12, spec-native); day?; hour?; minute?;
   second?; fractionalSeconds?(verbatim digits, no dot); hasTimezone; offsetMinutes?(signed, iff tz);
   matchedFormat?(a declared or built-in format matched); ambiguity?(order refused, see below) }`.
 - `parseDtm(raw): DtmParts`: pure structural parse of the HL7 DTM shape. **No zero-fill, no `Date`, no
-  UTC.** Precision from populated length. Calendar-range check (month 1–12, day 1–31, hour 0–23,
-  min/sec 0–59, offset hours ≤ 24 with minutes ≤ 59) → on bad shape/range `valid:false`, raw kept, parts omitted, never a
+  UTC.** Precision from populated length. Calendar-range check (month 1 to 12, day 1 to 31, hour 0 to 23,
+  min/sec 0 to 59, offset hours ≤ 24 with minutes ≤ 59) → on bad shape/range `valid:false`, raw kept, parts omitted, never a
   throw. Empty → `valid:false, hasTimezone:false`.
 - `formatDtm(parts): string`: reconstruct the DTM string from parts (proves losslessness; round-trip
   property = `parseDtm(raw)→formatDtm ≡ raw`, exact length, no zero-fill).

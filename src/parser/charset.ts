@@ -116,13 +116,13 @@ function buildTable(): ReadonlyMap<string, CharsetEntry> {
   add(["UTF-8", "UTF8", "UNICODE UTF-8", "UNICODE"], decodeEntry("UTF-8", "utf-8"));
 
   // ISO-8859-1 (Latin-1): decoded via Node's `latin1`, which is the TRUE
-  // ISO-8859-1 (every byte 0x00–0xFF maps 1:1, byte-exact, never fails). Node's
+  // ISO-8859-1 (every byte 0x00 to 0xFF maps 1:1, byte-exact, never fails). Node's
   // WHATWG `TextDecoder("iso-8859-1")` is actually windows-1252: it remaps the
   // C1 range (0x80 → €), so it is deliberately NOT used here.
   add(["8859/1", "ISO-8859-1", "ISO 8859-1", "ISO8859-1"], decodeEntry("8859/1", "latin1"));
 
   // The rest of the single-byte ISO 8859 family that Node's ICU decodes
-  // FAITHFULLY: i.e. the C1 range 0x80–0x9F maps to U+0080–U+009F (controls),
+  // FAITHFULLY: i.e. the C1 range 0x80 to 0x9F maps to U+0080 to U+009F (controls),
   // matching the true ISO-8859-N code page (audited empirically). Decoded
   // strictly (see normalizeBuffer): a byte genuinely undefined in the set fails
   // the decode and preserves verbatim rather than emitting a silent U+FFFD.

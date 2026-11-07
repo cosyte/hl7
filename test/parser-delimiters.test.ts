@@ -90,7 +90,7 @@ describe("parser/delimiters: readDelimiters (fatal paths)", () => {
       expect(err).toBeInstanceOf(Hl7ParseError);
       if (err instanceof Hl7ParseError) {
         expect(err.code).toBe("INVALID_ENCODING_CHARACTERS");
-        expect(err.message).toMatch(/4 \(v2\.1–v2\.6\) or 5 \(v2\.7\+/u);
+        expect(err.message).toMatch(/4 \(v2\.1 to v2\.6\) or 5 \(v2\.7\+/u);
       }
     }
   });

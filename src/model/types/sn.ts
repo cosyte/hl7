@@ -13,7 +13,7 @@
  * Usage examples (the literal OBX-5 string ⇒ what this parses):
  *   `>^100`        ⇒ greater-than 100        → { comparator: ">", num1: 100 }
  *   `<^10`         ⇒ less-than 10            → { comparator: "<", num1: 10 }
- *   `^100^-^200`   ⇒ range 100–200          → { num1: 100, separatorOrSuffix: "-", num2: 200 }
+ *   `^100^-^200`   ⇒ range 100 to 200        → { num1: 100, separatorOrSuffix: "-", num2: 200 }
  *   `^1^:^128`     ⇒ titer/ratio 1:128      → { num1: 1, separatorOrSuffix: ":", num2: 128 }
  *
  * Safety: `num1`/`num2` are parsed with the same strict `Number()` discipline

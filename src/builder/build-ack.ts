@@ -10,7 +10,7 @@
  * inbound message that carries no MSH-10 correlation id.
  *
  * Spec traceability: HL7 v2 Chapter 2 §2.9 (ack model), §2.14.8 (MSA),
- * §2.14.5 (ERR), §2.14.9.15–16 (MSH-15/16). Tables 0008 / 0357 / 0516 / 0155
+ * §2.14.5 (ERR), §2.14.9.15 to 16 (MSH-15/16). Tables 0008 / 0357 / 0516 / 0155
  * live in `ack-tables.ts`.
  *
  * Zero runtime deps.

@@ -22,8 +22,8 @@ import { parseHL7, WARNING_CODES } from "../../src/index.js";
 const RUN_CONFIG = { numRuns: 300, seed: 0x07_05_2026 } as const;
 
 /**
- * Field-content byte payload: the FULL 0x20–0xFF range: **including the C1
- * range 0x80–0x9F**, which `8859/1` (decoded via `latin1`) now maps byte-exactly
+ * Field-content byte payload: the FULL 0x20 to 0xFF range: **including the C1
+ * range 0x80 to 0x9F**, which `8859/1` (decoded via `latin1`) now maps byte-exactly
  * (the WHATWG `TextDecoder("iso-8859-1")` = windows-1252 remap is not used).
  * Only the HL7 **structural** bytes are excluded: the field/component/repetition/
  * escape/sub delimiters (`|^~\&`): because a content byte equal to a structural

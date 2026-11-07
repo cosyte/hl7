@@ -59,7 +59,7 @@ HL7 v2 Chapter 3 (Patient Administration):
   withdrawn MRG-4 (and the symmetric withdrawn PID-2 on the surviving side)
   are **not read** as identity fields. An absent or unparseable MSH-12 falls
   back to the pre-v2.7 map (real-world ADT traffic is overwhelmingly
-  v2.3–v2.5.1, where those fields are legal).
+  v2.3 to v2.5.1, where those fields are legal).
 
 ## The role-labelling invariant
 

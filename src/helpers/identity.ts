@@ -261,7 +261,7 @@ const IDENTITY_TRIGGERS: ReadonlyMap<string, IdentityEventKind> = deriveIdentity
  * True when MSH-12 declares HL7 v2.7 or later: the era in which the
  * backward-compat single-ID fields (PID-2, MRG-2/4/6) are withdrawn. An
  * absent or unparseable version is treated as pre-v2.7 (the lenient default:
- * real-world ADT traffic is overwhelmingly v2.3–v2.5.1, where those fields
+ * real-world ADT traffic is overwhelmingly v2.3 to v2.5.1, where those fields
  * are still legal). @internal
  */
 function isV27OrLater(version: string | undefined): boolean {

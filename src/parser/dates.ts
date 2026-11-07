@@ -61,7 +61,7 @@ export type DtmPrecision = "year" | "month" | "day" | "hour" | "minute" | "secon
  * shape of the `TS` composite (`field.asTs()`) and every helper datetime.
  *
  * The parts are only populated when `valid` is `true`. `month`/`day`/… are
- * **spec-native** (`month` is 1–12, NOT the JS `Date` 0–11). `offsetMinutes`
+ * **spec-native** (`month` is 1 to 12, NOT the JS `Date` 0 to 11). `offsetMinutes`
  * is present iff `hasTimezone` is `true` and is signed minutes east of UTC
  * (`+0500` → `300`, `-0430` → `-270`). A missing offset is **flagged**
  * (`hasTimezone: false`), never resolved to UTC: the consumer decides how to
@@ -90,15 +90,15 @@ export interface DtmParts {
   readonly precision?: DtmPrecision;
   /** Four-digit year. */
   readonly year?: number;
-  /** Month, 1–12 (spec-native, NOT JS 0–11). */
+  /** Month, 1 to 12 (spec-native, NOT JS 0 to 11). */
   readonly month?: number;
-  /** Day of month, 1–31. */
+  /** Day of month, 1 to 31. */
   readonly day?: number;
-  /** Hour, 0–23. */
+  /** Hour, 0 to 23. */
   readonly hour?: number;
-  /** Minute, 0–59. */
+  /** Minute, 0 to 59. */
   readonly minute?: number;
-  /** Second, 0–59. */
+  /** Second, 0 to 59. */
   readonly second?: number;
   /**
    * Fractional-second digits exactly as populated (no leading dot), e.g.
@@ -464,7 +464,7 @@ export function dtmToDate(parts: DtmParts, options: DtmToDateOptions = {}): Date
     ms = parseInt((parts.fractionalSeconds + "000").slice(0, 3), 10);
   }
 
-  // Build via setUTCFullYear so a 1–99 AD year is NOT remapped to 1900–1999 by
+  // Build via setUTCFullYear so a 1 to 99 AD year is NOT remapped to 1900 to 1999 by
   // `Date.UTC`'s legacy two-digit-year behavior (ECMA-262): a spec-valid
   // 4-digit DTM year like `0050` must stay year 50.
   const utc = new Date(0);

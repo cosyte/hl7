@@ -163,7 +163,7 @@ describe("parser/dates: dtmToDate: explicit, opt-in, honest", () => {
     expect(dtmToDate(parseDtm("garbage"), { assumeOffsetMinutes: 0 })).toBeUndefined();
   });
 
-  it("does not remap a 1–99 AD year via the Date.UTC two-digit-year legacy", () => {
+  it("does not remap a 1 to 99 AD year via the Date.UTC two-digit-year legacy", () => {
     // `Date.UTC(50, …)` would yield year 1950; the instant must stay year 50.
     expect(dtmToDate(parseDtm("0050+0000"))?.getUTCFullYear()).toBe(50);
     expect(dtmToDate(parseDtm("00090102+0000"))?.getUTCFullYear()).toBe(9);

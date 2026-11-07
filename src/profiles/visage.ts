@@ -5,7 +5,7 @@
  * order with the DICOM study: the classic RIS/PACS ↔ HL7 bridge segment
  * defined by the IHE Radiology Technical Framework. BIP-07.
  *
- * Grounded in the public **Visage 7 – HL7 Interface Specification**
+ * Grounded in the public **Visage 7: HL7 Interface Specification**
  * (V23.00, Jun 2026, Visage Imaging GmbH), §4.4 "ORM Messages" + the ZDS
  * segment table ("Study Instance UID … contained in the first component of
  * the first field of the ZDS Segment"): a publicly downloadable vendor
