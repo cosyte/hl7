@@ -15,12 +15,14 @@
 import type { Hl7ParseWarning } from "./warnings.js";
 
 /**
- * Positional context attached to every warning and fatal error. Fields are
- * 1-indexed against the HL7 spec convention (see `RawSegment.fields` for the
- * index 0 slot convention). All fields past `segmentIndex` are optional,
- * for a top-level fatal like `EMPTY_INPUT` only `segmentIndex: 0` is
- * populated; for a tokenizer warning deep inside a subcomponent all five
- * indices may be set.
+ * Positional context attached to every warning and fatal error.
+ * `segmentIndex` counts segments from 0, so a parsed message's MSH segment is
+ * 0. The other fields are 1-indexed against the HL7 spec convention:
+ * `fieldIndex: 3` on MSH is MSH-3 and `repetitionIndex: 1` is the first
+ * repetition (see `RawSegment.fields` for the index 0 slot convention). All
+ * fields past `segmentIndex` are optional: for a top-level fatal like
+ * `EMPTY_INPUT` only `segmentIndex: 0` is populated; for a tokenizer warning
+ * deep inside a subcomponent all five indices may be set.
  *
  * @remarks
  * With `exactOptionalPropertyTypes: true`, do not pass `fieldIndex: undefined`
