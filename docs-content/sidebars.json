@@ -4,12 +4,16 @@
     {
       "type": "category",
       "label": "Installation",
-      "items": ["installation"]
+      "items": [
+        "installation"
+      ]
     },
     {
       "type": "category",
       "label": "Quickstart",
-      "items": ["quickstart"]
+      "items": [
+        "quickstart"
+      ]
     },
     {
       "type": "category",
@@ -42,12 +46,21 @@
     {
       "type": "category",
       "label": "Guides",
-      "items": ["guides-overview", "benchmarks"]
+      "items": [
+        "guides-overview",
+        "access-patterns",
+        "cookbook",
+        "profiles",
+        "tolerance-and-errors",
+        "benchmarks"
+      ]
     },
     {
       "type": "category",
       "label": "Troubleshooting",
-      "items": ["troubleshooting"]
+      "items": [
+        "troubleshooting"
+      ]
     }
   ]
 }
