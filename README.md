@@ -189,7 +189,7 @@ Use these for the 90% case. Helpers return `undefined` (not throws) when the und
 
 ### Dot-paths
 
-String paths following HL7's own `SEG.field.component.subcomponent` convention. Indices are 1-based to match the spec.
+String paths following HL7's own `SEG.field.component.subcomponent` convention. Field, component and subcomponent numbers are 1-based to match the spec. A bracketed index counts from 0: `OBX[1]` is the second `OBX` segment and `PID.3[1]` is the second repetition of PID-3. Leave the brackets off to read the first.
 
 ```ts
 import { parseHL7 } from "@cosyte/hl7";
@@ -198,7 +198,7 @@ const msg = parseHL7(raw);
 
 console.log(msg.get("PID.5.1")); // family name  -> "Smith"
 console.log(msg.get("PID.5.2")); // given name   -> "Jane"
-console.log(msg.get("OBX[2].5")); // 2nd OBX, value field
+console.log(msg.get("OBX[1].5")); // second OBX (brackets count from 0), value field
 console.log(msg.getAll("NK1")); // every next-of-kin segment
 ```
 
@@ -214,13 +214,17 @@ import { parseHL7 } from "@cosyte/hl7";
 const msg = parseHL7(raw);
 
 for (const obx of msg.segments("OBX")) {
-  const id = obx.field(3).component(1).value; // observation identifier
+  const obsId = obx.field(3); // OBX-3, the observation identifier
+  const code = obsId.value; // OBX-3.1: value reads the first component
+  const name = obsId.repetitions[0]?.components[1]?.subcomponents[0] ?? ""; // OBX-3.2
   const val = obx.field(5).value; // observed value
-  console.log(`${id} = ${val}`);
+  console.log(`${code} ${name} = ${val}`);
 }
 
 console.log(msg.allSegments().length); // total segments in the message
 ```
+
+`seg.field(n)` takes the HL7 field number, as a dot-path does. A `Field` has no per-component method. Its `value` reads the first subcomponent of the first component of the first repetition, and below that `repetitions`, `components` and `subcomponents` are plain arrays indexed from 0, so OBX-3.2 is `components[1]`. The typed coercions name the components for you: `obx.field(3).asCwe().text` reads the same OBX-3.2, and `asXpn()`, `asCx()`, `asXad()` and the rest do the same for their data types.
 
 Every level (segment / field / repetition / component / subcomponent) is addressable and immutable: mutation happens through explicit methods (see the cookbook).
 
@@ -783,7 +787,7 @@ console.log(framed); // true if input had VT/FS/CR framing
 parseHL7(raw, { stripMllpFraming: false });
 ```
 
-Strip behaviour is idempotent: calling `parseHL7` on already-stripped input is a no-op. The parser does NOT add MLLP framing on `toString()`; if you need it for transport, prepend/append the bytes in your transport layer (a future `@cosyte/hl7-mllp` package will cover network IO end to end).
+Strip behaviour is idempotent: calling `parseHL7` on already-stripped input is a no-op. The parser does NOT add MLLP framing on `toString()`. To send and receive over MLLP, use our transport package [`@cosyte/mllp`](https://github.com/cosyte/mllp) (client and server, framing, ACK correlation), or add the framing bytes in your own transport layer.
 
 ### Batch files
 
@@ -1179,7 +1183,7 @@ Every deviation the parser encounters is classified into one of four tiers:
 | 2    | Warning        | Recoverable deviation          | `MLLP_FRAMING_STRIPPED`  |
 | 3    | Fatal (always) | Unrecoverable structural error | `NO_MSH_SEGMENT`         |
 
-Tier-2 warnings are plain data attached to `msg.warnings`. Every warning carries a stable string `code`, a human-readable `message`, and a `position` with 1-indexed `segmentIndex`/`fieldIndex`/etc. so you can programmatically react to specific deviations:
+Tier-2 warnings are plain data attached to `msg.warnings`. Every warning carries a stable string `code`, a human-readable `message`, and a `position` so you can programmatically react to specific deviations. In `position`, `segmentIndex` counts the message's segments from 0 (MSH is segment 0), while `fieldIndex`, `repetitionIndex`, `componentIndex` and `subcomponentIndex` are 1-indexed HL7 positions:
 
 ```ts
 import { parseHL7 } from "@cosyte/hl7";
@@ -1216,12 +1220,12 @@ try {
     console.log(err.code); // "EMPTY_INPUT"
     console.log(err.position); // { segmentIndex: 0 }
     console.log(err.snippet); // "" (first 40 chars of input, for logging)
-  }
-}
 
-// Narrow exhaustively with the FATAL_CODES registry:
-if (err instanceof Hl7ParseError && err.code === FATAL_CODES.NO_MSH_SEGMENT) {
-  // ...
+    // Compare codes through the FATAL_CODES registry rather than string literals:
+    if (err.code === FATAL_CODES.EMPTY_INPUT) {
+      // the input was empty or held only whitespace
+    }
+  }
 }
 ```
 
