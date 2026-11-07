@@ -1,0 +1,8 @@
+# Line endings: text files are stored and checked out with LF.
+* text=auto eol=lf
+
+# Fixtures whose line endings are the point, kept byte for byte.
+# A CRLF-terminated HL7 v2 message, read by the line-ending tests.
+test/fixtures/edge-cases/crlf-line-endings.hl7 -text
+# Rows copied verbatim from the HL7 v2-to-FHIR implementation guide, mixed line endings included.
+test/fixtures/fhir-bridge/ig-segment-maps/*.csv -text
