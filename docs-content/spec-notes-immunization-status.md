@@ -11,10 +11,10 @@ Every immunization `msg.immunizations()` returns carries `administrationStatus`:
 whether its RXA records a dose given, a refused or not-administered dose, a CVX
 `998` "no vaccine administered" placeholder, or a request to delete an
 administration sent earlier. A dose count can tell them apart without keeping a
-private copy of HL7 Table 0322, HL7 Table 0323 or the CDC's CVX rules.
+private copy of HL7 Table 0322, HL7 Table 0323, or the CDC's CVX rules.
 
 > **Only `completed` is a dose given.** A record is `completed` only when RXA-20
-> is exactly `CP` or `PA`, RXA-21 is empty or exactly `A`, `U` or `X`, and RXA-5
+> is exactly `CP` or `PA`, RXA-21 is empty or exactly `A`, `U`, or `X`, and RXA-5
 > carries no CVX `998`. Anything not exactly mapped is `undetermined`, never
 > `completed`. An `undetermined` record is not a dose: read the raw codes and
 > decide.
@@ -100,8 +100,8 @@ table, case and all. Anything else is outside the table: an RXA-20 falls to
   result status; the field did not arrive as exactly one code.
 - **A code written as an escape sequence.** `\X44\` decodes to `D`, but the field
   did not carry the code as itself.
-- **More than one value.** More than one repetition, component or subcomponent,
-  for example `D~A`, `D^X`, `D&X` or even `D~`, even when the first value is a
+- **More than one value.** More than one repetition, component, or subcomponent,
+  for example `D~A`, `D^X`, `D&X`, or even `D~`, even when the first value is a
   table code.
 
 ## The shape
@@ -123,18 +123,18 @@ too:
     The CVX code set has no version number, so `version` is the date the CDC
     last updated the `998` entry.
 
-`completionStatus`, `actionCode` and every other key of the immunization are
+`completionStatus`, `actionCode`, and every other key of the immunization are
 unchanged.
 
 ## Limits
 
 - **Reported, never applied.** hl7 holds no store. A `delete-requested` record
   is still returned, in document order, and is never matched against the
-  administration it asks to delete; nothing is removed, merged or updated.
+  administration it asks to delete; nothing is removed, merged, or updated.
   Matching records across messages is the caller's decision.
 - **Each RXA classifies from itself.** A `D`, a `998` or an `undetermined`
   record never changes the classification of the RXA before or after it.
-- **`A`, `U` and `X` are not classified.** An `A` is common even for a dose
+- **`A`, `U`, and `X` are not classified.** An `A` is common even for a dose
   reported before, so it says nothing about whether this dose is new.
 - **No code set is shipped.** Only the literal CVX code `998` is read. No CVX,
   MVX or other code is validated.

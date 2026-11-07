@@ -178,7 +178,7 @@ describe("frontmatter refusals", () => {
     [
       "a reserved indicator opening a plain scalar",
       "benchmarks.md",
-      "title: Benchmarks & performance",
+      "title: Benchmarks and performance",
       "title: @Benchmarks",
     ],
     [

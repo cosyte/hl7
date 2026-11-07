@@ -103,7 +103,7 @@ declaration is visible. No profile, a value you typed as `Profile`, a profile re
 
 ## Build an ACK
 
-`buildAck` turns an inbound message into a spec-clean acknowledgement, echoing the correlation id and
+`buildAck` turns an inbound message into a spec-clean acknowledgment, echoing the correlation id and
 swapping sender/receiver. `msg.toString()` is always spec-clean regardless of how quirky the input
 was:
 
@@ -154,7 +154,7 @@ injected**. The result is spec-clean and re-parses with **zero warnings**.
 
 | builder | message | read it back with |
 | --- | --- | --- |
-| `buildAdt(event, init)` | `ADT` admit, discharge, transfer, merge, move and identifier change | `msg.patient`, `msg.visit`, `msg.identityEvents()` |
+| `buildAdt(event, init)` | `ADT` admit, discharge, transfer, merge, move, and identifier change | `msg.patient`, `msg.visit`, `msg.identityEvents()` |
 | `buildOru(init)` | `ORU^R01` observation result | `msg.observations()` |
 | `buildOrm(init)` | `ORM^O01` general order | `msg.orders()` |
 | `buildSiu(event, init)` | `SIU` scheduling notification | `msg.appointments()` |

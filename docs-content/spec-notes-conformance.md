@@ -66,7 +66,7 @@ A rule's usage is one of the seven simple codes below, or a **declared
 conditional** written `C(t/f)` whose two outcomes are each a simple code (HL7
 Conformance Methodology: Message Profiles; IHE ITI TF Vol.2 Appendix C):
 
-| Code     | Meaning                   | Engine behaviour                                                            |
+| Code     | Meaning                   | Engine behavior                                                            |
 | -------- | ------------------------- | -------------------------------------------------------------------------- |
 | `R`      | Required                  | absent ⇒ `PROFILE_REQUIRED_ABSENT`                                          |
 | `RE`     | Required, may be Empty    | absence is **never** a violation                                            |
@@ -171,7 +171,7 @@ those joined by a **connector**. It nests: either side of a connector may itself
 be a connected predicate.
 
 A **location** is a structural coordinate that narrows from the outside in:
-`segment`, then the 1-indexed `field`, `component` and `subcomponent`. A level
+`segment`, then the 1-indexed `field`, `component`, and `subcomponent`. A level
 may not be skipped, so a `component` needs a `field` and a `subcomponent` needs a
 `component`.
 
@@ -327,7 +327,7 @@ rather than throwing.
 - a comparison whose location stops at the segment, since a segment on its own
   has no single content to compare (a presence statement may stop there: it asks
   whether the segment occurs);
-- a statement declaring none of `presence`, `verb` and `connector`, or more than
+- a statement declaring none of `presence`, `verb`, and `connector`, or more than
   one of them, and a nesting deeper than the language defines. **A key set to
   `undefined` still declares it**, so a statement assembled from an options bag
   has to omit the keys it does not use rather than pass them through empty;
@@ -405,14 +405,14 @@ other value that is not a list of well-formed resolutions is a
 `PROFILE_MALFORMED` finding**, never read as "none": a mis-typed argument must
 not return a clean result for elements nothing checked.
 
-**`C`, `CE`, `B` and a declared conditional are NOT presence-checked when
+**`C`, `CE`, `B`, and a declared conditional are NOT presence-checked when
 nothing decides them**, that is, when the rule declares no predicate and no
 resolution names it. Their length / value-set / cardinality rules still apply
 when the element _is_ present. That keeps "valid ⇒ zero findings" airtight, and
 it is exactly why zero findings is not an attestation: an element whose presence
 nothing evaluated is an element nothing asserted.
 
-`B`'s behaviour is this library's own bounded choice rather than a sourced
+`B`'s behavior is this library's own bounded choice rather than a sourced
 requirement. The methodology's table of allowable usage indicators lists `B` and
 carries no definition text for it, so the reading taken here is the one that
 imposes no presence obligation while preserving what the profile author
@@ -420,7 +420,7 @@ declared, and the same silence is why `B` may not carry a predicate.
 
 A declared conditional's outcomes may be any simple code at the constrainable
 level, which is what a profile claims when it declares no level. The
-methodology separately restricts an _implementable_ profile to `R`, `RE` or `X`
+methodology separately restricts an _implementable_ profile to `R`, `RE`, or `X`
 per element, and its conditional outcomes likewise: a profile that claims that
 level is held to it, which the next section is about.
 
@@ -463,12 +463,12 @@ before the declaration existed keeps behaving exactly as it did.
 The methodology's terminus is that in an implementable profile ultimately only
 two possibilities are allowed: either a specific element is supported (`R` or
 `RE`) or it is not (`X`); and for a conditional usage the true and false
-outcomes must also be defined only as `R`, `RE` or `X`. A profile that claims
+outcomes must also be defined only as `R`, `RE`, or `X`. A profile that claims
 the level is held to exactly that, when the profile is **defined**. Three things
 refuse the claim, each `PROFILE_MALFORMED` naming the offending rule's
 structural locus and the offending declaration:
 
-- **A usage the level does not admit**: `C`, `CE`, `O` or `B`. Note that `C` and
+- **A usage the level does not admit**: `C`, `CE`, `O`, or `B`. Note that `C` and
   `CE` are refused even though this engine knows outcomes for them: the
   methodology requires an implementable profile's conditional outcomes to be
   _defined_, and a bare code defines them nowhere in the profile. Write
@@ -478,7 +478,7 @@ structural locus and the offending declaration:
 - **A rule that declares no usage at all.** An omitted usage means Optional
   everywhere else and is never refused there; at this level the profile has
   asserted that optionality is gone, so silence is a claim it cannot make. It
-  applies to segment, field and component rules alike.
+  applies to segment, field, and component rules alike.
 
 A refused claim is **never** the level echoed on the result: it falls back to
 `constrainable`, because a run that returned diagnostics instead of assessing
@@ -487,7 +487,7 @@ not only a level-derived one, since a defect anywhere can stop the gate from
 reaching the rules below it.
 
 **The level changes no message check.** It alters nothing about which findings
-fire for a given message, their severity, cardinality behaviour, predicate
+fire for a given message, their severity, cardinality behavior, predicate
 evaluation, or the value-set and coding-system checks. It decides whether the
 _profile_ is refused, never what the _message_ is found to be.
 
@@ -502,7 +502,7 @@ violated. It does not mean anyone certified the interface.
 A bare `valueSet` answers one question: is this code one we accept? It says
 nothing about **where the code came from**, and the message does: a coded
 element carries the sender's claimed coding system right beside the code. So a
-feed sending a plausible, permitted-looking code labelled with the wrong system
+feed sending a plausible, permitted-looking code labeled with the wrong system
 validates clean against a bare value set, which is the more dangerous of the two
 mistakes an interface can make about a code.
 
@@ -618,11 +618,11 @@ it: a list of 1-indexed component positions, each with an optional usage code.
 **A component's cardinality is implied by its usage and is never declared.** The
 methodology requires an explicit cardinality range for segment groups, segments
 and field elements, and states that components do not carry one: the range
-follows from the usage code instead. `R` implies `[1..1]`, `RE` and `O` imply
+follows from the usage code instead. `R` implies `[1..1]`, `RE`, and `O` imply
 `[0..1]`, and `X` implies `[0..0]`. A component has no repetition construct in
 HL7 v2, so those reduce to presence: `[1..1]` is "valued here" and `[0..0]` is
 "not valued here". Declaring a `cardinality` on a component rule is
-`PROFILE_MALFORMED`, not an extra constraint the engine quietly honours.
+`PROFILE_MALFORMED`, not an extra constraint the engine quietly honors.
 
 **Declaring component rules CLOSES the field's component set**, and that is the
 point. Without it the engine grades only what you wrote down, so a vendor
@@ -727,13 +727,13 @@ A few boundaries worth stating plainly:
   inside a present field reports nothing.
 - **A conditional usage on a component is never decided.** A component rule
   carries no `condition` and a caller resolution names a segment plus a field,
-  so `C`, `CE`, `B` and a declared conditional all leave a component's presence
+  so `C`, `CE`, `B`, and a declared conditional all leave a component's presence
   unevaluated, on the same terms an undecided conditional field rule gets.
 - **This goes exactly one level deep.** Sub-component rules are not supported,
   and a component rule says nothing about what is inside its component.
 - **The check is only as good as the depth you declare.** A shallow profile
   still under-reports, which is a property of the profile rather than of the
-  engine: an undeclared field, an undeclared segment and an undeclared
+  engine: an undeclared field, an undeclared segment, and an undeclared
   sub-component are all still unchecked, and "no findings" is still not an
   attestation.
 

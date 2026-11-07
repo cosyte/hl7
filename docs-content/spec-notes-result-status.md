@@ -9,7 +9,7 @@ description: "How OBX-11 and OBR-25 are classified by HL7's published v2-to-FHIR
 
 Every observation and every order carries `resultStatus`: its own status code,
 classified by the map HL7 publishes for that code's table. A result posted as
-wrong (`W`), deleted (`D`) or cancelled (`X`) can be told apart from a current
+wrong (`W`), deleted (`D`) or canceled (`X`) can be told apart from a current
 one without keeping a private copy of either table.
 
 > **hl7 classifies what HL7's map classifies, and nothing else.** A code the map
@@ -42,10 +42,10 @@ revision of either map shows up in the output instead of changing it silently.
 `resultStatus` is a frozen object, and everything it nests is frozen too:
 
 - `classification`: one of `final`, `corrected`, `amended`, `preliminary`,
-  `entered-in-error`, `cancelled`, `registered`, `partial` or `undetermined`.
+  `entered-in-error`, `cancelled`, `registered`, `partial`, or `undetermined`.
 - `code`: the raw code, byte-identical to the `status` (OBX-11) or
   `orderStatus` (OBR-25) beside it. It is absent exactly when those are: the
-  field is absent, empty or the HL7 null `""`.
+  field is absent, empty, or the HL7 null `""`.
 - `table`: `{ name, version }`, for example `{ name: "HL7 Table 0085", version: "3.0.0" }`.
 - `map`: `{ url, version }`, the canonical URL above and `"1.0.0"`.
 
@@ -87,7 +87,7 @@ A code classifies only when the field arrived as exactly one code of its table,
 case and all. Everything else is `undetermined`, and the observation or order is
 still returned:
 
-- **Empty, absent or null.** An empty field, a segment that ends before the
+- **Empty, absent, or null.** An empty field, a segment that ends before the
   field, or the HL7 null `""`.
 - **Not a table code.** A lowercase `f`, a multi-character `FF`, a letter outside
   the table such as `Q`.
@@ -104,8 +104,8 @@ still returned:
   before one final CR, belongs to no field.
 - **A code written as an escape sequence.** `\X46\` decodes to `F`, and `status`
   and `code` read `F`, but the field did not carry the code as itself.
-- **More than one value.** More than one repetition, component or subcomponent,
-  for example `F~W`, `F^X`, `F&X` or even `F~`, even when the first value is a
+- **More than one value.** More than one repetition, component, or subcomponent,
+  for example `F~W`, `F^X`, `F&X`, or even `F~`, even when the first value is a
   mapped code. `status` and `code` hold only the first value.
 
 No tolerance is added to reach a class: a near-miss is `undetermined`, and the
@@ -114,7 +114,7 @@ raw code is still carried for the caller to judge.
 ## Limits
 
 - **Reported, never applied.** hl7 holds no store. An `entered-in-error` or
-  `cancelled` observation is still returned; replacing, hiding or deleting an
+  `cancelled` observation is still returned; replacing, hiding, or deleting an
   earlier result it refers to, and matching results across messages, is the
   caller's decision.
 - **Each segment classifies from itself.** HL7 says an OBX-11 of `D` or `X`

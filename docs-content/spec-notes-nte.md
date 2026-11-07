@@ -39,7 +39,7 @@ HL7 v2 Chapter 2 (control) + Chapter 7 (observation reporting):
   reads as complete and is worse than a dropped one. Both the conformant
   (`mass 2\S\3 cm`) and quirky (`mass 2^3 cm`) forms yield the same text. NTE-1
   (Set ID), NTE-2 (Source of Comment, Table 0105), and NTE-4 (Comment Type,
-  Table 0364) are **not** modelled. Only NTE-3 text is surfaced.
+  Table 0364) are **not** modeled. Only NTE-3 text is surfaced.
 - **ORU_R01 placement (Ch. 7).** The abstract message grammar is
   `{ [ORC] OBR [{NTE}] [{ [OBX] [{NTE}] }] }`: an NTE after `OBR` is
   **order-level**, an NTE after `OBX` is **that-result-level**. An NTE after
@@ -83,7 +83,7 @@ recognized parent has no surfaced helper output is routed to `msg.notes()` rathe
 than vanishing: (1) a **later PID**'s notes in a multi-patient ORU (`msg.patient`
 is the first PID only), and (2) a **trailing or dangling `ORC`** whose order
 never opens (no following OBR). Both are surfaced at message level, never lost,
-never mis-attached to the first patient or a neighbouring order.
+never mis-attached to the first patient or a neighboring order.
 
 ## Known limitations / non-goals
 

@@ -1,11 +1,11 @@
 ---
 id: spec-notes-structure
-title: "Spec notes: message-type & structure awareness"
-sidebar_label: Message-type & structure awareness
+title: "Spec notes: message-type and structure awareness"
+sidebar_label: Message-type and structure awareness
 description: "How the misroute and truncation safety net checks a message against HL7's published structure definitions and warns about a segment it should carry."
 ---
 
-# Spec notes: message-type & structure awareness
+# Spec notes: message-type and structure awareness
 
 `@cosyte/hl7` ships a **misroute / truncation safety net**: for the message
 types it covers it knows which segments HL7's own published message-structure
@@ -15,7 +15,7 @@ single additive Tier-2 `MISSING_EXPECTED_GROUP` warning per absent segment,
 naming that segment.
 
 This is **not** a conformance validator. It checks segment presence, not
-ordering, cardinality or content, and it covers twelve message codes rather than
+ordering, cardinality, or content, and it covers twelve message codes rather than
 the whole standard. It never throws and never rewrites the message; `strict`
 mode may promote the warning per the usual Postel's-Law model.
 
@@ -48,7 +48,7 @@ def?.requiredSegments.join(","); // => "EVN,MSH,PID,PV1"
 ```
 
 `STRUCTURE_REGISTRY_PROVENANCE` carries the publication and the exact commit it
-was read at, the byte count, sha256 and upstream URL of all 83 vendored files,
+was read at, the byte count, sha256, and upstream URL of all 83 vendored files,
 the variant family behind each referenced structure, and the structure id behind
 each recognized (message code, trigger event) pair.
 
@@ -135,13 +135,13 @@ It reports three things, each under its own stable code:
 
 | Code | What it means |
 | --- | --- |
-| `STRUCTURE_SEGMENT_OUT_OF_ORDER` | The message's segment sequence stops being a beginning the published order allows, reading that order with every published bound honoured. |
+| `STRUCTURE_SEGMENT_OUT_OF_ORDER` | The message's segment sequence stops being a beginning the published order allows, reading that order with every published bound honored. |
 | `STRUCTURE_SEGMENT_CARDINALITY` | The segment occurs fewer times than the published minimum along the path from the structure root, or more times than the published maximum. |
 | `STRUCTURE_SEGMENT_UNEXPECTED` | The published structure does not name this segment anywhere, a `Z` segment included. It carries `severity: "warning"` rather than `"error"`, because HL7 reserves `Z` segments for exactly this. |
 
 A finding carries the code, a severity, a **PHI-free locus** (segment name,
 0-indexed occurrence, published structure id) and a human-readable message. No
-field, component or subcomponent value is ever read into one.
+field, component, or subcomponent value is ever read into one.
 
 **How the order check reads the publication.** It reads it as written: every
 node may occur as few and as many times as the publication says **at that
@@ -155,7 +155,7 @@ first, so an `ADT^A01` carrying `IN2` before its `IN1` is reported too, though
 
 **One bound is dropped, and only where the count check has already reported
 it.** The three questions are kept apart so that one defect is reported as one
-thing. Reading the order with every bound honoured would make an absent required
+thing. Reading the order with every bound honored would make an absent required
 segment stop the sequence dead, and everything after it would read as misplaced
 on top of the missing-segment finding. So for a segment name the cardinality
 check reports, that bound alone is dropped from the order reading: too few
@@ -241,7 +241,7 @@ An empty `findings` list means **this message did not break the published
 structure in the three ways above**. It is not a statement that the message is
 conformant, and it is not a certificate anybody issued:
 
-- Field content, components, datatypes, lengths, value sets and HL7 tables are
+- Field content, components, datatypes, lengths, value sets, and HL7 tables are
   all unchecked here, and exhaustive coded-value validation is permanently out
   of scope for this package.
 - Coverage is twelve message codes, not the standard.
@@ -282,8 +282,8 @@ result.structureId; // => ""
 | | What it checks | Who wrote the rules | When it runs |
 | --- | --- | --- | --- |
 | `msg.structure` | Whether a segment the publication gives a minimum of one is **present at all** | HL7's publication | Every parse, and it is what emits `MISSING_EXPECTED_GROUP` |
-| `validateMessageStructure` | Segment **order**, **occurrence counts** and **unnamed segments** against the published structure | HL7's publication | Only when you call it |
-| `validateAgainstProfile` | Usage, cardinality, length, value sets and coding systems, down to the component | **You**, in a profile you author | Only when you call it |
+| `validateMessageStructure` | Segment **order**, **occurrence counts**, and **unnamed segments** against the published structure | HL7's publication | Only when you call it |
+| `validateAgainstProfile` | Usage, cardinality, length, value sets, and coding systems, down to the component | **You**, in a profile you author | Only when you call it |
 
 The two opt-in checks are complementary rather than alternatives: the published
 structure knows nothing about your interface spec, and your interface spec
@@ -317,7 +317,7 @@ it did not see before. Read the "before you upgrade" section at the end.
 | ADT^A01, A02, A03, A04, A05, A08, A11, A13 | `EVN` | 1 | Intended correction. The previous table excluded `EVN` deliberately, reasoning that "real senders omit it freely". That is a statement about senders, not about the standard, and it is exactly what stopped the library telling you an `ADT^A01` was missing a segment the standard marks required. All four published `ADT_A01` variants give `EVN` a minimum of one. |
 | every recognized pair | `MSH` | 1 | Intended correction. Required in every published structure. Unreachable in practice: an `MSH`-less message is a Tier-3 parse error before this check runs. |
 | ORU^R01 | `OBR` | 1 | Intended correction. `OBR` sits inside `ORDER_OBSERVATION`, which the publication gives a minimum of one inside `PATIENT_RESULT`, which it also gives a minimum of one. The previous table accepted `OBR` **or** `OBX`, so a report carrying only `OBX` was silent; it now warns. |
-| OMG^O19 | `OBR` | 1 | Intended correction. The previous table excluded `OBR` from every order message on the reasoning that it is optional in some of them. It is optional in `OML_O21`, `OML_O39` and `OML_O59`, and required in `OMG_O19` and `OMI_O23`. Deriving per structure resolves what one hand-picked rule could not. |
+| OMG^O19 | `OBR` | 1 | Intended correction. The previous table excluded `OBR` from every order message on the reasoning that it is optional in some of them. It is optional in `OML_O21`, `OML_O39`, and `OML_O59`, and required in `OMG_O19` and `OMI_O23`. Deriving per structure resolves what one hand-picked rule could not. |
 | OMI^O23 | `OBR`, `IPC` | 1 | Intended correction. Same reasoning as `OMG^O19`; `IPC` (imaging procedure control) is required in the published imaging order. |
 | OMP^O09 | `RXO`, `RXR` | 1 | Intended correction. The published pharmacy order requires the order and route segments. |
 | SIU^S12 through S24, S26 | `RGS` | 1 | Intended correction. The published scheduling structure requires at least one resource group. |
@@ -332,8 +332,8 @@ it did not see before. Read the "before you upgrade" section at the end.
 | ORU^R01 | `OBX` | 0 | Intended correction. Every `OBX` in the published `ORU_R01` sits inside a group with a minimum of zero, so a conformant report can carry none. It used to be accepted as a substitute for `OBR`; it is now neither expected nor a substitute. |
 | ORU^R01 | `NTE` | 0 (family disagreement) | Intended correction. Variants `ORU_R01-C` and `ORU_R01-D` give the order-observation `NTE` a minimum of one; `ORU_R01-A` and `ORU_R01-B` give it zero. Under the family rule the segment is not expected. |
 | ADT^A20 | `PID`, `PV1` | 0 | Intended correction. A bed-status update carries no patient: the published `ADT_A20` requires `NPU` and neither `PID` nor `PV1`. The previous table applied one ADT shape to all eight of its trigger events, which is the failure mode that motivated deriving per structure. |
-| ADT^A24, A37, A60 | `PV1` | 0 | Intended correction. These link, unlink and adverse-reaction events carry no visit in the publication. |
-| SIU, VXU, ORU^R01 | `PID` | 0 | Unchanged, and re-derived rather than assumed. The previous table excluded `PID` from these on a documented judgement; the publication agrees. |
+| ADT^A24, A37, A60 | `PV1` | 0 | Intended correction. These link, unlink, and adverse-reaction events carry no visit in the publication. |
+| SIU, VXU, ORU^R01 | `PID` | 0 | Unchanged, and re-derived rather than assumed. The previous table excluded `PID` from these on a documented judgment; the publication agrees. |
 
 ### Trigger events that became recognized
 
@@ -374,7 +374,7 @@ carries this paragraph's reason in one sentence.
 ### Pairs the publication leaves unresolved
 
 Eight `ADT` merge and change-identifier messages appear in the publication's
-message list with no structure named: A18, A30, A34, A35, A36, A39, A46 and A48.
+message list with no structure named: A18, A30, A34, A35, A36, A39, A46, and A48.
 They are recorded as unresolved by the generator, and the parser stays silent on
 them rather than guessing a shape. None of them was recognized before, so
 nothing regressed.

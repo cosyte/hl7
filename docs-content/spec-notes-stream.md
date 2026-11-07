@@ -93,7 +93,7 @@ buffered the file, read-ahead would be O(N)). This is what makes a multi-gigabyt
 ELR file or an unbounded live feed tractable, and it keeps PHI from accumulating
 in a growing buffer.
 
-## Isolation & fail-safe: never a dropped tail
+## Isolation and fail-safe: never a dropped tail
 
 - A **malformed** message (one of the four Tier-3 fatals, or a `strict`-promoted
   warning) surfaces as a typed **failure entry** carrying the `Hl7ParseError`,

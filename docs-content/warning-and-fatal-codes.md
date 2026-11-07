@@ -1,7 +1,7 @@
 ---
 id: warning-and-fatal-codes
 title: Warning and fatal codes
-sidebar_label: Warning & fatal codes
+sidebar_label: Warning and fatal codes
 description: "Every warning code and every fatal code the parser can emit, what each one means, and what the parser did with the message when it emitted it."
 ---
 
@@ -41,7 +41,7 @@ promoted to a thrown `Hl7ParseError` instead.
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `MLLP_FRAMING_STRIPPED`           | The input arrived wrapped in MLLP transport framing bytes. They were removed before parsing and the message itself is untouched.                    |
 | `FIELD_WHITESPACE_TRIMMED`        | Leading or trailing whitespace was trimmed from a field value. The warning carries only the character counts, never the value.                      |
-| `UNKNOWN_ESCAPE_SEQUENCE`         | An escape was not recognisable HL7 escape grammar, or ran to end of input unterminated. It is preserved verbatim in the parsed value.               |
+| `UNKNOWN_ESCAPE_SEQUENCE`         | An escape was not recognizable HL7 escape grammar, or ran to end of input unterminated. It is preserved verbatim in the parsed value.               |
 | `TIMESTAMP_FALLBACK_FORMAT`       | A timestamp did not match the strict HL7 shape, but a declared or built-in fallback format resolved it. Not produced by a parse: see below.         |
 | `SEGMENT_CASE`                    | A segment identifier carried a lowercase letter. It resolves as the segment it names, and the spelling that arrived is re-emitted unchanged.        |
 | `EXTRA_FIELDS`                    | A segment carries more fields than the active profile declares. The extras are preserved on the raw segment rather than dropped.                    |
@@ -53,15 +53,15 @@ promoted to a thrown `Hl7ParseError` instead.
 | `OUT_OF_ORDER_SEGMENT`            | A segment appears outside the order the active profile declares for it. Nothing is reordered; the deviation is reported.                            |
 | `VERSION_MISMATCH`                | MSH-12 declares an HL7 version that differs from the one a profile or the parse options explicitly expected.                                        |
 | `UNKNOWN_CHARSET`                 | MSH-18 or a charset override names a value that HL7 Table 0211 does not contain. Bytes are read as latin1 rather than guessed at.                   |
-| `UNSUPPORTED_CHARSET`             | A recognised Table 0211 set was not decoded, either because it is out of scope here or because a strict decode of it failed.                        |
-| `ACK_NO_CORRELATION_ID`           | The inbound message carried no MSH-10 control id, so the built acknowledgement leaves MSA-2 empty instead of inventing one.                         |
+| `UNSUPPORTED_CHARSET`             | A recognized Table 0211 set was not decoded, either because it is out of scope here or because a strict decode of it failed.                        |
+| `ACK_NO_CORRELATION_ID`           | The inbound message carried no MSH-10 control id, so the built acknowledgment leaves MSA-2 empty instead of inventing one.                         |
 | `MERGE_MISSING_PRIOR_OR_SURVIVOR` | An identity merge or move event is missing one side of the prior and surviving pair, or that side carries no usable identifier.                     |
 | `BATCH_COUNT_MISMATCH`            | A batch or file trailer declares a count that differs from what the splitter found. Nothing is dropped to make the numbers agree.                   |
 | `BATCH_MISSING_TRAILER`           | An envelope header opened a scope that no matching trailer segment ever closed. The split still returns every message it found.                     |
 | `UNTERMINATED_STREAM_MESSAGE`     | The last message in a stream ended with no segment terminator. It is still yielded in full, but the feed may have been cut off.                     |
 
 Three of these are emitted by a surface other than `parseHL7`, and arrive on that surface's own
-result rather than on `msg.warnings`: `ACK_NO_CORRELATION_ID` from the acknowledgement builder,
+result rather than on `msg.warnings`: `ACK_NO_CORRELATION_ID` from the acknowledgment builder,
 `MERGE_MISSING_PRIOR_OR_SURVIVOR` from `identityEvents()`, and the two batch codes plus
 `UNTERMINATED_STREAM_MESSAGE` from `splitBatch()` and `parseStream()`.
 
