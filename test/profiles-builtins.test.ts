@@ -317,7 +317,7 @@ describe("profiles.philips: BIP-08 fixture parity (Vue PACS IS Link Z-segments)"
     expect(zao?.get("acquisitionStatus")?.value).toBe("CM");
   });
 
-  it("ZEB/ZAP/ZAV patient/visit-filler fields (§§5.14–5.16) resolve by name", () => {
+  it("ZEB/ZAP/ZAV patient/visit-filler fields (§§5.14 to 5.16) resolve by name", () => {
     const msg = parseHL7(adt, profiles.philips);
     const seg = (t: string): ReturnType<typeof msg.allSegments>[number] | undefined =>
       msg.allSegments().find((s) => s.type === t);

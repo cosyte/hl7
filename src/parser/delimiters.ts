@@ -39,7 +39,7 @@ export const DEFAULT_ENCODING_CHARACTERS: EncodingCharacters = {
 /**
  * Extract the HL7 encoding characters from the first segment of a message.
  *
- * Accepts a 4-character MSH-2 (HL7 v2.1–v2.6: component/repetition/escape/
+ * Accepts a 4-character MSH-2 (HL7 v2.1 to v2.6: component/repetition/escape/
  * subcomponent) or a 5-character MSH-2 (HL7 v2.7+: adds a truncation
  * character; spec default `#`). Both shapes are spec-conformant and must not
  * fatal.
@@ -77,7 +77,7 @@ export function readDelimiters(firstSegment: string): EncodingCharacters {
   }
 
   // Need "MSH" + field separator + 4 encoding chars = 8 chars minimum
-  // (4-char MSH-2 is the v2.1–v2.6 floor; a 5-char v2.7+ MSH-2 needs 9).
+  // (4-char MSH-2 is the v2.1 to v2.6 floor; a 5-char v2.7+ MSH-2 needs 9).
   if (firstSegment.length < 8) {
     throw new Hl7ParseError(
       FATAL_CODES.MSH_TOO_SHORT,
@@ -109,7 +109,7 @@ export function readDelimiters(firstSegment: string): EncodingCharacters {
   if (chars.length !== 4 && chars.length !== 5) {
     throw new Hl7ParseError(
       FATAL_CODES.INVALID_ENCODING_CHARACTERS,
-      `MSH-2 encoding characters must be 4 (v2.1–v2.6) or 5 (v2.7+ adds truncation) characters (got ${String(chars.length)}).`,
+      `MSH-2 encoding characters must be 4 (v2.1 to v2.6) or 5 (v2.7+ adds truncation) characters (got ${String(chars.length)}).`,
       fatalPosition,
       snip,
     );

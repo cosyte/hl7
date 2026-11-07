@@ -19,7 +19,7 @@ the vendor-quirks sweep: pure string transform, no enum awareness).
 
 ## Source of truth
 
-`src/parser/errors.ts::FATAL_CODES` (lines 31–36). The 4 codes are LOCKED
+`src/parser/errors.ts::FATAL_CODES` (lines 31 to 36). The 4 codes are LOCKED
 by Phase 2 / Phase 5 D-27/D-28 / Phase 6 D-31: no new fatal codes in v1.
 
 ## Fixtures

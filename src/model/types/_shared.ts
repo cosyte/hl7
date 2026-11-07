@@ -67,7 +67,7 @@ export function readComponent(
  * Read every component at or beyond `fromIndex`: the components a fixed-shape
  * composite parser does NOT model: so a coded element that grew across HL7
  * versions (e.g. the v2.7 CWE second-alternate triplet + coding-system OIDs at
- * components 10–22) is never silently truncated. Each entry is the
+ * components 10 to 22) is never silently truncated. Each entry is the
  * first-subcomponent value (already decoded), positionally aligned: an absent
  * interior component is preserved as `""` so a caller can map an index back to
  * its HL7 component number (`fromIndex + i`).

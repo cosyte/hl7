@@ -10,7 +10,7 @@
  *   3. MLLP strip
  *   4. Line-ending normalization (this module)
  *
- * The `parseHL7` composition owns steps 1–3 explicitly so the ordering is
+ * The `parseHL7` composition owns steps 1 to 3 explicitly so the ordering is
  * inspectable at the pipeline site. This module is a pure string/Buffer
  * transform that does NOT throw and does NOT strip BOM.
  */
@@ -83,7 +83,7 @@ export function normalize(input: string): string {
  * registry ({@link resolveCharset}):
  *
  *  - `8859/1` (Latin-1) is decoded via `latin1`: byte-exact, never fails;
- *  - the other faithfully-decodable sets (ASCII, `8859/2`–`8859/8`/`10`/`13`–`16`,
+ *  - the other faithfully-decodable sets (ASCII, `8859/2` to `8859/8`/`10`/`13` to `16`,
  *    UTF-8) are decoded **strictly** (`fatal: true`); a byte invalid / undefined
  *    for the declared set (or an ICU build lacking the label) falls through to
  *    the verbatim fail-safe rather than emitting a silent `U+FFFD`. (`8859/9` and

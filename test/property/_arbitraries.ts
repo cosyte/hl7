@@ -81,8 +81,8 @@ export function leafValue(): fc.Arbitrary<string> {
 }
 
 /**
- * A single spec-valid `RawField`: 1–3 repetitions, each 1–3 components, each
- * 1–2 subcomponents, every leaf a non-empty {@link leafValue}. Because every
+ * A single spec-valid `RawField`: 1 to 3 repetitions, each 1 to 3 components, each
+ * 1 to 2 subcomponents, every leaf a non-empty {@link leafValue}. Because every
  * leaf is non-empty there are no trailing empties for the D-02 strip to
  * remove, so the field survives serialize→parse structurally unchanged.
  *
@@ -121,7 +121,7 @@ export function segmentFieldEntry(): fc.Arbitrary<string | RawField> {
 /** Segment names that are real HL7 segments and accept free-form fields. */
 const REPEATABLE_SEGMENT_NAMES = ["NTE", "OBX", "DG1", "AL1", "NK1", "IN1", "PV2"] as const;
 
-/** One spec-valid non-MSH segment: a known name + 1–6 generated field entries. */
+/** One spec-valid non-MSH segment: a known name + 1 to 6 generated field entries. */
 function segmentSpec(): fc.Arbitrary<{ name: string; fields: (string | RawField)[] }> {
   return fc.record({
     name: fc.constantFrom(...REPEATABLE_SEGMENT_NAMES),
@@ -131,7 +131,7 @@ function segmentSpec(): fc.Arbitrary<{ name: string; fields: (string | RawField)
 
 /**
  * Build a complete, spec-valid {@link Hl7Message} from generated parts: a real
- * MSH (via `buildMessage`) plus 0–5 appended segments whose fields exercise
+ * MSH (via `buildMessage`) plus 0 to 5 appended segments whose fields exercise
  * repetitions, components, subcomponents, and HL7 escape sequences. Returned
  * as the serialized HL7 string (the input to a round-trip assertion).
  *

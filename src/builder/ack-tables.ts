@@ -9,7 +9,7 @@
  * - **Table 0357** Message error condition codes: https://terminology.hl7.org/CodeSystem-v2-0357.html
  * - **Table 0516** Error severity: HL7 v2 Chapter 2 §2.14.5 (ERR-4)
  * - **Table 0155** Accept/application acknowledgment conditions (MSH-15/16),
- *   HL7 v2 Chapter 2 §2.14.9.15–16
+ *   HL7 v2 Chapter 2 §2.14.9.15 to 16
  *
  * Zero runtime deps.
  */

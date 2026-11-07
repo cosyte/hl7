@@ -19,7 +19,7 @@
  * - **`ZAV`**: Visit Filler: visit **additional details** (base64 XML).
  *
  * Grounded in the public **Vue PACS 12.2.8 HL7 Interface Specifications**
- * (Philips, document HA1669 Rev A), §§5.11–5.16: a publicly downloadable
+ * (Philips, document HA1669 Rev A), §§5.11 to 5.16: a publicly downloadable
  * vendor interface spec, not an invented quirk. The spec's
  * `TS` timestamps are the HL7-native `YYYYMMDDHHMMSS` form (§2.6), so this
  * profile declares **no** custom `dateFormats`: only the Z-segments.

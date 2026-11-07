@@ -67,7 +67,7 @@ describe("model/types/cwe: parseCwe", () => {
   });
 
   it("preserves v2.7+ components 10+ verbatim instead of truncating", () => {
-    // A v2.7 CWE carrying a second-alternate triplet (10–12) + coding-system OID (14).
+    // A v2.7 CWE carrying a second-alternate triplet (10 to 12) + coding-system OID (14).
     const out = parseCwe(
       rep([
         ["73211009"],

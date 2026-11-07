@@ -2,12 +2,12 @@
 id: spec-notes-version-matrix
 title: "Spec notes: version-sensitivity matrix"
 description: "How the parser reads HL7 v2.1 through v2.8 structurally without transforming between versions, and when a VERSION_MISMATCH warning is raised."
-sidebar_label: Version-sensitivity (v2.1–v2.8)
+sidebar_label: Version-sensitivity (v2.1 to v2.8)
 ---
 
 # Spec notes: version-sensitivity matrix
 
-`@cosyte/hl7` parses HL7 v2 messages **structurally across v2.1–v2.8**. It does
+`@cosyte/hl7` parses HL7 v2 messages **structurally across v2.1 to v2.8**. It does
 **not** transform a message between versions, and it is not a version validator.
 It reads what the sender sent, tolerantly (Postel's Law), and surfaces a
 single `VERSION_MISMATCH` warning only when MSH-12 disagrees with an explicitly
@@ -28,7 +28,7 @@ content it does not yet name.
 | **Composite component growth** | Composites gain trailing components across versions (CWE: 9 → 22 at v2.7) | Never assumed fixed; extra components preserved (see below), never truncated, never thrown on. |
 | **CE → CWE** | CE deprecated v2.5, **withdrawn v2.6**; CWE is the successor coded element | Read uniformly: `asCe()` and `asCwe()` accept either shape; neither is lossy (see *CE↔CWE interchange*). |
 | **CWE version ids** | CWE.7 / CWE.8 (coding-system version id, alternate version id) present from v2.5+ | Surfaced as `codingSystemVersionId` / `alternateCodingSystemVersionId` when present. |
-| **CWE second-alternate triplet + OIDs** | CWE.10–CWE.22 added at v2.7 (second-alternate code triplet, coding-system / value-set OIDs) | Preserved verbatim on `extraComponents`, not yet modeled by name (v2 of this library may restore the full shape). |
+| **CWE second-alternate triplet + OIDs** | CWE.10 to CWE.22 added at v2.7 (second-alternate code triplet, coding-system / value-set OIDs) | Preserved verbatim on `extraComponents`, not yet modeled by name (v2 of this library may restore the full shape). |
 | **TS → DTM** | TS (with a now-deprecated degree-of-precision component) superseded by DTM at v2.5 | One parse path covers both: only the timestamp component is read; the deprecated degree-of-precision component is ignored. Precision is recoverable from `.raw` (its string length encodes the precision). |
 | **MSH-21** | Renamed **Conformance Statement ID → Message Profile Identifier** at v2.5 (datatype became EI) | No semantic change to parsing: MSH-21 is read positionally like any field. The rename is naming only; this note records it so the field is not mistaken for two different things. |
 
@@ -76,9 +76,9 @@ information.
 
 ## Known limitations
 
-- **Structural parse, not transformation.** The library reads v2.1–v2.8
+- **Structural parse, not transformation.** The library reads v2.1 to v2.8
   messages; it does not up-/down-convert between versions.
-- **No full v2.7 CWE model.** CWE.10–22 are preserved (above) but not surfaced
+- **No full v2.7 CWE model.** CWE.10 to 22 are preserved (above) but not surfaced
   by name; a consumer that needs the second-alternate triplet reads it
   positionally from `extraComponents`.
 - **Not a conformance validator.** `VERSION_MISMATCH` is the only

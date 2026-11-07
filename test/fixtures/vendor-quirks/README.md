@@ -22,7 +22,7 @@ field-whitespace-trimmed.hl7   →  FIELD_WHITESPACE_TRIMMED
 
 ## Source of truth
 
-`src/parser/warnings.ts::WARNING_CODES` (lines 26–40) is authoritative for
+`src/parser/warnings.ts::WARNING_CODES` (lines 26 to 40) is authoritative for
 the code list. Adding a fixture for a new code requires (a) adding the code
 to `WARNING_CODES` first, a project-level decision (Phase 5 D-27/D-28 and
 Phase 6 D-31 carry forward the no-new-codes constraint), then (b)
