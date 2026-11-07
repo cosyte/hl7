@@ -82,6 +82,6 @@ for (const w of msg.warnings) {
 
 ## Next
 
-- [Core Concepts](./spec-notes-primer.md): the tolerance model and the spec grounding behind it.
+- [Core concepts](./spec-notes-primer.md): the tolerance model and the spec grounding behind it.
 - [Guides](./guides-overview.md): task-oriented recipes: lab results, vendor profiles, ACKs, building.
 - [Troubleshooting](./troubleshooting.md): warnings vs. errors, strict mode, and known limitations.

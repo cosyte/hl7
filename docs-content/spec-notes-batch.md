@@ -1,7 +1,7 @@
 ---
 id: spec-notes-batch
 title: "Spec notes: batch / file envelope splitting"
-sidebar_label: Batch & file envelopes
+sidebar_label: Batch and file envelopes
 description: "How splitBatch demarcates the MSH-led messages inside an HL7 v2 batch or file envelope, parses each independently and reconciles the declared counts."
 ---
 
@@ -133,7 +133,7 @@ demarcation limits worth calling out explicitly:
   lenient lowercase `bts` in a body is left in the message rather than mistaken
   for a boundary (a lowercase `msh`-led "message" is not parseable anyway, so
   declining to treat it as a boundary loses nothing).
-- **One file envelope per stream is the modelled case.** §2.10.3's abstract
+- **One file envelope per stream is the modeled case.** §2.10.3's abstract
   syntax is a single `[FHS] … [FTS]`. Concatenated files (a second `FHS`) are
   handled **best-effort**: batch demarcation, the flattened `messages`, and
   **per-file** FTS-1 reconciliation are all correct (a second `FHS` resets the
@@ -142,7 +142,7 @@ demarcation limits worth calling out explicitly:
   `declaredBatchCount` result fields reflect the **first** header / **last**
   trailer / **last** FTS-1. Inspect `batches` and `warnings` for the full
   multi-file picture.
-- **No batch ACK generation.** §2.10.3.3's three acknowledgement modes are not
+- **No batch ACK generation.** §2.10.3.3's three acknowledgment modes are not
   implemented; the splitter only demarcates and reconciles.
 - **No envelope enforcement.** A profile may _mandate_ the full frame (IIS); the
   splitter **warns** (`BATCH_MISSING_TRAILER`) and leaves accept/reject to the

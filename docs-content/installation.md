@@ -2,7 +2,7 @@
 id: installation
 title: Installation
 sidebar_label: Installation
-description: "Install the zero-dependency @cosyte/hl7 toolkit on Node 22 or newer, with dual ESM and CJS builds and per-condition TypeScript declarations."
+description: "Install the zero-dependency @cosyte/hl7 toolkit on Node.js 22 or later, with dual ESM and CJS builds and per-condition TypeScript declarations."
 ---
 
 # Installation
@@ -11,7 +11,7 @@ description: "Install the zero-dependency @cosyte/hl7 toolkit on Node 22 or newe
 builds with per-condition type declarations, so it works from either module system without
 configuration.
 
-> **Status:** `0.1`, published on npm and public. The `npm install` command below is live. The
+> **Status:** the 0.1 line, published on npm and public. The `npm install` command below is live. The
 > exported functions, the message and helper surfaces, and the 20 stable warning codes are the
 > surface we keep stable; below 1.0 a breaking change moves the minor version, and the changelog
 > says how to migrate. For the current published version, ask the registry
@@ -19,7 +19,7 @@ configuration.
 
 ## Prerequisites
 
-- **Node.js >= 22.** The whole `@cosyte/*` suite targets ES2023 / Node 22+.
+- **Node.js 22 or later, tested on 22 and 24.** The whole `@cosyte/*` suite targets ES2023.
 - A package manager: `pnpm`, `npm`, or `yarn`.
 - **No runtime dependencies.** Nothing else is pulled in; the parser is Node stdlib only.
 

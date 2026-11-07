@@ -1,8 +1,8 @@
 ---
 id: spec-notes-identity
 title: "Spec notes: patient-identity / merge events"
-sidebar_label: Patient-identity & merge events
-description: "How identityEvents surfaces ADT merge and move triggers with both sides labelled by role, so a consumer can never accidentally retire the survivor."
+sidebar_label: Patient-identity and merge events
+description: "How identityEvents surfaces ADT merge and move triggers with both sides labeled by role, so a consumer can never accidentally retire the survivor."
 ---
 
 # Spec notes: patient-identity / merge events
@@ -11,7 +11,7 @@ description: "How identityEvents surfaces ADT merge and move triggers with both 
 trigger events. It exists for one safety-critical reason: **a mis-applied
 patient merge conflates two patients or orphans clinical data under a retired
 MRN**, the highest-harm ADT path the library previously left unmodelled. The helper's job
-is to hand the consumer both sides of the merge, *labelled by role*, so the
+is to hand the consumer both sides of the merge, *labeled by role*, so the
 consumer can never accidentally retire the survivor.
 
 ## Spec traceability
@@ -31,7 +31,7 @@ HL7 v2 Chapter 3 (Patient Administration):
   - `merge`: A18, A34, A35, A36 (v2.3-era merges), A39, A40, A41 (account),
     A42 (visit). Two records become one; the prior record is retired.
   - `move`: A43 (patient identifier list), A44 (account), A45 (visit).
-    Information moves between identifier lists, accounts or visits that both
+    Information moves between identifier lists, accounts, or visits that both
     go on existing.
   - `change`: A47 (patient identifier list), A49 (account number), A50 (visit
     number), A51 (alternate visit ID). One identifier is replaced by another
@@ -52,7 +52,7 @@ HL7 v2 Chapter 3 (Patient Administration):
 - **MRG field map (version-scoped, v2.5.1 §3.4.10):** MRG-1 prior patient
   identifier list (CX, repeating) → `prior.identifiers`; MRG-3 prior patient
   account number → `prior.accountNumber`; MRG-4 prior patient ID
-  (backward-compat, **withdrawn as of v2.7** in favour of MRG-1) →
+  (backward-compat, **withdrawn as of v2.7** in favor of MRG-1) →
   `prior.legacyPatientId`; MRG-5 prior visit number → `prior.visitNumber`;
   MRG-7 prior patient name (XPN) → `prior.name`.
 - **Version gate:** on a message whose MSH-12 declares v2.7 or later, the
@@ -61,7 +61,7 @@ HL7 v2 Chapter 3 (Patient Administration):
   back to the pre-v2.7 map (real-world ADT traffic is overwhelmingly
   v2.3 to v2.5.1, where those fields are legal).
 
-## The role-labelling invariant
+## The role-labeling invariant
 
 Every party carries `role` **and** `sourceSegment` provenance:
 
@@ -102,7 +102,7 @@ missing), never an identifier, name, or any other field value (no PHI).
   stored data to the survivor (and maintaining a link graph for A24/A37) is
   the integration engine's / consumer's responsibility.
 - No patient matching or probabilistic linkage, ever.
-- **Not modelled** (these triggers return `[]`): **A30** (merge person
+- **Not modeled** (these triggers return `[]`): **A30** (merge person
   information, the v2.3 backward-compat sibling of A34 to A36), **A46**
   (change patient ID) and **A48** (change alternate patient ID). The published
   structures this library ships do not name them, so there is no structure to

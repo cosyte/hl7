@@ -1,11 +1,11 @@
 ---
 id: spec-notes-escapes
-title: "Spec notes: escape sequences & round-trip fidelity"
-sidebar_label: Escapes & round-trip
+title: "Spec notes: escape sequences and round-trip fidelity"
+sidebar_label: Escapes and round-trip
 description: "How the parser decodes HL7 v2 escape sequences on read while serialization re-emits the sender's exact escape bytes, keeping the round trip verbatim."
 ---
 
-# Spec notes: escape sequences & round-trip fidelity
+# Spec notes: escape sequences and round-trip fidelity
 
 HL7 v2 reserves the delimiter characters plus a small escape grammar (HL7 v2
 Chapter 2 **§2.7**). `@cosyte/hl7` follows Postel's Law: it **decodes** escapes on

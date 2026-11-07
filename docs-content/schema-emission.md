@@ -9,7 +9,7 @@ description: "The library authors the JSON Schema and Zod description of the obj
 
 `JSON.stringify(msg)` and `msg.toJSON()` produce a snapshot of a parsed message:
 a raw-tree mirror carrying the encoding characters, the segments with their
-fields, repetitions, components and subcomponents, the parse warnings, and the
+fields, repetitions, components, and subcomponents, the parse warnings, and the
 applied profile when there was one. Storing that snapshot, queueing it, or
 handing it to another service usually means validating it on the way back in,
 and validating it means having a schema for it.
@@ -39,7 +39,7 @@ Object.keys(schema.properties ?? {}).includes("profile"); // => true
 Object.keys(schema.$defs["SerializedProfile"]?.properties ?? {}); // => ["name", "lineage"]
 ```
 
-The document uses only the core, applicator and validation vocabularies of the
+The document uses only the core, applicator, and validation vocabularies of the
 dialect, so a validator that implements the dialect implements all of it. There
 is no `title`, no `description`, no `default` and no `examples`: nothing on the
 document carries an illustrative value, and the one place a literal value is
@@ -107,7 +107,7 @@ Two consequences worth stating plainly:
 ## The encoding-characters detail
 
 The projection's `encodingCharacters` carries five members: `field`,
-`component`, `repetition`, `escape` and `subcomponent`. It does **not** carry
+`component`, `repetition`, `escape`, and `subcomponent`. It does **not** carry
 `truncation`, even for a v2.7 message whose MSH-2 declares one and whose parsed
 `msg.encodingCharacters.truncation` is set. The snapshot is what the serializer
 writes, and the serializer writes five keys, so the emitted schema declares five

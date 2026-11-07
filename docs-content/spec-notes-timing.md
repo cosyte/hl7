@@ -1,7 +1,7 @@
 ---
 id: spec-notes-timing
 title: "Spec notes: order / medication timing"
-sidebar_label: Order & medication timing
+sidebar_label: Order and medication timing
 description: "How order and medication timings are read from TQ1 or the legacy embedded TQ type. The structure is surfaced, never interpreted into a schedule."
 ---
 
@@ -23,7 +23,7 @@ medication (how often, how many, when it starts/ends) from the `TQ1` segment
 HL7 v2 Chapter 4 (order entry) + Chapter 2A (data types):
 
 - **TQ1: Timing/Quantity (§4.5.4), introduced v2.5.** The dedicated timing
-  segment. Modelled fields:
+  segment. Modeled fields:
   - **TQ1-2 Quantity (CQ)** → `quantity`: the service quantity per occurrence
     (`{ value, units }`).
   - **TQ1-3 Repeat Pattern (RPT, Table 0335)** → `repeatPattern`: the
@@ -39,7 +39,7 @@ HL7 v2 Chapter 4 (order entry) + Chapter 2A (data types):
     is read from field 14; a text instruction in field 11 is never mistaken for
     the count.
 - **TQ2: Timing/Quantity Relationship (§4.5.5)** links related orders. **Not
-  modelled** (see non-goals): `TQ2` remains a recognized segment name only.
+  modeled** (see non-goals): `TQ2` remains a recognized segment name only.
 - **Legacy embedded TQ (Ch. 2A §2.A.81)**, carried in **`ORC-7`** (orders) and
   **`RXE-1`** (encoded medications). Retained backward-compat only; **detail
   withdrawn as of v2.7**, which redirects to `TQ1`/`TQ2`. The old `TQ` data type
@@ -120,7 +120,7 @@ state machine `orders()` uses for OBX→OBR and `medications()` for RXR→RX\*:
 - **No schedule computation.** hl7 surfaces the timing structure; it does not
   compute administration times, resolve "institution-specified times" to clock
   times, interpret sig text, or do dose-frequency safety logic.
-- **`TQ2` (Timing/Quantity Relationship) is not modelled.** It links related
+- **`TQ2` (Timing/Quantity Relationship) is not modeled.** It links related
   orders (sequencing / conjunction across orders); only its segment name is
   recognized. First-class `TQ2` support is a later candidate.
 - **First repetition of repeating timing fields.** TQ1-3 (RPT) and TQ1-4 (TM)

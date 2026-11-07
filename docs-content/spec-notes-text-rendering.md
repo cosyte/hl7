@@ -1,16 +1,16 @@
 ---
 id: spec-notes-text-rendering
-title: "Spec notes: formatted-text rendering & the text codec"
-sidebar_label: Text rendering & codec
+title: "Spec notes: formatted-text rendering and the text codec"
+sidebar_label: Text rendering and codec
 description: "How the opt-in rendering layer turns preserved formatting escapes into readable narrative text, and how the encoder puts them back on the way out."
 ---
 
-# Spec notes: formatted-text rendering & the text codec
+# Spec notes: formatted-text rendering and the text codec
 
 The lenient parser **decodes** delimiter, hex, and `\.br\` escapes on read but
 deliberately **preserves** the presentational ones (`\H\`/`\N\` highlight, the
 `\.sp\`/`\.in\`/… formatting commands, charset switches, vendor `\Z..\`) as
-un-rendered sentinels. See [Escapes & round-trip](./spec-notes-escapes.md).
+un-rendered sentinels. See [Escapes and round-trip](./spec-notes-escapes.md).
 That is correct for a tolerant parser, but a clinical narrative surfaced to a
 human with raw `\.br\` / `\H\` sentinels in it is **misread**. The library adds an
 opt-in **rendering + encoding layer** on top of the unchanged raw values:
@@ -69,7 +69,7 @@ form (`Field.text`, byte-verbatim for parsed content) for the most faithful
 result; a pre-decoded `Field.value` also renders correctly (its `\.br\` is
 already a newline).
 
-## Never fabricates: unrenderable escapes are preserved + flagged
+## Never fabricates: unrenderable escapes are preserved and flagged
 
 A charset switch, a vendor `\Z..\`, or a malformed / unterminated escape cannot
 be rendered without guessing, so `renderText` keeps its **literal characters**

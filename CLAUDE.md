@@ -2,6 +2,8 @@
 
 `@cosyte/hl7` is our HL7 v2 parser and utility library for Node.js and TypeScript, published to npm under MIT. It reads real-world, vendor-quirky messages leniently (a warning, not a throw, for anything short of structural corruption) and serializes spec-clean HL7, with builders, validation and vendor profiles on the same model. It has zero runtime dependencies, and this repository is public.
 
+@AGENTS.md
+
 ## Gate
 
 From the repo root, in this order, with pnpm 10 (the `packageManager` pin). Where `pnpm --version` prints another major, put the pinned one first on PATH, since pnpm 12 refuses the frozen install and tests shell out to bare `pnpm`: `mkdir -p ~/.pnpm10 && corepack enable --install-directory ~/.pnpm10 pnpm && export PATH="$HOME/.pnpm10:$PATH"`.

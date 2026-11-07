@@ -97,7 +97,7 @@ parser does not decode at all:
 
 Both read the bytes as `latin1`; the distinction is diagnostic. Neither warning
 can carry a decoded field value: a label is echoed **only when the Table-0211
-registry recognises it**, and anything else is replaced with `<withheld>`.
+registry recognizes it**, and anything else is replaced with `<withheld>`.
 
 That bound is membership rather than spelling for a reason. `UNKNOWN_CHARSET`
 fires precisely *when* a label is absent from the closed table, so at that moment
@@ -107,7 +107,7 @@ the 18th `|`-token of the text before the first terminator, so on a message
 carrying no segment terminators that token is a data field.
 
 **The cost, stated plainly:** `UNKNOWN_CHARSET` now never reports the label it
-rejected, because by definition the registry does not recognise it. A sender
+rejected, because by definition the registry does not recognize it. A sender
 declaring `WINDOWS-1252` (the classic non-Table-0211 value) yields
 `Unrecognized character set "<withheld>"`, and the observed label is on no field
 of the warning. To identify it, read MSH-18 off the message yourself. That is a

@@ -1,11 +1,11 @@
 ---
 id: benchmarks
-title: Benchmarks & performance
-sidebar_label: Benchmarks & performance
+title: Benchmarks and performance
+sidebar_label: Benchmarks and performance
 description: "Parse throughput, per-message memory and streaming peak memory, plus the ratio-based CI guard that fails when a change degrades any of them."
 ---
 
-# Benchmarks & performance
+# Benchmarks and performance
 
 `@cosyte/hl7` is the reference Cosyte parser, and interface-engine adoption asks a fair question:
 **is it fast enough, and does it stay bounded on a large feed?** This page answers both, with a

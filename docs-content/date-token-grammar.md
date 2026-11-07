@@ -2,7 +2,7 @@
 id: date-token-grammar
 title: "Date token grammar: vendor date formats, written down once"
 sidebar_label: Date token grammar
-description: "Every token a dateFormats string may contain, how a format is tokenised and escaped, which tokens require which, and the two exclusions."
+description: "Every token a dateFormats string may contain, how a format is tokenized and escaped, which tokens require which, and the two exclusions."
 ---
 
 # Date token grammar
@@ -31,7 +31,7 @@ SUPPORTED_DATE_TOKENS.includes("YY"); // => false
 
 Token spellings are **case-sensitive**: `MM` is month and `mm` is minute.
 Alphabetic content in the **input** is compared **case-insensitively**, and
-ASCII only, so `JUL`, `Jul` and `jul` are one value and `PM` and `pm` are one
+ASCII only, so `JUL`, `Jul`, and `jul` are one value and `PM` and `pm` are one
 value.
 
 | token  | means                        | matches           | in-range values                                   |
@@ -59,7 +59,7 @@ it reaches the parser.
 A value outside a token's range does not match. It is never clamped, wrapped or
 substituted: `13` is not December and it is not January, it is no match at all.
 
-## Tokenising a format
+## Tokenizing a format
 
 1. A format is read left to right and split by **longest match** against the
    table above. `MMMM` wins over `MMM`, which wins over `MM`, which wins over
@@ -101,10 +101,10 @@ time rather than a silent swallow of the rest of the format.
 ## Rules a format must satisfy
 
 All five are checked **at profile definition time**, when `defineProfile()`
-runs, so a format that cannot be honoured throws where you wrote it instead of
+runs, so a format that cannot be honored throws where you wrote it instead of
 sitting in the list quietly matching nothing.
 
-Definition time is not the only place they bind. **Rules 2, 3 and 4 bind the
+Definition time is not the only place they bind. **Rules 2, 3, and 4 bind the
 matcher as well**, and a format breaking one of them reports **no match**
 whichever route it arrived by, including the per-parse `dateFormats` option
 that nothing validates. Each of the three describes a value a parser could
@@ -116,8 +116,8 @@ grammar implements those three in **both** places.
 
 **Rules 1 and 5 are definition-time only.** They are about the format's text
 rather than about a value, and the matcher is deliberately more tolerant there:
-a character it does not recognise is matched verbatim, so a format supplied
-through the parse options keeps the behaviour it had. Their purpose is to tell
+a character it does not recognize is matched verbatim, so a format supplied
+through the parse options keeps the behavior it had. Their purpose is to tell
 the author, where the format is written, that it will not read what they meant.
 
 ### 1. Every letter and digit belongs to a token or an escape
@@ -151,12 +151,12 @@ fraction of a minute.
 
 ### 4. Two numeric tokens may not sit adjacent when either is variable width
 
-`M`, `D`, `H`, `h` and `SSSS` are the variable-width tokens. `MDYYYY` is
+`M`, `D`, `H`, `h`, and `SSSS` are the variable-width tokens. `MDYYYY` is
 refused: nothing can decide whether `1231988` starts with month 1 or month 12.
 Two **fixed**-width numeric tokens may sit adjacent, because the digit run
 splits deterministically, which is why `YYYYMMDDHHmmss` is fine.
 
-`MMM`, `MMMM` and `A` consume letters rather than digits, so a numeric token
+`MMM`, `MMMM`, and `A` consume letters rather than digits, so a numeric token
 beside one of them is never ambiguous.
 
 **Adjacent means adjacent in the input, not in the format text.** A literal
@@ -199,7 +199,7 @@ An empty format, or one made only of separators, matches nothing.
   match, rather than one of the readings its digit run allows.
 - No match ever raises. It reports no match, and no parts are produced from it.
 
-The three bullets naming rules 2, 3 and 4 are those rules holding at match time
+The three bullets naming rules 2, 3, and 4 are those rules holding at match time
 as well as at definition time, and that is the half of the grammar the corpus
 cannot carry for you: a `no-match` case there is a **well-formed** format, and
 a format breaking one of these three is not well formed, so it can only appear
@@ -250,7 +250,7 @@ at("7/5/1988 2:30 PM"); // => 14
 
 A value states the precision it was given and no more. `YYYY` is year
 precision, `YYYY-MM` is month, `YYYY-MM-DD` is day, and so on through hour,
-minute, second and fraction. Nothing is zero-filled to reach a level the
+minute, second, and fraction. Nothing is zero-filled to reach a level the
 format did not populate.
 
 | the format populates through | stated precision |
@@ -322,7 +322,7 @@ Top level:
 | key               | meaning                                                                                                                                                     |
 | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `grammar`         | Which grammar the file describes. Always `date-token-grammar`.                                                                                              |
-| `revision`        | Bumped when a case is added, removed or changed.                                                                                                            |
+| `revision`        | Bumped when a case is added, removed, or changed.                                                                                                            |
 | `description`     | One sentence, for a reader who arrives at the file before this page.                                                                                        |
 | `tokens`          | The whole token vocabulary. A runner asserts its own published token list equals this, which catches a parser that quietly recognizes more or fewer tokens. |
 | `refusalRules`    | Every reason a format is refused at definition time.                                                                                                        |
@@ -333,7 +333,7 @@ Top level:
 Every case carries an `id` (unique, stable, citable from a bug report), a
 `kind`, and a `note` saying what the case is for. The three kinds:
 
-**`kind: "accept"`** - the format is well formed AND the input matches it.
+**`kind: "accept"`**: the format is well formed AND the input matches it.
 `format` is the format string; `tokens` lists every token it uses, so
 per-token coverage is checkable without a tokenizer; `input` is the value;
 `expect` is the fields recovered, keyed `year`, `month`, `day`, `hour`,
@@ -344,13 +344,13 @@ is spec-native 1 to 12, `hour` is a 24-hour reading with the meridiem already
 applied and gone, and `fractionalSeconds` is the digit string as written, with
 no leading dot and no rounding.
 
-**`kind: "reject-format"`** - the format is not well formed and must be refused
+**`kind: "reject-format"`**: the format is not well formed and must be refused
 at definition time, before any input is seen. `format` is the offending string
 and `rule` is one of `refusalRules`. A runner asserts both that the refusal
 happened and that it named the offending format: an unactionable error is a
 defect of its own.
 
-**`kind: "no-match"`** - the format is well formed and the input does not match
+**`kind: "no-match"`**: the format is well formed and the input does not match
 it. `format`, `input`, and `reason`, one of `noMatchReasons`. The result is no
 match: never a substituted or partial value, and never a raised error.
 

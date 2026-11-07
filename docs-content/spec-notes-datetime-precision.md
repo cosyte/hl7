@@ -1,11 +1,11 @@
 ---
 id: spec-notes-datetime-precision
-title: "Spec notes: datetime precision & timezone fidelity"
-sidebar_label: Datetime precision & timezone
+title: "Spec notes: datetime precision and timezone fidelity"
+sidebar_label: Datetime precision and timezone
 description: "How a DTM value keeps its precision and timezone instead of collapsing into a Date, and why an order-ambiguous slash date is refused rather than guessed."
 ---
 
-# Spec notes: datetime precision + timezone fidelity
+# Spec notes: datetime precision and timezone fidelity
 
 **Spec:** HL7 v2 Ch. 2A **DTM**: `YYYY[MM[DD[HH[MM[SS[.S[S[S[S]]]]]]]]][+/-ZZZZ]`; the number of
 characters populated (excluding the offset) sets the precision; a missing offset "defaults to that of
@@ -58,7 +58,7 @@ for one.
 been assumed. In a PHI-bearing library that is the worst shape of wrong: plausible, confident and
 invisible.
 
-A slash-separated numeric date whose first two components are **both in 1-12** has two legal
+A slash-separated numeric date whose first two components are **both in 1 to 12** has two legal
 readings. When no declared format has matched, the built-ins now resolve **neither**: the result is
 `valid: false` with an `ambiguity` report (`code: AMBIGUOUS_DATE_ORDER`, the raw value, and both
 `candidates` as `{ format, month, day, isoDate }`). `msg.meta.timestamp` carries it, so
@@ -69,7 +69,7 @@ fallback" (`valid: true` + `matchedFormat`).
   `dateFormats` are tried ahead of the built-ins, resolve the value, keep the existing
   `TIMESTAMP_FALLBACK_FORMAT` semantics, and never report ambiguity. Options precede profile.
 - **One reading still resolves.** `07/25/1988` (no month 25) and `05/05/1988` (both readings agree)
-  are unaffected, as are strict DTM, ISO-8601 and `YYYY-MM-DD`.
+  are unaffected, as are strict DTM, ISO-8601, and `YYYY-MM-DD`.
 - **The built-in list did not change.** `DD/MM/YYYY` is used only as a probe for the second reading
   and never resolves a value: an unambiguous day-first value such as `25/07/1988` still fails
   loudly. Declaring the order is the route for a day-first feed.
@@ -87,11 +87,11 @@ fallback" (`valid: true` + `matchedFormat`).
 A read layer over `DtmParts`, carrying the three names every `@cosyte` parser exposes. It converts;
 it never re-parses, and it changes nothing about how a value was parsed.
 
-- `interface DateParts { year?; month?(1-12, spec-native); day?; hour?; minute?; second?;
+- `interface DateParts { year?; month?(1 to 12, spec-native); day?; hour?; minute?; second?;
   millisecond?; offsetMinutes?(signed, iff an explicit offset was stated) }`. Frozen. Names singular.
 - `toObject(value): DateParts | undefined`: only the stated components, so `Object.keys()` recovers
   the precision. A component the value did not state is **absent**, not present-with-undefined. No
-  `raw`, `valid`, `precision`, `hasTimezone` or `matchedFormat` key. `millisecond` is the first three
+  `raw`, `valid`, `precision`, `hasTimezone`, or `matchedFormat` key. `millisecond` is the first three
   fractional digits **verbatim**, right-padded (`.5`=500, `.0500`=50), never a float multiplication.
   `-0000` surfaces as `offsetMinutes: 0`. `!valid` or no stated component at all -> undefined.
 - `toISO(value): string | undefined`: ISO-8601 **truncated to the stated precision**, fractional
@@ -105,24 +105,24 @@ it never re-parses, and it changes nothing about how a value was parsed.
   (`opts?.` is read, not defaulted, because a default parameter fires for `undefined` only), and
   `assumeOffsetMinutes` must be a **finite number** or the answer is `undefined`. `"0"`, `true` and
   `[]` all multiply to `0` in JS, so an unguarded delegation hands back a UTC instant the caller
-  never asked for; `NaN`, the infinities and an offset past the range a `Date` represents are
+  never asked for; `NaN`, the infinities, and an offset past the range a `Date` represents are
   refused for the same reason, so no answer is ever an `Invalid Date`. A value stating its own
   offset never reaches the guard: its offset wins and the assumption is ignored, per the Contract.
-  `dtmToDate` is a published name and keeps its own coercing behaviour: the guard is added by the
+  `dtmToDate` is a published name and keeps its own coercing behavior: the guard is added by the
   conversion layer, exactly as the component bound below is.
-- **Component bounds, applied by all three to the WHOLE value:** year 0-9999, month 1-12, day 1 to
+- **Component bounds, applied by all three to the WHOLE value:** year 0 to 9999, month 1 to 12, day 1 to
   the last day THAT month has (full 4/100/400 leap rule; an unstated year bounds February at 29),
-  hour 0-23, minute 0-59, second 0-59. `20240230` and `20230229` convert to `undefined` rather than
+  hour 0 to 23, minute 0 to 59, second 0 to 59. `20240230` and `20230229` convert to `undefined` rather than
   rolling into 1 March, and an in-range prefix is never converted in place of the refused value.
   The bound reads the components, so a hand-built `DtmParts` is held to it exactly as a parsed one
-  is. `parseDtm` is untouched and stays liberal (day 1-31, month-blind), so `formatDtm` still
+  is. `parseDtm` is untouched and stays liberal (day 1 to 31, month-blind), so `formatDtm` still
   round-trips those bytes: the refusal is in the conversion, which is where a wrong answer would
   look right. `new Date("2024-02-30")` is 1 March in V8, so rendering it would shift a date of
   birth by a day with nothing to notice.
 - **The stated offset is a bounded component too, when the value claims one:** a whole number of
   minutes within `+/-23:59` of UTC, which is both what the `+HH:MM` rendering can state and what an
   ISO-8601 reader accepts (`new Date("2024-02-29T12:00:00+24:00")` is an `Invalid Date`). The same
-  helper does it, so a string, a boolean, an array, `NaN` and a fractional minute are refused with
+  helper does it, so a string, a boolean, an array, `NaN`, and a fractional minute are refused with
   it. Two routes reach that field without a cast: a hand-built `DtmParts`, and `msg.meta.timestamp`,
   whose fallback read range-checks the calendar components and not the offset, so a wire MSH-7 of
   `2024-02-29T12:00:00+99:99` states 6039 minutes east. Unbounded, `toObject` reports a non-number
@@ -140,10 +140,10 @@ it never re-parses, and it changes nothing about how a value was parsed.
   **No `.date`.** `parseTs(rep, enc, dateFormats?)` = unescape → `parseDtmDeclared`.
 - `field.ts::asTs()` returns it, passing the message's merged `dateFormats`.
 
-### Which datetimes honour `dateFormats`
+### Which datetimes honor `dateFormats`
 
 `ParseOptions.dateFormats` ++ the applied profile's, deduped first-occurrence-wins, is
-`msg.dateFormats`, and **every** datetime below honours it: `meta.timestamp`,
+`msg.dateFormats`, and **every** datetime below honors it: `meta.timestamp`,
 `patient.dateOfBirth`, `visit.admit/dischargeDateTime`, `observations.observedDateTime` + the
 `TS|DT` `TypedValue.value`, `allergies.onsetDate`, `diagnoses.dateTime`,
 `insurance.effectiveDate` / `expirationDate`, `immunizations.administeredDateTime` /

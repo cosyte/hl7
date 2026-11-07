@@ -2,7 +2,7 @@
 id: spec-notes-primer
 title: "Spec notes: HL7 v2.x standard reference (parser-builder's primer)"
 sidebar_label: v2.x standard reference
-description: "What the HL7 v2.x standard itself says about encoding, grammar, message typing, acknowledgement and the composite data types a parser has to decode."
+description: "What the HL7 v2.x standard itself says about encoding, grammar, message typing, acknowledgment and the composite data types a parser has to decode."
 ---
 
 # Spec notes: the HL7 v2.x standard, for someone building a parser
@@ -10,7 +10,7 @@ description: "What the HL7 v2.x standard itself says about encoding, grammar, me
 The other pages in this section are **implementation notes**: each says what
 `@cosyte/hl7` does about one spec area, and why. This page is the **standard
 reference** they elaborate: what the HL7 v2.x specification itself says about
-encoding, grammar, message typing, acknowledgement, and the composite data types
+encoding, grammar, message typing, acknowledgment, and the composite data types
 a parser must decode. It is the "why the parser is shaped this way" companion, not
 a description of the parser.
 
@@ -20,7 +20,7 @@ here only at its boundary.
 
 > **Provenance.** Every statement below is drawn from the primary HL7 Chapter 2 /
 > Chapter 2.A control-and-datatypes text (cross-checked across v2.2, v2.5, v2.5.1,
-> v2.7, v2.8.2 and v2.9), corroborated by the NIST v2+ data-type reference, and
+> v2.7, v2.8.2, and v2.9), corroborated by the NIST v2+ data-type reference, and
 > was adversarially fact-checked (each claim independently voted; the few that
 > failed are called out inline as *refuted*). The spec text was read from the
 > widely-cited `hl7.eu` mirror. For a production conformance system, treat the
@@ -81,7 +81,7 @@ different instructions (delete vs. leave-as-is), and a data model that maps both
 mishandle `|""|`; a tolerant parser still keeps the distinction it is given.
 
 Escape sequences and character-set handling are their own topics: see
-[Escapes & round-trip](./spec-notes-escapes.md) and
+[Escapes and round-trip](./spec-notes-escapes.md) and
 [Character sets (MSH-18)](./spec-notes-charset.md).
 
 ## 3. The abstract message grammar, and reconstructing groups from the wire
@@ -145,7 +145,7 @@ exactly this property to place a wire segment into the correct group.
    segment to preserve structure, an engineering technique, not a normative rule.
 
 This is precisely why this repo's
-[Message-type & structure awareness](./spec-notes-structure.md) safety net is
+[Message-type and structure awareness](./spec-notes-structure.md) safety net is
 scoped the way it is. It is **not** an abstract-syntax validator and does **not**
 claim a universal anchor model: it checks, per specific `(message code, trigger
 event)` pair, only whether the segments the v2.5.1 abstract syntax marks
@@ -174,12 +174,12 @@ belief and was adversarially **refuted**. Do not model MSH-9 as two components;
   locally-defined **Z-segments**, which a tolerant parser accepts and surfaces
   rather than rejects.
 
-## 5. Acknowledgement: two modes, two code vocabularies, one admitted ambiguity
+## 5. Acknowledgment: two modes, two code vocabularies, one admitted ambiguity
 
-Acknowledgement mode is selected by two MSH fields:
+Acknowledgment mode is selected by two MSH fields:
 
-- **MSH-15**: accept acknowledgement type.
-- **MSH-16**: application acknowledgement type.
+- **MSH-15**: accept acknowledgment type.
+- **MSH-16**: application acknowledgment type.
 
 **Original mode** applies when both are null/absent; **enhanced mode** when either
 is valued. Original mode is exactly equivalent to enhanced mode with `MSH-15 = NE`,
@@ -191,7 +191,7 @@ must know which applies:
 | **Accept** (transport/commit) | `MSA-1` | `CA` commit accept · `CR` commit reject · `CE` commit error |
 | **Application** (business) | `MSA-1` | `AA` accept · `AE` error · `AR` reject |
 
-A positive **accept** acknowledgement means the receiver has committed the message
+A positive **accept** acknowledgment means the receiver has committed the message
 to **safe storage**, releasing the sender from resending, a stronger guarantee
 than "received."
 
@@ -258,7 +258,7 @@ separator `&`**, the classic delimiter demotion a parser must apply when reading
 a composite-inside-a-composite. (A variant claim placing the embedded HDs at
 `CX.3`/`CX.5` was **refuted**: the correct positions are `CX.4`/`CX.6`.)
 
-### Date / time: precision is signalled by length
+### Date / time: precision is signaled by length
 
 The date/time family carries **variable precision determined by how many
 characters are populated**, not by a precision flag:
@@ -277,7 +277,7 @@ zone**: never UTC, never the parser's zone. `TS` (which carried a deprecated
 "degree of precision" component) was superseded by the pure `DTM` type in v2.7+.
 This repo's handling (parse to parts without materializing a `Date`, keep the
 precision, refuse to guess a missing offset) is detailed in
-[Datetime precision & timezone](./spec-notes-datetime-precision.md).
+[Datetime precision and timezone](./spec-notes-datetime-precision.md).
 
 Coded fields (`CWE`/`CNE`/`CE` and coding-system provenance) are their own topic:
 see [Coding-system provenance](./spec-notes-coding-system.md). Which of these
@@ -293,9 +293,9 @@ realistic message content.
 ## References
 
 - **HL7 v2.x** Chapter 2 (Control) and Chapter 2.A (Data Types), cross-checked
-  across v2.2, v2.5, v2.5.1, v2.7, v2.8.2 and v2.9.
+  across v2.2, v2.5, v2.5.1, v2.7, v2.8.2, and v2.9.
 - **NIST v2+** data-type reference (`usnistgov.github.io/v2plusDemo`).
 - **HL7 Conformance work-group**, "HL7 V2 ACK Guidance": the standards body's own
-  statement that Chapter 2's acknowledgement guidance is ambiguous.
+  statement that Chapter 2's acknowledgment guidance is ambiguous.
 - The official HL7-published specification is the authoritative text of record;
   the sources above are convenience mirrors and companions.
