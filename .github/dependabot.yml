@@ -29,9 +29,9 @@ updates:
       prefix: chore
       include: scope
     ignore:
-      # From v1.75.0 this action installs actionlint by piping a script from a fork to bash. The
-      # shared CI runs the official rhysd/actionlint release, checked by its SHA-256, instead, and
-      # the `extras` job's pin stays on a release from before that change.
+      # From v1.75.0 this action installs actionlint by piping a script from a fork to bash. No
+      # workflow here uses it any more: the shared CI and the `extras` job run the official
+      # rhysd/actionlint release, checked by its SHA-256. This keeps an update from proposing it again.
       - dependency-name: "reviewdog/action-actionlint"
       # The cosyte/.github reusable workflows are pinned to the commit of a published `workflows-*`
       # reference and move by hand, with every caller here, together (ST37). Left to Dependabot, a
