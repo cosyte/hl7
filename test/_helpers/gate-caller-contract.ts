@@ -102,6 +102,17 @@ export interface CallerSpec {
   readonly triggerFact: CoverageFact;
   /** The coverage identifier owning this caller's concurrency and permissions fact. */
   readonly ceilingFact: CoverageFact;
+  /**
+   * Whether the caller runs under a cancelling concurrency group or under none at all.
+   *
+   * `"none"` is for a caller that runs on `edited`. A push and an edit can arrive together
+   * (Dependabot does both), and a group cancels one of the two runs: under
+   * `cancel-in-progress: true` the running one, and even under `false` a queued one. When the
+   * cancelled run sits in the newer check suite, a required context counts as failing and the
+   * pull request stays blocked until someone re-runs it. So such a caller carries no group;
+   * each run takes seconds, every one finishes, and the newest result stands.
+   */
+  readonly concurrency: "cancelling" | "none";
 }
 
 /**
@@ -122,6 +133,9 @@ export const EMDASH_CALLER: CallerSpec = {
   pullRequestTypes: ["opened", "synchronize", "reopened", "edited"],
   triggerFact: "E1",
   ceilingFact: "E7",
+  // No group: this caller runs on `edited`, so a cancelled run could block a merge. See
+  // `CallerSpec.concurrency`.
+  concurrency: "none",
 };
 
 /**
@@ -145,6 +159,8 @@ export const INTERNAL_REFS_CALLER: CallerSpec = {
   pullRequestTypes: null,
   triggerFact: "I1",
   ceilingFact: "I5",
+  // No `edited` type, so a push and an edit never start two runs on one commit.
+  concurrency: "cancelling",
 };
 
 /** Both callers, in the order the gates are named throughout this repository. */
@@ -702,7 +718,20 @@ export function auditGateCaller(spec: CallerSpec, source: WorkflowSource): Probl
 
   // The concurrency group. Same coverage fact as the permissions ceiling.
   const concurrencyAt = topLevelIndex(entries, "concurrency");
-  if (concurrencyAt === -1) {
+  if (spec.concurrency === "none") {
+    if (concurrencyAt !== -1) {
+      problems.push(
+        problem(
+          "concurrency",
+          label + " (" + ceiling + "): a top level `concurrency:` block was found, and this caller",
+          "must have none. It runs on `edited`, so a push and an edit can arrive together, and a",
+          "group cancels one of the two runs, even a queued one under `cancel-in-progress: false`.",
+          "A cancelled run in the newer check suite counts as a failing required context and",
+          "blocks the merge until someone re-runs it.",
+        ),
+      );
+    }
+  } else if (concurrencyAt === -1) {
     problems.push(
       problem(
         "concurrency",

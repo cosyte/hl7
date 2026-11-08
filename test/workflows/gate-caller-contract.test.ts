@@ -157,7 +157,12 @@ describe("the gate callers satisfy the shared pipeline's caller-side contract", 
     expectClean(EMDASH_CALLER, ["trigger"]);
   });
 
-  it("AC-5 (E7): the em-dash caller cancels in progress and grants no more than contents: read", () => {
+  // The em-dash caller runs on `edited`, so it carries no concurrency group at all. A push and
+  // an edit can arrive together (Dependabot does both), and a group cancels one of the two runs,
+  // even a queued one under `cancel-in-progress: false`. A cancelled run in the newer check
+  // suite counts as a failing `no-emdash / tracked-files` and blocks the merge until someone
+  // re-runs it. Each run takes seconds, so every one finishes and the newest result stands.
+  it("AC-5 (E7): the em-dash caller has no concurrency group and grants no more than contents: read", () => {
     expectClean(EMDASH_CALLER, ["concurrency", "permissions"]);
   });
 
@@ -334,7 +339,7 @@ describe("the audit reds on every way a gate caller can regress", () => {
     },
   );
 
-  it.each(GATE_CALLERS)(
+  it.each(GATE_CALLERS.filter((spec) => spec.concurrency === "cancelling"))(
     "AC-5: $path reds naming $ceilingFact when cancel-in-progress is turned off",
     (spec) => {
       const problems = auditText(
@@ -343,6 +348,30 @@ describe("the audit reds on every way a gate caller can regress", () => {
       );
       expect(idsOf(problems)).toContain("concurrency");
       expect(messageFor(problems, "concurrency")).toContain(spec.ceilingFact);
+    },
+  );
+
+  it.each(["true", "false"])(
+    "AC-5 (E7): reds naming E7 when the em-dash caller gains a concurrency group with cancel-in-progress: %s",
+    (cancel) => {
+      // `false` is the tempting half-fix: a group still cancels a queued run when a newer one
+      // arrives, so it must red as well.
+      const spec = EMDASH_CALLER;
+      const problems = auditText(
+        spec,
+        replaceOnce(
+          spec,
+          textOf(spec),
+          "\npermissions:\n",
+          "\nconcurrency:\n  group: ${{ github.workflow }}-${{ github.ref }}\n  cancel-in-progress: " +
+            cancel +
+            "\n\npermissions:\n",
+        ),
+      );
+      expect(idsOf(problems)).toContain("concurrency");
+      const message = messageFor(problems, "concurrency");
+      expect(message).toContain("E7");
+      expect(message).toContain("queued");
     },
   );
 
