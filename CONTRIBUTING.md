@@ -17,14 +17,14 @@ only (fixtures live in this public repository), and include the exact `parseHL7`
 ## The gate
 
 Run every command `CLAUDE.md` lists under "Gate", from the repository root and in that order,
-with the pnpm that `packageManager` pins. CI runs the same checks on Node 22 and 24. The dash
+with the pnpm that `packageManager` pins. CI runs the same checks on Node 22, 24, and 26. The dash
 gate also reads your pull request title, body, and commit messages, because this repository
 squash-merges and those become the message that lands on `main`.
 
-A change under `src/` adds a changeset (`pnpm changeset`): **minor** when it adds behavior a
-consumer can call, **patch** when it corrects behavior, never **major**. Its first sentence
-becomes the release bullet, and its summary is the `CHANGELOG.md` entry, so never hand-edit
-`CHANGELOG.md`.
+A change under `src/` adds a changeset (`pnpm changeset`) with a **patch** bump: on the 0.1 line a
+minor or major release is a maintainer's decision, so when a change adds behavior a consumer can
+call, say so in the summary. Its first sentence becomes the release bullet, and its summary is the
+`CHANGELOG.md` entry, so never hand-edit `CHANGELOG.md`.
 
 ## Fuzz and differential testing
 
