@@ -3,7 +3,7 @@
  * release pipeline, performed as text.
  *
  * WHY THIS EXISTS. This repository's `Release` workflow is a thin caller of the reusable
- * workflow `cosyte/.github/.github/workflows/release.yml@main`. That shared workflow
+ * workflow `cosyte/.github/.github/workflows/release.yml` at a published reference. That shared workflow
  * declares `actions: read` so it can read this repository's `release` environment
  * protection. A called workflow's `GITHUB_TOKEN` can only be downgraded by its caller,
  * never elevated, so a calling job whose `permissions:` block pins
@@ -38,7 +38,8 @@ export const RELEASE_WORKFLOW_PATH = ".github/workflows/release.yml";
 export const RELEASE_JOB_ID = "release";
 
 /** The reusable workflow the release job must delegate to, ref included. */
-export const SHARED_RELEASE_WORKFLOW = "cosyte/.github/.github/workflows/release.yml@main";
+export const SHARED_RELEASE_WORKFLOW =
+  "cosyte/.github/.github/workflows/release.yml@498c7c13c8869bf11b67fa8324684ec2dc691ec6";
 
 const WORKFLOW_LABEL = "`" + RELEASE_WORKFLOW_PATH + "`";
 const JOB_LABEL = "`" + RELEASE_JOB_ID + "`";

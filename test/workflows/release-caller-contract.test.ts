@@ -2,7 +2,8 @@
  * The `Release` caller contract, asserted in this repository's own suite.
  *
  * WHAT THIS PINS AND WHY IT IS WORTH A TEST FILE. `.github/workflows/release.yml` is a
- * thin caller of the reusable workflow `cosyte/.github/.github/workflows/release.yml@main`.
+ * thin caller of the reusable workflow `cosyte/.github/.github/workflows/release.yml`, pinned to a
+ * published reference.
  * The shared workflow declares `actions: read` so it can read this repository's `release`
  * environment protection, and a called workflow's `GITHUB_TOKEN` can only be downgraded by
  * its caller, never elevated. So a calling job that pins contents/id-token/pull-requests

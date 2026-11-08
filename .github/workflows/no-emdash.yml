@@ -35,7 +35,7 @@ name: Em-dash gate
 # messages half needs the `edited` activity type, which is not a default: without it, a
 # title or body edited after the last push is never re-checked, and since this repo
 # squash-merges, the PR title and body ARE the commit message that lands on main. But
-# ci.yml's triggers drive the full Node 22 + 24 matrix (typecheck, lint, format, PHI scan,
+# ci.yml's triggers drive the full Node 22, 24, and 26 matrix (typecheck, lint, format, PHI scan,
 # test, coverage, build, attw, dual ESM/CJS smoke) plus the `extras` job. Re-running all of
 # that every time someone fixes a typo in a PR description is a large cost for no extra
 # safety.
@@ -61,7 +61,7 @@ jobs:
     # deleted by anyone who gains write access to the workflow's repository, so a tag is not
     # an immutable reference and is not a pin. The trailing comment is the published
     # reference that commit was released as, so the release note stays findable from here.
-    uses: cosyte/.github/.github/workflows/gate-no-emdash.yml@84ecccd771cbc9c1ece003a3f8ff61415360395b # workflows-2026-09-18-84ecccd771cb
+    uses: cosyte/.github/.github/workflows/gate-no-emdash.yml@498c7c13c8869bf11b67fa8324684ec2dc691ec6 # workflows-2026-11-07-498c7c13c886
     # No more than the scan needs. A called workflow's GITHUB_TOKEN can only be downgraded
     # by its caller, and this gate reads the tree and nothing else.
     permissions:
