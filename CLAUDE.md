@@ -10,8 +10,8 @@ structural corruption) and serializes spec-clean HL7, with builders, validation 
 
 Required checks: `ci / verify` on Node 22 and 24 (26 runs too), `ci / actionlint`,
 `no-emdash / tracked-files` and `no-internal-refs / public-surface`. From the repo root, in this
-order, with pnpm 10 first on PATH (`documentation/agent-notes.md#pnpm-10-on-path`). What CI runs
-beyond these is in `documentation/agent-notes.md#what-ci-runs`.
+order, with pnpm 10 (the `packageManager` pin) first on PATH: pnpm 12 refuses the frozen install,
+and tests spawn a bare `pnpm`.
 
 ```sh
 pnpm install --frozen-lockfile
@@ -56,5 +56,5 @@ guess, and keep message text out of errors, warnings and logs.
 - `.github/workflows/release.yml` keeps all four grants (`actions: read`, `contents: write`,
   `id-token: write`, `pull-requests: write`): without them every release failed at startup
   (#34, #98).
-- The kit's `pnpm-workspace.yaml` keeps the 24-hour floor consumers inherit; only CI exempts
-  `@cosyte` (2026-11-08): `documentation/agent-notes.md#the-starter-kits-24-hour-install-window`.
+- Never add the `@cosyte` exemption to the kit's `pnpm-workspace.yaml`: consumers copy it and keep
+  its 24-hour release-age floor. CI's `extras` job exempts its runner copy only (2026-11-08).
