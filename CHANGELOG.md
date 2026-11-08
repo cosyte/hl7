@@ -1342,7 +1342,7 @@ kind, value)`** sets one at a field or `field[rep]` dot-path. Component values a
 ### Fixed
 
 - **The PHI scan reached neither `test/**` nor an inline fixture, and dropped to a shape-only pass
-at a scan root's own path (`PHI-SCAN-WALK-ROOT-SCOPE`, plus `PHI-SCAN-RENAME-BLIND-AT-PRECOMMIT`▶(b)).** Four`PRE-EXISTING`holes, each measured on`d8d3be3` before the change.
+  at a scan root's own path (`PHI-SCAN-WALK-ROOT-SCOPE`, plus `PHI-SCAN-RENAME-BLIND-AT-PRECOMMIT`▶(b)).** Four`PRE-EXISTING`holes, each measured on`d8d3be3` before the change.
 
   **1. A tracked file directly under `test/` was enumerated by NEITHER route.** The walk was rooted
   at `test/fixtures` + `src`; `--staged` matched `test/fixtures/**` + `src/**.ts`. That left **115
@@ -2217,15 +2217,15 @@ X C M Z H N` or a `.`-prefixed formatting escape, structural HL7 grammar, not PH
   for `Secret<T>` wrappers (the pathways credentials pattern) and is the wrong shape for parser-
   side PHI surfaces.
 - **Coverage policy: `src/profiles/**`coverage hole closed, global`branches`floor restored to
-90 (roadmap Phase J, supersedes/absorbs the`H-PHI` coverage-policy entry above).** The D10
-transient relaxation is now RESOLVED: targeted tests
-(`test/profiles-merge-validate-coverage.test.ts`) closed the `mergeCustomSegments`/inheritance
-branches in `profiles/merge.ts`and the validator branches in`profiles/validate.ts`+`profiles/describe.ts`that were unreachable via the public`defineProfile()`API alone.`src/profiles/\*\*`now carries its own`>= 90`per-directory coverage gate
-(lines/branches/functions/statements) in`vitest.config.ts`, and the global `branches` floor is
-back to the canonical 90, no remaining relaxation. One line
-(`validate.ts`'s `validateUniqueFieldNames`throw branch) stays intentionally uncovered and is
-documented as provably unreachable by any legally-typed`Record<string, number>`(proven: no
-real JS object (literal,`Map`, `Proxy`, or otherwise) can hold two same-named enumerable own
+  90 (roadmap Phase J, supersedes/absorbs the`H-PHI` coverage-policy entry above).** The D10
+  transient relaxation is now RESOLVED: targeted tests
+  (`test/profiles-merge-validate-coverage.test.ts`) closed the `mergeCustomSegments`/inheritance
+  branches in `profiles/merge.ts`and the validator branches in`profiles/validate.ts`+`profiles/describe.ts`that were unreachable via the public`defineProfile()`API alone.`src/profiles/\*\*`now carries its own`>= 90`per-directory coverage gate
+  (lines/branches/functions/statements) in`vitest.config.ts`, and the global `branches` floor is
+  back to the canonical 90, no remaining relaxation. One line
+  (`validate.ts`'s `validateUniqueFieldNames`throw branch) stays intentionally uncovered and is
+  documented as provably unreachable by any legally-typed`Record<string, number>`(proven: no
+  real JS object (literal,`Map`, `Proxy`, or otherwise) can hold two same-named enumerable own
   keys), matching the module's own defense-in-depth JSDoc.
 - **Reference test bar: fuzz target, PHI-exec surfaces, and a differential harness (roadmap Phase
   J, "finish the reference test bar").** Three additions, no behavior change:

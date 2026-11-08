@@ -115,9 +115,9 @@ const suppliedString = fc.oneof(
     "998~115",
     "998^x^NDC^115",
   ),
-  fc.stringOf(nearMissChar, { maxLength: 6 }),
+  fc.string({ unit: nearMissChar, maxLength: 6 }),
   fc.string({ maxLength: 8 }),
-  fc.fullUnicodeString({ maxLength: 4 }),
+  fc.string({ unit: "binary", maxLength: 4 }),
 );
 
 /**

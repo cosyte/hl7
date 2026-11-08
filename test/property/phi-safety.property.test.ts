@@ -139,7 +139,7 @@ describe("property: PHI safety in warning paths", () => {
     // nor with numeric field counts.
     const markerChar = fc.constantFrom(..."ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-".split(""));
     const tokenArb = fc
-      .stringOf(markerChar, { minLength: 6, maxLength: 24 })
+      .string({ unit: markerChar, minLength: 6, maxLength: 24 })
       .filter((s) => s.length >= 6);
 
     fc.assert(
@@ -175,7 +175,7 @@ describe("property: PHI safety in warning paths", () => {
     // through the real tokenizer + escape layer.
     const markerChar = fc.constantFrom(..."ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-".split(""));
     const tokenArb = fc
-      .stringOf(markerChar, { minLength: 6, maxLength: 24 })
+      .string({ unit: markerChar, minLength: 6, maxLength: 24 })
       .filter((s) => s.length >= 6);
 
     fc.assert(
@@ -269,7 +269,7 @@ describe("property: PHI safety when a field-internal line break forges a segment
   it("property: arbitrary forged-segment content never reaches a warning message", () => {
     const markerChar = fc.constantFrom(..."ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-, ".split(""));
     const tokenArb = fc
-      .stringOf(markerChar, { minLength: 6, maxLength: 40 })
+      .string({ unit: markerChar, minLength: 6, maxLength: 40 })
       .filter((s) => s.trim().length >= 6);
 
     fc.assert(
@@ -433,7 +433,7 @@ describe("property: PHI safety on the Buffer / MSH-18 charset path", () => {
   it("property: arbitrary PHI-shaped values misread as MSH-18 never reach a message", () => {
     const labelChar = fc.constantFrom(..."ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-/. ".split(""));
     const labelArb = fc
-      .stringOf(labelChar, { minLength: 6, maxLength: 20 })
+      .string({ unit: labelChar, minLength: 6, maxLength: 20 })
       .filter((s) => s.trim().length >= 6 && !/^(ASCII|UNICODE|UTF-8)$/i.test(s.trim()));
 
     fc.assert(

@@ -46,17 +46,7 @@ import type { XTN } from "../model/types/xtn.js";
  * `HD`, `XCN`).
  */
 export type CompositeKind =
-  | "XPN"
-  | "XAD"
-  | "CX"
-  | "CWE"
-  | "CE"
-  | "XTN"
-  | "PL"
-  | "TS"
-  | "NM"
-  | "HD"
-  | "XCN";
+  "XPN" | "XAD" | "CX" | "CWE" | "CE" | "XTN" | "PL" | "TS" | "NM" | "HD" | "XCN";
 
 /**
  * Maps each {@link CompositeKind} to the typed value {@link encodeComposite}

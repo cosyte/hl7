@@ -48,7 +48,7 @@ const DELIMITER_CHARS = ["|", "^", "~", "\\", "&", "\n"] as const;
  */
 export function safeValue(): fc.Arbitrary<string> {
   return fc
-    .stringOf(fc.constantFrom(...SAFE_CHARS), { minLength: 1, maxLength: 12 })
+    .string({ unit: fc.constantFrom(...SAFE_CHARS), minLength: 1, maxLength: 12 })
     .filter((s) => s.trim() === s && s.length > 0 && s !== '""');
 }
 
@@ -60,7 +60,7 @@ export function safeValue(): fc.Arbitrary<string> {
  */
 export function delimiterLadenValue(): fc.Arbitrary<string> {
   const alphabet = [...SAFE_CHARS.split(""), ...DELIMITER_CHARS];
-  return fc.stringOf(fc.constantFrom(...alphabet), { minLength: 1, maxLength: 16 }).filter(
+  return fc.string({ unit: fc.constantFrom(...alphabet), minLength: 1, maxLength: 16 }).filter(
     (s) =>
       // trim-stable: no leading/trailing ASCII whitespace (incl. the \n we
       // may have inserted), and non-empty, and not the null token.
@@ -154,7 +154,8 @@ export function specCleanMessageRaw(): fc.Arbitrary<string> {
       receivingApp: safeValue(),
       receivingFacility: safeValue(),
       controlId: fc
-        .stringOf(fc.constantFrom(..."ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".split("")), {
+        .string({
+          unit: fc.constantFrom(..."ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".split("")),
           minLength: 1,
           maxLength: 20,
         })

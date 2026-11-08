@@ -78,7 +78,8 @@ describe("property: buildAck verbatim echo for delimiter-bearing control ids", (
   // the spec-clean serializer canonicalizes them away (D-02): that
   // canonicalization is documented, not a truncation.
   const quirkyControlId = fc
-    .stringOf(fc.constantFrom(..."ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789^&~".split("")), {
+    .string({
+      unit: fc.constantFrom(..."ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789^&~".split("")),
       minLength: 1,
       maxLength: 20,
     })

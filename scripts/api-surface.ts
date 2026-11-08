@@ -74,14 +74,7 @@ import ts from "typescript";
 
 /** What kind of thing an export is, as a consumer would describe it. */
 type ExportKind =
-  | "class"
-  | "enum"
-  | "function"
-  | "interface"
-  | "namespace"
-  | "type"
-  | "variable"
-  | "unknown";
+  "class" | "enum" | "function" | "interface" | "namespace" | "type" | "variable" | "unknown";
 
 interface ApiExport {
   readonly name: string;

@@ -104,7 +104,7 @@ describe("property: HL7-ESC full-alphabet byte-verbatim fidelity", () => {
   // space, which is orthogonal to escape fidelity): so the generated OBX-5
   // stays a single spec-clean subcomponent whose only escapes are the tokens
   // above.
-  const plainRun = fc.stringOf(fc.constantFrom(..."abcXYZ0189".split("")), { maxLength: 6 });
+  const plainRun = fc.string({ unit: fc.constantFrom(..."abcXYZ0189".split("")), maxLength: 6 });
   const escapedContent = fc
     .array(fc.tuple(plainRun, escapeToken), { minLength: 1, maxLength: 8 })
     .map((pairs) => pairs.map(([p, e]) => p + e).join(""));

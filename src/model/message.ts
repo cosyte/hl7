@@ -208,8 +208,7 @@ export class Hl7Message {
   public readonly version: string;
   public readonly warnings: readonly Hl7ParseWarning[];
   public readonly profile:
-    | { readonly name: string; readonly lineage: readonly string[] }
-    | undefined;
+    { readonly name: string; readonly lineage: readonly string[] } | undefined;
 
   /**
    * Merged `dateFormats` list: `options.dateFormats ++ profile.dateFormats`

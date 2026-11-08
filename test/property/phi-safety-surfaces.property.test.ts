@@ -62,7 +62,7 @@ const PHI_MARKERS = [
 
 const markerChar = fc.constantFrom(..."ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-".split(""));
 const markerArb = fc
-  .stringOf(markerChar, { minLength: 6, maxLength: 24 })
+  .string({ unit: markerChar, minLength: 6, maxLength: 24 })
   .filter((s) => s.length >= 6);
 
 /**
