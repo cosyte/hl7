@@ -34,8 +34,6 @@
   "packageManager": "pnpm@10.34.5",
   "pnpm": {
     "overrides": {
-      "@cosyte/process>@vitest/coverage-v8": "4.1.12",
-      "@cosyte/process>vitest": "4.1.12",
       "brace-expansion@>=4.0.0 <5.0.12": "5.0.12",
       "esbuild@>=0.27.3 <0.28.1": "0.28.1",
       "js-yaml@>=3.0.0 <3.15.2": "3.15.2",
@@ -113,7 +111,7 @@
     "@cosyte/eslint-config": "^0.1",
     "@cosyte/prettier-config": "^0.1",
     "@cosyte/process": "^0.1",
-    "@cosyte/script-utils": "0.1.4",
+    "@cosyte/script-utils": "0.1.5",
     "@cosyte/tsconfig": "^0.1",
     "@cosyte/tsup-config": "^0.1",
     "@cosyte/vitest-config": "^0.1",
