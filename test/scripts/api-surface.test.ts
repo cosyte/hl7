@@ -35,16 +35,37 @@
 
 import { spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 const REPO_ROOT = process.cwd();
 const TSX_BIN = join(REPO_ROOT, "node_modules", ".bin", "tsx");
-const TSUP_BIN = join(REPO_ROOT, "node_modules", ".bin", "tsup");
+const TSUP_BIN = tsupBinPath();
 const SCRIPT_PATH = join(REPO_ROOT, "scripts", "api-surface.ts");
 const INVENTORY_PATH = join(REPO_ROOT, "release", "public-api.json");
+
+/**
+ * The `tsup` that `pnpm build` runs. `@cosyte/process` owns the build tool and its version, so
+ * this repository declares no `tsup` of its own: the bin is resolved from the process package, then
+ * read from tsup's own `bin` field rather than from a `node_modules/.bin` shim, which is a shell
+ * wrapper on some platforms and cannot be handed to `node` directly.
+ */
+function tsupBinPath(): string {
+  const fromProcess = createRequire(
+    createRequire(import.meta.url).resolve("@cosyte/process/package.json"),
+  );
+  const manifestPath = fromProcess.resolve("tsup/package.json");
+  const parsed: unknown = JSON.parse(readFileSync(manifestPath, "utf8"));
+  const bin: unknown =
+    typeof parsed === "object" && parsed !== null && "bin" in parsed ? parsed.bin : undefined;
+  const entry: unknown =
+    typeof bin === "object" && bin !== null && "tsup" in bin ? bin.tsup : undefined;
+  if (typeof entry !== "string") throw new Error(`${manifestPath} declares no \`tsup\` bin`);
+  return join(dirname(manifestPath), entry);
+}
 
 /** A build plus a script run are both well over the suite's 10s default. */
 const BUILD_TIMEOUT = 180_000;
@@ -117,7 +138,7 @@ let freshDeclarations = "";
 
 beforeAll(() => {
   const out = tempDir("hl7-api-surface-");
-  const build = spawnSync(TSUP_BIN, ["--out-dir", out], {
+  const build = spawnSync(process.execPath, [TSUP_BIN, "--out-dir", out], {
     cwd: REPO_ROOT,
     encoding: "utf8",
     shell: false,
@@ -159,6 +180,15 @@ describe("the committed public-export inventory", () => {
     // would make the baseline disagree between two machines that agree about the API.
     const text = readFileSync(INVENTORY_PATH, "utf8");
     expect(text).not.toMatch(/"[^"]*\/(?:home|Users|workspace|tmp)\//);
+  });
+
+  it("names a symbol-keyed member by its symbol, not by the checker's id for it", () => {
+    // `__@iterator@497` carries the checker's running symbol count, which moves whenever the bundled
+    // declarations change size or order: tsup 9 renumbered it with no change to the API. The
+    // script records `[Symbol.iterator]` instead, so a rebuild cannot churn the baseline.
+    const text = readFileSync(INVENTORY_PATH, "utf8");
+    expect(text).not.toMatch(/__@\w+@\d+/);
+    expect(text).toContain('"[Symbol.iterator]: () => StringIterator<string>"');
   });
 });
 

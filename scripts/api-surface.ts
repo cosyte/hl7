@@ -165,6 +165,21 @@ function isPublicMember(property: ts.Symbol): boolean {
   );
 }
 
+/**
+ * A member's name as a consumer writes it.
+ *
+ * A member keyed by a well-known symbol (`[Symbol.iterator]`) has an internal name of the form
+ * `__@iterator@497`, and the trailing number is the checker's id for that symbol: it counts every
+ * symbol created before it in the program, so it moves whenever the bundled declarations change
+ * size or order, with no change to the API. tsup 9 renumbered every one of them. The checker's own
+ * `symbolToString` prints the stable `[Symbol.iterator]` form, which is what this records; every
+ * other name is kept exactly as `getName()` returns it.
+ */
+function memberName(checker: ts.TypeChecker, property: ts.Symbol): string {
+  const name = property.getName();
+  return name.startsWith("__@") ? checker.symbolToString(property) : name;
+}
+
 /** `name: Type` for each property of a type, `name?: Type` when the property is optional. */
 function propertyLines(checker: ts.TypeChecker, type: ts.Type, prefix = ""): string[] {
   return checker
@@ -177,7 +192,7 @@ function propertyLines(checker: ts.TypeChecker, type: ts.Type, prefix = ""): str
           ? checker.getTypeOfSymbol(property)
           : checker.getTypeOfSymbolAtLocation(property, declaration);
       const optional = (property.flags & ts.SymbolFlags.Optional) === 0 ? "" : "?";
-      return `${prefix}${property.getName()}${optional}: ${printType(checker, propertyType, declaration)}`;
+      return `${prefix}${memberName(checker, property)}${optional}: ${printType(checker, propertyType, declaration)}`;
     })
     .sort();
 }
@@ -199,7 +214,7 @@ function staticLines(checker: ts.TypeChecker, symbol: ts.Symbol): string[] {
         propertyDeclaration === undefined
           ? checker.getTypeOfSymbol(property)
           : checker.getTypeOfSymbolAtLocation(property, propertyDeclaration);
-      return `static ${property.getName()}: ${printType(checker, propertyType, propertyDeclaration)}`;
+      return `static ${memberName(checker, property)}: ${printType(checker, propertyType, propertyDeclaration)}`;
     })
     .sort();
 }

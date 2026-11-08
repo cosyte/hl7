@@ -13,18 +13,22 @@
  * reviewable directly in the diff.
  */
 
+import { sortedCodeSet } from "@cosyte/test-utils";
 import { describe, expect, it } from "vitest";
 
 import { FATAL_CODES, WARNING_CODES } from "../src/index.js";
 
-/** Sorted list of the public Tier-2 warning code strings. */
+/**
+ * Sorted by the shared `sortedCodeSet`, which compares by code point rather than by locale, so the
+ * snapshot is identical on every machine.
+ */
 function sortedWarningCodes(): string[] {
-  return Object.values(WARNING_CODES).sort((a, b) => a.localeCompare(b));
+  return sortedCodeSet(WARNING_CODES);
 }
 
-/** Sorted list of the public Tier-3 fatal code strings. */
+/** Sorted list of the public Tier-3 fatal code strings, the same way. */
 function sortedFatalCodes(): string[] {
-  return Object.values(FATAL_CODES).sort((a, b) => a.localeCompare(b));
+  return sortedCodeSet(FATAL_CODES);
 }
 
 describe("public API: WARNING_CODES surface is stable", () => {

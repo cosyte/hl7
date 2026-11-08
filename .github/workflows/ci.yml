@@ -41,6 +41,9 @@ jobs:
           node-version: "22"
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # The build, test, lint, typecheck and format scripts stay the exact `cosyte-process` bodies.
+      - name: Process wiring (cosyte-process check)
+        run: pnpm check:process
       - name: Build (examples + kit import the built package)
         run: pnpm build
       - name: Examples (smoke)
