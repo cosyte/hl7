@@ -61,11 +61,40 @@ jobs:
           pnpm lint
           pnpm test
           pnpm build
+      # The kit's workflows are linted by the same actionlint the shared CI's `actionlint` job runs
+      # over this repository's own (EN6), installed by that job's steps: rhysd/actionlint's release
+      # binary at the version and SHA-256 below, checked before it is unpacked. Never
+      # reviewdog/action-actionlint, which from v1.75.0 installs actionlint by piping a fork's
+      # script to bash. A new version changes both values together, with the shared job's.
+      - name: Install actionlint at the pinned version and checksum
+        env:
+          ACTIONLINT_VERSION: "1.7.12"
+          ACTIONLINT_SHA256: "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8"
+        shell: bash
+        run: |
+          set -euo pipefail
+          tarball="actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          curl -fsSL --retry 3 -o "${RUNNER_TEMP}/${tarball}" \
+            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/${tarball}"
+          echo "${ACTIONLINT_SHA256}  ${RUNNER_TEMP}/${tarball}" | sha256sum -c -
+          tar -xzf "${RUNNER_TEMP}/${tarball}" -C "${RUNNER_TEMP}" actionlint
+          "${RUNNER_TEMP}/actionlint" --version
+          shellcheck --version
+      # Every workflow file the kit tracks, so a new one is linted without an edit here. The step
+      # fails on actionlint's own exit status, and on finding no file at all.
       - name: Validate kit workflows (actionlint)
-        uses: reviewdog/action-actionlint@6fb7acc99f4a1008869fa8a0f09cfca740837d9d # v1.72.0
-        with:
-          fail_on_error: true
-          actionlint_flags: -color=never examples/profile-starter-kit/.github/workflows/ci.yml examples/profile-starter-kit/.github/workflows/publish.yml
+        shell: bash
+        run: |
+          set -euo pipefail
+          listed="$(git ls-files -- 'examples/profile-starter-kit/.github/workflows/*.yml' \
+            'examples/profile-starter-kit/.github/workflows/*.yaml')"
+          if [ -z "${listed}" ]; then
+            echo "::error::no workflow file found under examples/profile-starter-kit/.github/workflows/"
+            exit 1
+          fi
+          mapfile -t files <<< "${listed}"
+          "${RUNNER_TEMP}/actionlint" -color "${files[@]}"
+          echo "actionlint clean over ${#files[@]} kit workflow file(s)."
 
   # The repository's documents, each graded by the shared checker @cosyte/script-utils ships: the
   # README against the house skeleton and npm's size limit, CLAUDE.md against the card spec, and
