@@ -117,7 +117,11 @@ function withoutLines(text: string, pattern: RegExp): string {
 /** Drop the `permissions:` key and everything nested under it. */
 function withoutPermissionsBlock(text: string): string {
   const lines = text.split("\n");
-  const at = lines.findIndex((line) => /^\s*permissions:\s*$/.test(line.split("#")[0] ?? line));
+  // The calling job's block, never the read-only workflow-level `permissions:` above `jobs:`.
+  const jobs = lines.indexOf("jobs:");
+  const at = lines.findIndex(
+    (line, index) => index > jobs && /^\s*permissions:\s*$/.test(line.split("#")[0] ?? line),
+  );
   if (at === -1) {
     throw new Error("no `permissions:` block found in " + RELEASE_WORKFLOW_PATH + " to remove");
   }
