@@ -13,8 +13,8 @@ name: Public-surface gate
 # WHAT ACTUALLY SCANS. `pnpm check:no-internal-refs`, which is `cosyte-internal-refs`, the
 # internal-reference gate `@cosyte/script-utils` publishes. It reads this repository's own axes
 # from `scripts/internal-refs.json`: the prefixes, the standards designations that must never be
-# flagged, the public surface, the tarball accounting, the source doc-comment pass and the extra
-# self-test samples. The rules, the self-test floor and every refusal live in that package, in ONE
+# flagged, the public surface, the tarball accounting, the source doc-comment and string-literal
+# passes and the extra self-test samples. The rules, the self-test floor and every refusal live in that package, in ONE
 # copy across the estate. The job
 # below delegates the plumbing (checkout, pnpm, Node) to the shared gate workflow, which carries
 # no pattern, no allow-list and no file selection of its own: it prepares the tree, runs the

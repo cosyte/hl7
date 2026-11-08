@@ -63,8 +63,13 @@ interface RunResult {
   out: string;
 }
 
-function run(bin: string, args: string[], cwd: string): RunResult {
-  const r = spawnSync(bin, args, { cwd, encoding: "utf8", timeout: 100_000 });
+function run(
+  bin: string,
+  args: string[],
+  cwd: string,
+  env: NodeJS.ProcessEnv = process.env,
+): RunResult {
+  const r = spawnSync(bin, args, { cwd, encoding: "utf8", timeout: 100_000, env });
   return { code: r.status ?? -1, out: `${r.stdout ?? ""}${r.stderr ?? ""}` };
 }
 
@@ -400,19 +405,30 @@ describe("AC-8 and AC-9: the argument allow-list", () => {
     expect(r.out).not.toContain(PASS);
   });
 
-  // The bin answers `--help` and `-h` itself, with its usage and exit 0, and never reaches the
-  // gate. That is an exit 0 over nothing checked, so it must never reach the `attw` script: AC-10
-  // pins every `attw` script to exactly `cosyte-attw`, with no argument.
+  // The bin answers `--help` and `-h` itself, with its usage, and never reaches the gate. At a
+  // terminal that is exit 0 over nothing checked, so it must never reach the `attw` script: AC-10
+  // pins every `attw` script to exactly `cosyte-attw`, with no argument. Under CI (script-utils
+  // 0.1.6 and later) the bin exits non-zero instead, so a script ending in `--help` cannot pass a
+  // required check.
+  const terminal: NodeJS.ProcessEnv = { ...process.env, CI: "" };
+  const ci: NodeJS.ProcessEnv = { ...process.env, CI: "true" };
   it.each([["--help"], ["-h"]])(
     "AC-8: %s prints the bin's usage, runs nothing, and never prints the pass line",
     (flag) => {
-      const r = runGate(wellFormed, [flag]);
+      const r = run(GATE_BIN, [flag], wellFormed, terminal);
       expect(r.code).toBe(0);
       expect(r.out).toContain("cosyte-attw: run the attw publish gate");
       expect(r.out).not.toContain(PASS);
       expect(r.out).not.toContain(REFUSAL);
     },
   );
+
+  it.each([["--help"], ["-h"]])("AC-8: %s under CI exits non-zero and never passes", (flag) => {
+    const r = run(GATE_BIN, [flag], wellFormed, ci);
+    expect(r.code).not.toBe(0);
+    expect(r.out).toContain("cosyte-attw: run the attw publish gate");
+    expect(r.out).not.toContain(PASS);
+  });
 
   it(
     "AC-9: accepts --profile node16 --no-definitely-typed on the well-formed package",

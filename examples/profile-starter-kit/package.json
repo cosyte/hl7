@@ -60,7 +60,7 @@
     "@cosyte/eslint-config": "^0.1",
     "@cosyte/hl7": "file:../..",
     "@cosyte/prettier-config": "^0.1",
-    "@cosyte/script-utils": "0.1.5",
+    "@cosyte/script-utils": "0.1.7",
     "@cosyte/tsconfig": "^0.1",
     "@cosyte/tsup-config": "^0.1",
     "@cosyte/vitest-config": "^0.1",

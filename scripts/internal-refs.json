@@ -57,6 +57,10 @@
     "enabled": true,
     "paths": ["src/*.ts", "src/**/*.ts"]
   },
+  "sourceStringLiterals": {
+    "enabled": true,
+    "paths": ["src/*.ts", "src/**/*.ts"]
+  },
   "extraSamples": {
     "internal-identifier": {
       "positives": ["Item HL7-N is done, and CCDA-P7 with it"],

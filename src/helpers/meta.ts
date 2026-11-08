@@ -2,8 +2,7 @@
  * `buildMeta`: compose MSH-derived message metadata into the frozen `Meta`
  * view exposed by `Hl7Message.meta` (HELPERS-01). Implementation composes on
  * the public surface (`msg.get`, `msg.segments("MSH")[0].field(N)`),
- * never walks `rawSegments` directly (CONTEXT.md §domain "Compose, don't
- * reach through").
+ * and never walks `rawSegments` directly.
  *
  * D-01 freeze at boundary. D-02 memoization is handled by the caller
  * (`Hl7Message.meta` getter). D-03 Meta is always defined: MSH absence

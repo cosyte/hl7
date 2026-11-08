@@ -8,7 +8,7 @@
  * other recoverable deviation is a warning unless `{ strict: true }` is
  * passed.
  *
- * Pipeline order (locked by CONTEXT.md D-03): Buffer decode → EMPTY_INPUT
+ * Pipeline order (fixed): Buffer decode → EMPTY_INPUT
  * check → BOM strip → MLLP strip → re-check EMPTY_INPUT → line-ending
  * normalize → emitter build → MLLP warning → segment split → delimiter
  * discovery → tokenize → version extract → Hl7Message construct.
@@ -72,8 +72,8 @@ const OPTIONS_ONLY_KEYS: readonly (keyof ParseOptions)[] = [
 ];
 
 /**
- * Discriminate the optional second argument of `parseHL7` per CONTEXT.md
- * D-06. `undefined` → empty options. A bare `Profile` (object with
+ * Discriminate the optional second argument of `parseHL7`.
+ * `undefined` → empty options. A bare `Profile` (object with
  * `name: string` and none of the options-only keys) → wrapped into
  * `{ profile }`. Anything else with an options-only key wins the
  * `ParseOptions` branch (even when it also has a `name` field) so callers
@@ -111,8 +111,8 @@ function discriminateOptionsOrProfile(arg: ParseOptions | Profile | undefined): 
 }
 
 /**
- * Build the single `emit` chokepoint passed into every parser stage per
- * CONTEXT.md D-11. Lenient mode: push the warning to the accumulator
+ * Build the single `emit` chokepoint passed into every parser stage.
+ * Lenient mode: push the warning to the accumulator
  * array, invoke `effectiveProfile?.onWarning` FIRST (D-22) inside its own
  * try/catch so handler throws are swallowed silently, THEN invoke
  * `options.onWarning` inside its own try/catch (consistency with the

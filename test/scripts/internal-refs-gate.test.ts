@@ -198,6 +198,9 @@ const BASE: Files = {
       2,
     ) + "\n",
   "src/index.ts": docComment(" * Reads an OBX-5 value from a segment."),
+  // A warning message, so the string-literal pass has a literal to read in every fixture: it
+  // refuses an empty extraction, as the doc-comment pass does.
+  "src/messages.ts": 'export const MESSAGE = "OBX-5 value could not be read.";\n',
   // The gate's one per-repository file: this repository's axes, carried into every fixture.
   "scripts/internal-refs.json": readFileSync(join(REPO_ROOT, "scripts", "internal-refs.json")),
 };
@@ -723,6 +726,22 @@ describe("AC-11 the states in which the gate must refuse rather than report clea
     expect(run.status).not.toBe(0);
     expect(run.stdout).not.toMatch(OK_LINE);
     expect(run.stderr).toContain("not tracked");
+  });
+
+  it("refuses an internal identifier in a src string literal, a message a consumer reads", () => {
+    const run = verdict({
+      "src/messages.ts": 'export const MESSAGE = "Not modeled yet (HL7-N7).";\n',
+    });
+    expect(run.status).toBe(1);
+    expect(run.stderr).toContain("src string literal");
+    expect(run.stderr).toContain("src/messages.ts");
+  });
+
+  it("AC-11 refuses an empty string-literal extraction from a non-empty source tree", () => {
+    const run = verdict({ "src/messages.ts": "export const COUNT = 1;\n" });
+    expect(run.status).not.toBe(0);
+    expect(run.stdout).not.toMatch(OK_LINE);
+    expect(run.stderr).toContain("string literals");
   });
 
   it("AC-11 refuses an empty doc-comment extraction from a non-empty source tree", () => {
