@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.5
+
+### Patch Changes
+
+- 2df04a2: The doc comments on the entry point, the parser pipeline and `buildMeta` describe what the code does, without references to planning notes.
+
 ## 0.1.4
 
 ### Patch Changes
