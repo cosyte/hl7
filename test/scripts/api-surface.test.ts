@@ -26,7 +26,7 @@
  *     are byte identical after the run.
  *  4. MISSING INPUTS REFUSE, AND AN EMPTY SURFACE IS NEVER A MATCH. `tsup` writes JS before
  *     declarations, so every build has a window where `dist/` holds no `.d.ts` at all; the same
- *     window is why `scripts/attw.mjs` carries a preflight. Absent, empty and export-less
+ *     window is why the shared `attw` gate carries a preflight. Absent, empty and export-less
  *     declarations each have their own case, because they fail in different places in the script
  *     and a single one of them would leave the other two unproven.
  *

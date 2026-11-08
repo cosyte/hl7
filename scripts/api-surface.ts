@@ -21,7 +21,8 @@
  *      happens to differ from the inventory" and never "zero exports, which happens to match an
  *      empty inventory". `tsup` writes JS before declarations, so every build has a window where
  *      `dist/` holds no `.d.ts` at all; a gate that cannot say its own inputs were missing reports
- *      that window as a pass. `scripts/attw.mjs` carries the same net for the same reason.
+ *      that window as a pass. The shared `attw` gate (`cosyte-attw`) carries the same net for the
+ *      same reason.
  *   3. IT NAMES EVERY DIFFERENCE. Added, removed and changed exports are listed individually, with
  *      the before and after for a change, so the reviewer decides whether the change is intended
  *      rather than being told only that something moved.

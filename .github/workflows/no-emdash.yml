@@ -1,23 +1,20 @@
 name: Em-dash gate
 
-# The brand rule (founder directive 2026-07-24, knowledgebase 06-brand/voice-and-tone.md,
-# widened on 2026-11-07) bans the em dash (U+2014) and the en dash (U+2013) outright across
-# every Cosyte surface, and names commit messages explicitly.
-# This repository is clean, so the gate exists purely to keep it that way. A green run on a
-# clean tree proves nothing on its own, which is why the script it calls refuses to print OK
-# from a scan that did not read everything.
+# The brand rule (knowledgebase 06-brand/voice-and-tone.md, widened on 2026-11-07) bans the em
+# dash (U+2014) and the en dash (U+2013) outright across every Cosyte surface, in every encoded
+# form and in file names, and names commit messages explicitly. This repository is clean, so the
+# gate exists to keep it that way.
 #
-# WHAT ACTUALLY SCANS. `pnpm check:no-emdash`, which reaches the one em-dash gate the
-# estate publishes in `@cosyte/script-utils`. This repository tracks no implementation of
-# its own and declares only what its scan leaves out. The job below delegates the plumbing
-# (checkout, pnpm, Node) to the shared gate workflow, and that workflow carries no pattern,
-# no allow-list and no file selection of its own: it prepares the tree, runs the command,
-# and lets the command's exit status decide the job.
+# WHAT ACTUALLY SCANS. `pnpm check:no-emdash`, which is `cosyte-no-emdash`, the one dash gate
+# `@cosyte/script-utils` publishes. This repository tracks no implementation of its own and
+# declares only what its scan leaves out, in `scripts/check-no-emdash.exclude`. The job below
+# delegates the plumbing (checkout, pnpm, Node, the install from the committed lockfile) to the
+# shared gate workflow, which carries no pattern, no allow-list and no file selection of its own:
+# it prepares the tree, runs the command, and lets the command's exit status decide the job.
 #
-# THERE IS NO INSTALL STEP ON THIS PATH, and none can be added: a reusable workflow takes
-# no install and a job that calls one carries no steps of its own. The command installs
-# from the committed lockfile itself when the package is not on disk, and exits non-zero
-# naming what it could not reach rather than reporting a clean tree.
+# IT NAMES THE INSTALLING FORM of the shared gate, because the gate lives in `node_modules`: a
+# tree with no install cannot reach it, and the gate then fails closed rather than reporting a
+# clean tree. A failed install reds the job without running the scan.
 #
 # TWO CONTEXTS, NOT ONE, AND THE JOB ID IS LOAD-BEARING. A called job's check run is named
 # `<caller job id> / <inner job id>`, so the job id `no-emdash` below publishes
@@ -61,7 +58,7 @@ jobs:
     # deleted by anyone who gains write access to the workflow's repository, so a tag is not
     # an immutable reference and is not a pin. The trailing comment is the published
     # reference that commit was released as, so the release note stays findable from here.
-    uses: cosyte/.github/.github/workflows/gate-no-emdash.yml@498c7c13c8869bf11b67fa8324684ec2dc691ec6 # workflows-2026-11-07-498c7c13c886
+    uses: cosyte/.github/.github/workflows/gate-no-emdash-install.yml@498c7c13c8869bf11b67fa8324684ec2dc691ec6 # workflows-2026-11-07-498c7c13c886
     # No more than the scan needs. A called workflow's GITHUB_TOKEN can only be downgraded
     # by its caller, and this gate reads the tree and nothing else.
     permissions:

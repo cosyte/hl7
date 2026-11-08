@@ -1,6 +1,6 @@
 /**
- * Tests for the `attw` publish gate as this repository runs it: `scripts/attw.mjs`, a CALLER of
- * the shared body published as `@cosyte/script-utils/attw`.
+ * Tests for the `attw` publish gate as this repository runs it: `pnpm attw`, which is
+ * `cosyte-attw`, the bin `@cosyte/script-utils` ships for its shared `attw` gate.
  *
  * The gate's nets, its argument allow-list and the measurements behind them are documented once,
  * in the docblock at the top of `node_modules/@cosyte/script-utils/attw.js`, and are not restated
@@ -13,9 +13,14 @@
  *   - the controls (a well-formed package is green, a real `attw` finding keeps attw's status);
  *   - the argument allow-list (every measured blinding spelling refused, `--profile node16`
  *     accepted);
- *   - that no second copy of the gate lives in this repository, and that every manifest carrying
- *     an `attw` script, derived rather than recalled, runs the caller at the same pinned version;
- *   - that the caller fails closed when the shared body cannot be reached.
+ *   - that no copy of the gate lives in this repository, and that every manifest carrying an
+ *     `attw` script, derived rather than recalled, runs `cosyte-attw` at the same pinned version;
+ *   - that the gate fails closed when the shared package is not installed.
+ *
+ * The command-line form resolves `attw` from its WORKING DIRECTORY: it runs the
+ * `node_modules/.bin/attw` of the package it checks. So each throwaway package below gets a
+ * `node_modules/.bin/attw` that runs this repository's own binary, which is what an install
+ * gives a real package.
  *
  * The real `attw` binary, `npm` and `pnpm` run in every behavioural case; nothing is doubled.
  * `attw` is invoked with `--no-definitely-typed` so the runs stay offline.
@@ -26,7 +31,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { spawnSync } from "node:child_process";
 import {
-  copyFileSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -35,14 +39,14 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 
 const REPO_ROOT = process.cwd();
-const CALLER = join(REPO_ROOT, "scripts", "attw.mjs");
+const GATE_BIN = join(REPO_ROOT, "node_modules", ".bin", "cosyte-attw");
 const ATTW_BIN = join(REPO_ROOT, "node_modules", ".bin", "attw");
-const SPECIFIER = "@cosyte/script-utils/attw";
+/** The `attw` script every manifest here carries: the shared gate's bin, and nothing else. */
+const GATE_SCRIPT = "cosyte-attw";
 const OFFLINE = ["--no-definitely-typed"];
 /** The shared body's pass line and refusal prefix. */
 const PASS = "✓ attw gate";
@@ -65,8 +69,7 @@ function run(bin: string, args: string[], cwd: string): RunResult {
 }
 
 const runAttw = (cwd: string): RunResult => run(ATTW_BIN, ["--pack", ".", ...OFFLINE], cwd);
-const runGate = (cwd: string, args: string[] = OFFLINE): RunResult =>
-  run(process.execPath, [CALLER, ...args], cwd);
+const runGate = (cwd: string, args: string[] = OFFLINE): RunResult => run(GATE_BIN, args, cwd);
 
 /** The string at `obj[path[0]][path[1]]...`, or undefined when a step is absent or not that shape. */
 function stringAt(obj: unknown, ...path: string[]): string | undefined {
@@ -127,6 +130,13 @@ function writePkg(dir: string, pkg: Record<string, unknown>, files: Record<strin
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, "package.json"), JSON.stringify(pkg, null, 2));
   for (const [name, body] of Object.entries(files)) writeFileSync(join(dir, name), body);
+  // The gate runs the `attw` of the package it checks. pnpm's `.bin` shims find their target
+  // relative to their own path, so a symbolic link to one would point nowhere; a script that
+  // runs this repository's shim by its absolute path is what an install would have put here.
+  mkdirSync(join(dir, "node_modules", ".bin"), { recursive: true });
+  writeFileSync(join(dir, "node_modules", ".bin", "attw"), `#!/bin/sh\nexec "${ATTW_BIN}" "$@"\n`, {
+    mode: 0o755,
+  });
 }
 
 const DUAL_EXPORTS = {
@@ -235,23 +245,26 @@ afterAll(() => {
   rmSync(root, { recursive: true, force: true });
 });
 
-describe("AC-2: the gate is the published body, and no second copy lives here", () => {
+describe("AC-2: the gate is the published bin, and no copy lives here", () => {
   it(
-    "AC-2: scripts/attw.mjs resolves the published package and runs its body",
+    "AC-2: pnpm attw runs cosyte-attw from the pinned @cosyte/script-utils",
     () => {
-      const resolved = createRequire(CALLER).resolve(SPECIFIER).replaceAll("\\", "/");
-      expect(resolved).toContain("/node_modules/");
-      expect(resolved.endsWith("/@cosyte/script-utils/attw.js")).toBe(true);
-      const published = readJson(join(dirname(resolved), "package.json"));
-      const pinned = stringAt(
-        readJson(join(REPO_ROOT, "package.json")),
-        "devDependencies",
-        "@cosyte/script-utils",
+      const manifest = readJson(join(REPO_ROOT, "package.json"));
+      expect(stringAt(manifest, "scripts", "attw")).toBe(GATE_SCRIPT);
+      const published = readJson(
+        join(REPO_ROOT, "node_modules", "@cosyte", "script-utils", "package.json"),
       );
       expect(stringAt(published, "name")).toBe("@cosyte/script-utils");
-      expect(stringAt(published, "version")).toBe(pinned);
+      expect(stringAt(published, "version")).toBe(
+        stringAt(manifest, "devDependencies", "@cosyte/script-utils"),
+      );
+      expect(
+        stringAt(published, "bin", GATE_SCRIPT),
+        "no cosyte-attw bin is published",
+      ).toBeTruthy();
+      expect(existsSync(GATE_BIN), `${GATE_BIN} is missing`).toBe(true);
 
-      // The shared body prints this pass line; the local body this replaced never did.
+      // The shared body prints this pass line.
       const r = runGate(wellFormed);
       expect(r.out).toContain(`${PASS}: attw-gate-fixture-wellformed@1.0.0`);
     },
@@ -263,7 +276,8 @@ describe("AC-2: the gate is the published body, and no second copy lives here", 
       .filter((e) => e.isDirectory())
       .map((e) => `examples/${e.name}/scripts`);
     const files = [...filesUnder("scripts"), ...examples.flatMap((d) => filesUnder(d))];
-    expect(files, "nothing was scanned").toContain("scripts/attw.mjs");
+    expect(files.length, "nothing was scanned").toBeGreaterThan(0);
+    expect(files, "a local attw caller came back").not.toContain("scripts/attw.mjs");
 
     const offenders: string[] = [];
     for (const rel of files) {
@@ -376,8 +390,6 @@ describe("AC-8 and AC-9: the argument allow-list", () => {
     ["-qP", ["-qP"]],
     ["-Pf json", ["-Pf", "json"]],
     ["--config-path other.json", ["--config-path", "other.json"]],
-    ["--help", ["--help"]],
-    ["-h", ["-h"]],
     ["--version", ["--version"]],
     ["-V", ["-V"]],
     ["--definitely-typed 4.9", ["--definitely-typed", "4.9"]],
@@ -387,6 +399,20 @@ describe("AC-8 and AC-9: the argument allow-list", () => {
     expect(r.out).toContain(REFUSAL);
     expect(r.out).not.toContain(PASS);
   });
+
+  // The bin answers `--help` and `-h` itself, with its usage and exit 0, and never reaches the
+  // gate. That is an exit 0 over nothing checked, so it must never reach the `attw` script: AC-10
+  // pins every `attw` script to exactly `cosyte-attw`, with no argument.
+  it.each([["--help"], ["-h"]])(
+    "AC-8: %s prints the bin's usage, runs nothing, and never prints the pass line",
+    (flag) => {
+      const r = runGate(wellFormed, [flag]);
+      expect(r.code).toBe(0);
+      expect(r.out).toContain("cosyte-attw: run the attw publish gate");
+      expect(r.out).not.toContain(PASS);
+      expect(r.out).not.toContain(REFUSAL);
+    },
+  );
 
   it(
     "AC-9: accepts --profile node16 --no-definitely-typed on the well-formed package",
@@ -399,12 +425,15 @@ describe("AC-8 and AC-9: the argument allow-list", () => {
   );
 });
 
-describe("AC-10: every manifest with an attw script runs the caller", () => {
-  it("AC-10: the census is derived, and each member runs the caller at the root's exact pin", () => {
+describe("AC-10: every manifest with an attw script runs the shared gate", () => {
+  it("AC-10: the census is derived, and each member runs cosyte-attw at the root's exact pin", () => {
     const census = manifestsUnder().filter(
       (rel) => stringAt(readJson(join(REPO_ROOT, rel)), "scripts", "attw") !== undefined,
     );
     expect(census, "the root manifest carries an attw script").toContain("package.json");
+    expect(census, "the starter kit carries an attw script").toContain(
+      "examples/profile-starter-kit/package.json",
+    );
 
     const rootPin = stringAt(
       readJson(join(REPO_ROOT, "package.json")),
@@ -415,49 +444,44 @@ describe("AC-10: every manifest with an attw script runs the caller", () => {
 
     for (const rel of census) {
       const pkg = readJson(join(REPO_ROOT, rel));
-      expect(stringAt(pkg, "scripts", "attw"), `${rel} attw script`).toBe("node scripts/attw.mjs");
-      const caller = join(REPO_ROOT, rel.replace(/package\.json$/, "scripts/attw.mjs"));
-      expect(existsSync(caller), `${caller} is missing`).toBe(true);
-      const src = readFileSync(caller, "utf8");
-      expect(src, `${caller} does not import ${SPECIFIER}`).toMatch(
-        /["']@cosyte\/script-utils\/attw["']/,
-      );
-      expect(src, `${caller} does not pass its own import.meta.url`).toMatch(
-        /runAttwGate\(\{\s*callerUrl:\s*import\.meta\.url\s*\}\)/,
-      );
+      expect(stringAt(pkg, "scripts", "attw"), `${rel} attw script`).toBe(GATE_SCRIPT);
       expect(stringAt(pkg, "devDependencies", "@cosyte/script-utils"), `${rel} pin`).toBe(rootPin);
     }
   });
 });
 
-describe("AC-14: the caller fails closed when the shared body cannot be reached", () => {
-  // A package holding a copy of each caller, beside a `@cosyte/script-utils` whose `exports` has
-  // no `./attw` (the shape of every version before the subpath shipped), or none at all.
-  it.each([
-    ["scripts/attw.mjs", "a version without the ./attw subpath"],
-    ["scripts/attw.mjs", "no @cosyte/script-utils installed"],
-    ["examples/profile-starter-kit/scripts/attw.mjs", "a version without the ./attw subpath"],
-    ["examples/profile-starter-kit/scripts/attw.mjs", "no @cosyte/script-utils installed"],
-  ])("AC-14: %s exits non-zero naming the specifier with %s", (callerRel, shape) => {
-    const dir = mkdtempSync(join(root, "unreachable-"));
-    writePkg(dir, { name: "attw-gate-fixture-unreachable", version: "1.0.0", type: "module" }, {});
-    mkdirSync(join(dir, "scripts"));
-    copyFileSync(join(REPO_ROOT, callerRel), join(dir, "scripts", "attw.mjs"));
-    if (shape.startsWith("a version")) {
+describe("AC-14: the gate fails closed when the shared package is not installed", () => {
+  it(
+    "AC-14: pnpm attw exits non-zero naming the bin in a package without @cosyte/script-utils",
+    () => {
+      const dir = mkdtempSync(join(root, "unreachable-"));
       writePkg(
-        join(dir, "node_modules", "@cosyte", "script-utils"),
+        dir,
         {
-          name: "@cosyte/script-utils",
-          version: "0.0.2",
+          name: "attw-gate-fixture-unreachable",
+          version: "1.0.0",
           type: "module",
-          exports: { ".": "./index.js" },
+          scripts: { attw: GATE_SCRIPT },
         },
-        { "index.js": "export {};\n" },
+        {},
       );
-    }
-    const r = run(process.execPath, ["scripts/attw.mjs"], dir);
-    expect(r.code).not.toBe(0);
-    expect(r.out).toContain(SPECIFIER);
-    expect(r.out).not.toContain(PASS);
-  });
+      // Only this package's own bins may be on the path, as in a fresh clone of a repository that
+      // has not installed: this suite runs under pnpm, which puts this repository's bins there.
+      const path = (process.env["PATH"] ?? "")
+        .split(":")
+        .filter((entry) => !entry.includes("node_modules/.bin"))
+        .join(":");
+      const r = spawnSync("pnpm", ["run", "attw"], {
+        cwd: dir,
+        encoding: "utf8",
+        timeout: 100_000,
+        env: { ...process.env, PATH: path },
+      });
+      const out = `${r.stdout ?? ""}${r.stderr ?? ""}`;
+      expect(r.status).not.toBe(0);
+      expect(out).toContain(GATE_SCRIPT);
+      expect(out).not.toContain(PASS);
+    },
+    SPAWN_TIMEOUT,
+  );
 });
