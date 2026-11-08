@@ -54,4 +54,34 @@ describe("generateControlId (D-12)", () => {
     expect(suffix).toHaveLength(6);
     expect(suffix).toMatch(/^[A-Za-z0-9]{6}$/);
   });
+
+  describe("the random suffix is uniform over the 62-character alphabet", () => {
+    const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    const IDS = 20_000;
+    const counts = new Map<string, number>();
+    for (let i = 0; i < IDS; i++) {
+      for (const char of generateControlId().slice(17)) {
+        counts.set(char, (counts.get(char) ?? 0) + 1);
+      }
+    }
+    const total = IDS * 6;
+
+    it("can produce every character of the alphabet and nothing else", () => {
+      expect([...counts.keys()].sort()).toEqual([...ALPHABET].sort());
+    });
+
+    it("does not favor the first 8 characters, as reducing a random byte modulo 62 would", () => {
+      // 256 = 4 * 62 + 8, so a byte reduced modulo 62 lands on each of A..H with probability
+      // 5/256 and on every other character with 4/256: A..H together would draw 15.6% of the
+      // characters instead of the uniform 8/62, 12.9%. Over 120,000 characters the uniform share
+      // has a standard deviation of about 0.1 percentage points, so the midpoint, 14.3%, sits more
+      // than ten deviations from either outcome.
+      const firstEight = [...ALPHABET.slice(0, 8)].reduce(
+        (sum, c) => sum + (counts.get(c) ?? 0),
+        0,
+      );
+      expect(firstEight / total).toBeLessThan(0.143);
+      expect(firstEight / total).toBeGreaterThan(0.116);
+    });
+  });
 });

@@ -270,7 +270,7 @@ describe("parseStream: unterminated final message (surfaced, never dropped, neve
     // A whitespace-only tail with no terminator is kept exactly as splitBatch
     // keeps it (parity of the two surfaces), and is NOT a truncation signal.
     for (const tail of ["   ", "\t", " \t "]) {
-      const whole = validMessage("WSPACE1").replace(/\r$/, "\r") + tail; // trailing whitespace, no CR
+      const whole = validMessage("WSPACE1") + tail; // trailing whitespace, no CR
       const streamed = summarize(await collect(chunk(whole, 3)));
       const batched = splitBatch(whole).messages.map((e) =>
         e.ok ? { ok: true, key: e.message.toString() } : { ok: false, key: e.error.code },

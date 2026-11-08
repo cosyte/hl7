@@ -5,7 +5,7 @@
  *
  * Decisions:
  * - D-12: exact shape above; uniqueness via `Date.now()` + cryptographic
- *   random bytes from `node:crypto.randomBytes` (WR-03 hardening: was
+ *   random draws from `node:crypto.randomInt` (WR-03 hardening: was
  *   `Math.random` originally); alphabet is plain `[A-Za-z0-9]` (Claude's
  *   Discretion: readability doesn't matter: IDs aren't human-typed).
  * - D-31: zero deps: Node stdlib only (`node:crypto` is stdlib).
@@ -13,7 +13,7 @@
  * @internal
  */
 
-import { randomBytes } from "node:crypto";
+import { randomInt } from "node:crypto";
 
 /**
  * Alphabet for the random suffix: plain alphanumeric. Readability doesn't
@@ -34,15 +34,14 @@ function pad(n: number, width: number): string {
  * Generate an HL7 message control ID per D-12. Shape: 17-char UTC timestamp
  * `YYYYMMDDHHmmssSSS` + 6 random alphanumeric chars = 23 chars total.
  *
- * The 6-char suffix is sourced from `node:crypto.randomBytes(6)` and mapped
- * into the 62-char alnum alphabet. This avoids the `Math.random` collision
- * risk flagged in WR-03 under heavy concurrent load (many parallel workers
- * generating IDs in the same millisecond). Note: mapping 256-bucket bytes
- * into a 62-bucket alphabet via modulo introduces a tiny distributional
- * bias (the first 20 alphabet slots are ~slightly more likely than the
- * last 42), but the bias is negligible for uniqueness: the effective
- * entropy on the suffix remains > 35 bits, and the 17-char ms timestamp
- * prefix further partitions the ID space.
+ * Each of the 6 suffix characters is drawn with `node:crypto.randomInt`,
+ * a cryptographically secure source that samples the 62-char alnum
+ * alphabet uniformly (it rejects out-of-range draws rather than reducing
+ * them modulo 62, which would favor the first 8 characters). This avoids
+ * the `Math.random` collision risk flagged in WR-03 under heavy concurrent
+ * load (many parallel workers generating IDs in the same millisecond): the
+ * suffix carries 6 * log2(62), about 35.7 bits, and the 17-char ms
+ * timestamp prefix further partitions the ID space.
  *
  * Zero dependencies: uses `Date` + `node:crypto` only (D-31); both are
  * Node stdlib.
@@ -59,16 +58,11 @@ export function generateControlId(): string {
     pad(now.getUTCMinutes(), 2) +
     pad(now.getUTCSeconds(), 2) +
     pad(now.getUTCMilliseconds(), 3);
-  const bytes = randomBytes(6);
   let suffix = "";
   for (let i = 0; i < 6; i++) {
-    // noUncheckedIndexedAccess: bytes is a Buffer of known length 6, so
-    // bytes[i] is a number (0..255). The `?? 0` reflects that invariant
-    // without a forbidden non-null assertion: the loop bound is a literal 6
-    // that matches the requested byte count, so bytes[i] is always defined.
-    const byte = bytes[i] ?? 0;
-    const idx = byte % ALNUM_ALPHABET.length;
-    // ALNUM_ALPHABET.charAt(idx) is always a single-char string.
+    // randomInt(max) returns an integer in [0, max) with every value equally
+    // likely, so ALNUM_ALPHABET.charAt(idx) is always a single-char string.
+    const idx = randomInt(ALNUM_ALPHABET.length);
     suffix += ALNUM_ALPHABET.charAt(idx);
   }
   return ts + suffix;

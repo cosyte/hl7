@@ -41,7 +41,15 @@
  *   --errors <file>     default `src/parser/errors.ts`
  */
 
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import {
+  closeSync,
+  constants,
+  fstatSync,
+  openSync,
+  readFileSync,
+  readdirSync,
+  statSync,
+} from "node:fs";
 import { basename, join, resolve } from "node:path";
 
 const ROOT = resolve(import.meta.dirname, "..");
@@ -672,14 +680,21 @@ function main(): void {
   const contents = new Map<string, string>();
   for (const page of pages) {
     const full = join(docsDir, page);
+    // One descriptor for the check and the read, so the file judged regular is the file read.
+    // O_NONBLOCK lets a FIFO named like a page open at once and fail the check instead of
+    // waiting for a writer; it has no effect on a regular file.
+    let fd: number | undefined;
     try {
-      if (!statSync(full).isFile()) {
+      fd = openSync(full, constants.O_RDONLY | constants.O_NONBLOCK);
+      if (!fstatSync(fd).isFile()) {
         fail("readability", full, "enumerated as a page but is not a regular file");
         continue;
       }
-      contents.set(page, readFileSync(full, "utf8"));
+      contents.set(page, readFileSync(fd, "utf8"));
     } catch (err) {
       fail("readability", full, `enumerated as a page but could not be read: ${String(err)}`);
+    } finally {
+      if (fd !== undefined) closeSync(fd);
     }
   }
 

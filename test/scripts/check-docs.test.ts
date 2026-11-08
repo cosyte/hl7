@@ -765,6 +765,27 @@ describe("enumeration and empty-scan refusals", () => {
     expect(r.output).toContain("not a regular file");
   });
 
+  it("refuses a FIFO named like a page at once, rather than waiting on it for a writer", () => {
+    if (process.platform === "win32") return; // no mkfifo
+    const docs = newTree();
+    const fifo = join(docs, "pipe-page.md");
+    if (spawnSync("mkfifo", [fifo]).status !== 0) return; // no mkfifo on this host
+    // The checker opens each page once and checks that descriptor. Opened without O_NONBLOCK, a
+    // FIFO blocks until something writes to it, so this run carries its own bound: a hang ends
+    // in ETIMEDOUT here instead of stalling the suite.
+    const r = spawnSync(TSX_BIN, [CHECKER_PATH, "--docs", docs], {
+      cwd: REPO_ROOT,
+      encoding: "utf8",
+      shell: false,
+      timeout: 30_000,
+    });
+    expect(r.error).toBeUndefined();
+    expect(r.status).not.toBe(0);
+    const output = `${r.stdout ?? ""}${r.stderr ?? ""}`;
+    expect(output).toContain("pipe-page.md");
+    expect(output).toContain("not a regular file");
+  });
+
   it("refuses a docs directory with no pages rather than reporting a clean scan", () => {
     const dir = mkdtempSync(join(tmpdir(), "hl7-check-docs-"));
     scratch.push(dir);
