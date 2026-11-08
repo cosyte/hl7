@@ -4,7 +4,7 @@
  * and (for `Buffer` input) decodes bytes into a string using MSH-18 charset
  * resolution with a UTF-8 fallback.
  *
- * Per CONTEXT.md D-03 the canonical preprocessing order is:
+ * The canonical preprocessing order is:
  *   1. EMPTY_INPUT check (fatal)
  *   2. BOM strip (silent)
  *   3. MLLP strip

@@ -5,7 +5,7 @@
  * by `0x0D` / CR). This module strips those control bytes and flags the event
  * via the `MLLP_FRAMING_STRIPPED` Tier-2 warning (TOL-06).
  *
- * Per CONTEXT.md D-03, MLLP stripping runs after BOM strip and before
+ * MLLP stripping runs after BOM strip and before
  * line-ending normalization in the overall pipeline. `parseHL7` composes the
  * full pipeline; this module stays standalone so it can be invoked in the
  * exact right position.

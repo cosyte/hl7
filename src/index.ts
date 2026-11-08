@@ -1,16 +1,11 @@
 /**
- * Public entry point for the `@cosyte/hl7` package.
- *
- * The full public API (parseHL7, defineProfile, helpers, types) is populated
- * in subsequent phases. This stub keeps the module resolvable and typed so
- * downstream tooling (tsup, vitest, tsc) can verify the build/typecheck
- * pipeline end-to-end.
+ * Public entry point for the `@cosyte/hl7` package: `parseHL7`,
+ * `defineProfile`, the helpers and the types.
  */
 
 /**
- * Library version string, synced with `package.json#version` at build time
- * by downstream phases. Exported now so consumers (and the type-check
- * pipeline) have at least one symbol to resolve through the `exports` map.
+ * Library version string, kept equal to `package.json#version` by each
+ * release.
  *
  * @example
  * ```ts
