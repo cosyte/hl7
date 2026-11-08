@@ -12,7 +12,7 @@ Add a changeset for every meaningful change:
 pnpm changeset
 ```
 
-Pick the bump type the change earns: **minor** when it ADDS behaviour a consumer can call, **patch**
-when it CORRECTS behaviour. Do not pick **major** without a deliberate decision to declare this API
-stable, because below `1.0.0` that is what it resolves to. `pnpm tsx scripts/release-readiness.ts`
-reports what the pending queue resolves to.
+Pick **patch**. On the 0.1 line a minor or major release is a maintainer's decision, taken before
+the changeset is written, so a change that ADDS behavior a consumer can call is still a patch, and
+its summary says what the consumer gains. `pnpm tsx scripts/release-readiness.ts` reports what the
+pending queue resolves to.

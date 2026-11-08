@@ -12,7 +12,7 @@
 [![npm version](https://img.shields.io/npm/v/@cosyte/hl7.svg)](https://www.npmjs.com/package/@cosyte/hl7)
 [![CI](https://img.shields.io/github/actions/workflow/status/cosyte/hl7/ci.yml?branch=main&label=CI)](https://github.com/cosyte/hl7/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/cosyte/hl7/blob/main/LICENSE)
-[![Node](https://img.shields.io/badge/node-%3E%3D22-brightgreen.svg)](https://nodejs.org)
+[![Node](https://img.shields.io/badge/node-%3E%3D22.0.0-brightgreen.svg)](https://nodejs.org)
 
 A developer-focused HL7 v2 parser and utility library for Node.js and TypeScript. Optimized for the 10% of HL7 you actually use, with the other 90% still one accessor away when you need it.
 
@@ -65,7 +65,7 @@ Permanently out of scope:
 pnpm add @cosyte/hl7
 ```
 
-Requires Node.js 22 or later, tested on 22 and 24 (`engines.node` is `>=22.0.0`). The package ships dual ESM and CommonJS builds with type declarations for both, so `import` and `require` both work and neither needs a compatibility shim. There are zero runtime dependencies: the Node standard library is all it loads.
+Requires Node.js 22 or later, tested on 22, 24, and 26 (`engines.node` is `>=22.0.0`). The package ships dual ESM and CommonJS builds with type declarations for both, so `import` and `require` both work and neither needs a compatibility shim. There are zero runtime dependencies: the Node standard library is all it loads.
 
 ---
 

@@ -19,7 +19,7 @@ configuration.
 
 ## Prerequisites
 
-- **Node.js 22 or later, tested on 22 and 24.** The whole `@cosyte/*` suite targets ES2023.
+- **Node.js 22 or later, tested on 22, 24, and 26.** The whole `@cosyte/*` suite targets ES2023.
 - A package manager: `pnpm`, `npm`, or `yarn`.
 - **No runtime dependencies.** Nothing else is pulled in; the parser is Node stdlib only.
 
