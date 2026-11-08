@@ -19,10 +19,10 @@ permissions:
 
 jobs:
   # Universal gates from the shared pipeline (typecheck, lint, format, test, coverage, build, attw,
-  # dual ESM/CJS smoke, actionlint) on the standard Node matrix. hl7 ships a PHI scanner, so the
+  # dual ESM/CJS smoke, actionlint) on Node 22, 24, and 26. hl7 ships a PHI scanner, so the
   # shared pipeline's optional PHI-scan step is switched on.
   ci:
-    uses: cosyte/.github/.github/workflows/ci.yml@main
+    uses: cosyte/.github/.github/workflows/ci.yml@498c7c13c8869bf11b67fa8324684ec2dc691ec6 # workflows-2026-11-07-498c7c13c886
     with:
       run-phi-scan: true
 
