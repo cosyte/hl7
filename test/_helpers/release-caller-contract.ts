@@ -39,7 +39,7 @@ export const RELEASE_JOB_ID = "release";
 
 /** The reusable workflow the release job must delegate to, ref included. */
 export const SHARED_RELEASE_WORKFLOW =
-  "cosyte/.github/.github/workflows/release.yml@498c7c13c8869bf11b67fa8324684ec2dc691ec6";
+  "cosyte/.github/.github/workflows/release.yml@c0db8d8e5927269820de4401b3b5ad6141854b76";
 
 const WORKFLOW_LABEL = "`" + RELEASE_WORKFLOW_PATH + "`";
 const JOB_LABEL = "`" + RELEASE_JOB_ID + "`";
