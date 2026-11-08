@@ -383,12 +383,7 @@ export type PredicatePresence = "is valued" | "is not valued";
  * ```
  */
 export type PredicateVerb =
-  | "is"
-  | "is not"
-  | "contains"
-  | "does not contain"
-  | "matches"
-  | "does not match";
+  "is" | "is not" | "contains" | "does not contain" | "matches" | "does not match";
 
 /**
  * The frozen, ordered listing of the comparison verbs a condition predicate may

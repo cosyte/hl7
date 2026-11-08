@@ -56,7 +56,7 @@
     }
   },
   "devDependencies": {
-    "@arethetypeswrong/cli": "0.18.4",
+    "@arethetypeswrong/cli": "0.18.5",
     "@cosyte/eslint-config": "^0.1",
     "@cosyte/hl7": "file:../..",
     "@cosyte/prettier-config": "^0.1",
@@ -65,12 +65,12 @@
     "@cosyte/tsup-config": "^0.1",
     "@cosyte/vitest-config": "^0.1",
     "@types/node": "^22.0.0",
-    "@vitest/coverage-v8": "4.1.12",
-    "eslint": "10.5.0",
-    "prettier": "3.8.3",
+    "@vitest/coverage-v8": "5.1.0",
+    "eslint": "10.14.0",
+    "prettier": "3.9.10",
     "tsup": "8.5.1",
     "typescript": "5.9.3",
-    "vite": "7.3.7",
-    "vitest": "4.1.12"
+    "vite": "8.3.6",
+    "vitest": "5.1.0"
   }
 }

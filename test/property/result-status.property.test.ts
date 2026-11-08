@@ -100,9 +100,9 @@ const suppliedString = fc.oneof(
     "F\u001C",
     "\u000BF\u001C",
   ),
-  fc.stringOf(nearMissChar, { maxLength: 6 }),
+  fc.string({ unit: nearMissChar, maxLength: 6 }),
   fc.string({ maxLength: 8 }),
-  fc.fullUnicodeString({ maxLength: 4 }),
+  fc.string({ unit: "binary", maxLength: 4 }),
 );
 
 // A string written on the wire at OBX-11 / OBR-25 must stay inside that field: the field separator

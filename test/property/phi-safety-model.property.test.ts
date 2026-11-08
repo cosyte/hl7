@@ -121,7 +121,7 @@ describe("model invariant: an identifier field carries a bounded identifier", ()
     // minLength 3, not 6: at 6 the arb can never generate the SHORT residue the
     // shape legitimately accepts, so the accepted case would go untested.
     const tokenArb = fc
-      .stringOf(markerChar, { minLength: 3, maxLength: 40 })
+      .string({ unit: markerChar, minLength: 3, maxLength: 40 })
       .filter((t) => t.trim().length >= 3);
 
     fc.assert(

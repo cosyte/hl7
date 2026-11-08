@@ -1060,11 +1060,7 @@ export type ImmunizationRecordOrigin = "administered" | "historical";
  * ```
  */
 export type ImmunizationStatusClass =
-  | "completed"
-  | "not-done"
-  | "no-vaccine-administered"
-  | "delete-requested"
-  | "undetermined";
+  "completed" | "not-done" | "no-vaccine-administered" | "delete-requested" | "undetermined";
 
 /**
  * The HL7 v2 code table an {@link ImmunizationAdministrationStatus} read:

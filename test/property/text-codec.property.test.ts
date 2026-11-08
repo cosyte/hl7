@@ -96,7 +96,7 @@ describe("property: renderText is total and sentinel-free", () => {
       "\\.sk\\",
       "\\.sk4\\",
     ];
-    const safeRun = fc.stringOf(fc.constantFrom(..."abcXYZ ".split("")), { maxLength: 6 });
+    const safeRun = fc.string({ unit: fc.constantFrom(..."abcXYZ ".split("")), maxLength: 6 });
     const token = fc.constantFrom(...FORMATTING_TOKENS);
     const input = fc
       .array(fc.tuple(safeRun, token), { minLength: 1, maxLength: 10 })

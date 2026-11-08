@@ -80,8 +80,7 @@ import type { ProfiledMessage } from "../profiles/typed-fields.js";
  * ```
  */
 export type Hl7StreamSource =
-  | AsyncIterable<string | Buffer | Uint8Array>
-  | Iterable<string | Buffer | Uint8Array>;
+  AsyncIterable<string | Buffer | Uint8Array> | Iterable<string | Buffer | Uint8Array>;
 
 /**
  * One message yielded by {@link parseStream}. Discriminated on `ok`, mirroring

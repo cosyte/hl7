@@ -186,10 +186,11 @@ describe("fuzz: arbitrary byte/char strings never throw except a 4-fatal Hl7Pars
   });
 
   it("random printable-ASCII strings shaped loosely like segments", () => {
-    const segLine = fc.stringOf(
-      fc.constantFrom(..."ABCDEFGHIJKLMNOPQRSTUVWXYZ|^~\\&0123456789 \t".split("")),
-      { minLength: 0, maxLength: 80 },
-    );
+    const segLine = fc.string({
+      unit: fc.constantFrom(..."ABCDEFGHIJKLMNOPQRSTUVWXYZ|^~\\&0123456789 \t".split("")),
+      minLength: 0,
+      maxLength: 80,
+    });
     fc.assert(
       fc.property(fc.array(segLine, { minLength: 0, maxLength: 15 }), (lines) => {
         assertNeverThrowsExceptFatal(lines.join("\r"));
