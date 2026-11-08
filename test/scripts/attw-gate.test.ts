@@ -465,11 +465,13 @@ describe("AC-14: the gate fails closed when the shared package is not installed"
         },
         {},
       );
-      // Only this package's own bins may be on the path, as in a fresh clone of a repository that
-      // has not installed: this suite runs under pnpm, which puts this repository's bins there.
+      // No bin of this repository may be on the path, as in a fresh clone that has not installed:
+      // this suite runs under pnpm, which puts this repository's bins there. Only entries inside
+      // this repository go, because pnpm itself can live in a `node_modules/.bin` of its own (CI's
+      // pnpm/action-setup installs it under `~/setup-pnpm`).
       const path = (process.env["PATH"] ?? "")
         .split(":")
-        .filter((entry) => !entry.includes("node_modules/.bin"))
+        .filter((entry) => !entry.startsWith(REPO_ROOT))
         .join(":");
       const r = spawnSync("pnpm", ["run", "attw"], {
         cwd: dir,
