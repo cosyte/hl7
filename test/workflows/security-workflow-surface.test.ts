@@ -70,14 +70,14 @@ const MUTATIONS: readonly Mutation[] = [
   {
     file: "codeql.yml",
     name: "a moved uses target",
-    from: "uses: cosyte/.github/.github/workflows/codeql.yml@498c7c13c8869bf11b67fa8324684ec2dc691ec6",
+    from: "uses: cosyte/.github/.github/workflows/codeql.yml@c0db8d8e5927269820de4401b3b5ad6141854b76",
     to: "uses: cosyte/.github/.github/workflows/codeql.yml@v1",
     element: "jobs.codeql.uses",
   },
   {
     file: "codeql.yml",
     name: "a uses target back on @main",
-    from: "uses: cosyte/.github/.github/workflows/codeql.yml@498c7c13c8869bf11b67fa8324684ec2dc691ec6",
+    from: "uses: cosyte/.github/.github/workflows/codeql.yml@c0db8d8e5927269820de4401b3b5ad6141854b76",
     to: "uses: cosyte/.github/.github/workflows/codeql.yml@main",
     element: "jobs.codeql.uses",
   },
@@ -112,14 +112,14 @@ const MUTATIONS: readonly Mutation[] = [
   {
     file: "scorecard.yml",
     name: "a moved uses target",
-    from: "uses: cosyte/.github/.github/workflows/scorecard.yml@498c7c13c8869bf11b67fa8324684ec2dc691ec6",
+    from: "uses: cosyte/.github/.github/workflows/scorecard.yml@c0db8d8e5927269820de4401b3b5ad6141854b76",
     to: "uses: cosyte/.github/.github/workflows/scorecard.yml@v2",
     element: "jobs.scorecard.uses",
   },
   {
     file: "scorecard.yml",
     name: "a uses target back on @main",
-    from: "uses: cosyte/.github/.github/workflows/scorecard.yml@498c7c13c8869bf11b67fa8324684ec2dc691ec6",
+    from: "uses: cosyte/.github/.github/workflows/scorecard.yml@c0db8d8e5927269820de4401b3b5ad6141854b76",
     to: "uses: cosyte/.github/.github/workflows/scorecard.yml@main",
     element: "jobs.scorecard.uses",
   },
