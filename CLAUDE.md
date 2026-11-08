@@ -27,6 +27,7 @@ pnpm examples
 pnpm check:docs
 pnpm check:no-emdash
 pnpm check:no-internal-refs
+pnpm check:documents
 cd examples/profile-starter-kit && pnpm install --no-frozen-lockfile \
   && pnpm typecheck && pnpm lint && pnpm test && pnpm build
 ```
@@ -43,8 +44,7 @@ guess, and keep message text out of errors, warnings and logs.
 - Errors, warnings and model identifiers (`Segment.type`, `Hl7Message.version`) carry bounded
   tokens from `src/parser/tokens.ts`, never raw message text: a name and a record number once
   reached `Hl7ParseWarning.message` (#70).
-- Both `attw` scripts (root and `examples/profile-starter-kit`) stay exactly
-  `node scripts/attw.mjs`: bare `attw` exits 0 on a tarball that carries no types (#78).
+- Both `attw` scripts (root and starter kit) stay `cosyte-attw`: bare `attw` passes no types (#78).
 - A change under `src/` adds a changeset, and every changeset is a `patch` until the operator okays
   a minor (2026-11-07). Say what a consumer gains: an all-`patch` queue once hid seven additions
   (#113). Never hand-edit `CHANGELOG.md`: the summary is the entry (#87).
@@ -56,5 +56,5 @@ guess, and keep message text out of errors, warnings and logs.
 - `.github/workflows/release.yml` keeps all four grants (`actions: read`, `contents: write`,
   `id-token: write`, `pull-requests: write`): without them every release failed at startup
   (#34, #98).
-- A new `@cosyte/script-utils` pin reds the starter kit's install for 24 hours:
-  `documentation/agent-notes.md#the-starter-kits-24-hour-install-window` (#168).
+- The kit's `pnpm-workspace.yaml` keeps the 24-hour floor consumers inherit; only CI exempts
+  `@cosyte` (2026-11-08): `documentation/agent-notes.md#the-starter-kits-24-hour-install-window`.

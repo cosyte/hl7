@@ -22,3 +22,15 @@
 # other tracked file and excludes nothing on its own behalf.
 vendor/hl7-v2ig/message-structure/
 vendor/hl7-v2ig/control-manifests/
+
+# THE CHANGELOG. Every entry above "Released before this file was generated" is written by the
+# release tool from a changeset, and every changeset passes this same scan before it can merge, so
+# new text is already covered. Below that heading is the frozen archive of releases before the tool,
+# which is never hand-edited and holds en dashes in its history. The shared gate excludes by exact
+# path, not by heading, so the whole file is listed.
+CHANGELOG.md
+
+# VERBATIM ROWS FROM THE HL7 V2-TO-FHIR IMPLEMENTATION GUIDE, used as test fixtures. Like the
+# vendored files above, these are grounded data, copied byte for byte, not prose we write.
+test/fixtures/fhir-bridge/ig-segment-maps/OBR-DiagnosticReport.csv
+test/fixtures/fhir-bridge/ig-segment-maps/OBX-Observation.csv

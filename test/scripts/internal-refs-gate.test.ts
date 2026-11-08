@@ -136,13 +136,23 @@ function runGateOnFixture(root: string): GateRun {
   const argv = rest.map((token) =>
     !token.startsWith("-") && existsSync(join(REPO_ROOT, token)) ? join(REPO_ROOT, token) : token,
   );
-  return spawn(command, argv, root);
+  return spawn(binFrom(REPO_ROOT, command), argv, root);
 }
 
 /** Run the gate the way the workflow does: the checkout's own copy, from its own root. */
 function runGateInCheckout(root: string): GateRun {
   const [command, ...rest] = splitInvocation();
-  return spawn(command, rest, root);
+  return spawn(binFrom(root, command), rest, root);
+}
+
+/**
+ * A bare command is a package bin, which `pnpm run` finds in `node_modules/.bin`. Resolve it
+ * against the tree that installed it, never against the caller's `PATH`: this suite runs under
+ * pnpm, so this repository's own bins are on that path, and a checkout with no install would
+ * otherwise reach them.
+ */
+function binFrom(base: string, command: string): string {
+  return command.includes("/") ? command : join(base, "node_modules", ".bin", command);
 }
 
 /** The invocation as a command and its operands, refusing an empty one rather than guessing. */
@@ -188,6 +198,8 @@ const BASE: Files = {
       2,
     ) + "\n",
   "src/index.ts": docComment(" * Reads an OBX-5 value from a segment."),
+  // The gate's one per-repository file: this repository's axes, carried into every fixture.
+  "scripts/internal-refs.json": readFileSync(join(REPO_ROOT, "scripts", "internal-refs.json")),
 };
 
 /** A markdown page with one body block, so a case supplies only the text it is about. */
@@ -317,7 +329,7 @@ describe("AC-12 the exit and stream discipline", () => {
     expect(run.stderr).not.toMatch(OK_LINE);
   });
 
-  it("AC-12 keeps one exit vocabulary: 0 for clean, one non-zero code for a hit and a refusal alike", () => {
+  it("AC-12 keeps the shared gate's exit vocabulary: 0 for clean, 1 for a hit, 2 for a refusal", () => {
     const clean = verdict();
     const hit = verdict({ "README.md": page(POSITIVE.identifier) });
     const refusal = verdict({
@@ -325,7 +337,7 @@ describe("AC-12 the exit and stream discipline", () => {
         files: ["dist", "README.md", "LICENSE", "TRADEMARKS.md", "CHANGELOG.md", "docs-extra"],
       }),
     });
-    expect([clean.status, hit.status, refusal.status]).toEqual([0, 1, 1]);
+    expect([clean.status, hit.status, refusal.status]).toEqual([0, 1, 2]);
   });
 });
 

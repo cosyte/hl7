@@ -104,11 +104,18 @@ export interface CallerSpec {
   readonly ceilingFact: CoverageFact;
 }
 
-/** The em-dash gate caller: two contexts, and `edited` is load-bearing. */
+/**
+ * The em-dash gate caller: two contexts, and `edited` is load-bearing.
+ *
+ * It names the installing form of the shared gate for the same reason the public-surface caller
+ * below does: `pnpm check:no-emdash` is `cosyte-no-emdash`, a bin in `node_modules`, so a runner
+ * handed a tree with no install cannot reach the gate. Both forms publish the same
+ * `tracked-files` and `messages` job ids, so the choice moves no check-run context.
+ */
 export const EMDASH_CALLER: CallerSpec = {
   path: ".github/workflows/no-emdash.yml",
   jobId: "no-emdash",
-  reusable: "cosyte/.github/.github/workflows/gate-no-emdash.yml",
+  reusable: "cosyte/.github/.github/workflows/gate-no-emdash-install.yml",
   commit: "498c7c13c8869bf11b67fa8324684ec2dc691ec6",
   reference: "workflows-2026-11-07-498c7c13c886",
   innerJobIds: ["tracked-files", "messages"],

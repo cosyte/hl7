@@ -23,7 +23,12 @@
     },
     "./package.json": "./package.json"
   },
-  "files": ["dist", "README.md", "LICENSE", "CUSTOMIZING.md"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CUSTOMIZING.md"
+  ],
   "sideEffects": false,
   "publishConfig": {
     "access": "public"
@@ -38,7 +43,7 @@
     "format:check": "prettier --check \"src/**/*.{ts,md}\" \"test/**/*.ts\" \"*.{json,md}\"",
     "test": "vitest run",
     "test:watch": "vitest",
-    "attw": "node scripts/attw.mjs",
+    "attw": "cosyte-attw",
     "clean": "rm -rf dist coverage",
     "prepublishOnly": "pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm attw"
   },
@@ -55,7 +60,7 @@
     "@cosyte/eslint-config": "^0.1",
     "@cosyte/hl7": "file:../..",
     "@cosyte/prettier-config": "^0.1",
-    "@cosyte/script-utils": "0.1.1",
+    "@cosyte/script-utils": "0.1.4",
     "@cosyte/tsconfig": "^0.1",
     "@cosyte/tsup-config": "^0.1",
     "@cosyte/vitest-config": "^0.1",
