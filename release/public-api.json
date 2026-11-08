@@ -1857,7 +1857,7 @@
       "kind": "type",
       "type": "",
       "members": [
-        "__@iterator@497: () => StringIterator<string>",
+        "[Symbol.iterator]: () => StringIterator<string>",
         "anchor: (name: string) => string",
         "at: (index: number) => string | undefined",
         "big: () => string",
@@ -1914,7 +1914,7 @@
       "kind": "type",
       "type": "",
       "members": [
-        "__@iterator@497: () => StringIterator<string>",
+        "[Symbol.iterator]: () => StringIterator<string>",
         "anchor: (name: string) => string",
         "at: (index: number) => string | undefined",
         "big: () => string",
@@ -2073,7 +2073,7 @@
       "kind": "type",
       "type": "",
       "members": [
-        "__@iterator@497: () => StringIterator<string>",
+        "[Symbol.iterator]: () => StringIterator<string>",
         "anchor: (name: string) => string",
         "at: (index: number) => string | undefined",
         "big: () => string",
@@ -2284,7 +2284,7 @@
       "kind": "type",
       "type": "",
       "members": [
-        "__@iterator@497: () => StringIterator<string>",
+        "[Symbol.iterator]: () => StringIterator<string>",
         "anchor: (name: string) => string",
         "at: (index: number) => string | undefined",
         "big: () => string",
