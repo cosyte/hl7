@@ -128,6 +128,8 @@ The full reference lives at [docs.cosyte.com/hl7](https://docs.cosyte.com/hl7), 
 
 Questions, bug reports, and quirk sightings all start on the [issue tracker](https://github.com/cosyte/hl7/issues), and so does any refactor large enough to want discussion before a pull request.
 
+Need an HL7 v2 integration built, or hosted and run for you? See our [integration services](https://cosyte.com/integration-services).
+
 ---
 
 ## Security
