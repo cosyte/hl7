@@ -11,7 +11,8 @@
  * Pipeline order (fixed): Buffer decode → EMPTY_INPUT
  * check → BOM strip → MLLP strip → re-check EMPTY_INPUT → line-ending
  * normalize → emitter build → MLLP warning → segment split → delimiter
- * discovery → tokenize → version extract → Hl7Message construct.
+ * discovery → scan (every warning, no tree) → build → version extract →
+ * Hl7Message construct.
  */
 
 import type { Buffer } from "node:buffer";
@@ -22,9 +23,11 @@ import { KNOWN_SEGMENTS, canonicalSegmentName } from "./known-segments.js";
 import { emitIfFramed, stripMllp } from "./mllp.js";
 import { canonicalCharset } from "./charset.js";
 import { normalize, normalizeBuffer } from "./normalize.js";
-import { snippet as segmentSnippet, splitSegments } from "./segments.js";
-import { tokenize } from "./tokenize.js";
-import { locateInteriorFramingBytes, recordAlteredFields } from "./wire-fidelity.js";
+import { scanMessage } from "./scan.js";
+import { SegmentSource } from "./segment-source.js";
+import { snippet as segmentSnippet } from "./segments.js";
+import { alteredFieldsBySegment, locateInteriorFramingBytes } from "./wire-fidelity.js";
+import type { RawFieldPosition } from "./wire-fidelity.js";
 import { analyzeMessageStructure, findMessageStructureDefinition } from "./message-structure.js";
 import {
   encodingMismatch,
@@ -32,7 +35,6 @@ import {
   safeCharsetLabel,
   segmentCase,
   unknownSegment,
-  WARNING_CODES,
 } from "./warnings.js";
 import type { Hl7ParseWarning } from "./warnings.js";
 import type {
@@ -479,11 +481,14 @@ export function parseHL7(
     emitIfFramed(mllpResult, emit, { segmentIndex: 0 });
   }
 
-  // Step 9: Segment split.
-  const segments = splitSegments(inputForPipeline);
-  if (segments.length === 0) {
-    // Defensive: splitSegments returning [] implies empty input, which the
-    // earlier EMPTY_INPUT checks would have caught. Fall through with a
+  // Step 9: Segment split. One trailing `\r` ends the last segment rather than starting an empty
+  // one, so a text that is `\r` alone holds no segment at all.
+  const textEnd = inputForPipeline.endsWith("\r")
+    ? inputForPipeline.length - 1
+    : inputForPipeline.length;
+  if (textEnd === 0) {
+    // Defensive: no segments implies empty input, which the earlier
+    // EMPTY_INPUT checks would have caught. Fall through with a
     // NO_MSH_SEGMENT fatal so the invariant "first segment exists" holds.
     throw new Hl7ParseError(
       FATAL_CODES.NO_MSH_SEGMENT,
@@ -495,33 +500,38 @@ export function parseHL7(
 
   // Step 10: Delimiter discovery (may throw NO_MSH_SEGMENT / MSH_TOO_SHORT
   // / INVALID_ENCODING_CHARACTERS).
-  const firstSegment = segments[0] ?? "";
-  const encoding = readDelimiters(firstSegment);
-
-  // Step 11: Tokenize (may emit FIELD_WHITESPACE_TRIMMED). Each trimmed
-  // field's position is copied before `emit` hands the warning to the
-  // onWarning callbacks: a callback that changes the warning it was given
-  // must not change which field the parser records as trimmed below.
-  const trimmed: Hl7Position[] = [];
-  const rawSegments: readonly RawSegment[] = tokenize(
-    segments,
-    encoding,
-    (w) => {
-      if (w.code === WARNING_CODES.FIELD_WHITESPACE_TRIMMED) trimmed.push({ ...w.position });
-      emit(w);
-    },
-    options.trimFields ?? true,
+  const firstTerminator = inputForPipeline.indexOf("\r");
+  const encoding = readDelimiters(
+    inputForPipeline.slice(0, firstTerminator === -1 ? textEnd : firstTerminator),
   );
+
+  // Step 11: Scan (may emit FIELD_WHITESPACE_TRIMMED and the escape warnings): every segment's
+  // boundaries and name, and every finding, in one pass with no tree. Each trimmed field's
+  // position is recorded before its warning reaches the onWarning callbacks, so a callback that
+  // changes the warning it was given cannot change which field is recorded as trimmed.
+  const trimmed: RawFieldPosition[] = [];
+  const trimFields = options.trimFields ?? true;
+  const scanned = scanMessage(inputForPipeline, encoding, trimFields, {
+    warn: emit,
+    trimmed: (segmentIndex, rawFieldIndex) => trimmed.push({ segmentIndex, rawFieldIndex }),
+  });
+  const segmentNames = scanned.names;
 
   // Record which fields did not arrive as the value stored for them: those
   // trimmed above, and those a VT/FS byte was stripped from inside in Step 4.
   // Nothing in the tree, its values or the warnings changes; readers that need
   // a field exactly as received (the result status classification) ask.
-  recordAlteredFields(
-    rawSegments,
-    trimmed,
-    mllpResult.wasFramed ? locateInteriorFramingBytes(unstripped, encoding.field) : [],
+  const source = new SegmentSource(
+    inputForPipeline,
+    scanned.offsets,
+    encoding,
+    trimFields,
+    alteredFieldsBySegment(
+      trimmed,
+      mllpResult.wasFramed ? locateInteriorFramingBytes(unstripped, encoding.field) : [],
+    ),
   );
+  const rawSegments: readonly RawSegment[] = segmentNames.map((_name, i) => source.segment(i));
 
   // Step 11.5: Emit UNKNOWN_SEGMENT for any non-standard segment name that
   // is not declared in the active profile (D-31), and SEGMENT_CASE for any
@@ -553,10 +563,9 @@ export function parseHL7(
   // unknown. Strict keeps throwing on every input it threw on before and
   // accepts nothing new.
   const profileCustomSegments = effectiveProfile?.customSegments;
-  for (let segIdx = 0; segIdx < rawSegments.length; segIdx++) {
-    const rawSeg = rawSegments[segIdx];
-    if (rawSeg === undefined) continue;
-    const canonicalName = canonicalSegmentName(rawSeg.name);
+  for (let segIdx = 0; segIdx < segmentNames.length; segIdx++) {
+    const name = segmentNames[segIdx] as string;
+    const canonicalName = canonicalSegmentName(name);
     // The profile claim is checked under BOTH spellings. `defineProfile`
     // validates customSegments keys to /^Z[A-Z0-9]{2}$/, so a declared key is
     // canonical and the folded lookup is the one that matters. But `parseHL7`
@@ -568,11 +577,11 @@ export function parseHL7(
     const isProfileClaimed =
       profileCustomSegments !== undefined &&
       (Object.prototype.hasOwnProperty.call(profileCustomSegments, canonicalName) ||
-        Object.prototype.hasOwnProperty.call(profileCustomSegments, rawSeg.name));
+        Object.prototype.hasOwnProperty.call(profileCustomSegments, name));
     if (!isKnown && !isProfileClaimed) {
-      emit(unknownSegment({ segmentIndex: segIdx }, rawSeg.name));
-    } else if (canonicalName !== rawSeg.name) {
-      emit(segmentCase({ segmentIndex: segIdx }, rawSeg.name));
+      emit(unknownSegment({ segmentIndex: segIdx }, name));
+    } else if (canonicalName !== name) {
+      emit(segmentCase({ segmentIndex: segIdx }, name));
     }
   }
 
@@ -591,9 +600,7 @@ export function parseHL7(
     // expectation, so the safety net does not report a segment as missing when
     // it is present and merely miscased.
     const presentSegmentNames = new Set<string>();
-    for (const seg of rawSegments) {
-      if (seg !== undefined) presentSegmentNames.add(canonicalSegmentName(seg.name));
-    }
+    for (const name of segmentNames) presentSegmentNames.add(canonicalSegmentName(name));
     const structure = analyzeMessageStructure(messageCode, triggerEvent, presentSegmentNames);
     const messageType = triggerEvent !== "" ? `${messageCode}^${triggerEvent}` : messageCode;
     // The structure id is registry data, not anything read off the message, so

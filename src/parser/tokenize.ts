@@ -40,13 +40,19 @@
  * about 17 entries, which made array storage more than half of a parsed message). A warning's
  * position object is built only when a warning is emitted. Every empty field shares one frozen
  * node, every explicit null another, and every segment of one name one frozen `fields[0]`.
+ *
+ * Warnings: the build reports none of its own. The scanner (`scan.ts`) finds every trim and escape
+ * finding in one pass before anything is built, and `tokenize` runs it on each segment ahead of the
+ * build, so the warnings arrive in the same order as when the build reported them itself. That is
+ * what lets a parsed message build a segment later, on first read, with nothing left to report.
  */
 
 import { escapeFidelityRaw, unescape } from "./escapes.js";
-import { fieldWhitespaceTrimmed } from "./warnings.js";
+import { Scanner, splitOn } from "./scan.js";
 import type { Hl7ParseWarning } from "./warnings.js";
 import type {
   EncodingCharacters,
+  Hl7Position,
   RawComponent,
   RawField,
   RawRepetition,
@@ -65,15 +71,13 @@ const EMPTY_FIELD: RawField = Object.freeze({ repetitions: NO_REPETITIONS, isNul
 /** The one node for every explicit null field (`|""|`), frozen. */
 const NULL_FIELD: RawField = Object.freeze({ repetitions: NO_REPETITIONS, isNull: true });
 
-/**
- * `text` split on `separator`. A text without the separator is an array of itself alone, which is
- * what `split` returns too; most values hold no separator, and `split` costs several times what
- * `includes` and an array literal cost together.
- */
-function splitOn(text: string, separator: string): string[] {
-  // Stryker disable next-line ConditionalExpression: split returns the same one-entry array; the test only spares its cost
-  return text.includes(separator) ? text.split(separator) : [text];
+/** Nothing to do: the scanner reported every finding before the build began. */
+function ignore(): void {
+  // The scanner reported this finding before the build began.
 }
+
+/** The position the build hands `unescape`, which only a warning would read. */
+const NO_POSITION: Hl7Position = Object.freeze({ segmentIndex: 0 });
 
 /** A field holding one plain value: one repetition of one component of one subcomponent. */
 function singleValueField(value: string): RawField {
@@ -89,8 +93,8 @@ function singleValueField(value: string): RawField {
  * When `trimFields` is true and a field value had non-trivial leading or
  * trailing whitespace (i.e. whitespace around non-whitespace content), a
  * `FIELD_WHITESPACE_TRIMMED` warning is emitted via `emit`. All-whitespace
- * fields and fields without surrounding whitespace do not emit. Escape
- * sequence expansion is deferred to the on-access escape stage.
+ * fields and fields without surrounding whitespace do not emit. An unknown or
+ * unterminated escape sequence is reported through `emit` as well.
  *
  * @example
  * ```ts
@@ -112,9 +116,11 @@ export function tokenize(
   trimFields: boolean,
 ): readonly RawSegment[] {
   const placeholders = new Map<string, RawField>();
-  return segments.map((segStr, sIdx) =>
-    tokenizeSegment(segStr, enc, emit, sIdx, trimFields, placeholders),
-  );
+  const sink = { warn: emit, trimmed: ignore };
+  return segments.map((segStr, sIdx) => {
+    new Scanner(segStr, enc, trimFields, sink).segment(0, segStr.length, sIdx);
+    return buildSegment(segStr, enc, trimFields, placeholders);
+  });
 }
 
 /**
@@ -135,24 +141,21 @@ function placeholder(placeholders: Map<string, RawField>, value: string): RawFie
 }
 
 /**
- * Tokenize one segment string. The segment is split on the field separator once, and that array
- * becomes the segment's `fields`: entry 0 (the name) is replaced by the name placeholder, and each
- * later entry by its parsed field.
+ * Build one segment's tree from its text, reporting nothing: the scanner has already reported
+ * every finding in it. The segment is split on the field separator once, and that array becomes
+ * the segment's `fields`: entry 0 (the name) is replaced by the name placeholder, and each later
+ * entry by its parsed field. `placeholders` is the parse's own map of shared `fields[0]` nodes.
  *
  * MSH is the one segment where the field separator is encoded in-band as MSH-1:
  * `MSH|^~\&|APP|...`. We synthesize `fields[0]` as a single-component holding the separator char
  * and `fields[1]` as a single-component holding the raw MSH-2 encoding chars string; the
- * remainder (MSH-3, MSH-4, ...) is parsed with the 1-indexed `fieldIndex` on emitted warnings
- * matching the HL7 position (MSH-3 emits `fieldIndex: 3`). For any other segment, the first data
- * field (PID-1) emits `fieldIndex: 1`.
+ * remainder (MSH-3, MSH-4, ...) is built as any other field.
  *
  * @internal
  */
-function tokenizeSegment(
+export function buildSegment(
   segStr: string,
   enc: EncodingCharacters,
-  emit: (w: Hl7ParseWarning) => void,
-  sIdx: number,
   trimFields: boolean,
   placeholders: Map<string, RawField>,
 ): RawSegment {
@@ -166,8 +169,6 @@ function tokenizeSegment(
   // A segment that ends at its last separator (`PID|`, or `MSH|^~\&|`) has no data field after it.
   if (fields[fields.length - 1] === "" && fields.length === (isMsh ? 3 : 2)) fields.pop();
 
-  // Warnings number MSH fields as HL7 does (MSH-3 is 3); the tree holds MSH-1 at index 0.
-  const fieldIndexOffset = isMsh ? 1 : 0;
   let first = 1;
   if (isMsh) {
     fields[0] = placeholder(placeholders, enc.field);
@@ -179,109 +180,56 @@ function tokenizeSegment(
     fields[0] = placeholder(placeholders, name);
   }
   for (let fIdx = first; fIdx < fields.length; fIdx++) {
-    fields[fIdx] = tokenizeField(
-      fields[fIdx] as string,
-      enc,
-      emit,
-      sIdx,
-      fIdx + fieldIndexOffset,
-      trimFields,
-    );
+    fields[fIdx] = buildField(fields[fIdx] as string, enc, trimFields);
   }
   return { name, fields: fields as RawField[] };
 }
 
 /**
- * Tokenize a single field string into a `RawField`. Handles the empty
+ * Build a single field string into a `RawField`. Handles the empty
  * (`""`-the-JS-empty-string) vs explicit-null (`""`-the-HL7-literal) split,
- * then performs optional whitespace trim with warning
- * emission, then delegates repetition splitting.
+ * then the optional whitespace trim (an all-whitespace field is kept as it
+ * arrived), then delegates repetition splitting.
  *
  * @internal
  */
-function tokenizeField(
-  raw: string,
-  enc: EncodingCharacters,
-  emit: (w: Hl7ParseWarning) => void,
-  segmentIndex: number,
-  fieldIndex: number,
-  trimFields: boolean,
-): RawField {
+function buildField(raw: string, enc: EncodingCharacters, trimFields: boolean): RawField {
   if (raw === "") return EMPTY_FIELD;
   if (raw === '""') return NULL_FIELD;
 
   let value = raw;
   if (trimFields) {
     const trimmed = raw.trim();
-    if (trimmed.length > 0 && trimmed !== raw) {
-      const trimStart = raw.length - raw.trimStart().length;
-      const trimEnd = raw.length - raw.trimEnd().length;
-      emit(fieldWhitespaceTrimmed({ segmentIndex, fieldIndex }, trimStart, trimEnd));
-      value = trimmed;
-    }
+    if (trimmed.length > 0) value = trimmed;
   }
 
   const repetitions: (string | RawRepetition)[] = splitOn(value, enc.repetition);
   for (let rIdx = 0; rIdx < repetitions.length; rIdx++) {
-    repetitions[rIdx] = tokenizeRepetition(
-      repetitions[rIdx] as string,
-      enc,
-      emit,
-      segmentIndex,
-      fieldIndex,
-      rIdx + 1,
-    );
+    repetitions[rIdx] = buildRepetition(repetitions[rIdx] as string, enc);
   }
   return { repetitions: repetitions as RawRepetition[], isNull: false };
 }
 
 /** @internal */
-function tokenizeRepetition(
-  raw: string,
-  enc: EncodingCharacters,
-  emit: (w: Hl7ParseWarning) => void,
-  segmentIndex: number,
-  fieldIndex: number,
-  repetitionIndex: number,
-): RawRepetition {
+function buildRepetition(raw: string, enc: EncodingCharacters): RawRepetition {
   const components: (string | RawComponent)[] = splitOn(raw, enc.component);
   for (let cIdx = 0; cIdx < components.length; cIdx++) {
-    components[cIdx] = tokenizeComponent(
-      components[cIdx] as string,
-      enc,
-      emit,
-      segmentIndex,
-      fieldIndex,
-      repetitionIndex,
-      cIdx + 1,
-    );
+    components[cIdx] = buildComponent(components[cIdx] as string, enc);
   }
   return { components: components as RawComponent[] };
 }
 
 /**
- * Tokenize a single component into its subcomponents, running each
+ * Build a single component into its subcomponents, running each
  * subcomponent string through `unescape` so the raw tree stores DECODED
  * values (inverse of `reescape` at emit time). This is load-bearing for
  * structural round-trip equivalence: without it, the raw tree would
  * store literal `\F\` / `\E\` / `\.br\` sequences and emit would double-
  * escape them into `\E\F\E\` / etc.
  *
- * `UNKNOWN_ESCAPE_SEQUENCE` warnings from `unescape` propagate through the
- * `emit` callback with the full positional context (segment, field, rep,
- * component, subcomponent all 1-indexed).
- *
  * @internal
  */
-function tokenizeComponent(
-  raw: string,
-  enc: EncodingCharacters,
-  emit: (w: Hl7ParseWarning) => void,
-  segmentIndex: number,
-  fieldIndex: number,
-  repetitionIndex: number,
-  componentIndex: number,
-): RawComponent {
+function buildComponent(raw: string, enc: EncodingCharacters): RawComponent {
   const subcomponents = splitOn(raw, enc.subcomponent);
   // Escape-fidelity overlay (HL7-ESC): the original wire bytes for any
   // subcomponent whose decoded form does not re-escape back to those exact
@@ -295,13 +243,7 @@ function tokenizeComponent(
     // Only an escape-bearing subcomponent can decode to something else or need the overlay; a
     // plain one stays the string split returned.
     if (!sub.includes(enc.escape)) continue;
-    const decodedSub = unescape(sub, enc, emit, {
-      segmentIndex,
-      fieldIndex,
-      repetitionIndex,
-      componentIndex,
-      subcomponentIndex: sIdx + 1,
-    });
+    const decodedSub = unescape(sub, enc, ignore, NO_POSITION);
     subcomponents[sIdx] = decodedSub;
     const fidelity = escapeFidelityRaw(sub, decodedSub, enc);
     if (fidelity !== undefined) {
