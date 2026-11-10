@@ -120,10 +120,15 @@ export function emitSegment(seg: RawSegment, enc: EncodingCharacters): string {
         "emitSegment would re-escape the encoding chars and produce garbage output.",
     );
   }
-  const parts: string[] = [seg.name];
+  const parts: string[] = [];
   for (let i = 1; i < seg.fields.length; i++) {
     const f = seg.fields[i];
     parts.push(f === undefined ? "" : emitField(f, enc));
   }
-  return parts.join(enc.field);
+  // The parser reads a segment whose field region is empty (`PV1|`) as a segment with no fields,
+  // so a region that writes as nothing is written with no separator either. Otherwise a lone
+  // field holding only empty components (`PV1|^`) would write as `PV1|`, which reads back as `PV1`,
+  // and serializing a parsed message a second time would change its text.
+  const region = parts.join(enc.field);
+  return region === "" ? seg.name : seg.name + enc.field + region;
 }
