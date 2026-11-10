@@ -17,13 +17,13 @@
  * **machine- and load-dependent**: they are published as *indicative* context,
  * never as a portable floor. The portable, CI-gating guard lives in
  * `test/perf/perf-regression.test.ts` and is **ratio-based** for exactly that
- * reason (see `docs-content/benchmarks.md`). This phase adds **no runtime
+ * reason (see `docs-content/performance.md`). This phase adds **no runtime
  * behavior**: it only measures the shipped surface.
  *
  * Run:
  *
  *     pnpm bench            # human-readable table to stdout
- *     pnpm bench --markdown # the results-table body used in docs-content/benchmarks.md
+ *     pnpm bench --markdown # the results table as Markdown
  *
  * `--gc` (with `node --expose-gc`) tightens the memory numbers by forcing a
  * collection before each sample; without it the numbers are still directionally

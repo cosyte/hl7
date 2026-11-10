@@ -224,3 +224,9 @@ target-resource map per segment):
   validated against LOINC/SNOMED/RxNorm/ICD.
 - **Not a full-corpus guarantee.** Coverage is proven over the IG's public sample (one message);
   reachability is proven for every IG-referenced field-level source path.
+
+## Put it to use
+
+- [Read patient, visit and message details](./read-patient-and-visit.md)
+- [Read lab results, orders and timing](./read-lab-results.md)
+- [Read allergies, medications, immunizations and other lists](./read-clinical-lists.md)

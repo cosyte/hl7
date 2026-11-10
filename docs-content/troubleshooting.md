@@ -61,9 +61,10 @@ Catch `Hl7ParseError` and read its `code` to distinguish them. Everything _else_
 
 ## "Non-ASCII text comes out garbled"
 
-Character set is declared in **MSH-18** (HL7 Table 0211). The parser resolves it and decodes
-accordingly; `resolveCharset` / `canonicalCharset` let you inspect how a given code is treated
-(decoded vs. preserved) before you rely on it.
+Character set is declared in **MSH-18** (HL7 Table 0211). Pass the message as a `Buffer` and the
+parser decodes it by that declaration; pass a `string` and it trusts the decoding you did.
+`resolveCharset` and `canonicalCharset` show how a given code is treated (decoded or preserved)
+before you rely on it. [Character sets](./spec-notes-charset.md) has the table.
 
 ## "A batch/file won't parse"
 
@@ -71,24 +72,28 @@ accordingly; `resolveCharset` / `canonicalCharset` let you inspect how a given c
 which demarcates the individual MSH-led messages, parses each independently (a malformed message is
 isolated, never dropping its siblings), and reconciles the declared `BTS-1`/`FTS-1` counts:
 
-```ts
+```ts runnable
 import { splitBatch } from "@cosyte/hl7";
 
-const result = splitBatch(rawBatch);
-for (const entry of result.messages) {
-  // each entry is an ok/failure record: a bad message never suppresses the rest
-}
+const message = (id: string): string =>
+  `MSH|^~\\&|LAB|MAIN|EHR|REF|20260419143000||ORU^R01|${id}|P|2.5\rPID|1||MRN${id}^^^HOSP^MR\r`;
+
+const result = splitBatch("BHS|^~\\&|LAB\r" + message("B1") + message("B2") + "BTS|2\r");
+
+result.messages.map((entry) => entry.ok); // => [true, true]
 ```
+
+[Split batches and stream large files](./split-batches-and-streams.md) covers failures inside a
+batch and files too large for memory.
 
 ## Known limitations
 
 Design around these. They're deliberate scope choices, not bugs:
 
-- **Vendor profiles are structural and evidence-grounded.** Built-ins ship for Epic, Cerner,
-  Meditech, Athena, a generic lab, and the Visage 7 and Philips Vue PACS imaging systems. A vendor
-  "quirk" is encoded **only** when a real document grounds it: a publicly published vendor interface
-  spec (as with Visage 7 and Philips Vue PACS) or a real de-identified feed, never invented, so
-  broader per-vendor coverage expands as grounded sources arrive rather than shipping speculative rules.
+- **Vendor profiles cover formats and Z-segments, not behavior.** Eight built-in profiles ship
+  (see [Built-in profiles](./built-in-profiles.md)). Four cite a public interface specification;
+  the Epic, Cerner, athenahealth and reference-lab profiles carry what is common in those feeds and
+  cite none, so check one against your sender's specification before you rely on it.
 - **A miscased segment name resolves, but is not rewritten.** A sender shipping `pid` or `obx`,
   which no segment identifier in the HL7 v2 standard does, is matched by `msg.segments("PID")`, `msg.patient`,
   `observations()` and `msg.get("PID.5")`, and reports `SEGMENT_CASE`. The comparison folds
@@ -109,7 +114,7 @@ Design around these. They're deliberate scope choices, not bugs:
   any external system, and nothing here makes a network call.
 - **One ACK acknowledges one message.** Batch-level ACK reconciliation is out of scope; for MLLP
   transport framing and ACK correlation over the wire, use the sibling package
-  [`@cosyte/mllp`](https://github.com/cosyte/mllp).
+  [`@cosyte/mllp`](https://docs.cosyte.com/mllp).
 - **Datetimes are fidelity values, not eager `Date`s.** `TS` fields preserve the raw string and a
   `precision` so timezone and precision are never silently lost; convert to a `Date` explicitly when
   you need one.

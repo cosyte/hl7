@@ -1,8 +1,8 @@
 /**
  * MEDITECH (MAGIC / 6.x / Expanse) HL7 quirks. Ships minute-precision
- * timestamps (`YYYYMMDDHHMM`, no seconds) and two DFT charge-capture
+ * timestamps (`YYYYMMDDHHmm`, no seconds) and two DFT charge-capture
  * Z-segments: `ZF1` (provider-encounter copay data) and `ZF2`
- * (encounter-procedure data). BIP-03.
+ * (encounter-procedure data).
  *
  * Grounded in **publicly downloadable** MEDITECH interface specifications,
  * not invented:
@@ -46,7 +46,7 @@
 import { defineProfile } from "./define.js";
 
 /**
- * Built-in MEDITECH MAGIC/6.x/Expanse profile (BIP-03). See file header for
+ * Built-in MEDITECH MAGIC/6.x/Expanse profile. See file header for
  * rationale and spec citations; use via `parseHL7(raw, profiles.meditech)`.
  *
  * @example

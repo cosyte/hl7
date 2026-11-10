@@ -7,14 +7,14 @@
  * (analog: `src/parser/dates.ts::matchTokenFormat`).
  *
  * Indexing conventions:
- * - `[N]` is ALWAYS 0-indexed: applies to segment repeats AND field repeats (D-01).
+ * - `[N]` is ALWAYS 0-indexed: applies to segment repeats AND field repeats.
  * - Dot-numbers are ALWAYS 1-indexed: matches HL7 spec and the 1-indexed
- *   `RawSegment.fields` (D-02). `PID.5` → `fields[5]`.
+ *   `RawSegment.fields`. `PID.5` → `fields[5]`.
  * - MSH.1 / MSH.2 are the separator char and encoding-chars string, both
- *   stored at `fields[0]` / `fields[1]` by tokenize.ts (D-05).
+ *   stored at `fields[0]` / `fields[1]` by tokenize.ts.
  * - Missing subcomponent on a single-sub component returns the component
- *   string (depth-collapse, D-04).
- * - Leaf reads return the subcomponent verbatim: the tokenizer (parser-02)
+ *   string (depth-collapse).
+ * - Leaf reads return the subcomponent verbatim: the tokenizer
  *   already unescaped it once on parse, so the stored value is decoded and a
  *   second `unescape` here would double-decode it.
  */
@@ -62,7 +62,7 @@ interface MutableDotPath {
   subcomponentIndex?: number;
 }
 
-/** Segment-name shape: `[A-Z][A-Z0-9]{2}` (D-19 symmetry with addSegment). Matches standard HL7 v2 segment names (PID, PV1, OBX, NK1, DG1, IN1…) and Z-segment customs (ZPI, ZX1…). @internal */
+/** Segment-name shape: `[A-Z][A-Z0-9]{2}` (symmetry with addSegment). Matches standard HL7 v2 segment names (PID, PV1, OBX, NK1, DG1, IN1…) and Z-segment customs (ZPI, ZX1…). @internal */
 const SEGMENT_NAME_RE = /^[A-Z][A-Z0-9]{2}$/u;
 
 /**

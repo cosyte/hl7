@@ -82,7 +82,7 @@ const OPTIONS_ONLY_KEYS: readonly (keyof ParseOptions)[] = [
  *
  * Uses `Object.prototype.hasOwnProperty.call` rather than the `in`
  * operator so a prototype-polluted object cannot trip the options-only
- * branch by inheriting a `strict` / `onWarning` key (T-02-06-01).
+ * branch by inheriting a `strict` / `onWarning` key.
  *
  * @internal
  */
@@ -114,7 +114,7 @@ function discriminateOptionsOrProfile(arg: ParseOptions | Profile | undefined): 
 /**
  * Build the single `emit` chokepoint passed into every parser stage.
  * Lenient mode: push the warning to the accumulator
- * array, invoke `effectiveProfile?.onWarning` FIRST (D-22) inside its own
+ * array, invoke `effectiveProfile?.onWarning` FIRST inside its own
  * try/catch so handler throws are swallowed silently, THEN invoke
  * `options.onWarning` inside its own try/catch (consistency with the
  * profile chain so a noisy caller handler cannot break the parser).
@@ -122,7 +122,7 @@ function discriminateOptionsOrProfile(arg: ParseOptions | Profile | undefined): 
  * code; neither onWarning handler fires (preserves the existing
  * lenient-vs-strict split).
  *
- * D-22 ordering: profile handlers are observers that run FIRST; caller
+ * Ordering: profile handlers are observers that run FIRST; caller
  * handler runs LAST. Preserves the "profile behavior, then caller
  * behavior" layering pattern: the profile sees warnings as they arise;
  * the caller's handler sees post-profile-handler warnings (same object,
@@ -211,8 +211,8 @@ function buildSnippet(input: string, _position: Hl7Position): string {
  *
  * Line-ending agnostic: splits on `/[\r\n]/` so a Buffer that uses Unix
  * (`\n`), classic Mac (`\r`), or mixed line endings still isolates segment
- * 0 correctly. A bare split on `\r` alone here would silently regress
- * PARSE-09 on `\n`-only Buffer traffic (the whole message would become
+ * 0 correctly. A bare split on `\r` alone here would silently break
+ * charset detection on `\n`-only Buffer traffic (the whole message would become
  * segment 0, `parts[17]` would swallow subsequent segments, and the
  * charset token would become a garbage string that falls through to
  * UTF-8).
@@ -405,7 +405,7 @@ export function parseHL7<P extends Profile>(
   options: ParseOptions & { readonly profile: P },
 ): ProfiledMessage<P>;
 export function parseHL7(raw: string | Buffer, options: ParseOptions): Hl7Message;
-/** @internal implementation signature; overload signatures above carry the public JSDoc + @example. */
+// The implementation signature; the overload signatures above carry the public JSDoc and @example.
 export function parseHL7(
   raw: string | Buffer,
   optionsOrProfile?: ParseOptions | Profile,

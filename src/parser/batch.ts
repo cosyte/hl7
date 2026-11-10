@@ -375,7 +375,7 @@ export function splitBatch<P extends Profile>(
   options: ParseOptions & { readonly profile: P },
 ): BatchSplitResult<ProfiledMessage<P>>;
 export function splitBatch(raw: string | Buffer, options: ParseOptions): BatchSplitResult;
-/** @internal implementation signature; overloads above carry the public JSDoc. */
+// The implementation signature; the overloads above carry the public JSDoc.
 export function splitBatch(
   raw: string | Buffer,
   optionsOrProfile?: ParseOptions | Profile,

@@ -52,7 +52,7 @@
 import { defineProfile } from "./define.js";
 
 /**
- * Built-in Philips Vue PACS ("IS Link") imaging profile (BIP-08). See file
+ * Built-in Philips Vue PACS ("IS Link") imaging profile. See file
  * header for rationale; use via `parseHL7(raw, profiles.philips)`.
  *
  * @example

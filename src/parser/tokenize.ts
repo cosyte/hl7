@@ -3,7 +3,7 @@
  * an ordered list of segment strings into the nested positional tree that
  * `Hl7Message` holds: `RawSegment` -> `RawField` -> `RawRepetition` ->
  * `RawComponent` -> subcomponent strings. Honors custom encoding characters
- * so PARSE-02 (non-default delimiters) flows through downstream stages
+ * so non-default delimiters flow through downstream stages
  * without re-derivation.
  *
  * Adopts the unified HL7 1-indexed convention for ALL segments:
@@ -17,7 +17,7 @@
  * through `unescape()` during tokenization, so the raw tree holds DECODED
  * strings (e.g. `Smith|Jones`, not `Smith\F\Jones`). This is the exact
  * inverse of `reescape()` in `src/serialize/emit-field.ts`, which is how the
- * serializer produces spec-clean output and how SER-02 structural round-trip
+ * serializer produces spec-clean output and how structural round-trip
  * equivalence holds: `parseHL7(msg.toString()).rawSegments` deeply equals
  * `msg.rawSegments`. `UNKNOWN_ESCAPE_SEQUENCE` warnings from `unescape`
  * propagate through the `emit` callback.
@@ -32,7 +32,7 @@
  * only emit consults the overlay. The MSH-1 / MSH-2 positional
  * placeholders (`fields[0]`, `fields[1]`) are intentionally NOT unescaped,
  * they hold the literal delimiter / encoding chars and participate in
- * serialization via the D-06 special-case path, not via `emitField`.
+ * serialization via the serializer's MSH special-case path, not via `emitField`.
  */
 
 import { escapeFidelityRaw, unescape } from "./escapes.js";
@@ -190,8 +190,8 @@ function splitAndTokenizeFields(
 
 /**
  * Tokenize a single field string into a `RawField`. Handles the empty
- * (`""`-the-JS-empty-string) vs explicit-null (`""`-the-HL7-literal) split
- * per PARSE-06, then performs optional whitespace trim with warning
+ * (`""`-the-JS-empty-string) vs explicit-null (`""`-the-HL7-literal) split,
+ * then performs optional whitespace trim with warning
  * emission, then delegates repetition splitting.
  *
  * @internal
@@ -252,7 +252,7 @@ function tokenizeRepetition(
  * Tokenize a single component into its subcomponents, running each
  * subcomponent string through `unescape` so the raw tree stores DECODED
  * values (inverse of `reescape` at emit time). This is load-bearing for
- * SER-02 structural round-trip equivalence: without it, the raw tree would
+ * structural round-trip equivalence: without it, the raw tree would
  * store literal `\F\` / `\E\` / `\.br\` sequences and emit would double-
  * escape them into `\E\F\E\` / etc.
  *

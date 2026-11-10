@@ -13,13 +13,19 @@ byte stream to text **before** delimiter tokenization. So accented and
 non-Latin names survive intact instead of turning into mojibake or replacement
 characters.
 
-```ts
+```ts runnable
 import { parseHL7 } from "@cosyte/hl7";
-import { readFileSync } from "node:fs";
 
-// A message that declares MSH-18 = "UNICODE UTF-8" and carries "Renée".
-const msg = parseHL7(readFileSync("adt.hl7")); // Buffer, not a string
-msg.get("PID.5.1"); // "Renée"  ✅ (not "RenÃ©e")
+// A message that declares MSH-18 = "UNICODE UTF-8" and carries "Renée". In production the bytes
+// usually come from readFileSync or a socket.
+const bytes = Buffer.from(
+  "MSH|^~\\&|A|B|C|D|20260101||ADT^A01|ID1|P|2.5||||||UNICODE UTF-8\r" +
+    "PID|1||MRN12345^^^HOSP^MR||Renée^Ann",
+  "utf8",
+);
+
+parseHL7(bytes).get("PID.5.1"); // => "Renée"
+bytes.toString("latin1").includes("RenÃ©e"); // => true
 ```
 
 Pass a `string` and nothing here runs. The caller already decoded, and the
@@ -161,3 +167,7 @@ the override wins.
 | `UNSUPPORTED_CHARSET` | recognized Table-0211 set not decoded (never-decoded, or a strict-decode failure), bytes read as `latin1` |
 | `UNKNOWN_CHARSET` | value not in Table 0211, bytes read as `latin1` |
 | `ENCODING_MISMATCH` | `options.charset` override disagrees with the declared MSH-18 |
+
+## Put it to use
+
+- [Troubleshooting](./troubleshooting.md)

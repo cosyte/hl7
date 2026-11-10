@@ -432,3 +432,9 @@ if it does not match, rather than truncated.
 - HL7's published, machine-readable v2+ message structures, vendored under
   `vendor/hl7-v2ig/` with per-file hashes and upstream URLs.
 - `STRUCTURE_REGISTRY_PROVENANCE`, the same record exported from the package.
+
+## Put it to use
+
+- [Validate a message's structure and content](./validate-messages.md)
+- [Read patient, visit and message details](./read-patient-and-visit.md)
+- [Build a message](./build-messages.md)

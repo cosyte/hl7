@@ -22,16 +22,18 @@ Every deviation the parser encounters is classified into one of four tiers:
 
 Tier-2 warnings are plain data attached to `msg.warnings`. Every warning carries a stable string `code`, a human-readable `message`, and a `position` so you can programmatically react to specific deviations. In `position`, `segmentIndex` counts the message's segments from 0 (MSH is segment 0), while `fieldIndex`, `repetitionIndex`, `componentIndex`, and `subcomponentIndex` are 1-indexed HL7 positions:
 
-```ts
-import { parseHL7 } from "@cosyte/hl7";
+```ts runnable
+import { parseHL7, WARNING_CODES } from "@cosyte/hl7";
 
-const msg = parseHL7(raw);
-for (const w of msg.warnings) {
-  console.log(`${w.code} at segment ${w.position.segmentIndex}: ${w.message}`);
-}
+const msg = parseHL7("MSH|^~\\&|A|B|C|D|20260101||ADT^A01|1|P|2.5\rZZZ|1");
+
+const [w] = msg.warnings;
+w?.code === WARNING_CODES.UNKNOWN_SEGMENT; // => true
+w?.position; // => { segmentIndex: 1 }
 ```
 
-The full list of Tier-2 codes lives in [`src/parser/warnings.ts`](https://github.com/cosyte/hl7/blob/main/src/parser/warnings.ts). Narrow on `w.code === WARNING_CODES.UNKNOWN_SEGMENT` (and friends) for typo-free comparisons.
+[Warning and fatal codes](./warning-and-fatal-codes.md) lists every Tier-2 code. Compare against
+`WARNING_CODES` rather than string literals, so a typo fails to compile.
 
 Need zero tolerance instead? `parseHL7(raw, { strict: true })` escalates every Tier-2 deviation to a thrown `Hl7ParseError`. Use strict in CI validators; leave it off for production ingestion.
 
@@ -39,29 +41,35 @@ The 4 Tier-3 fatal codes (`NO_MSH_SEGMENT`, `MSH_TOO_SHORT`, `INVALID_ENCODING_C
 
 ## Error handling
 
-The library throws exactly three error types, all exported from the package barrel.
+Four kinds of error are thrown, and each is a top-level export or a built-in:
+
+| Error                    | Thrown by                                                                                                            |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| `Hl7ParseError`          | `parseHL7` on one of the four fatal codes, and on any warning under `{ strict: true }`                                |
+| `ProfileDefinitionError` | `defineProfile` and `defineConformanceProfile`, for a declaration they refuse                                        |
+| `SchemaTargetError`      | `emitMessageSchema`, for a target it does not support                                                                |
+| `TypeError`              | a programming error: a malformed dot-path, `setField` on a segment the message lacks, a bad segment name, removing MSH, or a typed builder missing content its message type requires |
+
+`Hl7ParseWarning` is not thrown: it is the data on `msg.warnings`.
 
 ### `Hl7ParseError`
 
-Thrown by `parseHL7` when the input hits one of the 4 Tier-3 fatal codes (see above). Carries positional context plus a short snippet taken from the start of the input (up to 40 characters, plus an ellipsis when truncated).
+Thrown by `parseHL7` when the input hits one of the four Tier-3 fatal codes, or any warning under `{ strict: true }`. Carries positional context plus a short snippet taken from the start of the input (up to 40 characters, plus an ellipsis when truncated).
 
-```ts
-import { parseHL7, Hl7ParseError, FATAL_CODES } from "@cosyte/hl7";
+```ts runnable
+import { FATAL_CODES, Hl7ParseError, parseHL7 } from "@cosyte/hl7";
 
+let error: unknown;
 try {
   parseHL7("");
-} catch (err) {
-  if (err instanceof Hl7ParseError) {
-    console.log(err.code); // "EMPTY_INPUT"
-    console.log(err.position); // { segmentIndex: 0 }
-    console.log(err.snippet); // "" (first 40 chars of input, for logging)
-
-    // Compare codes through the FATAL_CODES registry rather than string literals:
-    if (err.code === FATAL_CODES.EMPTY_INPUT) {
-      // the input was empty or held only whitespace
-    }
-  }
+} catch (caught) {
+  error = caught;
 }
+
+error instanceof Hl7ParseError; // => true
+(error as Hl7ParseError).code === FATAL_CODES.EMPTY_INPUT; // => true
+(error as Hl7ParseError).position; // => { segmentIndex: 0 }
+(error as Hl7ParseError).snippet; // => ""
 ```
 
 `Hl7ParseError.snippet` may contain PHI when parsing real clinical messages. The library does NOT redact it. Redact it at your call site if compliance demands it.
@@ -74,10 +82,10 @@ Under `{ strict: true }` an escalated Tier-2 warning is thrown as an `Hl7ParseEr
 
 ### `Hl7ParseWarning`
 
-Tier-2 deviations: plain data, not thrown. Accumulated on `msg.warnings` and delivered to any `onWarning` callback in parse order. See the iteration example in [Real-World Tolerance](#real-world-tolerance).
+Tier-2 deviations: plain data, not thrown. Accumulated on `msg.warnings` and delivered to any `onWarning` callback in parse order. See the example in [Real-world tolerance](#real-world-tolerance).
 
-```ts
-import type { Hl7ParseWarning, WarningCode } from "@cosyte/hl7";
+```ts runnable
+import { type Hl7ParseWarning, parseHL7, type WarningCode } from "@cosyte/hl7";
 
 function label(w: Hl7ParseWarning): string {
   const c: WarningCode = w.code;
@@ -85,42 +93,49 @@ function label(w: Hl7ParseWarning): string {
     case "MLLP_FRAMING_STRIPPED":
       return "framed input";
     case "UNKNOWN_SEGMENT":
-      return `unknown: ${w.message}`;
+      return "unknown segment";
     default:
       return c;
   }
 }
+
+parseHL7("MSH|^~\\&|A|B|C|D|20260101||ACK|1|P|2.5\rMSA|AA|1\rZZZ|1").warnings.map(label); // => ["unknown segment"]
 ```
 
-Use the `WarningCode` union + `switch` for exhaustive handling: the type system catches missing cases if you enable `switch-exhaustiveness-check`.
+Switch on the `WarningCode` union for exhaustive handling: with a `switch-exhaustiveness-check` lint rule, a missing case is reported.
 
 ### `ProfileDefinitionError`
 
-Thrown by `defineProfile()` when the options are structurally invalid. Covers the four failure modes locked by the profile system:
+Thrown by `defineProfile()` when the options are structurally invalid, and by `defineConformanceProfile()` for a conformance profile with defects:
 
-```ts
+```ts runnable
 import { defineProfile, ProfileDefinitionError } from "@cosyte/hl7";
 
+let error: unknown;
 try {
   defineProfile({
     name: "broken",
-    customSegments: {
-      AB: { fields: { foo: 1 } }, // bad: segment name must match /^Z[A-Z0-9]{2}$/ or similar
-    },
+    customSegments: { AB: { fields: { foo: 1 } } }, // a custom segment must be a Z-segment
   });
-} catch (err) {
-  if (err instanceof ProfileDefinitionError) {
-    console.log(err.profileName); // "broken"
-    console.log(err.message); // actionable diagnostic
-  }
+} catch (caught) {
+  error = caught;
 }
+
+error instanceof ProfileDefinitionError; // => true
+(error as ProfileDefinitionError).profileName; // => "broken"
 ```
 
-The four cases that throw `ProfileDefinitionError`:
+The cases that make `defineProfile()` throw:
 
 1. **Missing or non-string `name`**: every profile must identify itself.
-2. **Malformed `customSegments`**: segment name must pass the Z-segment regex; each field entry must map to a positive 1-indexed integer; no duplicate field names across merged segments.
+2. **Malformed `customSegments` or `segmentOverrides`**: a custom segment must be a Z-segment and an override a standard segment; each field must map to a positive 1-indexed integer; no duplicate field names across merged segments.
 3. **Unsupported `dateFormats` tokens**: tokens must be drawn from `SUPPORTED_DATE_TOKENS` (re-exported from the package barrel for introspection).
 4. **Unknown option keys**: the options bag is closed; typos throw with "did you mean" hints.
 
-All three error types (and the `FATAL_CODES` / `WARNING_CODES` registries, and the `SUPPORTED_DATE_TOKENS` set) are top-level exports: no internal reaching required.
+The three error classes, the `FATAL_CODES` and `WARNING_CODES` registries and the `SUPPORTED_DATE_TOKENS` set are all top-level exports.
+
+## Put it to use
+
+- [Validate a message's structure and content](./validate-messages.md)
+- [Split batches and stream large files](./split-batches-and-streams.md)
+- [Troubleshooting](./troubleshooting.md)

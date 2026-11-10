@@ -53,7 +53,7 @@
  *   `C`; the element's length / value-set / cardinality rules still apply when
  *   it IS present. See the note below on where that behaviour comes from.
  *
- * ## Two bounded decisions this library makes rather than inherits
+ * **Two bounded decisions this library makes rather than inherits.**
  *
  * **`B`'s presence behaviour is this library's decision, not a sourced
  * requirement.** The HL7 conformance methodology's table of usage indicators

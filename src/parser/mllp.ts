@@ -3,7 +3,7 @@
  * `@cosyte/hl7` parser pipeline. MLLP wraps an HL7 v2 message with a
  * start-block byte (`0x0B` / VT) and an end-block pair (`0x1C` / FS followed
  * by `0x0D` / CR). This module strips those control bytes and flags the event
- * via the `MLLP_FRAMING_STRIPPED` Tier-2 warning (TOL-06).
+ * via the `MLLP_FRAMING_STRIPPED` Tier-2 warning.
  *
  * MLLP stripping runs after BOM strip and before
  * line-ending normalization in the overall pipeline. `parseHL7` composes the

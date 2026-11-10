@@ -109,3 +109,7 @@ never mis-attached to the first patient or a neighboring order.
 - **No new warning code.** Note grouping is a pure additive read surface; it emits no
   warning of its own. NTE free-text is high-PHI-risk clinical narrative and is
   treated purely as payload. No warning or log line echoes note text.
+
+## Put it to use
+
+- [Read lab results, orders and timing](./read-lab-results.md)

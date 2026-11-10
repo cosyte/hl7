@@ -1,25 +1,25 @@
 /**
  * `buildPatient`: compose PID-derived patient demographics into the frozen
- * `Patient` view exposed by `Hl7Message.patient` (HELPERS-02). Composition
+ * `Patient` view exposed by `Hl7Message.patient`. Composition
  * happens through the public surface (`msg.segments("PID")[0].field(N)`
  * + composite coercions + `parseCx` / `parseXtn` for multi-rep walks),
  * never through `rawSegments` directly.
  *
  * Decisions honored here:
- * - D-01: `Object.freeze` the top-level object at the boundary.
- * - D-04: return `undefined` when no PID segment exists.
- * - D-07 / D-08 / D-10: MRN pick via `pickMrn` (isolated so a profile hook
+ * - `Object.freeze` the top-level object at the boundary.
+ * - Return `undefined` when no PID segment exists.
+ * - MRN pick via `pickMrn` (isolated so a profile hook
  *   can substitute it).
- * - D-09: `identifiers` is a frozen `readonly CX[]`: always present.
- * - D-17: `fullName` is Western order "Given Middle Family, Suffix", omitted
+ * - `identifiers` is a frozen `readonly CX[]`: always present.
+ * - `fullName` is Western order "Given Middle Family, Suffix", omitted
  *   parts cleanly joined, absent when no usable parts.
  * - `dateOfBirth` is the fidelity `TS` (day-only DOB keeps `precision:
  *   "day"`, never a UTC-midnight instant that shifts the day).
- * - D-19: flat `familyName` / `givenName` / `middleName` convenience fields
+ * - Flat `familyName` / `givenName` / `middleName` convenience fields
  *   mirror XPN, with `middleName` mapped from `XPN.secondName`.
- * - D-20: `phoneNumbers` concatenates PID-13 then PID-14 repetitions.
- * - D-22: never throws: absent / malformed fields surface as omitted keys.
- * - D-23: string reads are decoded via `Field.value` / composite parsers (once at parse).
+ * - `phoneNumbers` concatenates PID-13 then PID-14 repetitions.
+ * - Never throws: absent / malformed fields surface as omitted keys.
+ * - String reads are decoded via `Field.value` / composite parsers (once at parse).
  */
 
 import type { Hl7Message } from "../model/message.js";
@@ -35,7 +35,7 @@ import type { Patient } from "./types.js";
 
 /**
  * Compose the `fullName` string in Western order "Given Middle Family,
- * Suffix" from XPN parts (D-17). Missing parts are omitted cleanly: no
+ * Suffix" from XPN parts. Missing parts are omitted cleanly: no
  * double spaces, no leading/trailing comma. Returns `undefined` when no
  * usable parts remain so the helper can omit the key entirely.
  *
@@ -60,11 +60,10 @@ function composeFullName(name: XPN): string | undefined {
 
 /**
  * Build the immutable `Patient` view from a parsed message's PID segment, or
- * return `undefined` when no PID exists (D-04). The returned object is
- * deeply frozen (D-01) and consumed through the memoized `Hl7Message.patient`
- * getter (D-02). Absent fields are OMITTED (exactOptionalPropertyTypes); the
- * `name`, `identifiers`, and `phoneNumbers` fields are ALWAYS present (D-09,
- * D-19, D-20).
+ * return `undefined` when no PID exists. The returned object is
+ * deeply frozen and consumed through the memoized `Hl7Message.patient`
+ * getter. Absent fields are OMITTED (exactOptionalPropertyTypes); the
+ * `name`, `identifiers`, and `phoneNumbers` fields are ALWAYS present.
  *
  * @example
  * ```ts

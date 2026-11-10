@@ -4,7 +4,7 @@
  * on absent" pattern so composites stay short and every composite handles
  * missing/empty components identically.
  *
- * Subcomponents are returned VERBATIM: the tokenizer (parser-02) already
+ * Subcomponents are returned VERBATIM: the tokenizer already
  * unescaped each one on parse, so the stored value is decoded: a second
  * `unescape` here would double-decode a value whose own bytes look like an
  * escape. The `enc` params are retained for signature
@@ -73,7 +73,7 @@ export function readComponent(
  * interior component is preserved as `""` so a caller can map an index back to
  * its HL7 component number (`fromIndex + i`).
  *
- * Trailing empties are stripped (D-02 parity), and the whole result is
+ * Trailing empties are stripped (as the serializer strips them), and the whole result is
  * `undefined` when there is nothing beyond `fromIndex` or every extra component
  * is empty: so the optional `extraComponents` key is OMITTED rather than set
  * to an empty array (exactOptionalPropertyTypes). The returned array is frozen.

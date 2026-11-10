@@ -5,7 +5,7 @@
  * character) from the first segment and throws a Tier-3 `Hl7ParseError` if
  * the structural preconditions fail. Downstream stages (`tokenize.ts`)
  * consume the returned `EncodingCharacters` verbatim and never re-derive
- * them, which keeps custom-delimiter behaviour (PARSE-02) consistent across
+ * them, which keeps custom-delimiter behaviour consistent across
  * the pipeline.
  *
  * Only three of the four Tier-3 fatal codes originate here,

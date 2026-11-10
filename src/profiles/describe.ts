@@ -1,11 +1,11 @@
 /**
- * Build the multi-line `describe()` output per D-04. Omits
+ * Build the multi-line `describe()` output. Omits
  * lines for absent fields (exactOptionalPropertyTypes idiom: mirrors
  * `src/helpers/meta.ts::buildMeta`); lineage rendered as `a → b → c`
  * when more than one name is present.
  *
  * Guaranteed non-empty and always starts with `Profile '<name>'` so the
- * PROF-05 "contains the profile name" contract is observable regardless
+ * "contains the profile name" contract is observable regardless
  * of which lines are omitted.
  *
  * @internal

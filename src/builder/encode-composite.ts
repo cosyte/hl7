@@ -16,7 +16,7 @@
  *   `^`/`&`/`~`.
  * - **`emit ∘ parse` identity on the modelled fields.** Interior empty
  *   components are preserved (so component positions stay aligned) and only
- *   trailing empties are trimmed (matching the serializer's D-02 strip and the
+ *   trailing empties are trimmed (matching the serializer's trailing-empty strip and the
  *   parser's omit-on-absent), so `parseXxx(encodeXxx(v)) ` reproduces `v` on
  *   every modelled field.
  * - **Never fabricate.** An omitted optional field encodes to an empty /

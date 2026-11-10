@@ -172,3 +172,7 @@ third?.resultStatus.classification; // => "undetermined"
 third?.resultStatus.table.name; // => "HL7 Table 0085"
 third?.resultStatus.map.version; // => "1.0.0"
 ```
+
+## Put it to use
+
+- [Read lab results, orders and timing](./read-lab-results.md)

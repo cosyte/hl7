@@ -107,10 +107,10 @@ mismatch that matches **none** of them **fails**. The point of the allowlist is 
 harness a real regression detector, not to paper over an actual bug with an overly broad
 tolerance.
 
-### D-02 trailing-empty-component canonicalization (observed, on `test/fixtures/canonical/tq1-q6h.hl7`)
+### Trailing-empty-component canonicalization (observed, on `test/fixtures/canonical/tq1-q6h.hl7`)
 
 `@cosyte/hl7`'s serializer strips **trailing empty components and subcomponents** when producing
-canonical wire text (`Field.text`, `src/serialize/emit-field.ts`: this is D-02, the same rule that
+canonical wire text (`Field.text`, `src/serialize/emit-field.ts`: the same rule that
 governs `msg.toString()`'s spec-clean output). python-hl7's `str(field)` instead returns the
 **verbatim original substring**, trailing empties included.
 
@@ -132,7 +132,7 @@ trailing components/subcomponents), a structural, not content-based, check.
 These are called out because they're common failure modes when differential-testing two
 independently-implemented HL7 v2 parsers, but the current 27-fixture canonical corpus doesn't
 happen to exercise them. If the corpus grows and one of these starts firing, add its predicate to
-`KNOWN_DIVERGENCES` with the same honesty this file applies to the D-02 case above. Don't broaden
+`KNOWN_DIVERGENCES` with the same honesty this file applies to the trailing-empty case above. Don't broaden
 an existing predicate to swallow an unrelated divergence.
 
 - **Escape-sequence decoding differences.** `@cosyte/hl7`'s tokenizer decodes escape sequences
@@ -172,3 +172,7 @@ an existing predicate to swallow an unrelated divergence.
   compare against). This is a deliberate scope boundary: wire-text parity at the segment/field
   level is what "two parsers agree on how this message is shaped" actually means; composite-type
   interpretation is `@cosyte/hl7`-specific value-add tested elsewhere (`test/model-types-*.test.ts`).
+
+## Put it to use
+
+- [Testing and quality](./testing-and-quality.md)

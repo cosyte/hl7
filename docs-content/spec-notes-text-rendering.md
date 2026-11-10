@@ -126,3 +126,7 @@ unaffected.
   their literal characters and are flagged in `unrenderedSequences`.
 - **Rendering is opt-in.** `Field.value` / `toString()` and the whole raw
   extraction surface are unchanged; `renderText` never mutates them.
+
+## Put it to use
+
+- [Read lab results, orders and timing](./read-lab-results.md)

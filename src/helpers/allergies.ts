@@ -3,11 +3,11 @@
  * order. Each entry names the segment it was read from (`source`).
  *
  * Design decisions enforced here:
- *   - D-01: `Object.freeze` applied to each entry and to the outer array.
- *   - D-05: returns `[]` when neither AL1 nor IAM is present.
- *   - D-06: NOT memoized: each call re-walks `msg.allSegments()`.
+ *   - `Object.freeze` applied to each entry and to the outer array.
+ *   - Returns `[]` when neither AL1 nor IAM is present.
+ *   - NOT memoized: each call re-walks `msg.allSegments()`.
  *   - `onsetDate` is the fidelity `TS` (precision + timezone preserved).
- *   - D-22: never throws: empty / malformed fields surface as omitted keys.
+ *   - Never throws: empty / malformed fields surface as omitted keys.
  *
  * Lean field set (callers wanting more can drop to `msg.segments("AL1")` /
  * `msg.segments("IAM")`):
@@ -32,7 +32,7 @@ import type { Segment } from "../model/segment.js";
 import type { EncodingCharacters, RawComponent } from "../parser/types.js";
 import type { Allergy, AllergySource, AllergyUniqueIdentifier } from "./types.js";
 
-/** Normalize HL7 empty-string to `undefined` for the helper layer (D-22). @internal */
+/** Normalize HL7 empty-string to `undefined` for the helper layer. @internal */
 function stringOrUndefined(v: string): string | undefined {
   return v === "" ? undefined : v;
 }
@@ -137,8 +137,8 @@ function fromIam(iam: Segment): Allergy {
 
 /**
  * Every AL1 and IAM as an `Allergy` entry, in one pass in document order, each
- * naming the segment it was read from. D-05: returns `[]` when neither is
- * present. D-06: NOT memoized. HELPERS-07: never throws.
+ * naming the segment it was read from. Returns `[]` when neither is
+ * present. NOT memoized. Never throws.
  *
  * @example
  * ```ts

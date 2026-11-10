@@ -175,3 +175,7 @@ unreadable?.administrationStatus.classification; // => "undetermined"
 unreadable?.administrationStatus.completionStatus; // => "cp"
 msg.immunizations().length; // => 5
 ```
+
+## Put it to use
+
+- [Read allergies, medications, immunizations and other lists](./read-clinical-lists.md)

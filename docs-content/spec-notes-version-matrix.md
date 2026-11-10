@@ -84,3 +84,8 @@ information.
 - **Not a conformance validator.** `VERSION_MISMATCH` is the only
   version-related warning; the parser does not assert that a message conforms to
   its declared version's segment/field rules.
+
+## Put it to use
+
+- [Read patient, visit and message details](./read-patient-and-visit.md)
+- [Build a message](./build-messages.md)

@@ -4,7 +4,7 @@
  * `export * as HL7 from "./model/types/namespace.js";` in the top-level barrel
  * (`src/index.ts`). Named exports of the same interfaces live in the public
  * barrel alongside this namespace for developers who prefer the direct
- * `import type { XPN } ...` style (D-13).
+ * `import type { XPN } ...` style.
  *
  * The namespace is TYPES-ONLY: parser functions (`parseXpn`, `parseXad`, ...)
  * are exported as value exports from the main barrel, not under `HL7`.
