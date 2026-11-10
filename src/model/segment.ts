@@ -209,7 +209,9 @@ export class Segment<FieldName extends string = string> {
   }
 
   static {
-    const settle = Segment.#settle;
+    // `this`, not the class name: a class that names itself inside its own body is emitted by the
+    // bundler under a renamed inner binding, which changes `Segment.name` and every log label.
+    const settle = this.#settle;
     /** An own property that builds the segment on first read or write, then holds a value. */
     const lazy = (key: "fields" | "raw"): PropertyDescriptor => ({
       get(this: Segment): unknown {
@@ -227,7 +229,7 @@ export class Segment<FieldName extends string = string> {
     LAZY_RAW = lazy("raw");
     // A log reads every own property, so `util.inspect` builds a pending segment first and then
     // prints the wrapper as it is, rather than printing `[Getter/Setter]`.
-    Object.defineProperty(Segment.prototype, INSPECT, {
+    Object.defineProperty(this.prototype, INSPECT, {
       value(this: Segment): Segment {
         settle(this);
         return this;

@@ -381,7 +381,9 @@ export class Hl7Message {
   }
 
   static {
-    const settle = Hl7Message.#settle;
+    // `this`, not the class name: a class that names itself inside its own body is emitted by the
+    // bundler under a renamed inner binding, which changes `Hl7Message.name` and every log label.
+    const settle = this.#settle;
     LAZY_RAW_SEGMENTS = {
       get(this: Hl7Message): readonly RawSegment[] {
         settle(this);
@@ -396,7 +398,7 @@ export class Hl7Message {
     };
     // A log reads every own property, so `util.inspect` builds what is pending first and then
     // prints the message as it is, rather than printing `[Getter/Setter]`.
-    Object.defineProperty(Hl7Message.prototype, INSPECT, {
+    Object.defineProperty(this.prototype, INSPECT, {
       value(this: Hl7Message): Hl7Message {
         settle(this);
         return this;
