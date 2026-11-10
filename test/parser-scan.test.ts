@@ -10,7 +10,13 @@ import { describe, expect, it } from "vitest";
 import { messageText } from "../src/arbitraries/index.js";
 import { DEFAULT_ENCODING_CHARACTERS, readDelimiters } from "../src/parser/delimiters.js";
 import { normalize } from "../src/parser/normalize.js";
-import { Scanner, scanMessage, type ScanSink } from "../src/parser/scan.js";
+import {
+  HOLDS_ESCAPE,
+  PLAIN_FIELD_LIMIT,
+  Scanner,
+  scanMessage,
+  type ScanSink,
+} from "../src/parser/scan.js";
 import { splitSegments } from "../src/parser/segments.js";
 import { tokenize } from "../src/parser/tokenize.js";
 import type { EncodingCharacters } from "../src/parser/types.js";
@@ -38,22 +44,28 @@ function findings(): Findings {
   };
 }
 
-/** Each segment's text, as the offsets say. */
-function segmentTexts(text: string, offsets: Uint32Array): string[] {
+/** Each segment's text, as the table says. */
+function segmentTexts(text: string, table: Uint32Array, count: number): string[] {
   const out: string[] = [];
-  for (let i = 0; i + 1 < offsets.length; i++) {
-    out.push(text.slice(offsets[i], (offsets[i + 1] as number) - 1));
+  for (let i = 0; i < count; i++) {
+    out.push(text.slice(table[2 * i], (table[2 * i + 2] as number) - 1));
   }
   return out;
+}
+
+/** Each segment's scan flags, as the table holds them. */
+function flagsOf(table: Uint32Array, count: number): number[] {
+  return Array.from({ length: count }, (_v, i) => table[2 * i + 1] as number);
 }
 
 describe("scanMessage: boundaries and names", () => {
   it("finds each segment's start and name, and one past the end of the last", () => {
     const text = "MSH|^~\\&|A\rPID|1\r";
-    const { offsets, names } = scanMessage(text, enc, true, findings().sink);
-    expect(Array.from(offsets)).toEqual([0, 11, 17]);
+    const { table, count, names } = scanMessage(text, enc, true, findings().sink);
+    expect(count).toBe(2);
+    expect([table[0], table[2], table[4]]).toEqual([0, 11, 17]);
     expect(names).toEqual(["MSH", "PID"]);
-    expect(segmentTexts(text, offsets)).toEqual(["MSH|^~\\&|A", "PID|1"]);
+    expect(segmentTexts(text, table, count)).toEqual(["MSH|^~\\&|A", "PID|1"]);
   });
 
   it("splits exactly as splitSegments does: a middle empty segment kept, one trailing CR dropped", () => {
@@ -63,9 +75,9 @@ describe("scanMessage: boundaries and names", () => {
       "MSH|^~\\&|A",
       "MSH|^~\\&|A\rZZZ\rpid|1|2\r",
     ]) {
-      const { offsets, names } = scanMessage(text, enc, true, findings().sink);
+      const { table, count, names } = scanMessage(text, enc, true, findings().sink);
       const expected = splitSegments(text);
-      expect(segmentTexts(text, offsets)).toEqual(expected);
+      expect(segmentTexts(text, table, count)).toEqual(expected);
       expect(names).toEqual(expected.map((s) => s.split("|")[0]));
     }
   });
@@ -77,10 +89,11 @@ describe("scanMessage: boundaries and names", () => {
 
   it("holds more segments than its first allocation", () => {
     const text = "MSH|^~\\&\r" + "OBX|1\r".repeat(300);
-    const { offsets, names } = scanMessage(text, enc, true, findings().sink);
+    const { table, count, names } = scanMessage(text, enc, true, findings().sink);
+    expect(count).toBe(301);
     expect(names).toHaveLength(301);
-    expect(offsets).toHaveLength(302);
-    expect(offsets[301]).toBe(text.length);
+    expect(table[2 * 301]).toBe(text.length);
+    expect(segmentTexts(text, table, count).slice(-2)).toEqual(["OBX|1", "OBX|1"]);
     expect(names.every((n, i) => n === (i === 0 ? "MSH" : "OBX"))).toBe(true);
   });
 
@@ -243,6 +256,56 @@ describe("scanMessage: findings", () => {
         [WARNING_CODES.FIELD_WHITESPACE_TRIMMED, 1, 2],
       ],
     );
+  });
+});
+
+describe("scanMessage: what each segment's build needs", () => {
+  it("flags a segment holding the escape character, wherever it stands in the segment", () => {
+    const text = "MSH|^~\\&|A\rNTE|\\Q\\|b|c\rNTE|a|b|\\Q\\\rNTE|a|b|c\rNTE|a~\\H\\|b";
+    const { table, count } = scanMessage(text, enc, true, findings().sink);
+    expect(flagsOf(table, count).map((f) => (f & HOLDS_ESCAPE) !== 0)).toEqual([
+      true,
+      true,
+      true,
+      false,
+      true,
+    ]);
+  });
+
+  it("marks the fields it read whole and found no structure separator in", () => {
+    const long = "x".repeat(40);
+    const text = `MSH|^~\\&|A\rZZX|1||a^b|c~d|e&f|k9|${long}|"" |\rZZZ`;
+    const { table, count } = scanMessage(text, enc, true, findings().sink);
+    const zzx = flagsOf(table, count)[1] as number;
+    const plain = Array.from({ length: 10 }, (_v, n) => n > 0 && ((zzx >>> (n - 1)) & 1) === 1);
+    // Fields 1 ("1"), 2 (empty), 6 ("k9"), 8 ('"" ') and the empty 9 after the trailing separator
+    // are plain; 3 to 5 hold a separator; 7 is longer than the scanner reads a character at a
+    // time, so it is not marked.
+    expect(plain).toEqual([false, true, true, false, false, false, true, false, true, true]);
+    expect(flagsOf(table, count)[2]).toBe(0);
+  });
+
+  it("marks no field past the last one a flag bit is kept for", () => {
+    const fields = Array.from({ length: 40 }, (_v, i) => String(i + 1));
+    const { table, count } = scanMessage(
+      `MSH|^~\\&\rOBX|${fields.join("|")}`,
+      enc,
+      true,
+      findings().sink,
+    );
+    const obx = flagsOf(table, count)[1] as number;
+    expect(obx >>> 0).toBe(0x7fffffff);
+    expect(PLAIN_FIELD_LIMIT).toBe(31);
+  });
+});
+
+describe("tokenize: the scan, then the build", () => {
+  it("trims every trimmed field of a segment", () => {
+    const tree = tokenize(["MSH|^~\\&", "PID| a | b |c"], enc, () => undefined, true);
+    const values = tree[1]?.fields
+      .slice(1)
+      .map((f) => f.repetitions[0]?.components[0]?.subcomponents[0]);
+    expect(values).toEqual(["a", "b", "c"]);
   });
 });
 

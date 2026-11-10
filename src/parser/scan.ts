@@ -9,6 +9,10 @@
  * Every search for the next separator or escape character is remembered, so the whole scan reads
  * each character a bounded number of times however the message is shaped.
  *
+ * It also notes what lets a build skip work, so the build repeats none of the scan's: whether each
+ * segment holds the escape character at all, which of its fields hold no repetition, component or
+ * subcomponent separator, and where each field of the segment just scanned starts.
+ *
  * It works one segment at a time (`Scanner.segment`), so a reader that receives a message in pieces
  * can hand it each segment as it arrives and get the same findings in the same order.
  *
@@ -36,23 +40,41 @@ export interface ScanSink {
 }
 
 /**
- * What a scan of a whole message found: where each segment starts, and each segment's name.
+ * What a scan of a whole message found: where each segment starts, what the build of each needs
+ * to know, and each segment's name.
  *
  * @internal
  */
 export interface ScannedMessage {
   /**
-   * The start of every segment in the text, then one more entry: the end of the last segment plus
-   * one. Segment `i` is the text from `offsets[i]` to `offsets[i + 1] - 1`, its terminating `\r`
-   * excluded.
+   * Two entries per segment, then one more. Entry `2 * i` is where segment `i` starts in the text,
+   * and entry `2 * i + 2` is one past its end, so segment `i` is the text from `table[2 * i]` to
+   * `table[2 * i + 2] - 1`, its terminating `\r` excluded. Entry `2 * i + 1` is the segment's scan
+   * flags (`Scanner.flags`). Entries past `2 * count` are spare room.
    */
-  readonly offsets: Uint32Array;
+  readonly table: Uint32Array;
+  /** How many segments the text holds. */
+  readonly count: number;
   /** Each segment's name, as the text before its first field separator. */
   readonly names: readonly string[];
 }
 
+/** The flag bit set for a segment that holds the escape character anywhere (MSH-2 included). */
+export const HOLDS_ESCAPE = 0x80000000;
+
+/** The highest field index a plain-field bit is kept for (bits 0 to 30 are fields 1 to 31). */
+export const PLAIN_FIELD_LIMIT = 31;
+
 /** Segment names kept for reuse, so a hundred OBX lines share one name string. */
 const NAME_CACHE_LIMIT = 32;
+
+/**
+ * How far the scanner reads a field one character at a time before it searches for its end with
+ * `indexOf`. Most fields are a few characters long, and a call to `indexOf` costs more than reading
+ * them; a long field (a base64 document) is searched natively, so it is not read a character at a
+ * time. Any length gives the same boundaries.
+ */
+const SHORT_FIELD = 32;
 
 /**
  * Whether a character could be whitespace that `String.prototype.trim` removes. Every such
@@ -92,9 +114,8 @@ function scanEscapes(
     for (let c = 0; c < components.length; c++) {
       const subcomponents = splitOn(components[c] as string, enc.subcomponent);
       for (let s = 0; s < subcomponents.length; s++) {
-        const sub = subcomponents[s] as string;
-        if (!sub.includes(enc.escape)) continue;
-        unescape(sub, enc, warn, {
+        // A subcomponent without the escape character decodes to itself and reports nothing.
+        unescape(subcomponents[s] as string, enc, warn, {
           segmentIndex,
           fieldIndex,
           repetitionIndex: r + 1,
@@ -119,6 +140,32 @@ export class Scanner {
   private escapeAt = -1;
   /** Names seen so far, reused rather than sliced again. */
   private readonly names: string[] = [];
+  /** The field separator's character code. */
+  private readonly separatorCode: number;
+  /** The repetition separator's character code. */
+  private readonly repetitionCode: number;
+  /** The component separator's character code. */
+  private readonly componentCode: number;
+  /** The subcomponent separator's character code. */
+  private readonly subcomponentCode: number;
+  /** Whether the field the last `fieldEnd` call found is known to hold no structure separator. */
+  private fieldPlain = false;
+  /**
+   * What a build of the segment the last `segment` call scanned needs to know, as one 32-bit
+   * number (negative when `HOLDS_ESCAPE` is set; a `Uint32Array` stores it unsigned). Bit `n - 1` (for `n` from 1 to `PLAIN_FIELD_LIMIT`) is set when `fields[n]` is short
+   * and holds no repetition, component or subcomponent separator, so its tree is one value; a
+   * clear bit says nothing. `HOLDS_ESCAPE` is set when the segment holds the escape character
+   * anywhere; one that does not cannot hold an escape sequence, so a build need not look for one.
+   */
+  public flags = 0;
+  /**
+   * Where each field of the segment the last `segment` call scanned starts, the name first, then
+   * one more entry: one past the segment's end. Field `k` is the text from `fieldStarts[k]` to
+   * `fieldStarts[k + 1] - 1`. Reused from segment to segment; entries past `fieldCount` are stale.
+   */
+  public readonly fieldStarts: number[] = [];
+  /** How many fields (the name included) the segment the last `segment` call scanned holds. */
+  public fieldCount = 0;
 
   /**
    * @param text The normalized text, or one segment of it.
@@ -131,7 +178,12 @@ export class Scanner {
     private readonly enc: EncodingCharacters,
     private readonly trimFields: boolean,
     private readonly sink: ScanSink,
-  ) {}
+  ) {
+    this.separatorCode = enc.field.charCodeAt(0);
+    this.repetitionCode = enc.repetition.charCodeAt(0);
+    this.componentCode = enc.component.charCodeAt(0);
+    this.subcomponentCode = enc.subcomponent.charCodeAt(0);
+  }
 
   /** The first field separator at or after `from`, or the text's length when there is none. */
   private nextSeparator(from: number): number {
@@ -140,6 +192,34 @@ export class Scanner {
       this.separatorAt = at === -1 ? this.text.length : at;
     }
     return this.separatorAt;
+  }
+
+  /**
+   * The end of the field that starts at `from` in a segment that ends at `end`: the first field
+   * separator at or after `from`, or `end` when there is none before it. A short field is read one
+   * character at a time, which also tells whether it holds a structure separator (`fieldPlain`).
+   */
+  private fieldEnd(from: number, end: number): number {
+    const text = this.text;
+    const limit = Math.min(end, from + SHORT_FIELD);
+    let plain = true;
+    for (let i = from; i < limit; i++) {
+      const code = text.charCodeAt(i);
+      if (code === this.separatorCode) {
+        this.fieldPlain = plain;
+        return i;
+      }
+      if (
+        code === this.repetitionCode ||
+        code === this.componentCode ||
+        code === this.subcomponentCode
+      ) {
+        plain = false;
+      }
+    }
+    this.fieldPlain = plain && limit === end;
+    if (limit === end) return end;
+    return Math.min(this.nextSeparator(limit), end);
   }
 
   /** The first escape character at or after `from`, or the text's length when there is none. */
@@ -171,20 +251,36 @@ export class Scanner {
    * never trimmed or unescaped, so an MSH segment's findings start at MSH-3.
    */
   public segment(start: number, end: number, segmentIndex: number): string {
-    const firstSeparator = this.nextSeparator(start);
-    if (firstSeparator >= end) return this.name(start, end);
+    // Asked before the fields are scanned: the remembered search only moves forward.
+    let flags = this.nextEscape(start) < end ? HOLDS_ESCAPE : 0;
+    const fieldStarts = this.fieldStarts;
+    fieldStarts[0] = start;
+    const firstSeparator = this.fieldEnd(start, end);
+    if (firstSeparator === end) {
+      fieldStarts[1] = end + 1;
+      this.fieldCount = 1;
+      this.flags = flags;
+      return this.name(start, end);
+    }
     const name = this.name(start, firstSeparator);
     const isMsh = name === "MSH";
     let fieldStart = firstSeparator + 1;
     for (let rawFieldIndex = 1; ; rawFieldIndex++) {
-      const fieldEnd = Math.min(this.nextSeparator(fieldStart), end);
+      fieldStarts[rawFieldIndex] = fieldStart;
+      const fieldEnd = this.fieldEnd(fieldStart, end);
+      if (this.fieldPlain && rawFieldIndex <= PLAIN_FIELD_LIMIT) flags |= 1 << (rawFieldIndex - 1);
       if (!isMsh) {
         this.field(fieldStart, fieldEnd, segmentIndex, rawFieldIndex, rawFieldIndex);
       } else if (rawFieldIndex > 1) {
         // Warnings number MSH fields as HL7 does (MSH-3 is 3); the tree holds MSH-1 at index 0.
         this.field(fieldStart, fieldEnd, segmentIndex, rawFieldIndex + 1, rawFieldIndex);
       }
-      if (fieldEnd === end) return name;
+      if (fieldEnd === end) {
+        fieldStarts[rawFieldIndex + 1] = end + 1;
+        this.fieldCount = rawFieldIndex + 1;
+        this.flags = flags;
+        return name;
+      }
       fieldStart = fieldEnd + 1;
     }
   }
@@ -222,9 +318,9 @@ export class Scanner {
     if (value === undefined) {
       if (this.nextEscape(start) >= end) return;
       value = text.slice(start, end);
-    } else if (!value.includes(this.enc.escape)) {
-      return;
     }
+    // A trimmed field is decoded for its findings whether or not it holds an escape: trimming is
+    // rare, and one without an escape reports nothing.
     scanEscapes(value, this.enc, this.sink.warn, segmentIndex, fieldIndex);
   }
 }
@@ -234,11 +330,14 @@ export class Scanner {
  * name, and every finding, reported to `sink` in order. One trailing `\r` ends the last segment
  * rather than starting an empty one; an empty segment in the middle (`\r\r`) is kept, so segment
  * indices match the text. The text must hold at least one segment: `"\r"` alone holds none.
+ * `onSegment`, when given, is called after each segment is scanned, while the scanner still
+ * holds that segment's field boundaries, so a caller can build the segment without searching it
+ * again.
  *
  * @example
  * ```ts
- * const { offsets, names } = scanMessage("MSH|^~\\&|A\rPID|1\r", enc, true, sink);
- * // names: ["MSH", "PID"]; offsets: [0, 11, 17]
+ * const { table, count, names } = scanMessage("MSH|^~\\&|A\rPID|1\r", enc, true, sink);
+ * // count: 2; names: ["MSH", "PID"]; starts in table[0], table[2]: 0, 11; table[4]: 17
  * ```
  *
  * @internal
@@ -248,25 +347,30 @@ export function scanMessage(
   enc: EncodingCharacters,
   trimFields: boolean,
   sink: ScanSink,
+  onSegment?: (index: number, scanner: Scanner) => void,
 ): ScannedMessage {
   const scanner = new Scanner(text, enc, trimFields, sink);
   const textEnd = text.endsWith("\r") ? text.length - 1 : text.length;
-  // Count the segments first, so both lists are allocated once at their final size: a list grown
-  // by appending copies itself as it grows, and a long message has many thousands of segments.
+  // Where each segment starts, found once, then scanned. The table starts at 16 entries, 64
+  // bytes, the most V8 keeps inside the heap without a separate buffer, which a short message
+  // never outgrows; a longer one grows it by doubling, outside the heap.
+  let table = new Uint32Array(16);
   let count = 1;
   for (let at = text.indexOf("\r"); at !== -1 && at < textEnd; at = text.indexOf("\r", at + 1)) {
-    count++;
+    if (2 * count + 2 >= table.length) {
+      const grown = new Uint32Array(table.length * 2);
+      grown.set(table);
+      table = grown;
+    }
+    table[2 * count++] = at + 1;
   }
+  table[2 * count] = textEnd + 1;
   const names = new Array<string>(count);
-  const offsets = new Uint32Array(count + 1);
-  let start = 0;
   for (let i = 0; i < count; i++) {
-    offsets[i] = start;
-    const terminator = text.indexOf("\r", start);
-    const end = terminator === -1 || terminator > textEnd ? textEnd : terminator;
-    names[i] = scanner.segment(start, end, i);
-    start = end + 1;
+    const start = table[2 * i] as number;
+    names[i] = scanner.segment(start, (table[2 * i + 2] as number) - 1, i);
+    table[2 * i + 1] = scanner.flags;
+    onSegment?.(i, scanner);
   }
-  offsets[count] = start;
-  return { offsets, names };
+  return { table, count, names };
 }

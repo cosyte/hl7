@@ -24,10 +24,10 @@ import { emitIfFramed, stripMllp } from "./mllp.js";
 import { canonicalCharset } from "./charset.js";
 import { normalize, normalizeBuffer } from "./normalize.js";
 import { scanMessage } from "./scan.js";
-import { PendingSegment, SegmentSource } from "./segment-source.js";
+import { PendingSegment, SegmentSource, markAltered } from "./segment-source.js";
 import { snippet as segmentSnippet } from "./segments.js";
-import { alteredFieldsBySegment, locateInteriorFramingBytes } from "./wire-fidelity.js";
-import type { RawFieldPosition } from "./wire-fidelity.js";
+import { buildScannedSegment } from "./tokenize.js";
+import { fieldsBySegment, locateInteriorFramingBytes } from "./wire-fidelity.js";
 import { analyzeMessageStructure, findMessageStructureDefinition } from "./message-structure.js";
 import {
   encodingMismatch,
@@ -42,12 +42,16 @@ import type {
   Hl7Position,
   ParseOptions,
   Profile,
+  RawField,
   RawSegment,
 } from "./types.js";
 
 import { Hl7Message } from "../model/message.js";
 import { getDefaultProfile } from "../profiles/default.js";
 import type { ProfiledMessage } from "../profiles/typed-fields.js";
+
+/** No fields by segment: what a message no framing byte was stripped from records. @internal */
+const NO_FIELDS: readonly (readonly number[] | undefined)[] = Object.freeze([]);
 
 /**
  * The list of `ParseOptions` keys that are TRULY options-only: i.e. keys
@@ -510,36 +514,60 @@ export function parseHL7(
   // boundaries and name, and every finding, in one pass with no tree. Each trimmed field's
   // position is recorded before its warning reaches the onWarning callbacks, so a callback that
   // changes the warning it was given cannot change which field is recorded as trimmed.
-  const trimmed: RawFieldPosition[] = [];
-  const trimFields = options.trimFields ?? true;
-  const scanned = scanMessage(inputForPipeline, encoding, trimFields, {
+  //
+  // Which fields did not arrive as the value stored for them is recorded by segment: those
+  // trimmed, and those a VT/FS byte was stripped from inside in Step 4. Each is marked on its
+  // segment when the segment is built. Nothing in the tree, its values or the warnings changes;
+  // readers that need a field exactly as received (the result status classification) ask.
+  const trimmed: number[][] = [];
+  const framing = mllpResult.wasFramed
+    ? fieldsBySegment(locateInteriorFramingBytes(unstripped, encoding.field))
+    : NO_FIELDS;
+  const sink = {
     warn: emit,
-    trimmed: (segmentIndex, rawFieldIndex) => trimmed.push({ segmentIndex, rawFieldIndex }),
-  });
-  const segmentNames = scanned.names;
+    trimmed: (segmentIndex: number, rawFieldIndex: number) => {
+      const fields = trimmed[segmentIndex];
+      if (fields === undefined) trimmed[segmentIndex] = [rawFieldIndex];
+      else fields.push(rawFieldIndex);
+    },
+  };
+  const trimFields = options.trimFields ?? true;
 
-  // Record which fields did not arrive as the value stored for them: those
-  // trimmed above, and those a VT/FS byte was stripped from inside in Step 4.
-  // Nothing in the tree, its values or the warnings changes; readers that need
-  // a field exactly as received (the result status classification) ask.
-  const source = new SegmentSource(
-    inputForPipeline,
-    scanned.offsets,
-    encoding,
-    trimFields,
-    alteredFieldsBySegment(
+  // Lazy (the default): each segment stays a pending entry, built on first read, and MSH is
+  // built now (the version and the message type come from it). Eager: each segment is built as
+  // soon as it is scanned, from the field boundaries the scan just found.
+  let rawSegments: readonly RawSegment[];
+  let segmentNames: readonly string[];
+  if (options.lazy === false) {
+    const placeholders = new Map<string, RawField>();
+    const built: RawSegment[] = [];
+    segmentNames = scanMessage(inputForPipeline, encoding, trimFields, sink, (i, scanner) => {
+      const segment = buildScannedSegment(
+        inputForPipeline,
+        scanner,
+        encoding,
+        placeholders,
+        trimmed[i],
+      );
+      markAltered(segment, trimmed[i], framing[i]);
+      built.push(segment);
+    }).names;
+    rawSegments = built;
+  } else {
+    const scanned = scanMessage(inputForPipeline, encoding, trimFields, sink);
+    const source = new SegmentSource(
+      inputForPipeline,
+      scanned.table,
+      scanned.count,
+      encoding,
       trimmed,
-      mllpResult.wasFramed ? locateInteriorFramingBytes(unstripped, encoding.field) : [],
-    ),
-  );
-  // Lazy (the default): each segment stays a pending entry, built on first read. Eager: every
-  // segment is built now. MSH is built either way: the version and the message type come from it.
-  const rawSegments: readonly RawSegment[] =
-    options.lazy === false
-      ? segmentNames.map((_name, i) => source.segment(i))
-      : segmentNames.map((name, i) =>
-          i === 0 ? source.segment(0) : new PendingSegment(name, source, i),
-        );
+      framing,
+    );
+    segmentNames = scanned.names;
+    rawSegments = segmentNames.map((name, i) =>
+      i === 0 ? source.segment(0) : new PendingSegment(name, source, i),
+    );
+  }
 
   // Step 11.5: Emit UNKNOWN_SEGMENT for any non-standard segment name that
   // is not declared in the active profile (D-31), and SEGMENT_CASE for any

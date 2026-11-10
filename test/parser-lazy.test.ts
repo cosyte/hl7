@@ -178,12 +178,59 @@ describe("a lazy parse (the default)", () => {
     expect(obx === undefined ? false : fieldArrivedAltered(obx.field(11).raw)).toBe(true);
   });
 
+  it("trims and marks every trimmed field of a segment, in both modes", () => {
+    const text = "MSH|^~\\&|A|B|C|D|20260101||ORU^R01|1|P|2.5\rOBX|1|NM|X|| 5 |||| F";
+    for (const lazy of [true, false]) {
+      const obx = parseHL7(text, { lazy }).segments("OBX")[0];
+      expect([obx?.field(5).value, obx?.field(9).value]).toEqual(["5", "F"]);
+      expect(
+        obx === undefined ? [] : [5, 9].map((n) => fieldArrivedAltered(obx.field(n).raw)),
+      ).toEqual([true, true]);
+    }
+  });
+
+  it("marks every field of a segment a framing byte was stripped from, in both modes", () => {
+    const text =
+      "\u000bMSH|^~\\&|A|B|C|D|20260101||ORU^R01|1|P|2.5\rOBX|1|NM|X||5\u000b|||||F\u000b\u001c\r";
+    for (const lazy of [true, false]) {
+      const obx = parseHL7(text, { lazy }).segments("OBX")[0];
+      expect(
+        obx === undefined ? [] : [4, 5, 10].map((n) => fieldArrivedAltered(obx.field(n).raw)),
+      ).toEqual([false, true, true]);
+    }
+  });
+
   it("never shares a built segment between two messages parsed from one text", () => {
     const a = parseHL7(TEXT);
     const b = parseHL7(TEXT);
     expect(a.part("PID")?.raw).not.toBe(b.part("PID")?.raw);
     a.setField("PID.5.1", "Changed");
     expect(b.get("PID.5.1")).toBe("Roe");
+  });
+
+  it("builds odd segments the same way in both modes", () => {
+    const text =
+      "MSH|^~\\&|A|B|C|D|20260101||ORU^R01|1|P|2.5\r" +
+      "\r" +
+      "ZZZ\r" +
+      "|x|y\r" +
+      "PID|\r" +
+      "MSH\r" +
+      "NTE|1|| a ";
+    const eager = parseHL7(text, { lazy: false });
+    const lazy = parseHL7(text);
+    const names = eager.rawSegments.map((s) => s.name);
+    expect(names).toEqual(["MSH", "", "ZZZ", "", "PID", "MSH", "NTE"]);
+    expect(eager.rawSegments[1]).toEqual({ name: "", fields: [] });
+    expect(
+      eager.rawSegments[2]?.fields.map((f) => f.repetitions[0]?.components[0]?.subcomponents[0]),
+    ).toEqual(["ZZZ"]);
+    expect(eager.rawSegments[3]?.fields).toHaveLength(3);
+    expect(eager.rawSegments[4]?.fields).toHaveLength(1);
+    expect(eager.get("NTE.3")).toBe("a");
+    expect(lazy.rawSegments).toEqual(eager.rawSegments);
+    expect(lazy.toString()).toBe(eager.toString());
+    expect(lazy.warnings).toEqual(eager.warnings);
   });
 
   it("builds each of many segments from its own text", () => {

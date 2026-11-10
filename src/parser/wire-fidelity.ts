@@ -101,26 +101,25 @@ export function locateInteriorFramingBytes(
 }
 
 /**
- * Which fields of which segments the parser altered on the way in, keyed by segment index: each
- * field the scanner reported as trimmed (`trimmed`, in the order it reported them), then each
- * field {@link locateInteriorFramingBytes} returned. Positions are indices in
- * `RawSegment.fields`. Empty when nothing was altered, which is the common case.
+ * Field positions grouped by segment: entry `i` lists, in order, the field indices (in
+ * `RawSegment.fields`) of the positions in segment `i`. A sparse list; a segment with none reads
+ * as `undefined`.
  *
  * @example
  * ```ts
- * alteredFieldsBySegment([{ segmentIndex: 2, rawFieldIndex: 11 }], []); // Map { 2 => [11] }
+ * fieldsBySegment([{ segmentIndex: 2, rawFieldIndex: 11 }]); // [, , [11]]
  * ```
  *
  * @internal
  */
-export function alteredFieldsBySegment(
-  trimmed: readonly RawFieldPosition[],
-  framingBytes: readonly RawFieldPosition[],
-): ReadonlyMap<number, readonly number[]> {
-  const bySegment = new Map<number, number[]>();
-  for (const { segmentIndex, rawFieldIndex } of [...trimmed, ...framingBytes]) {
-    const fields = bySegment.get(segmentIndex);
-    if (fields === undefined) bySegment.set(segmentIndex, [rawFieldIndex]);
+export function fieldsBySegment(
+  positions: readonly RawFieldPosition[],
+): readonly (readonly number[] | undefined)[] {
+  const bySegment: (number[] | undefined)[] = [];
+  for (let i = 0; i < positions.length; i++) {
+    const { segmentIndex, rawFieldIndex } = positions[i] as RawFieldPosition;
+    const fields = bySegment[segmentIndex];
+    if (fields === undefined) bySegment[segmentIndex] = [rawFieldIndex];
     else fields.push(rawFieldIndex);
   }
   return bySegment;

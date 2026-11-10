@@ -1019,6 +1019,7 @@ export class Hl7Message {
     let seen = 0;
     let segIdx = -1;
     let seg: RawSegment | undefined;
+    // Stryker disable next-line EqualityOperator: one past the end reads undefined, which the loop skips
     for (let i = 0; i < this._segments.length; i++) {
       const s = this._segments[i];
       if (s === undefined) continue;
@@ -1149,6 +1150,7 @@ export class Hl7Message {
     let seen = 0;
     let segIdx = -1;
     let seg: RawSegment | undefined;
+    // Stryker disable next-line EqualityOperator: one past the end reads undefined, which the loop skips
     for (let i = 0; i < this._segments.length; i++) {
       const s = this._segments[i];
       if (s === undefined) continue;

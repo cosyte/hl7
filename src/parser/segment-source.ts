@@ -33,38 +33,63 @@ export class SegmentSource {
 
   /**
    * @param text The normalized text the scanner read.
-   * @param offsets The scanner's offsets: segment `i` runs from `offsets[i]` to `offsets[i + 1] - 1`.
+   * @param table The scanner's table: segment `i` runs from `table[2 * i]` to
+   *   `table[2 * i + 2] - 1`, and `table[2 * i + 1]` is its scan flags.
+   * @param count How many segments the text holds.
    * @param enc The message's encoding characters.
-   * @param trimFields Whether field values are trimmed.
-   * @param altered The fields altered on the way in, by segment index.
+   * @param trimmed The fields the scanner reported as trimmed, by segment index.
+   * @param framing The fields a framing byte was removed from, by segment index.
    */
   public constructor(
     private readonly text: string,
-    private readonly offsets: Uint32Array,
+    private readonly table: Uint32Array,
+    count: number,
     private readonly enc: EncodingCharacters,
-    private readonly trimFields: boolean,
-    private readonly altered: ReadonlyMap<number, readonly number[]>,
+    private readonly trimmed: readonly (readonly number[] | undefined)[],
+    private readonly framing: readonly (readonly number[] | undefined)[],
   ) {
-    this.built = new Array<RawSegment | undefined>(offsets.length - 1);
+    this.built = new Array<RawSegment | undefined>(count);
   }
 
   /** Segment `index`'s tree, built the first time it is asked for and the same object after. */
   public segment(index: number): RawSegment {
     const cached = this.built[index];
     if (cached !== undefined) return cached;
-    const start = this.offsets[index] as number;
-    const end = (this.offsets[index + 1] as number) - 1;
+    const table = this.table;
+    const start = table[2 * index] as number;
+    const end = (table[2 * index + 2] as number) - 1;
+    const trimmed = this.trimmed[index];
     const segment = buildSegment(
       this.text.slice(start, end),
       this.enc,
-      this.trimFields,
       this.placeholders,
+      trimmed,
+      table[2 * index + 1] as number,
     );
-    const altered = this.altered.get(index);
-    if (altered !== undefined) markAlteredFields(segment, altered);
+    markAltered(segment, trimmed, this.framing[index]);
     this.built[index] = segment;
     return segment;
   }
+}
+
+/**
+ * Mark, on a segment just built and not yet seen by anything else, the fields the parser altered
+ * on the way in: those trimmed, and those a framing byte was removed from.
+ *
+ * @example
+ * ```ts
+ * markAltered(segment, [11], undefined);
+ * ```
+ *
+ * @internal
+ */
+export function markAltered(
+  segment: RawSegment,
+  trimmed: readonly number[] | undefined,
+  framing: readonly number[] | undefined,
+): void {
+  if (trimmed !== undefined) markAlteredFields(segment, trimmed);
+  if (framing !== undefined) markAlteredFields(segment, framing);
 }
 
 /**
