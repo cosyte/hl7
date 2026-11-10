@@ -248,6 +248,7 @@ function deriveIdentityTriggers(): ReadonlyMap<string, IdentityEventKind> {
     if (def.messageCode !== "ADT") continue;
     if (!def.requiredSegments.includes("MRG")) continue;
     for (const event of def.triggerEvents) {
+      /* v8 ignore next -- every ADT event the registry requires MRG for is in the curated table today, so the fallback has nothing to add; it stays so a new registry event is classified rather than dropped */
       if (!out.has(event)) out.set(event, "change");
     }
   }
@@ -548,6 +549,7 @@ export function identityEvents(msg: Hl7Message): readonly IdentityEvent[] {
       if (group.mrg !== undefined) {
         parties.push(buildMrgParty(group.mrg, msg, legacyWithdrawn));
       }
+      /* v8 ignore next -- splitGroups opens a group only on a PID or an MRG, so every group yields at least one party */
       if (parties.length === 0) continue;
       const out: IdentityEvent = {
         eventType,

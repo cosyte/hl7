@@ -218,7 +218,10 @@ function effectiveUsage(
     const outcomes = predicateOutcomes(usage);
     // Also unreachable through `validateAgainstProfile`: a predicate on a
     // non-conditional usage is a profile defect and never gets this far.
-    if (outcomes === undefined) return parsed.kind === "simple" ? parsed.code : "C";
+    if (outcomes === undefined)
+      return parsed.kind === "simple"
+        ? parsed.code
+        : /* v8 ignore next -- parsed and outcomes come from the same token, and predicateOutcomes answers every conditional token, so a conditional parse never gets here */ "C";
     if (predicate.outcome === "true") return outcomes.whenTrue;
     if (predicate.outcome === "false") return outcomes.whenFalse;
     return "C";

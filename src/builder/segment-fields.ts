@@ -114,6 +114,7 @@ export function repField<K extends CompositeKind>(
   kind: K,
   value: CompositeValueByKind[K] | readonly CompositeValueByKind[K][] | undefined,
 ): RawField {
+  /* v8 ignore next -- every caller checks the member for undefined first and passes undefined to assembleSegment instead */
   if (value === undefined) return absentField();
   if (Array.isArray(value)) {
     return encodeCompositeReps(kind, value as readonly CompositeValueByKind[K][]);

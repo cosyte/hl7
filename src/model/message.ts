@@ -996,6 +996,7 @@ export class Hl7Message {
     const mutSegments = toMutableArray(this.rawSegments);
     const seg = mutSegments[segIdx];
     // Exhaustive guard: the index was just located above.
+    /* v8 ignore next -- the lookup above read a defined segment at this index of the same array, and slice() copies it */
     if (seg === undefined) {
       throw new Error("setField: internal invariant, segment disappeared after lookup.");
     }
@@ -1125,6 +1126,7 @@ export class Hl7Message {
 
     const mutSegments = toMutableArray(this.rawSegments);
     const seg = mutSegments[segIdx];
+    /* v8 ignore next -- the lookup above read a defined segment at this index of the same array, and slice() copies it */
     if (seg === undefined) {
       throw new Error("setComposite: internal invariant, segment disappeared after lookup.");
     }

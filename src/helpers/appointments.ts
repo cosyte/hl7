@@ -83,6 +83,7 @@ const RESOURCE_KIND: Readonly<Record<string, AppointmentResource["kind"]>> = Obj
  */
 function buildResource(seg: Segment): AppointmentResource | undefined {
   const kind = RESOURCE_KIND[seg.type];
+  /* v8 ignore next -- the only caller checks RESOURCE_KIND for the segment type before calling this */
   if (kind === undefined) return undefined;
 
   type Mutable<T> = { -readonly [K in keyof T]?: T[K] };

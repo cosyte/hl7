@@ -122,6 +122,7 @@ export function recordAlteredFields(
     if (w.code !== WARNING_CODES.FIELD_WHITESPACE_TRIMMED) continue;
     const segment = segments[w.position.segmentIndex];
     const fieldIndex = w.position.fieldIndex;
+    /* v8 ignore next -- tokenize emits this warning with both indices, for a segment it pushed at that same index */
     if (segment === undefined || fieldIndex === undefined) continue;
     // Warnings number MSH fields as HL7 does (MSH-3 is 3); the tree holds MSH-1 at index 0.
     mark(segment.fields[segment.name === "MSH" ? fieldIndex - 1 : fieldIndex]);

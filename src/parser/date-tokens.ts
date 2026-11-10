@@ -247,7 +247,9 @@ function isNumericToken(token: DateFormatToken): boolean {
  */
 function isVariableWidthToken(token: DateFormatToken): boolean {
   const spec = DATE_TOKEN_SPECS[token];
+  /* v8 ignore else -- the only caller asks only after isNumericToken has admitted the token, so its kind is digits or fraction */
   if (spec.kind === "digits" || spec.kind === "fraction") return spec.minWidth !== spec.maxWidth;
+  /* v8 ignore next -- the only caller asks only after isNumericToken has admitted the token, so its kind is digits or fraction */
   return false;
 }
 
@@ -388,6 +390,7 @@ function matchFields(input: string, parts: readonly DateFormatPart[]): MatchedFi
     const key = p * stride + j;
     if (failed.has(key)) return false;
     const part = parts[p];
+    /* v8 ignore next -- walk reads parts[p] only for p below parts.length, and the tokeniser builds a dense list */
     if (part === undefined) return false;
 
     if (part.kind === "literal") {
@@ -422,6 +425,7 @@ function matchFields(input: string, parts: readonly DateFormatPart[]): MatchedFi
     if (spec.kind === "monthName") {
       for (let index = 0; index < spec.names.length; index++) {
         const name = spec.names[index];
+        /* v8 ignore next -- index runs below names.length, and the month-name tables are dense constant arrays */
         if (name === undefined) continue;
         const chunk = input.slice(j, name.length + j);
         if (chunk.length !== name.length || !isAsciiLetters(chunk)) continue;

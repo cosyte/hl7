@@ -112,6 +112,7 @@ function checkCardinality(card: unknown, locus: FindingLocus, out: ProfileDefect
 
 /** Compact locus label for a defect detail. @internal */
 function describe(locus: FindingLocus): string {
+  /* v8 ignore next -- every caller passes a segment or field locus whose name has passed SEGMENT_NAME_RE, which the sentinel cannot match */
   if (locus.segment === "(profile)") return "profile";
   let s = `segment "${locus.segment}"`;
   if (locus.field !== undefined) s += ` field ${String(locus.field)}`;
