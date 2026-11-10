@@ -130,7 +130,10 @@ describe("the benchmark suite", () => {
     bind: (target: unknown) => (input: string) => unknown;
   }
 
-  it("measures small to very large inputs, and leaves the two large ones out of the comparison", async () => {
+  /** Which sizes, in order, a pull request's comparison runs; a reading measures every one. */
+  const COMPARED = [true, true, false, false, false, false];
+
+  it("measures small to very large inputs, and leaves the large ones out of the comparison", async () => {
     const { default: suite } = await importModule<{
       default: { name: string; benchmarks: Benchmark[] };
     }>("bench", "parse.bench.mjs");
@@ -141,8 +144,10 @@ describe("the benchmark suite", () => {
         "ORU^R01, 32 KiB",
         "ORU^R01, 1 MiB",
         "ORU^R01, 4 MiB",
+        "ORU^R01 with a base64 document, 1 MiB",
+        "ORU^R01 with a base64 document, 4 MiB",
       ]);
-      expect(benchmark.sizes.map((s) => s.compare)).toEqual([true, true, false, false]);
+      expect(benchmark.sizes.map((s) => s.compare)).toEqual(COMPARED);
     }
   });
 
@@ -151,17 +156,32 @@ describe("the benchmark suite", () => {
       default: { benchmarks: Benchmark[] };
     }>("bench", "parse.bench.mjs");
     const [parse] = suite.benchmarks;
-    const expected = [280, 32 * 1024, 1024 * 1024, 4096 * 1024];
+    const expected = [280, 32 * 1024, 1024 * 1024, 4096 * 1024, 1024 * 1024, 4096 * 1024];
+    expect(parse?.sizes.length).toBe(expected.length);
     for (const [i, size] of (parse?.sizes ?? []).entries()) {
       const corpus = size.build();
       const first = corpus.inputs[0] ?? "";
       expect(Buffer.byteLength(first) / (expected[i] ?? 1)).toBeGreaterThanOrEqual(1);
       expect(Buffer.byteLength(first) / (expected[i] ?? 1)).toBeLessThan(1.01);
       expect(corpus.bytes).toBe(corpus.inputs.reduce((n, t) => n + Buffer.byteLength(t), 0));
-      // The large sizes are the same shape with more results; parsing them here would make every
-      // mutant in the parser pay for a 4 MiB parse.
+      // The large result reports are the same shape with more results; parsing them here would
+      // make every mutant in the parser pay for a 4 MiB parse.
       if (size.compare) expect(parseHL7(first).warnings).toEqual([]);
     }
+  });
+
+  it("carries its large document in one OBX of value type ED, as base64 the parser reads whole", async () => {
+    const { documentMessage } = await importModule<{
+      documentMessage: (i: number, bytes: number) => string;
+    }>("bench", "parse.bench.mjs");
+    const text = documentMessage(0, 64 * 1024);
+    const message = parseHL7(text);
+    expect(message.warnings).toEqual([]);
+    const obx = message.segments("OBX")[1];
+    expect(obx?.field(2).value).toBe("ED");
+    const document = obx?.field(5).raw.repetitions[0]?.components[4]?.subcomponents[0] ?? "";
+    expect(document).toMatch(/^[A-Za-z0-9+/]+$/u);
+    expect(document.length).toBeGreaterThan(64 * 1000);
   });
 });
 
