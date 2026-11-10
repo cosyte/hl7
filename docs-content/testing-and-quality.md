@@ -35,7 +35,10 @@ follows checks values, not only that the parser did not throw.
 
 - **Unit tests, corpora, properties, fuzzing and doc samples** run in one Vitest suite on every pull
   request and on `main`, on Node.js 22, 24 and 26. Property tests run a fixed number of cases each
-  (from 100 to 2,000 today), and all but one fix their seed, so a failure replays exactly.
+  (from 100 to 2,000 today). Of the 131 property checks, 120 fix their seed, so a failure replays
+  exactly. The other 11 (ten checks of the composite encoders and one of the patient-merge
+  helpers) draw a new seed on every run, so a run can find a case an earlier run missed, and a
+  failure is replayed from the seed fast-check prints with it.
 - **The coverage gate** runs with the suite. A floor that is not met fails the pull request.
 - **The PHI scan** runs on every commit (a pre-commit hook) and in CI. The docs pages have their own
   check, which refuses a nine-digit dashed identifier, a telephone number outside the 555 range,

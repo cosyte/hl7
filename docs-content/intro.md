@@ -53,8 +53,8 @@ messages, or a validator in CI.
 - **Vendor profiles.** Eight built-in profiles, and `defineProfile()` for your own senders.
 - **Round trips that keep bytes.** A parsed field's escape sequences re-emit byte for byte.
 - **Strict TypeScript.** ES2023, `noUncheckedIndexedAccess`, ESM and CommonJS builds, Node.js 22 or
-  later. Every export carries a TSDoc summary, which your editor shows and the
-  [API reference](./api/README.md) is generated from.
+  later. Every export carries a TSDoc summary, and the [API reference](./api/README.md) is
+  generated from them.
 
 ## What it is not
 
