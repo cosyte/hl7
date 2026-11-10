@@ -23,7 +23,7 @@ follows checks values, not only that the parser did not throw.
 | --- | --- | --- |
 | Unit tests | each documented behavior and each failure path of every module, run against the source | an input nobody thought to write down |
 | Conformance corpora | a regression on a known message shape: synthetic canonical messages across ADT, ORU, ORM, SIU, MDM, DFT, RDE, RDS and VXU, every fatal input, every strict-mode escalation, the date-token corpus, and the structures derived from HL7's published definitions | a shape the corpus does not hold; behavior on real vendor traffic, since every fixture is synthetic |
-| Property-based tests | a whole class of input breaking a stated rule: a message survives `toString()` and parsing again, lenient mode never throws except on the four fatal codes, the model cannot be mutated by accident, no warning or error carries message text | a rule nobody stated; a case outside the cases run; a gap in what the generators produce |
+| Property-based tests | a whole class of input breaking a stated rule: a message survives `toString()` and parsing again, normalizing twice changes nothing a first pass did not, lenient mode never throws except on the four fatal codes, the model cannot be mutated by accident, no warning or error carries message text | a rule nobody stated; a case outside the cases run; a gap in what the generators produce |
 | Fuzzing | a crash or an unexpected throw on hostile input: arbitrary strings, the canonical messages with delimiters injected, duplicated or dropped, and every truncation of them | a wrong but plausible result, unless a property states what right is |
 | Differential testing | a bug our fixtures and our code agree on, by parsing the canonical corpus with an independent parser (python-hl7) and comparing | a bug both parsers share; it runs only where python-hl7 is installed, and is skipped otherwise |
 | Coverage gate | code no test runs: lines, branches, functions and statements, held at a floor on every core directory | a test that runs code without checking what it returns |
@@ -35,10 +35,15 @@ follows checks values, not only that the parser did not throw.
 
 - **Unit tests, corpora, properties, fuzzing and doc samples** run in one Vitest suite on every pull
   request and on `main`, on Node.js 22, 24 and 26. Property tests run a fixed number of cases each
-  (from 100 to 2,000 today). Of the 131 property checks, 120 fix their seed, so a failure replays
-  exactly. The other 11 (ten checks of the composite encoders and one of the patient-merge
-  helpers) draw a new seed on every run, so a run can find a case an earlier run missed, and a
-  failure is replayed from the seed fast-check prints with it.
+  (from 100 to 2,000 today). Of the 143 property checks, 120 fix their seed, so a failure replays
+  exactly. The other 23 draw a new seed on every run, so a run can find a case an earlier run
+  missed. Eleven of them (ten checks of the composite encoders and one of the patient-merge
+  helpers) are replayed from the seed fast-check prints with a failure. The other twelve prove the
+  three properties every Cosyte parser proves (round trip, idempotent normalize, and never throws
+  in lenient mode) on the generators we publish at `@cosyte/hl7/arbitraries`; they run 100 cases
+  each, `COSYTE_PROPERTY_RUNS` sets a deeper run, and a failure prints the seed and path that
+  replay it. [Property-test your code](./property-test-your-code.md) shows those generators on
+  code of your own.
 - **The coverage gate** runs with the suite. A floor that is not met fails the pull request.
 - **The PHI scan** runs on every commit (a pre-commit hook) and in CI. The docs pages have their own
   check, which refuses a nine-digit dashed identifier, a telephone number outside the 555 range,

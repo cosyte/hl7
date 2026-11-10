@@ -302,3 +302,32 @@ describe("emitMessage: W3 trailing segment-level empty fields preserved", () => 
     expect(pidRound?.fields.length).toBe(12);
   });
 });
+
+describe("emitMessage: a segment whose fields all write as nothing", () => {
+  // The parser reads `PV1|` (an empty field region) as a segment with no fields. A lone field that
+  // holds only empty components (`PV1|^`) used to write as `PV1|`, which then read back as `PV1`:
+  // serializing a parsed message a second time changed its text. Found by the idempotent
+  // normalize property over the hostile-input arbitrary.
+  it.each(["PV1|^", "PV1|&", "PV1| ^ ", "PV1|^&^"])(
+    "writes %j as the bare name, and a second pass changes nothing",
+    (segment) => {
+      const once = parseHL7(BASE_MSH + segment).toString();
+      expect(once).toBe(BASE_MSH + "PV1\r");
+      expect(parseHL7(once).toString()).toBe(once);
+    },
+  );
+
+  it("keeps the separators when there are two or more fields, empty or not", () => {
+    for (const segment of ["PV1||", "PV1|^|^", "PV1|a|^", "PV1|~", 'PV1|""']) {
+      const once = parseHL7(BASE_MSH + segment).toString();
+      expect(parseHL7(once).toString()).toBe(once);
+    }
+    expect(parseHL7(BASE_MSH + "PV1|^|^").toString()).toBe(BASE_MSH + "PV1||\r");
+    expect(parseHL7(BASE_MSH + "PV1|~").toString()).toBe(BASE_MSH + "PV1|~\r");
+  });
+
+  it("writes a hand-built segment with one empty field as the bare name", () => {
+    const msg = parseHL7(BASE_MSH).addSegment("ZXX", [""]);
+    expect(msg.toString()).toBe(BASE_MSH + "ZXX\r");
+  });
+});
