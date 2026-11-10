@@ -23,6 +23,7 @@ import type {
 import { canonicalSegmentName } from "../parser/known-segments.js";
 import { PendingSegment, resolveSegment } from "../parser/segment-source.js";
 import { boundedIdentifier } from "../parser/tokens.js";
+import { INSPECT, ownValue } from "./segment.js";
 import type { Hl7ParseWarning } from "../parser/warnings.js";
 import { allergies as walkAllergies } from "../helpers/allergies.js";
 import { appointments as walkAppointments } from "../helpers/appointments.js";
@@ -79,6 +80,9 @@ import {
  * @internal
  */
 const SEGMENT_NAME_RE = /^[A-Z][A-Z0-9]{2}$/u;
+
+/** The own `rawSegments` property of a message that still holds a segment not built yet. */
+let LAZY_RAW_SEGMENTS: PropertyDescriptor;
 
 /**
  * Shallow-copy a readonly array to a mutable one. Mutation methods rebuild
@@ -153,6 +157,11 @@ export interface Hl7MessageInit {
    */
   readonly segmentOverrides?: Readonly<Record<string, CustomSegmentDefinition>>;
   /**
+   * Whether `segments` comes from a lazy parse and may hold segments not built yet. Absent for
+   * every other list, which the message then takes as it is without reading its entries.
+   */
+  readonly lazy?: boolean;
+  /**
    * Merged `dateFormats` list: `options.dateFormats ++ profile.dateFormats`
    * deduped first-occurrence. Handed to every `Segment`, and through
    * it to every `Field`, so a typed `TS` coercion honours it; also read
@@ -197,18 +206,24 @@ export interface Hl7MessageInit {
  */
 export class Hl7Message {
   /**
-   * The message's segments in order. On a lazily parsed message an entry may be a pending one,
-   * built on first read; `rawSegments` hands out only built segments.
-   * @internal
+   * Raw positional tree produced by the parser. 1-indexed per HL7 convention
+   * (`fields[0]` is the segment-name / MSH separator placeholder slot). Use
+   * `segments(type)` / `allSegments()` for typed wrapper access: this field
+   * is exposed for advanced callers that need the raw tree directly.
+   *
+   * On a lazily parsed message (the default), the first read builds every segment that has not
+   * been read yet, so the whole tree is held from then on. To read a few segments of a long
+   * message, use `segments(type)`, `part(type)` or `get(path)`, which build only what they reach.
    */
-  private _segments: readonly RawSegment[];
+  public readonly rawSegments!: readonly RawSegment[];
 
   /**
-   * Whether every entry of `_segments` is known to be built, so `rawSegments` can return the list
-   * itself. Reset by every edit.
+   * The message's segments in order while any of them is still a pending entry of a lazy parse,
+   * built on first read; `undefined` once `rawSegments` holds them all built. Private, so nothing
+   * that enumerates the message reaches the text a pending entry builds from.
    * @internal
    */
-  private _allBuilt = false;
+  #lazy: readonly RawSegment[] | undefined;
 
   public readonly encodingCharacters: EncodingCharacters;
   /**
@@ -309,7 +324,12 @@ export class Hl7Message {
    * @internal
    */
   public constructor(init: Hl7MessageInit) {
-    this._segments = init.segments;
+    if (init.lazy === true) {
+      this.#lazy = init.segments;
+      this.replaceSegments(init.segments);
+    } else {
+      this.rawSegments = init.segments;
+    }
     this.encodingCharacters = init.encodingCharacters;
     // Bounded for the same reason as `Segment.type`: this is the version the
     // model ASSERTS, and consumers label with it. `meta.version` keeps MSH-12
@@ -341,23 +361,49 @@ export class Hl7Message {
   }
 
   /**
-   * Raw positional tree produced by the parser. 1-indexed per HL7 convention
-   * (`fields[0]` is the segment-name / MSH separator placeholder slot). Use
-   * `segments(type)` / `allSegments()` for typed wrapper access: this field
-   * is exposed for advanced callers that need the raw tree directly.
-   *
-   * On a lazily parsed message (the default), the first read builds every segment that has not
-   * been read yet, so the whole tree is held from then on. To read a few segments of a long
-   * message, use `segments(type)`, `part(type)` or `get(path)`, which build only what they reach.
+   * The segment list as it stands, pending entries included: what every read that builds only
+   * what it reaches walks.
+   * @internal
    */
-  public get rawSegments(): readonly RawSegment[] {
-    if (!this._allBuilt) {
-      if (this._segments.some((s) => s instanceof PendingSegment)) {
-        this._segments = this._segments.map(resolveSegment);
-      }
-      this._allBuilt = true;
-    }
-    return this._segments;
+  private entries(): readonly RawSegment[] {
+    return this.#lazy ?? this.rawSegments;
+  }
+
+  /**
+   * Build every pending segment, if any is left, and make `rawSegments` a plain value holding them.
+   * @internal
+   */
+  static #settle(message: Hl7Message): void {
+    const lazy = message.#lazy;
+    if (lazy === undefined) return;
+    message.#lazy = undefined;
+    Object.defineProperty(message, "rawSegments", ownValue(lazy.map(resolveSegment)));
+  }
+
+  static {
+    const settle = Hl7Message.#settle;
+    LAZY_RAW_SEGMENTS = {
+      get(this: Hl7Message): readonly RawSegment[] {
+        settle(this);
+        return this.rawSegments;
+      },
+      set(this: Hl7Message, value: readonly RawSegment[]): void {
+        this.#lazy = undefined;
+        Object.defineProperty(this, "rawSegments", ownValue(value));
+      },
+      enumerable: true,
+      configurable: true,
+    };
+    // A log reads every own property, so `util.inspect` builds what is pending first and then
+    // prints the message as it is, rather than printing `[Getter/Setter]`.
+    Object.defineProperty(Hl7Message.prototype, INSPECT, {
+      value(this: Hl7Message): Hl7Message {
+        settle(this);
+        return this;
+      },
+      writable: true,
+      configurable: true,
+    });
   }
 
   /**
@@ -377,7 +423,7 @@ export class Hl7Message {
    * ```
    */
   public get(path: string): string | undefined {
-    return resolvePath(path, this._segments, this.encodingCharacters);
+    return resolvePath(path, this.entries(), this.encodingCharacters);
   }
 
   /**
@@ -468,10 +514,11 @@ export class Hl7Message {
     if (this._allSegments !== undefined) return this._allSegments;
     // Allocated once at its final size: a list grown by `push` copies itself as it grows, and a
     // long message has many thousands of segments.
-    const built = new Array<Segment>(this._segments.length);
+    const entries = this.entries();
+    const built = new Array<Segment>(entries.length);
     let count = 0;
-    for (let i = 0; i < this._segments.length; i++) {
-      const raw = this._segments[i];
+    for (let i = 0; i < entries.length; i++) {
+      const raw = entries[i];
       if (raw === undefined) continue;
       // D-16: hand each Segment its per-segment customFields slice so
       // `seg.get(name)` can resolve named positions.
@@ -1019,9 +1066,10 @@ export class Hl7Message {
     let seen = 0;
     let segIdx = -1;
     let seg: RawSegment | undefined;
+    const entries = this.entries();
     // Stryker disable next-line EqualityOperator: one past the end reads undefined, which the loop skips
-    for (let i = 0; i < this._segments.length; i++) {
-      const s = this._segments[i];
+    for (let i = 0; i < entries.length; i++) {
+      const s = entries[i];
       if (s === undefined) continue;
       if (canonicalSegmentName(s.name) === targetName) {
         if (seen === parsed.segmentIndex) {
@@ -1047,7 +1095,7 @@ export class Hl7Message {
     // Rebuild the affected path from leaf to root, keeping every Raw* shape
     // structurally immutable. The only bypass is replacing the segment list
     // on `this`: per D-16, the tree is mutable through the mutation API.
-    const mutSegments = toMutableArray(this._segments);
+    const mutSegments = toMutableArray(entries);
 
     const mutFields = toMutableArray(seg.fields);
     while (mutFields.length <= rawFieldIndex) {
@@ -1150,9 +1198,10 @@ export class Hl7Message {
     let seen = 0;
     let segIdx = -1;
     let seg: RawSegment | undefined;
+    const entries = this.entries();
     // Stryker disable next-line EqualityOperator: one past the end reads undefined, which the loop skips
-    for (let i = 0; i < this._segments.length; i++) {
-      const s = this._segments[i];
+    for (let i = 0; i < entries.length; i++) {
+      const s = entries[i];
       if (s === undefined) continue;
       if (canonicalSegmentName(s.name) === targetName) {
         if (seen === parsed.segmentIndex) {
@@ -1178,7 +1227,7 @@ export class Hl7Message {
 
     const rawFieldIndex = parsed.segmentType === "MSH" ? parsed.fieldIndex - 1 : parsed.fieldIndex;
 
-    const mutSegments = toMutableArray(this._segments);
+    const mutSegments = toMutableArray(entries);
 
     const mutFields = toMutableArray(seg.fields);
     while (mutFields.length <= rawFieldIndex) {
@@ -1253,7 +1302,7 @@ export class Hl7Message {
     }
 
     const newSegment: RawSegment = { name, fields: rawFields };
-    const mut = toMutableArray(this._segments);
+    const mut = toMutableArray(this.entries());
     mut.push(newSegment);
     this.replaceSegments(mut);
 
@@ -1301,7 +1350,7 @@ export class Hl7Message {
     const all = typeof occurrenceOrOptions === "object" && occurrenceOrOptions.all === true;
     const targetOccurrence = typeof occurrenceOrOptions === "number" ? occurrenceOrOptions : 0;
 
-    const mut = toMutableArray(this._segments);
+    const mut = toMutableArray(this.entries());
     if (all) {
       // Canonical on the wire side only: `segmentType` is already validated to
       // /^[A-Z][A-Z0-9]{2}$/ above, so it is canonical by construction. This
@@ -1335,13 +1384,40 @@ export class Hl7Message {
   }
 
   /**
-   * Replace the segment list after an edit. The new list may still hold pending entries, so
-   * `rawSegments` checks it again on its next read.
+   * Set the segment list, after an edit and when a lazy parse hands over its list. A list that
+   * still holds a segment not built yet keeps `rawSegments` an own enumerable property that builds
+   * them all on its first read; any other list is its plain value, as it always was. Only a list
+   * that came from a lazy parse is read here: any other is set as it is, unread, as before.
    * @internal
    */
   private replaceSegments(next: readonly RawSegment[]): void {
-    this._segments = next;
-    this._allBuilt = false;
+    if (this.#lazy === undefined) {
+      // The one bypass of `readonly`: the tree is mutable through the mutation API.
+      (this as { rawSegments: readonly RawSegment[] }).rawSegments = next;
+      return;
+    }
+    let pending = false;
+    let unbuilt = false;
+    for (const s of next) {
+      if (s instanceof PendingSegment) {
+        pending = true;
+        if (!s.built) {
+          unbuilt = true;
+          break;
+        }
+      }
+    }
+    if (unbuilt) {
+      this.#lazy = next;
+      Object.defineProperty(this, "rawSegments", LAZY_RAW_SEGMENTS);
+    } else {
+      this.#lazy = undefined;
+      Object.defineProperty(
+        this,
+        "rawSegments",
+        ownValue(pending ? next.map(resolveSegment) : next),
+      );
+    }
   }
 
   /**

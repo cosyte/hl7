@@ -51,6 +51,11 @@ export class SegmentSource {
     this.built = new Array<RawSegment | undefined>(count);
   }
 
+  /** Whether segment `index` has been built. */
+  public has(index: number): boolean {
+    return this.built[index] !== undefined;
+  }
+
   /** Segment `index`'s tree, built the first time it is asked for and the same object after. */
   public segment(index: number): RawSegment {
     const cached = this.built[index];
@@ -102,25 +107,37 @@ export function markAltered(
  * @internal
  */
 export class PendingSegment implements RawSegment {
+  /** The segment's name, from the scan. */
+  public readonly name: string;
+  /** The message's segment source. Private, so enumerating this entry never reaches the text. */
+  readonly #source: SegmentSource;
+  /** The segment's index in the source. */
+  readonly #index: number;
+
   /**
    * @param name The segment's name, from the scan.
    * @param source The message's segment source.
    * @param index The segment's index in the source.
    */
-  public constructor(
-    public readonly name: string,
-    private readonly source: SegmentSource,
-    private readonly index: number,
-  ) {}
+  public constructor(name: string, source: SegmentSource, index: number) {
+    this.name = name;
+    this.#source = source;
+    this.#index = index;
+  }
 
   /** The built segment's fields. */
   public get fields(): readonly RawField[] {
     return this.resolve().fields;
   }
 
+  /** Whether the segment this entry stands for has been built. */
+  public get built(): boolean {
+    return this.#source.has(this.#index);
+  }
+
   /** The built segment this entry stands for: the same object on every call. */
   public resolve(): RawSegment {
-    return this.source.segment(this.index);
+    return this.#source.segment(this.#index);
   }
 }
 

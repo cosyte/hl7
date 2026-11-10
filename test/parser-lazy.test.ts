@@ -20,20 +20,12 @@ const TEXT =
   "OBX|2|NM|GLU^Glucose^LN||82|mg/dL||N|||F\r" +
   "OBX|3|NM|GLU^Glucose^LN||83|mg/dL||N||| F\r";
 
-/** The internals of a pending entry this test reads: its source's cache and its index there. */
-interface PendingInternals {
-  readonly source: { readonly built: readonly unknown[] };
-  readonly index: number;
-}
-
 /** Which segments of a message are still unbuilt, by their position in the message. */
 function pending(msg: Hl7Message): number[] {
-  const list = (msg as unknown as { _segments: readonly unknown[] })._segments;
+  const list = (msg as unknown as { entries(): readonly unknown[] }).entries();
   const out: number[] = [];
   list.forEach((s, i) => {
-    if (!(s instanceof PendingSegment)) return;
-    const { source, index } = s as unknown as PendingInternals;
-    if (source.built[index] === undefined) out.push(i);
+    if (s instanceof PendingSegment && !s.built) out.push(i);
   });
   return out;
 }

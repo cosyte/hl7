@@ -713,6 +713,7 @@ export function parseHL7(
     customSegments?: Readonly<Record<string, CustomSegmentDefinition>>;
     segmentOverrides?: Readonly<Record<string, CustomSegmentDefinition>>;
     dateFormats?: readonly string[];
+    lazy?: boolean;
   };
   const init: Init = {
     segments: rawSegments,
@@ -724,6 +725,7 @@ export function parseHL7(
   if (mergedCustomSegments !== undefined) init.customSegments = mergedCustomSegments;
   if (mergedSegmentOverrides !== undefined) init.segmentOverrides = mergedSegmentOverrides;
   if (mergedDateFormats !== undefined) init.dateFormats = mergedDateFormats;
+  if (options.lazy !== false) init.lazy = true;
 
   return new Hl7Message(init);
 }
