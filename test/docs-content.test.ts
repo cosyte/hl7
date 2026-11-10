@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { readFileSync, rmSync } from "node:fs";
+import { readFileSync, readdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -13,11 +13,16 @@ import {
 import { compileErrors, fences, fixturesByContent, messageLiteral } from "./_helpers/first-use.js";
 
 /**
- * Doc/code-agreement gate. Every ```` ```ts runnable ```` block in `docs-content/` is extracted,
- * compiled, and executed, and its inline `// =>` assertions are checked: so a documented example
- * can never silently drift from the shipped code (the documentation analog of the conformance
- * runners). Blocks tagged ` ```ts runnable throws ` must throw; plain ` ```ts ` blocks are
- * illustrative and are not executed.
+ * Doc/code-agreement gate. Every TypeScript and JavaScript sample on a hand-written page of
+ * `docs-content/` is extracted, compiled, and executed, and its inline `// =>` assertions are
+ * checked: so a documented example can never silently drift from the shipped code (the
+ * documentation analog of the conformance runners). Blocks tagged ` ```ts runnable throws ` must
+ * throw. A sample that cannot run says why in its fence (` ```ts no-run <reason> `), and the test
+ * below the suite refuses a sample that does neither.
+ *
+ * The pages under `docs-content/api/` are generated from the TSDoc comments in `src/`, and their
+ * `@example` blocks are fragments written for an editor's tooltip (many use an undeclared `raw`),
+ * so they are not part of this suite: only the top-level pages are passed in.
  *
  * Snippets import the package the way a consumer does: against the **built** ESM artifact, not the
  * source tree. The harness executes each block as a standalone ES module, so it can't resolve the
@@ -34,9 +39,44 @@ beforeAll(() => {
   execFileSync("pnpm", ["build"], { cwd: root, stdio: "inherit" });
 }, 120_000);
 
-docSnippetSuite({
-  docsDir: join(root, "docs-content"),
-  resolve,
+const docsDir = join(root, "docs-content");
+
+/** The hand-written pages: every `.md` file at the top of `docs-content/`, not the generated `api/`. */
+const pages = readdirSync(docsDir)
+  .filter((name) => name.endsWith(".md"))
+  .sort()
+  .map((name) => join(docsDir, name));
+
+/**
+ * `every` runs each TypeScript and JavaScript sample whether or not it is tagged `runnable`, and
+ * lists a `no-run` sample as skipped with its reason. It reaches the runner as a variable rather
+ * than a literal so the line compiles against a `@cosyte/vitest-config` that predates the option;
+ * such a runner ignores it and runs the `runnable` blocks, which is every sample here, as the test
+ * below holds.
+ */
+const suiteOptions = { files: pages, every: true, resolve };
+docSnippetSuite(suiteOptions);
+
+/** The fence languages that make a block a code sample. */
+const SAMPLE_LANGS = new Set(["ts", "typescript", "tsx", "js", "javascript", "mjs"]);
+
+describe("every sample on a hand-written page", () => {
+  it("runs, or names in its fence why it cannot", () => {
+    const unaccounted: string[] = [];
+    for (const path of pages) {
+      for (const fence of fences(readFileSync(path, "utf8"))) {
+        if (!SAMPLE_LANGS.has(fence.lang)) continue;
+        const noRun = fence.tags.indexOf("no-run");
+        const reason = noRun === -1 ? "" : fence.tags.slice(noRun + 1).join(" ");
+        if (fence.tags.includes("runnable") ? noRun !== -1 : reason === "") {
+          unaccounted.push(
+            `${path.slice(docsDir.length + 1)}: ${fence.lang} ${fence.tags.join(" ")}`,
+          );
+        }
+      }
+    }
+    expect(unaccounted).toEqual([]);
+  });
 });
 
 /**

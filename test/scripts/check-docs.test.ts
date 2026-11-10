@@ -64,6 +64,15 @@ function newTree(): string {
   return docs;
 }
 
+/** A fresh copy of an already-prepared tree, so one prepared tree serves several runs. */
+function newTreeFrom(prepared: string): string {
+  const dir = mkdtempSync(join(tmpdir(), "hl7-check-docs-"));
+  scratch.push(dir);
+  const docs = join(dir, "docs-content");
+  cpSync(prepared, docs, { recursive: true });
+  return docs;
+}
+
 function run(docs: string): RunResult {
   const r = spawnSync(TSX_BIN, [CHECKER_PATH, "--docs", docs], {
     cwd: REPO_ROOT,
@@ -130,13 +139,13 @@ describe("frontmatter refusals", () => {
     const docs = newTree();
     rewrite(
       docs,
-      "benchmarks.md",
-      /description: "[^"]*"/.exec(page(docs, "benchmarks.md"))?.[0] ?? "",
+      "performance.md",
+      /description: "[^"]*"/.exec(page(docs, "performance.md"))?.[0] ?? "",
       'description: ""',
     );
     const r = run(docs);
     expect(r.code).not.toBe(0);
-    expect(r.output).toContain("benchmarks.md");
+    expect(r.output).toContain("performance.md");
     expect(r.output).toContain("description is empty");
   });
 
@@ -177,9 +186,9 @@ describe("frontmatter refusals", () => {
     ["an unterminated flow mapping", "installation.md", "title: Installation", "title: {a: b"],
     [
       "a reserved indicator opening a plain scalar",
-      "benchmarks.md",
-      "title: Benchmarks and performance",
-      "title: @Benchmarks",
+      "performance.md",
+      "title: Performance",
+      "title: @Performance",
     ],
     [
       "an alias to an anchor nothing defines",
@@ -297,16 +306,26 @@ describe("sidebar refusals", () => {
 describe("link refusals", () => {
   it("refuses an extensionless internal link, printing the file and the link text", () => {
     const docs = newTree();
-    rewrite(docs, "quickstart.md", "[Guides](./guides-overview.md)", "[Guides](./guides-overview)");
+    rewrite(
+      docs,
+      "quickstart.md",
+      "[Troubleshooting](./troubleshooting.md)",
+      "[Guides](./troubleshooting)",
+    );
     const r = run(docs);
     expect(r.code).not.toBe(0);
     expect(r.output).toContain("quickstart.md");
-    expect(r.output).toContain("[Guides](./guides-overview)");
+    expect(r.output).toContain("[Guides](./troubleshooting)");
   });
 
   it("refuses a dangling internal link, printing the file and the link text", () => {
     const docs = newTree();
-    rewrite(docs, "quickstart.md", "[Guides](./guides-overview.md)", "[Guides](./guides-gone.md)");
+    rewrite(
+      docs,
+      "quickstart.md",
+      "[Troubleshooting](./troubleshooting.md)",
+      "[Guides](./guides-gone.md)",
+    );
     const r = run(docs);
     expect(r.code).not.toBe(0);
     expect(r.output).toContain("quickstart.md");
@@ -315,7 +334,7 @@ describe("link refusals", () => {
 
   /**
    * Prose here wraps at the column limit, so a link's TEXT routinely straddles a line break:
-   * `guides-overview.md` already carries one. A per-line scan sees no link on either half, which
+   * several pages carry one. A per-line scan sees no link on either half, which
    * would hide an extensionless or dangling target from every rule above.
    */
   it("refuses an extensionless link whose text wraps across a line break", () => {
@@ -323,13 +342,13 @@ describe("link refusals", () => {
     rewrite(
       docs,
       "quickstart.md",
-      "[Guides](./guides-overview.md)",
-      "[The\nGuides](./guides-overview)",
+      "[Troubleshooting](./troubleshooting.md)",
+      "[The\nGuides](./troubleshooting)",
     );
     const r = run(docs);
     expect(r.code).not.toBe(0);
     expect(r.output).toContain("quickstart.md");
-    expect(r.output).toContain("[The Guides](./guides-overview)");
+    expect(r.output).toContain("[The Guides](./troubleshooting)");
   });
 
   it("refuses a dangling link whose text wraps across a line break", () => {
@@ -337,7 +356,7 @@ describe("link refusals", () => {
     rewrite(
       docs,
       "quickstart.md",
-      "[Guides](./guides-overview.md)",
+      "[Troubleshooting](./troubleshooting.md)",
       "[The\nGuides](./guides-gone.md)",
     );
     const r = run(docs);
@@ -351,13 +370,13 @@ describe("link refusals", () => {
     rewrite(
       docs,
       "quickstart.md",
-      "[Guides](./guides-overview.md)",
-      "[The\nGuides](./guides-overview)",
+      "[Troubleshooting](./troubleshooting.md)",
+      "[Wrapped\nGuides](./troubleshooting)",
     );
     const opensOn =
       page(docs, "quickstart.md")
         .split("\n")
-        .findIndex((l) => l.includes("[The")) + 1;
+        .findIndex((l) => l.includes("[Wrapped")) + 1;
     expect(opensOn).toBeGreaterThan(0);
     const r = run(docs);
     expect(r.output).toContain(`quickstart.md:${String(opensOn)}:`);
@@ -371,7 +390,7 @@ describe("link refusals", () => {
    */
   describe("reference-style links", () => {
     function withReference(docs: string, usage: string, definition: string): RunResult {
-      rewrite(docs, "quickstart.md", "[Guides](./guides-overview.md)", usage);
+      rewrite(docs, "quickstart.md", "[Troubleshooting](./troubleshooting.md)", usage);
       const path = join(docs, "quickstart.md");
       writeFileSync(path, `${page(docs, "quickstart.md")}\n${definition}\n`);
       return run(docs);
@@ -379,11 +398,11 @@ describe("link refusals", () => {
 
     it("refuses a full reference whose definition omits .md, printing the file and text", () => {
       const docs = newTree();
-      const r = withReference(docs, "[Guides][gv]", "[gv]: ./guides-overview");
+      const r = withReference(docs, "[Guides][gv]", "[gv]: ./troubleshooting");
       expect(r.code).not.toBe(0);
       expect(r.output).toContain("quickstart.md");
       expect(r.output).toContain("[Guides][gv]");
-      expect(r.output).toContain("./guides-overview");
+      expect(r.output).toContain("./troubleshooting");
     });
 
     it("refuses a full reference whose definition resolves to no page", () => {
@@ -396,9 +415,9 @@ describe("link refusals", () => {
 
     it("refuses a collapsed reference that omits .md", () => {
       const docs = newTree();
-      const r = withReference(docs, "[Guides][]", "[Guides]: ./guides-overview");
+      const r = withReference(docs, "[Guides][]", "[Guides]: ./troubleshooting");
       expect(r.code).not.toBe(0);
-      expect(r.output).toContain("./guides-overview");
+      expect(r.output).toContain("./troubleshooting");
     });
 
     it("refuses a shortcut reference that resolves to no page", () => {
@@ -411,15 +430,15 @@ describe("link refusals", () => {
     /** Labels match case-insensitively with internal whitespace collapsed. */
     it("resolves a label whose case and spacing differ from its definition", () => {
       const docs = newTree();
-      const r = withReference(docs, "[Guides][The\nGuide]", "[the guide]: ./guides-overview");
+      const r = withReference(docs, "[Guides][The\nGuide]", "[the guide]: ./troubleshooting");
       expect(r.code).not.toBe(0);
-      expect(r.output).toContain("./guides-overview");
+      expect(r.output).toContain("./troubleshooting");
     });
 
     /** The refusing direction must not swallow the form's legitimate use. */
     it("accepts a reference link whose definition is well formed", () => {
       const docs = newTree();
-      const r = withReference(docs, "[Guides][gv]", "[gv]: ./guides-overview.md");
+      const r = withReference(docs, "[Guides][gv]", "[gv]: ./troubleshooting.md");
       expect(r.output).toContain("check-docs: OK");
       expect(r.code).toBe(0);
     });
@@ -434,7 +453,12 @@ describe("link refusals", () => {
     /** Brackets nothing defines are literal text in CommonMark, not a dangling link. */
     it("does not read brackets with no definition as a link", () => {
       const docs = newTree();
-      rewrite(docs, "quickstart.md", "[Guides](./guides-overview.md)", "[Guides][nowhere]");
+      rewrite(
+        docs,
+        "quickstart.md",
+        "[Troubleshooting](./troubleshooting.md)",
+        "[Guides][nowhere]",
+      );
       const r = run(docs);
       expect(r.output).toContain("check-docs: OK");
       expect(r.code).toBe(0);
@@ -446,12 +470,12 @@ describe("link refusals", () => {
       rewrite(
         docs,
         "quickstart.md",
-        "[Guides](./guides-overview.md)",
-        "[see][Guides](./guides-overview)",
+        "[Troubleshooting](./troubleshooting.md)",
+        "[see][Guides](./troubleshooting)",
       );
       const r = run(docs);
       expect(r.code).not.toBe(0);
-      expect(r.output).toContain("[Guides](./guides-overview)");
+      expect(r.output).toContain("[Guides](./troubleshooting)");
     });
 
     /** An unreferenced definition renders nothing, but it is still a target in a shipped page. */
@@ -487,7 +511,7 @@ describe("link refusals", () => {
     rewrite(
       withImage,
       "quickstart.md",
-      "[Guides](./guides-overview.md)",
+      "[Troubleshooting](./troubleshooting.md)",
       "![A diagram](./diagram.png)",
     );
     const image = run(withImage);
@@ -498,12 +522,156 @@ describe("link refusals", () => {
     rewrite(
       withLink,
       "quickstart.md",
-      "[Guides](./guides-overview.md)",
+      "[Troubleshooting](./troubleshooting.md)",
       "[A diagram](./diagram.png)",
     );
     const link = run(withLink);
     expect(link.code).not.toBe(0);
     expect(link.output).toContain("./diagram.png");
+  });
+});
+
+/**
+ * Links into the generated API reference. The reference lives one level down, in
+ * `docs-content/api/`, which the reference generator owns: a how-to guide links the entries it
+ * uses as `./api/README.md#parsehl7`. Such a link names a FILE and an ANCHOR, and both break
+ * silently when an export is renamed or removed and the reference is regenerated, so the gate
+ * resolves both. The anchor is the heading's slug as the docs site computes it: lower case, the
+ * punctuation dropped, spaces turned to hyphens, and a repeated heading numbered from `-1`.
+ */
+describe("links into the generated reference", () => {
+  /** Point the quickstart's first onward link at `target` instead. */
+  function linkTo(docs: string, target: string): RunResult {
+    rewrite(
+      docs,
+      "quickstart.md",
+      "[Troubleshooting](./troubleshooting.md)",
+      `[the reference](${target})`,
+    );
+    return run(docs);
+  }
+
+  /** Add a generated page of our own, so a heading's exact text is under the test's control. */
+  function withApiPage(docs: string, name: string, body: string): void {
+    mkdirSync(join(docs, "api", "nested"), { recursive: true });
+    writeFileSync(join(docs, "api", name), body);
+  }
+
+  it("accepts a link to a reference page and one of its headings", () => {
+    const r = linkTo(newTree(), "./api/README.md#parsehl7");
+    expect(r.output).toContain("check-docs: OK");
+    expect(r.code).toBe(0);
+  });
+
+  it("accepts a link to a reference page with no anchor", () => {
+    const r = linkTo(newTree(), "./api/README.md");
+    expect(r.output).toContain("check-docs: OK");
+    expect(r.code).toBe(0);
+  });
+
+  it("refuses a link to a reference page the generator did not write", () => {
+    const r = linkTo(newTree(), "./api/functions/parseHL7.md");
+    expect(r.code).not.toBe(0);
+    expect(r.output).toContain("quickstart.md");
+    expect(r.output).toContain("[the reference](./api/functions/parseHL7.md)");
+    expect(r.output).toContain("resolves to no page in docs-content/api/");
+  });
+
+  it("refuses an anchor no heading on the reference page carries", () => {
+    const r = linkTo(newTree(), "./api/README.md#parsehl8");
+    expect(r.code).not.toBe(0);
+    expect(r.output).toContain("[the reference](./api/README.md#parsehl8)");
+    expect(r.output).toContain("names no heading on that reference page");
+  });
+
+  it.each([
+    ["climbs out of the reference folder", "./api/../intro.md"],
+    ["names the reference folder through a dot folder", "./api/./README.md"],
+    ["starts one folder up", "../api/README.md"],
+    ["leaves .md off a reference page", "./api/README"],
+    ["ends in another extension", "./api/README.mdx"],
+    ["ends in an empty anchor", "./api/README.md#"],
+  ])("refuses a link that %s", (_, target) => {
+    const r = linkTo(newTree(), target);
+    expect(r.code).not.toBe(0);
+    expect(r.output).toContain(`[the reference](${target})`);
+    expect(r.output).toContain("is not written as ./<basename>.md or ./api/<page>.md");
+  });
+
+  it("refuses a link to a reference folder rather than a page", () => {
+    const docs = newTree();
+    mkdirSync(join(docs, "api", "folder.md"), { recursive: true });
+    const r = linkTo(docs, "./api/folder.md");
+    expect(r.code).not.toBe(0);
+    expect(r.output).toContain("resolves to no page in docs-content/api/");
+  });
+
+  it("resolves a page in a subfolder of the reference", () => {
+    const docs = newTree();
+    withApiPage(docs, "nested/page.md", "# Page\n\n## Deep heading\n");
+    const r = linkTo(docs, "./api/nested/page.md#deep-heading");
+    expect(r.output).toContain("check-docs: OK");
+    expect(r.code).toBe(0);
+  });
+
+  it("resolves a page two folders down, where the generator puts a namespace", () => {
+    const r = linkTo(newTree(), "./api/@cosyte/namespaces/text.md#references");
+    expect(r.output).toContain("check-docs: OK");
+    expect(r.code).toBe(0);
+  });
+
+  it("slugs a heading as the site does: escapes, code, punctuation and case", () => {
+    const docs = newTree();
+    withApiPage(
+      docs,
+      "slugs.md",
+      "# Slugs\n\n### ACK\\_CODES\n\n### `buildAck()`\n\n## Two words, here\n\n## Re-export 2\n",
+    );
+    for (const anchor of ["ack_codes", "buildack", "two-words-here", "re-export-2"]) {
+      const r = linkTo(newTreeFrom(docs), `./api/slugs.md#${anchor}`);
+      expect(r.output, anchor).toContain("check-docs: OK");
+    }
+  });
+
+  it("numbers a repeated heading from -1, and refuses a number past the last", () => {
+    const docs = newTree();
+    withApiPage(docs, "repeats.md", "# Repeats\n\n## Example\n\n## Example\n");
+    expect(linkTo(newTreeFrom(docs), "./api/repeats.md#example").code).toBe(0);
+    expect(linkTo(newTreeFrom(docs), "./api/repeats.md#example-1").code).toBe(0);
+    const past = linkTo(newTreeFrom(docs), "./api/repeats.md#example-2");
+    expect(past.code).not.toBe(0);
+    expect(past.output).toContain("names no heading on that reference page");
+  });
+
+  it.each([
+    ["backtick", "```bash\n# not a heading\n```\n"],
+    ["tilde", "~~~\n# not a heading\n~~~\n"],
+  ])("does not read a line inside a %s code block as a heading", (_, block) => {
+    const docs = newTree();
+    withApiPage(docs, "fenced.md", `# Fenced\n\n${block}`);
+    const r = linkTo(docs, "./api/fenced.md#not-a-heading");
+    expect(r.code).not.toBe(0);
+    expect(r.output).toContain("names no heading on that reference page");
+  });
+
+  it("does not read a hash inside a line as a heading", () => {
+    const docs = newTree();
+    withApiPage(docs, "hash.md", "# Hash\n\nC # not a heading\n");
+    const r = linkTo(docs, "./api/hash.md#not-a-heading");
+    expect(r.code).not.toBe(0);
+    expect(r.output).toContain("names no heading on that reference page");
+  });
+
+  it("reads a heading again after a code block closes", () => {
+    const docs = newTree();
+    withApiPage(
+      docs,
+      "after.md",
+      "# After\n\n```ts\nconst a = 1;\n```\n\nA line that mentions ``` in passing.\n\n## Later\n",
+    );
+    const r = linkTo(docs, "./api/after.md#later");
+    expect(r.output).toContain("check-docs: OK");
+    expect(r.code).toBe(0);
   });
 });
 

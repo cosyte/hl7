@@ -24,7 +24,9 @@
  *                      resolving to a page that exists, in all four CommonMark spellings. Scanned
  *                      whole-file, because a link's text wraps across lines and a reference link's
  *                      target is defined elsewhere on the page; images are not links to a page and
- *                      are left alone.
+ *                      are left alone. A link into the generated API reference is written
+ *                      `./api/<page>.md`, optionally anchored, and both the page and the anchor
+ *                      must exist: an export renamed or removed breaks exactly those links.
  *   6. CODE CONTRACT   exactly one page carries all of `WARNING_CODES` and `FATAL_CODES`, each with
  *                      real prose beside it, and that page invents no code the source does not
  *                      define. `troubleshooting.md` points per-code questions at that page and at
@@ -44,6 +46,7 @@
 import {
   closeSync,
   constants,
+  existsSync,
   fstatSync,
   openSync,
   readFileSync,
@@ -514,10 +517,83 @@ function describeLink(link: Link): string {
     : `[${link.text}][${link.label}], which points at ${link.target},`;
 }
 
+/** The folder of the generated API reference, inside the docs directory. */
+const REFERENCE_DIR = "api";
+
+/**
+ * A link into the generated reference: `./api/`, then any folders, then a page ending in `.md`,
+ * then an optional anchor. A folder may not be `.` or `..`, so a target cannot climb out of the
+ * reference and back into the bundle under a second spelling.
+ */
+const REFERENCE_LINK = /^\.\/api\/((?:(?!\.\.?\/)[^/#]+\/)*[^/#]+\.md)(?:#(.+))?$/;
+
+/** A line that opens or closes a fenced code block on a generated page. */
+const FENCE = /^(?:```|~~~)/;
+
+/** An ATX heading as the reference generator writes one: one to six `#`, a space, the text. */
+const HEADING = /^#{1,6} (.*)/;
+
+/**
+ * The anchor the docs site gives a heading, as github-slugger computes it for the text the
+ * generator writes: lower-cased, every character that is not a letter, a digit, `_`, a space or a
+ * hyphen dropped (code ticks, escapes and parentheses included), and each space turned into a
+ * hyphen.
+ */
+function headingSlug(heading: string): string {
+  return heading
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}_ -]/gu, "")
+    .replace(/ /g, "-");
+}
+
+/**
+ * Every anchor a reference page offers: one per heading outside fenced code, a repeated slug
+ * numbered from `-1` in document order, as the site numbers it.
+ */
+function anchorsIn(text: string): Set<string> {
+  const anchors = new Set<string>();
+  const counts = new Map<string, number>();
+  let inFence = false;
+  for (const line of text.split("\n")) {
+    if (FENCE.test(line)) {
+      inFence = !inFence;
+    } else if (!inFence) {
+      const heading = HEADING.exec(line);
+      if (heading === null) continue;
+      const base = headingSlug(heading[1] ?? "");
+      const seen = counts.get(base) ?? 0;
+      counts.set(base, seen + 1);
+      anchors.add(seen === 0 ? base : `${base}-${String(seen)}`);
+    }
+  }
+  return anchors;
+}
+
+/** The anchors of one reference page, or null when no such regular file exists. */
+function referencePage(docsDir: string, path: string): Set<string> | null {
+  const full = join(docsDir, REFERENCE_DIR, path);
+  if (!existsSync(full) || !statSync(full).isFile()) return null;
+  return anchorsIn(readFileSync(full, "utf8"));
+}
+
 /** What is wrong with an internal link target, or null when nothing is. */
-function linkFault(target: string, pages: ReadonlyMap<string, string>): string | null {
+function linkFault(
+  target: string,
+  pages: ReadonlyMap<string, string>,
+  docsDir: string,
+): string | null {
+  const reference = REFERENCE_LINK.exec(target);
+  if (reference !== null) {
+    const anchors = referencePage(docsDir, reference[1] ?? "");
+    if (anchors === null) return `resolves to no page in docs-content/${REFERENCE_DIR}/`;
+    const anchor = reference[2];
+    if (anchor !== undefined && !anchors.has(anchor)) {
+      return "names no heading on that reference page";
+    }
+    return null;
+  }
   const shaped = /^\.\/([^/#]+\.md)(#.+)?$/.exec(target);
-  if (shaped === null) return "is not written as ./<basename>.md";
+  if (shaped === null) return "is not written as ./<basename>.md or ./api/<page>.md";
   if (!pages.has(shaped[1] ?? "")) return "resolves to no page in docs-content/";
   return null;
 }
@@ -775,7 +851,7 @@ function main(): void {
     const used = new Set<string>();
 
     for (const link of internalLinks(text, defs, used)) {
-      const fault = linkFault(link.target, contents);
+      const fault = linkFault(link.target, contents, docsDir);
       if (fault !== null) {
         fail("link", `${full}:${String(link.line)}`, `${describeLink(link)} ${fault}`);
       }
@@ -787,7 +863,7 @@ function main(): void {
     // broken target past the gate on its own.
     for (const [key, definition] of defs) {
       if (used.has(key) || isExternal(definition.target)) continue;
-      const fault = linkFault(definition.target, contents);
+      const fault = linkFault(definition.target, contents, docsDir);
       if (fault !== null) {
         fail(
           "link",
