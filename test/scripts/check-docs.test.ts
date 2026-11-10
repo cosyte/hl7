@@ -606,6 +606,29 @@ describe("links into the generated reference", () => {
     expect(r.output).toContain("resolves to no page in docs-content/api/");
   });
 
+  it("refuses a FIFO named like a reference page at once, rather than waiting on it", () => {
+    if (process.platform === "win32") return; // no mkfifo
+    const docs = newTree();
+    if (spawnSync("mkfifo", [join(docs, "api", "pipe.md")]).status !== 0) return; // no mkfifo here
+    rewrite(
+      docs,
+      "quickstart.md",
+      "[Troubleshooting](./troubleshooting.md)",
+      "[the reference](./api/pipe.md)",
+    );
+    const r = spawnSync(TSX_BIN, [CHECKER_PATH, "--docs", docs], {
+      cwd: REPO_ROOT,
+      encoding: "utf8",
+      shell: false,
+      timeout: 30_000,
+    });
+    expect(r.error).toBeUndefined();
+    expect(r.status).not.toBe(0);
+    expect(`${r.stdout ?? ""}${r.stderr ?? ""}`).toContain(
+      "resolves to no page in docs-content/api/",
+    );
+  });
+
   it("resolves a page in a subfolder of the reference", () => {
     const docs = newTree();
     withApiPage(docs, "nested/page.md", "# Page\n\n## Deep heading\n");

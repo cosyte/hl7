@@ -46,7 +46,6 @@
 import {
   closeSync,
   constants,
-  existsSync,
   fstatSync,
   openSync,
   readFileSync,
@@ -569,11 +568,25 @@ function anchorsIn(text: string): Set<string> {
   return anchors;
 }
 
-/** The anchors of one reference page, or null when no such regular file exists. */
+/**
+ * The anchors of one reference page, or null when no such regular file exists. One descriptor is
+ * checked and read, as in the readability rule, so the file judged regular is the file read, and
+ * O_NONBLOCK lets a FIFO named like a page open at once instead of waiting for a writer.
+ */
 function referencePage(docsDir: string, path: string): Set<string> | null {
-  const full = join(docsDir, REFERENCE_DIR, path);
-  if (!existsSync(full) || !statSync(full).isFile()) return null;
-  return anchorsIn(readFileSync(full, "utf8"));
+  let fd: number;
+  try {
+    fd = openSync(join(docsDir, REFERENCE_DIR, path), constants.O_RDONLY | constants.O_NONBLOCK);
+  } catch {
+    return null;
+  }
+  try {
+    return fstatSync(fd).isFile() ? anchorsIn(readFileSync(fd, "utf8")) : null;
+  } finally {
+    // The one line no test can see: a descriptor left open changes no output of this short-lived
+    // process, so a mutant that drops this close survives as an equivalent.
+    closeSync(fd);
+  }
 }
 
 /** What is wrong with an internal link target, or null when nothing is. */
