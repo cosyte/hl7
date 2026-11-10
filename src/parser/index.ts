@@ -404,7 +404,7 @@ export function parseHL7<P extends Profile>(
   options: ParseOptions & { readonly profile: P },
 ): ProfiledMessage<P>;
 export function parseHL7(raw: string | Buffer, options: ParseOptions): Hl7Message;
-/** @internal implementation signature; overload signatures above carry the public JSDoc + @example. */
+// The implementation signature; the overload signatures above carry the public JSDoc and @example.
 export function parseHL7(
   raw: string | Buffer,
   optionsOrProfile?: ParseOptions | Profile,

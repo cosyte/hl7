@@ -1,6 +1,6 @@
 /**
  * MEDITECH (MAGIC / 6.x / Expanse) HL7 quirks. Ships minute-precision
- * timestamps (`YYYYMMDDHHMM`, no seconds) and two DFT charge-capture
+ * timestamps (`YYYYMMDDHHmm`, no seconds) and two DFT charge-capture
  * Z-segments: `ZF1` (provider-encounter copay data) and `ZF2`
  * (encounter-procedure data). BIP-03.
  *

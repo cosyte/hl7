@@ -3,11 +3,9 @@
  * (`MM/DD/YYYY`) commonly used in athena ADT outbound. One Z-segment:
  * `ZCA` (care team membership). BIP-04.
  *
- * The AM/PM meridian variant (`MM/DD/YYYY HH:mm AM/PM`) is intentionally
- * NOT shipped: the library's format-token set does not include AM/PM
- * (`SUPPORTED_DATE_TOKENS` = YYYY/MM/DD/HH/mm/ss/SSSS). Consumers needing
- * meridian support can extend this profile or supply their own format
- * handler.
+ * No AM/PM variant (`MM/DD/YYYY hh:mm A`) ships in this profile. The date
+ * grammar supports one (`SUPPORTED_DATE_TOKENS` includes `hh`, `h` and `A`),
+ * so a consumer that receives it can extend this profile with that format.
  *
  * @example
  * ```ts
