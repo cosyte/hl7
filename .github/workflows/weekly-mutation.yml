@@ -1,0 +1,26 @@
+name: Weekly mutation
+
+# The full mutation run: every file stryker.full.config.mjs names (the parser and the serializers)
+# is mutated, and the score is held to the floor in quality-floor.json. A score below its floor
+# turns the run red. The run never commits: to raise the floor, run `pnpm mutate:full` and
+# `pnpm quality:raise --skip coverage`, and open a pull request. The report is kept in the
+# `mutation-report` artifact.
+
+on:
+  schedule:
+    # Sunday 06:37 UTC. An odd minute: GitHub delays scheduled runs at the start of every hour.
+    - cron: "37 6 * * 0"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  weekly:
+    uses: cosyte/.github/.github/workflows/weekly-mutation.yml@0be6757a773885cbd5165dbfa0f93772d907b3e8 # workflows-2026-11-10-0be6757a7738
+    with:
+      mutate-cmd: "pnpm mutate:full"

@@ -12,3 +12,6 @@ yarn.lock
 
 # Git / VCS internals
 .git/
+reports/
+.stryker-tmp/
+bench-results/

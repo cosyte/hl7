@@ -102,7 +102,8 @@ import { defineProfile, ProfileDefinitionError } from "@cosyte/hl7";
 
 let error: unknown;
 try {
-  // @ts-expect-error: the option is segmentOverrides
+  // A typo for segmentOverrides. The types accept it, since defineProfile infers its options, so
+  // the check happens here, when the profile is defined.
   defineProfile({ name: "typo", segmentOverride: {} });
 } catch (caught) {
   error = caught;

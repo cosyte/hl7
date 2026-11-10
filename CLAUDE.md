@@ -20,8 +20,8 @@ pnpm lint
 pnpm format:check
 pnpm phi-scan
 pnpm test
-pnpm test:coverage
-pnpm build
+pnpm test:coverage && pnpm quality:check --base origin/main
+pnpm test:perf && pnpm build
 pnpm attw
 pnpm examples
 pnpm check:docs

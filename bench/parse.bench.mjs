@@ -1,0 +1,109 @@
+// Benchmarks for @cosyte/hl7, on @cosyte/bench, against the built entry a consumer imports.
+//
+// A reading of this build (throughput, latency p50/p95/p99, allocations, peak heap, a long run for
+// leaks, and the cold import with every file it loads and its gzip size):
+//   pnpm build && pnpm bench:reading --out bench-results/reading.json
+// A base against head comparison, the base built in another checkout:
+//   pnpm bench:compare --base <base checkout>/dist/index.mjs --head dist/index.mjs
+// On a pull request CI runs that comparison in its bench-compare job. It is advisory: it posts its
+// numbers and fails nothing until a calibration on its runner class shows false alarms under 1%.
+//
+// The suite is handed the module under test rather than importing it, so one file measures both
+// builds. Every message is synthetic and built here from an index: no file is read, and every name,
+// identifier and value is made up.
+
+import { defineBenchmark, defineSuite } from "@cosyte/bench";
+
+const KIB = 1024;
+
+/** One synthetic OBX result line. */
+function obx(k) {
+  return `OBX|${String(k + 1)}|NM|GLU^Glucose^LN||${String(80 + (k % 40))}|mg/dL|70-110|N|||F|||20260101120000`;
+}
+
+/** A synthetic ADT^A01 of five segments, 280 bytes: the most common message there is. */
+export function adtMessage(i) {
+  const id = String(i).padStart(6, "0");
+  return (
+    `MSH|^~\\&|SENDAPP|SENDFAC|RECVAPP|RECVFAC|20260101120000||ADT^A01|A${id}|P|2.5\r` +
+    `EVN|A01|20260101120000\r` +
+    `PID|1||FAKE${id}^^^HOSP^MR||Doe^Jane^Q||19800101|F|||123 Main St^^Anytown^CA^90001\r` +
+    `NK1|1|Doe^John^R|SPO|123 Main St^^Anytown^CA^90001\r` +
+    `PV1|1|I|WARD^101^A|||||DOC123^Smith^Robert\r`
+  );
+}
+
+/** A synthetic ORU^R01 of about `bytes` bytes: a header, a patient, an order, then results. */
+export function oruMessage(i, bytes) {
+  const id = String(i).padStart(6, "0");
+  let text =
+    `MSH|^~\\&|LAB|SENDFAC|EHR|RECVFAC|20260101120000||ORU^R01|R${id}|P|2.5\r` +
+    `PID|1||FAKE${id}^^^HOSP^MR||Roe^Sam^T||19750615|M\r` +
+    `OBR|1||ACC${id}|CBC^Complete Blood Count^LN|||20260101120000\r`;
+  const lines = [];
+  for (let k = 0, n = text.length; n < bytes; k++) {
+    const line = obx(k);
+    lines.push(line);
+    n += line.length + 1;
+  }
+  text += `${lines.join("\r")}\r`;
+  return text;
+}
+
+// Small to very large. The small size is the message a feed carries all day; 32 KiB is a long
+// result report; 1 MiB is far past any message a sender writes by hand. `messages` keeps a pass at
+// the small sizes from being one string repeated.
+//
+// The two large sizes are left out of the pull request comparison; a reading still measures them.
+// On the first comparison, on a 4-CPU GitHub-hosted runner, a 1 MiB call took about 138 ms and
+// its warmup did not settle within its 5 s bound, so both 1 MiB cases were skipped
+// (`warmup-unstable`) and the comparison could never be complete. 4 MiB is slower still.
+const SIZES = [
+  { label: "ADT^A01, 280 B", messages: 64, build: (i) => adtMessage(i) },
+  { label: "ORU^R01, 32 KiB", messages: 8, build: (i) => oruMessage(i, 32 * KIB) },
+  {
+    label: "ORU^R01, 1 MiB",
+    messages: 1,
+    build: (i) => oruMessage(i, 1024 * KIB),
+    compare: false,
+  },
+  {
+    label: "ORU^R01, 4 MiB",
+    messages: 1,
+    build: (i) => oruMessage(i, 4096 * KIB),
+    compare: false,
+  },
+];
+
+/** The sizes as @cosyte/bench takes them: each corpus built in code, with its byte count. */
+function sizes() {
+  return SIZES.map((size) => ({
+    label: size.label,
+    compare: size.compare ?? true,
+    build: () => {
+      const inputs = Array.from({ length: size.messages }, (_, i) => size.build(i));
+      return { inputs, bytes: inputs.reduce((n, text) => n + Buffer.byteLength(text), 0) };
+    },
+  }));
+}
+
+export default defineSuite({
+  name: "@cosyte/hl7 parse",
+  benchmarks: [
+    defineBenchmark({
+      // The lenient parse every caller starts with.
+      name: "parseHL7",
+      sizes: sizes(),
+      bind: (hl7) => (text) => hl7.parseHL7(text),
+      weigh: (message) => message.rawSegments.length,
+    }),
+    defineBenchmark({
+      // Parse, then serialize back to text: the round trip an interface engine makes on a message
+      // it changes and forwards.
+      name: "parseHL7, then toString",
+      sizes: sizes(),
+      bind: (hl7) => (text) => hl7.parseHL7(text).toString(),
+      weigh: (text) => text.length,
+    }),
+  ],
+});
