@@ -126,15 +126,26 @@ export function recordAlteredFields(
     /* v8 ignore next -- parseHL7 copies each position as tokenize emits it, before any onWarning callback runs, and tokenize emits both indices, for a segment it pushed at that same index */
     if (segment === undefined || fieldIndex === undefined) continue;
     // Warnings number MSH fields as HL7 does (MSH-3 is 3); the tree holds MSH-1 at index 0.
-    mark(segment.fields[segment.name === "MSH" ? fieldIndex - 1 : fieldIndex]);
+    mark(segment, segment.name === "MSH" ? fieldIndex - 1 : fieldIndex);
   }
   for (const { segmentIndex, rawFieldIndex } of framingBytes) {
-    mark(segments[segmentIndex]?.fields[rawFieldIndex]);
+    mark(segments[segmentIndex], rawFieldIndex);
   }
 }
 
-function mark(field: RawField | undefined): void {
-  if (field !== undefined) ALTERED_ON_THE_WIRE.add(field);
+/**
+ * Mark the field at `rawFieldIndex`. Tokenize shares frozen nodes (one for every empty field, one
+ * for every explicit null, one per segment name), and marking a shared node would mark every field
+ * that holds it. So the marked field is first replaced, in the segment tokenize just built, by a
+ * node of its own with the same content, and that node is marked.
+ */
+function mark(segment: RawSegment | undefined, rawFieldIndex: number): void {
+  if (segment === undefined) return;
+  const field = segment.fields[rawFieldIndex];
+  if (field === undefined) return;
+  const own: RawField = { repetitions: field.repetitions, isNull: field.isNull };
+  (segment.fields as RawField[])[rawFieldIndex] = own;
+  ALTERED_ON_THE_WIRE.add(own);
 }
 
 /**

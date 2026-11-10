@@ -182,6 +182,34 @@ describe("parser/escapes: unescape", () => {
     expect(unescape("a*F*b", customEnc, emit, pos)).toBe("a#b");
     expect(warnings).toHaveLength(0);
   });
+
+  it("returns the text as it came for an escape character that is not one UTF-16 unit", () => {
+    // MSH-2 is read by code point, so an astral escape character can reach here; the input is read
+    // a unit at a time, and such an escape has never matched.
+    const { emit, warnings } = collect();
+    const astral = { ...enc, escape: "\u{1F600}" };
+    expect(unescape("a\u{1F600}F\u{1F600}b", astral, emit, pos)).toBe("a\u{1F600}F\u{1F600}b");
+    expect(unescape("a\\F\\b", { ...enc, escape: "" }, emit, pos)).toBe("a\\F\\b");
+    expect(warnings).toHaveLength(0);
+  });
+
+  it("keeps the text around and between escapes, in order, whatever its length", () => {
+    const { emit, warnings } = collect();
+    const run = "x".repeat(5000);
+    expect(unescape(`${run}\\F\\${run}\\.br\\\\S\\${run}`, enc, emit, pos)).toBe(
+      `${run}|${run}\n^${run}`,
+    );
+    expect(unescape("\\F\\", enc, emit, pos)).toBe("|");
+    expect(unescape("ab\\F\\", enc, emit, pos)).toBe("ab|");
+    expect(unescape("\\F\\ab", enc, emit, pos)).toBe("|ab");
+    expect(warnings).toHaveLength(0);
+  });
+
+  it("keeps the text before an unterminated escape, and the rest verbatim", () => {
+    const { emit, warnings } = collect();
+    expect(unescape("ab\\F\\cd\\e", enc, emit, pos)).toBe("ab|cd\\e");
+    expect(warnings.map((w) => w.code)).toEqual([WARNING_CODES.UNKNOWN_ESCAPE_SEQUENCE]);
+  });
 });
 
 describe("parser/escapes: reescape", () => {
@@ -220,5 +248,19 @@ describe("parser/escapes: reescape", () => {
     const roundTripped = unescape(reescape(original, v27), v27, emit, pos);
     expect(roundTripped).toBe(original);
     expect(warnings).toHaveLength(0);
+  });
+
+  it("keeps the text around and between reserved characters, in order, whatever its length", () => {
+    const run = "x".repeat(5000);
+    expect(reescape(`${run}|${run}\r^${run}`, enc)).toBe(`${run}\\F\\${run}\\X0D\\\\S\\${run}`);
+    expect(reescape("", enc)).toBe("");
+    expect(reescape("plain", enc)).toBe("plain");
+    expect(reescape("|", enc)).toBe("\\F\\");
+  });
+
+  it("walks code points: an astral character is copied whole, and an astral delimiter is escaped", () => {
+    expect(reescape("a\u{1F600}|b", enc)).toBe("a\u{1F600}\\F\\b");
+    const astral: EncodingCharacters = { ...enc, component: "\u{1F600}" };
+    expect(reescape("a\u{1F600}b\u{1F600}", astral)).toBe("a\\S\\b\\S\\");
   });
 });
