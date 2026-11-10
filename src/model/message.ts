@@ -1004,30 +1004,22 @@ export class Hl7Message {
     while (mutFields.length <= rawFieldIndex) {
       mutFields.push({ repetitions: [], isNull: false });
     }
-    const field = mutFields[rawFieldIndex];
-    if (field === undefined) {
-      throw new Error("setField: internal invariant, field missing after growth.");
-    }
+    // A hole in an array a caller built by hand reads as empty, as `get` reads it.
+    const field = mutFields[rawFieldIndex] ?? { repetitions: [], isNull: false };
 
     const mutReps = toMutableArray(field.repetitions);
     const repIdx = parsed.repetitionIndex ?? 0;
     while (mutReps.length <= repIdx) {
       mutReps.push({ components: [] });
     }
-    const rep = mutReps[repIdx];
-    if (rep === undefined) {
-      throw new Error("setField: internal invariant, repetition missing after growth.");
-    }
+    const rep = mutReps[repIdx] ?? { components: [] };
 
     const mutComps = toMutableArray(rep.components);
     const compIdx = (parsed.componentIndex ?? 1) - 1;
     while (mutComps.length <= compIdx) {
       mutComps.push({ subcomponents: [] });
     }
-    const comp = mutComps[compIdx];
-    if (comp === undefined) {
-      throw new Error("setField: internal invariant, component missing after growth.");
-    }
+    const comp = mutComps[compIdx] ?? { subcomponents: [] };
 
     const mutSubs = toMutableArray(comp.subcomponents);
     const subIdx = (parsed.subcomponentIndex ?? 1) - 1;
@@ -1141,10 +1133,8 @@ export class Hl7Message {
     while (mutFields.length <= rawFieldIndex) {
       mutFields.push({ repetitions: [], isNull: false });
     }
-    const field = mutFields[rawFieldIndex];
-    if (field === undefined) {
-      throw new Error("setComposite: internal invariant, field missing after growth.");
-    }
+    // A hole in an array a caller built by hand reads as empty, as `get` reads it.
+    const field = mutFields[rawFieldIndex] ?? { repetitions: [], isNull: false };
 
     const mutReps = toMutableArray(field.repetitions);
     const repIdx = parsed.repetitionIndex ?? 0;
