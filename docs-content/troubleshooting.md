@@ -57,7 +57,10 @@ import { parseHL7 } from "@cosyte/hl7";
 parseHL7("");
 ```
 
-Catch `Hl7ParseError` and read its `code` to distinguish them. Everything _else_ is a warning.
+Catch `Hl7ParseError` and read its `code` to distinguish them. Everything _else_ is a warning. Under
+`{ strict: true }` the same class is thrown for an escalated warning, with that warning's code in
+`err.code`, so treat any code outside `FATAL_CODES` as one
+([When a warning becomes a throw](./tolerance-and-errors.md#when-a-warning-becomes-a-throw)).
 
 ## "Non-ASCII text comes out garbled"
 

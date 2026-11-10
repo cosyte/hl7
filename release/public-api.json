@@ -1133,7 +1133,7 @@
       "type": "",
       "members": [
         "cause?: unknown",
-        "code: FatalCode",
+        "code: FatalCode | WarningCode",
         "message: string",
         "name: string",
         "position: Hl7Position",

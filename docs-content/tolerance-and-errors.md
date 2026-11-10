@@ -35,7 +35,7 @@ w?.position; // => { segmentIndex: 1 }
 [Warning and fatal codes](./warning-and-fatal-codes.md) lists every Tier-2 code. Compare against
 `WARNING_CODES` rather than string literals, so a typo fails to compile.
 
-Need zero tolerance instead? `parseHL7(raw, { strict: true })` escalates every Tier-2 deviation to a thrown `Hl7ParseError`. Use strict in CI validators; leave it off for production ingestion.
+Need zero tolerance instead? `parseHL7(raw, { strict: true })` escalates every Tier-2 deviation to a thrown `Hl7ParseError` whose `code` is the warning's own code ([When a warning becomes a throw](#when-a-warning-becomes-a-throw)). Use strict in CI validators; leave it off for production ingestion.
 
 The 4 Tier-3 fatal codes (`NO_MSH_SEGMENT`, `MSH_TOO_SHORT`, `INVALID_ENCODING_CHARACTERS`, `EMPTY_INPUT`) always throw regardless of mode. They represent inputs the parser can't meaningfully recover from.
 
@@ -79,6 +79,30 @@ error instanceof Hl7ParseError; // => true
 `message` is bounded but not absolutely content-free, which is worth stating because `message` is what a logger prints by default and what `stack` embeds. A token taken from the input is echoed only when it matches the form the spec defines for it: a three-character segment identifier, an MSH-9 type, an MSH-12 version, or a charset label the closed Table 0211 actually contains. Anything else becomes `<withheld>`. So a message cannot carry a field's value, but it can carry a residue of up to three characters when a malformed line happens to look like a segment identifier. The other shapes are narrower in practice than their patterns allow, because the library only ever feeds them registry-matched values; the patterns themselves admit more (a message type up to 26 characters, a version up to 14), which matters only if you construct warnings yourself.
 
 Under `{ strict: true }` an escalated Tier-2 warning is thrown as an `Hl7ParseError` carrying that same bounded message, plus a `snippet` of the first 40 characters of the input rather than of the deviation's own segment.
+
+### When a warning becomes a throw
+
+Under `{ strict: true }` every Tier-2 warning is thrown as an `Hl7ParseError` whose `code` is **the warning's own code**, such as `UNKNOWN_SEGMENT`, not a member of `FATAL_CODES`. The warning is not also added to `msg.warnings`, and `onWarning` does not fire for it.
+
+So `Hl7ParseError.code` is typed `FatalCode | WarningCode`, not `FatalCode` alone. Test for the fatal codes you handle and treat any other `code` as an escalated warning: `err.code in FATAL_CODES` tells the two apart, and a `switch` over `err.code` that lists the four fatal codes needs a `default` branch.
+
+```ts runnable
+import { FATAL_CODES, Hl7ParseError, parseHL7 } from "@cosyte/hl7";
+
+let code: string | undefined;
+let fatal: boolean | undefined;
+try {
+  parseHL7("MSH|^~\\&|A|B|C|D|20260101||ADT^A01|1|P|2.5\rZZZ|1", { strict: true });
+} catch (err) {
+  if (err instanceof Hl7ParseError) {
+    code = err.code;
+    fatal = err.code in FATAL_CODES;
+  }
+}
+
+code; // => "UNKNOWN_SEGMENT"
+fatal; // => false
+```
 
 ### `Hl7ParseWarning`
 

@@ -130,11 +130,9 @@ function discriminateOptionsOrProfile(arg: ParseOptions | Profile | undefined): 
  *
  * @remarks
  * Under strict mode the thrown error's `code` is a `WarningCode` string
- * which is NOT in `FATAL_CODES`. This intentionally widens the runtime
- * set of values `Hl7ParseError.code` can take without widening the
- * compile-time type: consumers narrow on `err.code` after catching.
- * See the `as unknown as` comment in the implementation for the
- * justification.
+ * which is NOT in `FATAL_CODES`. `Hl7ParseError.code` is typed
+ * `FatalCode | WarningCode`, so consumers narrow on `err.code` after
+ * catching, with a `default` branch for the escalated warnings.
  *
  * @internal
  */
@@ -146,25 +144,11 @@ function makeEmitter(
 ): (w: Hl7ParseWarning) => void {
   return (w) => {
     if (options.strict === true) {
-      // Justification for `as unknown as FatalCode`: strict mode escalates
-      // Tier-2 warnings into thrown `Hl7ParseError`s per TOL-01. The thrown
-      // error reuses the existing error shape (code / message / position /
-      // snippet) so consumers have one catch surface. The `code` field is
-      // typed as `FatalCode` (the 4 Tier-3 codes) at compile time, but at
-      // runtime under strict mode it also carries any `WarningCode`. We
-      // preserve the narrow compile-time type so lenient-mode callers get
-      // exhaustive-switch checks on `FatalCode`; strict-mode consumers
-      // narrow on the runtime string. Alternative (a): widening
-      // FatalCode: would leak strict-mode semantics into the lenient-mode
-      // type surface; alternative (c), a separate Hl7StrictError class,
-      // would introduce a third error class. (b) is the minimum-surface
-      // change and matches Plan 06's recommendation.
-      throw new Hl7ParseError(
-        w.code as unknown as (typeof FATAL_CODES)[keyof typeof FATAL_CODES],
-        w.message,
-        w.position,
-        buildSnippet(input, w.position),
-      );
+      // Strict mode escalates every Tier-2 warning into a thrown
+      // `Hl7ParseError` that keeps the warning's own code, so consumers have
+      // one catch surface. `Hl7ParseError.code` is typed
+      // `FatalCode | WarningCode` to say so.
+      throw new Hl7ParseError(w.code, w.message, w.position, buildSnippet(input, w.position));
     }
     warnings.push(w);
     // D-22: profile.onWarning fires BEFORE options.onWarning. Each call is
