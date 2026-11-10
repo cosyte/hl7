@@ -52,12 +52,21 @@ export function oruMessage(i, bytes) {
 
 // Small to very large. The small size is the message a feed carries all day; 32 KiB is a long
 // result report; 1 MiB is far past any message a sender writes by hand. `messages` keeps a pass at
-// the small sizes from being one string repeated. The 4 MiB size is left out of the pull request
-// comparison, which runs 24 processes a case; a reading still measures it.
+// the small sizes from being one string repeated.
+//
+// The two large sizes are left out of the pull request comparison; a reading still measures them.
+// On the first comparison, on a 4-CPU GitHub-hosted runner, a 1 MiB call took about 138 ms and
+// its warmup did not settle within its 5 s bound, so both 1 MiB cases were skipped
+// (`warmup-unstable`) and the comparison could never be complete. 4 MiB is slower still.
 const SIZES = [
   { label: "ADT^A01, 280 B", messages: 64, build: (i) => adtMessage(i) },
   { label: "ORU^R01, 32 KiB", messages: 8, build: (i) => oruMessage(i, 32 * KIB) },
-  { label: "ORU^R01, 1 MiB", messages: 1, build: (i) => oruMessage(i, 1024 * KIB) },
+  {
+    label: "ORU^R01, 1 MiB",
+    messages: 1,
+    build: (i) => oruMessage(i, 1024 * KIB),
+    compare: false,
+  },
   {
     label: "ORU^R01, 4 MiB",
     messages: 1,
