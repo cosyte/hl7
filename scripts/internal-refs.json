@@ -61,6 +61,25 @@
     "enabled": true,
     "paths": ["src/*.ts", "src/**/*.ts"]
   },
+  "extraRules": [
+    {
+      "$comment": "The design-note ids this library's source comments once carried (a short upper-case code, a hyphen and a number), which the generated reference copied out of TSDoc. The positives below are samples of that shape, kept so the rule proves it still matches. The shared identifier rule matches only the project prefixes above, so it let them through. The negatives are the segment-field and code material the rule must never touch.",
+      "id": "design-note-id",
+      "name": "internal design-note id",
+      "patterns": [
+        "\\b(?:D|HELPERS|BIP|SER|PROF|WR|PARSE|MODEL|TYPES|TOL)-\\d{1,3}[a-z]?\\b|\\bT-\\d{2}(?:-\\d{2}){1,3}\\b|\\bparser-\\d{2}\\b"
+      ],
+      "positives": [
+        "Frozen at the boundary (D-01) and never throws (HELPERS-07)",
+        "As BIP-04, SER-02, PROF-07, WR-03, PARSE-09, MODEL-05, TYPES-04, TOL-02 and D-24a say",
+        "The T-03-02-02 mitigation in the tokenizer (parser-02)"
+      ],
+      "negatives": [
+        "MSH-2, PID-3, OBX-5, RXA-21, ZDS-1, DG1-5, TQ1-7, FT1-4 and SCH-11; ICD-10-CM; UTF-8 and ISO-8859-1",
+        "A D-dimer result, document DOC-1001 in room OR-1, account ACCT-1, Q6H dosing and WINDOWS-1252 text"
+      ]
+    }
+  ],
   "extraSamples": {
     "internal-identifier": {
       "positives": ["Item HL7-N is done, and CCDA-P7 with it"],

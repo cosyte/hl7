@@ -1,6 +1,6 @@
 /**
  * `defineProfile()`: public factory for building `Profile` objects with
- * validation + `describe()` attached (PROF-01, PROF-04, PROF-05).
+ * validation + `describe()` attached.
  *
  * `opts.extends` is honoured: parents are merged into the returned
  * profile (lineage, `dateFormats`, `customSegments`, `segmentOverrides`,
@@ -57,7 +57,7 @@ import {
 export type { CustomSegmentDefinition } from "../parser/types.js";
 
 /**
- * Options accepted by `defineProfile()` (D-02). Mirrors the locked
+ * Options accepted by `defineProfile()`. Mirrors the locked
  * `Profile` shape plus the `extends` input key. Every field except
  * `name` is optional.
  *
@@ -93,9 +93,9 @@ export interface DefineProfileOptions {
 
 /**
  * Build a readonly `Profile` from a validated options object. Invalid
- * input throws `ProfileDefinitionError` with an actionable message
- * (PROF-02): bad Z-segment names (D-05), malformed date formats (D-08),
- * unknown top-level keys with typo hints (D-07), and missing/empty
+ * input throws `ProfileDefinitionError` with an actionable message:
+ * bad Z-segment names, malformed date formats,
+ * unknown top-level keys with typo hints, and missing/empty
  * name.
  *
  * `opts.extends` accepts a single parent `Profile` or an array of them.

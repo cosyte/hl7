@@ -676,6 +676,62 @@ describe("rule 6, internal traceability markers, on both surfaces and in both pa
   });
 });
 
+/**
+ * This repository's own rule, from `extraRules` in `scripts/internal-refs.json`: the design-note
+ * ids its source comments once carried (a short upper-case code, a hyphen and a number). The
+ * refused samples below are made-up text of that shape, kept so the rule proves it still matches.
+ * The shared identifier rule matches only the configured project prefixes, so these reached the
+ * generated API reference and the published types without a hit. The accepted text is the
+ * segment-field and code material the rule sits next to in every doc comment here.
+ */
+describe("the design-note id rule, on both surfaces and in both passes", () => {
+  const RULE = "internal design-note id";
+  const DESIGN_NOTE = "Frozen at the boundary (D-01), never throws (HELPERS-07), as SER-03 says.";
+  const NEIGHBOURS =
+    "MSH-2, PID-3, OBX-5, RXA-21, ZDS-1, DG1-5, TQ1-7 and FT1-4; ICD-10-CM; UTF-8; a D-dimer result; document DOC-1001 in room OR-1; WINDOWS-1252 text";
+
+  it("refuses a design-note id on a public page", () => {
+    const run = verdict({ "docs-content/reference.md": page(DESIGN_NOTE) });
+    expect(run.status).not.toBe(0);
+    expect(run.stderr).toContain(RULE);
+    expect(run.stderr).toContain("docs-content/reference.md");
+  });
+
+  it("refuses a design-note id in a src doc comment", () => {
+    const run = verdict({ "src/index.ts": docComment(` * ${DESIGN_NOTE}`) });
+    expect(run.status).not.toBe(0);
+    expect(run.stderr).toContain(RULE);
+  });
+
+  it("refuses the threat-model and lower-case forms in a src doc comment", () => {
+    const run = verdict({
+      "src/index.ts": docComment(" * The T-03-02-02 mitigation in the tokenizer (parser-02)."),
+    });
+    expect(run.status).not.toBe(0);
+    expect(run.stderr).toContain(RULE);
+  });
+
+  it("refuses a design-note id in a src string literal", () => {
+    const run = verdict({
+      "src/messages.ts": 'export const MESSAGE = "MSH must be routed per D-06.";\n',
+    });
+    expect(run.status).not.toBe(0);
+    expect(run.stderr).toContain(RULE);
+  });
+
+  it("accepts the segment-field and code material beside it, on a public page", () => {
+    const run = verdict({ "docs-content/reference.md": page(NEIGHBOURS) });
+    expect(run.status).toBe(0);
+    expect(run.stdout).toMatch(OK_LINE);
+  });
+
+  it("accepts the same material in a src doc comment", () => {
+    const run = verdict({ "src/index.ts": docComment(` * ${NEIGHBOURS}`) });
+    expect(run.status).toBe(0);
+    expect(run.stdout).toMatch(OK_LINE);
+  });
+});
+
 describe("AC-11 the states in which the gate must refuse rather than report clean", () => {
   it("AC-11 refuses when a named public-surface path is no longer tracked", () => {
     const root = makeFixture();

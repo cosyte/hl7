@@ -9,7 +9,7 @@
  * restored in v2 if vendor-quirk fixtures require them.
  *
  * Zero runtime deps: pure function over the raw positional tree + `unescape`.
- * Parser is silent (D-09 composite-parser silence).
+ * Parser is silent, as every composite parser is.
  */
 
 import type { EncodingCharacters, RawComponent, RawRepetition } from "../../parser/types.js";

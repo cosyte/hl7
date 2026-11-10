@@ -1,7 +1,7 @@
 /**
  * athenahealth Interop API HL7 quirks. Ships US-short-date format
  * (`MM/DD/YYYY`) commonly used in athena ADT outbound. One Z-segment:
- * `ZCA` (care team membership). BIP-04.
+ * `ZCA` (care team membership).
  *
  * No AM/PM variant (`MM/DD/YYYY hh:mm A`) ships in this profile. The date
  * grammar supports one (`SUPPORTED_DATE_TOKENS` includes `hh`, `h` and `A`),
@@ -19,7 +19,7 @@
 import { defineProfile } from "./define.js";
 
 /**
- * Built-in athenahealth Interop profile (BIP-04). See file header for
+ * Built-in athenahealth Interop profile. See file header for
  * rationale; use via `parseHL7(raw, profiles.athena)`.
  *
  * @example

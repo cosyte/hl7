@@ -9,7 +9,7 @@
  * CX, CWE, CE, XTN, PL, XCN): helpers are pure views on top of the model layer's
  * composite coercions, never re-parsing the raw tree.
  *
- * Field lists are locked by decisions D-01..D-24. Nine interfaces:
+ * The field lists are fixed. Nine interfaces:
  * `Meta`, `Patient`, `Visit`, `Observation` (discriminated union + `ObservationBase`),
  * `Order`, `NextOfKin`, `Allergy`, `Diagnosis`, `Insurance`.
  */
@@ -26,7 +26,7 @@ import type { XPN } from "../model/types/xpn.js";
 import type { XTN } from "../model/types/xtn.js";
 
 /**
- * MSH-derived message metadata (HELPERS-01). D-03: always defined on
+ * MSH-derived message metadata. Always defined on
  * `Hl7Message.meta` (MSH absence throws `NO_MSH_SEGMENT` at parse time);
  * individual fields are optional because vendor-quirky messages routinely
  * omit pieces of MSH. `timestamp` is the fidelity `TS` (precision +
@@ -78,11 +78,11 @@ export interface Meta {
 }
 
 /**
- * PID-derived patient view (HELPERS-02). `msg.patient` is `undefined` (D-04)
+ * PID-derived patient view. `msg.patient` is `undefined`
  * when no PID segment exists; this interface describes the shape when
- * present. `identifiers` and `phoneNumbers` are ALWAYS present as arrays
- * (D-09 / D-20): empty when the underlying field is absent. `name` is
- * ALWAYS present (D-19) even if `{}` when PID-5 is empty.
+ * present. `identifiers` and `phoneNumbers` are ALWAYS present as arrays,
+ * empty when the underlying field is absent. `name` is
+ * ALWAYS present even if `{}` when PID-5 is empty.
  *
  * @example
  * ```ts
@@ -100,19 +100,19 @@ export interface Meta {
  * ```
  */
 export interface Patient {
-  /** Medical record number picked via `pickMrn` (D-07 / D-08). */
+  /** Medical record number picked via `pickMrn`. */
   readonly mrn?: string;
-  /** Full PID-3 identifier list, each parsed as a CX. Always present (D-09). */
+  /** Full PID-3 identifier list, each parsed as a CX. Always present. */
   readonly identifiers: readonly CX[];
-  /** Full PID-5 parsed name (first repetition). Always present as `{}` when empty (D-19). */
+  /** Full PID-5 parsed name (first repetition). Always present as `{}` when empty. */
   readonly name: XPN;
-  /** PID-5.1 flat family name convenience (D-19). */
+  /** PID-5.1 flat family name convenience. */
   readonly familyName?: string;
-  /** PID-5.2 flat given name convenience (D-19). */
+  /** PID-5.2 flat given name convenience. */
   readonly givenName?: string;
-  /** PID-5.3 mapped from `XPN.secondName` (D-19). */
+  /** PID-5.3 mapped from `XPN.secondName`. */
   readonly middleName?: string;
-  /** Composed Western-order name "Given Middle Family, Suffix" (D-17). */
+  /** Composed Western-order name "Given Middle Family, Suffix". */
   readonly fullName?: string;
   /**
    * PID-7 date of birth as the fidelity `TS`. A day-only DOB keeps
@@ -124,7 +124,7 @@ export interface Patient {
   readonly sex?: string;
   /** PID-11 home address parsed as XAD. */
   readonly address?: XAD;
-  /** PID-13 (home) + PID-14 (business) repetitions concatenated. Always present (D-20). */
+  /** PID-13 (home) + PID-14 (business) repetitions concatenated. Always present. */
   readonly phoneNumbers: readonly XTN[];
   /** PID-10 race. */
   readonly race?: CWE;
@@ -142,8 +142,8 @@ export interface Patient {
 }
 
 /**
- * PV1-derived visit view (HELPERS-03). `msg.visit` is `undefined` when no PV1
- * segment exists; this interface describes the shape when present. D-24a:
+ * PV1-derived visit view. `msg.visit` is `undefined` when no PV1
+ * segment exists; this interface describes the shape when present. The
  * doctor fields use XCN (not flat strings). Date/time fields are the
  * fidelity `TS` (precision + timezone preserved).
  *
@@ -168,9 +168,9 @@ export interface Visit {
   readonly admitDateTime?: TS;
   /** PV1-45 discharge date/time as the fidelity `TS`. */
   readonly dischargeDateTime?: TS;
-  /** PV1-7 attending doctor (D-24a XCN). */
+  /** PV1-7 attending doctor (XCN). */
   readonly attendingDoctor?: XCN;
-  /** PV1-8 referring doctor (D-24a XCN). */
+  /** PV1-8 referring doctor (XCN). */
   readonly referringDoctor?: XCN;
   /** PV1-19 visit number. */
   readonly visitNumber?: string;
@@ -297,7 +297,7 @@ export interface ResultStatusClassification {
 /**
  * Fields shared by every `Observation` variant, regardless of the OBX-2
  * value type. Split from the discriminated union to keep the union
- * declaration readable (D-15 locked field list).
+ * declaration readable.
  *
  * @example
  * ```ts
@@ -359,15 +359,15 @@ export interface ObservationBase {
 
 /**
  * One OBX segment as a typed Observation. `value` is discriminated by
- * `valueType` (OBX-2) per D-13:
+ * `valueType` (OBX-2):
  * - `"NM"` → `number | undefined`
  * - `"SN"` → `SN | undefined` (structured numeric: comparator / range / ratio)
  * - `"TS" | "DT"` → `TS | undefined` (fidelity parts preserved)
- * - `"CWE" | "CE"` → `CWE | CE | undefined` (full composite per D-14)
+ * - `"CWE" | "CE"` → `CWE | CE | undefined` (the full composite)
  * - other (`"ST"`, `"TX"`, `"FT"`, `"ID"`, `"IS"`, `"NA"`, unknown) →
- *   `string | undefined` (decoded, D-23)
+ *   `string | undefined` (decoded)
  *
- * D-22: `value` is `undefined` when OBX-5 is empty OR malformed for its
+ * `value` is `undefined` when OBX-5 is empty OR malformed for its
  * declared type (never throws, never `NaN`). A `TS`/`DT` value is always the
  * `TS` structure; check its `.valid` flag rather than expecting a `Date`.
  *
@@ -530,8 +530,8 @@ export interface OrderTiming {
 }
 
 /**
- * OBR-derived order (HELPERS-05, D-16) with positionally-grouped OBX children
- * (D-12). `observations` is ALWAYS present: empty when no OBX follows this
+ * OBR-derived order with positionally-grouped OBX children.
+ * `observations` is ALWAYS present: empty when no OBX follows this
  * OBR before the next OBR or end-of-message. `timings` is ALWAYS present,
  * empty when the order carries no TQ1 / legacy embedded TQ.
  *
@@ -576,9 +576,9 @@ export interface Order {
   readonly resultStatus: ResultStatusClassification;
   /** ORC-1 order control when an ORC precedes this OBR. */
   readonly orderControl?: string;
-  /** OBR-16 ordering provider (D-24a XCN). */
+  /** OBR-16 ordering provider (XCN). */
   readonly orderedBy?: XCN;
-  /** OBX children grouped under this OBR (D-12 positional grouping). Always present. */
+  /** OBX children grouped under this OBR (positional grouping). Always present. */
   readonly observations: readonly Observation[];
   /**
    * TQ1 / legacy embedded-TQ timing(s) grouped under this order.
@@ -599,7 +599,7 @@ export interface Order {
 }
 
 /**
- * NK1-derived next-of-kin entry (HELPERS-06). Lean subset: callers can
+ * NK1-derived next-of-kin entry. Lean subset: callers can
  * reach for `msg.segments("NK1")` when they need the full NK1 surface.
  *
  * @example
@@ -756,7 +756,7 @@ export interface Allergy {
 }
 
 /**
- * DG1-derived diagnosis entry (HELPERS-06). `dateTime` is the fidelity `TS`.
+ * DG1-derived diagnosis entry. `dateTime` is the fidelity `TS`.
  *
  * @example
  * ```ts
@@ -970,8 +970,8 @@ export interface Medication {
 }
 
 /**
- * IN1-derived insurance entry (HELPERS-06) with positional IN2/IN3 presence
- * flags (D-05 extension). `hasIn2` / `hasIn3` are ALWAYS present booleans;
+ * IN1-derived insurance entry with positional IN2/IN3 presence
+ * flags. `hasIn2` / `hasIn3` are ALWAYS present booleans;
  * callers who need the full IN2/IN3 surface can walk `msg.segments("IN2")`.
  *
  * @example

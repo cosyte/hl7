@@ -1,21 +1,21 @@
 /**
  * `orders`: walks the message
  * in document order and groups OBX segments positionally under their
- * preceding OBR (D-12). An ORC segment that precedes an OBR contributes its
- * ORC-1 as the order's `orderControl` (D-16); unmatched trailing ORCs are
+ * preceding OBR. An ORC segment that precedes an OBR contributes its
+ * ORC-1 as the order's `orderControl`; unmatched trailing ORCs are
  * dropped.
  *
  * Design decisions enforced here:
- *   - D-01: `Object.freeze` applied to each Order and to the outer array.
- *   - D-05: returns `[]` when no OBR is present.
- *   - D-06: NOT memoized: each call re-walks `msg.allSegments()`.
- *   - D-12: OBX attached positionally to the preceding OBR; pre-OBR OBX are
+ *   - `Object.freeze` applied to each Order and to the outer array.
+ *   - Returns `[]` when no OBR is present.
+ *   - NOT memoized: each call re-walks `msg.allSegments()`.
+ *   - OBX attached positionally to the preceding OBR; pre-OBR OBX are
  *     NOT grouped here (but still surface via `msg.observations()`).
- *   - D-16: Order field contract (placerOrderNumber, fillerOrderNumber,
+ *   - Order field contract (placerOrderNumber, fillerOrderNumber,
  *     universalServiceId, orderStatus, orderControl, orderedBy, observations).
- *   - D-18: `orderStatus` uses OBR-25 (resultStatus).
- *   - D-22: never throws: malformed OBR/OBX surface as omitted keys.
- *   - D-24 (a): `orderedBy` is an XCN composite (not a flat string).
+ *   - `orderStatus` uses OBR-25 (resultStatus).
+ *   - Never throws: malformed OBR/OBX surface as omitted keys.
+ *   - `orderedBy` is an XCN composite (not a flat string).
  *   - Reuses `buildObservation` from `./observations.ts`: never
  *     re-implement OBX → Observation construction here.
  *
@@ -39,7 +39,7 @@ import { classifyOrderStatus } from "./result-status.js";
 import { buildLegacyTiming, buildTq1Timing } from "./timing.js";
 import type { Observation, Order, OrderTiming } from "./types.js";
 
-/** Normalize HL7 empty-string to `undefined` for the helper layer (D-22). @internal */
+/** Normalize HL7 empty-string to `undefined` for the helper layer. @internal */
 function stringOrUndefined(v: string): string | undefined {
   return v === "" ? undefined : v;
 }
@@ -115,13 +115,13 @@ function finalizeOrder(
 }
 
 /**
- * Every OBR as an Order with its OBX children grouped positionally (D-12).
+ * Every OBR as an Order with its OBX children grouped positionally.
  * OBX segments that precede any OBR are NOT attached to an order (they still
  * surface in `msg.observations()` which walks all OBX regardless). An ORC
  * segment preceding an OBR contributes its `orderControl` (ORC-1) to that
  * order; unmatched ORCs (trailing after the last OBR) are dropped.
  *
- * D-05: returns `[]` when no OBR is present. D-06: NOT memoized.
+ * Returns `[]` when no OBR is present. NOT memoized.
  *
  * @example
  * ```ts

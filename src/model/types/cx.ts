@@ -74,7 +74,7 @@ export interface CX {
  *
  * Returns `undefined` when the source component is missing or every
  * subcomponent is the empty string: prevents stub empty HD objects from
- * leaking into CX output (T-03-02-02 mitigation).
+ * leaking into CX output.
  *
  * @internal
  */

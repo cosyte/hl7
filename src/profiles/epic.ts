@@ -2,7 +2,7 @@
  * Epic Bridges Interconnect HL7 quirks. Ships non-HL7 date formats
  * (`MM/DD/YYYY HH:mm:ss`, `MM/DD/YYYY`) commonly seen in ADT outbound
  * feeds, plus two Z-segments: `ZDP` (department context) and `ZRS`
- * (result status). BIP-01.
+ * (result status).
  *
  * Authored from the public `defineProfile()` API: zero privileged
  * internal coupling. Consumers extend this profile via
@@ -20,7 +20,7 @@
 import { defineProfile } from "./define.js";
 
 /**
- * Built-in Epic Bridges Interconnect profile (BIP-01). See file header
+ * Built-in Epic Bridges Interconnect profile. See file header
  * for rationale; use via `parseHL7(raw, profiles.epic)`.
  *
  * @example

@@ -40,7 +40,7 @@
 import { defineProfile } from "./define.js";
 
 /**
- * Built-in VA VistA Radiology / Nuclear Medicine imaging profile (BIP-09).
+ * Built-in VA VistA Radiology / Nuclear Medicine imaging profile.
  * See file header for rationale; use via `parseHL7(raw, profiles.va)`.
  *
  * @example

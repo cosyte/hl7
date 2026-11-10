@@ -2,7 +2,7 @@
  * Generic reference-laboratory shape (LabCorp / Quest-style). Ships two
  * non-HL7 date formats: `YYYYMMDD HHmm` (ASTM-era space-separated) and
  * `YYYY-MM-DD` (ISO date-only). Two Z-segments: `ZLB` (lab-override
- * flags) and `ZNT` (lab note). BIP-05.
+ * flags) and `ZNT` (lab note).
  *
  * The canonical HL7 format `YYYYMMDDHHmmss` is NOT shipped here: it's
  * already the parser's primary (zero-warning) match for TS/DTM.
@@ -19,7 +19,7 @@
 import { defineProfile } from "./define.js";
 
 /**
- * Built-in generic reference-laboratory profile (BIP-05). See file
+ * Built-in generic reference-laboratory profile. See file
  * header for rationale; use via `parseHL7(raw, profiles.genericLab)`.
  *
  * @example

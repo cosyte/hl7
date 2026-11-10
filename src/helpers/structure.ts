@@ -7,9 +7,9 @@
  * `msg.warnings`.
  *
  * Composes on the public surface (`msg.get`, `msg.allSegments()`),
- * never walks `rawSegments` directly. D-01 freeze at boundary (the underlying
- * `analyzeMessageStructure` already freezes deeply). D-02 memoization is the
- * caller's job (`Hl7Message.structure` getter). D-22 never throws.
+ * never walks `rawSegments` directly. Frozen at the boundary (the underlying
+ * `analyzeMessageStructure` already freezes deeply). Memoization is the
+ * caller's job (`Hl7Message.structure` getter). Never throws.
  */
 
 import type { Hl7Message } from "../model/message.js";

@@ -2,7 +2,7 @@
  * NM: HL7 v2 Numeric composite. Parses the raw HL7 numeric string into a
  * `number` via the stricter `Number(raw)` (not `parseFloat`, which tolerates
  * trailing garbage like "12abc" → 12). `NaN` is normalized to `undefined`
- * per the same no-throw discipline as TS/DTM (D-24 analogous).
+ * per the same no-throw discipline as TS/DTM.
  *
  * The raw string is preserved verbatim on the composite so callers needing
  * to round-trip or render with the original precision/formatting can.

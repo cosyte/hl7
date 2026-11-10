@@ -1,7 +1,7 @@
 /**
  * `buildAck`: generate a spec-clean HL7 v2 acknowledgment (ACK) message from
- * an inbound message. The boundary with `@cosyte/mllp` is resolved
- * (hl7 roadmap §10.1): **hl7 owns ACK *content*** (this file + the control
+ * an inbound message. The boundary with `@cosyte/mllp` is settled:
+ * **hl7 owns ACK *content*** (this file + the control
  * tables); mllp owns *policy/timing* (the commit contract) and *framing*.
  *
  * `buildAck` is **mechanical**: it builds the disposition it is *told* via
@@ -135,7 +135,7 @@ export function detectAckMode(inbound: Hl7Message): AckMode {
  *   escape (`ID\X41\Q`) or a preserved escape (`\H\`) echoes **byte-verbatim**,
  *   not canonicalized: exactly the bytes the sender put on the wire, which is
  *   what MSA-2 correlation compares. The only structural transform is
- *   trailing-empty canonicalization (D-02). (A sender that used *custom*
+ *   trailing-empty canonicalization. (A sender that used *custom*
  *   encoding characters is **re-delimited spec-cleanly**: the overlay carries
  *   the sender's raw bytes in the sender's alphabet, so echoing them verbatim
  *   under the ACK's default alphabet would corrupt the field's structure and

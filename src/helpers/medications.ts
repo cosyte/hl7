@@ -3,7 +3,7 @@
  * order and projects each RXO / RXE / RXD / RXA segment into a typed
  * `Medication`, grouping the RXR (route) and
  * RXC (component) segments that follow it positionally under that parent,
- * the same state-machine pattern `orders()` uses for OBR → OBX (D-12).
+ * the same state-machine pattern `orders()` uses for OBR → OBX.
  *
  * Field map (HL7 Ch. 4A: Pharmacy/Treatment):
  *   - RXO (order):          give RXO-1, amount RXO-2/3, units RXO-4, form RXO-5
@@ -16,7 +16,7 @@
  *
  * Safety rules enforced here:
  *   - Never throws: malformed RX* surface as omitted keys (matches the helper
- *     layer contract; HELPERS-07).
+ *     layer contract).
  *   - `amount` (how much) and `strength` (concentration) are surfaced as
  *     SEPARATE fields and are NEVER reconciled: including against any strength
  *     a coded drug (e.g. an NDC) implies. A disagreement is preserved.
@@ -25,7 +25,7 @@
  *   - Code-system provenance rides on the give-code CWE
  *     (`giveCode.nameOfCodingSystem`); the helper reports the claim, never
  *     validates it.
- *   - Output is frozen at the boundary (Order/Observation parity, D-01).
+ *   - Output is frozen at the boundary (Order/Observation parity).
  *
  * Grouping rules:
  *   - Each RXO/RXE/RXD/RXA opens a new `Medication`. RXR/RXC seen before any
@@ -242,7 +242,7 @@ function orderControlOf(groupOrc: Segment | undefined): string | undefined {
   return value === "" ? undefined : value;
 }
 
-/** Freeze a Medication and its grouped child arrays at the boundary (D-01). @internal */
+/** Freeze a Medication and its grouped child arrays at the boundary. @internal */
 function finalize(
   med: Medication,
   parent: Segment,
@@ -262,7 +262,7 @@ function finalize(
  * Every RXO/RXE/RXD/RXA as a typed `Medication`, with RXR (route) and RXC
  * (component) segments grouped positionally under the preceding RX* parent.
  * Document order. Returns `[]` when no RX* parent is present. NOT memoized:
- * each call re-walks `msg.allSegments()`. Never throws (HELPERS-07).
+ * each call re-walks `msg.allSegments()`. Never throws.
  *
  * The give code carries its own coding-system provenance
  * (`giveCode.nameOfCodingSystem`). The give *amount* and the give *strength*

@@ -78,7 +78,7 @@ export interface PL {
  *
  * Returns `undefined` when the source component is missing or every
  * subcomponent is the empty string: prevents stub empty HD objects from
- * leaking into PL output (T-03-03 analogue of CX's T-03-02-02 mitigation).
+ * leaking into PL output (as CX does).
  *
  * @internal
  */

@@ -111,7 +111,7 @@ export class Hl7ParseError extends Error {
 
   /**
    * Construct a new `Hl7ParseError`. All four fields are required so every
-   * thrower populates full positional context per the TOL-02 requirement.
+   * thrower populates full positional context.
    *
    * @internal
    */

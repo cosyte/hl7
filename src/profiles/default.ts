@@ -1,5 +1,5 @@
 /**
- * Process-scoped default profile management (PROF-08 / D-18). This module
+ * Process-scoped default profile management. This module
  * holds the first mutable module-scoped state in the codebase: an
  * intentional trade-off documented in PROJECT.md Key Decisions:
  * `setDefaultProfile` EXISTS but is DISCOURAGED. It is scoped to the
@@ -18,7 +18,7 @@ import type { Profile } from "../parser/types.js";
 /**
  * Process-scoped default profile. `undefined` means "unset" (the initial
  * state). `null` is not a stable stored value: `setDefaultProfile(null)`
- * resets this to `undefined` per D-18.
+ * resets this to `undefined`.
  * @internal
  */
 let _defaultProfile: Profile | undefined = undefined;
@@ -29,7 +29,7 @@ let _defaultProfile: Profile | undefined = undefined;
  * returned profile if any. Pass `null` (or `undefined`) to clear.
  *
  * Effects are IDENTICAL to passing the profile explicitly as the second
- * arg of `parseHL7` (D-20): customSegments, dateFormats, onWarning chain,
+ * arg of `parseHL7`: customSegments, dateFormats, onWarning chain,
  * and profile attribution all apply the same way.
  *
  * Explicit args ALWAYS win: `parseHL7(raw, myProfile)` uses `myProfile`

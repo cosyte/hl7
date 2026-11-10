@@ -1,20 +1,20 @@
 /**
- * `buildVisit` (HELPERS-03). Reads the first PV1 segment (if any) and
+ * `buildVisit`. Reads the first PV1 segment (if any) and
  * projects the 7 locked
  * v1 fields as a deeply frozen `Visit` object, composing on the package's public
  * read surface (`msg.segments("PV1")[0].field(n).asXxx()`).
  *
  * Design decisions enforced here:
- *   - D-04 nullable: returns `undefined` when no PV1 segment is present.
+ *   - Nullable: returns `undefined` when no PV1 segment is present.
  *   - admit/discharge timestamps are the fidelity `TS` (precision +
  *     timezone preserved), not an eager `Date`.
- *   - D-24 option (a): attendingDoctor/referringDoctor use the
+ *   - attendingDoctor/referringDoctor use the
  *     `Field.asXcn()` coercion (composite, not flat string).
- *   - D-01 freeze at boundary: the returned Visit is frozen.
- *   - D-22 never-throws: every field reaches a safe default when absent or
+ *   - Frozen at the boundary: the returned Visit is frozen.
+ *   - Never throws: every field reaches a safe default when absent or
  *     malformed (empty strings and empty composites are omitted via
  *     `exactOptionalPropertyTypes`).
- *   - D-02 memoization is handled by the `Hl7Message.visit` getter: this
+ *   - Memoization is handled by the `Hl7Message.visit` getter: this
  *     function is invoked lazily on first access and its result is cached.
  */
 
@@ -35,12 +35,12 @@ function nonEmptyXcn(xcn: XCN): XCN | undefined {
 
 /**
  * Build the immutable `Visit` view for a parsed message, or `undefined`
- * when no PV1 segment exists (HELPERS-03 nullable). Memoized by
- * `Hl7Message.visit` (D-02); mutations drop the cache wholesale via
+ * when no PV1 segment exists (nullable). Memoized by
+ * `Hl7Message.visit`; mutations drop the cache wholesale via
  * `invalidateCaches()`.
  *
- * Doctors (attendingDoctor/referringDoctor) are XCN composites per D-24
- * option (a). admitDateTime/dischargeDateTime are the fidelity `TS`.
+ * Doctors (attendingDoctor/referringDoctor) are XCN composites.
+ * admitDateTime/dischargeDateTime are the fidelity `TS`.
  *
  * @example
  * ```ts
@@ -49,7 +49,7 @@ function nonEmptyXcn(xcn: XCN): XCN | undefined {
  * console.log(msg.visit?.patientClass);                 // "I"
  * console.log(msg.visit?.location?.pointOfCare);        // "ICU"
  * console.log(msg.visit?.admitDateTime?.raw); // fidelity TS
- * console.log(msg.visit?.attendingDoctor?.familyName);  // XCN via D-24(a)
+ * console.log(msg.visit?.attendingDoctor?.familyName);  // XCN composite
  * ```
  *
  * @internal

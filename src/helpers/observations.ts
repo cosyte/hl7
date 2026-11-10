@@ -1,27 +1,27 @@
 /**
- * `observations` + `buildObservation` (HELPERS-04). Walks every OBX segment
+ * `observations` + `buildObservation`. Walks every OBX segment
  * in document order and projects each into a typed `Observation`
- * discriminated by OBX-2 (`valueType`) per D-13. The per-segment builder
+ * discriminated by OBX-2 (`valueType`). The per-segment builder
  * `buildObservation` is exported so `orders()` can reuse the same
  * OBX → Observation dispatch without duplicating the value-type switch
- * (D-12 positional grouping).
+ * when it groups OBX under OBR by position.
  *
  * Design decisions enforced here:
- *   - D-05: `observations(msg)` always returns a readonly array: `[]` when
+ *   - `observations(msg)` always returns a readonly array: `[]` when
  *     the message has no OBX segments.
- *   - D-06: NOT memoized: each call re-walks `msg.segments("OBX")`.
- *   - D-11: document order (matches the segment iteration order).
- *   - D-13: discriminated union on `valueType`:
+ *   - NOT memoized: each call re-walks `msg.segments("OBX")`.
+ *   - Document order (matches the segment iteration order).
+ *   - Discriminated union on `valueType`:
  *       - `"NM"`            → `number | undefined`  (via `Field.asNm()`)
  *       - `"SN"`            → `SN | undefined`       (via `Field.asSn()`, structured numeric)
  *       - `"TS" | "DT"`     → `TS | undefined`      (via `Field.asTs()`, fidelity preserved)
  *       - `"CWE" | "CE"`    → composite | undefined (via `Field.asCwe/asCe`)
  *       - other (`ST`/`TX`/`FT`/`ID`/`IS`/unknown) → `string | undefined`
- *   - D-15: common-field shape (setId, identifier, units, referenceRange,
+ *   - Common-field shape (setId, identifier, units, referenceRange,
  *     abnormalFlags, status, observedDateTime).
  *   - datetime values are the fidelity `TS`, not a flat `Date`.
- *   - D-22: never throws: empty or malformed input surfaces as `undefined`.
- *   - D-01: each Observation and the outer array are frozen at the boundary.
+ *   - Never throws: empty or malformed input surfaces as `undefined`.
+ *   - Each Observation and the outer array are frozen at the boundary.
  */
 
 import type { Field } from "../model/field.js";
@@ -33,7 +33,7 @@ import { groupNotes } from "./notes.js";
 import { classifyObservationStatus } from "./result-status.js";
 import type { Observation, ObservationBase } from "./types.js";
 
-/** Normalize HL7 empty-string to `undefined` for the helper layer (D-22). @internal */
+/** Normalize HL7 empty-string to `undefined` for the helper layer. @internal */
 function stringOrUndefined(v: string): string | undefined {
   return v === "" ? undefined : v;
 }
@@ -88,8 +88,8 @@ function buildCommon(obx: Segment): ObservationBase {
 }
 
 /**
- * Dispatch the OBX-5 value to the correct parser based on OBX-2 `valueType`
- * per D-13. The returned object is frozen at the boundary (D-01).
+ * Dispatch the OBX-5 value to the correct parser based on OBX-2 `valueType`.
+ * The returned object is frozen at the boundary.
  *
  * @internal
  */
@@ -156,9 +156,9 @@ function dispatchValue(valueType: string, valueField: Field, common: Observation
 
 /**
  * Build a single `Observation` from one OBX `Segment`. Value is dispatched
- * by OBX-2 per D-13; common fields follow D-15. Exported so
+ * by OBX-2; the common fields are the `ObservationBase` shape. Exported so
  * `orders()` can reuse this per-segment builder when grouping OBX under OBR
- * positionally (D-12): do NOT re-implement OBX → Observation construction
+ * positionally: do NOT re-implement OBX → Observation construction
  * there.
  *
  * @example
@@ -185,8 +185,8 @@ export function buildObservation(obx: Segment, notes?: readonly string[]): Obser
 }
 
 /**
- * Every OBX segment as a typed `Observation` in document order (D-11). D-05:
- * returns `[]` when no OBX segments are present. D-06: NOT memoized: each
+ * Every OBX segment as a typed `Observation` in document order. Returns
+ * `[]` when no OBX segments are present. NOT memoized: each
  * call re-walks `msg.segments("OBX")`.
  *
  * @example

@@ -7,11 +7,11 @@
  * document order.
  *
  * Design decisions enforced here:
- *   - D-01: `Object.freeze` applied to each entry and to the outer array.
- *   - D-05: returns `[]` when no IN1 present.
- *   - D-06: NOT memoized: each call re-walks `msg.allSegments()`.
+ *   - `Object.freeze` applied to each entry and to the outer array.
+ *   - Returns `[]` when no IN1 present.
+ *   - NOT memoized: each call re-walks `msg.allSegments()`.
  *   - `effectiveDate` / `expirationDate` are the fidelity `TS`.
- *   - D-22: never throws: empty / malformed fields surface as omitted keys.
+ *   - Never throws: empty / malformed fields surface as omitted keys.
  *
  * Lean v1 field set (callers wanting more can drop to `msg.segments("IN1")`):
  *   - `planId`         ← IN1-2  (CWE)
@@ -33,7 +33,7 @@ import type { Hl7Message } from "../model/message.js";
 import type { Segment } from "../model/segment.js";
 import type { Insurance } from "./types.js";
 
-/** Normalize HL7 empty-string to `undefined` for the helper layer (D-22). @internal */
+/** Normalize HL7 empty-string to `undefined` for the helper layer. @internal */
 function stringOrUndefined(v: string): string | undefined {
   return v === "" ? undefined : v;
 }
@@ -73,8 +73,8 @@ function finalizeInsurance(in1: Segment, hasIn2: boolean, hasIn3: boolean): Insu
 /**
  * Every IN1 as an `Insurance` entry in document order with positional
  * IN2/IN3 flags. `hasIn2` / `hasIn3` become `true` when an IN2 / IN3 appears
- * between this IN1 and the next IN1 (or end of message). D-05: returns `[]`
- * when no IN1 present. D-06: NOT memoized. HELPERS-07: never throws.
+ * between this IN1 and the next IN1 (or end of message). Returns `[]`
+ * when no IN1 present. NOT memoized. Never throws.
  *
  * @example
  * ```ts

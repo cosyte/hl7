@@ -3,10 +3,10 @@
  * NK1 segment in document order.
  *
  * Design decisions enforced here:
- *   - D-01: `Object.freeze` applied to each entry and to the outer array.
- *   - D-05: returns `[]` when no NK1 present.
- *   - D-06: NOT memoized: each call re-walks `msg.segments("NK1")`.
- *   - D-22: never throws: empty / malformed fields surface as omitted keys.
+ *   - `Object.freeze` applied to each entry and to the outer array.
+ *   - Returns `[]` when no NK1 present.
+ *   - NOT memoized: each call re-walks `msg.segments("NK1")`.
+ *   - Never throws: empty / malformed fields surface as omitted keys.
  *
  * Lean v1 field set (callers wanting more can drop to `msg.segments("NK1")`):
  *   - `name`         ← NK1-2 (XPN)
@@ -20,8 +20,8 @@ import type { Hl7Message } from "../model/message.js";
 import type { NextOfKin } from "./types.js";
 
 /**
- * Every NK1 as a `NextOfKin` entry in document order. D-05: returns `[]` when
- * no NK1 is present. D-06: NOT memoized. HELPERS-07: never throws.
+ * Every NK1 as a `NextOfKin` entry in document order. Returns `[]` when
+ * no NK1 is present. NOT memoized. Never throws.
  *
  * @example
  * ```ts

@@ -15,7 +15,7 @@
  *     is never dropped: surfaced on `RepeatPattern.interval`.
  *   - Total occurrences is read from **TQ1-14** (NM), *not* TQ1-11 (which is a
  *     Text Instruction, TX).
- *   - Never throws: a malformed timing surfaces as omitted keys (HELPERS-07).
+ *   - Never throws: a malformed timing surfaces as omitted keys.
  *   - hl7 surfaces the timing *structure* only; it does NOT compute schedules,
  *     resolve "institution-specified times", or interpret sig.
  *

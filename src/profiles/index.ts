@@ -6,7 +6,7 @@
  * and the typed-field-name types (`DefinedProfile`, `ProfileFieldName`,
  * `ProfiledMessage`) that carry a profile's declarations to the compiler.
  *
- * D-26 contract: individual built-ins are NOT top-level named exports,
+ * Individual built-ins are NOT top-level named exports,
  * consumers access them via `profiles.epic`, `profiles.cerner`, etc.
  * ("epic" is too generic a name for a top-level export.)
  */
@@ -28,7 +28,7 @@ import { visage } from "./visage.js";
 /**
  * Namespace object exposing the 8 shipped built-in vendor profiles (epic,
  * cerner, meditech, athena, genericLab, visage, philips, va). Each is authored
- * via the public `defineProfile()` API (BIP-01..09).
+ * via the public `defineProfile()` API.
  *
  * @example
  * ```ts

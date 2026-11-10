@@ -1,6 +1,6 @@
 /**
  * `Segment`: wrapper class over a `RawSegment` that exposes `field(n)` with
- * referentially stable `Field` instances (D-12). Constructed internally by
+ * referentially stable `Field` instances. Constructed internally by
  * `Hl7Message.segments(type)` / `Hl7Message.allSegments()`; user code never
  * calls `new Segment(...)` directly.
  *
@@ -82,13 +82,13 @@ export class Segment<FieldName extends string = string> {
    * applied profile declares no field names for this segment's type in either
    * of its declaration maps (`customSegments` for a Z-segment,
    * `segmentOverrides` for a standard one). Consumed by `get(name)` to resolve
-   * named-field access (PROF-07).
+   * named-field access.
    * @internal
    */
   public readonly customFields: Readonly<Record<string, number>> | undefined;
 
   /**
-   * The message's merged `dateFormats` (D-21), handed to every `Field` this
+   * The message's merged `dateFormats`, handed to every `Field` this
    * segment builds so a typed `TS` coercion honours what the caller declared.
    * Empty when neither `ParseOptions.dateFormats` nor the applied profile
    * declared any.
@@ -105,9 +105,9 @@ export class Segment<FieldName extends string = string> {
    * `msg.allSegments()`.
    *
    * The optional `customFields` parameter is the per-segment portion of the
-   * applied profile's merged declarations for this segment type (PROF-07 /
-   * D-16). When supplied, `get(name)` resolves names against it; otherwise
-   * `get(name)` always returns `undefined`.
+   * applied profile's merged declarations for this segment type. When
+   * supplied, `get(name)` resolves names against it; otherwise `get(name)`
+   * always returns `undefined`.
    *
    * The optional `dateFormats` parameter is the message's merged date-format
    * list; it is passed straight through to each `Field`.
@@ -158,8 +158,8 @@ export class Segment<FieldName extends string = string> {
    * and `msg.get('MSH.3')` in agreement).
    *
    * Returns a synthetic empty `Field` (`.isNull === false`, `.value === ""`)
-   * when `n` is out of range: never throws (MODEL-05). Successive calls with
-   * the same `n` return the same `Field` instance (D-12).
+   * when `n` is out of range: never throws. Successive calls with
+   * the same `n` return the same `Field` instance.
    *
    * @example
    * ```ts
@@ -195,9 +195,9 @@ export class Segment<FieldName extends string = string> {
 
   /**
    * Return the `Field` at the profile-declared position for `name`, or
-   * `undefined` when no custom mapping exists (PROF-07). Unlike `field(n)`,
+   * `undefined` when no custom mapping exists. Unlike `field(n)`,
    * missing names return `undefined`, NOT a synthetic empty Field, so
-   * typos surface instead of silently resolving to an empty string (D-14).
+   * typos surface instead of silently resolving to an empty string.
    *
    * Two declaration maps feed it, and which one a name may come from depends
    * on the segment: `customSegments` names fields on a Z-segment,
@@ -215,7 +215,7 @@ export class Segment<FieldName extends string = string> {
    * `RawSegment.fields`, `get(name)` returns `undefined` (NOT a
    * synthetic-empty Field) so callers can distinguish "name not declared"
    * from "name declared but position missing in the raw message" only at
-   * the presence level (both collapse to `undefined` per D-14).
+   * the presence level (both collapse to `undefined`).
    *
    * **`name` is checked at compile time when the declaration is statically
    * known.** On a segment obtained by type from a message parsed with a

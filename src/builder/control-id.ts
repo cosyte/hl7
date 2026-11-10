@@ -1,14 +1,14 @@
 /**
  * `generateControlId`: synthesise an HL7 message control ID for outbound
  * messages. Shape: 17-char UTC timestamp `YYYYMMDDHHmmssSSS` + 6 random
- * alphanumeric chars = 23 chars total (D-12).
+ * alphanumeric chars = 23 chars total.
  *
  * Decisions:
- * - D-12: exact shape above; uniqueness via `Date.now()` + cryptographic
- *   random draws from `node:crypto.randomInt` (WR-03 hardening: was
- *   `Math.random` originally); alphabet is plain `[A-Za-z0-9]` (Claude's
- *   Discretion: readability doesn't matter: IDs aren't human-typed).
- * - D-31: zero deps: Node stdlib only (`node:crypto` is stdlib).
+ * - Exact shape above; uniqueness via `Date.now()` + cryptographic
+ *   random draws from `node:crypto.randomInt` (it was `Math.random`
+ *   originally); alphabet is plain `[A-Za-z0-9]` (readability doesn't
+ *   matter: IDs aren't human-typed).
+ * - Zero deps: Node stdlib only (`node:crypto` is stdlib).
  *
  * @internal
  */
@@ -31,19 +31,19 @@ function pad(n: number, width: number): string {
 }
 
 /**
- * Generate an HL7 message control ID per D-12. Shape: 17-char UTC timestamp
+ * Generate an HL7 message control ID. Shape: 17-char UTC timestamp
  * `YYYYMMDDHHmmssSSS` + 6 random alphanumeric chars = 23 chars total.
  *
  * Each of the 6 suffix characters is drawn with `node:crypto.randomInt`,
  * a cryptographically secure source that samples the 62-char alnum
  * alphabet uniformly (it rejects out-of-range draws rather than reducing
  * them modulo 62, which would favor the first 8 characters). This avoids
- * the `Math.random` collision risk flagged in WR-03 under heavy concurrent
+ * the `Math.random` collision risk under heavy concurrent
  * load (many parallel workers generating IDs in the same millisecond): the
  * suffix carries 6 * log2(62), about 35.7 bits, and the 17-char ms
  * timestamp prefix further partitions the ID space.
  *
- * Zero dependencies: uses `Date` + `node:crypto` only (D-31); both are
+ * Zero dependencies: uses `Date` + `node:crypto` only; both are
  * Node stdlib.
  *
  * @internal

@@ -18,11 +18,11 @@
  *   - AIP-3  personnel resource (XCN)        → resource kind "personnel" (provider)
  *
  * Safety rules enforced here:
- *   - Never throws: a malformed SCH / AI* surfaces as omitted keys (HELPERS-07).
+ *   - Never throws: a malformed SCH / AI* surfaces as omitted keys.
  *   - The filler status code (SCH-25) is surfaced VERBATIM (provenance-only): a
  *     mis-keyed status is echoed exactly, never normalized or validated.
  *   - Missing fields → keys omitted; `resources` is ALWAYS a (possibly empty) array.
- *   - Output is frozen at the boundary (D-01); NOT memoized (D-06).
+ *   - Output is frozen at the boundary; NOT memoized.
  *
  * Known limitations: this covers the appointment-level identifiers, status,
  * SCH-11 timing, and the AI* resource identifiers only: it is NOT a
@@ -136,7 +136,7 @@ function finalizeAppointment(sch: Segment, resources: readonly AppointmentResour
  * AIS/AIG/AIL/AIP resource segments that follow it grouped positionally under
  * that SCH (service / general resource / location / personnel). Document order.
  * Returns `[]` when no SCH is present. NOT memoized: each call re-walks
- * `msg.allSegments()`. Never throws (HELPERS-07).
+ * `msg.allSegments()`. Never throws.
  *
  * The filler status code (SCH-25, Table 0278) is surfaced verbatim; per-resource
  * offsets/durations and the full scheduling workflow are out of scope (see the

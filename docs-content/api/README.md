@@ -13,7 +13,7 @@
 Wrapper over a `RawField` exposing HL7 null/empty discrimination
 (`isNull`), the repetitions tree, and a decoded `value` getter.
 `seg.field(3) === seg.field(3)`: Field instances are referentially stable
-per segment position (D-12).
+per segment position.
 
 #### Example
 
@@ -26,13 +26,83 @@ console.log(pid5?.isNull);             // false: HL7 explicit null is "", absent
 console.log(pid5?.repetitions.length); // 1
 ```
 
+#### Constructors
+
+##### Constructor
+
+> **new Field**(`raw`, `enc`, `position`, `dateFormats?`): [`Field`](#field)
+
+**`Internal`**
+
+Construct a new `Field`. Called internally by `Segment.field(n)`; user
+code should obtain `Field` instances via `msg.segments(type)[i].field(n)`.
+
+###### Parameters
+
+###### raw
+
+[`RawField`](#rawfield)
+
+###### enc
+
+[`EncodingCharacters`](#encodingcharacters-1)
+
+###### position
+
+[`Hl7Position`](#hl7position)
+
+###### dateFormats?
+
+readonly `string`[]
+
+###### Returns
+
+[`Field`](#field)
+
 #### Properties
+
+##### dateFormats
+
+> `readonly` **dateFormats**: readonly `string`[]
+
+**`Internal`**
+
+The date formats the caller declared for this message
+(`ParseOptions.dateFormats` ++ the applied profile's, deduplicated
+first-occurrence-wins), threaded down from `Hl7Message.dateFormats` so a
+typed `TS` coercion can honour them. Empty when neither route declared
+any, which is the strict-only parse. Read by `asTs()` and by the two
+helper sites that parse a datetime subcomponent directly.
+
+##### enc
+
+> `readonly` **enc**: [`EncodingCharacters`](#encodingcharacters-1)
+
+**`Internal`**
+
+The 5 encoding characters for this message. Exposed for composite parsers.
 
 ##### isNull
 
 > `readonly` **isNull**: `boolean`
 
 HL7 null indicator: `true` iff the underlying field was the two-char literal `""`.
+
+##### position
+
+> `readonly` **position**: [`Hl7Position`](#hl7position)
+
+**`Internal`**
+
+Position of this field in the parent message: used for position-aware error messages.
+
+##### raw
+
+> `readonly` **raw**: [`RawField`](#rawfield)
+
+**`Internal`**
+
+The full `RawField` this wrapper wraps. Exposed for composite parsers.
 
 ##### repetitions
 
@@ -68,7 +138,7 @@ stay hex (`A\X41\B`, casing intact), and recognize-and-preserve sequences
 rather than as escaped literal text. Delimiter/newline escapes and plain
 content round-trip byte-exact via the re-escape path. The only remaining
 canonicalization is structural: trailing insignificant empties are
-stripped (D-02), and a field built by hand (not parsed) re-escapes its
+stripped, and a field built by hand (not parsed) re-escapes its
 decoded value since it has no overlay.
 
 **MSH-1/MSH-2 caveat.** Like [value](#value), calling this on MSH-1 or
@@ -317,8 +387,7 @@ console.log(orderedBy?.idNumber, orderedBy?.familyName, orderedBy?.identifierTyp
 
 Coerce this field's first repetition to a typed `XPN` (Extended Person
 Name). Absent components are OMITTED from the result
-(`exactOptionalPropertyTypes`). Not memoized in v1: each call re-parses
-(D-09).
+(`exactOptionalPropertyTypes`). Not memoized: each call re-parses.
 
 ###### Returns
 
@@ -383,6 +452,40 @@ const note = msg.segments("OBX")[0]?.field(5);
 note?.render().text; // "Specimen received.\nGross exam normal."
 ```
 
+##### empty()
+
+> `static` **empty**(`_enc`): [`Field`](#field)
+
+**`Internal`**
+
+Return a synthetic empty `Field` sentinel: used by `Segment.field(n)` to
+honor its "never throws on missing" contract. The returned Field
+has `isNull === false`, `repetitions === []`, and `value === ""`.
+Referentially stable across calls (same instance returned each time).
+
+The `enc` argument is accepted for API symmetry but ignored: the
+synthetic field carries no content, so unescape would be a no-op
+regardless of the active encoding characters. For the same reason the
+sentinel carries no declared `dateFormats`: there is no value to match one
+against, and `asTs()` on it is the empty invalid `TS` either way.
+
+###### Parameters
+
+###### \_enc
+
+[`EncodingCharacters`](#encodingcharacters-1)
+
+###### Returns
+
+[`Field`](#field)
+
+###### Example
+
+```ts
+const empty = Field.empty(msg.encodingCharacters);
+console.log(empty.value); // ""
+```
+
 ***
 
 ### Hl7Message
@@ -417,6 +520,28 @@ for (const w of msg.warnings) console.warn(w.code);
 - [`ProfiledMessage`](#profiledmessage)
 - [`TypedMessage`](#typedmessage)
 
+#### Constructors
+
+##### Constructor
+
+> **new Hl7Message**(`init`): [`Hl7Message`](#hl7message)
+
+**`Internal`**
+
+Construct a new `Hl7Message`. The constructor takes a plain init
+object and freezes the warnings array so callers cannot mutate parser
+output after handoff.
+
+###### Parameters
+
+###### init
+
+`Hl7MessageInit`
+
+###### Returns
+
+[`Hl7Message`](#hl7message)
+
 #### Properties
 
 ##### dateFormats
@@ -424,7 +549,7 @@ for (const w of msg.warnings) console.warn(w.code);
 > `readonly` **dateFormats**: readonly `string`[]
 
 Merged `dateFormats` list: `options.dateFormats ++ profile.dateFormats`
-deduped first-occurrence per D-21. Empty array when neither source
+deduped first-occurrence. Empty array when neither source
 supplied any formats. This is the list every datetime in the message
 honours, from `meta.timestamp` to any `field.asTs()`, in exactly this
 order; exposed so a caller can introspect what their options and profile
@@ -473,8 +598,8 @@ changes no parsing behaviour.
 > **get** **meta**(): [`Meta`](#meta-1)
 
 MSH-derived message metadata (type, controlId, timestamp, version, etc.).
-D-01: plain object. D-02: memoized: `msg.meta === msg.meta` across
-reads until mutation invalidates. D-03: always defined (MSH absence
+Plain object. Memoized: `msg.meta === msg.meta` across
+reads until mutation invalidates. Always defined (MSH absence
 throws `NO_MSH_SEGMENT` at parse time).
 
 ###### Example
@@ -495,8 +620,8 @@ console.log(msg.meta.controlId);                // "MSG001"
 
 > **get** **patient**(): [`Patient`](#patient-8) \| `undefined`
 
-PID-derived patient view, or `undefined` when no PID segment exists
-(D-04). D-02: memoized. HELPERS-07: never throws: absent fields
+PID-derived patient view, or `undefined` when no PID segment exists.
+Memoized. Never throws: absent fields
 surface as `undefined` on the returned `Patient` object.
 
 ###### Example
@@ -523,7 +648,7 @@ Reports, per the message's recognized (MSH-9.1, MSH-9.2) type, which
 Required segment groups are present and which are entirely absent
 (`missingGroups`: the same set the parser flags as
 `MISSING_EXPECTED_GROUP` warnings). For an unmodelled type, `recognized`
-is `false` and `missingGroups` is empty. D-02: memoized.
+is `false` and `missingGroups` is empty. Memoized.
 
 ###### Example
 
@@ -542,8 +667,8 @@ console.log(msg.structure.missingGroups); // e.g. ["result"] if no OBR/OBX
 
 > **get** **visit**(): [`Visit`](#visit-7) \| `undefined`
 
-PV1-derived visit view, or `undefined` when no PV1 segment exists
-(HELPERS-03). D-02: memoized. HELPERS-07: never throws.
+PV1-derived visit view, or `undefined` when no PV1 segment exists.
+Memoized. Never throws.
 
 ###### Example
 
@@ -564,7 +689,7 @@ console.log(msg.visit?.attendingDoctor?.familyName);
 > **addSegment**(`name`, `fields`): `this`
 
 Append a new segment to the end of the message. `name` must match
-`/^(?:[A-Z]{3}|Z[A-Z0-9]{2})$/u`: throws `TypeError` otherwise (D-19).
+`/^(?:[A-Z]{3}|Z[A-Z0-9]{2})$/u`: throws `TypeError` otherwise.
 
 `fields` is interpreted in HL7 1-indexed terms: `addSegment("NTE", [a, b, c])`
 produces a segment whose `NTE-1 = a`, `NTE-2 = b`, `NTE-3 = c`. The
@@ -575,7 +700,7 @@ Each entry may be a plain string (treated as a single-subcomponent
 single-component single-repetition field) or a full `RawField` object
 for advanced callers who need structured content.
 
-Invalidates caches on return; warnings untouched (D-16).
+Invalidates caches on return; warnings untouched.
 
 ###### Parameters
 
@@ -604,7 +729,7 @@ msg.get("NTE.2"); // "note text"
 
 Every AL1 and every IAM as an Allergy, one entry per segment in document
 order, each naming the segment it was read from (`source`). An ADT^A60
-carries its allergies in IAM, so it is read here too. D-05: returns `[]`
+carries its allergies in IAM, so it is read here too. Returns `[]`
 when neither is present.
 
 Limits: the IAR and NTE segments under an IAM are not read, nor IAM-1 or
@@ -632,7 +757,7 @@ for (const al of msg.allergies()) {
 
 Iterate every `Segment` in document order (MSH first, then every
 subsequent segment). Cached per-message; same array reference and same
-Segment instances on repeat calls (D-11). Invalidated wholesale by
+Segment instances on repeat calls. Invalidated wholesale by
 the mutation methods.
 
 ###### Returns
@@ -655,8 +780,8 @@ Every SCH of an SIU message as a typed `Appointment`, with
 the AIS/AIG/AIL/AIP resource segments that follow it grouped positionally
 under that SCH. Surfaces the placer/filler appointment ids, SCH-25 filler
 status (Table 0278), SCH-11 start/end timing, and the resource groups
-(service / general / location / personnel). D-05: returns `[]` when no SCH
-is present. D-06: not memoized. Never throws (HELPERS-07). Not a
+(service / general / location / personnel). Returns `[]` when no SCH
+is present. Not memoized. Never throws. Not a
 scheduling-workflow state machine: see the package known-limitations.
 
 ###### Returns
@@ -680,8 +805,8 @@ Every FT1 of a DFT message as a typed `Charge`, one per
 FT1 in document order. Surfaces billing-critical fields (FT1-6 transaction
 type, FT1-7 code, FT1-11/12 extended/unit amount, FT1-19 diagnosis linkage)
 with **no billing logic and no money-as-float**: amounts are the verbatim
-CP wire text. D-05: returns `[]` when no FT1 is present. D-06: not memoized.
-Never throws (HELPERS-07).
+CP wire text. Returns `[]` when no FT1 is present. Not memoized.
+Never throws.
 
 ###### Returns
 
@@ -700,7 +825,7 @@ for (const charge of msg.charges()) {
 
 > **diagnoses**(): readonly [`Diagnosis`](#diagnosis)[]
 
-Every DG1 as a Diagnosis in document order. D-05: returns `[]` when no
+Every DG1 as a Diagnosis in document order. Returns `[]` when no
 DG1 present.
 
 ###### Returns
@@ -722,8 +847,8 @@ with the OBX narrative body grouped positionally under that TXA. The
 completion status (TXA-17) and availability status (TXA-19) are surfaced as
 **distinct** fields and never conflated: a document can be available before
 it is authenticated, and reading a preliminary document as final is the
-harm. D-05: returns `[]` when no TXA is present. D-06: not memoized. Never
-throws (HELPERS-07).
+harm. Returns `[]` when no TXA is present. Not memoized. Never
+throws.
 
 ###### Returns
 
@@ -745,7 +870,7 @@ for (const doc of msg.documents()) {
 Resolve a dot-path (e.g. `PID.5.1`, `OBX[2].5`, `PID.3[0].1`) to its
 decoded leaf string (unescaped once at parse: never re-unescaped on
 read). Returns `undefined` when the path doesn't
-resolve: never throws on missing path (MODEL-05). Throws `TypeError`
+resolve: never throws on missing path. Throws `TypeError`
 on malformed path syntax (e.g. `"pid.5"`, empty string).
 
 ###### Parameters
@@ -773,8 +898,8 @@ msg.get("MSH.12");   // "2.5": HL7 version string
 > **getAll**(`segmentType`): readonly [`Segment`](#segment)\<`string`\>[]
 
 Return every `Segment` of `segmentType` in document order. Returns `[]`
-(empty array, NEVER `undefined`) when no segment of that type exists
-(MODEL-02). Alias for `segments(segmentType)`: shares the same cache, and
+(empty array, NEVER `undefined`) when no segment of that type exists.
+Alias for `segments(segmentType)`: shares the same cache, and
 matches segment names ignoring case exactly as it does.
 
 ###### Parameters
@@ -805,7 +930,7 @@ link / unlink / person add/update), with the MRG-sourced
 spec-constant `direction: "MRG_TO_PID"` on merge/move/change events.
 Returns `[]` when the trigger event is not in the identity family. The
 recognized set is floored by the published message structures: every ADT
-trigger event whose structure requires MRG is recognized. D-06: not
+trigger event whose structure requires MRG is recognized. Not
 memoized. Never throws; incomplete merge pairs surface a
 `MERGE_MISSING_PRIOR_OR_SURVIVOR` warning on the event.
 
@@ -829,8 +954,8 @@ for (const ev of msg.identityEvents()) {
 
 Every RXA of a VXU^V04 as a typed `Immunization`, with RXR (route/site)
 and OBX children grouped positionally under the RXA and `orderControl`
-from the preceding ORC of the VXU order group. D-05:
-returns `[]` when no RXA present. D-06: not memoized. The vaccine code
+from the preceding ORC of the VXU order group. Returns
+`[]` when no RXA present. Not memoized. The vaccine code
 carries its own provenance; the action code (RXA-21) is surfaced verbatim
 and `recordOrigin` (administered vs historical) is derived only from the
 well-known NIP001 RXA-9.1 codes: never guessed.
@@ -853,7 +978,7 @@ for (const imm of msg.immunizations()) {
 > **insurance**(): readonly [`Insurance`](#insurance-1)[]
 
 Every IN1 as an Insurance entry with positional IN2/IN3 presence flags.
-D-05: returns `[]` when no IN1 present.
+Returns `[]` when no IN1 present.
 
 ###### Returns
 
@@ -865,13 +990,85 @@ readonly [`Insurance`](#insurance-1)[]
 for (const ins of msg.insurance()) console.log(ins.planId?.text);
 ```
 
+##### is()
+
+**`Internal`**
+
+Single runtime implementation behind both signatures.
+
+###### Call Signature
+
+> **is**\<`K`\>(`key`): `this is TypedMessage<K>`
+
+Is this message of the type `key` names, and if so, narrow it for the
+compiler. The check is on the (MSH-9.1, MSH-9.2) pair the parser already
+extracted, so a message whose MSH-9 carries the three-component form
+`ADT^A01^ADT_A01` answers `true` to `is("ADT^A01")`.
+
+A key is `"<MSH-9.1>^<MSH-9.2>"` (`"ADT^A01"`), or `"<MSH-9.1>"` alone for a
+message type the published structure registry matches on message code alone
+(`"ACK"`, whose MSH-9.2 carries the acknowledged message's trigger event).
+`SUPPORTED_OVERLAY_MESSAGES` enumerates every key.
+
+**Any other string is `false`, never a throw**: an unrecognized type, the
+three-component form as a string, an empty string, or a value computed at
+run time. `is` does not parse its own argument, and a caller who wants a raw
+comparison has `msg.meta.type`.
+
+Read-only: it inspects `meta` and mutates nothing.
+
+###### Type Parameters
+
+###### K
+
+`K` *extends* keyof [`OverlayStructures`](#overlaystructures)
+
+###### Parameters
+
+###### key
+
+`K`
+
+###### Returns
+
+`this is TypedMessage<K>`
+
+###### Example
+
+```ts
+import { parseHL7 } from "@cosyte/hl7";
+const msg = parseHL7(raw);
+if (msg.is("ORU^R01")) {
+  const code: "ORU" = msg.meta.messageCode; // literal, no cast
+  console.log(msg.part("OBR")?.field(4).value);
+}
+console.log(msg.is("ZZZ^Z99")); // false: not a published key
+```
+
+###### Call Signature
+
+> **is**(`key`): `boolean`
+
+Answer for a key that is not known at compile time. A runtime-computed
+string cannot narrow anything, so this form returns a plain `boolean`.
+
+###### Parameters
+
+###### key
+
+`string`
+
+###### Returns
+
+`boolean`
+
 ##### medications()
 
 > **medications**(): readonly [`Medication`](#medication)[]
 
 Every RXO/RXE/RXD/RXA as a typed `Medication`, with RXR (route) and RXC
-(component) segments grouped positionally under their parent. D-05:
-returns `[]` when no RX* parent present. D-06: not memoized. The give
+(component) segments grouped positionally under their parent. Returns
+`[]` when no RX* parent present. Not memoized. The give
 *amount* and give *strength* are surfaced separately and never
 reconciled.
 
@@ -903,7 +1100,7 @@ for (const med of msg.medications()) {
 
 > **nextOfKin**(): readonly [`NextOfKin`](#nextofkin-1)[]
 
-Every NK1 as a NextOfKin entry in document order. D-05: returns `[]`
+Every NK1 as a NextOfKin entry in document order. Returns `[]`
 when no NK1 present.
 
 ###### Returns
@@ -927,7 +1124,7 @@ preceding parent (not immediately following a `PID`, `ORC`, `OBR`, or
 `OBX`), surfaced verbatim in document order so nothing is dropped. Notes
 that DO attach to a specific patient / order / result are exposed on those
 helper outputs (`msg.patient?.notes`, `order.notes`, `observation.notes`),
-not here. D-05: returns `[]` when there are none. D-06: NOT memoized.
+not here. Returns `[]` when there are none. NOT memoized.
 
 ###### Returns
 
@@ -943,9 +1140,9 @@ for (const note of msg.notes()) console.log(note); // message-level narrative
 
 > **observations**(): readonly [`Observation`](#observation)[]
 
-Every OBX segment as a typed Observation in document order. D-05:
-returns `[]` when no OBX present. D-06: NOT memoized: each call
-re-walks `rawSegments`. Value type is discriminated per D-13.
+Every OBX segment as a typed Observation in document order. Returns
+`[]` when no OBX present. NOT memoized: each call
+re-walks `rawSegments`. Value type is discriminated.
 
 ###### Returns
 
@@ -963,10 +1160,10 @@ for (const obs of msg.observations()) {
 
 > **orders**(): readonly [`Order`](#order-1)[]
 
-Every OBR as an Order with its OBX children grouped positionally (D-12) and
+Every OBR as an Order with its OBX children grouped positionally and
 its TQ1 / legacy embedded-TQ (ORC-7) `timings` (the repeat pattern is
-surfaced verbatim, never resolved to a schedule). D-05: returns `[]` when no
-OBR present. D-06: not memoized.
+surfaced verbatim, never resolved to a schedule). Returns `[]` when no
+OBR present. Not memoized.
 
 ###### Returns
 
@@ -990,7 +1187,7 @@ when the message carries none. Shorthand for `segments(segmentType)[0]`:
 same cache, same case-insensitive matching on both sides, same referential
 stability.
 
-On a message narrowed by Hl7Message.is, `segmentType` is scoped at
+On a message narrowed by [Hl7Message.is](#is), `segmentType` is scoped at
 compile time to the segment names that message type's published structure
 marks required. It stays `Segment | undefined` there: the parser tolerates a
 message that omits a required segment (and warns), so a required name is
@@ -1021,7 +1218,7 @@ EVERY `Segment` named `segmentType` in document order, `[]` when there are
 none. Alias for `segments(segmentType)`: same cache, same array identity,
 same case-insensitive matching.
 
-On a message narrowed by Hl7Message.is, `segmentType` is scoped at
+On a message narrowed by [Hl7Message.is](#is), `segmentType` is scoped at
 compile time to the segment names that message type's published structure
 marks required; the returned list can still be empty, for the same reason
 [Hl7Message.part](#part) can still return `undefined`.
@@ -1047,11 +1244,11 @@ for (const obx of msg.parts("OBX")) console.log(obx.field(5).value);
 > **prettyPrint**(): `string`
 
 Emit this message as a human-readable multi-line string for logs and
-debugging (SER-04). Single opinionated format (D-22 no options):
+debugging. Single opinionated format (no options):
 header line with type / controlId / timestamp / segment count, then
-one line per segment with labeled `[N]=value` fields (D-23). Composite
-values render as their raw HL7 string: depth stops at field level
-(D-24). Pure: never warns, never throws (D-26).
+one line per segment with labeled `[N]=value` fields. Composite
+values render as their raw HL7 string: depth stops at field level.
+Pure: never warns, never throws.
 
 **Field values render as their raw HL7 string representation.**
 Embedded delimiters in user data appear as escape sequences: e.g.
@@ -1084,15 +1281,15 @@ console.log(msg.prettyPrint());
 Remove segments by type + occurrence or by type + all. Call shapes:
 
 - `removeSegment("NTE")`: remove the FIRST NTE (occurrence 0).
-- `removeSegment("OBX", 1)`: remove the SECOND OBX (0-indexed per D-01).
+- `removeSegment("OBX", 1)`: remove the SECOND OBX (0-indexed).
 - `removeSegment("OBX", { all: true })`: remove ALL OBX segments.
 
 `MSH` is protected: `removeSegment("MSH")` throws `TypeError` (every
 HL7 message must retain its MSH segment). Unknown segment types are a
-no-op (idempotent; no throw). Segment name must match the D-19 shape
+no-op (idempotent; no throw). Segment name must match the same shape
 regex: invalid shapes throw `TypeError` for symmetry with `addSegment`.
 
-Invalidates caches on return; warnings untouched (D-16).
+Invalidates caches on return; warnings untouched.
 
 ###### Parameters
 
@@ -1122,12 +1319,12 @@ msg.removeSegment("OBX", { all: true }); // remove all remaining OBX
 
 Return the cached array of `Segment` wrappers for `segmentType` in
 document order. The returned array identity and the individual Segment
-instances are both stable across calls (D-11). Invalidated wholesale
+instances are both stable across calls. Invalidated wholesale
 by the mutation methods.
 
 **Segment names are matched ignoring ASCII case, on both sides.** A sender
 that ships `obx` is returned by `segments("OBX")`, and `segments("obx")`
-returns the same array (one cache entry, so the D-11 identity guarantee
+returns the same array (one cache entry, so the instance-identity guarantee
 does not split across spellings). A `SEGMENT_CASE` warning records the
 sender's deviation; `Segment.raw.name` is the spelling that arrived.
 
@@ -1212,19 +1409,19 @@ msg.get("PID.5.1"); // "Smith"
 > **setField**(`path`, `value`): `this`
 
 Set the string value at a dot-path. Mutates the underlying tree and
-returns `this` for chaining (D-15). Auto-creates missing repetitions,
+returns `this` for chaining. Auto-creates missing repetitions,
 components, and subcomponents WITHIN an existing field, but does NOT
 auto-create segments: callers must `addSegment` first (throws
 `TypeError` with an actionable message otherwise).
 
 The value is accepted verbatim: unescaped delimiter characters are NOT
-rejected on input (D-18). Re-escaping is the serializer's concern.
+rejected on input. Re-escaping is the serializer's concern.
 
 MSH-1 / MSH-2 follow the user-facing HL7 convention: `setField("MSH.3", ...)`
 targets MSH-3 (sending application), matching `msg.get("MSH.3")`.
 
-Segment/Field wrapper caches are invalidated wholesale on success (D-17).
-The frozen `warnings` array is never touched (D-16).
+Segment/Field wrapper caches are invalidated wholesale on success.
+The frozen `warnings` array is never touched.
 
 ###### Parameters
 
@@ -1252,12 +1449,12 @@ msg.setField("PID.4[2].1", "MRN2");   // create third repetition of PID-4
 
 > **toJSON**(): [`SerializedMessage`](#serializedmessage)
 
-Emit this message as a structured `SerializedMessage` JSON projection
-(SER-03). Invoked automatically by `JSON.stringify(msg)` (D-18).
-Re-walks `rawSegments` on every call (D-30 no caching). Mirrors the
+Emit this message as a structured `SerializedMessage` JSON projection.
+Invoked automatically by `JSON.stringify(msg)`.
+Re-walks `rawSegments` on every call (no caching). Mirrors the
 raw tree one-for-one, preserves `isNull`, always includes
 `warnings: []`, and includes `profile: { name, lineage }` only when
-`this.profile` is truthy (D-19/D-20). Pure: never warns, never throws.
+`this.profile` is truthy. Pure: never warns, never throws.
 
 ###### Returns
 
@@ -1277,12 +1474,12 @@ console.log(JSON.stringify(msg));     // same content, auto-invokes toJSON
 
 > **toString**(): `string`
 
-Emit this message as spec-clean HL7 (SER-01). Re-walks `rawSegments`
-on every call (D-30 no caching). Segments are joined with `\r` per
-D-05; MSH-1 and MSH-2 are inlined verbatim from
-`this.encodingCharacters` per D-06; every field string passes through
-`reescape` per D-04. `RawField.isNull === true` is preserved as the
-HL7 literal `""` (D-02). Pure: never warns, never throws (D-07).
+Emit this message as spec-clean HL7. Re-walks `rawSegments`
+on every call (no caching). Segments are joined with `\r`;
+MSH-1 and MSH-2 are inlined verbatim from
+`this.encodingCharacters`; every field string passes through
+`reescape`. `RawField.isNull === true` is preserved as the
+HL7 literal `""`. Pure: never warns, never throws.
 
 ###### Returns
 
@@ -1350,6 +1547,43 @@ try {
 
 - `Error`
 
+#### Constructors
+
+##### Constructor
+
+> **new Hl7ParseError**(`code`, `message`, `position`, `snippet`): [`Hl7ParseError`](#hl7parseerror)
+
+**`Internal`**
+
+Construct a new `Hl7ParseError`. All four fields are required so every
+thrower populates full positional context.
+
+###### Parameters
+
+###### code
+
+[`FatalCode`](#fatalcode)
+
+###### message
+
+`string`
+
+###### position
+
+[`Hl7Position`](#hl7position)
+
+###### snippet
+
+`string`
+
+###### Returns
+
+[`Hl7ParseError`](#hl7parseerror)
+
+###### Overrides
+
+`Error.constructor`
+
 #### Properties
 
 ##### code
@@ -1387,6 +1621,36 @@ throw new ProfileDefinitionError(
 #### Extends
 
 - `Error`
+
+#### Constructors
+
+##### Constructor
+
+> **new ProfileDefinitionError**(`message`, `profileName?`): [`ProfileDefinitionError`](#profiledefinitionerror)
+
+**`Internal`**
+
+Construct a new `ProfileDefinitionError`. `profileName` is optional so
+callers may omit it when the offending profile cannot be named
+(e.g. during initial validation before a name is parsed).
+
+###### Parameters
+
+###### message
+
+`string`
+
+###### profileName?
+
+`string`
+
+###### Returns
+
+[`ProfileDefinitionError`](#profiledefinitionerror)
+
+###### Overrides
+
+`Error.constructor`
 
 #### Properties
 
@@ -1487,13 +1751,107 @@ if (pid !== undefined) console.log(pid.field(5).value);
 
 the names `get` accepts; `string` when not known.
 
+#### Constructors
+
+##### Constructor
+
+> **new Segment**\<`FieldName`\>(`raw`, `enc`, `absoluteIndex`, `customFields?`, `dateFormats?`): [`Segment`](#segment)\<`FieldName`\>
+
+**`Internal`**
+
+Construct a new `Segment`. Called internally by `Hl7Message`; user code
+should obtain `Segment` instances via `msg.segments(type)` or
+`msg.allSegments()`.
+
+The optional `customFields` parameter is the per-segment portion of the
+applied profile's merged declarations for this segment type. When
+supplied, `get(name)` resolves names against it; otherwise `get(name)`
+always returns `undefined`.
+
+The optional `dateFormats` parameter is the message's merged date-format
+list; it is passed straight through to each `Field`.
+
+###### Parameters
+
+###### raw
+
+[`RawSegment`](#rawsegment)
+
+###### enc
+
+[`EncodingCharacters`](#encodingcharacters-1)
+
+###### absoluteIndex
+
+`number`
+
+###### customFields?
+
+`Readonly`\<`Record`\<`string`, `number`\>\>
+
+###### dateFormats?
+
+readonly `string`[]
+
+###### Returns
+
+[`Segment`](#segment)\<`FieldName`\>
+
 #### Properties
+
+##### absoluteIndex
+
+> `readonly` **absoluteIndex**: `number`
+
+**`Internal`**
+
+Absolute index of this segment in `Hl7Message.rawSegments[]`. Used for position tracking.
+
+##### customFields
+
+> `readonly` **customFields**: `Readonly`\<`Record`\<`string`, `number`\>\> \| `undefined`
+
+**`Internal`**
+
+Lookup map from profile-declared field name → 1-indexed HL7 position.
+Absent when no profile was applied to the parent message, or when the
+applied profile declares no field names for this segment's type in either
+of its declaration maps (`customSegments` for a Z-segment,
+`segmentOverrides` for a standard one). Consumed by `get(name)` to resolve
+named-field access.
+
+##### dateFormats
+
+> `readonly` **dateFormats**: readonly `string`[]
+
+**`Internal`**
+
+The message's merged `dateFormats`, handed to every `Field` this
+segment builds so a typed `TS` coercion honours what the caller declared.
+Empty when neither `ParseOptions.dateFormats` nor the applied profile
+declared any.
+
+##### enc
+
+> `readonly` **enc**: [`EncodingCharacters`](#encodingcharacters-1)
+
+**`Internal`**
+
+The 5 encoding characters for this message. Exposed for composite parsers.
 
 ##### fields
 
 > `readonly` **fields**: readonly [`RawField`](#rawfield)[]
 
 Reference to the underlying `RawSegment.fields`: 1-indexed per HL7 convention.
+
+##### raw
+
+> `readonly` **raw**: [`RawSegment`](#rawsegment)
+
+**`Internal`**
+
+The full `RawSegment` this wrapper wraps. Exposed for mutation methods.
 
 ##### type
 
@@ -1506,7 +1864,7 @@ Segment identifier: three characters with a leading letter, e.g. `"PID"`,
 no segment identifier in the HL7 v2 standard does but which real feeds do,
 reports here as `PID` / `OBX`, so `msg.segments("PID")` matches it and a
 `SEGMENT_CASE` warning records the deviation. Read
-Segment.raw`.name` for the spelling that actually arrived.
+[Segment.raw](#raw-1)`.name` for the spelling that actually arrived.
 
 **Bounded, and it is `"<withheld>"` when the raw name is not that shape.**
 A line with no field separator has its whole content read as a segment
@@ -1516,7 +1874,7 @@ structural identifier and consumers interpolate it into labels, loci and
 reports, so it never carries that text. `""` still means absent, which is
 a different fact from withheld.
 
-Use Segment.raw`.name` when you need the verbatim text: it is the
+Use [Segment.raw](#raw-1)`.name` when you need the verbatim text: it is the
 unbounded value, and it is what serialization emits, so the byte-verbatim
 round-trip is unaffected. One consequence worth knowing: a segment whose
 raw name fails the shape (a 4-character vendor Z-segment, which HL7 v2
@@ -1538,8 +1896,8 @@ dot-path resolver in `dot-path.ts`, keeping `msg.segments('MSH')[0].field(3)`
 and `msg.get('MSH.3')` in agreement).
 
 Returns a synthetic empty `Field` (`.isNull === false`, `.value === ""`)
-when `n` is out of range: never throws (MODEL-05). Successive calls with
-the same `n` return the same `Field` instance (D-12).
+when `n` is out of range: never throws. Successive calls with
+the same `n` return the same `Field` instance.
 
 ###### Parameters
 
@@ -1565,9 +1923,9 @@ console.log(msh3?.value); // sending application (HL7 MSH-3)
 > **get**(`name`): [`Field`](#field) \| `undefined`
 
 Return the `Field` at the profile-declared position for `name`, or
-`undefined` when no custom mapping exists (PROF-07). Unlike `field(n)`,
+`undefined` when no custom mapping exists. Unlike `field(n)`,
 missing names return `undefined`, NOT a synthetic empty Field, so
-typos surface instead of silently resolving to an empty string (D-14).
+typos surface instead of silently resolving to an empty string.
 
 Two declaration maps feed it, and which one a name may come from depends
 on the segment: `customSegments` names fields on a Z-segment,
@@ -1585,7 +1943,7 @@ When the declared position is out of range for the underlying
 `RawSegment.fields`, `get(name)` returns `undefined` (NOT a
 synthetic-empty Field) so callers can distinguish "name not declared"
 from "name declared but position missing in the raw message" only at
-the presence level (both collapse to `undefined` per D-14).
+the presence level (both collapse to `undefined`).
 
 **`name` is checked at compile time when the declaration is statically
 known.** On a segment obtained by type from a message parsed with a
@@ -2803,7 +3161,7 @@ PV1 content. Optional; an (empty) PV1 is emitted regardless so the visit group i
 
 ### BuildMessageInit
 
-Input shape for `buildMessage` (SER-06). Mirrors `msg.meta` 1-for-1 so
+Input shape for `buildMessage`. Mirrors `msg.meta` 1-for-1 so
 read and write surfaces share field names (`sendingApp`, `sendingFacility`,
 `receivingApp`, `receivingFacility`, `controlId`, `timestamp`, `version`,
 `processingId`). `type` is the only required field.
@@ -2814,7 +3172,7 @@ positional field). To emit an HL7 explicit null (`""`) at a specific
 position in an outbound message, build the message first and then call
 `.setField(path, '""')`: the mutation method sets `isNull=true`
 on the underlying `RawField`, and the emitter preserves that as the
-literal two-char output per D-02.
+literal two-char output.
 
 #### Example
 
@@ -2841,7 +3199,7 @@ console.log(msg.toString());
 
 > `readonly` `optional` **controlId?**: `string`
 
-Auto-generated via `generateControlId()` when omitted (D-12).
+Auto-generated via `generateControlId()` when omitted.
 
 ##### processingId?
 
@@ -2870,7 +3228,7 @@ Defaults to `"P"` (production).
 > `readonly` `optional` **timestamp?**: `string` \| `Date`
 
 `Date` formatted to HL7 `YYYYMMDDHHmmss` (UTC, seconds) when supplied;
-pre-formatted HL7 TS string passed through verbatim (D-13). Defaults to
+pre-formatted HL7 TS string passed through verbatim. Defaults to
 `new Date()`.
 
 ##### type
@@ -2878,7 +3236,7 @@ pre-formatted HL7 TS string passed through verbatim (D-13). Defaults to
 > `readonly` **type**: `string`
 
 HL7 message type, e.g. `"ADT^A01"` (code + trigger) or
-`"ORU^R01^ORU_R01"` (code + trigger + structure). Required (D-16).
+`"ORU^R01^ORU_R01"` (code + trigger + structure). Required.
 
 The string is split on `^` into MSH-9 components; each component is
 emitted verbatim. Literal `^` characters in a component are NOT
@@ -2886,7 +3244,7 @@ representable via this field: splitting is unconditional. Callers
 needing that edge case should build the message and then use
 `.setField("MSH.9.1", ...)` etc. after construction.
 
-Rejected at runtime (D-16 / WR-04):
+Rejected at runtime:
 - empty string `""` or whitespace-only `"   "`;
 - strings whose every `^`-split component is empty/whitespace
   (e.g. `"^"`, `"^^"`, `"   ^   "`).
@@ -4392,7 +4750,7 @@ form is.
 
 ###### Inherited from
 
-[`Profile`](#profile-2).[`dateFormats`](#dateformats-4)
+[`Profile`](#profile-2).[`dateFormats`](#dateformats-6)
 
 ##### describe?
 
@@ -4463,7 +4821,7 @@ without it.
 
 ### DefineProfileOptions
 
-Options accepted by `defineProfile()` (D-02). Mirrors the locked
+Options accepted by `defineProfile()`. Mirrors the locked
 `Profile` shape plus the `extends` input key. Every field except
 `name` is optional.
 
@@ -4639,7 +4997,7 @@ FT1-6 Transaction Type (HL7 Table 0017: `CG`, `CD`, `PY`, `AJ`).
 
 ### Diagnosis
 
-DG1-derived diagnosis entry (HELPERS-06). `dateTime` is the fidelity `TS`.
+DG1-derived diagnosis entry. `dateTime` is the fidelity `TS`.
 
 #### Example
 
@@ -5913,8 +6271,8 @@ The code-system version the table's codes were taken from.
 
 ### Insurance
 
-IN1-derived insurance entry (HELPERS-06) with positional IN2/IN3 presence
-flags (D-05 extension). `hasIn2` / `hasIn3` are ALWAYS present booleans;
+IN1-derived insurance entry with positional IN2/IN3 presence
+flags. `hasIn2` / `hasIn3` are ALWAYS present booleans;
 callers who need the full IN2/IN3 surface can walk `msg.segments("IN2")`.
 
 #### Example
@@ -6629,7 +6987,7 @@ An empty list means "match on message code alone" (e.g. `ACK`).
 
 ### Meta
 
-MSH-derived message metadata (HELPERS-01). D-03: always defined on
+MSH-derived message metadata. Always defined on
 `Hl7Message.meta` (MSH absence throws `NO_MSH_SEGMENT` at parse time);
 individual fields are optional because vendor-quirky messages routinely
 omit pieces of MSH. `timestamp` is the fidelity `TS` (precision +
@@ -6730,7 +7088,7 @@ MSH-12 HL7 version string (e.g. "2.5", "2.5.1").
 
 ### NextOfKin
 
-NK1-derived next-of-kin entry (HELPERS-06). Lean subset: callers can
+NK1-derived next-of-kin entry. Lean subset: callers can
 reach for `msg.segments("NK1")` when they need the full NK1 surface.
 
 #### Example
@@ -6811,7 +7169,7 @@ const bad: NM = { raw: "N/A", value: undefined };
 
 Fields shared by every `Observation` variant, regardless of the OBX-2
 value type. Split from the discriminated union to keep the union
-declaration readable (D-15 locked field list).
+declaration readable.
 
 #### Example
 
@@ -6909,8 +7267,8 @@ coding system (CWE.6).
 
 ### Order
 
-OBR-derived order (HELPERS-05, D-16) with positionally-grouped OBX children
-(D-12). `observations` is ALWAYS present: empty when no OBX follows this
+OBR-derived order with positionally-grouped OBX children.
+`observations` is ALWAYS present: empty when no OBX follows this
 OBR before the next OBR or end-of-message. `timings` is ALWAYS present,
 empty when the order carries no TQ1 / legacy embedded TQ.
 
@@ -6961,7 +7319,7 @@ narrative.
 
 > `readonly` **observations**: readonly [`Observation`](#observation)[]
 
-OBX children grouped under this OBR (D-12 positional grouping). Always present.
+OBX children grouped under this OBR (positional grouping). Always present.
 
 ##### orderControl?
 
@@ -6973,7 +7331,7 @@ ORC-1 order control when an ORC precedes this OBR.
 
 > `readonly` `optional` **orderedBy?**: [`XCN`](#xcn-1)
 
-OBR-16 ordering provider (D-24a XCN).
+OBR-16 ordering provider (XCN).
 
 ##### orderStatus?
 
@@ -7759,7 +8117,7 @@ optional; `parseHL7(raw, {})` is valid and produces the library defaults.
 With `exactOptionalPropertyTypes: true`, callers cannot pass
 `{ strict: undefined }`: either omit the key or pass a boolean. The
 `profile: null` form is the explicit opt-out from the process-scoped
-default profile (PROF-08 semantics); `profile` omitted means "use the
+default profile; `profile` omitted means "use the
 default if one is registered".
 
 #### Example
@@ -7832,11 +8190,11 @@ matches nothing rather than throwing.
 
 ### Patient
 
-PID-derived patient view (HELPERS-02). `msg.patient` is `undefined` (D-04)
+PID-derived patient view. `msg.patient` is `undefined`
 when no PID segment exists; this interface describes the shape when
-present. `identifiers` and `phoneNumbers` are ALWAYS present as arrays
-(D-09 / D-20): empty when the underlying field is absent. `name` is
-ALWAYS present (D-19) even if `{}` when PID-5 is empty.
+present. `identifiers` and `phoneNumbers` are ALWAYS present as arrays,
+empty when the underlying field is absent. `name` is
+ALWAYS present even if `{}` when PID-5 is empty.
 
 #### Example
 
@@ -7880,25 +8238,25 @@ PID-22 ethnic group.
 
 > `readonly` `optional` **familyName?**: `string`
 
-PID-5.1 flat family name convenience (D-19).
+PID-5.1 flat family name convenience.
 
 ##### fullName?
 
 > `readonly` `optional` **fullName?**: `string`
 
-Composed Western-order name "Given Middle Family, Suffix" (D-17).
+Composed Western-order name "Given Middle Family, Suffix".
 
 ##### givenName?
 
 > `readonly` `optional` **givenName?**: `string`
 
-PID-5.2 flat given name convenience (D-19).
+PID-5.2 flat given name convenience.
 
 ##### identifiers
 
 > `readonly` **identifiers**: readonly [`CX`](#cx-1)[]
 
-Full PID-3 identifier list, each parsed as a CX. Always present (D-09).
+Full PID-3 identifier list, each parsed as a CX. Always present.
 
 ##### language?
 
@@ -7910,19 +8268,19 @@ PID-15 primary language.
 
 > `readonly` `optional` **middleName?**: `string`
 
-PID-5.3 mapped from `XPN.secondName` (D-19).
+PID-5.3 mapped from `XPN.secondName`.
 
 ##### mrn?
 
 > `readonly` `optional` **mrn?**: `string`
 
-Medical record number picked via `pickMrn` (D-07 / D-08).
+Medical record number picked via `pickMrn`.
 
 ##### name
 
 > `readonly` **name**: [`XPN`](#xpn-1)
 
-Full PID-5 parsed name (first repetition). Always present as `{}` when empty (D-19).
+Full PID-5 parsed name (first repetition). Always present as `{}` when empty.
 
 ##### notes?
 
@@ -7937,7 +8295,7 @@ clinical narrative.
 
 > `readonly` **phoneNumbers**: readonly [`XTN`](#xtn-1)[]
 
-PID-13 (home) + PID-14 (business) repetitions concatenated. Always present (D-20).
+PID-13 (home) + PID-14 (business) repetitions concatenated. Always present.
 
 ##### race?
 
@@ -8257,7 +8615,7 @@ console.log(msg.part("PID")?.field(5).value); // undeclared type: any name compi
 > `readonly` **dateFormats**: readonly `string`[]
 
 Merged `dateFormats` list: `options.dateFormats ++ profile.dateFormats`
-deduped first-occurrence per D-21. Empty array when neither source
+deduped first-occurrence. Empty array when neither source
 supplied any formats. This is the list every datetime in the message
 honours, from `meta.timestamp` to any `field.asTs()`, in exactly this
 order; exposed so a caller can introspect what their options and profile
@@ -8265,7 +8623,7 @@ added up to.
 
 ###### Inherited from
 
-[`ProfiledMessage`](#profiledmessage).[`dateFormats`](#dateformats-5)
+[`ProfiledMessage`](#profiledmessage).[`dateFormats`](#dateformats-7)
 
 ##### encodingCharacters
 
@@ -8330,8 +8688,8 @@ changes no parsing behaviour.
 > **get** **meta**(): [`Meta`](#meta-1)
 
 MSH-derived message metadata (type, controlId, timestamp, version, etc.).
-D-01: plain object. D-02: memoized: `msg.meta === msg.meta` across
-reads until mutation invalidates. D-03: always defined (MSH absence
+Plain object. Memoized: `msg.meta === msg.meta` across
+reads until mutation invalidates. Always defined (MSH absence
 throws `NO_MSH_SEGMENT` at parse time).
 
 ###### Example
@@ -8356,8 +8714,8 @@ console.log(msg.meta.controlId);                // "MSG001"
 
 > **get** **patient**(): [`Patient`](#patient-8) \| `undefined`
 
-PID-derived patient view, or `undefined` when no PID segment exists
-(D-04). D-02: memoized. HELPERS-07: never throws: absent fields
+PID-derived patient view, or `undefined` when no PID segment exists.
+Memoized. Never throws: absent fields
 surface as `undefined` on the returned `Patient` object.
 
 ###### Example
@@ -8388,7 +8746,7 @@ Reports, per the message's recognized (MSH-9.1, MSH-9.2) type, which
 Required segment groups are present and which are entirely absent
 (`missingGroups`: the same set the parser flags as
 `MISSING_EXPECTED_GROUP` warnings). For an unmodelled type, `recognized`
-is `false` and `missingGroups` is empty. D-02: memoized.
+is `false` and `missingGroups` is empty. Memoized.
 
 ###### Example
 
@@ -8411,8 +8769,8 @@ console.log(msg.structure.missingGroups); // e.g. ["result"] if no OBR/OBX
 
 > **get** **visit**(): [`Visit`](#visit-7) \| `undefined`
 
-PV1-derived visit view, or `undefined` when no PV1 segment exists
-(HELPERS-03). D-02: memoized. HELPERS-07: never throws.
+PV1-derived visit view, or `undefined` when no PV1 segment exists.
+Memoized. Never throws.
 
 ###### Example
 
@@ -8437,7 +8795,7 @@ console.log(msg.visit?.attendingDoctor?.familyName);
 > **addSegment**(`name`, `fields`): `this`
 
 Append a new segment to the end of the message. `name` must match
-`/^(?:[A-Z]{3}|Z[A-Z0-9]{2})$/u`: throws `TypeError` otherwise (D-19).
+`/^(?:[A-Z]{3}|Z[A-Z0-9]{2})$/u`: throws `TypeError` otherwise.
 
 `fields` is interpreted in HL7 1-indexed terms: `addSegment("NTE", [a, b, c])`
 produces a segment whose `NTE-1 = a`, `NTE-2 = b`, `NTE-3 = c`. The
@@ -8448,7 +8806,7 @@ Each entry may be a plain string (treated as a single-subcomponent
 single-component single-repetition field) or a full `RawField` object
 for advanced callers who need structured content.
 
-Invalidates caches on return; warnings untouched (D-16).
+Invalidates caches on return; warnings untouched.
 
 ###### Parameters
 
@@ -8481,7 +8839,7 @@ msg.get("NTE.2"); // "note text"
 
 Every AL1 and every IAM as an Allergy, one entry per segment in document
 order, each naming the segment it was read from (`source`). An ADT^A60
-carries its allergies in IAM, so it is read here too. D-05: returns `[]`
+carries its allergies in IAM, so it is read here too. Returns `[]`
 when neither is present.
 
 Limits: the IAR and NTE segments under an IAM are not read, nor IAM-1 or
@@ -8513,7 +8871,7 @@ for (const al of msg.allergies()) {
 
 Iterate every `Segment` in document order (MSH first, then every
 subsequent segment). Cached per-message; same array reference and same
-Segment instances on repeat calls (D-11). Invalidated wholesale by
+Segment instances on repeat calls. Invalidated wholesale by
 the mutation methods.
 
 ###### Returns
@@ -8540,8 +8898,8 @@ Every SCH of an SIU message as a typed `Appointment`, with
 the AIS/AIG/AIL/AIP resource segments that follow it grouped positionally
 under that SCH. Surfaces the placer/filler appointment ids, SCH-25 filler
 status (Table 0278), SCH-11 start/end timing, and the resource groups
-(service / general / location / personnel). D-05: returns `[]` when no SCH
-is present. D-06: not memoized. Never throws (HELPERS-07). Not a
+(service / general / location / personnel). Returns `[]` when no SCH
+is present. Not memoized. Never throws. Not a
 scheduling-workflow state machine: see the package known-limitations.
 
 ###### Returns
@@ -8569,8 +8927,8 @@ Every FT1 of a DFT message as a typed `Charge`, one per
 FT1 in document order. Surfaces billing-critical fields (FT1-6 transaction
 type, FT1-7 code, FT1-11/12 extended/unit amount, FT1-19 diagnosis linkage)
 with **no billing logic and no money-as-float**: amounts are the verbatim
-CP wire text. D-05: returns `[]` when no FT1 is present. D-06: not memoized.
-Never throws (HELPERS-07).
+CP wire text. Returns `[]` when no FT1 is present. Not memoized.
+Never throws.
 
 ###### Returns
 
@@ -8593,7 +8951,7 @@ for (const charge of msg.charges()) {
 
 > **diagnoses**(): readonly [`Diagnosis`](#diagnosis)[]
 
-Every DG1 as a Diagnosis in document order. D-05: returns `[]` when no
+Every DG1 as a Diagnosis in document order. Returns `[]` when no
 DG1 present.
 
 ###### Returns
@@ -8619,8 +8977,8 @@ with the OBX narrative body grouped positionally under that TXA. The
 completion status (TXA-17) and availability status (TXA-19) are surfaced as
 **distinct** fields and never conflated: a document can be available before
 it is authenticated, and reading a preliminary document as final is the
-harm. D-05: returns `[]` when no TXA is present. D-06: not memoized. Never
-throws (HELPERS-07).
+harm. Returns `[]` when no TXA is present. Not memoized. Never
+throws.
 
 ###### Returns
 
@@ -8646,7 +9004,7 @@ for (const doc of msg.documents()) {
 Resolve a dot-path (e.g. `PID.5.1`, `OBX[2].5`, `PID.3[0].1`) to its
 decoded leaf string (unescaped once at parse: never re-unescaped on
 read). Returns `undefined` when the path doesn't
-resolve: never throws on missing path (MODEL-05). Throws `TypeError`
+resolve: never throws on missing path. Throws `TypeError`
 on malformed path syntax (e.g. `"pid.5"`, empty string).
 
 ###### Parameters
@@ -8709,7 +9067,7 @@ link / unlink / person add/update), with the MRG-sourced
 spec-constant `direction: "MRG_TO_PID"` on merge/move/change events.
 Returns `[]` when the trigger event is not in the identity family. The
 recognized set is floored by the published message structures: every ADT
-trigger event whose structure requires MRG is recognized. D-06: not
+trigger event whose structure requires MRG is recognized. Not
 memoized. Never throws; incomplete merge pairs surface a
 `MERGE_MISSING_PRIOR_OR_SURVIVOR` warning on the event.
 
@@ -8737,8 +9095,8 @@ for (const ev of msg.identityEvents()) {
 
 Every RXA of a VXU^V04 as a typed `Immunization`, with RXR (route/site)
 and OBX children grouped positionally under the RXA and `orderControl`
-from the preceding ORC of the VXU order group. D-05:
-returns `[]` when no RXA present. D-06: not memoized. The vaccine code
+from the preceding ORC of the VXU order group. Returns
+`[]` when no RXA present. Not memoized. The vaccine code
 carries its own provenance; the action code (RXA-21) is surfaced verbatim
 and `recordOrigin` (administered vs historical) is derived only from the
 well-known NIP001 RXA-9.1 codes: never guessed.
@@ -8765,7 +9123,7 @@ for (const imm of msg.immunizations()) {
 > **insurance**(): readonly [`Insurance`](#insurance-1)[]
 
 Every IN1 as an Insurance entry with positional IN2/IN3 presence flags.
-D-05: returns `[]` when no IN1 present.
+Returns `[]` when no IN1 present.
 
 ###### Returns
 
@@ -8781,13 +9139,93 @@ for (const ins of msg.insurance()) console.log(ins.planId?.text);
 
 [`Hl7Message`](#hl7message).[`insurance`](#insurance)
 
+##### is()
+
+**`Internal`**
+
+Single runtime implementation behind both signatures.
+
+###### Call Signature
+
+> **is**\<`K`\>(`key`): `this is TypedMessage<K>`
+
+Is this message of the type `key` names, and if so, narrow it for the
+compiler. The check is on the (MSH-9.1, MSH-9.2) pair the parser already
+extracted, so a message whose MSH-9 carries the three-component form
+`ADT^A01^ADT_A01` answers `true` to `is("ADT^A01")`.
+
+A key is `"<MSH-9.1>^<MSH-9.2>"` (`"ADT^A01"`), or `"<MSH-9.1>"` alone for a
+message type the published structure registry matches on message code alone
+(`"ACK"`, whose MSH-9.2 carries the acknowledged message's trigger event).
+`SUPPORTED_OVERLAY_MESSAGES` enumerates every key.
+
+**Any other string is `false`, never a throw**: an unrecognized type, the
+three-component form as a string, an empty string, or a value computed at
+run time. `is` does not parse its own argument, and a caller who wants a raw
+comparison has `msg.meta.type`.
+
+Read-only: it inspects `meta` and mutates nothing.
+
+###### Type Parameters
+
+###### K
+
+`K` *extends* keyof [`OverlayStructures`](#overlaystructures)
+
+###### Parameters
+
+###### key
+
+`K`
+
+###### Returns
+
+`this is TypedMessage<K>`
+
+###### Example
+
+```ts
+import { parseHL7 } from "@cosyte/hl7";
+const msg = parseHL7(raw);
+if (msg.is("ORU^R01")) {
+  const code: "ORU" = msg.meta.messageCode; // literal, no cast
+  console.log(msg.part("OBR")?.field(4).value);
+}
+console.log(msg.is("ZZZ^Z99")); // false: not a published key
+```
+
+###### Inherited from
+
+[`Hl7Message`](#hl7message).[`is`](#is)
+
+###### Call Signature
+
+> **is**(`key`): `boolean`
+
+Answer for a key that is not known at compile time. A runtime-computed
+string cannot narrow anything, so this form returns a plain `boolean`.
+
+###### Parameters
+
+###### key
+
+`string`
+
+###### Returns
+
+`boolean`
+
+###### Inherited from
+
+[`Hl7Message`](#hl7message).[`is`](#is)
+
 ##### medications()
 
 > **medications**(): readonly [`Medication`](#medication)[]
 
 Every RXO/RXE/RXD/RXA as a typed `Medication`, with RXR (route) and RXC
-(component) segments grouped positionally under their parent. D-05:
-returns `[]` when no RX* parent present. D-06: not memoized. The give
+(component) segments grouped positionally under their parent. Returns
+`[]` when no RX* parent present. Not memoized. The give
 *amount* and give *strength* are surfaced separately and never
 reconciled.
 
@@ -8823,7 +9261,7 @@ for (const med of msg.medications()) {
 
 > **nextOfKin**(): readonly [`NextOfKin`](#nextofkin-1)[]
 
-Every NK1 as a NextOfKin entry in document order. D-05: returns `[]`
+Every NK1 as a NextOfKin entry in document order. Returns `[]`
 when no NK1 present.
 
 ###### Returns
@@ -8851,7 +9289,7 @@ preceding parent (not immediately following a `PID`, `ORC`, `OBR`, or
 `OBX`), surfaced verbatim in document order so nothing is dropped. Notes
 that DO attach to a specific patient / order / result are exposed on those
 helper outputs (`msg.patient?.notes`, `order.notes`, `observation.notes`),
-not here. D-05: returns `[]` when there are none. D-06: NOT memoized.
+not here. Returns `[]` when there are none. NOT memoized.
 
 ###### Returns
 
@@ -8871,9 +9309,9 @@ for (const note of msg.notes()) console.log(note); // message-level narrative
 
 > **observations**(): readonly [`Observation`](#observation)[]
 
-Every OBX segment as a typed Observation in document order. D-05:
-returns `[]` when no OBX present. D-06: NOT memoized: each call
-re-walks `rawSegments`. Value type is discriminated per D-13.
+Every OBX segment as a typed Observation in document order. Returns
+`[]` when no OBX present. NOT memoized: each call
+re-walks `rawSegments`. Value type is discriminated.
 
 ###### Returns
 
@@ -8895,10 +9333,10 @@ for (const obs of msg.observations()) {
 
 > **orders**(): readonly [`Order`](#order-1)[]
 
-Every OBR as an Order with its OBX children grouped positionally (D-12) and
+Every OBR as an Order with its OBX children grouped positionally and
 its TQ1 / legacy embedded-TQ (ORC-7) `timings` (the repeat pattern is
-surfaced verbatim, never resolved to a schedule). D-05: returns `[]` when no
-OBR present. D-06: not memoized.
+surfaced verbatim, never resolved to a schedule). Returns `[]` when no
+OBR present. Not memoized.
 
 ###### Returns
 
@@ -8974,11 +9412,11 @@ readonly [`Segment`](#segment)\<[`ProfileFieldName`](#profilefieldname)\<`P`, `S
 > **prettyPrint**(): `string`
 
 Emit this message as a human-readable multi-line string for logs and
-debugging (SER-04). Single opinionated format (D-22 no options):
+debugging. Single opinionated format (no options):
 header line with type / controlId / timestamp / segment count, then
-one line per segment with labeled `[N]=value` fields (D-23). Composite
-values render as their raw HL7 string: depth stops at field level
-(D-24). Pure: never warns, never throws (D-26).
+one line per segment with labeled `[N]=value` fields. Composite
+values render as their raw HL7 string: depth stops at field level.
+Pure: never warns, never throws.
 
 **Field values render as their raw HL7 string representation.**
 Embedded delimiters in user data appear as escape sequences: e.g.
@@ -9015,15 +9453,15 @@ console.log(msg.prettyPrint());
 Remove segments by type + occurrence or by type + all. Call shapes:
 
 - `removeSegment("NTE")`: remove the FIRST NTE (occurrence 0).
-- `removeSegment("OBX", 1)`: remove the SECOND OBX (0-indexed per D-01).
+- `removeSegment("OBX", 1)`: remove the SECOND OBX (0-indexed).
 - `removeSegment("OBX", { all: true })`: remove ALL OBX segments.
 
 `MSH` is protected: `removeSegment("MSH")` throws `TypeError` (every
 HL7 message must retain its MSH segment). Unknown segment types are a
-no-op (idempotent; no throw). Segment name must match the D-19 shape
+no-op (idempotent; no throw). Segment name must match the same shape
 regex: invalid shapes throw `TypeError` for symmetry with `addSegment`.
 
-Invalidates caches on return; warnings untouched (D-16).
+Invalidates caches on return; warnings untouched.
 
 ###### Parameters
 
@@ -9145,19 +9583,19 @@ msg.get("PID.5.1"); // "Smith"
 > **setField**(`path`, `value`): `this`
 
 Set the string value at a dot-path. Mutates the underlying tree and
-returns `this` for chaining (D-15). Auto-creates missing repetitions,
+returns `this` for chaining. Auto-creates missing repetitions,
 components, and subcomponents WITHIN an existing field, but does NOT
 auto-create segments: callers must `addSegment` first (throws
 `TypeError` with an actionable message otherwise).
 
 The value is accepted verbatim: unescaped delimiter characters are NOT
-rejected on input (D-18). Re-escaping is the serializer's concern.
+rejected on input. Re-escaping is the serializer's concern.
 
 MSH-1 / MSH-2 follow the user-facing HL7 convention: `setField("MSH.3", ...)`
 targets MSH-3 (sending application), matching `msg.get("MSH.3")`.
 
-Segment/Field wrapper caches are invalidated wholesale on success (D-17).
-The frozen `warnings` array is never touched (D-16).
+Segment/Field wrapper caches are invalidated wholesale on success.
+The frozen `warnings` array is never touched.
 
 ###### Parameters
 
@@ -9189,12 +9627,12 @@ msg.setField("PID.4[2].1", "MRN2");   // create third repetition of PID-4
 
 > **toJSON**(): [`SerializedMessage`](#serializedmessage)
 
-Emit this message as a structured `SerializedMessage` JSON projection
-(SER-03). Invoked automatically by `JSON.stringify(msg)` (D-18).
-Re-walks `rawSegments` on every call (D-30 no caching). Mirrors the
+Emit this message as a structured `SerializedMessage` JSON projection.
+Invoked automatically by `JSON.stringify(msg)`.
+Re-walks `rawSegments` on every call (no caching). Mirrors the
 raw tree one-for-one, preserves `isNull`, always includes
 `warnings: []`, and includes `profile: { name, lineage }` only when
-`this.profile` is truthy (D-19/D-20). Pure: never warns, never throws.
+`this.profile` is truthy. Pure: never warns, never throws.
 
 ###### Returns
 
@@ -9218,12 +9656,12 @@ console.log(JSON.stringify(msg));     // same content, auto-invokes toJSON
 
 > **toString**(): `string`
 
-Emit this message as spec-clean HL7 (SER-01). Re-walks `rawSegments`
-on every call (D-30 no caching). Segments are joined with `\r` per
-D-05; MSH-1 and MSH-2 are inlined verbatim from
-`this.encodingCharacters` per D-06; every field string passes through
-`reescape` per D-04. `RawField.isNull === true` is preserved as the
-HL7 literal `""` (D-02). Pure: never warns, never throws (D-07).
+Emit this message as spec-clean HL7. Re-walks `rawSegments`
+on every call (no caching). Segments are joined with `\r`;
+MSH-1 and MSH-2 are inlined verbatim from
+`this.encodingCharacters`; every field string passes through
+`reescape`. `RawField.isNull === true` is preserved as the
+HL7 literal `""`. Pure: never warns, never throws.
 
 ###### Returns
 
@@ -9257,6 +9695,27 @@ const comp: RawComponent = { subcomponents: ["Smith", "John"] };
 ```
 
 #### Properties
+
+##### rawSubcomponents?
+
+> `readonly` `optional` **rawSubcomponents?**: readonly (`string` \| `undefined`)[]
+
+**`Internal`**
+
+Escape-fidelity overlay, positionally aligned with [subcomponents](#subcomponents):
+for each index, the subcomponent's **original wire bytes** to emit
+verbatim instead of re-escaping the decoded form. An entry is present
+(non-`undefined`) only when a subcomponent carried an escape whose decoded
+form does not re-escape back to the exact wire bytes: i.e. a recognize-
+and-preserve escape (`\H\`, `\Z..`, charset/formatting) or a hex escape
+(`\X41\`, or non-canonical hex casing). Delimiter escapes (`\F`→`|`) round-
+trip through `reescape` unchanged and get no overlay. The whole field is
+absent when no subcomponent needs it (the overwhelming common case), so a
+plain message's raw tree is byte-for-byte the shape it was before this
+overlay existed.
+
+Consumed only by the serializer ("src/serialize/emit-field.ts");
+never read by the value/coercion surface, so it changes no decoded value.
 
 ##### subcomponents
 
@@ -9649,7 +10108,7 @@ evaluated exactly as `C` when nothing resolves it. Omitted ⇒ Optional.
 
 ### SerializedMessage
 
-Snapshot-stable JSON projection of an `Hl7Message` (SER-03). Every field
+Snapshot-stable JSON projection of an `Hl7Message`. Every field
 is readonly; segment order is preserved; `isNull` flags are preserved.
 
 Runtime immutability: the top-level object is `Object.freeze`d
@@ -9665,7 +10124,7 @@ const snap: SerializedMessage = msg.toJSON();
 console.log(snap.segments[0]?.name);        // "MSH"
 console.log(snap.warnings.length);          // 0 when clean
 console.log(JSON.stringify(msg) === JSON.stringify(snap)); // true
-console.log(Object.isFrozen(snap));         // true (D-30 boundary freeze)
+console.log(Object.isFrozen(snap));         // true (frozen at the boundary)
 ```
 
 #### Properties
@@ -10298,7 +10757,7 @@ One published overlay key, with the message type it matches and the segments
 the published structure requires for it.
 
 `triggerEvent` is the empty string for a key the registry matches on message
-code alone (`ACK`), and Hl7Message.is then answers `true` for that key
+code alone (`ACK`), and [Hl7Message.is](#is) then answers `true` for that key
 whatever MSH-9.2 carries, in the same way `supportsBuilderMessage` treats a
 code-only registry entry.
 
@@ -10479,7 +10938,7 @@ if (msg.is("ORU^R01")) {
 > `readonly` **dateFormats**: readonly `string`[]
 
 Merged `dateFormats` list: `options.dateFormats ++ profile.dateFormats`
-deduped first-occurrence per D-21. Empty array when neither source
+deduped first-occurrence. Empty array when neither source
 supplied any formats. This is the list every datetime in the message
 honours, from `meta.timestamp` to any `field.asTs()`, in exactly this
 order; exposed so a caller can introspect what their options and profile
@@ -10487,7 +10946,7 @@ added up to.
 
 ###### Inherited from
 
-[`ProfiledMessage`](#profiledmessage).[`dateFormats`](#dateformats-5)
+[`ProfiledMessage`](#profiledmessage).[`dateFormats`](#dateformats-7)
 
 ##### encodingCharacters
 
@@ -10561,8 +11020,8 @@ changes no parsing behaviour.
 
 > **get** **patient**(): [`Patient`](#patient-8) \| `undefined`
 
-PID-derived patient view, or `undefined` when no PID segment exists
-(D-04). D-02: memoized. HELPERS-07: never throws: absent fields
+PID-derived patient view, or `undefined` when no PID segment exists.
+Memoized. Never throws: absent fields
 surface as `undefined` on the returned `Patient` object.
 
 ###### Example
@@ -10593,7 +11052,7 @@ Reports, per the message's recognized (MSH-9.1, MSH-9.2) type, which
 Required segment groups are present and which are entirely absent
 (`missingGroups`: the same set the parser flags as
 `MISSING_EXPECTED_GROUP` warnings). For an unmodelled type, `recognized`
-is `false` and `missingGroups` is empty. D-02: memoized.
+is `false` and `missingGroups` is empty. Memoized.
 
 ###### Example
 
@@ -10616,8 +11075,8 @@ console.log(msg.structure.missingGroups); // e.g. ["result"] if no OBR/OBX
 
 > **get** **visit**(): [`Visit`](#visit-7) \| `undefined`
 
-PV1-derived visit view, or `undefined` when no PV1 segment exists
-(HELPERS-03). D-02: memoized. HELPERS-07: never throws.
+PV1-derived visit view, or `undefined` when no PV1 segment exists.
+Memoized. Never throws.
 
 ###### Example
 
@@ -10642,7 +11101,7 @@ console.log(msg.visit?.attendingDoctor?.familyName);
 > **addSegment**(`name`, `fields`): `this`
 
 Append a new segment to the end of the message. `name` must match
-`/^(?:[A-Z]{3}|Z[A-Z0-9]{2})$/u`: throws `TypeError` otherwise (D-19).
+`/^(?:[A-Z]{3}|Z[A-Z0-9]{2})$/u`: throws `TypeError` otherwise.
 
 `fields` is interpreted in HL7 1-indexed terms: `addSegment("NTE", [a, b, c])`
 produces a segment whose `NTE-1 = a`, `NTE-2 = b`, `NTE-3 = c`. The
@@ -10653,7 +11112,7 @@ Each entry may be a plain string (treated as a single-subcomponent
 single-component single-repetition field) or a full `RawField` object
 for advanced callers who need structured content.
 
-Invalidates caches on return; warnings untouched (D-16).
+Invalidates caches on return; warnings untouched.
 
 ###### Parameters
 
@@ -10686,7 +11145,7 @@ msg.get("NTE.2"); // "note text"
 
 Every AL1 and every IAM as an Allergy, one entry per segment in document
 order, each naming the segment it was read from (`source`). An ADT^A60
-carries its allergies in IAM, so it is read here too. D-05: returns `[]`
+carries its allergies in IAM, so it is read here too. Returns `[]`
 when neither is present.
 
 Limits: the IAR and NTE segments under an IAM are not read, nor IAM-1 or
@@ -10718,7 +11177,7 @@ for (const al of msg.allergies()) {
 
 Iterate every `Segment` in document order (MSH first, then every
 subsequent segment). Cached per-message; same array reference and same
-Segment instances on repeat calls (D-11). Invalidated wholesale by
+Segment instances on repeat calls. Invalidated wholesale by
 the mutation methods.
 
 ###### Returns
@@ -10745,8 +11204,8 @@ Every SCH of an SIU message as a typed `Appointment`, with
 the AIS/AIG/AIL/AIP resource segments that follow it grouped positionally
 under that SCH. Surfaces the placer/filler appointment ids, SCH-25 filler
 status (Table 0278), SCH-11 start/end timing, and the resource groups
-(service / general / location / personnel). D-05: returns `[]` when no SCH
-is present. D-06: not memoized. Never throws (HELPERS-07). Not a
+(service / general / location / personnel). Returns `[]` when no SCH
+is present. Not memoized. Never throws. Not a
 scheduling-workflow state machine: see the package known-limitations.
 
 ###### Returns
@@ -10774,8 +11233,8 @@ Every FT1 of a DFT message as a typed `Charge`, one per
 FT1 in document order. Surfaces billing-critical fields (FT1-6 transaction
 type, FT1-7 code, FT1-11/12 extended/unit amount, FT1-19 diagnosis linkage)
 with **no billing logic and no money-as-float**: amounts are the verbatim
-CP wire text. D-05: returns `[]` when no FT1 is present. D-06: not memoized.
-Never throws (HELPERS-07).
+CP wire text. Returns `[]` when no FT1 is present. Not memoized.
+Never throws.
 
 ###### Returns
 
@@ -10798,7 +11257,7 @@ for (const charge of msg.charges()) {
 
 > **diagnoses**(): readonly [`Diagnosis`](#diagnosis)[]
 
-Every DG1 as a Diagnosis in document order. D-05: returns `[]` when no
+Every DG1 as a Diagnosis in document order. Returns `[]` when no
 DG1 present.
 
 ###### Returns
@@ -10824,8 +11283,8 @@ with the OBX narrative body grouped positionally under that TXA. The
 completion status (TXA-17) and availability status (TXA-19) are surfaced as
 **distinct** fields and never conflated: a document can be available before
 it is authenticated, and reading a preliminary document as final is the
-harm. D-05: returns `[]` when no TXA is present. D-06: not memoized. Never
-throws (HELPERS-07).
+harm. Returns `[]` when no TXA is present. Not memoized. Never
+throws.
 
 ###### Returns
 
@@ -10851,7 +11310,7 @@ for (const doc of msg.documents()) {
 Resolve a dot-path (e.g. `PID.5.1`, `OBX[2].5`, `PID.3[0].1`) to its
 decoded leaf string (unescaped once at parse: never re-unescaped on
 read). Returns `undefined` when the path doesn't
-resolve: never throws on missing path (MODEL-05). Throws `TypeError`
+resolve: never throws on missing path. Throws `TypeError`
 on malformed path syntax (e.g. `"pid.5"`, empty string).
 
 ###### Parameters
@@ -10883,8 +11342,8 @@ msg.get("MSH.12");   // "2.5": HL7 version string
 > **getAll**(`segmentType`): readonly [`Segment`](#segment)\<`string`\>[]
 
 Return every `Segment` of `segmentType` in document order. Returns `[]`
-(empty array, NEVER `undefined`) when no segment of that type exists
-(MODEL-02). Alias for `segments(segmentType)`: shares the same cache, and
+(empty array, NEVER `undefined`) when no segment of that type exists.
+Alias for `segments(segmentType)`: shares the same cache, and
 matches segment names ignoring case exactly as it does.
 
 ###### Parameters
@@ -10919,7 +11378,7 @@ link / unlink / person add/update), with the MRG-sourced
 spec-constant `direction: "MRG_TO_PID"` on merge/move/change events.
 Returns `[]` when the trigger event is not in the identity family. The
 recognized set is floored by the published message structures: every ADT
-trigger event whose structure requires MRG is recognized. D-06: not
+trigger event whose structure requires MRG is recognized. Not
 memoized. Never throws; incomplete merge pairs surface a
 `MERGE_MISSING_PRIOR_OR_SURVIVOR` warning on the event.
 
@@ -10947,8 +11406,8 @@ for (const ev of msg.identityEvents()) {
 
 Every RXA of a VXU^V04 as a typed `Immunization`, with RXR (route/site)
 and OBX children grouped positionally under the RXA and `orderControl`
-from the preceding ORC of the VXU order group. D-05:
-returns `[]` when no RXA present. D-06: not memoized. The vaccine code
+from the preceding ORC of the VXU order group. Returns
+`[]` when no RXA present. Not memoized. The vaccine code
 carries its own provenance; the action code (RXA-21) is surfaced verbatim
 and `recordOrigin` (administered vs historical) is derived only from the
 well-known NIP001 RXA-9.1 codes: never guessed.
@@ -10975,7 +11434,7 @@ for (const imm of msg.immunizations()) {
 > **insurance**(): readonly [`Insurance`](#insurance-1)[]
 
 Every IN1 as an Insurance entry with positional IN2/IN3 presence flags.
-D-05: returns `[]` when no IN1 present.
+Returns `[]` when no IN1 present.
 
 ###### Returns
 
@@ -10991,13 +11450,93 @@ for (const ins of msg.insurance()) console.log(ins.planId?.text);
 
 [`Hl7Message`](#hl7message).[`insurance`](#insurance)
 
+##### is()
+
+**`Internal`**
+
+Single runtime implementation behind both signatures.
+
+###### Call Signature
+
+> **is**\<`K`\>(`key`): `this is TypedMessage<K>`
+
+Is this message of the type `key` names, and if so, narrow it for the
+compiler. The check is on the (MSH-9.1, MSH-9.2) pair the parser already
+extracted, so a message whose MSH-9 carries the three-component form
+`ADT^A01^ADT_A01` answers `true` to `is("ADT^A01")`.
+
+A key is `"<MSH-9.1>^<MSH-9.2>"` (`"ADT^A01"`), or `"<MSH-9.1>"` alone for a
+message type the published structure registry matches on message code alone
+(`"ACK"`, whose MSH-9.2 carries the acknowledged message's trigger event).
+`SUPPORTED_OVERLAY_MESSAGES` enumerates every key.
+
+**Any other string is `false`, never a throw**: an unrecognized type, the
+three-component form as a string, an empty string, or a value computed at
+run time. `is` does not parse its own argument, and a caller who wants a raw
+comparison has `msg.meta.type`.
+
+Read-only: it inspects `meta` and mutates nothing.
+
+###### Type Parameters
+
+###### K
+
+`K` *extends* keyof [`OverlayStructures`](#overlaystructures)
+
+###### Parameters
+
+###### key
+
+`K`
+
+###### Returns
+
+`this is TypedMessage<K>`
+
+###### Example
+
+```ts
+import { parseHL7 } from "@cosyte/hl7";
+const msg = parseHL7(raw);
+if (msg.is("ORU^R01")) {
+  const code: "ORU" = msg.meta.messageCode; // literal, no cast
+  console.log(msg.part("OBR")?.field(4).value);
+}
+console.log(msg.is("ZZZ^Z99")); // false: not a published key
+```
+
+###### Inherited from
+
+[`Hl7Message`](#hl7message).[`is`](#is)
+
+###### Call Signature
+
+> **is**(`key`): `boolean`
+
+Answer for a key that is not known at compile time. A runtime-computed
+string cannot narrow anything, so this form returns a plain `boolean`.
+
+###### Parameters
+
+###### key
+
+`string`
+
+###### Returns
+
+`boolean`
+
+###### Inherited from
+
+[`Hl7Message`](#hl7message).[`is`](#is)
+
 ##### medications()
 
 > **medications**(): readonly [`Medication`](#medication)[]
 
 Every RXO/RXE/RXD/RXA as a typed `Medication`, with RXR (route) and RXC
-(component) segments grouped positionally under their parent. D-05:
-returns `[]` when no RX* parent present. D-06: not memoized. The give
+(component) segments grouped positionally under their parent. Returns
+`[]` when no RX* parent present. Not memoized. The give
 *amount* and give *strength* are surfaced separately and never
 reconciled.
 
@@ -11033,7 +11572,7 @@ for (const med of msg.medications()) {
 
 > **nextOfKin**(): readonly [`NextOfKin`](#nextofkin-1)[]
 
-Every NK1 as a NextOfKin entry in document order. D-05: returns `[]`
+Every NK1 as a NextOfKin entry in document order. Returns `[]`
 when no NK1 present.
 
 ###### Returns
@@ -11061,7 +11600,7 @@ preceding parent (not immediately following a `PID`, `ORC`, `OBR`, or
 `OBX`), surfaced verbatim in document order so nothing is dropped. Notes
 that DO attach to a specific patient / order / result are exposed on those
 helper outputs (`msg.patient?.notes`, `order.notes`, `observation.notes`),
-not here. D-05: returns `[]` when there are none. D-06: NOT memoized.
+not here. Returns `[]` when there are none. NOT memoized.
 
 ###### Returns
 
@@ -11081,9 +11620,9 @@ for (const note of msg.notes()) console.log(note); // message-level narrative
 
 > **observations**(): readonly [`Observation`](#observation)[]
 
-Every OBX segment as a typed Observation in document order. D-05:
-returns `[]` when no OBX present. D-06: NOT memoized: each call
-re-walks `rawSegments`. Value type is discriminated per D-13.
+Every OBX segment as a typed Observation in document order. Returns
+`[]` when no OBX present. NOT memoized: each call
+re-walks `rawSegments`. Value type is discriminated.
 
 ###### Returns
 
@@ -11105,10 +11644,10 @@ for (const obs of msg.observations()) {
 
 > **orders**(): readonly [`Order`](#order-1)[]
 
-Every OBR as an Order with its OBX children grouped positionally (D-12) and
+Every OBR as an Order with its OBX children grouped positionally and
 its TQ1 / legacy embedded-TQ (ORC-7) `timings` (the repeat pattern is
-surfaced verbatim, never resolved to a schedule). D-05: returns `[]` when no
-OBR present. D-06: not memoized.
+surfaced verbatim, never resolved to a schedule). Returns `[]` when no
+OBR present. Not memoized.
 
 ###### Returns
 
@@ -11172,11 +11711,11 @@ readonly [`Segment`](#segment)\<`string`\>[]
 > **prettyPrint**(): `string`
 
 Emit this message as a human-readable multi-line string for logs and
-debugging (SER-04). Single opinionated format (D-22 no options):
+debugging. Single opinionated format (no options):
 header line with type / controlId / timestamp / segment count, then
-one line per segment with labeled `[N]=value` fields (D-23). Composite
-values render as their raw HL7 string: depth stops at field level
-(D-24). Pure: never warns, never throws (D-26).
+one line per segment with labeled `[N]=value` fields. Composite
+values render as their raw HL7 string: depth stops at field level.
+Pure: never warns, never throws.
 
 **Field values render as their raw HL7 string representation.**
 Embedded delimiters in user data appear as escape sequences: e.g.
@@ -11213,15 +11752,15 @@ console.log(msg.prettyPrint());
 Remove segments by type + occurrence or by type + all. Call shapes:
 
 - `removeSegment("NTE")`: remove the FIRST NTE (occurrence 0).
-- `removeSegment("OBX", 1)`: remove the SECOND OBX (0-indexed per D-01).
+- `removeSegment("OBX", 1)`: remove the SECOND OBX (0-indexed).
 - `removeSegment("OBX", { all: true })`: remove ALL OBX segments.
 
 `MSH` is protected: `removeSegment("MSH")` throws `TypeError` (every
 HL7 message must retain its MSH segment). Unknown segment types are a
-no-op (idempotent; no throw). Segment name must match the D-19 shape
+no-op (idempotent; no throw). Segment name must match the same shape
 regex: invalid shapes throw `TypeError` for symmetry with `addSegment`.
 
-Invalidates caches on return; warnings untouched (D-16).
+Invalidates caches on return; warnings untouched.
 
 ###### Parameters
 
@@ -11255,12 +11794,12 @@ msg.removeSegment("OBX", { all: true }); // remove all remaining OBX
 
 Return the cached array of `Segment` wrappers for `segmentType` in
 document order. The returned array identity and the individual Segment
-instances are both stable across calls (D-11). Invalidated wholesale
+instances are both stable across calls. Invalidated wholesale
 by the mutation methods.
 
 **Segment names are matched ignoring ASCII case, on both sides.** A sender
 that ships `obx` is returned by `segments("OBX")`, and `segments("obx")`
-returns the same array (one cache entry, so the D-11 identity guarantee
+returns the same array (one cache entry, so the instance-identity guarantee
 does not split across spellings). A `SEGMENT_CASE` warning records the
 sender's deviation; `Segment.raw.name` is the spelling that arrived.
 
@@ -11353,19 +11892,19 @@ msg.get("PID.5.1"); // "Smith"
 > **setField**(`path`, `value`): `this`
 
 Set the string value at a dot-path. Mutates the underlying tree and
-returns `this` for chaining (D-15). Auto-creates missing repetitions,
+returns `this` for chaining. Auto-creates missing repetitions,
 components, and subcomponents WITHIN an existing field, but does NOT
 auto-create segments: callers must `addSegment` first (throws
 `TypeError` with an actionable message otherwise).
 
 The value is accepted verbatim: unescaped delimiter characters are NOT
-rejected on input (D-18). Re-escaping is the serializer's concern.
+rejected on input. Re-escaping is the serializer's concern.
 
 MSH-1 / MSH-2 follow the user-facing HL7 convention: `setField("MSH.3", ...)`
 targets MSH-3 (sending application), matching `msg.get("MSH.3")`.
 
-Segment/Field wrapper caches are invalidated wholesale on success (D-17).
-The frozen `warnings` array is never touched (D-16).
+Segment/Field wrapper caches are invalidated wholesale on success.
+The frozen `warnings` array is never touched.
 
 ###### Parameters
 
@@ -11397,12 +11936,12 @@ msg.setField("PID.4[2].1", "MRN2");   // create third repetition of PID-4
 
 > **toJSON**(): [`SerializedMessage`](#serializedmessage)
 
-Emit this message as a structured `SerializedMessage` JSON projection
-(SER-03). Invoked automatically by `JSON.stringify(msg)` (D-18).
-Re-walks `rawSegments` on every call (D-30 no caching). Mirrors the
+Emit this message as a structured `SerializedMessage` JSON projection.
+Invoked automatically by `JSON.stringify(msg)`.
+Re-walks `rawSegments` on every call (no caching). Mirrors the
 raw tree one-for-one, preserves `isNull`, always includes
 `warnings: []`, and includes `profile: { name, lineage }` only when
-`this.profile` is truthy (D-19/D-20). Pure: never warns, never throws.
+`this.profile` is truthy. Pure: never warns, never throws.
 
 ###### Returns
 
@@ -11426,12 +11965,12 @@ console.log(JSON.stringify(msg));     // same content, auto-invokes toJSON
 
 > **toString**(): `string`
 
-Emit this message as spec-clean HL7 (SER-01). Re-walks `rawSegments`
-on every call (D-30 no caching). Segments are joined with `\r` per
-D-05; MSH-1 and MSH-2 are inlined verbatim from
-`this.encodingCharacters` per D-06; every field string passes through
-`reescape` per D-04. `RawField.isNull === true` is preserved as the
-HL7 literal `""` (D-02). Pure: never warns, never throws (D-07).
+Emit this message as spec-clean HL7. Re-walks `rawSegments`
+on every call (no caching). Segments are joined with `\r`;
+MSH-1 and MSH-2 are inlined verbatim from
+`this.encodingCharacters`; every field string passes through
+`reescape`. `RawField.isNull === true` is preserved as the
+HL7 literal `""`. Pure: never warns, never throws.
 
 ###### Returns
 
@@ -11528,8 +12067,8 @@ Segment name of the target rule (e.g. `"PID"`).
 
 ### Visit
 
-PV1-derived visit view (HELPERS-03). `msg.visit` is `undefined` when no PV1
-segment exists; this interface describes the shape when present. D-24a:
+PV1-derived visit view. `msg.visit` is `undefined` when no PV1
+segment exists; this interface describes the shape when present. The
 doctor fields use XCN (not flat strings). Date/time fields are the
 fidelity `TS` (precision + timezone preserved).
 
@@ -11558,7 +12097,7 @@ PV1-44 admit date/time as the fidelity `TS`.
 
 > `readonly` `optional` **attendingDoctor?**: [`XCN`](#xcn-1)
 
-PV1-7 attending doctor (D-24a XCN).
+PV1-7 attending doctor (XCN).
 
 ##### dischargeDateTime?
 
@@ -11582,7 +12121,7 @@ PV1-2 patient class ("I"=inpatient, "O"=outpatient, "E"=ER, ...).
 
 > `readonly` `optional` **referringDoctor?**: [`XCN`](#xcn-1)
 
-PV1-8 referring doctor (D-24a XCN).
+PV1-8 referring doctor (XCN).
 
 ##### visitNumber?
 
@@ -12660,15 +13199,15 @@ one against the other.
 > **Observation** = [`ObservationBase`](#observationbase) & (\{ `value`: `number` \| `undefined`; `valueType`: `"NM"`; \} \| \{ `value`: [`SN`](#sn) \| `undefined`; `valueType`: `"SN"`; \} \| \{ `value`: [`TS`](#ts-1) \| `undefined`; `valueType`: `"TS"` \| `"DT"`; \} \| \{ `value`: [`CWE`](#cwe-1) \| [`CE`](#ce) \| `undefined`; `valueType`: `"CWE"` \| `"CE"`; \} \| \{ `value`: `string` \| `undefined`; `valueType`: `string`; \})
 
 One OBX segment as a typed Observation. `value` is discriminated by
-`valueType` (OBX-2) per D-13:
+`valueType` (OBX-2):
 - `"NM"` → `number | undefined`
 - `"SN"` → `SN | undefined` (structured numeric: comparator / range / ratio)
 - `"TS" | "DT"` → `TS | undefined` (fidelity parts preserved)
-- `"CWE" | "CE"` → `CWE | CE | undefined` (full composite per D-14)
+- `"CWE" | "CE"` → `CWE | CE | undefined` (the full composite)
 - other (`"ST"`, `"TX"`, `"FT"`, `"ID"`, `"IS"`, `"NA"`, unknown) →
-  `string | undefined` (decoded, D-23)
+  `string | undefined` (decoded)
 
-D-22: `value` is `undefined` when OBX-5 is empty OR malformed for its
+`value` is `undefined` when OBX-5 is empty OR malformed for its
 declared type (never throws, never `NaN`). A `TS`/`DT` value is always the
 `TS` structure; check its `.valid` flag rather than expecting a `Date`.
 
@@ -12772,7 +13311,7 @@ patient-identification shape is identical across message families.
 
 > **OverlayKey** = keyof [`OverlayStructures`](#overlaystructures)
 
-Every string Hl7Message.is narrows on: one key per (message code,
+Every string [Hl7Message.is](#is) narrows on: one key per (message code,
 trigger event) pair the structure registry recognizes, plus a code-only key
 for each registry entry that matches on message code alone.
 
@@ -13305,7 +13844,7 @@ toDate(parseDtm("20250102"), assumeUtc)?.toISOString();
 HL7 v2 Time Stamp (TS) / Date Time (DTM) composite: the raw HL7 string plus
 its parsed parts, preserving the **stated precision** and **timezone
 fidelity**. This is a [DtmParts](#dtmparts): `valid` is `false` (with no parts)
-for unparseable input: NEVER throws (TYPES-04 no-throw guarantee).
+for unparseable input: NEVER throws.
 
 There is deliberately **no `date` field**: a day-only value coerced to a JS
 `Date` at UTC midnight silently shifts the calendar day in negative-offset
@@ -13972,7 +14511,7 @@ PROFILE_LEVELS[0]; // "standard"
 
 Namespace object exposing the 8 shipped built-in vendor profiles (epic,
 cerner, meditech, athena, genericLab, visage, philips, va). Each is authored
-via the public `defineProfile()` API (BIP-01..09).
+via the public `defineProfile()` API.
 
 #### Type Declaration
 
@@ -14232,7 +14771,7 @@ console.log(SUPPORTED_DATE_TOKENS);
 > `const` **SUPPORTED\_OVERLAY\_MESSAGES**: readonly [`SupportedOverlayMessage`](#supportedoverlaymessage)[]
 
 The published support claim for typed message overlays: every key
-Hl7Message.is narrows on, with the segments that pair's published
+[Hl7Message.is](#is) narrows on, with the segments that pair's published
 structure requires. Frozen, and derived from the structure registry at module
 load rather than hand-listed, so it can never claim a pair the structure net
 does not recognize.
@@ -14636,7 +15175,7 @@ Behavior:
   escape (`ID\X41\Q`) or a preserved escape (`\H\`) echoes **byte-verbatim**,
   not canonicalized: exactly the bytes the sender put on the wire, which is
   what MSA-2 correlation compares. The only structural transform is
-  trailing-empty canonicalization (D-02). (A sender that used *custom*
+  trailing-empty canonicalization. (A sender that used *custom*
   encoding characters is **re-delimited spec-cleanly**: the overlay carries
   the sender's raw bytes in the sender's alphabet, so echoing them verbatim
   under the ACK's default alphabet would corrupt the field's structure and
@@ -14884,22 +15423,22 @@ round.documents()[0]?.observations[0]?.value; // "Discharge summary text."
 
 > **buildMessage**(`init`): [`Hl7Message`](#hl7message)
 
-Construct an outbound `Hl7Message` from semantic MSH fields (SER-06).
-Synthesises a complete MSH `RawSegment` per D-10/D-11 and hands to
+Construct an outbound `Hl7Message` from semantic MSH fields.
+Synthesises a complete MSH `RawSegment` and hands it to
 `new Hl7Message({...})`. Callers chain `.addSegment(name, fields)`
 (mutation method) to append PID, OBX, etc.
 
-Defaults applied when fields are omitted (D-10):
-- `controlId` → `generateControlId()` (D-12)
-- `timestamp` → `formatHl7Timestamp(new Date())` (D-13)
+Defaults applied when fields are omitted:
+- `controlId` → `generateControlId()`
+- `timestamp` → `formatHl7Timestamp(new Date())`
 - `version` → `"2.5"`
 - `processingId` → `"P"`
 - `sendingApp`/`sendingFacility`/`receivingApp`/`receivingFacility` → empty
 
-Encoding characters are always `DEFAULT_ENCODING_CHARACTERS` (D-14); no
+Encoding characters are always `DEFAULT_ENCODING_CHARACTERS`; no
 option to customise in v1.
 
-**Empty string vs. omitted field (W1):** at the HL7 wire level, passing
+**Empty string vs. omitted field:** at the HL7 wire level, passing
 `sendingApp: ""` and omitting `sendingApp` produce IDENTICAL output
 (both emit as absent: `||` at the MSH-3 position). If you need to
 emit an HL7 explicit null (`""`, the two-char literal) at a specific
@@ -15320,7 +15859,7 @@ decodeText("line1\\.br\\line2"); // "line1\nline2"
 
 The **fail-fast authoring** gate for a conformance profile: a malformed
 profile raises a typed `ProfileDefinitionError` at build time, before any
-validation runs. Runs collectProfileDefects; on any defect, throws a
+validation runs. Runs [collectProfileDefects](@cosyte/namespaces/conformance.md#collectprofiledefects); on any defect, throws a
 single [ProfileDefinitionError](#profiledefinitionerror) listing every defect. On success,
 returns the profile typed as [ConformanceProfile](#conformanceprofile).
 
@@ -15362,9 +15901,9 @@ const profile = defineConformanceProfile({
 > **defineProfile**\<`O`\>(`opts`): [`DefinedProfile`](#definedprofile)\<`O`\>
 
 Build a readonly `Profile` from a validated options object. Invalid
-input throws `ProfileDefinitionError` with an actionable message
-(PROF-02): bad Z-segment names (D-05), malformed date formats (D-08),
-unknown top-level keys with typo hints (D-07), and missing/empty
+input throws `ProfileDefinitionError` with an actionable message:
+bad Z-segment names, malformed date formats,
+unknown top-level keys with typo hints, and missing/empty
 name.
 
 `opts.extends` accepts a single parent `Profile` or an array of them.
@@ -17714,16 +18253,16 @@ console.log(xtn.telephoneNumber); // "555-1234"
 
 Pick the Medical Record Number string from a list of PID-3 CX identifiers.
 
-D-07: prefer the first CX whose `identifierTypeCode === "MR"` (HL7 v2.5+
-canonical MRN marker). D-10: the match is case-SENSITIVE: lowercase
+Prefer the first CX whose `identifierTypeCode === "MR"` (HL7 v2.5+
+canonical MRN marker). The match is case-SENSITIVE: lowercase
 `"mr"` does NOT match; spec mandates uppercase.
 
-D-08: when no MR-typed identifier is found, fall back to the first CX's
+When no MR-typed identifier is found, fall back to the first CX's
 `idNumber`. Returns `undefined` when the first CX has no `idNumber` (even
 if later CXs do: the fallback is strictly "first CX", not "first CX with
 idNumber", because we need a deterministic answer).
 
-D-21: no warning emitted. Callers who need strict MR resolution can walk
+No warning emitted. Callers who need strict MR resolution can walk
 `patient.identifiers` themselves.
 
 #### Parameters
@@ -17997,7 +18536,7 @@ explicit profile arg) consults `getDefaultProfile()` and applies the
 returned profile if any. Pass `null` (or `undefined`) to clear.
 
 Effects are IDENTICAL to passing the profile explicitly as the second
-arg of `parseHL7` (D-20): customSegments, dateFormats, onWarning chain,
+arg of `parseHL7`: customSegments, dateFormats, onWarning chain,
 and profile attribution all apply the same way.
 
 Explicit args ALWAYS win: `parseHL7(raw, myProfile)` uses `myProfile`

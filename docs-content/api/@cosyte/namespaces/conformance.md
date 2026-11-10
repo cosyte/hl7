@@ -1,8 +1,9 @@
 # conformance
 
 The conformance-profile engine as one namespace object: `validateAgainstProfile`,
-`defineConformanceProfile`, `collectProfileDefects`, `usageOutcomes`, the registries and the
-profile types, each also a named export of the package.
+`defineConformanceProfile`, `usageOutcomes`, the registries and the profile types, each also a
+named export of the package, plus `collectProfileDefects` and its `ProfileDefect` type, which
+only this namespace exports.
 
 ## Example
 
@@ -15,6 +16,50 @@ const profile: conformance.ConformanceProfile = {
 };
 conformance.validateAgainstProfile(parseHL7(raw), profile).findings; // []
 ```
+
+## Interfaces
+
+### ProfileDefect
+
+**`Internal`**
+
+One structural defect in a profile: the PHI-free `detail` plus a best-effort
+[FindingLocus](../../README.md#findinglocus) (so the engine can attach it to a `PROFILE_MALFORMED`
+finding). When the defect is above segment level, `locus.segment` is the
+sentinel `"(profile)"`.
+
+#### Properties
+
+##### detail
+
+> `readonly` **detail**: `string`
+
+##### locus
+
+> `readonly` **locus**: [`FindingLocus`](../../README.md#findinglocus)
+
+## Functions
+
+### collectProfileDefects()
+
+> **collectProfileDefects**(`profile`): readonly [`ProfileDefect`](#profiledefect)[]
+
+**`Internal`**
+
+Collect every structural defect in a candidate conformance profile. **Total
+over `unknown` and never throws**: a caller may pass any value (even one
+cast through `any`) and get back a defect list rather than an exception. An
+empty result means the profile is well-formed enough to validate against.
+
+#### Parameters
+
+##### profile
+
+`unknown`
+
+#### Returns
+
+readonly [`ProfileDefect`](#profiledefect)[]
 
 ## References
 
