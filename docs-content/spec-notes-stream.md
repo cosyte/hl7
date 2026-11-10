@@ -118,7 +118,7 @@ a field value**, so no PHI is exposed.
 ## Known limitations
 
 - **Consumes an already-de-framed stream.** MLLP `<SB>…<EB><CR>` framing, ACK
-  timing, reconnect, and TLS are [`@cosyte/mllp`](https://github.com/cosyte/mllp)'s.
+  timing, reconnect, and TLS are [`@cosyte/mllp`](https://docs.cosyte.com/mllp)'s.
   `parseStream` yields *parsed messages*, it does not own the wire.
 - **No random access / seek**; ordering is stream order. Not a persistent queue.
 - **Envelope reconciliation is not re-implemented** here: if you need the BTS-1 /
@@ -126,3 +126,7 @@ a field value**, so no PHI is exposed.
 - Two concatenated messages with **no terminator between them** cannot be split
   (the second `MSH` is not at a segment start). The parser will not invent a
   boundary the bytes do not contain.
+
+## Put it to use
+
+- [Split batches and stream large files](./split-batches-and-streams.md)

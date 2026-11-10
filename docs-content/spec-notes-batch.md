@@ -178,3 +178,7 @@ with `fields[0]` holding the segment name. Mind the HL7 MSH-family quirk:
 
 `declaredMessageCount` (from BTS-1) and `declaredBatchCount` (from FTS-1) are
 parsed for you, so most callers never touch the raw `fields` at all.
+
+## Put it to use
+
+- [Split batches and stream large files](./split-batches-and-streams.md)

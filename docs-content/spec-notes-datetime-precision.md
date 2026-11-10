@@ -169,3 +169,7 @@ Fidelity only: **no** localization, timezone conversion, or arithmetic; a missin
 sender-local**, never resolved. `HHMM=0000` is preserved (never rolled to the previous day). No new
 warning code. Missing-tz is the structural `hasTimezone:false`, not a warning (avoids noise on the
 overwhelmingly common no-offset feed).
+
+## Put it to use
+
+- [Read dates and times without guessing](./read-dates-and-times.md)

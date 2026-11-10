@@ -58,30 +58,38 @@ msg.get("PID.5.1"); // => "Doe"
 
 ## Warnings carry stable codes
 
-Each tolerance warning carries a **stable code** you can branch on without it churning between
-releases (the 20 warning codes are a public, versioned contract):
+Each tolerance warning carries a stable code you can branch on. The 20 warning codes are a public,
+versioned contract: they are not renamed without a breaking release.
 
-```ts
+```ts runnable
 import { parseHL7 } from "@cosyte/hl7";
+
+// The sender wrote the OBX segment name in lower case.
+const raw =
+  "MSH|^~\\&|LAB|MAIN|EHR|REF|20260419143000||ORU^R01|EX00090|P|2.5\r" +
+  "PID|1||MRN67890^^^HOSP^MR\r" +
+  "OBR|1|ORD-EX-1\r" +
+  "obx|1|NM|GLU^Glucose^LN||120|mg/dL";
 
 const msg = parseHL7(raw);
 
-for (const w of msg.warnings) {
-  if (w.code === "SEGMENT_CASE") {
-    // a segment name arrived in the wrong case (`obx`, `Pid`); it still
-    // resolves as the segment it names, so `observations()` and `patient`
-    // see it. Serialization re-emits the spelling that arrived.
-  }
-}
+msg.warnings.map((w) => w.code); // => ["SEGMENT_CASE"]
+msg.warnings[0]?.position; // => { segmentIndex: 3 }
+
+// The segment still resolves as the OBX it names, and is written back as it arrived.
+msg.observations()[0]?.value; // => 120
+msg.toString().includes("\robx|1|"); // => true
 ```
 
-> **About runnable examples.** The blocks tagged ` ```ts runnable ` above are extracted by the docs
-> build, executed against the package, and their `// =>` results asserted, so a documented example
-> can never silently drift from the code. Illustrative fragments (like the one directly above, which
-> references an undeclared `raw`) stay plain ` ```ts ` blocks.
+Every TypeScript sample on these pages runs in the package's test suite against the built package,
+and each `// =>` line is checked, so a sample cannot drift from the code.
 
 ## Next
 
-- [Core concepts](./spec-notes-primer.md): the tolerance model and the spec grounding behind it.
-- [Guides](./guides-overview.md): task-oriented recipes: lab results, vendor profiles, ACKs, building.
-- [Troubleshooting](./troubleshooting.md): warnings vs. errors, strict mode, and known limitations.
+- [Process a lab feed](./process-a-lab-feed.md): a tutorial that splits a batch file, reads the
+  results and answers each message with an ACK.
+- [Read patient and visit](./read-patient-and-visit.md), [Read lab results](./read-lab-results.md)
+  and the other how-to guides, one task each.
+- [The three ways to read a message](./access-patterns.md) and
+  [Tolerance and error handling](./tolerance-and-errors.md): how the model and the warnings work.
+- [Troubleshooting](./troubleshooting.md): warnings versus errors, strict mode, and known limits.

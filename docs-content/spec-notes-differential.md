@@ -172,3 +172,7 @@ an existing predicate to swallow an unrelated divergence.
   compare against). This is a deliberate scope boundary: wire-text parity at the segment/field
   level is what "two parsers agree on how this message is shaped" actually means; composite-type
   interpretation is `@cosyte/hl7`-specific value-add tested elsewhere (`test/model-types-*.test.ts`).
+
+## Put it to use
+
+- [Testing and quality](./testing-and-quality.md)

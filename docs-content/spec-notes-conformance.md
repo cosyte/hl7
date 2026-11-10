@@ -449,8 +449,17 @@ type refuses it at compile time.
 there on every result including one whose profile was too malformed for even its
 name to be read:
 
-```ts
-const { profileName, level, findings } = validateAgainstProfile(msg, profile);
+```ts runnable
+import { parseHL7, validateAgainstProfile } from "@cosyte/hl7";
+
+const msg = parseHL7("MSH|^~\\&|A|B|C|D|20260101||ADT^A01|ID1|P|2.5");
+
+const { profileName, level, findings } = validateAgainstProfile(msg, {
+  name: "intake",
+  segments: [],
+});
+
+[profileName, level, findings]; // => ["intake", "constrainable", []]
 ```
 
 **Declaring no level claims `constrainable`.** That is the fail-safe direction:
@@ -831,3 +840,7 @@ validateAgainstProfile(parseHL7(clean), profile).findings.length; // => 0
 - **NIST IGAMT / GVT**: the public-domain profile-authoring + validation model
   this engine's bounded subset mirrors. hl7 imports none of their code sets; a
   NIST-IGAMT XML import adapter is a possible later, separate addition.
+
+## Put it to use
+
+- [Validate a message's structure and content](./validate-messages.md)

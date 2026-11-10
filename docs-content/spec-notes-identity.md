@@ -117,3 +117,7 @@ missing), never an identifier, name, or any other field value (no PHI).
 - `identityEvents()` keys on the trigger event alone (MSH-9.2, falling back
   to EVN-1). It does not require MSH-9.1 to be `ADT` (lenient toward vendor
   quirks).
+
+## Put it to use
+
+- [Handle patient merges and identifier changes](./handle-patient-merges.md)

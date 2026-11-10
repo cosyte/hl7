@@ -45,9 +45,9 @@ The 0.1 line. The public API is settled and safe to depend on: the exported func
 
 Nothing is queued as forthcoming. `parseStream` parses multi-GB batch files incrementally and yields the messages as an async iterable, and `emitMessageSchema` produces JSON Schema and Zod descriptions of what `toJSON()` returns. Both are exported, so both are covered by the stability claim above.
 
-The opt-in structural validator ships too: `validateMessageStructure(msg)` enforces segment ordering and cardinality against HL7's published message structures. See [Check a message against HL7's published shape](https://github.com/cosyte/hl7/blob/main/docs-content/cookbook.md#check-a-message-against-hl7s-published-shape-validatemessagestructure).
+The opt-in structural validator ships too: `validateMessageStructure(msg)` enforces segment ordering and cardinality against HL7's published message structures. See [Check order and counts against the published structure](https://github.com/cosyte/hl7/blob/main/docs-content/validate-messages.md#check-order-and-counts-against-the-published-structure).
 
-Typed message overlays ship and are covered by the stability claim: `msg.is("ADT^A01")` answers from the message type the parser extracted and narrows the message for the compiler, so the accessors after the check are scoped to the segments that message type's published structure requires. See [Narrow a message to its type](https://github.com/cosyte/hl7/blob/main/docs-content/cookbook.md#narrow-a-message-to-its-type).
+Typed message overlays ship and are covered by the stability claim: `msg.is("ADT^A01")` answers from the message type the parser extracted and narrows the message for the compiler, so the accessors after the check are scoped to the segments that message type's published structure requires. See [Narrow a message to its type](https://github.com/cosyte/hl7/blob/main/docs-content/read-patient-and-visit.md#narrow-a-message-to-its-type).
 
 Permanently out of scope:
 
@@ -116,10 +116,11 @@ That is the whole pitch: no config, no schema upload, no spec lookup. The parser
 
 The full reference lives at [docs.cosyte.com/hl7](https://docs.cosyte.com/hl7), built from this repository's [`docs-content/`](https://github.com/cosyte/hl7/tree/main/docs-content). Start with these pages:
 
-- [Access patterns](https://github.com/cosyte/hl7/blob/main/docs-content/access-patterns.md): a 90-second HL7 v2 primer, then named helpers, dot-paths, and structural traversal.
-- [Cookbook](https://github.com/cosyte/hl7/blob/main/docs-content/cookbook.md): demographics, lab results, edits, scheduling and charges, timing, identity events, dates, MLLP framing, batches, streams, type narrowing, and validation.
-- [Profiles](https://github.com/cosyte/hl7/blob/main/docs-content/profiles.md): authoring, extending, composing, and publishing vendor profiles, and the built-in set.
-- [Tolerance and error handling](https://github.com/cosyte/hl7/blob/main/docs-content/tolerance-and-errors.md): the four tolerance tiers, `Hl7ParseError`, `Hl7ParseWarning`, and `ProfileDefinitionError`.
+- [Tutorial: process a lab feed](https://github.com/cosyte/hl7/blob/main/docs-content/process-a-lab-feed.md): split a batch file, read the results, flag the abnormal ones, and answer each message with an ACK.
+- [The three ways to read a message](https://github.com/cosyte/hl7/blob/main/docs-content/access-patterns.md): a 90-second HL7 v2 primer, then named helpers, dot-paths, and the segment tree.
+- The how-to guides: [patient and visit](https://github.com/cosyte/hl7/blob/main/docs-content/read-patient-and-visit.md), [lab results](https://github.com/cosyte/hl7/blob/main/docs-content/read-lab-results.md), [clinical lists](https://github.com/cosyte/hl7/blob/main/docs-content/read-clinical-lists.md), [merges](https://github.com/cosyte/hl7/blob/main/docs-content/handle-patient-merges.md), [dates](https://github.com/cosyte/hl7/blob/main/docs-content/read-dates-and-times.md), [edits](https://github.com/cosyte/hl7/blob/main/docs-content/modify-and-resend.md), [building](https://github.com/cosyte/hl7/blob/main/docs-content/build-messages.md), [ACKs](https://github.com/cosyte/hl7/blob/main/docs-content/acknowledge-messages.md), [batches and streams](https://github.com/cosyte/hl7/blob/main/docs-content/split-batches-and-streams.md) and [validation](https://github.com/cosyte/hl7/blob/main/docs-content/validate-messages.md).
+- [Use and write vendor profiles](https://github.com/cosyte/hl7/blob/main/docs-content/profiles.md): built-in profiles, your own, layering, and publishing one.
+- [Tolerance and error handling](https://github.com/cosyte/hl7/blob/main/docs-content/tolerance-and-errors.md): the four tolerance tiers and the errors the library throws.
 - [Warning and fatal codes](https://github.com/cosyte/hl7/blob/main/docs-content/warning-and-fatal-codes.md): every stable code and what it means.
 
 ---

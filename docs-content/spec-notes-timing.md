@@ -142,3 +142,7 @@ state machine `orders()` uses for OBX→OBR and `medications()` for RXR→RX\*:
   timing-specific behavior; conformant integer `NM` values (the norm) are exact.
 - **No new warning code.** Order and medication timing is a pure additive read surface; it emits no
   warning of its own.
+
+## Put it to use
+
+- [Read lab results, orders and timing](./read-lab-results.md)

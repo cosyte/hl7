@@ -7,60 +7,73 @@ description: "Parse real-world, vendor-quirky HL7 v2 and pull fields out in one 
 
 # @cosyte/hl7
 
-Parse real-world, vendor-quirky HL7 v2 and pull fields out in one line, without reading the spec.
-`@cosyte/hl7` is a zero-dependency TypeScript toolkit: a lenient parser, an immutable model with
-dot-path access, named helpers for the common segments, a spec-clean serializer, a message builder,
-and a profile system for vendor quirks.
+Parse real-world, vendor-quirky HL7 v2 and pull fields out in one line, without reading the
+standard first. `@cosyte/hl7` is a TypeScript library for Node.js with no runtime dependencies: a
+lenient parser, an immutable message model, named helpers for the common segments, a spec-clean
+serializer, message builders, validation, and vendor profiles.
 
-## Features
-
-- **One-line extraction**: `msg.patient.mrn`, `msg.meta.timestamp`, `msg.observations()`, and friends. No segment or field numbers to memorize.
-- **Three access patterns**: named helpers, dot-paths (`msg.get("PID.5.1")`), or structural traversal (`msg.segments("OBX")[0].field(3)`). Pick the level of ceremony you need.
-- **Typed message overlays**: `msg.is("ADT^A01")` answers at run time and narrows at compile time, so the message code and trigger event become literal types and `part` / `parts` are scoped to the segments that message type's published structure requires. No cast, no per-message-type import.
-- **Opt-in published-structure validation**: `validateMessageStructure(msg)` checks segment order, occurrence counts, and unnamed segments against HL7's own published message structures, derived offline from a vendored snapshot. Read-only, no new warning code, and nothing changes for a caller who does not ask.
-- **Real-world tolerance, four-tier**: lenient default parses vendor-quirky messages; 20 stable warning codes flag what was tolerated; strict mode escalates every deviation for CI validators; only 4 truly-structural failures are fatal.
-- **First-class profile system**: `defineProfile()` API, 8 built-in vendor profiles (Epic, Cerner, Meditech, athenahealth, generic lab, Visage 7 imaging/PACS, Philips Vue PACS, VA VistA Radiology/NucMed), plus a [publishable starter kit](https://github.com/cosyte/hl7/tree/main/examples/profile-starter-kit) you copy-and-ship.
-- **Round-trip safe, byte-verbatim escapes**: `parse -> modify -> toString()` emits spec-clean HL7 regardless of input quirks (Postel's Law: liberal parser, conservative emitter), and a parsed field's escape sequences (`\H\`, `\X41\`, charset/vendor escapes) re-emit **byte-for-byte**. See [Escapes and round-trip](./spec-notes-escapes.md).
-- **Strict TypeScript, zero runtime deps**: ES2023, `noUncheckedIndexedAccess`, dual ESM and CJS, Node.js 22 or later. Every public function and class has JSDoc + `@example` that feeds your editor's IntelliSense.
-- **Warnings carry stable codes + positional context**: react programmatically by `w.code`, with `segmentIndex`/`fieldIndex`/etc. attached.
-
-## Install
-
-```bash
-npm install @cosyte/hl7
-```
-
-## Parse a message
-
-```ts
+```ts runnable
 import { parseHL7 } from "@cosyte/hl7";
 
-const msg = parseHL7(raw);
+const msg = parseHL7(
+  "MSH|^~\\&|CLINIC|MAIN|LAB|REF|20250102153045||ADT^A01^ADT_A01|MSG00001|P|2.5\r" +
+    "EVN|A01|20250102153045\r" +
+    "PID|1||MRN12345^^^HOSP^MR||Smith^Jane^Q||19800115|F\r" +
+    "PV1|1|I|ICU^101^A^MAIN",
+);
 
-msg.get("PID.5.1"); // "Smith"
-msg.patient?.familyName; // "Smith"
-msg.observations(); // typed OBX rows
-msg.warnings; // stable, positional tolerance warnings
+msg.patient?.mrn; // => "MRN12345"
+msg.get("PID.5.1"); // => "Smith"
+msg.meta.messageCode; // => "ADT"
+msg.warnings; // => []
 ```
 
-The parser is **lenient by default** (vendor quirks become warnings, not failures) while
-`msg.toString()` always emits spec-clean HL7 (Postel's Law). Pass `{ strict: true }` to escalate
-every tolerated deviation to a thrown `Hl7ParseError`.
+## Who it is for
 
-## Vendor profiles
+Developers who receive or send HL7 v2 from Node.js or TypeScript: an integration that reads ADT,
+ORU or ORM feeds from an EHR or a lab, a service that answers with ACKs, a test harness that builds
+messages, or a validator in CI.
 
-Apply a built-in profile, or declare your own with `defineProfile()`:
+## What it does
 
-```ts
-import { parseHL7, profiles } from "@cosyte/hl7";
+- **Reads leniently, writes strictly.** Vendor quirks become one of 20 stable warning codes on
+  `msg.warnings` instead of a failure; only 4 structural problems are fatal. `toString()` always
+  writes spec-clean HL7. Strict mode turns every warning into an error for a CI validator.
+- **One-line reads.** `msg.patient`, `msg.visit`, `msg.meta`, `msg.observations()`,
+  `msg.allergies()` and the other helpers return typed values, with no segment or field numbers to
+  remember. Dot-paths (`msg.get("PID.5.1")`) and the segment tree reach everything else.
+- **Typed message overlays.** `msg.is("ADT^A01")` answers at run time and narrows the message type
+  at compile time.
+- **Datetimes without guessing.** A date keeps the precision and timezone the sender wrote, and a
+  conversion that would need a guess returns `undefined`.
+- **Builders.** `buildMessage` and the typed builders (`buildAdt`, `buildOru` and the rest) write
+  messages that parse back with no warnings; `buildAck` answers an inbound message.
+- **Validation you ask for.** A safety net for truncated or misrouted messages on every parse,
+  plus opt-in checks against HL7's published structures and against conformance profiles you write.
+- **Vendor profiles.** Eight built-in profiles, and `defineProfile()` for your own senders.
+- **Round trips that keep bytes.** A parsed field's escape sequences re-emit byte for byte.
+- **Strict TypeScript.** ES2023, `noUncheckedIndexedAccess`, ESM and CommonJS builds, Node.js 22 or
+  later. Every export carries a TSDoc summary, which your editor shows and the
+  [API reference](./api/README.md) is generated from.
 
-const msg = parseHL7(raw, profiles.epic);
-```
+## What it is not
 
-Built-ins ship for Epic, Cerner, Meditech, Athena, a generic lab, and the Visage 7 and Philips Vue
-PACS imaging systems, each authored through the same public `defineProfile()` API you'd use yourself.
+- **Not a transport.** It adds no MLLP framing and opens no socket; that is
+  [`@cosyte/mllp`](https://docs.cosyte.com/mllp).
+- **Not an interface engine.** It reports merges, delete requests and statuses; it never applies
+  them to stored data.
+- **Not a terminology service.** It reports the coding system a code claims and never checks a
+  code against LOINC, SNOMED CT or any other system. It makes no network call.
+- **Not a FHIR converter.** It is a stable source for a FHIR mapping and builds no FHIR resource
+  itself (see [the FHIR-bridge contract](./spec-notes-fhir-bridge.md)).
+- **Not a conformance certification.** A validator that finds nothing means the checks that ran
+  found nothing.
 
 ## Next
 
-- Read the **API reference** for every export, generated from source.
-- Start from the **profile starter kit** to publish your own vendor profile package.
+- [Install it](./installation.md), then work through the [quickstart](./quickstart.md).
+- [Process a lab feed](./process-a-lab-feed.md): a tutorial from a batch file to ACKs.
+- The how-to guides, from [Read patient and visit](./read-patient-and-visit.md) to
+  [Validate a message](./validate-messages.md).
+- [Testing and quality](./testing-and-quality.md) and [Performance](./performance.md): how this
+  package is tested and measured.

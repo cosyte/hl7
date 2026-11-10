@@ -1,11 +1,11 @@
 ---
 id: schema-emission
-title: "Spec notes: schema emission for the serialized projection"
-sidebar_label: Schema emission
-description: "The library authors the JSON Schema and Zod description of the object toJSON() returns, so a snapshot validator does not have to be transcribed by hand."
+title: Emit a schema for the JSON snapshot
+sidebar_label: Emit a schema
+description: "Get the JSON Schema and the Zod source for the object toJSON() returns, so a stored snapshot can be validated without writing a schema by hand."
 ---
 
-# Spec notes: schema emission for the serialized projection
+# Emit a schema for the JSON snapshot
 
 `JSON.stringify(msg)` and `msg.toJSON()` produce a snapshot of a parsed message:
 a raw-tree mirror carrying the encoding characters, the segments with their

@@ -299,3 +299,8 @@ realistic message content.
   statement that Chapter 2's acknowledgment guidance is ambiguous.
 - The official HL7-published specification is the authoritative text of record;
   the sources above are convenience mirrors and companions.
+
+## Put it to use
+
+- [Read patient, visit and message details](./read-patient-and-visit.md)
+- [Acknowledge a message](./acknowledge-messages.md)

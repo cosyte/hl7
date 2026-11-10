@@ -70,3 +70,7 @@ carry.
   [terminology.hl7.org/CodeSystem-v2-0396.html](https://terminology.hl7.org/CodeSystem-v2-0396.html);
   HL7 Vocab registry:
   [www.hl7.org/special/committees/vocab/table_0396/index.cfm](https://www.hl7.org/special/committees/vocab/table_0396/index.cfm)
+
+## Put it to use
+
+- [Read lab results, orders and timing](./read-lab-results.md)

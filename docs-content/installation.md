@@ -19,9 +19,9 @@ configuration.
 
 ## Prerequisites
 
-- **Node.js 22 or later, tested on 22, 24, and 26.** The whole `@cosyte/*` suite targets ES2023.
+- **Node.js 22 or later.** CI runs the tests on Node.js 22, 24 and 26. The package targets ES2023.
 - A package manager: `pnpm`, `npm`, or `yarn`.
-- **No runtime dependencies.** Nothing else is pulled in; the parser is Node stdlib only.
+- **No runtime dependencies.** Nothing else is installed with it; it uses only Node.js built-ins.
 
 ## Install
 
@@ -46,15 +46,17 @@ If that resolves, the install is good. Head to the [Quickstart](./quickstart.md)
 `@cosyte/hl7` is `"type": "module"` and exposes both conditions, so both of these resolve to the
 right build without extra configuration:
 
-```ts
+```ts runnable
 // ESM / TypeScript
 import { parseHL7 } from "@cosyte/hl7";
+
+typeof parseHL7; // => "function"
 ```
 
-```js
+```js no-run CommonJS, and the sample runner loads every sample as an ES module
 // CommonJS
 const { parseHL7 } = require("@cosyte/hl7");
 ```
 
-The types are published per-condition (`.d.ts` for `import`, `.d.cts` for `require`) and gated by
-`attw` on every release, so editor IntelliSense matches the build you actually load.
+The types are published per condition (`.d.ts` for `import`, `.d.cts` for `require`), and
+`pnpm attw` checks both before every release, so your editor's types match the build you load.
