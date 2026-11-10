@@ -96,13 +96,17 @@ export interface BuildOruInit extends MessageEnvelope {
   readonly observations: readonly OruObservation[];
 }
 
-/** @internal */
+/**
+ * Encode a typed composite, or an array of them, into a (possibly repeating)
+ * field; `undefined` yields `undefined`, which `assembleSegment` writes as an
+ * absent field. Callers pass the member straight in, reading it once.
+ * @internal
+ */
 function repField<K extends CompositeKind>(
   kind: K,
   value: CompositeValueByKind[K] | readonly CompositeValueByKind[K][] | undefined,
-): RawField {
-  /* v8 ignore next -- every caller in this file checks the member for undefined first and passes undefined to assembleSegment instead */
-  if (value === undefined) return { repetitions: [], isNull: false };
+): RawField | undefined {
+  if (value === undefined) return undefined;
   if (Array.isArray(value)) {
     return encodeCompositeReps(kind, value as readonly CompositeValueByKind[K][]);
   }
@@ -177,8 +181,8 @@ export function buildOru(init: BuildOruInit): Hl7Message {
       "PID",
       new Map<number, RawField | undefined>([
         [1, p.setId !== undefined ? scalarField(p.setId) : undefined],
-        [3, p.identifiers !== undefined ? repField("CX", p.identifiers) : undefined],
-        [5, p.name !== undefined ? repField("XPN", p.name) : undefined],
+        [3, repField("CX", p.identifiers)],
+        [5, repField("XPN", p.name)],
         [
           6,
           p.mothersMaidenName !== undefined
@@ -187,8 +191,8 @@ export function buildOru(init: BuildOruInit): Hl7Message {
         ],
         [7, p.birthDateTime !== undefined ? encodeComposite("TS", p.birthDateTime) : undefined],
         [8, p.administrativeSex !== undefined ? scalarField(p.administrativeSex) : undefined],
-        [11, p.address !== undefined ? repField("XAD", p.address) : undefined],
-        [13, p.phoneHome !== undefined ? repField("XTN", p.phoneHome) : undefined],
+        [11, repField("XAD", p.address)],
+        [13, repField("XTN", p.phoneHome)],
         [18, p.accountNumber !== undefined ? encodeComposite("CX", p.accountNumber) : undefined],
       ]),
     ),
@@ -217,7 +221,7 @@ export function buildOru(init: BuildOruInit): Hl7Message {
             ? encodeComposite("TS", o.observationDateTime)
             : undefined,
         ],
-        [16, o?.orderingProvider !== undefined ? repField("XCN", o.orderingProvider) : undefined],
+        [16, repField("XCN", o?.orderingProvider)],
         [25, o?.resultStatus !== undefined ? scalarField(o.resultStatus) : undefined],
       ]),
     ),

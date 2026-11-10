@@ -106,16 +106,17 @@ export function buildMshSegment(type: string, envelope: MessageEnvelope): RawSeg
 
 /**
  * Encode a single typed composite, or an array of them, into a (possibly
- * repeating) field. `undefined` yields an absent field, so an omitted optional
- * member is never a defaulted value.
+ * repeating) field. `undefined` yields `undefined`, which `assembleSegment`
+ * writes as an absent field, so an omitted optional member is never a
+ * defaulted value. Callers pass the member straight in, reading it once: a
+ * getter that answers differently on a second read cannot empty the field.
  * @internal
  */
 export function repField<K extends CompositeKind>(
   kind: K,
   value: CompositeValueByKind[K] | readonly CompositeValueByKind[K][] | undefined,
-): RawField {
-  /* v8 ignore next -- every caller checks the member for undefined first and passes undefined to assembleSegment instead */
-  if (value === undefined) return absentField();
+): RawField | undefined {
+  if (value === undefined) return undefined;
   if (Array.isArray(value)) {
     return encodeCompositeReps(kind, value as readonly CompositeValueByKind[K][]);
   }
