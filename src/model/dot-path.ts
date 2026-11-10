@@ -277,7 +277,10 @@ function findSegment(
   // folded would be the worse failure: two documented routes to one field
   // disagreeing about whether it exists.
   let seen = 0;
-  for (const s of segments) {
+  // An indexed loop: `for...of` makes an iterator and a result object per step until the function
+  // is optimized, and a path that names an absent segment reads every segment of the message.
+  for (let i = 0; i < segments.length; i++) {
+    const s = segments[i];
     if (s === undefined) continue;
     if (canonicalSegmentName(s.name) === segmentType) {
       if (seen === occurrence) return { seg: s };

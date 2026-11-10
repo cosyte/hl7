@@ -154,7 +154,10 @@ export class Scanner {
   /** The text from `start` to `end` as a segment name, reusing one already seen. */
   private name(start: number, end: number): string {
     const length = end - start;
-    for (const known of this.names) {
+    // An indexed loop: `for...of` makes an iterator and a result object per step until the
+    // function is optimized, and this runs once per segment.
+    for (let i = 0; i < this.names.length; i++) {
+      const known = this.names[i] as string;
       if (known.length === length && this.text.startsWith(known, start)) return known;
     }
     const name = this.text.slice(start, end);
@@ -248,22 +251,22 @@ export function scanMessage(
 ): ScannedMessage {
   const scanner = new Scanner(text, enc, trimFields, sink);
   const textEnd = text.endsWith("\r") ? text.length - 1 : text.length;
-  const names: string[] = [];
-  let offsets = new Uint32Array(64);
+  // Count the segments first, so both lists are allocated once at their final size: a list grown
+  // by appending copies itself as it grows, and a long message has many thousands of segments.
+  let count = 1;
+  for (let at = text.indexOf("\r"); at !== -1 && at < textEnd; at = text.indexOf("\r", at + 1)) {
+    count++;
+  }
+  const names = new Array<string>(count);
+  const offsets = new Uint32Array(count + 1);
   let start = 0;
-  for (;;) {
-    if (names.length + 1 >= offsets.length) {
-      const grown = new Uint32Array(offsets.length * 2);
-      grown.set(offsets);
-      offsets = grown;
-    }
-    offsets[names.length] = start;
+  for (let i = 0; i < count; i++) {
+    offsets[i] = start;
     const terminator = text.indexOf("\r", start);
     const end = terminator === -1 || terminator > textEnd ? textEnd : terminator;
-    names.push(scanner.segment(start, end, names.length));
+    names[i] = scanner.segment(start, end, i);
     start = end + 1;
-    if (end === textEnd) break;
   }
-  offsets[names.length] = start;
-  return { offsets: offsets.slice(0, names.length + 1), names };
+  offsets[count] = start;
+  return { offsets, names };
 }

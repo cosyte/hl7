@@ -17,6 +17,12 @@ The numbers for the current release are in [Current numbers](#current-numbers) b
 Two things run today: a benchmark you can run anywhere, and a regression guard that runs in CI on
 every pull request.
 
+What a parsed message holds depends on what you read. `parseHL7` builds a segment's tree the first
+time something reads that segment, so a long report read at a few segments holds those few, and
+`{ lazy: false }` builds every segment during the parse.
+[Read a large message without building all of it](./read-large-messages.md) says which reads build
+everything.
+
 ## The benchmark
 
 `pnpm bench` (`scripts/bench.ts`) measures:
@@ -48,12 +54,12 @@ two measurements taken in the same process, so the speed of the runner and cover
 instrumentation cancel out, instead of holding a fixed floor that would either catch nothing or
 fail on a slow runner.
 
-| Guard | Fails when | Why this form |
-| --- | --- | --- |
-| Linear in message count | parsing 4 times the messages takes more than 10 times as long | 10 is 2.5 times the linear ideal of 4, room for warm-up and scheduler noise, and well under the 16 a quadratic regression gives |
-| Linear in message size | one message with 4 times the OBX lines takes more than 10 times as long to parse | the count guard holds size fixed, so it cannot see a tokenizer that is quadratic in message length; this one can |
-| Streaming read-ahead | `parseStream` pulls more than 2 chunks ahead of what it has yielded | a count, so it does not depend on garbage collection timing or the runner's memory; a stream that buffered the file would read ahead toward all of it |
-| Liveness | parsing falls below 40 messages a second | far below real throughput even under coverage instrumentation, so it trips only on a hang |
+| Guard                   | Fails when                                                                       | Why this form                                                                                                                                         |
+| ----------------------- | -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Linear in message count | parsing 4 times the messages takes more than 10 times as long                    | 10 is 2.5 times the linear ideal of 4, room for warm-up and scheduler noise, and well under the 16 a quadratic regression gives                       |
+| Linear in message size  | one message with 4 times the OBX lines takes more than 10 times as long to parse | the count guard holds size fixed, so it cannot see a tokenizer that is quadratic in message length; this one can                                      |
+| Streaming read-ahead    | `parseStream` pulls more than 2 chunks ahead of what it has yielded              | a count, so it does not depend on garbage collection timing or the runner's memory; a stream that buffered the file would read ahead toward all of it |
+| Liveness                | parsing falls below 40 messages a second                                         | far below real throughput even under coverage instrumentation, so it trips only on a hang                                                             |
 
 Both linear guards take the minimum of several passes after a warm-up (noise only ever adds time),
 interleave the small and large passes so a change in load lands on both sides, and subtract the

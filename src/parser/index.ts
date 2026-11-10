@@ -24,7 +24,7 @@ import { emitIfFramed, stripMllp } from "./mllp.js";
 import { canonicalCharset } from "./charset.js";
 import { normalize, normalizeBuffer } from "./normalize.js";
 import { scanMessage } from "./scan.js";
-import { SegmentSource } from "./segment-source.js";
+import { PendingSegment, SegmentSource } from "./segment-source.js";
 import { snippet as segmentSnippet } from "./segments.js";
 import { alteredFieldsBySegment, locateInteriorFramingBytes } from "./wire-fidelity.js";
 import type { RawFieldPosition } from "./wire-fidelity.js";
@@ -72,6 +72,7 @@ const OPTIONS_ONLY_KEYS: readonly (keyof ParseOptions)[] = [
   "trimFields",
   "profile",
   "charset",
+  "lazy",
 ];
 
 /**
@@ -531,7 +532,14 @@ export function parseHL7(
       mllpResult.wasFramed ? locateInteriorFramingBytes(unstripped, encoding.field) : [],
     ),
   );
-  const rawSegments: readonly RawSegment[] = segmentNames.map((_name, i) => source.segment(i));
+  // Lazy (the default): each segment stays a pending entry, built on first read. Eager: every
+  // segment is built now. MSH is built either way: the version and the message type come from it.
+  const rawSegments: readonly RawSegment[] =
+    options.lazy === false
+      ? segmentNames.map((_name, i) => source.segment(i))
+      : segmentNames.map((name, i) =>
+          i === 0 ? source.segment(0) : new PendingSegment(name, source, i),
+        );
 
   // Step 11.5: Emit UNKNOWN_SEGMENT for any non-standard segment name that
   // is not declared in the active profile (D-31), and SEGMENT_CASE for any
@@ -600,7 +608,9 @@ export function parseHL7(
     // expectation, so the safety net does not report a segment as missing when
     // it is present and merely miscased.
     const presentSegmentNames = new Set<string>();
-    for (const name of segmentNames) presentSegmentNames.add(canonicalSegmentName(name));
+    for (let i = 0; i < segmentNames.length; i++) {
+      presentSegmentNames.add(canonicalSegmentName(segmentNames[i] as string));
+    }
     const structure = analyzeMessageStructure(messageCode, triggerEvent, presentSegmentNames);
     const messageType = triggerEvent !== "" ? `${messageCode}^${triggerEvent}` : messageCode;
     // The structure id is registry data, not anything read off the message, so

@@ -4,23 +4,17 @@
     {
       "type": "category",
       "label": "Installation",
-      "items": [
-        "installation"
-      ]
+      "items": ["installation"]
     },
     {
       "type": "category",
       "label": "Quickstart",
-      "items": [
-        "quickstart"
-      ]
+      "items": ["quickstart"]
     },
     {
       "type": "category",
       "label": "Tutorials",
-      "items": [
-        "process-a-lab-feed"
-      ]
+      "items": ["process-a-lab-feed"]
     },
     {
       "type": "category",
@@ -28,6 +22,7 @@
       "items": [
         "read-patient-and-visit",
         "read-lab-results",
+        "read-large-messages",
         "read-clinical-lists",
         "handle-patient-merges",
         "read-dates-and-times",
@@ -76,18 +71,12 @@
     {
       "type": "category",
       "label": "Reference",
-      "items": [
-        "warning-and-fatal-codes",
-        "date-token-grammar",
-        "built-in-profiles"
-      ]
+      "items": ["warning-and-fatal-codes", "date-token-grammar", "built-in-profiles"]
     },
     {
       "type": "category",
       "label": "Troubleshooting",
-      "items": [
-        "troubleshooting"
-      ]
+      "items": ["troubleshooting"]
     },
     "testing-and-quality",
     "performance"

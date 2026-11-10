@@ -48,11 +48,6 @@ export class SegmentSource {
     this.built = new Array<RawSegment | undefined>(offsets.length - 1);
   }
 
-  /** How many segments the text holds. */
-  public get count(): number {
-    return this.built.length;
-  }
-
   /** Segment `index`'s tree, built the first time it is asked for and the same object after. */
   public segment(index: number): RawSegment {
     const cached = this.built[index];
@@ -70,4 +65,50 @@ export class SegmentSource {
     this.built[index] = segment;
     return segment;
   }
+}
+
+/**
+ * A segment of a lazily parsed message that has not been read yet: its name, known from the scan,
+ * and where to build it from. It stands in a message's own list of segments until something reads
+ * the segment, and never reaches a caller: `Hl7Message.rawSegments` and `Segment.raw` hand out the
+ * built segment instead. Reading `fields` builds the segment (once, through the source's cache), so
+ * code that treats it as the segment it stands for still reads the right tree.
+ *
+ * @internal
+ */
+export class PendingSegment implements RawSegment {
+  /**
+   * @param name The segment's name, from the scan.
+   * @param source The message's segment source.
+   * @param index The segment's index in the source.
+   */
+  public constructor(
+    public readonly name: string,
+    private readonly source: SegmentSource,
+    private readonly index: number,
+  ) {}
+
+  /** The built segment's fields. */
+  public get fields(): readonly RawField[] {
+    return this.resolve().fields;
+  }
+
+  /** The built segment this entry stands for: the same object on every call. */
+  public resolve(): RawSegment {
+    return this.source.segment(this.index);
+  }
+}
+
+/**
+ * `segment` itself, or the built segment it stands for when it is a pending one.
+ *
+ * @example
+ * ```ts
+ * const raw = resolveSegment(entry); // a plain RawSegment
+ * ```
+ *
+ * @internal
+ */
+export function resolveSegment(segment: RawSegment): RawSegment {
+  return segment instanceof PendingSegment ? segment.resolve() : segment;
 }

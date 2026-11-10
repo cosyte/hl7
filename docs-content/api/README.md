@@ -504,6 +504,15 @@ field is populated when a profile is passed, and is `undefined`
 otherwise. Segment/Field wrappers are cached per-message and
 invalidated wholesale by the mutation methods.
 
+A message parsed lazily (the default; see `ParseOptions.lazy`) builds a
+segment's tree the first time something reads that segment, and keeps it.
+Every warning was already reported by the parse. `get(path)` builds the
+one segment its path reaches; `segments()`, `part()` and `allSegments()`
+build a segment when its fields are first read; an edit builds the segment
+it changes. `rawSegments`, `toString()`, `toJSON()`, `prettyPrint()` and
+the helpers that read every segment of a type (for example
+`observations()`) build every segment they reach.
+
 #### Example
 
 ```ts
@@ -563,15 +572,6 @@ added up to.
 ##### profile
 
 > `readonly` **profile**: \{ `lineage`: readonly `string`[]; `name`: `string`; \} \| `undefined`
-
-##### rawSegments
-
-> `readonly` **rawSegments**: readonly [`RawSegment`](#rawsegment)[]
-
-Raw positional tree produced by the parser. 1-indexed per HL7 convention
-(`fields[0]` is the segment-name / MSH separator placeholder slot). Use
-`segments(type)` / `allSegments()` for typed wrapper access: this field
-is exposed for advanced callers that need the raw tree directly.
 
 ##### version
 
@@ -636,6 +636,25 @@ console.log(msg.patient?.dateOfBirth?.raw); // fidelity TS: e.g. "19800115"
 ###### Returns
 
 [`Patient`](#patient-8) \| `undefined`
+
+##### rawSegments
+
+###### Get Signature
+
+> **get** **rawSegments**(): readonly [`RawSegment`](#rawsegment)[]
+
+Raw positional tree produced by the parser. 1-indexed per HL7 convention
+(`fields[0]` is the segment-name / MSH separator placeholder slot). Use
+`segments(type)` / `allSegments()` for typed wrapper access: this field
+is exposed for advanced callers that need the raw tree directly.
+
+On a lazily parsed message (the default), the first read builds every segment that has not
+been read yet, so the whole tree is held from then on. To read a few segments of a long
+message, use `segments(type)`, `part(type)` or `get(path)`, which build only what they reach.
+
+###### Returns
+
+readonly [`RawSegment`](#rawsegment)[]
 
 ##### structure
 
@@ -1452,7 +1471,8 @@ msg.setField("PID.4[2].1", "MRN2");   // create third repetition of PID-4
 
 Emit this message as a structured `SerializedMessage` JSON projection.
 Invoked automatically by `JSON.stringify(msg)`.
-Re-walks `rawSegments` on every call (no caching). Mirrors the
+Re-walks `rawSegments` on every call (no caching), so on a lazily
+parsed message it builds every segment not read yet. Mirrors the
 raw tree one-for-one, preserves `isNull`, always includes
 `warnings: []`, and includes `profile: { name, lineage }` only when
 `this.profile` is truthy. Pure: never warns, never throws.
@@ -1476,7 +1496,8 @@ console.log(JSON.stringify(msg));     // same content, auto-invokes toJSON
 > **toString**(): `string`
 
 Emit this message as spec-clean HL7. Re-walks `rawSegments`
-on every call (no caching). Segments are joined with `\r`;
+on every call (no caching), so on a lazily parsed message it builds
+every segment not read yet. Segments are joined with `\r`;
 MSH-1 and MSH-2 are inlined verbatim from
 `this.encodingCharacters`; every field string passes through
 `reescape`. `RawField.isNull === true` is preserved as the
@@ -1849,20 +1870,6 @@ declared any.
 
 The 5 encoding characters for this message. Exposed for composite parsers.
 
-##### fields
-
-> `readonly` **fields**: readonly [`RawField`](#rawfield)[]
-
-Reference to the underlying `RawSegment.fields`: 1-indexed per HL7 convention.
-
-##### raw
-
-> `readonly` **raw**: [`RawSegment`](#rawsegment)
-
-**`Internal`**
-
-The full `RawSegment` this wrapper wraps. Exposed for mutation methods.
-
 ##### type
 
 > `readonly` **type**: `string`
@@ -1889,6 +1896,35 @@ unbounded value, and it is what serialization emits, so the byte-verbatim
 round-trip is unaffected. One consequence worth knowing: a segment whose
 raw name fails the shape (a 4-character vendor Z-segment, which HL7 v2
 Ch. 2 §2.5 does not permit) is not matched by `msg.segments(name)`.
+
+#### Accessors
+
+##### fields
+
+###### Get Signature
+
+> **get** **fields**(): readonly [`RawField`](#rawfield)[]
+
+Reference to the underlying `RawSegment.fields`: 1-indexed per HL7 convention.
+
+###### Returns
+
+readonly [`RawField`](#rawfield)[]
+
+##### raw
+
+###### Get Signature
+
+> **get** **raw**(): [`RawSegment`](#rawsegment)
+
+**`Internal`**
+
+The full `RawSegment` this wrapper wraps. Exposed for mutation methods. On a lazily parsed
+message, the first read builds this segment's tree (and only this segment's).
+
+###### Returns
+
+[`RawSegment`](#rawsegment)
 
 #### Methods
 
@@ -8176,6 +8212,32 @@ you have not described stays `valid: false` rather than being guessed at.
 Tokens come from `SUPPORTED_DATE_TOKENS`; an entry with no supported token
 matches nothing rather than throwing.
 
+##### lazy?
+
+> `readonly` `optional` **lazy?**: `boolean`
+
+Build each segment's tree the first time something reads it (the default, `true`), or every
+segment's tree during the parse (`false`).
+
+Either way the parse reads the whole message once and reports every warning before it
+returns: `warnings`, `strict` and `onWarning` behave the same in both modes, and a problem is
+never reported later, on first read. A lazy parse keeps the message text and where each
+segment starts, and builds a segment's tree when `segments()`, `part()`, `get()`, a helper or
+an edit first reads it, then keeps it on the message. Reading a few segments of a long
+message builds those few.
+
+Some reads build every segment: `rawSegments`, `toString()`, `toJSON()`, `prettyPrint()`,
+and a helper that reads every segment of a type (such as `observations()`, which reads each
+OBX). Pass `false` to build the whole tree during the parse instead, for example to keep the
+cost of the build inside the parse call.
+
+###### Example
+
+```ts
+import { parseHL7 } from "@cosyte/hl7";
+const eager = parseHL7(raw, { lazy: false });
+```
+
 ##### onWarning?
 
 > `readonly` `optional` **onWarning?**: [`OnWarningCallback`](#onwarningcallback)
@@ -8651,19 +8713,6 @@ added up to.
 
 [`Hl7Message`](#hl7message).[`profile`](#profile)
 
-##### rawSegments
-
-> `readonly` **rawSegments**: readonly [`RawSegment`](#rawsegment)[]
-
-Raw positional tree produced by the parser. 1-indexed per HL7 convention
-(`fields[0]` is the segment-name / MSH separator placeholder slot). Use
-`segments(type)` / `allSegments()` for typed wrapper access: this field
-is exposed for advanced callers that need the raw tree directly.
-
-###### Inherited from
-
-[`ProfiledMessage`](#profiledmessage).[`rawSegments`](#rawsegments-1)
-
 ##### version
 
 > `readonly` **version**: `string`
@@ -8743,6 +8792,29 @@ console.log(msg.patient?.dateOfBirth?.raw); // fidelity TS: e.g. "19800115"
 ###### Inherited from
 
 [`Hl7Message`](#hl7message).[`patient`](#patient)
+
+##### rawSegments
+
+###### Get Signature
+
+> **get** **rawSegments**(): readonly [`RawSegment`](#rawsegment)[]
+
+Raw positional tree produced by the parser. 1-indexed per HL7 convention
+(`fields[0]` is the segment-name / MSH separator placeholder slot). Use
+`segments(type)` / `allSegments()` for typed wrapper access: this field
+is exposed for advanced callers that need the raw tree directly.
+
+On a lazily parsed message (the default), the first read builds every segment that has not
+been read yet, so the whole tree is held from then on. To read a few segments of a long
+message, use `segments(type)`, `part(type)` or `get(path)`, which build only what they reach.
+
+###### Returns
+
+readonly [`RawSegment`](#rawsegment)[]
+
+###### Inherited from
+
+[`ProfiledMessage`](#profiledmessage).[`rawSegments`](#rawsegments-1)
 
 ##### structure
 
@@ -9639,7 +9711,8 @@ msg.setField("PID.4[2].1", "MRN2");   // create third repetition of PID-4
 
 Emit this message as a structured `SerializedMessage` JSON projection.
 Invoked automatically by `JSON.stringify(msg)`.
-Re-walks `rawSegments` on every call (no caching). Mirrors the
+Re-walks `rawSegments` on every call (no caching), so on a lazily
+parsed message it builds every segment not read yet. Mirrors the
 raw tree one-for-one, preserves `isNull`, always includes
 `warnings: []`, and includes `profile: { name, lineage }` only when
 `this.profile` is truthy. Pure: never warns, never throws.
@@ -9667,7 +9740,8 @@ console.log(JSON.stringify(msg));     // same content, auto-invokes toJSON
 > **toString**(): `string`
 
 Emit this message as spec-clean HL7. Re-walks `rawSegments`
-on every call (no caching). Segments are joined with `\r`;
+on every call (no caching), so on a lazily parsed message it builds
+every segment not read yet. Segments are joined with `\r`;
 MSH-1 and MSH-2 are inlined verbatim from
 `this.encodingCharacters`; every field string passes through
 `reescape`. `RawField.isNull === true` is preserved as the
@@ -10984,19 +11058,6 @@ MSH-derived metadata, with the message type at the key's literal types.
 
 [`Hl7Message`](#hl7message).[`profile`](#profile)
 
-##### rawSegments
-
-> `readonly` **rawSegments**: readonly [`RawSegment`](#rawsegment)[]
-
-Raw positional tree produced by the parser. 1-indexed per HL7 convention
-(`fields[0]` is the segment-name / MSH separator placeholder slot). Use
-`segments(type)` / `allSegments()` for typed wrapper access: this field
-is exposed for advanced callers that need the raw tree directly.
-
-###### Inherited from
-
-[`ProfiledMessage`](#profiledmessage).[`rawSegments`](#rawsegments-1)
-
 ##### version
 
 > `readonly` **version**: `string`
@@ -11049,6 +11110,29 @@ console.log(msg.patient?.dateOfBirth?.raw); // fidelity TS: e.g. "19800115"
 ###### Inherited from
 
 [`Hl7Message`](#hl7message).[`patient`](#patient)
+
+##### rawSegments
+
+###### Get Signature
+
+> **get** **rawSegments**(): readonly [`RawSegment`](#rawsegment)[]
+
+Raw positional tree produced by the parser. 1-indexed per HL7 convention
+(`fields[0]` is the segment-name / MSH separator placeholder slot). Use
+`segments(type)` / `allSegments()` for typed wrapper access: this field
+is exposed for advanced callers that need the raw tree directly.
+
+On a lazily parsed message (the default), the first read builds every segment that has not
+been read yet, so the whole tree is held from then on. To read a few segments of a long
+message, use `segments(type)`, `part(type)` or `get(path)`, which build only what they reach.
+
+###### Returns
+
+readonly [`RawSegment`](#rawsegment)[]
+
+###### Inherited from
+
+[`ProfiledMessage`](#profiledmessage).[`rawSegments`](#rawsegments-1)
 
 ##### structure
 
@@ -11948,7 +12032,8 @@ msg.setField("PID.4[2].1", "MRN2");   // create third repetition of PID-4
 
 Emit this message as a structured `SerializedMessage` JSON projection.
 Invoked automatically by `JSON.stringify(msg)`.
-Re-walks `rawSegments` on every call (no caching). Mirrors the
+Re-walks `rawSegments` on every call (no caching), so on a lazily
+parsed message it builds every segment not read yet. Mirrors the
 raw tree one-for-one, preserves `isNull`, always includes
 `warnings: []`, and includes `profile: { name, lineage }` only when
 `this.profile` is truthy. Pure: never warns, never throws.
@@ -11976,7 +12061,8 @@ console.log(JSON.stringify(msg));     // same content, auto-invokes toJSON
 > **toString**(): `string`
 
 Emit this message as spec-clean HL7. Re-walks `rawSegments`
-on every call (no caching). Segments are joined with `\r`;
+on every call (no caching), so on a lazily parsed message it builds
+every segment not read yet. Segments are joined with `\r`;
 MSH-1 and MSH-2 are inlined verbatim from
 `this.encodingCharacters`; every field string passes through
 `reescape`. `RawField.isNull === true` is preserved as the

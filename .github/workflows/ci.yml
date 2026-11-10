@@ -60,6 +60,11 @@ jobs:
       # The build, test, lint, typecheck and format scripts stay the exact `cosyte-process` bodies.
       - name: Process wiring (cosyte-process check)
         run: pnpm check:process
+      # The whole suite again with `parseHL7` building every segment during the parse
+      # (`{ lazy: false }`): the shared `verify` job runs it with the default, a lazy parse, and
+      # this run keeps the eager build passing the same tests.
+      - name: Tests with the eager parse (pnpm test:eager)
+        run: pnpm test:eager
       - name: Build (examples + kit import the built package)
         run: pnpm build
       - name: Examples (smoke)

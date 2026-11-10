@@ -2168,6 +2168,7 @@
       "members": [
         "charset?: string | undefined",
         "dateFormats?: readonly string[] | undefined",
+        "lazy?: boolean | undefined",
         "onWarning?: OnWarningCallback | undefined",
         "profile?: Profile | null | undefined",
         "strict?: boolean | undefined",

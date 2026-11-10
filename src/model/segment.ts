@@ -10,6 +10,7 @@
 
 import { Field } from "./field.js";
 import { canonicalSegmentName } from "../parser/known-segments.js";
+import { resolveSegment } from "../parser/segment-source.js";
 import { boundedIdentifier } from "../parser/tokens.js";
 import type { EncodingCharacters, RawField, RawSegment } from "../parser/types.js";
 
@@ -64,17 +65,18 @@ export class Segment<FieldName extends string = string> {
    */
   public readonly type: string;
 
-  /** Reference to the underlying `RawSegment.fields`: 1-indexed per HL7 convention. */
-  public readonly fields: readonly RawField[];
-
   /** The 5 encoding characters for this message. Exposed for composite parsers. @internal */
   public readonly enc: EncodingCharacters;
 
   /** Absolute index of this segment in `Hl7Message.rawSegments[]`. Used for position tracking. @internal */
   public readonly absoluteIndex: number;
 
-  /** The full `RawSegment` this wrapper wraps. Exposed for mutation methods. @internal */
-  public readonly raw: RawSegment;
+  /**
+   * The `RawSegment` this wrapper wraps, or, for a segment of a lazily parsed message that has
+   * not been read yet, the pending entry that builds it.
+   * @internal
+   */
+  private readonly _raw: RawSegment;
 
   /**
    * Lookup map from profile-declared field name → 1-indexed HL7 position.
@@ -120,7 +122,7 @@ export class Segment<FieldName extends string = string> {
     customFields?: Readonly<Record<string, number>>,
     dateFormats?: readonly string[],
   ) {
-    this.raw = raw;
+    this._raw = raw;
     // Canonicalized THEN bounded, in that order, and both steps matter.
     //
     // Canonical because `type` is what every lookup compares against: not just
@@ -140,11 +142,25 @@ export class Segment<FieldName extends string = string> {
     // of names passes it. `raw.name` keeps the verbatim text for the byte-exact
     // round-trip; see the `type` field JSDoc.
     this.type = boundedIdentifier(canonicalSegmentName(raw.name), "segmentId");
-    this.fields = raw.fields;
     this.enc = enc;
     this.absoluteIndex = absoluteIndex;
     this.customFields = customFields;
     this.dateFormats = dateFormats ?? EMPTY_DATE_FORMATS;
+  }
+
+  /**
+   * The full `RawSegment` this wrapper wraps. Exposed for mutation methods. On a lazily parsed
+   * message, the first read builds this segment's tree (and only this segment's).
+   * @internal
+   */
+  public get raw(): RawSegment {
+    // A pending entry resolves through its source's cache: the same built segment every read.
+    return resolveSegment(this._raw);
+  }
+
+  /** Reference to the underlying `RawSegment.fields`: 1-indexed per HL7 convention. */
+  public get fields(): readonly RawField[] {
+    return this.raw.fields;
   }
 
   /**

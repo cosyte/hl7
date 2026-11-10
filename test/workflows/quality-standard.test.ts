@@ -137,7 +137,12 @@ describe("the benchmark suite", () => {
     const { default: suite } = await importModule<{
       default: { name: string; benchmarks: Benchmark[] };
     }>("bench", "parse.bench.mjs");
-    expect(suite.benchmarks.map((b) => b.name)).toEqual(["parseHL7", "parseHL7, then toString"]);
+    expect(suite.benchmarks.map((b) => b.name)).toEqual([
+      "parseHL7",
+      "parseHL7, then read MSH, PID, PV1 and five OBX",
+      "parseHL7 with { lazy: false }",
+      "parseHL7, then toString",
+    ]);
     for (const benchmark of suite.benchmarks) {
       expect(benchmark.sizes.map((s) => s.label)).toEqual([
         "ADT^A01, 280 B",
@@ -168,6 +173,20 @@ describe("the benchmark suite", () => {
       // make every mutant in the parser pay for a 4 MiB parse.
       if (size.compare) expect(parseHL7(first).warnings).toEqual([]);
     }
+  });
+
+  it("reads what most readers read, and finds it in every compared corpus", async () => {
+    const { default: suite, readTypical } = await importModule<{
+      default: { benchmarks: Benchmark[] };
+      readTypical: (message: unknown) => number;
+    }>("bench", "parse.bench.mjs");
+    const [parse] = suite.benchmarks;
+    const found = (parse?.sizes ?? [])
+      .filter((size) => size.compare)
+      .map((size) => readTypical(parseHL7(size.build().inputs[0] ?? "")));
+    // ADT: MSH-10, PID-3 and PV1-3. Result report: MSH-10, PID-3 and five OBX-5. Document: MSH-10,
+    // PID-3 and the note's OBX-5 (the document's OBX-5 starts with an empty component).
+    expect(found).toEqual([3, 7, 3]);
   });
 
   it("carries its large document in one OBX of value type ED, as base64 the parser reads whole", async () => {

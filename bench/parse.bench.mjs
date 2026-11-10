@@ -137,15 +137,50 @@ function sizes() {
   }));
 }
 
+/**
+ * What most readers of a message read: MSH, PID, PV1 and the first five OBX. A message without one
+ * of them reads as absent, which is a read too. Returns how many values it found.
+ */
+export function readTypical(message) {
+  const values = [
+    message.part("MSH")?.field(10).value,
+    message.part("PID")?.field(3).value,
+    message.part("PV1")?.field(3).value,
+    ...message
+      .segments("OBX")
+      .slice(0, 5)
+      .map((obx) => obx.field(5).value),
+  ];
+  return values.filter((v) => v !== undefined && v !== "").length;
+}
+
+// A parse builds each segment's tree when something first reads it, unless `{ lazy: false }` asks
+// for the whole tree during the parse. A base build from before that option ignores it and builds
+// the whole tree, so every benchmark below compares the head against the eager parse of the base.
 export default defineSuite({
   name: "@cosyte/hl7 parse",
   benchmarks: [
     defineBenchmark({
-      // The lenient parse every caller starts with.
+      // The lenient parse every caller starts with. `weigh` runs inside the timed loop, so it
+      // reads the version, which a lazy parse has already built, rather than every segment.
       name: "parseHL7",
       sizes: sizes(),
       bind: (hl7) => (text) => hl7.parseHL7(text),
-      weigh: (message) => message.rawSegments.length,
+      weigh: (message) => message.version.length,
+    }),
+    defineBenchmark({
+      // The parse, then the few segments most readers read.
+      name: "parseHL7, then read MSH, PID, PV1 and five OBX",
+      sizes: sizes(),
+      bind: (hl7) => (text) => readTypical(hl7.parseHL7(text)),
+      weigh: (found) => found,
+    }),
+    defineBenchmark({
+      // The whole tree built during the parse.
+      name: "parseHL7 with { lazy: false }",
+      sizes: sizes(),
+      bind: (hl7) => (text) => hl7.parseHL7(text, { lazy: false }),
+      weigh: (message) => message.version.length,
     }),
     defineBenchmark({
       // Parse, then serialize back to text: the round trip an interface engine makes on a message

@@ -21,6 +21,7 @@ import type {
   RawSegment,
 } from "../parser/types.js";
 import { canonicalSegmentName } from "../parser/known-segments.js";
+import { PendingSegment, resolveSegment } from "../parser/segment-source.js";
 import { boundedIdentifier } from "../parser/tokens.js";
 import type { Hl7ParseWarning } from "../parser/warnings.js";
 import { allergies as walkAllergies } from "../helpers/allergies.js";
@@ -126,7 +127,7 @@ function segmentFieldMap(
  *
  * The init key is named `segments` (not `rawSegments`) so parser code that
  * constructs `Hl7Message` does not need to change. Inside
- * the class body the raw tree is stored on `this.rawSegments`.
+ * the class body the list is kept privately and handed out as `rawSegments`.
  *
  * @internal
  */
@@ -174,6 +175,15 @@ export interface Hl7MessageInit {
  * otherwise. Segment/Field wrappers are cached per-message and
  * invalidated wholesale by the mutation methods.
  *
+ * A message parsed lazily (the default; see `ParseOptions.lazy`) builds a
+ * segment's tree the first time something reads that segment, and keeps it.
+ * Every warning was already reported by the parse. `get(path)` builds the
+ * one segment its path reaches; `segments()`, `part()` and `allSegments()`
+ * build a segment when its fields are first read; an edit builds the segment
+ * it changes. `rawSegments`, `toString()`, `toJSON()`, `prettyPrint()` and
+ * the helpers that read every segment of a type (for example
+ * `observations()`) build every segment they reach.
+ *
  * @example
  * ```ts
  * import { parseHL7 } from "@cosyte/hl7";
@@ -187,12 +197,18 @@ export interface Hl7MessageInit {
  */
 export class Hl7Message {
   /**
-   * Raw positional tree produced by the parser. 1-indexed per HL7 convention
-   * (`fields[0]` is the segment-name / MSH separator placeholder slot). Use
-   * `segments(type)` / `allSegments()` for typed wrapper access: this field
-   * is exposed for advanced callers that need the raw tree directly.
+   * The message's segments in order. On a lazily parsed message an entry may be a pending one,
+   * built on first read; `rawSegments` hands out only built segments.
+   * @internal
    */
-  public readonly rawSegments: readonly RawSegment[];
+  private _segments: readonly RawSegment[];
+
+  /**
+   * Whether every entry of `_segments` is known to be built, so `rawSegments` can return the list
+   * itself. Reset by every edit.
+   * @internal
+   */
+  private _allBuilt = false;
 
   public readonly encodingCharacters: EncodingCharacters;
   /**
@@ -293,7 +309,7 @@ export class Hl7Message {
    * @internal
    */
   public constructor(init: Hl7MessageInit) {
-    this.rawSegments = init.segments;
+    this._segments = init.segments;
     this.encodingCharacters = init.encodingCharacters;
     // Bounded for the same reason as `Segment.type`: this is the version the
     // model ASSERTS, and consumers label with it. `meta.version` keeps MSH-12
@@ -325,6 +341,26 @@ export class Hl7Message {
   }
 
   /**
+   * Raw positional tree produced by the parser. 1-indexed per HL7 convention
+   * (`fields[0]` is the segment-name / MSH separator placeholder slot). Use
+   * `segments(type)` / `allSegments()` for typed wrapper access: this field
+   * is exposed for advanced callers that need the raw tree directly.
+   *
+   * On a lazily parsed message (the default), the first read builds every segment that has not
+   * been read yet, so the whole tree is held from then on. To read a few segments of a long
+   * message, use `segments(type)`, `part(type)` or `get(path)`, which build only what they reach.
+   */
+  public get rawSegments(): readonly RawSegment[] {
+    if (!this._allBuilt) {
+      if (this._segments.some((s) => s instanceof PendingSegment)) {
+        this._segments = this._segments.map(resolveSegment);
+      }
+      this._allBuilt = true;
+    }
+    return this._segments;
+  }
+
+  /**
    * Resolve a dot-path (e.g. `PID.5.1`, `OBX[2].5`, `PID.3[0].1`) to its
    * decoded leaf string (unescaped once at parse: never re-unescaped on
    * read). Returns `undefined` when the path doesn't
@@ -341,7 +377,7 @@ export class Hl7Message {
    * ```
    */
   public get(path: string): string | undefined {
-    return resolvePath(path, this.rawSegments, this.encodingCharacters);
+    return resolvePath(path, this._segments, this.encodingCharacters);
   }
 
   /**
@@ -403,7 +439,14 @@ export class Hl7Message {
     // Keyed by the canonical name so both spellings share one entry and the
     // D-11 array-identity guarantee does not split across them.
     const all = this.allSegments();
-    const filtered: readonly Segment[] = all.filter((s) => s.type === canonical);
+    // Counted first, then filled, so the list is allocated once at its final size.
+    let matches = 0;
+    for (let i = 0; i < all.length; i++) if ((all[i] as Segment).type === canonical) matches++;
+    const filtered = new Array<Segment>(matches);
+    for (let i = 0, k = 0; k < matches; i++) {
+      const s = all[i] as Segment;
+      if (s.type === canonical) filtered[k++] = s;
+    }
     this._segmentsByType.set(canonical, filtered);
     return filtered;
   }
@@ -423,9 +466,12 @@ export class Hl7Message {
    */
   public allSegments(): readonly Segment[] {
     if (this._allSegments !== undefined) return this._allSegments;
-    const built: Segment[] = [];
-    for (let i = 0; i < this.rawSegments.length; i++) {
-      const raw = this.rawSegments[i];
+    // Allocated once at its final size: a list grown by `push` copies itself as it grows, and a
+    // long message has many thousands of segments.
+    const built = new Array<Segment>(this._segments.length);
+    let count = 0;
+    for (let i = 0; i < this._segments.length; i++) {
+      const raw = this._segments[i];
       if (raw === undefined) continue;
       // D-16: hand each Segment its per-segment customFields slice so
       // `seg.get(name)` can resolve named positions.
@@ -448,8 +494,9 @@ export class Hl7Message {
       // under exactOptionalPropertyTypes), and `Segment` assigns it to a
       // `... | undefined` field either way, so the conditional pass the 4th
       // argument used to need collapses to one call.
-      built.push(new Segment(raw, this.encodingCharacters, i, customFields, this.dateFormats));
+      built[count++] = new Segment(raw, this.encodingCharacters, i, customFields, this.dateFormats);
     }
+    built.length = count;
     this._allSegments = built;
     return built;
   }
@@ -863,7 +910,8 @@ export class Hl7Message {
 
   /**
    * Emit this message as spec-clean HL7. Re-walks `rawSegments`
-   * on every call (no caching). Segments are joined with `\r`;
+   * on every call (no caching), so on a lazily parsed message it builds
+   * every segment not read yet. Segments are joined with `\r`;
    * MSH-1 and MSH-2 are inlined verbatim from
    * `this.encodingCharacters`; every field string passes through
    * `reescape`. `RawField.isNull === true` is preserved as the
@@ -883,7 +931,8 @@ export class Hl7Message {
   /**
    * Emit this message as a structured `SerializedMessage` JSON projection.
    * Invoked automatically by `JSON.stringify(msg)`.
-   * Re-walks `rawSegments` on every call (no caching). Mirrors the
+   * Re-walks `rawSegments` on every call (no caching), so on a lazily
+   * parsed message it builds every segment not read yet. Mirrors the
    * raw tree one-for-one, preserves `isNull`, always includes
    * `warnings: []`, and includes `profile: { name, lineage }` only when
    * `this.profile` is truthy. Pure: never warns, never throws.
@@ -970,13 +1019,14 @@ export class Hl7Message {
     let seen = 0;
     let segIdx = -1;
     let seg: RawSegment | undefined;
-    for (let i = 0; i < this.rawSegments.length; i++) {
-      const s = this.rawSegments[i];
+    for (let i = 0; i < this._segments.length; i++) {
+      const s = this._segments[i];
       if (s === undefined) continue;
       if (canonicalSegmentName(s.name) === targetName) {
         if (seen === parsed.segmentIndex) {
           segIdx = i;
-          seg = s;
+          // An edit builds its own segment first, and only that one.
+          seg = resolveSegment(s);
           break;
         }
         seen++;
@@ -994,10 +1044,9 @@ export class Hl7Message {
     const rawFieldIndex = parsed.segmentType === "MSH" ? parsed.fieldIndex - 1 : parsed.fieldIndex;
 
     // Rebuild the affected path from leaf to root, keeping every Raw* shape
-    // structurally immutable. The only readonly bypass is reassigning the
-    // `rawSegments` reference on `this`: per D-16, the tree is mutable
-    // through the mutation API.
-    const mutSegments = toMutableArray(this.rawSegments);
+    // structurally immutable. The only bypass is replacing the segment list
+    // on `this`: per D-16, the tree is mutable through the mutation API.
+    const mutSegments = toMutableArray(this._segments);
 
     const mutFields = toMutableArray(seg.fields);
     while (mutFields.length <= rawFieldIndex) {
@@ -1036,9 +1085,9 @@ export class Hl7Message {
     const newSeg: RawSegment = { name: seg.name, fields: mutFields };
     mutSegments[segIdx] = newSeg;
 
-    // One readonly bypass: reassign the rawSegments reference. Consumers are
-    // warned by D-16 that the tree is mutable via the mutation API.
-    (this as { -readonly [K in keyof this]: this[K] }).rawSegments = mutSegments;
+    // One bypass: replace the segment list. Consumers are warned by D-16
+    // that the tree is mutable via the mutation API.
+    this.replaceSegments(mutSegments);
 
     this.invalidateCaches();
     return this;
@@ -1100,13 +1149,14 @@ export class Hl7Message {
     let seen = 0;
     let segIdx = -1;
     let seg: RawSegment | undefined;
-    for (let i = 0; i < this.rawSegments.length; i++) {
-      const s = this.rawSegments[i];
+    for (let i = 0; i < this._segments.length; i++) {
+      const s = this._segments[i];
       if (s === undefined) continue;
       if (canonicalSegmentName(s.name) === targetName) {
         if (seen === parsed.segmentIndex) {
           segIdx = i;
-          seg = s;
+          // An edit builds its own segment first, and only that one.
+          seg = resolveSegment(s);
           break;
         }
         seen++;
@@ -1126,7 +1176,7 @@ export class Hl7Message {
 
     const rawFieldIndex = parsed.segmentType === "MSH" ? parsed.fieldIndex - 1 : parsed.fieldIndex;
 
-    const mutSegments = toMutableArray(this.rawSegments);
+    const mutSegments = toMutableArray(this._segments);
 
     const mutFields = toMutableArray(seg.fields);
     while (mutFields.length <= rawFieldIndex) {
@@ -1147,7 +1197,7 @@ export class Hl7Message {
     const newSeg: RawSegment = { name: seg.name, fields: mutFields };
     mutSegments[segIdx] = newSeg;
 
-    (this as { -readonly [K2 in keyof this]: this[K2] }).rawSegments = mutSegments;
+    this.replaceSegments(mutSegments);
     this.invalidateCaches();
     return this;
   }
@@ -1201,9 +1251,9 @@ export class Hl7Message {
     }
 
     const newSegment: RawSegment = { name, fields: rawFields };
-    const mut = toMutableArray(this.rawSegments);
+    const mut = toMutableArray(this._segments);
     mut.push(newSegment);
-    (this as { -readonly [K in keyof this]: this[K] }).rawSegments = mut;
+    this.replaceSegments(mut);
 
     this.invalidateCaches();
     return this;
@@ -1249,14 +1299,14 @@ export class Hl7Message {
     const all = typeof occurrenceOrOptions === "object" && occurrenceOrOptions.all === true;
     const targetOccurrence = typeof occurrenceOrOptions === "number" ? occurrenceOrOptions : 0;
 
-    const mut = toMutableArray(this.rawSegments);
+    const mut = toMutableArray(this._segments);
     if (all) {
       // Canonical on the wire side only: `segmentType` is already validated to
       // /^[A-Z][A-Z0-9]{2}$/ above, so it is canonical by construction. This
       // is what lets `removeSegment("OBX")` remove a segment the sender spelled
       // `obx`, matching what `segments("OBX")` reports as present.
       const filtered = mut.filter((s) => canonicalSegmentName(s.name) !== segmentType);
-      (this as { -readonly [K in keyof this]: this[K] }).rawSegments = filtered;
+      this.replaceSegments(filtered);
     } else {
       let seen = 0;
       let removeAt = -1;
@@ -1273,13 +1323,23 @@ export class Hl7Message {
       }
       if (removeAt !== -1) {
         mut.splice(removeAt, 1);
-        (this as { -readonly [K in keyof this]: this[K] }).rawSegments = mut;
+        this.replaceSegments(mut);
       }
       // else: no-op: unknown segment type or occurrence out of range.
     }
 
     this.invalidateCaches();
     return this;
+  }
+
+  /**
+   * Replace the segment list after an edit. The new list may still hold pending entries, so
+   * `rawSegments` checks it again on its next read.
+   * @internal
+   */
+  private replaceSegments(next: readonly RawSegment[]): void {
+    this._segments = next;
+    this._allBuilt = false;
   }
 
   /**
