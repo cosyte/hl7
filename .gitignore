@@ -41,3 +41,10 @@ dist-artifacts/
 
 # Differential-testing oracle venv (test/differential, never committed)
 .difftools/
+
+# Mutation testing (StrykerJS): the reports and the sandbox it runs in
+reports/
+.stryker-tmp/
+
+# Benchmark results (cosyte-bench run --out)
+bench-results/

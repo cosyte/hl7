@@ -26,6 +26,36 @@ minor or major release is a maintainer's decision, so when a change adds behavio
 call, say so in the summary. Its first sentence becomes the release bullet, and its summary is the
 `CHANGELOG.md` entry, so never hand-edit `CHANGELOG.md`.
 
+## Coverage, mutation and performance
+
+`quality-floor.json` holds today's coverage (lines, branches, functions, statements) and mutation
+score. A floor only rises. `pnpm quality:check --base origin/main`, after `pnpm test:coverage`,
+fails when a metric drops below its floor, when a pull request lowers or removes a floor, or when a
+line it changed never ran, and prints each metric's gap to 100. A line no input can reach takes
+`/* v8 ignore next -- the reason */`, and the reason goes in the pull request.
+
+Mutation testing runs StrykerJS with `stryker.config.mjs`. On a pull request CI mutates the source
+files it changed, and every mutant in the changed lines must be killed. To run that here:
+
+```sh
+pnpm mutate changed --base origin/main
+pnpm quality:mutation --base origin/main
+```
+
+`pnpm mutate full` mutates every file, as the weekly run does. After it and `pnpm test:coverage`,
+`pnpm quality:raise` raises each floor to what was measured. A mutant no test can kill takes
+`// Stryker disable next-line <mutator>: the reason`.
+
+The standard properties (`test/property/standard.property.test.ts`) run 100 cases on every run.
+`COSYTE_PROPERTY_RUNS` sets the depth, and the nightly run sets 10,000. A failure prints
+`COSYTE_PROPERTY_SEED` and `COSYTE_PROPERTY_PATH`: set both and run the test again to replay the
+failing case, already shrunk.
+
+`pnpm test:perf` runs the scaling gate (`test/perf/scaling-gate.perf.ts`) apart from coverage. It
+fails when parsing cost grows faster than the input. `bench/parse.bench.mjs` measures throughput,
+latency, memory and import cost against `dist/`: `pnpm build && pnpm bench:reading` takes a reading,
+and on a pull request CI times the base build against the head build. That comparison is advisory.
+
 ## Fuzz and differential testing
 
 `test/property/fuzz.property.test.ts` runs a high-run-count `fast-check` fuzz harness (arbitrary
