@@ -37,7 +37,8 @@
         "profiles",
         "split-batches-and-streams",
         "validate-messages",
-        "schema-emission"
+        "schema-emission",
+        "property-test-your-code"
       ]
     },
     {

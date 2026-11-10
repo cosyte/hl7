@@ -65,7 +65,7 @@ Permanently out of scope:
 pnpm add @cosyte/hl7
 ```
 
-Requires Node.js 22 or later, tested on 22, 24, and 26 (`engines.node` is `>=22.0.0`). The package ships dual ESM and CommonJS builds with type declarations for both, so `import` and `require` both work and neither needs a compatibility shim. There are zero runtime dependencies: the Node standard library is all it loads.
+Requires Node.js 22 or later, tested on 22, 24, and 26 (`engines.node` is `>=22.0.0`). The package ships dual ESM and CommonJS builds with type declarations for both, so `import` and `require` both work and neither needs a compatibility shim. There are zero runtime dependencies: the Node standard library is all it loads. The optional `@cosyte/hl7/arbitraries` entry point, fast-check generators for [property-testing your own code](https://github.com/cosyte/hl7/blob/main/docs-content/property-test-your-code.md), needs `fast-check` installed beside it; the main entry point never loads it.
 
 ---
 
