@@ -35,7 +35,8 @@ msg.warnings.some((w) => w.code === WARNING_CODES.UNKNOWN_SEGMENT); // => true
 ## Warnings
 
 Emitted by the parser unless the row says otherwise. Under `{ strict: true }` every one of them is
-promoted to a thrown `Hl7ParseError` instead.
+promoted to a thrown `Hl7ParseError` instead, whose `code` is the warning's own code
+([When a warning becomes a throw](./tolerance-and-errors.md#when-a-warning-becomes-a-throw)).
 
 | Code                              | What it means                                                                                                                                    |
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |

@@ -108,7 +108,8 @@ The full `RawField` this wrapper wraps. Exposed for composite parsers.
 
 > `readonly` **repetitions**: readonly [`RawRepetition`](#rawrepetition)[]
 
-Reference to the underlying `RawField.repetitions` (no defensive copy).
+The underlying `RawField.repetitions`, with a hole or `null` that a field
+built by hand carries at any depth read as empty. No copy unless it has one.
 
 #### Accessors
 
@@ -1524,11 +1525,17 @@ themselves admit more (a message type up to 26 characters, a version up to
 14), which matters if you construct warnings yourself.
 
 Under `{ strict: true }` an escalated Tier-2 warning is thrown as this
-error, carrying the warning's own bounded message and a `snippet` of the
+error, carrying the warning's own code (so `code` is a [FatalCode](#fatalcode) or
+a [WarningCode](#warningcode)), its bounded message and a `snippet` of the
 **first 40 characters of the input**. That snippet is the head of the
 message rather than the deviation's own segment, so it is usually the MSH
 header; it is deliberately not re-pointed at the offending segment, since
 doing so would move more clinical content into the unredacted field.
+
+Test for the fatal codes you handle and treat any other `code` as an
+escalated warning: `err.code in FATAL_CODES` tells the two apart, and a
+`switch` over `err.code` that lists the four fatal codes needs a `default`
+branch for the escalated warnings.
 
 #### Example
 
@@ -1562,7 +1569,7 @@ thrower populates full positional context.
 
 ###### code
 
-[`FatalCode`](#fatalcode)
+[`FatalCode`](#fatalcode) \| [`WarningCode`](#warningcode)
 
 ###### message
 
@@ -1588,7 +1595,10 @@ thrower populates full positional context.
 
 ##### code
 
-> `readonly` **code**: [`FatalCode`](#fatalcode)
+> `readonly` **code**: [`FatalCode`](#fatalcode) \| [`WarningCode`](#warningcode)
+
+A [FatalCode](#fatalcode), or the [WarningCode](#warningcode) of a warning escalated by
+`{ strict: true }`.
 
 ##### position
 
@@ -12866,10 +12876,15 @@ Error-severity union (HL7 Table 0516, ERR-4).
 
 > **FatalCode** = *typeof* [`FATAL_CODES`](#fatal_codes)\[keyof *typeof* [`FATAL_CODES`](#fatal_codes)\]
 
-Discriminant type for `Hl7ParseError.code`. Narrowing a caught error by
-this code lets consumers write exhaustive `switch` blocks (enabled by the
-`switch-exhaustiveness-check` lint rule) and guarantees a typo-free
-comparison against the `FATAL_CODES` registry.
+The four Tier-3 fatal codes, the type over the `FATAL_CODES` registry.
+`FATAL_CODES` is locked at four, so an exhaustive `switch` over a
+`FatalCode` value stays exhaustive.
+
+**It is not the whole type of `Hl7ParseError.code`.** Under
+`{ strict: true }` a Tier-2 warning is thrown as an `Hl7ParseError` whose
+`code` is that warning's [WarningCode](#warningcode), so `Hl7ParseError.code` is
+`FatalCode | WarningCode`. A `switch` over a caught error's `code` needs a
+`default` branch for the escalated warnings; see [Hl7ParseError](#hl7parseerror).
 
 #### Example
 
@@ -16218,7 +16233,8 @@ const f = encodeComposite("XPN", { familyName: "Smith^Jr", givenName: "Ann" });
 Encode an array of typed composites into a single repeating `RawField`: one
 HL7 repetition (`~`-joined on emit) per array element. Used for repeating
 fields such as PID-3 (patient identifier list) and PID-11 (addresses). An
-empty array yields an absent field.
+empty array yields an absent field, and an entry that is empty, a hole or
+`null` yields no repetition.
 
 #### Type Parameters
 
