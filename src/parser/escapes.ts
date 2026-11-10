@@ -82,17 +82,17 @@ export function unescape(
   position: Hl7Position,
 ): string {
   const esc = enc.escape;
-  if (!input.includes(esc)) return input;
+  // The input is compared one UTF-16 unit at a time, so an escape character of any other length
+  // (an astral character, or none) never matches, and the text is returned as it came.
+  if (esc.length !== 1) return input;
 
+  // The text between escapes is copied a run at a time: copying it one character at a time built
+  // a string of every prefix, which on a large note cost time and memory in proportion.
   let out = "";
-  let i = 0;
-  while (i < input.length) {
-    const ch = input.charAt(i);
-    if (ch !== esc) {
-      out += ch;
-      i++;
-      continue;
-    }
+  let from = 0;
+  let i = input.indexOf(esc);
+  while (i !== -1) {
+    out += input.slice(from, i);
     const close = input.indexOf(esc, i + 1);
     if (close === -1) {
       // Unterminated escape: preserve the rest verbatim, warn once, stop.
@@ -100,8 +100,7 @@ export function unescape(
       // remainder is arbitrary field text, potentially PHI): only the fact
       // and position.
       emit(unterminatedEscapeSequence(position));
-      out += input.slice(i);
-      break;
+      return out + input.slice(i);
     }
     const seq = input.slice(i + 1, close);
     const expanded = expandSequence(seq, enc);
@@ -115,9 +114,10 @@ export function unescape(
       emit(unknownEscapeSequence(position, seq));
       out += esc + seq + esc;
     }
-    i = close + 1;
+    from = close + 1;
+    i = input.indexOf(esc, from);
   }
-  return out;
+  return out + input.slice(from);
 }
 
 /** Spec default truncation char per HL7 v2.7+ §2.5.5.2. */
@@ -240,29 +240,43 @@ function expandSequence(seq: string, enc: EncodingCharacters): string | null {
  * ```
  */
 export function reescape(input: string, enc: EncodingCharacters): string {
-  if (input.length === 0) return input;
-  const trunc = enc.truncation;
+  // The text between reserved characters is copied a run at a time: copying it one character at a
+  // time built a string of every prefix, which on a large document cost time and memory in
+  // proportion. `at` is the index of `ch`, `from` the start of the run not yet copied.
   let out = "";
+  let from = 0;
+  let at = 0;
   for (const ch of input) {
-    if (ch === enc.escape) out += enc.escape + "E" + enc.escape;
-    else if (ch === enc.field) out += enc.escape + "F" + enc.escape;
-    else if (ch === enc.component) out += enc.escape + "S" + enc.escape;
-    else if (ch === enc.subcomponent) out += enc.escape + "T" + enc.escape;
-    else if (ch === enc.repetition) out += enc.escape + "R" + enc.escape;
-    // \P\: only emitted when MSH-2 declared a truncation character (v2.7+);
-    // for pre-v2.7 encodings the character has no reserved meaning and
-    // round-trips as a literal.
-    else if (trunc !== undefined && ch === trunc) out += enc.escape + "P" + enc.escape;
-    else if (ch === "\n") out += enc.escape + ".br" + enc.escape;
-    // A literal CR in decoded content (reachable via a spec-legal \X0D\ hex
-    // escape on parse) is the HL7 segment separator: emitting it raw would
-    // CORRUPT the wire framing (a phantom segment split mid-field, silently).
-    // Re-emit it as its hex escape so the round-trip is stable and the
-    // emitted message always stays structurally intact.
-    else if (ch === "\r") out += enc.escape + "X0D" + enc.escape;
-    else out += ch;
+    const escaped = escapeOf(ch, enc);
+    if (escaped !== undefined) {
+      out += input.slice(from, at) + escaped;
+      from = at + ch.length;
+    }
+    at += ch.length;
   }
-  return out;
+  return out + input.slice(from);
+}
+
+/** The escape `reescape` writes for one code point, or `undefined` for one written as itself. */
+function escapeOf(ch: string, enc: EncodingCharacters): string | undefined {
+  const esc = enc.escape;
+  if (ch === esc) return esc + "E" + esc;
+  if (ch === enc.field) return esc + "F" + esc;
+  if (ch === enc.component) return esc + "S" + esc;
+  if (ch === enc.subcomponent) return esc + "T" + esc;
+  if (ch === enc.repetition) return esc + "R" + esc;
+  // \P\: only emitted when MSH-2 declared a truncation character (v2.7+);
+  // for pre-v2.7 encodings the character has no reserved meaning and
+  // round-trips as a literal. (`ch` is a string, so it never equals an absent one.)
+  if (ch === enc.truncation) return esc + "P" + esc;
+  if (ch === "\n") return esc + ".br" + esc;
+  // A literal CR in decoded content (reachable via a spec-legal \X0D\ hex
+  // escape on parse) is the HL7 segment separator: emitting it raw would
+  // CORRUPT the wire framing (a phantom segment split mid-field, silently).
+  // Re-emit it as its hex escape so the round-trip is stable and the
+  // emitted message always stays structurally intact.
+  if (ch === "\r") return esc + "X0D" + esc;
+  return undefined;
 }
 
 /**

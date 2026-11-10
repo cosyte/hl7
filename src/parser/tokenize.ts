@@ -33,6 +33,13 @@
  * placeholders (`fields[0]`, `fields[1]`) are intentionally NOT unescaped,
  * they hold the literal delimiter / encoding chars and participate in
  * serialization via the serializer's MSH special-case path, not via `emitField`.
+ *
+ * Memory: the tree is most of what a parse holds, so it is built without waste. Each level reuses
+ * the array `String.prototype.split` returns, writing the parsed node over the string it came from,
+ * so every array is exactly as long as its content (an array grown by `push` reserves room for
+ * about 17 entries, which made array storage more than half of a parsed message). A warning's
+ * position object is built only when a warning is emitted. Every empty field shares one frozen
+ * node, every explicit null another, and every segment of one name one frozen `fields[0]`.
  */
 
 import { escapeFidelityRaw, unescape } from "./escapes.js";
@@ -40,12 +47,38 @@ import { fieldWhitespaceTrimmed } from "./warnings.js";
 import type { Hl7ParseWarning } from "./warnings.js";
 import type {
   EncodingCharacters,
-  Hl7Position,
   RawComponent,
   RawField,
   RawRepetition,
   RawSegment,
 } from "./types.js";
+
+/** No repetitions, frozen: shared by the two field nodes below. */
+const NO_REPETITIONS: readonly RawRepetition[] = Object.freeze([]);
+
+/**
+ * The one node for every empty field (`||`), frozen. The tree is never changed in place (every
+ * mutation method rebuilds the path it changes), so the nodes can be shared.
+ */
+const EMPTY_FIELD: RawField = Object.freeze({ repetitions: NO_REPETITIONS, isNull: false });
+
+/** The one node for every explicit null field (`|""|`), frozen. */
+const NULL_FIELD: RawField = Object.freeze({ repetitions: NO_REPETITIONS, isNull: true });
+
+/**
+ * `text` split on `separator`. A text without the separator is an array of itself alone, which is
+ * what `split` returns too; most values hold no separator, and `split` costs several times what
+ * `includes` and an array literal cost together.
+ */
+function splitOn(text: string, separator: string): string[] {
+  // Stryker disable next-line ConditionalExpression: split returns the same one-entry array; the test only spares its cost
+  return text.includes(separator) ? text.split(separator) : [text];
+}
+
+/** A field holding one plain value: one repetition of one component of one subcomponent. */
+function singleValueField(value: string): RawField {
+  return { repetitions: [{ components: [{ subcomponents: [value] }] }], isNull: false };
+}
 
 /**
  * Decompose an ordered list of segment strings into the raw positional tree
@@ -78,114 +111,84 @@ export function tokenize(
   emit: (w: Hl7ParseWarning) => void,
   trimFields: boolean,
 ): readonly RawSegment[] {
-  const out: RawSegment[] = [];
-  for (let sIdx = 0; sIdx < segments.length; sIdx++) {
-    const segStr = segments[sIdx];
-    /* v8 ignore next -- the segment list comes from splitSegments, a String.prototype.split result, which never leaves a hole */
-    if (segStr === undefined) continue;
-
-    // Preserve empty middle segments (from consecutive \r) as zero-field,
-    // empty-name RawSegment so segmentIndex stays stable downstream.
-    if (segStr.length === 0) {
-      out.push({ name: "", fields: [] });
-      continue;
-    }
-
-    const firstSepIdx = segStr.indexOf(enc.field);
-    const name = firstSepIdx === -1 ? segStr : segStr.slice(0, firstSepIdx);
-    const rest = firstSepIdx === -1 ? "" : segStr.slice(firstSepIdx + 1);
-
-    if (name === "MSH") {
-      out.push(tokenizeMshSegment(segStr, enc, emit, sIdx, trimFields));
-    } else {
-      const namePlaceholder: RawField = {
-        repetitions: [{ components: [{ subcomponents: [name] }] }],
-        isNull: false,
-      };
-      const dataFields =
-        rest.length === 0 ? [] : splitAndTokenizeFields(rest, enc, emit, sIdx, 0, trimFields);
-      out.push({ name, fields: [namePlaceholder, ...dataFields] });
-    }
-  }
-  return out;
+  const placeholders = new Map<string, RawField>();
+  return segments.map((segStr, sIdx) =>
+    tokenizeSegment(segStr, enc, emit, sIdx, trimFields, placeholders),
+  );
 }
 
 /**
- * Tokenize an MSH segment. MSH is the one segment where the field separator
- * is encoded in-band as MSH-1: `MSH|^~\&|APP|...`. We synthesize `fields[0]`
- * as a single-component holding the separator char and `fields[1]` as a
- * single-component holding the raw MSH-2 encoding chars string; the
- * remainder (MSH-3, MSH-4, ...) is parsed by `splitAndTokenizeFields` with
- * `fieldStartOffset = 2` so the 1-indexed `fieldIndex` on emitted warnings
- * matches the HL7 position (MSH-3 emits `fieldIndex: 3`).
+ * The `fields[0]` placeholder holding `value` (a segment name, or MSH-1's separator), frozen and
+ * shared by every segment of this parse that has the same one: a result report's hundred OBX
+ * segments hold one placeholder between them.
+ */
+function placeholder(placeholders: Map<string, RawField>, value: string): RawField {
+  let field = placeholders.get(value);
+  if (field === undefined) {
+    const subcomponents = Object.freeze([value]);
+    const components = Object.freeze([Object.freeze({ subcomponents })]);
+    const repetitions = Object.freeze([Object.freeze({ components })]);
+    field = Object.freeze({ repetitions, isNull: false });
+    placeholders.set(value, field);
+  }
+  return field;
+}
+
+/**
+ * Tokenize one segment string. The segment is split on the field separator once, and that array
+ * becomes the segment's `fields`: entry 0 (the name) is replaced by the name placeholder, and each
+ * later entry by its parsed field.
+ *
+ * MSH is the one segment where the field separator is encoded in-band as MSH-1:
+ * `MSH|^~\&|APP|...`. We synthesize `fields[0]` as a single-component holding the separator char
+ * and `fields[1]` as a single-component holding the raw MSH-2 encoding chars string; the
+ * remainder (MSH-3, MSH-4, ...) is parsed with the 1-indexed `fieldIndex` on emitted warnings
+ * matching the HL7 position (MSH-3 emits `fieldIndex: 3`). For any other segment, the first data
+ * field (PID-1) emits `fieldIndex: 1`.
  *
  * @internal
  */
-function tokenizeMshSegment(
+function tokenizeSegment(
   segStr: string,
   enc: EncodingCharacters,
   emit: (w: Hl7ParseWarning) => void,
   sIdx: number,
   trimFields: boolean,
+  placeholders: Map<string, RawField>,
 ): RawSegment {
-  const msh1: RawField = {
-    repetitions: [{ components: [{ subcomponents: [enc.field] }] }],
-    isNull: false,
-  };
+  // Preserve empty middle segments (from consecutive \r) as zero-field,
+  // empty-name RawSegment so segmentIndex stays stable downstream.
+  if (segStr.length === 0) return { name: "", fields: [] };
 
-  const sepAfterMsh2 = segStr.indexOf(enc.field, 4);
-  const msh2RawEnd = sepAfterMsh2 === -1 ? segStr.length : sepAfterMsh2;
-  const msh2Raw = segStr.slice(4, msh2RawEnd);
-  const msh2: RawField = {
-    repetitions: [{ components: [{ subcomponents: [msh2Raw] }] }],
-    isNull: false,
-  };
+  const fields: (string | RawField)[] = segStr.split(enc.field);
+  const name = fields[0] as string;
+  const isMsh = name === "MSH";
+  // A segment that ends at its last separator (`PID|`, or `MSH|^~\&|`) has no data field after it.
+  if (fields[fields.length - 1] === "" && fields.length === (isMsh ? 3 : 2)) fields.pop();
 
-  const remainder = sepAfterMsh2 === -1 ? "" : segStr.slice(sepAfterMsh2 + 1);
-  const tailFields =
-    remainder.length === 0 ? [] : splitAndTokenizeFields(remainder, enc, emit, sIdx, 2, trimFields);
-  return { name: "MSH", fields: [msh1, msh2, ...tailFields] };
-}
-
-/**
- * Split a segment's post-name field region into `RawField[]` using the
- * caller-supplied field-index offset so warning positions stay on the HL7
- * 1-indexed convention. Non-MSH callers pass `fieldStartOffset = 0` so the
- * first data field (PID-1) emits `fieldIndex: 1`; MSH callers pass
- * `fieldStartOffset = 2` so the first tail field (MSH-3) emits
- * `fieldIndex: 3`.
- *
- * The returned array is DATA-ONLY: the caller is responsible for
- * prepending the `fields[0]` name/separator placeholder so the unified
- * 1-indexed convention holds on the final `RawSegment.fields`.
- *
- * @internal
- */
-function splitAndTokenizeFields(
-  region: string,
-  enc: EncodingCharacters,
-  emit: (w: Hl7ParseWarning) => void,
-  sIdx: number,
-  fieldStartOffset: number,
-  trimFields: boolean,
-): RawField[] {
-  const fields = region.split(enc.field);
-  const out: RawField[] = [];
-  for (let fIdx = 0; fIdx < fields.length; fIdx++) {
-    const raw = fields[fIdx];
-    /* v8 ignore next -- indexes a String.prototype.split result below its length, and split never leaves a hole */
-    if (raw === undefined) continue;
-    out.push(
-      tokenizeField(
-        raw,
-        enc,
-        emit,
-        { segmentIndex: sIdx, fieldIndex: fieldStartOffset + fIdx + 1 },
-        trimFields,
-      ),
+  // Warnings number MSH fields as HL7 does (MSH-3 is 3); the tree holds MSH-1 at index 0.
+  const fieldIndexOffset = isMsh ? 1 : 0;
+  let first = 1;
+  if (isMsh) {
+    fields[0] = placeholder(placeholders, enc.field);
+    // MSH-2 is kept as it arrived: the encoding characters, never unescaped or trimmed. A later
+    // segment that is `MSH` alone still gets an empty MSH-2.
+    fields[1] = singleValueField((fields[1] as string | undefined) ?? "");
+    first = 2;
+  } else {
+    fields[0] = placeholder(placeholders, name);
+  }
+  for (let fIdx = first; fIdx < fields.length; fIdx++) {
+    fields[fIdx] = tokenizeField(
+      fields[fIdx] as string,
+      enc,
+      emit,
+      sIdx,
+      fIdx + fieldIndexOffset,
+      trimFields,
     );
   }
-  return out;
+  return { name, fields: fields as RawField[] };
 }
 
 /**
@@ -200,11 +203,12 @@ function tokenizeField(
   raw: string,
   enc: EncodingCharacters,
   emit: (w: Hl7ParseWarning) => void,
-  position: Hl7Position,
+  segmentIndex: number,
+  fieldIndex: number,
   trimFields: boolean,
 ): RawField {
-  if (raw === "") return { repetitions: [], isNull: false };
-  if (raw === '""') return { repetitions: [], isNull: true };
+  if (raw === "") return EMPTY_FIELD;
+  if (raw === '""') return NULL_FIELD;
 
   let value = raw;
   if (trimFields) {
@@ -212,22 +216,23 @@ function tokenizeField(
     if (trimmed.length > 0 && trimmed !== raw) {
       const trimStart = raw.length - raw.trimStart().length;
       const trimEnd = raw.length - raw.trimEnd().length;
-      emit(fieldWhitespaceTrimmed(position, trimStart, trimEnd));
+      emit(fieldWhitespaceTrimmed({ segmentIndex, fieldIndex }, trimStart, trimEnd));
       value = trimmed;
     }
   }
 
-  const reps = value.split(enc.repetition);
-  const repetitions: RawRepetition[] = [];
-  for (let rIdx = 0; rIdx < reps.length; rIdx++) {
-    const rep = reps[rIdx];
-    /* v8 ignore next -- indexes a String.prototype.split result below its length, and split never leaves a hole */
-    if (rep === undefined) continue;
-    repetitions.push(
-      tokenizeRepetition(rep, enc, emit, { ...position, repetitionIndex: rIdx + 1 }),
+  const repetitions: (string | RawRepetition)[] = splitOn(value, enc.repetition);
+  for (let rIdx = 0; rIdx < repetitions.length; rIdx++) {
+    repetitions[rIdx] = tokenizeRepetition(
+      repetitions[rIdx] as string,
+      enc,
+      emit,
+      segmentIndex,
+      fieldIndex,
+      rIdx + 1,
     );
   }
-  return { repetitions, isNull: false };
+  return { repetitions: repetitions as RawRepetition[], isNull: false };
 }
 
 /** @internal */
@@ -235,17 +240,23 @@ function tokenizeRepetition(
   raw: string,
   enc: EncodingCharacters,
   emit: (w: Hl7ParseWarning) => void,
-  position: Hl7Position,
+  segmentIndex: number,
+  fieldIndex: number,
+  repetitionIndex: number,
 ): RawRepetition {
-  const comps = raw.split(enc.component);
-  const components: RawComponent[] = [];
-  for (let cIdx = 0; cIdx < comps.length; cIdx++) {
-    const c = comps[cIdx];
-    /* v8 ignore next -- indexes a String.prototype.split result below its length, and split never leaves a hole */
-    if (c === undefined) continue;
-    components.push(tokenizeComponent(c, enc, emit, { ...position, componentIndex: cIdx + 1 }));
+  const components: (string | RawComponent)[] = splitOn(raw, enc.component);
+  for (let cIdx = 0; cIdx < components.length; cIdx++) {
+    components[cIdx] = tokenizeComponent(
+      components[cIdx] as string,
+      enc,
+      emit,
+      segmentIndex,
+      fieldIndex,
+      repetitionIndex,
+      cIdx + 1,
+    );
   }
-  return { components };
+  return { components: components as RawComponent[] };
 }
 
 /**
@@ -266,10 +277,12 @@ function tokenizeComponent(
   raw: string,
   enc: EncodingCharacters,
   emit: (w: Hl7ParseWarning) => void,
-  position: Hl7Position,
+  segmentIndex: number,
+  fieldIndex: number,
+  repetitionIndex: number,
+  componentIndex: number,
 ): RawComponent {
-  const subs = raw.split(enc.subcomponent);
-  const decoded: string[] = [];
+  const subcomponents = splitOn(raw, enc.subcomponent);
   // Escape-fidelity overlay (HL7-ESC): the original wire bytes for any
   // subcomponent whose decoded form does not re-escape back to those exact
   // bytes (recognize-and-preserve escapes like `\H\`; hex escapes like
@@ -277,26 +290,25 @@ function tokenizeComponent(
   // array is dropped when nothing needs it: so a plain message's raw tree is
   // shaped exactly as before this overlay existed.
   let rawSubcomponents: (string | undefined)[] | undefined;
-  for (let sIdx = 0; sIdx < subs.length; sIdx++) {
-    const sub = subs[sIdx];
-    /* v8 ignore next -- indexes a String.prototype.split result below its length, and split never leaves a hole */
-    if (sub === undefined) {
-      decoded.push("");
-      continue;
-    }
-    const decodedSub = unescape(sub, enc, emit, { ...position, subcomponentIndex: sIdx + 1 });
-    decoded.push(decodedSub);
-    // Only escape-bearing subcomponents can ever need the overlay: the
-    // `includes(enc.escape)` guard keeps this off the hot path for plain data.
-    if (sub.includes(enc.escape)) {
-      const fidelity = escapeFidelityRaw(sub, decodedSub, enc);
-      if (fidelity !== undefined) {
-        (rawSubcomponents ??= new Array<string | undefined>(subs.length).fill(undefined))[sIdx] =
-          fidelity;
-      }
+  for (let sIdx = 0; sIdx < subcomponents.length; sIdx++) {
+    const sub = subcomponents[sIdx] as string;
+    // Only an escape-bearing subcomponent can decode to something else or need the overlay; a
+    // plain one stays the string split returned.
+    if (!sub.includes(enc.escape)) continue;
+    const decodedSub = unescape(sub, enc, emit, {
+      segmentIndex,
+      fieldIndex,
+      repetitionIndex,
+      componentIndex,
+      subcomponentIndex: sIdx + 1,
+    });
+    subcomponents[sIdx] = decodedSub;
+    const fidelity = escapeFidelityRaw(sub, decodedSub, enc);
+    if (fidelity !== undefined) {
+      (rawSubcomponents ??= new Array<string | undefined>(subcomponents.length).fill(undefined))[
+        sIdx
+      ] = fidelity;
     }
   }
-  return rawSubcomponents === undefined
-    ? { subcomponents: decoded }
-    : { subcomponents: decoded, rawSubcomponents };
+  return rawSubcomponents === undefined ? { subcomponents } : { subcomponents, rawSubcomponents };
 }
