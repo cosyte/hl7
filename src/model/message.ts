@@ -965,20 +965,24 @@ export class Hl7Message {
     // `msg.setField("PID.5", ...)` reported it missing. `parsed.segmentType` is
     // already validated to /^[A-Z][A-Z0-9]{2}$/ by `parsePath`.
     const targetName = parsed.segmentType;
+    // The segment is kept as the lookup read it, not read again from the
+    // array: a hand-built array may answer differently on a second read.
     let seen = 0;
     let segIdx = -1;
+    let seg: RawSegment | undefined;
     for (let i = 0; i < this.rawSegments.length; i++) {
       const s = this.rawSegments[i];
       if (s === undefined) continue;
       if (canonicalSegmentName(s.name) === targetName) {
         if (seen === parsed.segmentIndex) {
           segIdx = i;
+          seg = s;
           break;
         }
         seen++;
       }
     }
-    if (segIdx === -1) {
+    if (seg === undefined) {
       throw new TypeError(
         `setField: segment "${parsed.segmentType}" (occurrence ${String(parsed.segmentIndex)}) not found. ` +
           `Add it first with addSegment("${parsed.segmentType}", [...]).`,
@@ -994,40 +998,27 @@ export class Hl7Message {
     // `rawSegments` reference on `this`: per D-16, the tree is mutable
     // through the mutation API.
     const mutSegments = toMutableArray(this.rawSegments);
-    const seg = mutSegments[segIdx];
-    // Exhaustive guard: the index was just located above.
-    if (seg === undefined) {
-      throw new Error("setField: internal invariant, segment disappeared after lookup.");
-    }
 
     const mutFields = toMutableArray(seg.fields);
     while (mutFields.length <= rawFieldIndex) {
       mutFields.push({ repetitions: [], isNull: false });
     }
-    const field = mutFields[rawFieldIndex];
-    if (field === undefined) {
-      throw new Error("setField: internal invariant, field missing after growth.");
-    }
+    // A hole in an array a caller built by hand reads as empty, as `get` reads it.
+    const field = mutFields[rawFieldIndex] ?? { repetitions: [], isNull: false };
 
     const mutReps = toMutableArray(field.repetitions);
     const repIdx = parsed.repetitionIndex ?? 0;
     while (mutReps.length <= repIdx) {
       mutReps.push({ components: [] });
     }
-    const rep = mutReps[repIdx];
-    if (rep === undefined) {
-      throw new Error("setField: internal invariant, repetition missing after growth.");
-    }
+    const rep = mutReps[repIdx] ?? { components: [] };
 
     const mutComps = toMutableArray(rep.components);
     const compIdx = (parsed.componentIndex ?? 1) - 1;
     while (mutComps.length <= compIdx) {
       mutComps.push({ subcomponents: [] });
     }
-    const comp = mutComps[compIdx];
-    if (comp === undefined) {
-      throw new Error("setField: internal invariant, component missing after growth.");
-    }
+    const comp = mutComps[compIdx] ?? { subcomponents: [] };
 
     const mutSubs = toMutableArray(comp.subcomponents);
     const subIdx = (parsed.subcomponentIndex ?? 1) - 1;
@@ -1104,20 +1095,24 @@ export class Hl7Message {
     // setField: the segment must already exist, and the wire name is folded so
     // a miscased segment is writable through the same path it is readable).
     const targetName = parsed.segmentType;
+    // The segment is kept as the lookup read it, not read again from the
+    // array: a hand-built array may answer differently on a second read.
     let seen = 0;
     let segIdx = -1;
+    let seg: RawSegment | undefined;
     for (let i = 0; i < this.rawSegments.length; i++) {
       const s = this.rawSegments[i];
       if (s === undefined) continue;
       if (canonicalSegmentName(s.name) === targetName) {
         if (seen === parsed.segmentIndex) {
           segIdx = i;
+          seg = s;
           break;
         }
         seen++;
       }
     }
-    if (segIdx === -1) {
+    if (seg === undefined) {
       throw new TypeError(
         `setComposite: segment "${parsed.segmentType}" (occurrence ${String(parsed.segmentIndex)}) not found. ` +
           `Add it first with addSegment("${parsed.segmentType}", [...]).`,
@@ -1132,19 +1127,13 @@ export class Hl7Message {
     const rawFieldIndex = parsed.segmentType === "MSH" ? parsed.fieldIndex - 1 : parsed.fieldIndex;
 
     const mutSegments = toMutableArray(this.rawSegments);
-    const seg = mutSegments[segIdx];
-    if (seg === undefined) {
-      throw new Error("setComposite: internal invariant, segment disappeared after lookup.");
-    }
 
     const mutFields = toMutableArray(seg.fields);
     while (mutFields.length <= rawFieldIndex) {
       mutFields.push({ repetitions: [], isNull: false });
     }
-    const field = mutFields[rawFieldIndex];
-    if (field === undefined) {
-      throw new Error("setComposite: internal invariant, field missing after growth.");
-    }
+    // A hole in an array a caller built by hand reads as empty, as `get` reads it.
+    const field = mutFields[rawFieldIndex] ?? { repetitions: [], isNull: false };
 
     const mutReps = toMutableArray(field.repetitions);
     const repIdx = parsed.repetitionIndex ?? 0;

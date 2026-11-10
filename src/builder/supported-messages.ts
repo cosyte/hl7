@@ -307,12 +307,14 @@ export function assertRequiredContent(
 ): void {
   if (!supportsBuilderMessage(messageCode, triggerEvent)) return;
   const def = findMessageStructureDefinition(messageCode, triggerEvent);
+  /* v8 ignore next -- the supported set is derived from the registry's own definitions, so every pair it admits finds one */
   if (def === undefined) return;
   const missing = def.requiredSegments.filter((seg) => !emitted.has(seg));
   if (missing.length === 0) return;
   const detail = missing
     .map((seg) => {
       const member = suppliedBy.get(seg);
+      /* v8 ignore next -- each caller always emits the required segments it leaves out of its map (MSH, EVN and PV1 are unconditional), so a missing segment always has a map entry */
       return member === undefined ? seg : `${seg} (\`${member}\`)`;
     })
     .join(", ");

@@ -301,7 +301,11 @@ function decodeBody(body: string, enc: EncodingCharacters, newline: string): str
   // §2.7.6 formatting commands (FT) → conservative whitespace normalization.
   if (body.charAt(0) === ".") {
     const m = FORMATTING_RE.exec(body);
-    if (m !== null) return renderFormatting(m[1] ?? "", m[2], newline);
+    if (m !== null) {
+      /* v8 ignore next -- the command group of FORMATTING_RE is mandatory, so a match always captures it */
+      const command = m[1] ?? "";
+      return renderFormatting(command, m[2], newline);
+    }
     // A dot body that is not one of the eight known commands is not a
     // formatting command: fall through to unknown handling.
     return null;

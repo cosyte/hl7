@@ -60,8 +60,10 @@ const KNOWN_OPTION_KEYS: readonly string[] = [
  * @internal
  */
 function levenshtein(a: string, b: string): number {
+  /* v8 ignore next -- the only caller skips a key that equals a known key, so the two never match */
   if (a === b) return 0;
   if (a.length === 0) return b.length;
+  /* v8 ignore next -- b is always a known option key, and none is empty */
   if (b.length === 0) return a.length;
   let prev: number[] = [];
   for (let j = 0; j <= b.length; j++) prev.push(j);
@@ -69,10 +71,12 @@ function levenshtein(a: string, b: string): number {
     const curr: number[] = [i];
     for (let j = 1; j <= b.length; j++) {
       const cost = a.charCodeAt(i - 1) === b.charCodeAt(j - 1) ? 0 : 1;
+      /* v8 ignore next -- prev has b.length + 1 entries and curr has j, so every index read here is in range */
       curr.push(Math.min((prev[j] ?? 0) + 1, (curr[j - 1] ?? 0) + 1, (prev[j - 1] ?? 0) + cost));
     }
     prev = curr;
   }
+  /* v8 ignore next -- prev always has b.length + 1 entries */
   return prev[b.length] ?? 0;
 }
 
@@ -439,8 +443,10 @@ export function validateUniqueFieldNames(
     const positionsByName = new Map<string, number>();
     for (const fieldName of Object.keys(entry.fields)) {
       const pos = entry.fields[fieldName];
+      /* v8 ignore next -- defineProfile runs validateCustomSegments and validateSegmentOverrides on the same merged map first, and they refuse any position that is not a positive integer */
       if (pos === undefined) continue;
       const prior = positionsByName.get(fieldName);
+      /* v8 ignore next -- Object.keys yields each field name once per entry, so no name is seen twice; the check stays as the guard the doc comment above describes */
       if (prior !== undefined && prior !== pos) {
         throw new ProfileDefinitionError(
           `Profile '${profileName}' ${optionKey}['${segName}']: field name '${fieldName}' ` +

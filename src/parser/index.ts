@@ -32,6 +32,7 @@ import {
   safeCharsetLabel,
   segmentCase,
   unknownSegment,
+  WARNING_CODES,
 } from "./warnings.js";
 import type { Hl7ParseWarning } from "./warnings.js";
 import type {
@@ -513,11 +514,18 @@ export function parseHL7(
   const firstSegment = segments[0] ?? "";
   const encoding = readDelimiters(firstSegment);
 
-  // Step 11: Tokenize (may emit FIELD_WHITESPACE_TRIMMED).
+  // Step 11: Tokenize (may emit FIELD_WHITESPACE_TRIMMED). Each trimmed
+  // field's position is copied before `emit` hands the warning to the
+  // onWarning callbacks: a callback that changes the warning it was given
+  // must not change which field the parser records as trimmed below.
+  const trimmed: Hl7Position[] = [];
   const rawSegments: readonly RawSegment[] = tokenize(
     segments,
     encoding,
-    emit,
+    (w) => {
+      if (w.code === WARNING_CODES.FIELD_WHITESPACE_TRIMMED) trimmed.push({ ...w.position });
+      emit(w);
+    },
     options.trimFields ?? true,
   );
 
@@ -527,7 +535,7 @@ export function parseHL7(
   // a field exactly as received (the result status classification) ask.
   recordAlteredFields(
     rawSegments,
-    warnings,
+    trimmed,
     mllpResult.wasFramed ? locateInteriorFramingBytes(unstripped, encoding.field) : [],
   );
 

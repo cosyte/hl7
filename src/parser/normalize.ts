@@ -143,7 +143,9 @@ export function normalizeBuffer(input: Buffer, charset: string | undefined, emit
   if (resolution.recognized) {
     emit(unsupportedCharset(CHARSET_POSITION, resolution.canonical));
   } else {
-    emit(unknownCharset(CHARSET_POSITION, charset ?? ""));
+    /* v8 ignore next -- resolveCharset answers recognized for an absent charset, so charset is defined on this branch */
+    const label = charset ?? "";
+    emit(unknownCharset(CHARSET_POSITION, label));
   }
   return preserveVerbatim(input);
 }

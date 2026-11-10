@@ -156,10 +156,7 @@ function obrSegment(order: OrmOrder): RawSegment {
           ? encodeComposite("TS", order.observationDateTime)
           : undefined,
       ],
-      [
-        16,
-        order.orderingProvider !== undefined ? repField("XCN", order.orderingProvider) : undefined,
-      ],
+      [16, repField("XCN", order.orderingProvider)],
       [25, order.resultStatus !== undefined ? scalarField(order.resultStatus) : undefined],
     ]),
   );

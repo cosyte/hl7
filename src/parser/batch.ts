@@ -506,6 +506,7 @@ export function splitBatch(
 
   for (let index = 0; index < segments.length; index++) {
     const segment = segments[index];
+    /* v8 ignore next -- indexes a String.prototype.split result below its length, and split never leaves a hole */
     if (segment === undefined) continue;
     // Skip a blank / whitespace-only line ONLY between messages: it is
     // inter-message whitespace carrying no segment content (splitBatch is

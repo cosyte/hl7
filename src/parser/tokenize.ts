@@ -81,6 +81,7 @@ export function tokenize(
   const out: RawSegment[] = [];
   for (let sIdx = 0; sIdx < segments.length; sIdx++) {
     const segStr = segments[sIdx];
+    /* v8 ignore next -- the segment list comes from splitSegments, a String.prototype.split result, which never leaves a hole */
     if (segStr === undefined) continue;
 
     // Preserve empty middle segments (from consecutive \r) as zero-field,
@@ -172,6 +173,7 @@ function splitAndTokenizeFields(
   const out: RawField[] = [];
   for (let fIdx = 0; fIdx < fields.length; fIdx++) {
     const raw = fields[fIdx];
+    /* v8 ignore next -- indexes a String.prototype.split result below its length, and split never leaves a hole */
     if (raw === undefined) continue;
     out.push(
       tokenizeField(
@@ -219,6 +221,7 @@ function tokenizeField(
   const repetitions: RawRepetition[] = [];
   for (let rIdx = 0; rIdx < reps.length; rIdx++) {
     const rep = reps[rIdx];
+    /* v8 ignore next -- indexes a String.prototype.split result below its length, and split never leaves a hole */
     if (rep === undefined) continue;
     repetitions.push(
       tokenizeRepetition(rep, enc, emit, { ...position, repetitionIndex: rIdx + 1 }),
@@ -238,6 +241,7 @@ function tokenizeRepetition(
   const components: RawComponent[] = [];
   for (let cIdx = 0; cIdx < comps.length; cIdx++) {
     const c = comps[cIdx];
+    /* v8 ignore next -- indexes a String.prototype.split result below its length, and split never leaves a hole */
     if (c === undefined) continue;
     components.push(tokenizeComponent(c, enc, emit, { ...position, componentIndex: cIdx + 1 }));
   }
@@ -275,6 +279,7 @@ function tokenizeComponent(
   let rawSubcomponents: (string | undefined)[] | undefined;
   for (let sIdx = 0; sIdx < subs.length; sIdx++) {
     const sub = subs[sIdx];
+    /* v8 ignore next -- indexes a String.prototype.split result below its length, and split never leaves a hole */
     if (sub === undefined) {
       decoded.push("");
       continue;

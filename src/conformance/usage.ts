@@ -98,6 +98,7 @@ export function parseUsageToken(token: string): ParsedUsage | undefined {
   if (match === null) return undefined;
   const whenTrue = match[1];
   const whenFalse = match[2];
+  /* v8 ignore next -- both capture groups of DECLARED_CONDITIONAL_RE are mandatory, so a match always captures both */
   if (whenTrue === undefined || whenFalse === undefined) return undefined;
   if (!isSimpleUsageCode(whenTrue) || !isSimpleUsageCode(whenFalse)) return undefined;
   return { kind: "conditional", whenTrue, whenFalse };
@@ -164,6 +165,7 @@ export function usageIsAdmissible(usage: unknown): boolean {
 export function predicateOutcomes(usage: unknown): UsageOutcomes | undefined {
   if (typeof usage !== "string") return undefined;
   const parsed = parseUsageToken(usage);
+  /* v8 ignore next -- both callers pass a token parseUsageToken has already accepted: checkCondition after usageIsAdmissible, effectiveUsage after its own parse of the same value */
   if (parsed === undefined) return undefined;
   if (parsed.kind === "conditional") {
     return { whenTrue: parsed.whenTrue, whenFalse: parsed.whenFalse };
