@@ -17,42 +17,69 @@
     },
     {
       "type": "category",
-      "label": "Core concepts",
-      "collapsed": false,
+      "label": "Tutorials",
       "items": [
-        "spec-notes-primer",
-        "warning-and-fatal-codes",
-        "spec-notes-coding-system",
-        "spec-notes-structure",
-        "spec-notes-conformance",
-        "spec-notes-identity",
-        "spec-notes-batch",
-        "spec-notes-stream",
-        "spec-notes-datetime-precision",
-        "date-token-grammar",
-        "spec-notes-timing",
-        "spec-notes-charset",
-        "spec-notes-escapes",
-        "spec-notes-text-rendering",
-        "spec-notes-nte",
-        "spec-notes-result-status",
-        "spec-notes-immunization-status",
-        "spec-notes-fhir-bridge",
-        "spec-notes-version-matrix",
-        "schema-emission",
-        "spec-notes-differential"
+        "process-a-lab-feed"
       ]
     },
     {
       "type": "category",
-      "label": "Guides",
+      "label": "How-to guides",
       "items": [
-        "guides-overview",
-        "access-patterns",
-        "cookbook",
+        "read-patient-and-visit",
+        "read-lab-results",
+        "read-clinical-lists",
+        "handle-patient-merges",
+        "read-dates-and-times",
+        "modify-and-resend",
+        "build-messages",
+        "acknowledge-messages",
         "profiles",
+        "split-batches-and-streams",
+        "validate-messages",
+        "schema-emission",
+        "property-test-your-code"
+      ]
+    },
+    {
+      "type": "category",
+      "label": "Explanation",
+      "items": [
+        "access-patterns",
         "tolerance-and-errors",
-        "benchmarks"
+        {
+          "type": "category",
+          "label": "Spec notes",
+          "items": [
+            "spec-notes-primer",
+            "spec-notes-structure",
+            "spec-notes-conformance",
+            "spec-notes-coding-system",
+            "spec-notes-identity",
+            "spec-notes-batch",
+            "spec-notes-stream",
+            "spec-notes-datetime-precision",
+            "spec-notes-timing",
+            "spec-notes-charset",
+            "spec-notes-escapes",
+            "spec-notes-text-rendering",
+            "spec-notes-nte",
+            "spec-notes-result-status",
+            "spec-notes-immunization-status",
+            "spec-notes-fhir-bridge",
+            "spec-notes-version-matrix",
+            "spec-notes-differential"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "category",
+      "label": "Reference",
+      "items": [
+        "warning-and-fatal-codes",
+        "date-token-grammar",
+        "built-in-profiles"
       ]
     },
     {
@@ -61,6 +88,8 @@
       "items": [
         "troubleshooting"
       ]
-    }
+    },
+    "testing-and-quality",
+    "performance"
   ]
 }

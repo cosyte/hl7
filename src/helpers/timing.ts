@@ -15,7 +15,7 @@
  *     is never dropped: surfaced on `RepeatPattern.interval`.
  *   - Total occurrences is read from **TQ1-14** (NM), *not* TQ1-11 (which is a
  *     Text Instruction, TX).
- *   - Never throws: a malformed timing surfaces as omitted keys (HELPERS-07).
+ *   - Never throws: a malformed timing surfaces as omitted keys.
  *   - hl7 surfaces the timing *structure* only; it does NOT compute schedules,
  *     resolve "institution-specified times", or interpret sig.
  *
@@ -82,15 +82,21 @@ const PARAMETRIC_DOW = /^Q(\d+)(J)(\d)$/iu;
 export function classifyRepeatPattern(code: string): RepeatPattern {
   const parametric = PARAMETRIC.exec(code);
   if (parametric !== null) {
+    // Both groups of PARAMETRIC are mandatory, and the first is \d+.
+    /* v8 ignore next -- the mandatory first group is always captured */
     const count = Number.parseInt(parametric[1] ?? "", 10);
+    /* v8 ignore next -- the mandatory second group is always captured */
     const unit = (parametric[2] ?? "").toUpperCase();
+    /* v8 ignore else -- a run of ASCII digits always parses as an integer */
     if (!Number.isNaN(count)) {
       return { code, kind: "parametric", interval: { count, unit } };
     }
   }
   const dow = PARAMETRIC_DOW.exec(code);
   if (dow !== null) {
+    /* v8 ignore next -- the first group of PARAMETRIC_DOW is mandatory, so it is always captured */
     const count = Number.parseInt(dow[1] ?? "", 10);
+    /* v8 ignore else -- the group is \d+, and a run of ASCII digits always parses as an integer */
     if (!Number.isNaN(count)) {
       return { code, kind: "parametric", interval: { count, unit: "J" } };
     }

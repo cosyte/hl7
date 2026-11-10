@@ -1,16 +1,16 @@
 /**
  * `emitMessage`: top-level HL7 string emitter. Composes `emitSegment` from
- * `./emit-field.ts`, special-cases MSH-1 / MSH-2 per D-06, and joins segments
- * with strict CR (`\r`) per D-05.
+ * `./emit-field.ts`, special-cases MSH-1 / MSH-2, and joins segments
+ * with strict CR (`\r`).
  *
  * Decisions:
- * - D-01: walk `msg.rawSegments` verbatim.
- * - D-04: every field string passes through `emitField` (which calls
+ * - Walk `msg.rawSegments` verbatim.
+ * - Every field string passes through `emitField` (which calls
  *   `reescape` internally).
- * - D-05: segments joined by `\r`; trailing `\r` after the last segment.
- * - D-06: MSH-1 / MSH-2 inlined (see CONTEXT §specifics emission trace).
- * - D-07: pure: never warns, never throws.
- * - D-08: no MLLP wrapping.
+ * - Segments joined by `\r`; trailing `\r` after the last segment.
+ * - MSH-1 / MSH-2 inlined (see `emitMshSegment` below).
+ * - Pure: never warns, never throws.
+ * - No MLLP wrapping.
  *
  * @internal
  */
@@ -20,24 +20,24 @@ import { emitField, emitSegment } from "./emit-field.js";
 import type { EncodingCharacters, RawSegment } from "../parser/types.js";
 
 /**
- * Emit a parsed `Hl7Message` as spec-clean HL7 (SER-01 + SER-05). Walks
- * `msg.rawSegments` verbatim (D-01). Inlines MSH-1 and MSH-2 from
- * `msg.encodingCharacters` per D-06. Joins segments with strict CR (`\r`)
- * and appends a trailing CR per D-05. Does NOT wrap in MLLP framing (D-08).
+ * Emit a parsed `Hl7Message` as spec-clean HL7. Walks
+ * `msg.rawSegments` verbatim. Inlines MSH-1 and MSH-2 from
+ * `msg.encodingCharacters`. Joins segments with strict CR (`\r`)
+ * and appends a trailing CR. Does NOT wrap in MLLP framing.
  *
- * Trailing-empty semantics: D-02's trailing-empty strip is field-SCOPED
+ * Trailing-empty semantics: the trailing-empty strip is field-SCOPED
  * (inside `emitField`: trailing empty repetitions/components/subcomponents
  * are stripped). At the SEGMENT level (inside `emitSegment`) trailing empty
  * fields are PRESERVED to maintain HL7 positional addressing. `emitMessage`
  * does not alter either behavior.
  *
  * Pure for all well-formed inputs: never warns on structurally valid
- * messages (D-07). Throws a typed `Error` ONLY for the structurally
- * invalid case of `msg.rawSegments.length === 0` (W1 fix): emitting a
+ * messages. Throws a typed `Error` ONLY for the structurally
+ * invalid case of `msg.rawSegments.length === 0`: emitting a
  * bare `"\r"` for a zero-segment message would violate the "serializer
  * is conservative (always emits spec-clean HL7)" guardrail, since
  * `parseHL7("\r")` fails with `NO_MSH_SEGMENT`. The throw mirrors the
- * D-06 MSH guard in `emitSegment`: catch programmer misuse loudly at
+ * MSH guard in `emitSegment`: catch programmer misuse loudly at
  * the call site rather than silently corrupting wire output. The parser
  * cannot produce an empty `rawSegments`, so this path is only reachable
  * via direct `new Hl7Message({ segments: [] })` construction or post-
@@ -65,7 +65,7 @@ export function emitMessage(msg: Hl7Message): string {
 }
 
 /**
- * Emit the MSH segment with the D-06 special case: MSH-1 is `enc.field`
+ * Emit the MSH segment with its special case: MSH-1 is `enc.field`
  * (one char, inlined immediately after "MSH"), MSH-2 is
  * `enc.component + enc.repetition + enc.escape + enc.subcomponent`
  * (4 chars, fixed order), and MSH-3..N use the normal `emitField` path
@@ -76,13 +76,13 @@ export function emitMessage(msg: Hl7Message): string {
  *    and `firstSegment.slice(4, 8)` as MSH-2;
  *  - `emitMshSegment` writes `"MSH" + enc.field + <MSH-2 chars> + enc.field + <rest>`.
  *
- * Trailing empty fields in MSH-3..N are PRESERVED (W3): no trimming of
+ * Trailing empty fields in MSH-3..N are PRESERVED: no trimming of
  * the `tailParts` array before joining.
  *
- * **IMPORTANT: `seg.fields[0]` and `seg.fields[1]` content is IGNORED**
- * (WR-02): MSH-1 and MSH-2 are emitted from `msg.encodingCharacters` per
- * D-06, which is the single source of truth. This is a deliberate
- * deviation from the general D-01 "walk `msg.rawSegments` verbatim"
+ * **IMPORTANT: `seg.fields[0]` and `seg.fields[1]` content is IGNORED**:
+ * MSH-1 and MSH-2 are emitted from `msg.encodingCharacters`, which is the
+ * single source of truth. This is a deliberate
+ * deviation from the general "walk `msg.rawSegments` verbatim"
  * doctrine, because running MSH-2 through `emitField` would re-escape
  * the encoding chars and produce garbage. For parser-produced messages
  * `fields[0]` / `fields[1]` always match `encodingCharacters`. For

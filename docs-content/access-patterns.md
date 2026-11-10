@@ -1,11 +1,11 @@
 ---
 id: access-patterns
-title: "Access patterns"
-sidebar_label: "Access patterns"
+title: The three ways to read a message
+sidebar_label: Three ways to read
 description: "The three ways to read a parsed message (named helpers, dot-paths, and structural traversal), after a short HL7 v2 primer."
 ---
 
-# Access patterns
+# The three ways to read a message
 
 ## HL7 v2 in 90 seconds
 
@@ -26,66 +26,97 @@ Message
  Each component = ampersand-delimited (&) subcomponents
 ```
 
-That's enough HL7 to use this library productively. Everything else is in the spec, but you won't need it.
+That is enough HL7 to use this library. [The HL7 v2.x standard reference](./spec-notes-primer.md) has the rest.
 
-Three ways to reach into a parsed message, each optimized for a different use case.
+There are three ways to reach into a parsed message, from the least HL7 knowledge to the most
+control. All three read the same immutable tree, so you can mix them in one function.
 
 ## Named helpers
 
-Typed views over the common-case data. Zero HL7 literacy required.
+Typed views over the common data. They need no HL7 knowledge, and they return `undefined` (never
+throw) when the segment they read is absent, so optional chaining reads naturally.
 
-```ts
+```ts runnable
 import { parseHL7 } from "@cosyte/hl7";
 
-const msg = parseHL7(raw);
+const msg = parseHL7(
+  "MSH|^~\\&|LAB|MAIN|EHR|REF|20250102153045||ORU^R01|EX00080|P|2.5\r" +
+    "PID|1||MRN12345^^^HOSP^MR||Smith^Jane^Q||19800115|F",
+);
 
-console.log(msg.patient?.mrn); // "MRN12345"
-console.log(msg.patient?.fullName); // "Jane Q. Smith"
-console.log(msg.patient?.dateOfBirth?.precision); // "day": a birth date is not a full instant
-console.log(msg.meta.type); // "ADT^A01"
-console.log(msg.meta.timestamp?.raw); // "20250102153045" (MSH-7: fidelity TS)
-console.log(msg.visit?.location); // PL composite: pointOfCare/room/bed
+msg.patient?.mrn; // => "MRN12345"
+msg.patient?.fullName; // => "Jane Q Smith"
+msg.patient?.dateOfBirth?.precision; // => "day"
+msg.meta.type; // => "ORU^R01"
+msg.visit; // => undefined
 ```
 
-Use these for the 90% case. Helpers return `undefined` (not throws) when the underlying segment is absent, so optional-chaining stays idiomatic.
+Use them for most reads. The how-to guides, starting with
+[Read patient and visit](./read-patient-and-visit.md), cover each helper.
 
 ## Dot-paths
 
-String paths following HL7's own `SEG.field.component.subcomponent` convention. Field, component, and subcomponent numbers are 1-based to match the spec. A bracketed index counts from 0: `OBX[1]` is the second `OBX` segment and `PID.3[1]` is the second repetition of PID-3. Leave the brackets off to read the first.
+String paths in HL7's own `SEG.field.component.subcomponent` form. Field, component and
+subcomponent numbers count from 1, as the standard does. A bracketed index counts from 0: `OBX[1]`
+is the second OBX, and `PID.3[1]` the second repetition of PID-3. Without brackets you read the
+first.
 
-```ts
+```ts runnable
 import { parseHL7 } from "@cosyte/hl7";
 
-const msg = parseHL7(raw);
+const msg = parseHL7(
+  "MSH|^~\\&|LAB|MAIN|EHR|REF|20250102153045||ORU^R01|EX00080|P|2.5\r" +
+    "PID|1||MRN12345^^^HOSP^MR||Smith^Jane^Q\r" +
+    "OBX|1|NM|GLU^Glucose^LN||120|mg/dL\r" +
+    "OBX|2|NM|NA^Sodium^LN||140|mmol/L",
+);
 
-console.log(msg.get("PID.5.1")); // family name  -> "Smith"
-console.log(msg.get("PID.5.2")); // given name   -> "Jane"
-console.log(msg.get("OBX[1].5")); // second OBX (brackets count from 0), value field
-console.log(msg.getAll("NK1")); // every next-of-kin segment
+msg.get("PID.5.1"); // => "Smith"
+msg.get("PID.5.2"); // => "Jane"
+msg.get("OBX[1].5"); // => "140"
+msg.getAll("OBX").length; // => 2
 ```
 
-Reach for dot-paths when you want a specific field the helpers don't surface, or when you're scripting quick extractions without introducing typed imports.
+Reach for a dot-path when you want a field no helper surfaces, or for a quick script. A dot-path
+returns the decoded text of the first subcomponent it names; the helpers return typed values (the
+glucose result above is the number `120` from `msg.observations()`).
 
-## Structural traversal
+## The segment tree
 
-Walk the segment/field/component/subcomponent tree directly. For advanced extractors, round-trip edits, and anything the other two patterns don't cover.
+Walk segments, fields, repetitions, components and subcomponents directly: for extractors the
+other two do not cover, and for edits.
 
-```ts
+```ts runnable
 import { parseHL7 } from "@cosyte/hl7";
 
-const msg = parseHL7(raw);
+const msg = parseHL7(
+  "MSH|^~\\&|LAB|MAIN|EHR|REF|20250102153045||ORU^R01|EX00080|P|2.5\r" +
+    "OBX|1|NM|GLU^Glucose^LN||120|mg/dL\r" +
+    "OBX|2|NM|NA^Sodium^LN||140|mmol/L",
+);
 
-for (const obx of msg.segments("OBX")) {
-  const obsId = obx.field(3); // OBX-3, the observation identifier
-  const code = obsId.value; // OBX-3.1: value reads the first component
-  const name = obsId.repetitions[0]?.components[1]?.subcomponents[0] ?? ""; // OBX-3.2
-  const val = obx.field(5).value; // observed value
-  console.log(`${code} ${name} = ${val}`);
-}
+const rows = msg.segments("OBX").map((obx) => {
+  const id = obx.field(3);
+  const code = id.value; // OBX-3.1: value reads the first component
+  const name = id.repetitions[0]?.components[1]?.subcomponents[0] ?? ""; // OBX-3.2
+  return `${code} ${name} = ${obx.field(5).value}`;
+});
 
-console.log(msg.allSegments().length); // total segments in the message
+rows; // => ["GLU Glucose = 120", "NA Sodium = 140"]
+msg.segments("OBX")[0]?.field(3).asCwe().text; // => "Glucose"
 ```
 
-`seg.field(n)` takes the HL7 field number, as a dot-path does. A `Field` has no per-component method. Its `value` reads the first subcomponent of the first component of the first repetition, and below that `repetitions`, `components`, and `subcomponents` are plain arrays indexed from 0, so OBX-3.2 is `components[1]`. The typed coercions name the components for you: `obx.field(3).asCwe().text` reads the same OBX-3.2, and `asXpn()`, `asCx()`, `asXad()`, and the rest do the same for their data types.
+`seg.field(n)` takes the HL7 field number, as a dot-path does. A `Field`'s `value` is the first
+subcomponent of the first component of the first repetition; below it, `repetitions`, `components`
+and `subcomponents` are plain arrays counted from 0, so OBX-3.2 is `components[1]`. The typed
+coercions name the components for you: `asCwe().text` reads the same OBX-3.2, and `asXpn()`,
+`asCx()`, `asXad()` and the rest do the same for their types.
 
-Every level (segment / field / repetition / component / subcomponent) is addressable and immutable: mutation happens through explicit methods (see the cookbook).
+Every level is immutable. Changes go through explicit methods: see
+[Modify a message](./modify-and-resend.md).
+
+## Put it to use
+
+- [Read patient, visit and message details](./read-patient-and-visit.md)
+- [Read lab results, orders and timing](./read-lab-results.md)
+- [Modify a message and send it on](./modify-and-resend.md)

@@ -301,6 +301,7 @@ export function parseDtm(raw: string): DtmParts {
 
   const [, yearStr, monthStr, dayStr, hourStr, minuteStr, secondStr, fracStr, sign, offHh, offMm] =
     match;
+  /* v8 ignore next -- the year group of DTM_PATTERN is mandatory, so a match always captures it */
   if (yearStr === undefined) return invalidDtm(raw);
 
   // A fractional component is only meaningful at full second precision.
@@ -614,6 +615,7 @@ function orderAmbiguity(
   // A slash built-in populates all three; the guard keeps the function total
   // rather than asserting, matching how `buildFallbackParts` handles a
   // structurally-absent year.
+  /* v8 ignore next -- both slash built-ins carry a year, a month and a day token, so a match through one sets all three */
   if (year === undefined || month === undefined || day === undefined) return undefined;
   // Exchanging the two components leaves the same calendar date.
   if (month === day) return undefined;
@@ -700,9 +702,18 @@ function parseIsoParts(raw: string): DtmParts | undefined {
   }
 
   return buildFallbackParts({
-    year: y !== undefined ? parseInt(y, 10) : undefined,
-    month: mo !== undefined ? parseInt(mo, 10) : undefined,
-    day: d !== undefined ? parseInt(d, 10) : undefined,
+    year:
+      y !== undefined
+        ? parseInt(y, 10)
+        : /* v8 ignore next -- the pattern's first three groups are mandatory */ undefined,
+    month:
+      mo !== undefined
+        ? parseInt(mo, 10)
+        : /* v8 ignore next -- the pattern's first three groups are mandatory */ undefined,
+    day:
+      d !== undefined
+        ? parseInt(d, 10)
+        : /* v8 ignore next -- the pattern's first three groups are mandatory */ undefined,
     hour: h !== undefined ? parseInt(h, 10) : undefined,
     minute: mi !== undefined ? parseInt(mi, 10) : undefined,
     second: s !== undefined ? parseInt(s, 10) : undefined,

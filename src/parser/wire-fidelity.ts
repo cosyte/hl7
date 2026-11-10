@@ -21,8 +21,7 @@
  * @internal
  */
 
-import { WARNING_CODES, type Hl7ParseWarning } from "./warnings.js";
-import type { RawField, RawSegment } from "./types.js";
+import type { Hl7Position, RawField, RawSegment } from "./types.js";
 
 const VT = "\u000B";
 const FS = "\u001C";
@@ -103,25 +102,28 @@ export function locateInteriorFramingBytes(
 
 /**
  * Record, on the tokenized tree, every field the parser altered on the way in:
- * each field a `FIELD_WHITESPACE_TRIMMED` warning names, and each field at a
- * position {@link locateInteriorFramingBytes} returned.
+ * each field at a position in `trimmed`, and each field at a position
+ * {@link locateInteriorFramingBytes} returned. `trimmed` holds copies of the
+ * positions of the `FIELD_WHITESPACE_TRIMMED` warnings, taken as tokenize
+ * emitted them and before any `onWarning` callback ran: a callback may change
+ * the warning it receives, and that must not move the mark.
  *
  * @example
  * ```ts
- * recordAlteredFields(rawSegments, warnings, locateInteriorFramingBytes(input, "|"));
+ * recordAlteredFields(rawSegments, trimmed, locateInteriorFramingBytes(input, "|"));
  * ```
  *
  * @internal
  */
 export function recordAlteredFields(
   segments: readonly RawSegment[],
-  warnings: readonly Hl7ParseWarning[],
+  trimmed: readonly Hl7Position[],
   framingBytes: readonly RawFieldPosition[],
 ): void {
-  for (const w of warnings) {
-    if (w.code !== WARNING_CODES.FIELD_WHITESPACE_TRIMMED) continue;
-    const segment = segments[w.position.segmentIndex];
-    const fieldIndex = w.position.fieldIndex;
+  for (const position of trimmed) {
+    const segment = segments[position.segmentIndex];
+    const fieldIndex = position.fieldIndex;
+    /* v8 ignore next -- parseHL7 copies each position as tokenize emits it, before any onWarning callback runs, and tokenize emits both indices, for a segment it pushed at that same index */
     if (segment === undefined || fieldIndex === undefined) continue;
     // Warnings number MSH fields as HL7 does (MSH-3 is 3); the tree holds MSH-1 at index 0.
     mark(segment.fields[segment.name === "MSH" ? fieldIndex - 1 : fieldIndex]);

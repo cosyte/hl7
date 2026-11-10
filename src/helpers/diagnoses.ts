@@ -3,11 +3,11 @@
  * DG1 segment in document order.
  *
  * Design decisions enforced here:
- *   - D-01: `Object.freeze` applied to each entry and to the outer array.
- *   - D-05: returns `[]` when no DG1 present.
- *   - D-06: NOT memoized: each call re-walks `msg.segments("DG1")`.
+ *   - `Object.freeze` applied to each entry and to the outer array.
+ *   - Returns `[]` when no DG1 present.
+ *   - NOT memoized: each call re-walks `msg.segments("DG1")`.
  *   - `dateTime` is the fidelity `TS` (precision + timezone preserved).
- *   - D-22: never throws: empty / malformed fields surface as omitted keys.
+ *   - Never throws: empty / malformed fields surface as omitted keys.
  *
  * Lean v1 field set (callers wanting more can drop to `msg.segments("DG1")`):
  *   - `code`        ← DG1-3 (CWE)
@@ -19,14 +19,14 @@
 import type { Hl7Message } from "../model/message.js";
 import type { Diagnosis } from "./types.js";
 
-/** Normalize HL7 empty-string to `undefined` for the helper layer (D-22). @internal */
+/** Normalize HL7 empty-string to `undefined` for the helper layer. @internal */
 function stringOrUndefined(v: string): string | undefined {
   return v === "" ? undefined : v;
 }
 
 /**
- * Every DG1 as a `Diagnosis` entry in document order. D-05: returns `[]` when
- * no DG1 is present. D-06: NOT memoized. HELPERS-07: never throws.
+ * Every DG1 as a `Diagnosis` entry in document order. Returns `[]` when
+ * no DG1 is present. NOT memoized. Never throws.
  *
  * @example
  * ```ts

@@ -9,7 +9,7 @@
  * restored in v2 if vendor-quirk fixtures require them.
  *
  * Zero runtime deps: pure function over the raw positional tree + `unescape`.
- * Parser is silent (D-09 composite-parser silence).
+ * Parser is silent, as every composite parser is.
  */
 
 import type { EncodingCharacters, RawComponent, RawRepetition } from "../../parser/types.js";
@@ -82,10 +82,11 @@ function parseAssigningAuthority(
   comp: RawComponent | undefined,
   enc: EncodingCharacters,
 ): HD | undefined {
-  if (comp === undefined) return undefined;
-  if (comp.subcomponents.every((s) => s === "")) return undefined;
+  // `?.` reads a `null` component of a repetition built by hand as absent.
+  const subcomponents = comp?.subcomponents ?? [];
+  if (subcomponents.every((s) => s === "")) return undefined;
   const synthetic: RawRepetition = {
-    components: comp.subcomponents.map((sub) => ({ subcomponents: [sub] })),
+    components: subcomponents.map((sub) => ({ subcomponents: [sub] })),
   };
   const hd = parseHd(synthetic, enc);
   return Object.keys(hd).length === 0 ? undefined : hd;

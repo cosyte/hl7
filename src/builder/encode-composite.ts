@@ -16,7 +16,7 @@
  *   `^`/`&`/`~`.
  * - **`emit ∘ parse` identity on the modelled fields.** Interior empty
  *   components are preserved (so component positions stay aligned) and only
- *   trailing empties are trimmed (matching the serializer's D-02 strip and the
+ *   trailing empties are trimmed (matching the serializer's trailing-empty strip and the
  *   parser's omit-on-absent), so `parseXxx(encodeXxx(v)) ` reproduces `v` on
  *   every modelled field.
  * - **Never fabricate.** An omitted optional field encodes to an empty /
@@ -417,7 +417,8 @@ export function encodeComposite<K extends CompositeKind>(
  * Encode an array of typed composites into a single repeating `RawField`: one
  * HL7 repetition (`~`-joined on emit) per array element. Used for repeating
  * fields such as PID-3 (patient identifier list) and PID-11 (addresses). An
- * empty array yields an absent field.
+ * empty array yields an absent field, and an entry that is empty, a hole or
+ * `null` yields no repetition.
  *
  * @example
  * ```ts
@@ -433,7 +434,10 @@ export function encodeCompositeReps<K extends CompositeKind>(
   values: readonly CompositeValueByKind[K][],
 ): RawField {
   const repetitions: RawRepetition[] = [];
-  for (const value of values) {
+  for (let i = 0; i < values.length; i++) {
+    // A hole or a `null` in the array is an empty entry: no repetition.
+    const value = values[i] ?? undefined;
+    if (value === undefined) continue;
     const encoded = encodeComposite(kind, value);
     // Each single-composite encode yields at most one repetition; an all-empty
     // composite yields none: skip it so an empty entry never forges a bare `~`.

@@ -1,10 +1,11 @@
 /**
- * Validation helpers for `defineProfile()`. Implements the
- * D-05..D-08 throw paths.
+ * Validation helpers for `defineProfile()`: the throw paths for bad
+ * Z-segment names, duplicate field names, unknown option keys and
+ * malformed date formats.
  *
  * Every validator returns `void` on success and throws
- * `ProfileDefinitionError` on failure. The name validator (subject of
- * D-01 fail-fast) is split from the full options validator so
+ * `ProfileDefinitionError` on failure. The name validator (which fails
+ * fast) is split from the full options validator so
  * `defineProfile()` can call it FIRST and pass `opts.name` to every
  * subsequent throw site.
  *
@@ -27,7 +28,7 @@ import type { CustomSegmentDefinition } from "../parser/types.js";
 import type { DefineProfileOptions } from "./define.js";
 
 /**
- * Z-segment shape: `Z` + 2 uppercase alphanumerics (D-05). Mirrors the
+ * Z-segment shape: `Z` + 2 uppercase alphanumerics. Mirrors the
  * `SEGMENT_NAME_RE` convention used in `src/model/message.ts` for
  * addSegment validation: Z-segments are the allowed v1 overlay set.
  *
@@ -36,7 +37,7 @@ import type { DefineProfileOptions } from "./define.js";
 const Z_SEGMENT_RE = /^Z[A-Z0-9]{2}$/u;
 
 /**
- * Known top-level option keys accepted by `defineProfile()` (D-07). Any
+ * Known top-level option keys accepted by `defineProfile()`. Any
  * key outside this list triggers a `ProfileDefinitionError` with an
  * optional Levenshtein-based "did you mean?" hint.
  *
@@ -55,13 +56,15 @@ const KNOWN_OPTION_KEYS: readonly string[] = [
 /**
  * Iterative DP Levenshtein distance (edit distance) between two strings.
  * Used by `validateOptionKeys` to generate "did you mean?" hints. Zero
- * runtime deps per D-33; kept ≤ 15 LoC excluding the signature.
+ * runtime deps; kept ≤ 15 LoC excluding the signature.
  *
  * @internal
  */
 function levenshtein(a: string, b: string): number {
+  /* v8 ignore next -- the only caller skips a key that equals a known key, so the two never match */
   if (a === b) return 0;
   if (a.length === 0) return b.length;
+  /* v8 ignore next -- b is always a known option key, and none is empty */
   if (b.length === 0) return a.length;
   let prev: number[] = [];
   for (let j = 0; j <= b.length; j++) prev.push(j);
@@ -69,15 +72,17 @@ function levenshtein(a: string, b: string): number {
     const curr: number[] = [i];
     for (let j = 1; j <= b.length; j++) {
       const cost = a.charCodeAt(i - 1) === b.charCodeAt(j - 1) ? 0 : 1;
+      /* v8 ignore next -- prev has b.length + 1 entries and curr has j, so every index read here is in range */
       curr.push(Math.min((prev[j] ?? 0) + 1, (curr[j - 1] ?? 0) + 1, (prev[j - 1] ?? 0) + cost));
     }
     prev = curr;
   }
+  /* v8 ignore next -- prev always has b.length + 1 entries */
   return prev[b.length] ?? 0;
 }
 
 /**
- * Validate the profile NAME (D-01 fail-fast). Throws on null/undefined
+ * Validate the profile NAME (fail-fast). Throws on null/undefined
  * opts, non-string name, empty name, whitespace-only name. Separate from
  * the full options validator so callers can trust `opts.name` by the time
  * downstream throws fire.
@@ -106,7 +111,7 @@ export function validateProfileName(opts: DefineProfileOptions): void {
 }
 
 /**
- * Validate TOP-LEVEL option keys (D-07). Throws on any unknown key with a
+ * Validate TOP-LEVEL option keys. Throws on any unknown key with a
  * Levenshtein-based "did you mean?" hint when distance ≤ 2 from a known
  * key.
  *
@@ -132,9 +137,9 @@ export function validateOptionKeys(opts: DefineProfileOptions): void {
 }
 
 /**
- * Validate a pre-merge customSegments map (D-05): every key MUST be a
+ * Validate a pre-merge customSegments map: every key MUST be a
  * Z-segment matching `/^Z[A-Z0-9]{2}$/u`, and every field position MUST
- * be a positive integer. Duplicate field-name detection (D-06) is
+ * be a positive integer. Duplicate field-name detection is
  * deferred to post-merge validation; on the single-profile path,
  * object-literal syntax already rules out literal duplicate keys, so a
  * simple presence check is sufficient here.
@@ -371,7 +376,7 @@ function dateFormatProblem(format: string): string | undefined {
 }
 
 /**
- * Validate date-format strings (D-08): EVERY character of each format must be
+ * Validate date-format strings: EVERY character of each format must be
  * a supported token or a permitted literal, and the grammar's pairing and
  * adjacency rules must hold. A format that cannot be honoured is refused here,
  * at profile definition time, rather than accepted and then silently never
@@ -394,7 +399,7 @@ export function validateDateFormats(formats: readonly string[], profileName: str
 }
 
 /**
- * Post-merge D-06 DEFENSE-IN-DEPTH check: within a single segment, the
+ * Post-merge DEFENSE-IN-DEPTH check: within a single segment, the
  * SAME field name MUST NOT resolve to DIFFERENT positions. Cross-
  * position aliasing (two names, same position) is allowed: that's
  * intentional convenience.
@@ -439,8 +444,10 @@ export function validateUniqueFieldNames(
     const positionsByName = new Map<string, number>();
     for (const fieldName of Object.keys(entry.fields)) {
       const pos = entry.fields[fieldName];
+      /* v8 ignore next -- defineProfile runs validateCustomSegments and validateSegmentOverrides on the same merged map first, and they refuse any position that is not a positive integer */
       if (pos === undefined) continue;
       const prior = positionsByName.get(fieldName);
+      /* v8 ignore next -- Object.keys yields each field name once per entry, so no name is seen twice; the check stays as the guard the doc comment above describes */
       if (prior !== undefined && prior !== pos) {
         throw new ProfileDefinitionError(
           `Profile '${profileName}' ${optionKey}['${segName}']: field name '${fieldName}' ` +

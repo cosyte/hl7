@@ -375,7 +375,7 @@ export function splitBatch<P extends Profile>(
   options: ParseOptions & { readonly profile: P },
 ): BatchSplitResult<ProfiledMessage<P>>;
 export function splitBatch(raw: string | Buffer, options: ParseOptions): BatchSplitResult;
-/** @internal implementation signature; overloads above carry the public JSDoc. */
+// The implementation signature; the overloads above carry the public JSDoc.
 export function splitBatch(
   raw: string | Buffer,
   optionsOrProfile?: ParseOptions | Profile,
@@ -506,6 +506,7 @@ export function splitBatch(
 
   for (let index = 0; index < segments.length; index++) {
     const segment = segments[index];
+    /* v8 ignore next -- indexes a String.prototype.split result below its length, and split never leaves a hole */
     if (segment === undefined) continue;
     // Skip a blank / whitespace-only line ONLY between messages: it is
     // inter-message whitespace carrying no segment content (splitBatch is

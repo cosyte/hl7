@@ -5,9 +5,9 @@
  * delimiters and re-escaping user content via `reescape`.
  *
  * Decisions honored:
- * - D-02: trailing empty components and subcomponents are stripped;
+ * - Trailing empty components and subcomponents are stripped;
  *   `RawField.isNull === true` is preserved as the two-character literal `""`.
- * - D-04: a subcomponent with no fidelity overlay passes through
+ * - A subcomponent with no fidelity overlay passes through
  *   `reescape(sub, enc)`: the 5 active delimiters + `\n` (via `\.br\`) + a
  *   decoded CR (via `\X0D\`) are re-escaped; other already-decoded text passes
  *   through as plain characters. A subcomponent whose parse recorded original
@@ -15,14 +15,14 @@
  *   preserve escape like `\H\`/`\Z..\`, or a hex escape like `\X41\`) is
  *   emitted from that overlay **verbatim**, so those families round-trip
  *   byte-for-byte instead of canonicalizing.
- * - D-06 guard: `emitSegment` throws when called with an MSH segment,
+ * - MSH guard: `emitSegment` throws when called with an MSH segment,
  *   MSH must be routed through `to-string.ts`'s special-case path, which
  *   inlines MSH-1 and MSH-2 instead of running them through `emitField`
  *   (running MSH-2 through `emitField` would re-escape the encoding chars
- *   and produce garbage). The throw is a deliberate deviation from D-07
+ *   and produce garbage). The throw is a deliberate deviation from
  *   purity: it catches programmer misuse at the call site instead of
  *   silently corrupting wire output.
- * - D-07: pure for all non-MSH inputs: never warns, never throws.
+ * - Pure for all non-MSH inputs: never warns, never throws.
  *
  * Not part of the public API (no re-export from `src/index.ts`). Profile
  * hooks may compose around `emitSegment` / `emitField`.
@@ -37,9 +37,9 @@ import type { EncodingCharacters, RawField, RawRepetition, RawSegment } from "..
  * repetitions with `enc.repetition`; each repetition renders its
  * components (joined with `enc.component`), each component renders its
  * subcomponents (joined with `enc.subcomponent`), and each subcomponent
- * runs through `reescape` (D-04).
+ * runs through `reescape`.
  *
- * D-02 rules:
+ * Trailing-empty rules:
  * - `field.isNull === true` returns the two-character string `""` (literal
  *   quote-quote: HL7 explicit null), regardless of repetitions content.
  * - Trailing empty subcomponents inside a component are stripped.
@@ -52,26 +52,31 @@ export function emitField(field: RawField, enc: EncodingCharacters): string {
   if (field.isNull) return '""';
   if (field.repetitions.length === 0) return "";
   const repStrings: string[] = [];
-  for (const rep of field.repetitions) {
-    repStrings.push(emitRepetition(rep, enc));
+  // Read by index, so a hole in a field built by hand reaches the emitter as
+  // `undefined` and, like a `null`, emits as an empty position.
+  for (let r = 0; r < field.repetitions.length; r++) {
+    repStrings.push(emitRepetition(field.repetitions[r], enc));
   }
   return repStrings.join(enc.repetition);
 }
 
 /** @internal */
-function emitRepetition(rep: RawRepetition, enc: EncodingCharacters): string {
+function emitRepetition(rep: RawRepetition | undefined, enc: EncodingCharacters): string {
   const compStrings: string[] = [];
-  for (const comp of rep.components) {
-    const overlay = comp.rawSubcomponents;
+  const components = rep?.components ?? [];
+  for (let c = 0; c < components.length; c++) {
+    const comp = components[c];
+    const overlay = comp?.rawSubcomponents;
+    const subcomponents = comp?.subcomponents ?? [];
     const subStrings: string[] = [];
-    for (let i = 0; i < comp.subcomponents.length; i++) {
+    for (let i = 0; i < subcomponents.length; i++) {
       // Escape-fidelity overlay (HL7-ESC): when the tokenizer recorded the
       // subcomponent's original wire bytes (a preserve-or-hex escape whose
       // decoded form does not re-escape byte-verbatim), emit them verbatim,
       // otherwise re-escape the decoded value. Delimiter escapes have no
       // overlay and take the reescape path, exactly as before.
       const raw = overlay?.[i];
-      subStrings.push(raw ?? reescape(comp.subcomponents[i] ?? "", enc));
+      subStrings.push(raw ?? reescape(subcomponents[i] ?? "", enc));
     }
     // D-02 trailing-empty strip at subcomponent level.
     while (subStrings.length > 0 && subStrings[subStrings.length - 1] === "") {
@@ -91,13 +96,13 @@ function emitRepetition(rep: RawRepetition, enc: EncodingCharacters): string {
  * `<seg.name>` + `enc.field` + `<fields[1..N] joined by enc.field>`.
  *
  * **IMPORTANT: MSH guard:** If `seg.name === "MSH"` this function
- * THROWS. MSH requires D-06's special-case emission (MSH-1 = single
+ * THROWS. MSH requires the special-case emission (MSH-1 = single
  * delimiter char, MSH-2 = 4 literal encoding chars: neither is routed
  * through `emitField`, because running MSH-2 through `emitField` would
  * re-escape the encoding chars and produce garbage output). The only
  * correct caller for MSH is `to-string.ts::emitMessage`, which inlines
  * MSH-1/MSH-2 before handing MSH-3..N off to `emitField`. This guard
- * is a deliberate deviation from D-07 "never throws": it catches
+ * is a deliberate deviation from "never throws": it catches
  * programmer misuse loudly at the call site rather than silently
  * corrupting wire output.
  *
@@ -110,15 +115,20 @@ function emitRepetition(rep: RawRepetition, enc: EncodingCharacters): string {
 export function emitSegment(seg: RawSegment, enc: EncodingCharacters): string {
   if (seg.name === "MSH") {
     throw new Error(
-      "emitSegment: MSH must be routed through to-string.ts's MSH path per D-06 " +
+      "emitSegment: MSH must be routed through to-string.ts's MSH path " +
         "(special-case MSH-1/MSH-2 encoding-char emission). Running MSH through " +
         "emitSegment would re-escape the encoding chars and produce garbage output.",
     );
   }
-  const parts: string[] = [seg.name];
+  const parts: string[] = [];
   for (let i = 1; i < seg.fields.length; i++) {
     const f = seg.fields[i];
     parts.push(f === undefined ? "" : emitField(f, enc));
   }
-  return parts.join(enc.field);
+  // The parser reads a segment whose field region is empty (`PV1|`) as a segment with no fields,
+  // so a region that writes as nothing is written with no separator either. Otherwise a lone
+  // field holding only empty components (`PV1|^`) would write as `PV1|`, which reads back as `PV1`,
+  // and serializing a parsed message a second time would change its text.
+  const region = parts.join(enc.field);
+  return region === "" ? seg.name : seg.name + enc.field + region;
 }

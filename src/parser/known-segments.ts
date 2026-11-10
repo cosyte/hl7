@@ -1,7 +1,7 @@
 /**
  * Registry of standard HL7 v2 segment names used for UNKNOWN_SEGMENT
  * warning detection. Any segment name NOT in this set AND NOT declared in
- * the active profile's customSegments map emits UNKNOWN_SEGMENT per D-31.
+ * the active profile's customSegments map emits UNKNOWN_SEGMENT.
  *
  * Derived from HL7 v2.5.1 chapters 3-7 (core message segments, order/result
  * tree, financial tree, scheduling, master files). Z-segments

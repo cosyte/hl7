@@ -17,17 +17,17 @@
  *   - FT1-19 diagnosis code(s) (CE, repeating): billing diagnosis linkage
  *
  * Safety rules enforced here:
- *   - Never throws: a malformed FT1 surfaces as omitted keys (HELPERS-07).
+ *   - Never throws: a malformed FT1 surfaces as omitted keys.
  *   - **No billing logic, no money-as-float.** The extended/unit amounts (CP)
  *     are surfaced as their canonical wire text (`amountExtended`/`amountUnit`),
  *     never parsed to a `number`: currency + price are preserved intact and no
  *     rounding is ever introduced. `Field.text` is byte-exact for a plain numeric
  *     amount (`150.00^USD`); it canonicalizes only escape sequences + trailing
- *     empty components (D-02), which a CP amount does not carry. The transaction
+ *     empty components, which a CP amount does not carry. The transaction
  *     type + code are provenance-only; nothing is validated, priced, or adjudicated.
  *   - Missing fields → keys omitted; `diagnoses` is ALWAYS a (possibly empty)
  *     array.
- *   - Output is frozen at the boundary (D-01); NOT memoized (D-06).
+ *   - Output is frozen at the boundary; NOT memoized.
  *
  * Known limitations: `charges()` surfaces billing-critical FT1 fields only. It
  * is NOT a claims/pricing engine: no charge validation, no adjudication, no
@@ -98,7 +98,7 @@ function finalizeCharge(ft1: Segment): Charge {
 /**
  * Every FT1 of a DFT message as a typed {@link Charge}, one per FT1 in document
  * order. Returns `[]` when no FT1 is present. NOT memoized: each call re-walks
- * `msg.allSegments()`. Never throws (HELPERS-07).
+ * `msg.allSegments()`. Never throws.
  *
  * Billing-critical fields are surfaced (transaction type/code, extended/unit
  * amount, diagnosis linkage); there is **no billing logic and no money-as-float**

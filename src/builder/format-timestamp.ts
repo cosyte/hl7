@@ -5,8 +5,8 @@
  * second-precision UTC for newly-constructed messages.
  *
  * Decisions:
- * - D-13: second precision only (no `.SSSS`); UTC via `getUTC*` methods.
- * - D-31: zero deps: stdlib `Date` only.
+ * - Second precision only (no `.SSSS`); UTC via `getUTC*` methods.
+ * - Zero deps: stdlib `Date` only.
  *
  * @internal
  */
@@ -14,7 +14,7 @@
 /**
  * Format a JS `Date` to HL7 TS `YYYYMMDDHHmmss` (UTC, second precision,
  * always 14 chars). The builder counterpart to the parser's `parseDtm`.
- * D-13: sub-second precision is NOT emitted (acceptable asymmetry: most
+ * Sub-second precision is NOT emitted (acceptable asymmetry: most
  * outbound use cases don't need ms, and HL7 TS `.SSSS` is optional).
  *
  * Always uses UTC: callers who need local-time emission should supply a
@@ -22,7 +22,7 @@
  *
  * On an Invalid Date (`new Date("not-a-date")`) the output is a string of
  * 14 `NaN`-derived chars. `buildMessage`'s upstream validation never passes
- * an invalid Date: sibling functions don't throw (D-07), so this pathological
+ * an invalid Date: sibling functions don't throw, so this pathological
  * case is accepted silently.
  *
  * @example

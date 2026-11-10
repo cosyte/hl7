@@ -3,23 +3,23 @@
  * package. Synthesizes a complete MSH `RawSegment` from `BuildMessageInit`
  * and returns a real `Hl7Message` (not a builder subtype). Callers chain
  * `.addSegment(...)` (mutation method) to append PID,
- * OBX, etc. Symmetric with `parseHL7` (D-09).
+ * OBX, etc. Symmetric with `parseHL7`.
  *
  * `BuildMessageInit` is exported from this module and re-exported from
  * `src/index.ts`, so consumers can reference the type directly.
  *
  * Decisions:
- * - D-09: top-level named export from `src/index.ts`.
- * - D-10: `BuildMessageInit` shape below.
- * - D-11: internally synthesises a complete MSH `RawSegment` and hands to
+ * - Top-level named export from `src/index.ts`.
+ * - `BuildMessageInit` shape below.
+ * - Internally synthesises a complete MSH `RawSegment` and hands to
  *   `new Hl7Message({...})`.
- * - D-12: controlId auto-gen: YYYYMMDDHHmmssSSS + 6 alnum = 23 chars.
- * - D-13: `timestamp` accepts `Date | string`; `Date` formats to
+ * - ControlId auto-gen: YYYYMMDDHHmmssSSS + 6 alnum = 23 chars.
+ * - `timestamp` accepts `Date | string`; `Date` formats to
  *   `YYYYMMDDHHmmss` UTC.
- * - D-14: encoding chars always `DEFAULT_ENCODING_CHARACTERS`.
- * - D-15: subsequent `.addSegment(name, fields)` takes `readonly string[]`
+ * - Encoding chars always `DEFAULT_ENCODING_CHARACTERS`.
+ * - Subsequent `.addSegment(name, fields)` takes `readonly string[]`
  *   field input.
- * - D-16: missing/empty `type` throws `TypeError`.
+ * - Missing/empty `type` throws `TypeError`.
  *
  * **Absent vs. explicit null at the wire level:** at the HL7 wire level,
  * an empty-string field and an omitted field produce IDENTICAL output
@@ -27,7 +27,7 @@
  * "explicitly null" (HL7 `""`) from "absent" in an outbound message, use
  * `buildMessage({...}).setField(path, '""')` after construction: the
  * `setField` mutation method sets `RawField.isNull = true`, which
- * the emitter preserves as the literal two-char string `""` per D-02.
+ * the emitter preserves as the literal two-char string `""`.
  */
 
 import { Hl7Message } from "../model/message.js";
@@ -38,7 +38,7 @@ import { generateControlId } from "./control-id.js";
 import { formatHl7Timestamp } from "./format-timestamp.js";
 
 /**
- * Input shape for `buildMessage` (SER-06). Mirrors `msg.meta` 1-for-1 so
+ * Input shape for `buildMessage`. Mirrors `msg.meta` 1-for-1 so
  * read and write surfaces share field names (`sendingApp`, `sendingFacility`,
  * `receivingApp`, `receivingFacility`, `controlId`, `timestamp`, `version`,
  * `processingId`). `type` is the only required field.
@@ -49,7 +49,7 @@ import { formatHl7Timestamp } from "./format-timestamp.js";
  * position in an outbound message, build the message first and then call
  * `.setField(path, '""')`: the mutation method sets `isNull=true`
  * on the underlying `RawField`, and the emitter preserves that as the
- * literal two-char output per D-02.
+ * literal two-char output.
  *
  * @example
  * ```ts
@@ -72,7 +72,7 @@ import { formatHl7Timestamp } from "./format-timestamp.js";
 export interface BuildMessageInit {
   /**
    * HL7 message type, e.g. `"ADT^A01"` (code + trigger) or
-   * `"ORU^R01^ORU_R01"` (code + trigger + structure). Required (D-16).
+   * `"ORU^R01^ORU_R01"` (code + trigger + structure). Required.
    *
    * The string is split on `^` into MSH-9 components; each component is
    * emitted verbatim. Literal `^` characters in a component are NOT
@@ -80,7 +80,7 @@ export interface BuildMessageInit {
    * needing that edge case should build the message and then use
    * `.setField("MSH.9.1", ...)` etc. after construction.
    *
-   * Rejected at runtime (D-16 / WR-04):
+   * Rejected at runtime:
    * - empty string `""` or whitespace-only `"   "`;
    * - strings whose every `^`-split component is empty/whitespace
    *   (e.g. `"^"`, `"^^"`, `"   ^   "`).
@@ -90,11 +90,11 @@ export interface BuildMessageInit {
   readonly sendingFacility?: string;
   readonly receivingApp?: string;
   readonly receivingFacility?: string;
-  /** Auto-generated via `generateControlId()` when omitted (D-12). */
+  /** Auto-generated via `generateControlId()` when omitted. */
   readonly controlId?: string;
   /**
    * `Date` formatted to HL7 `YYYYMMDDHHmmss` (UTC, seconds) when supplied;
-   * pre-formatted HL7 TS string passed through verbatim (D-13). Defaults to
+   * pre-formatted HL7 TS string passed through verbatim. Defaults to
    * `new Date()`.
    */
   readonly timestamp?: Date | string;
@@ -105,22 +105,22 @@ export interface BuildMessageInit {
 }
 
 /**
- * Construct an outbound `Hl7Message` from semantic MSH fields (SER-06).
- * Synthesises a complete MSH `RawSegment` per D-10/D-11 and hands to
+ * Construct an outbound `Hl7Message` from semantic MSH fields.
+ * Synthesises a complete MSH `RawSegment` and hands it to
  * `new Hl7Message({...})`. Callers chain `.addSegment(name, fields)`
  * (mutation method) to append PID, OBX, etc.
  *
- * Defaults applied when fields are omitted (D-10):
- * - `controlId` → `generateControlId()` (D-12)
- * - `timestamp` → `formatHl7Timestamp(new Date())` (D-13)
+ * Defaults applied when fields are omitted:
+ * - `controlId` → `generateControlId()`
+ * - `timestamp` → `formatHl7Timestamp(new Date())`
  * - `version` → `"2.5"`
  * - `processingId` → `"P"`
  * - `sendingApp`/`sendingFacility`/`receivingApp`/`receivingFacility` → empty
  *
- * Encoding characters are always `DEFAULT_ENCODING_CHARACTERS` (D-14); no
+ * Encoding characters are always `DEFAULT_ENCODING_CHARACTERS`; no
  * option to customise in v1.
  *
- * **Empty string vs. omitted field (W1):** at the HL7 wire level, passing
+ * **Empty string vs. omitted field:** at the HL7 wire level, passing
  * `sendingApp: ""` and omitting `sendingApp` produce IDENTICAL output
  * (both emit as absent: `||` at the MSH-3 position). If you need to
  * emit an HL7 explicit null (`""`, the two-char literal) at a specific
@@ -247,7 +247,7 @@ export function buildMessage(init: BuildMessageInit): Hl7Message {
 }
 
 /**
- * D-13: `Date` formats to HL7 `YYYYMMDDHHmmss` UTC; string passes through
+ * `Date` formats to HL7 `YYYYMMDDHHmmss` UTC; string passes through
  * verbatim; omitted defaults to `formatHl7Timestamp(new Date())`.
  * @internal
  */
@@ -259,8 +259,8 @@ function resolveTimestamp(ts: Date | string | undefined): string {
 
 /**
  * Build a RawField carrying a single plain-string value (one repetition,
- * one component, one subcomponent). Empty string → absent field (W1 wire
- * semantic: empty and omitted are indistinguishable on the wire).
+ * one component, one subcomponent). Empty string → absent field (on the
+ * wire, empty and omitted are indistinguishable on the wire).
  * @internal
  */
 function scalarField(value: string): RawField {
@@ -284,10 +284,9 @@ function absentField(): RawField {
 }
 
 /**
- * Build MSH-9 from a `^`-delimited type string per the Claude's Discretion
- * resolution (accept a single string, split on `^` for component
- * decomposition). Empty parts suppressed via D-02 trailing-empty strip at
- * emit time.
+ * Build MSH-9 from a `^`-delimited type string (accept a single string,
+ * split on `^` for component decomposition). Empty trailing parts are
+ * stripped at emit time, as the serializer strips every trailing empty.
  * @internal
  */
 function compositeField(typeString: string): RawField {

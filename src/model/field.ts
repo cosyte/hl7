@@ -8,7 +8,7 @@
  * Typed composite coercions (`asXpn`, `asXad`, `asCx`, `asCwe`, `asCe`,
  * `asXtn`, `asPl`, `asTs`, `asNm`, `asHd`) delegate to the corresponding
  * composite parsers from `./types/*`. Coercions are lazy and NOT memoized
- * in v1 (D-09): each call re-parses the first repetition. Empty fields
+ * in v1: each call re-parses the first repetition. Empty fields
  * return empty typed objects (`{}` for optional-field composites,
  * `{ raw: "", date: undefined }` / `{ raw: "", value: undefined }` for
  * the TS/NM scalar composites).
@@ -16,6 +16,7 @@
 
 import { DEFAULT_ENCODING_CHARACTERS } from "../parser/delimiters.js";
 import { emitField } from "../serialize/emit-field.js";
+import { denseRepetitions } from "./dense-raw.js";
 import { renderText, type RenderedText, type RenderTextOptions } from "../text/render.js";
 import type { EncodingCharacters, Hl7Position, RawField, RawRepetition } from "../parser/types.js";
 import { parseCe, type CE } from "./types/ce.js";
@@ -45,7 +46,7 @@ const NO_DATE_FORMATS: readonly string[] = Object.freeze([]);
  * Wrapper over a `RawField` exposing HL7 null/empty discrimination
  * (`isNull`), the repetitions tree, and a decoded `value` getter.
  * `seg.field(3) === seg.field(3)`: Field instances are referentially stable
- * per segment position (D-12).
+ * per segment position.
  *
  * @example
  * ```ts
@@ -61,7 +62,10 @@ export class Field {
   /** HL7 null indicator: `true` iff the underlying field was the two-char literal `""`. */
   public readonly isNull: boolean;
 
-  /** Reference to the underlying `RawField.repetitions` (no defensive copy). */
+  /**
+   * The underlying `RawField.repetitions`, with a hole or `null` that a field
+   * built by hand carries at any depth read as empty. No copy unless it has one.
+   */
   public readonly repetitions: readonly RawRepetition[];
 
   /** The 5 encoding characters for this message. Exposed for composite parsers. @internal */
@@ -97,7 +101,7 @@ export class Field {
   ) {
     this.raw = raw;
     this.isNull = raw.isNull;
-    this.repetitions = raw.repetitions;
+    this.repetitions = denseRepetitions(raw.repetitions);
     this.enc = enc;
     this.position = position;
     this.dateFormats = dateFormats ?? NO_DATE_FORMATS;
@@ -152,7 +156,7 @@ export class Field {
    * rather than as escaped literal text. Delimiter/newline escapes and plain
    * content round-trip byte-exact via the re-escape path. The only remaining
    * canonicalization is structural: trailing insignificant empties are
-   * stripped (D-02), and a field built by hand (not parsed) re-escapes its
+   * stripped, and a field built by hand (not parsed) re-escapes its
    * decoded value since it has no overlay.
    *
    * **MSH-1/MSH-2 caveat.** Like {@link value}, calling this on MSH-1 or
@@ -196,7 +200,7 @@ export class Field {
 
   /**
    * Return a synthetic empty `Field` sentinel: used by `Segment.field(n)` to
-   * honor MODEL-05's "never throws on missing" contract. The returned Field
+   * honor its "never throws on missing" contract. The returned Field
    * has `isNull === false`, `repetitions === []`, and `value === ""`.
    * Referentially stable across calls (same instance returned each time).
    *
@@ -220,8 +224,7 @@ export class Field {
   /**
    * Coerce this field's first repetition to a typed `XPN` (Extended Person
    * Name). Absent components are OMITTED from the result
-   * (`exactOptionalPropertyTypes`). Not memoized in v1: each call re-parses
-   * (D-09).
+   * (`exactOptionalPropertyTypes`). Not memoized: each call re-parses.
    *
    * @example
    * ```ts

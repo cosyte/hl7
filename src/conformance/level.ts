@@ -128,6 +128,7 @@ export function levelInForce(profile: unknown, claimRefused: boolean): ProfileLe
  */
 export function usageIsImplementable(token: string): boolean {
   const parsed = parseUsageToken(token);
+  /* v8 ignore next -- the only caller, checkImplementableUsage, returns before calling this for a token parseUsageToken rejects */
   if (parsed === undefined) return false;
   const admits = (code: SimpleUsageCode): boolean => IMPLEMENTABLE_USAGE_CODES.includes(code);
   if (parsed.kind === "simple") return admits(parsed.code);

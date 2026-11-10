@@ -97,7 +97,7 @@ This is deliberately **presence-based, not `MSH-12`-version-based**: it is
 fail-safe against a message that mis-declares its version, it never
 **double-counts** the same timing when a modern sender redundantly fills both,
 and it never **drops** a legacy-only (pre-2.5) timing. A malformed / non-numeric
-field is tolerantly omitted, never fabricated (HELPERS-07, never throws).
+field is tolerantly omitted, never fabricated (the helpers never throw).
 
 ## Positional grouping
 
@@ -142,3 +142,7 @@ state machine `orders()` uses for OBX→OBR and `medications()` for RXR→RX\*:
   timing-specific behavior; conformant integer `NM` values (the norm) are exact.
 - **No new warning code.** Order and medication timing is a pure additive read surface; it emits no
   warning of its own.
+
+## Put it to use
+
+- [Read lab results, orders and timing](./read-lab-results.md)

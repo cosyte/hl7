@@ -5,7 +5,7 @@
  * character) from the first segment and throws a Tier-3 `Hl7ParseError` if
  * the structural preconditions fail. Downstream stages (`tokenize.ts`)
  * consume the returned `EncodingCharacters` verbatim and never re-derive
- * them, which keeps custom-delimiter behaviour (PARSE-02) consistent across
+ * them, which keeps custom-delimiter behaviour consistent across
  * the pipeline.
  *
  * Only three of the four Tier-3 fatal codes originate here,
@@ -130,6 +130,7 @@ export function readDelimiters(firstSegment: string): EncodingCharacters {
       snip,
     );
   }
+  /* v8 ignore next -- MSH-2 is cut at the first field separator after MSH-1, so it cannot contain one */
   if (chars.includes(field)) {
     throw new Hl7ParseError(
       FATAL_CODES.INVALID_ENCODING_CHARACTERS,
@@ -145,6 +146,7 @@ export function readDelimiters(firstSegment: string): EncodingCharacters {
   const repetition = chars[1];
   const escape = chars[2];
   const subcomponent = chars[3];
+  /* v8 ignore next -- the length check above admits only 4 or 5 characters, so the first four are always defined */
   if (
     component === undefined ||
     repetition === undefined ||

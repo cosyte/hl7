@@ -24,10 +24,10 @@
  *     axis from availability. Reading a preliminary document as final is the
  *     clinical harm this split exists to prevent. Both are verbatim,
  *     provenance-only: never validated, never merged, never defaulted.
- *   - Never throws: a malformed TXA surfaces as omitted keys (HELPERS-07).
+ *   - Never throws: a malformed TXA surfaces as omitted keys.
  *   - Missing fields → keys omitted; `observations` is ALWAYS a (possibly
  *     empty) array.
- *   - Output is frozen at the boundary (D-01); NOT memoized (D-06).
+ *   - Output is frozen at the boundary; NOT memoized.
  *
  * Known limitations: `documents()` surfaces the document header + narrative body
  * only. It does NOT verify authentication signatures (TXA-22), resolve the
@@ -82,7 +82,7 @@ function finalizeDocument(txa: Segment, observations: readonly Observation[]): C
  * Every TXA of an MDM message as a typed {@link ClinicalDocument}, with the OBX
  * narrative body grouped positionally under that TXA. Document order. Returns
  * `[]` when no TXA is present. NOT memoized: each call re-walks
- * `msg.allSegments()`. Never throws (HELPERS-07).
+ * `msg.allSegments()`. Never throws.
  *
  * TXA-17 completion status and TXA-19 availability status are surfaced as
  * **distinct** fields (`completionStatus` vs `availabilityStatus`) and are never

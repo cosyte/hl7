@@ -4,7 +4,6 @@
  * plus ISO-date-only (`YYYY-MM-DD`), observed
  * across Millennium's native outbound feeds. Z-segments: `ZDS`
  * (discharge summary text) and `ZCO` (comment overflow for long fields).
- * BIP-02.
  *
  * @example
  * ```ts
@@ -18,7 +17,7 @@
 import { defineProfile } from "./define.js";
 
 /**
- * Built-in Cerner Millennium profile (BIP-02). See file header for
+ * Built-in Cerner Millennium profile. See file header for
  * rationale; use via `parseHL7(raw, profiles.cerner)`.
  *
  * @example

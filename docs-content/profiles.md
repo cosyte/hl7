@@ -1,40 +1,123 @@
 ---
 id: profiles
-title: "Profiles"
-sidebar_label: "Profiles"
-description: "Author, extend, compose, inspect, and publish vendor profiles, and what each built-in profile accommodates."
+title: Use and write vendor profiles
+sidebar_label: Use vendor profiles
+description: "Parse with a built-in vendor profile, write your own for a sender's Z-segments and date formats, layer profiles with extends, and publish one as a package."
 ---
 
-# Profiles
+# Use and write vendor profiles
 
-Profiles are the growth loop. Built-ins cover the common vendor patterns; real integrations (hospital-specific Epic instances, reference labs, HIEs) publish their own profile packages that extend the built-ins. The `defineProfile()` API treats built-ins and user-authored profiles as equal citizens. There's no second-class path.
+A profile tells the parser about one sender: the date formats it writes, the Z-segments it adds,
+and names for fields it uses its own way. Built-in profiles and the ones you write use the same
+`defineProfile()` API; [Built-in profiles](./built-in-profiles.md) lists the eight that ship.
 
-## Authoring a profile
+## Parse with a built-in profile
 
-`defineProfile({ name, customSegments, segmentOverrides, dateFormats, onWarning, description })` returns a frozen `Profile` object. `customSegments` is a record mapping Z-segment name -> `{ fields: { aliasName: 1-indexedPosition } }`; `segmentOverrides` is the same shape for STANDARD segment names (see [Naming fields on standard segments](#naming-fields-on-standard-segments)).
+Pass the profile as the second argument to `parseHL7`.
 
-```ts
-import { defineProfile, type CustomSegmentDefinition } from "@cosyte/hl7";
+```ts runnable
+import { parseHL7, profiles } from "@cosyte/hl7";
 
-const zdp: CustomSegmentDefinition = {
-  fields: { departmentCode: 3, departmentName: 4 },
-};
+const raw =
+  "MSH|^~\\&|EPIC|MAIN|LIS|REF|04/19/2026 10:15:00||ADT^A01^ADT_A01|EX00050|P|2.5\r" +
+  "PID|1||MRN12345^^^HOSP^MR||Doe^John^Q||01/15/1980|M\r" +
+  "ZDP|||CARDIOLOGY|Cardiology Department";
 
-const myhospital = defineProfile({
-  name: "myhospital",
-  description: "Custom Z-segments for MyHospital ADT feed",
-  dateFormats: ["MM/DD/YYYY HH:mm:ss"],
-  customSegments: { ZDP: zdp },
-});
+const msg = parseHL7(raw, profiles.epic);
+
+msg.meta.timestamp?.matchedFormat; // => "MM/DD/YYYY HH:mm:ss"
+msg.patient?.dateOfBirth?.year; // => 1980
+msg.part("ZDP")?.get("departmentCode")?.value; // => "CARDIOLOGY"
+msg.warnings.some((w) => w.code === "UNKNOWN_SEGMENT"); // => false
+msg.profile?.lineage; // => ["epic"]
 ```
 
-Invalid input (missing name, malformed Z-segment name, unsupported date tokens, unknown option keys) throws `ProfileDefinitionError` with an actionable message. See [Error Handling](./tolerance-and-errors.md#error-handling).
+A Z-segment the profile declares raises no `UNKNOWN_SEGMENT` warning.
 
-## Naming fields on standard segments
+## Write a profile for your sender
 
-`customSegments` names fields on your Z-segments. `segmentOverrides` does the same job for the STANDARD segments, for the case every real integration eventually hits: a site that stuffs its own value into a standard field. A second MRN in PID-19, a local severity code in AL1-4, a site dose qualifier in RXA-6. Give it a name once in the profile and read it by that name everywhere, instead of scattering a hand-typed position through your code.
+`defineProfile` returns a frozen profile. `customSegments` maps each Z-segment to field names and
+their 1-indexed positions; `dateFormats` lists the sender's formats, written in the
+[date token grammar](./date-token-grammar.md).
 
-```ts
+```ts runnable
+import { defineProfile, parseHL7 } from "@cosyte/hl7";
+
+const myHospital = defineProfile({
+  name: "myhospital",
+  description: "Our ADT feed: a 12-hour clock and an allergy Z-segment",
+  dateFormats: ["MM/DD/YYYY hh:mm A"],
+  customSegments: {
+    ZAL: { fields: { allergyId: 1, severity: 2 } },
+  },
+});
+
+const raw =
+  "MSH|^~\\&|EHR|MAIN|LAB|REF|04/19/2026 02:30 PM||ADT^A01|EX00051|P|2.5\r" +
+  "PID|1||MRN12345^^^HOSP^MR||Doe^John^Q\r" +
+  "ZAL|ALG-1|HIGH";
+
+const msg = parseHL7(raw, myHospital);
+
+msg.meta.timestamp?.hour; // => 14
+msg.part("ZAL")?.get("severity")?.value; // => "HIGH"
+```
+
+When the compiler can see the profile, the names it declares for a segment are the only ones `get`
+accepts on that segment, so a typo fails the build instead of reading blank:
+
+```ts runnable
+import { defineProfile, parseHL7 } from "@cosyte/hl7";
+
+const vendor = defineProfile({
+  name: "vendor",
+  customSegments: {
+    ZDP: { fields: { departmentCode: 3, departmentName: 4 } },
+    ZRS: { fields: { resultStatus: 1 } },
+  },
+});
+
+const msg = parseHL7(
+  "MSH|^~\\&|EHR|MAIN|LAB|REF|20260419101500||ADT^A01|EX00052|P|2.5\r" +
+    "ZDP|||CARDIOLOGY|Cardiology Department",
+  vendor,
+);
+
+msg.part("ZDP")?.get("departmentName")?.value; // => "Cardiology Department"
+// msg.part("ZDP")?.get("departmentCod"); // does not compile: not a declared name
+// msg.part("ZDP")?.get("resultStatus"); // does not compile: that name belongs to ZRS
+```
+
+A declared name the message did not carry still reads `undefined`. The check only tightens where
+the declaration is visible: no profile, a value typed as `Profile`, a default profile, an undeclared
+segment, or a walk over `msg.allSegments()` all accept any string.
+
+`defineProfile` refuses a bad declaration when you define it, with a `ProfileDefinitionError` that
+names the problem: a missing name, a custom segment that is not a Z-segment, a position that is not
+a positive whole number, a date format the grammar cannot honor, or an unknown option key (with a
+suggestion).
+
+```ts runnable
+import { defineProfile, ProfileDefinitionError } from "@cosyte/hl7";
+
+let error: unknown;
+try {
+  // @ts-expect-error: the option is segmentOverrides
+  defineProfile({ name: "typo", segmentOverride: {} });
+} catch (caught) {
+  error = caught;
+}
+
+error instanceof ProfileDefinitionError; // => true
+(error as ProfileDefinitionError).profileName; // => "typo"
+```
+
+## Name a field on a standard segment
+
+`segmentOverrides` gives a name to a position on a standard segment, for a site that puts its own
+value in a standard field: a second record number in PID-19, a local severity code in AL1-4.
+
+```ts runnable
 import { defineProfile, parseHL7 } from "@cosyte/hl7";
 
 const site = defineProfile({
@@ -42,129 +125,121 @@ const site = defineProfile({
   segmentOverrides: {
     PID: { fields: { siteMrn: 19 } },
     AL1: { fields: { localSeverityCode: 4 } },
-    RXA: { fields: { doseQualifier: 6 } },
   },
 });
 
+const raw =
+  "MSH|^~\\&|EHR|MAIN|LAB|REF|20260419101500||ADT^A01|EX00053|P|2.5\r" +
+  "PID|1||MRN12345^^^HOSP^MR||Doe^John^Q||||||||||||||SITE-778\r" +
+  "AL1|1|DA|PCN^Penicillin^L|LOCAL-3";
+
 const msg = parseHL7(raw, site);
-msg.part("PID")?.get("siteMrn")?.value; // the value at PID-19
-msg.part("AL1")?.get("localSeverityCode")?.value; // the value at AL1-4
+
+msg.part("PID")?.get("siteMrn")?.value; // => "SITE-778"
+msg.part("AL1")?.get("localSeverityCode")?.value; // => "LOCAL-3"
+msg.patient?.mrn; // => "MRN12345"
+msg.get("PID.19"); // => "SITE-778"
 ```
 
-**Positions are 1-indexed HL7 positions**, identical in meaning to the argument of `seg.field(n)`, including the MSH numbering convention: a binding at `1` is MSH-1 (the field separator) and a binding at `3` is MSH-3 (the sending application). `get(name)` and `field(position)` always agree.
+Positions are HL7's 1-indexed positions, the same as `seg.field(n)`, MSH included: a name at `3`
+on MSH is MSH-3.
 
-**A name that is not declared, and a declared position the message did not carry, both read `undefined`**, never an empty string. A typo surfaces instead of quietly reading blank. The HL7 explicit null (`""`) is a value the sender chose to send, so it still comes back as a `Field`.
+An override adds a named read and changes nothing else. The typed helpers keep reading the
+standard positions (`msg.patient?.mrn` above still reads PID-3), dot-paths stay positional,
+serialization and the warning list are unchanged, and the write methods take positions, not names.
+HL7 traffic carries patient data, and an alias that moved an existing accessor would hand a
+consumer a different clinical value with nothing to notice.
 
-**Inheritance follows the same rule as `customSegments`.** Layer profiles with `extends` and, per segment type, the child's binding wins at any POSITION both declare while the parent's bindings at other positions survive:
+`defineProfile` refuses an override keyed by a Z-segment (that belongs in `customSegments`), a name
+that is not a standard segment in its uppercase spelling, and a position that is not a positive
+whole number. An empty map behaves exactly like none.
 
-```ts
-const parent = defineProfile({
-  name: "parent",
-  segmentOverrides: { PID: { fields: { parentAlias: 19, countyCode: 12 } } },
-});
+## Layer profiles
 
-const child = defineProfile({
-  name: "child",
-  extends: parent,
-  segmentOverrides: { PID: { fields: { childAlias: 19 } } },
-});
+`extends` builds on one parent or several. Use it to add your site's Z-segments to a vendor
+baseline.
 
-// child.segmentOverrides.PID.fields === { childAlias: 19, countyCode: 12 }
-```
-
-**What `defineProfile()` refuses, at definition time**, throwing `ProfileDefinitionError` and returning no profile:
-
-| Declaration                                                         | Why it is refused                                                                                                                                                        |
-| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| a Z-segment key (`ZPI`)                                             | that is a custom segment: the error points you at the `customSegments` option                                                                                            |
-| a name that is not a standard HL7 v2 segment (`QQQ`, `pid`, `PIDX`) | keys are matched against `KNOWN_SEGMENTS` in their canonical uppercase spelling, so a key that would never resolve is rejected rather than silently defining a dead name |
-| a position that is not a positive integer (`0`, `-1`, `2.5`, `"3"`) | the error names the profile, the segment, and the field                                                                                                                  |
-| a misspelled option key (`segmentOverride`)                         | reported with `segmentOverrides` as the suggestion                                                                                                                       |
-
-An empty map (`segmentOverrides: {}`), or a declared segment with an empty field map, is accepted and behaves exactly like declaring nothing.
-
-### Limitations
-
-**Overrides add named reads. They change nothing that already reads.** This is the whole design, and it is deliberate: HL7 v2 traffic is PHI, and an alias that re-pointed an existing accessor would hand a downstream consumer a different clinical value with no warning and nothing to notice. Specifically, a `segmentOverrides` declaration does NOT:
-
-- **re-point the typed clinical accessors.** `msg.patient`, `msg.visit`, `msg.allergies()`, `msg.medications()`, `msg.observations()`, and every other typed helper keep reading the positions the HL7 standard assigns. Declaring `siteMrn: 19` does not make `msg.patient?.mrn` read PID-19; it still reads PID-3.
-- **add a dot-path.** Dot-paths stay positional: `msg.get("PID.19")` works, `msg.get("PID.siteMrn")` is a syntax error. The named accessor is the one route to a declared name.
-- **change serialization.** `toString()` is byte-for-byte what it was, `toJSON()` is unchanged, and the message still round-trips verbatim.
-- **change the warning list.** An undeclared Z-segment still emits `UNKNOWN_SEGMENT`, and naming a standard segment in the override map does not suppress or add any warning.
-- **touch the write path.** `setField`, `setComposite`, `buildMessage`, and the typed builders take positions, not names.
-
-Parse one message with the overrides and again without them and every one of those observables is equal. Only the new names differ.
-
-## Extending profiles
-
-Use `extends` to layer profiles. Single parent or array of parents, both supported.
-
-```ts
+```ts runnable
 import { defineProfile, profiles } from "@cosyte/hl7";
 
 const myEpic = defineProfile({
   name: "my-epic",
   extends: profiles.epic,
-  customSegments: {
-    ZPR: { fields: { providerId: 1 } },
-  },
+  customSegments: { ZPR: { fields: { providerId: 1 } } },
 });
+
+myEpic.lineage; // => ["epic", "my-epic"]
+Object.keys(myEpic.customSegments ?? {}); // => ["ZDP", "ZRS", "ZPR"]
 
 const combined = defineProfile({
   name: "epic-plus-lab",
   extends: [profiles.epic, profiles.genericLab],
-});
-```
-
-Lineage is recorded on the result (`profile.lineage`) in parent-first order, ending with the profile's own name.
-
-## Merge semantics
-
-When `extends` resolves parents, fields are merged per-key with the following rules:
-
-- **Scalars** (`description`): later layers overwrite earlier ones.
-- **Arrays** (`dateFormats`, `lineage`): concatenate + dedupe, preserving first-seen order.
-- **`customSegments` map**: deep-merge per key; same-segment-name in two parents reconciles positional fields.
-- **`segmentOverrides` map**: the same reducer, on the standard-segment declarations. See [Naming fields on standard segments](#naming-fields-on-standard-segments).
-- **`onWarning` handlers**: compose into a chain, invoked in lineage order (parents before children). Errors thrown by one handler do not stop subsequent handlers.
-- **`name`**: never inherited, always the profile's own.
-
-The merge is validated post-hoc: duplicate field names across merged segments throw `ProfileDefinitionError` up front, not at parse time.
-
-## Inspecting a profile
-
-Every `defineProfile()` result carries a `.describe()` method and an introspectable `lineage` array: useful for debugging which layers contributed what.
-
-```ts
-import { defineProfile, profiles } from "@cosyte/hl7";
-
-const p = defineProfile({
-  name: "my-epic",
-  extends: profiles.epic,
-  customSegments: { ZPR: { fields: { providerId: 1 } } },
+  dateFormats: ["YYYY-MM-DD HH:mm"],
 });
 
-console.log(p.name); // "my-epic"
-console.log(p.lineage); // ["epic", "my-epic"]
-console.log(Object.keys(p.customSegments ?? {})); // ["ZDP", "ZRS", "ZPR"]
-console.log(p.describe?.()); // multi-line summary
+combined.lineage; // => ["epic", "genericLab", "epic-plus-lab"]
+combined.dateFormats; // => ["MM/DD/YYYY HH:mm:ss", "MM/DD/YYYY", "YYYYMMDD HHmm", "YYYY-MM-DD", "YYYY-MM-DD HH:mm"]
 ```
 
-## Publishing a profile
+How layers merge:
 
-The [profile starter kit](https://github.com/cosyte/hl7/tree/main/examples/profile-starter-kit) is a complete publishable npm package template. Copy the subtree, replace placeholders, and swap in your Z-segments and fixtures, then `pnpm publish --access public`. See [`examples/profile-starter-kit/CUSTOMIZING.md`](https://github.com/cosyte/hl7/blob/main/examples/profile-starter-kit/CUSTOMIZING.md) for the 5-step walkthrough: rename, swap base profile, define Z-segments, write fixtures, publish.
+- **`description`**: a later layer replaces an earlier one.
+- **`dateFormats`** and **`lineage`**: concatenated without duplicates, in first-seen order.
+- **`customSegments`** and **`segmentOverrides`**: merged per segment; where two layers name the
+  same position, the child's name wins, and the parent's names at other positions stay.
+- **`onWarning`**: the handlers run in lineage order, parents first. An error thrown by one does
+  not stop the next.
+- **`name`**: never inherited.
 
-## Built-in profiles
+Two field names that collide after the merge are a `ProfileDefinitionError` at definition time,
+not at parse time. `profile.describe()` prints a summary of every layer.
 
-Eight profiles ship in the box, reachable via the `profiles` namespace:
+## Set a default profile
 
-- `profiles.epic`: Epic Bridges Interconnect. Adds `MM/DD/YYYY HH:mm:ss` and `MM/DD/YYYY` date formats; declares `ZDP` (department context) and `ZRS` (result status) Z-segments.
-- `profiles.cerner`: Cerner Millennium outbound. Handles Cerner-idiomatic date formats and common Z-segments from Millennium ADT feeds.
-- `profiles.meditech`: MEDITECH MAGIC/6.x/Expanse. Adds the `YYYYMMDDHHMM` minute-precision timestamp format and declares the DFT charge Z-segments `ZF1` (provider-encounter copay data) and `ZF2` (encounter-procedure data). Grounded in the public [MEDITECH Ancillary Charges (LAB/PHA/ITS/IDM) Outbound](https://ehr.meditech.com/sites/default/files/documents/20240613/ancillary-charges-outbound-21.pdf) (v2.1) spec, with the date format also confirmed by the [MEDITECH Admissions and Registration Outbound](https://ehr.meditech.com/sites/default/files/documents/20240613/admissions-registration-outbound-24.pdf) (v2.4) spec.
-- `profiles.athena`: athenahealth. Ambulatory-oriented, ISO-leaning date formats.
-- `profiles.genericLab`: Generic reference-lab (LabCorp / Quest-style). Adds `YYYYMMDD HHmm` (ASTM-era) and `YYYY-MM-DD` (ISO date-only); declares `ZLB` (lab overrides) and `ZNT` (lab note) Z-segments.
-- `profiles.visage`: Visage 7 imaging/PACS RIS feeds. Declares the `ZDS` Z-segment that carries the DICOM **Study Instance UID** (field 1) so an HL7 order correlates to its DICOM study, the IHE Radiology RIS/PACS bridge segment. Grounded in the public [Visage 7 HL7 Interface Specification](https://www.visageimaging.com/downloads/Visage7/Visage7_HL7InterfaceSpecification.pdf) (V23.00, Jun 2026). Dates are HL7-native, so it adds no date formats.
-- `profiles.philips`: Philips Vue PACS ("IS Link") imaging feeds. Declares six Vue PACS Z-segments, one per filler role: `ZDS` (DICOM Study Instance UID), `ZLK` (linked studies/orders), `ZAO` (order additional details: modality, body part, transfer/acquisition status, technician + radiologist), `ZEB` (encrypted patient info), `ZAP` (patient additional details), and `ZAV` (visit additional details). Grounded in the public [Vue PACS 12.2.8 HL7 Interface Specifications](https://www.documents.philips.com/assets/Conformance%20Statements/20240409/8941f89d89aa4983aab7b14d00db578c.pdf) (Philips, doc HA1669 Rev A, §§5.11 to 5.16). Dates are HL7-native, so it adds no date formats.
-- `profiles.va`: U.S. Department of Veterans Affairs VistA Radiology/Nuclear Medicine feeds (HL7 v2.4). Declares the `ZDS` Z-segment that carries the DICOM **Study Instance UID** (field 1): the same IHE Radiology RIS↔PACS bridge as `visage`/`philips`, grounded here in a distinct **federal** spec and documented on **both ORM and ORU** (result) messages. Grounded in the public [Radiology/Nuclear Medicine 5.0 HL7 Interface Specification](https://www.va.gov/vdl/documents/clinical/radiology_nuclear_med/ra5_0hl7is.pdf) (Version 3.6, Patch RA\*5.0\*203, June 2024). Dates are HL7-native, so it adds no date formats.
+`setDefaultProfile` applies a profile to every later `parseHL7` call in the process. Passing the
+profile on each call is usually clearer; the default suits a pipeline with a single sender.
 
-Use a built-in directly (`parseHL7(raw, profiles.epic)`) or as a base for your own (`defineProfile({ extends: profiles.epic, ... })`).
+```ts runnable
+import { getDefaultProfile, parseHL7, profiles, setDefaultProfile } from "@cosyte/hl7";
+
+const raw = "MSH|^~\\&|EPIC|MAIN|LIS|REF|20260419101500||ADT^A01|EX00054|P|2.5";
+
+setDefaultProfile(profiles.epic);
+getDefaultProfile()?.name; // => "epic"
+parseHL7(raw).profile?.name; // => "epic"
+parseHL7(raw, { profile: null }).profile; // => undefined
+
+setDefaultProfile(null);
+getDefaultProfile(); // => undefined
+```
+
+The default lives in the current process only: it is not shared with workers.
+
+## Publish a profile as a package
+
+The [profile starter kit](https://github.com/cosyte/hl7/tree/main/examples/profile-starter-kit)
+is a package you copy and publish: replace its placeholders with your names, swap in your segments
+and fixtures, and publish. Its
+[CUSTOMIZING.md](https://github.com/cosyte/hl7/blob/main/examples/profile-starter-kit/CUSTOMIZING.md)
+walks through the five steps.
+
+```bash
+cp -r examples/profile-starter-kit my-profile && cd my-profile
+# Replace {{YOUR_ORG}} and {{PROFILE_NAME}}, then:
+pnpm install
+pnpm test
+pnpm build
+pnpm publish --access public
+```
+
+## Reference
+
+- [`defineProfile`](./api/README.md#defineprofile),
+  [`DefineProfileOptions`](./api/README.md#defineprofileoptions),
+  [`Profile`](./api/README.md#profile),
+  [`CustomSegmentDefinition`](./api/README.md#customsegmentdefinition)
+- [`profiles`](./api/README.md#profiles), [`setDefaultProfile`](./api/README.md#setdefaultprofile),
+  [`getDefaultProfile`](./api/README.md#getdefaultprofile)
+- [`ProfileDefinitionError`](./api/README.md#profiledefinitionerror),
+  [`KNOWN_SEGMENTS`](./api/README.md#known_segments),
+  [`SUPPORTED_DATE_TOKENS`](./api/README.md#supported_date_tokens)

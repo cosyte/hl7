@@ -1,7 +1,7 @@
 /**
  * TS/DTM: HL7 v2 Time Stamp composite. Delegates parsing to the parser
- * helper `src/parser/dates.ts::parseDtmDeclared` (D-10 "zero duplicate date
- * logic").
+ * helper `src/parser/dates.ts::parseDtmDeclared`, so the date logic lives
+ * in one place.
  *
  * The composite is fidelity-preserving: rather than a `{ raw, date }` shape
  * that would zero-fill truncations and assume UTC for a missing offset, it is
@@ -21,7 +21,7 @@ import type { EncodingCharacters, RawRepetition } from "../../parser/types.js";
  * HL7 v2 Time Stamp (TS) / Date Time (DTM) composite: the raw HL7 string plus
  * its parsed parts, preserving the **stated precision** and **timezone
  * fidelity**. This is a {@link DtmParts}: `valid` is `false` (with no parts)
- * for unparseable input: NEVER throws (TYPES-04 no-throw guarantee).
+ * for unparseable input: NEVER throws.
  *
  * There is deliberately **no `date` field**: a day-only value coerced to a JS
  * `Date` at UTC midnight silently shifts the calendar day in negative-offset

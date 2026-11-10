@@ -175,7 +175,7 @@ function mrgSegment(prior: AdtPriorIdentity): RawSegment {
   return assembleSegment(
     "MRG",
     new Map<number, RawField | undefined>([
-      [1, prior.identifiers !== undefined ? repField("CX", prior.identifiers) : undefined],
+      [1, repField("CX", prior.identifiers)],
       [
         3,
         prior.accountNumber !== undefined ? encodeComposite("CX", prior.accountNumber) : undefined,

@@ -7,30 +7,31 @@
  * `src/index.ts`, so consumers can reference the type directly.
  *
  * Decisions:
- * - D-17: shape is a raw-tree mirror (encodingCharacters + segments +
+ * - Shape is a raw-tree mirror (encodingCharacters + segments +
  *   warnings + optional profile).
- * - D-18: `Hl7Message.toJSON` delegates here so `JSON.stringify(msg)` Just Works.
- * - D-19: warnings array is ALWAYS present (`warnings: []` when empty).
- * - D-20: `profile` field appears only when `msg.profile` is truthy: then
+ * - `Hl7Message.toJSON` delegates here so `JSON.stringify(msg)` Just Works.
+ * - Warnings array is ALWAYS present (`warnings: []` when empty).
+ * - `profile` field appears only when `msg.profile` is truthy: then
  *   contains only `name` + `lineage`.
- * - D-21: `SerializedMessage` is exported from `src/index.ts` (not nested
+ * - `SerializedMessage` is exported from `src/index.ts` (not nested
  *   under HL7 namespace).
  *
  * Note on runtime freeze scope: `emitJson` returns an object that is
  * boundary-frozen (top level only: `Object.isFrozen(msg.toJSON()) === true`).
  * Inner arrays are readonly at the TypeScript type level but MUTABLE at
  * runtime: consumers should treat the returned structure as immutable
- * and not mutate nested arrays. Deep-freeze is explicitly rejected per
- * D-30 (emit is hot-path; runtime deep-freeze would add cost with no
+ * and not mutate nested arrays. Deep-freeze is explicitly rejected
+ * (emit is hot-path; runtime deep-freeze would add cost with no
  * observable benefit given the type-level readonly contract).
  */
 
+import { denseRepetitions } from "../model/dense-raw.js";
 import type { Hl7Message } from "../model/message.js";
 import type { EncodingCharacters } from "../parser/types.js";
 import type { Hl7ParseWarning } from "../parser/warnings.js";
 
 /**
- * Snapshot-stable JSON projection of an `Hl7Message` (SER-03). Every field
+ * Snapshot-stable JSON projection of an `Hl7Message`. Every field
  * is readonly; segment order is preserved; `isNull` flags are preserved.
  *
  * Runtime immutability: the top-level object is `Object.freeze`d
@@ -45,7 +46,7 @@ import type { Hl7ParseWarning } from "../parser/warnings.js";
  * console.log(snap.segments[0]?.name);        // "MSH"
  * console.log(snap.warnings.length);          // 0 when clean
  * console.log(JSON.stringify(msg) === JSON.stringify(snap)); // true
- * console.log(Object.isFrozen(snap));         // true (D-30 boundary freeze)
+ * console.log(Object.isFrozen(snap));         // true (frozen at the boundary)
  * ```
  */
 export interface SerializedMessage {
@@ -64,15 +65,15 @@ export interface SerializedMessage {
 }
 
 /**
- * Build the `SerializedMessage` snapshot from a parsed message (SER-03).
- * Raw-tree mirror per D-17; warnings array always present (D-19); profile
- * included only when `msg.profile` is truthy (D-20). Pure: never warns,
- * never throws. Not cached (D-30: each call re-walks `rawSegments`).
+ * Build the `SerializedMessage` snapshot from a parsed message.
+ * Raw-tree mirror; warnings array always present; profile
+ * included only when `msg.profile` is truthy. Pure: never warns,
+ * never throws. Not cached (each call re-walks `rawSegments`).
  *
  * Boundary-frozen: the top-level returned object passes through
  * `Object.freeze` before return, so `Object.isFrozen(result) === true`.
  * Inner arrays are readonly at the TS type level but NOT runtime-frozen
- * (D-30 cost doctrine: emit is hot-path; deep-freeze would add traversal
+ * (emit is hot-path; deep-freeze would add traversal
  * cost with no observable benefit beyond the type contract).
  *
  * Shared parser invariant: the raw tree stores DECODED subcomponent
@@ -89,9 +90,10 @@ export function emitJson(msg: Hl7Message): SerializedMessage {
   const segments = msg.rawSegments.map((seg) => ({
     name: seg.name,
     fields: seg.fields.map((field) => ({
-      // D-17 + Claude's-Discretion: `repetitions` is ALWAYS `[]` when the
+      // Raw-tree mirror: `repetitions` is ALWAYS `[]` when the
       // field has zero repetitions: shape-stable, no conditional omission.
-      repetitions: field.repetitions.map((rep) => ({
+      // A hole or a `null` a field built by hand carries reads as empty.
+      repetitions: denseRepetitions(field.repetitions).map((rep) => ({
         components: rep.components.map((comp) => ({
           subcomponents: comp.subcomponents.slice(),
         })),
@@ -113,8 +115,8 @@ export function emitJson(msg: Hl7Message): SerializedMessage {
       subcomponent: msg.encodingCharacters.subcomponent,
     },
     segments,
-    // D-19: ALWAYS present, even when empty. `msg.warnings` is already frozen
-    // at Hl7Message construction (Phase 2): pass-through is safe.
+    // ALWAYS present, even when empty. `msg.warnings` is already frozen
+    // at Hl7Message construction: pass-through is safe.
     warnings: msg.warnings,
   };
 

@@ -1,15 +1,15 @@
 /**
  * `buildMeta`: compose MSH-derived message metadata into the frozen `Meta`
- * view exposed by `Hl7Message.meta` (HELPERS-01). Implementation composes on
+ * view exposed by `Hl7Message.meta`. Implementation composes on
  * the public surface (`msg.get`, `msg.segments("MSH")[0].field(N)`),
  * and never walks `rawSegments` directly.
  *
- * D-01 freeze at boundary. D-02 memoization is handled by the caller
- * (`Hl7Message.meta` getter). D-03 Meta is always defined: MSH absence
+ * Frozen at the boundary. Memoization is handled by the caller
+ * (`Hl7Message.meta` getter). `Meta` is always defined: MSH absence
  * throws `NO_MSH_SEGMENT` at parse time, so the MSH guard here is purely for
  * TS narrowing. `timestamp` is the fidelity `TS` (precision +
- * timezone preserved), never an eager UTC-assuming `Date`. D-21 silent. D-22
- * never throws. D-23 string fields are decoded (unescaped once at parse) by routing through
+ * timezone preserved), never an eager UTC-assuming `Date`. Emits no
+ * warnings and never throws. String fields are decoded (unescaped once at parse) by routing through
  * `msg.get()` / `field.value`.
  */
 
@@ -20,8 +20,8 @@ import type { Meta } from "./types.js";
 
 /**
  * Build the immutable `Meta` view from a parsed message's MSH segment. The
- * result is deeply frozen (D-01) and consumed through the memoized
- * `Hl7Message.meta` getter (D-02). Absent fields are OMITTED from the
+ * result is deeply frozen and consumed through the memoized
+ * `Hl7Message.meta` getter. Absent fields are OMITTED from the
  * resulting object (exactOptionalPropertyTypes semantics): never set to
  * `undefined`.
  *

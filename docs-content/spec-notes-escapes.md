@@ -14,7 +14,7 @@ serialize. The guarantee this note pins is that serialize is **byte-verbatim**
 for parsed content: a parsed field re-emits the sender's _exact_ escape bytes,
 not a canonicalized equivalent.
 
-```ts
+```ts runnable
 import { parseHL7 } from "@cosyte/hl7";
 
 const msg = parseHL7(
@@ -23,9 +23,12 @@ const msg = parseHL7(
 );
 
 const obx5 = msg.segments("OBX")[0]?.field(5);
-obx5?.value; // "Critical \H\value\N\ and A"   (decode-on-read)
-obx5?.text; // "Critical \H\value\N\ and \X41\" (byte-verbatim on emit)
+obx5?.value; // => "Critical \\H\\value\\N\\ and A"
+obx5?.text; // => "Critical \\H\\value\\N\\ and \\X41\\"
 ```
+
+`value` decodes on read (`\X41\` becomes `A`, and the formatting escapes stay as written for a
+renderer to handle); `text` is what serialization writes, byte for byte.
 
 ## The escape families and how each round-trips
 
@@ -97,3 +100,7 @@ alphabet would corrupt MSA-2's structure, so it is not done.
 - **Vendor `\Z..\` escapes are preserved, never interpreted.** They round-trip
   byte-verbatim and raise `UNKNOWN_ESCAPE_SEQUENCE`; a future profile hook may
   register vendor handlers.
+
+## Put it to use
+
+- [Modify a message and send it on](./modify-and-resend.md)

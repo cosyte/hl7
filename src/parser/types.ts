@@ -67,7 +67,7 @@ export type OnWarningCallback = (warning: Hl7ParseWarning) => void;
  * With `exactOptionalPropertyTypes: true`, callers cannot pass
  * `{ strict: undefined }`: either omit the key or pass a boolean. The
  * `profile: null` form is the explicit opt-out from the process-scoped
- * default profile (PROF-08 semantics); `profile` omitted means "use the
+ * default profile; `profile` omitted means "use the
  * default if one is registered".
  *
  * @example

@@ -25,7 +25,7 @@
  *   - ORC-1   order control of the preceding ORC, attached as orderControl
  *
  * Safety rules enforced here:
- *   - Never throws: malformed RXA surfaces as omitted keys (HELPERS-07).
+ *   - Never throws: malformed RXA surfaces as omitted keys.
  *   - `actionCode` (RXA-21) is surfaced VERBATIM and never defaulted: a wrong
  *     A/D/U corrupts an IIS add/delete/update dedup.
  *   - `administrationStatus` is `"completed"` only for RXA-20 exactly `CP` or
@@ -40,7 +40,7 @@
  *   - Code-system provenance rides on the CWE fields
  *     (`vaccineCode.nameOfCodingSystem`, `manufacturer.nameOfCodingSystem`,
  *     `route.nameOfCodingSystem`); the helper reports the claim, never validates it.
- *   - Output is frozen at the boundary (D-01).
+ *   - Output is frozen at the boundary.
  *
  * Grouping rules (parity with `orders()`):
  *   - Each RXA opens a new `Immunization`. A preceding ORC contributes its ORC-1
@@ -316,7 +316,7 @@ function finalizeImmunization(
  * OBX children grouped positionally under the RXA and `orderControl` carried
  * from the preceding ORC of the VXU order group. Document order.
  * Returns `[]` when no RXA is present. NOT memoized: each call re-walks
- * `msg.allSegments()`. Never throws (HELPERS-07).
+ * `msg.allSegments()`. Never throws.
  *
  * The vaccine code carries its own coding-system provenance
  * (`vaccineCode.nameOfCodingSystem`: `CVX`); a dual-coded RXA-5 surfaces its

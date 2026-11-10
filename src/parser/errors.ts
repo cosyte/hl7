@@ -2,13 +2,16 @@
  * Fatal error taxonomy for the `@cosyte/hl7` parser pipeline. Four
  * Tier-3 codes cover every unrecoverable structural failure; anything less
  * severe is a Tier-2 warning (see `./warnings.ts`). `Hl7ParseError` is
- * thrown directly; consumers narrow via the `code` discriminant.
+ * thrown directly; consumers narrow via the `code` discriminant, which is a
+ * `FatalCode` or, for a warning escalated by `{ strict: true }`, that
+ * warning's `WarningCode`.
  *
  * `ProfileDefinitionError` is declared here so the whole error taxonomy
  * lives in one module.
  */
 
 import type { Hl7Position } from "./types.js";
+import type { WarningCode } from "./warnings.js";
 
 /**
  * Stable string codes for every Tier-3 fatal the parser may throw. Locked
@@ -35,10 +38,15 @@ export const FATAL_CODES = {
 } as const;
 
 /**
- * Discriminant type for `Hl7ParseError.code`. Narrowing a caught error by
- * this code lets consumers write exhaustive `switch` blocks (enabled by the
- * `switch-exhaustiveness-check` lint rule) and guarantees a typo-free
- * comparison against the `FATAL_CODES` registry.
+ * The four Tier-3 fatal codes, the type over the `FATAL_CODES` registry.
+ * `FATAL_CODES` is locked at four, so an exhaustive `switch` over a
+ * `FatalCode` value stays exhaustive.
+ *
+ * **It is not the whole type of `Hl7ParseError.code`.** Under
+ * `{ strict: true }` a Tier-2 warning is thrown as an `Hl7ParseError` whose
+ * `code` is that warning's {@link WarningCode}, so `Hl7ParseError.code` is
+ * `FatalCode | WarningCode`. A `switch` over a caught error's `code` needs a
+ * `default` branch for the escalated warnings; see {@link Hl7ParseError}.
  *
  * @example
  * ```ts
@@ -86,11 +94,17 @@ export type FatalCode = (typeof FATAL_CODES)[keyof typeof FATAL_CODES];
  * 14), which matters if you construct warnings yourself.
  *
  * Under `{ strict: true }` an escalated Tier-2 warning is thrown as this
- * error, carrying the warning's own bounded message and a `snippet` of the
+ * error, carrying the warning's own code (so `code` is a {@link FatalCode} or
+ * a {@link WarningCode}), its bounded message and a `snippet` of the
  * **first 40 characters of the input**. That snippet is the head of the
  * message rather than the deviation's own segment, so it is usually the MSH
  * header; it is deliberately not re-pointed at the offending segment, since
  * doing so would move more clinical content into the unredacted field.
+ *
+ * Test for the fatal codes you handle and treat any other `code` as an
+ * escalated warning: `err.code in FATAL_CODES` tells the two apart, and a
+ * `switch` over `err.code` that lists the four fatal codes needs a `default`
+ * branch for the escalated warnings.
  *
  * @example
  * ```ts
@@ -105,17 +119,26 @@ export type FatalCode = (typeof FATAL_CODES)[keyof typeof FATAL_CODES];
  * ```
  */
 export class Hl7ParseError extends Error {
-  public readonly code: FatalCode;
+  /**
+   * A {@link FatalCode}, or the {@link WarningCode} of a warning escalated by
+   * `{ strict: true }`.
+   */
+  public readonly code: FatalCode | WarningCode;
   public readonly position: Hl7Position;
   public readonly snippet: string;
 
   /**
    * Construct a new `Hl7ParseError`. All four fields are required so every
-   * thrower populates full positional context per the TOL-02 requirement.
+   * thrower populates full positional context.
    *
    * @internal
    */
-  public constructor(code: FatalCode, message: string, position: Hl7Position, snippet: string) {
+  public constructor(
+    code: FatalCode | WarningCode,
+    message: string,
+    position: Hl7Position,
+    snippet: string,
+  ) {
     super(message);
     this.name = "Hl7ParseError";
     this.code = code;

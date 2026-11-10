@@ -218,7 +218,10 @@ function effectiveUsage(
     const outcomes = predicateOutcomes(usage);
     // Also unreachable through `validateAgainstProfile`: a predicate on a
     // non-conditional usage is a profile defect and never gets this far.
-    if (outcomes === undefined) return parsed.kind === "simple" ? parsed.code : "C";
+    if (outcomes === undefined)
+      return parsed.kind === "simple"
+        ? parsed.code
+        : /* v8 ignore next -- parsed and outcomes come from the same token, and predicateOutcomes answers every conditional token, so a conditional parse never gets here */ "C";
     if (predicate.outcome === "true") return outcomes.whenTrue;
     if (predicate.outcome === "false") return outcomes.whenFalse;
     return "C";
@@ -404,9 +407,8 @@ function checkFields(
     // built by a filter, or read from configuration) with no cast at all.
     const componentRules = rule.components;
     if (componentRules !== undefined && componentRules.length > 0) {
-      for (let r = 0; r < reps.length; r++) {
-        const rep = reps[r];
-        if (rep === undefined || !repetitionHasValue(rep)) continue;
+      for (const [r, rep] of reps.entries()) {
+        if (!repetitionHasValue(rep)) continue;
         checkComponents(
           componentRules,
           rep,
@@ -425,9 +427,7 @@ function checkFields(
     // alternate system at 6. A profile with no binding never reads it.
     const expectedSystem = boundCodingSystem(rule);
     const systemComponent = rule.codingSystemComponent ?? component + 2;
-    for (let r = 0; r < reps.length; r++) {
-      const rep = reps[r];
-      if (rep === undefined) continue;
+    for (const [r, rep] of reps.entries()) {
       const value = componentValue(rep, component);
       const locus: FindingLocus = {
         segment: seg.type,

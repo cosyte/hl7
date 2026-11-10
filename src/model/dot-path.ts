@@ -7,14 +7,14 @@
  * (analog: `src/parser/dates.ts::matchTokenFormat`).
  *
  * Indexing conventions:
- * - `[N]` is ALWAYS 0-indexed: applies to segment repeats AND field repeats (D-01).
+ * - `[N]` is ALWAYS 0-indexed: applies to segment repeats AND field repeats.
  * - Dot-numbers are ALWAYS 1-indexed: matches HL7 spec and the 1-indexed
- *   `RawSegment.fields` (D-02). `PID.5` → `fields[5]`.
+ *   `RawSegment.fields`. `PID.5` → `fields[5]`.
  * - MSH.1 / MSH.2 are the separator char and encoding-chars string, both
- *   stored at `fields[0]` / `fields[1]` by tokenize.ts (D-05).
+ *   stored at `fields[0]` / `fields[1]` by tokenize.ts.
  * - Missing subcomponent on a single-sub component returns the component
- *   string (depth-collapse, D-04).
- * - Leaf reads return the subcomponent verbatim: the tokenizer (parser-02)
+ *   string (depth-collapse).
+ * - Leaf reads return the subcomponent verbatim: the tokenizer
  *   already unescaped it once on parse, so the stored value is decoded and a
  *   second `unescape` here would double-decode it.
  */
@@ -62,7 +62,7 @@ interface MutableDotPath {
   subcomponentIndex?: number;
 }
 
-/** Segment-name shape: `[A-Z][A-Z0-9]{2}` (D-19 symmetry with addSegment). Matches standard HL7 v2 segment names (PID, PV1, OBX, NK1, DG1, IN1…) and Z-segment customs (ZPI, ZX1…). @internal */
+/** Segment-name shape: `[A-Z][A-Z0-9]{2}` (symmetry with addSegment). Matches standard HL7 v2 segment names (PID, PV1, OBX, NK1, DG1, IN1…) and Z-segment customs (ZPI, ZX1…). @internal */
 const SEGMENT_NAME_RE = /^[A-Z][A-Z0-9]{2}$/u;
 
 /**
@@ -226,16 +226,20 @@ export function resolvePath(
   const field = seg.fields[rawFieldIndex];
   if (field === undefined) return undefined;
 
+  // A hole or a `null` that a field built by hand carries reads as empty: an
+  // empty repetition or component (nothing in it), an empty subcomponent.
   const repIndex = parsed.repetitionIndex ?? 0;
-  const rep = field.repetitions[repIndex];
+  const rep = field.repetitions[repIndex] ?? undefined;
   if (rep === undefined) return undefined;
 
   const compIndex = (parsed.componentIndex ?? 1) - 1;
-  const comp = rep.components[compIndex];
+  const comp = rep.components[compIndex] ?? undefined;
   if (comp === undefined) return undefined;
 
   const subIndex = (parsed.subcomponentIndex ?? 1) - 1;
-  const sub = comp.subcomponents[subIndex];
+  const subcomponents = comp.subcomponents;
+  const sub =
+    subIndex >= 0 && subIndex < subcomponents.length ? (subcomponents[subIndex] ?? "") : undefined;
 
   if (sub !== undefined) {
     // The tokenizer already unescaped every subcomponent on parse (parser-02),

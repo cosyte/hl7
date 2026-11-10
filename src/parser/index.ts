@@ -32,6 +32,7 @@ import {
   safeCharsetLabel,
   segmentCase,
   unknownSegment,
+  WARNING_CODES,
 } from "./warnings.js";
 import type { Hl7ParseWarning } from "./warnings.js";
 import type {
@@ -81,7 +82,7 @@ const OPTIONS_ONLY_KEYS: readonly (keyof ParseOptions)[] = [
  *
  * Uses `Object.prototype.hasOwnProperty.call` rather than the `in`
  * operator so a prototype-polluted object cannot trip the options-only
- * branch by inheriting a `strict` / `onWarning` key (T-02-06-01).
+ * branch by inheriting a `strict` / `onWarning` key.
  *
  * @internal
  */
@@ -113,7 +114,7 @@ function discriminateOptionsOrProfile(arg: ParseOptions | Profile | undefined): 
 /**
  * Build the single `emit` chokepoint passed into every parser stage.
  * Lenient mode: push the warning to the accumulator
- * array, invoke `effectiveProfile?.onWarning` FIRST (D-22) inside its own
+ * array, invoke `effectiveProfile?.onWarning` FIRST inside its own
  * try/catch so handler throws are swallowed silently, THEN invoke
  * `options.onWarning` inside its own try/catch (consistency with the
  * profile chain so a noisy caller handler cannot break the parser).
@@ -121,7 +122,7 @@ function discriminateOptionsOrProfile(arg: ParseOptions | Profile | undefined): 
  * code; neither onWarning handler fires (preserves the existing
  * lenient-vs-strict split).
  *
- * D-22 ordering: profile handlers are observers that run FIRST; caller
+ * Ordering: profile handlers are observers that run FIRST; caller
  * handler runs LAST. Preserves the "profile behavior, then caller
  * behavior" layering pattern: the profile sees warnings as they arise;
  * the caller's handler sees post-profile-handler warnings (same object,
@@ -129,11 +130,9 @@ function discriminateOptionsOrProfile(arg: ParseOptions | Profile | undefined): 
  *
  * @remarks
  * Under strict mode the thrown error's `code` is a `WarningCode` string
- * which is NOT in `FATAL_CODES`. This intentionally widens the runtime
- * set of values `Hl7ParseError.code` can take without widening the
- * compile-time type: consumers narrow on `err.code` after catching.
- * See the `as unknown as` comment in the implementation for the
- * justification.
+ * which is NOT in `FATAL_CODES`. `Hl7ParseError.code` is typed
+ * `FatalCode | WarningCode`, so consumers narrow on `err.code` after
+ * catching, with a `default` branch for the escalated warnings.
  *
  * @internal
  */
@@ -145,25 +144,11 @@ function makeEmitter(
 ): (w: Hl7ParseWarning) => void {
   return (w) => {
     if (options.strict === true) {
-      // Justification for `as unknown as FatalCode`: strict mode escalates
-      // Tier-2 warnings into thrown `Hl7ParseError`s per TOL-01. The thrown
-      // error reuses the existing error shape (code / message / position /
-      // snippet) so consumers have one catch surface. The `code` field is
-      // typed as `FatalCode` (the 4 Tier-3 codes) at compile time, but at
-      // runtime under strict mode it also carries any `WarningCode`. We
-      // preserve the narrow compile-time type so lenient-mode callers get
-      // exhaustive-switch checks on `FatalCode`; strict-mode consumers
-      // narrow on the runtime string. Alternative (a): widening
-      // FatalCode: would leak strict-mode semantics into the lenient-mode
-      // type surface; alternative (c), a separate Hl7StrictError class,
-      // would introduce a third error class. (b) is the minimum-surface
-      // change and matches Plan 06's recommendation.
-      throw new Hl7ParseError(
-        w.code as unknown as (typeof FATAL_CODES)[keyof typeof FATAL_CODES],
-        w.message,
-        w.position,
-        buildSnippet(input, w.position),
-      );
+      // Strict mode escalates every Tier-2 warning into a thrown
+      // `Hl7ParseError` that keeps the warning's own code, so consumers have
+      // one catch surface. `Hl7ParseError.code` is typed
+      // `FatalCode | WarningCode` to say so.
+      throw new Hl7ParseError(w.code, w.message, w.position, buildSnippet(input, w.position));
     }
     warnings.push(w);
     // D-22: profile.onWarning fires BEFORE options.onWarning. Each call is
@@ -210,8 +195,8 @@ function buildSnippet(input: string, _position: Hl7Position): string {
  *
  * Line-ending agnostic: splits on `/[\r\n]/` so a Buffer that uses Unix
  * (`\n`), classic Mac (`\r`), or mixed line endings still isolates segment
- * 0 correctly. A bare split on `\r` alone here would silently regress
- * PARSE-09 on `\n`-only Buffer traffic (the whole message would become
+ * 0 correctly. A bare split on `\r` alone here would silently break
+ * charset detection on `\n`-only Buffer traffic (the whole message would become
  * segment 0, `parts[17]` would swallow subsequent segments, and the
  * charset token would become a garbage string that falls through to
  * UTF-8).
@@ -404,7 +389,7 @@ export function parseHL7<P extends Profile>(
   options: ParseOptions & { readonly profile: P },
 ): ProfiledMessage<P>;
 export function parseHL7(raw: string | Buffer, options: ParseOptions): Hl7Message;
-/** @internal implementation signature; overload signatures above carry the public JSDoc + @example. */
+// The implementation signature; the overload signatures above carry the public JSDoc and @example.
 export function parseHL7(
   raw: string | Buffer,
   optionsOrProfile?: ParseOptions | Profile,
@@ -513,11 +498,18 @@ export function parseHL7(
   const firstSegment = segments[0] ?? "";
   const encoding = readDelimiters(firstSegment);
 
-  // Step 11: Tokenize (may emit FIELD_WHITESPACE_TRIMMED).
+  // Step 11: Tokenize (may emit FIELD_WHITESPACE_TRIMMED). Each trimmed
+  // field's position is copied before `emit` hands the warning to the
+  // onWarning callbacks: a callback that changes the warning it was given
+  // must not change which field the parser records as trimmed below.
+  const trimmed: Hl7Position[] = [];
   const rawSegments: readonly RawSegment[] = tokenize(
     segments,
     encoding,
-    emit,
+    (w) => {
+      if (w.code === WARNING_CODES.FIELD_WHITESPACE_TRIMMED) trimmed.push({ ...w.position });
+      emit(w);
+    },
     options.trimFields ?? true,
   );
 
@@ -527,7 +519,7 @@ export function parseHL7(
   // a field exactly as received (the result status classification) ask.
   recordAlteredFields(
     rawSegments,
-    warnings,
+    trimmed,
     mllpResult.wasFramed ? locateInteriorFramingBytes(unstripped, encoding.field) : [],
   );
 

@@ -1,18 +1,18 @@
 /**
  * Pure merge helpers consumed by `defineProfile()` when `opts.extends` is
  * supplied. Every helper takes a `readonly parents[]` + a self value and
- * returns the merged result; none mutate input. Implements D-03 (lineage),
- * D-09 (scalar last-wins), D-10 (dateFormats concat+dedupe), D-11
- * (customSegments deep-merge, shared with the standard-segment override map),
- * D-12 (onWarning chain composition).
+ * returns the merged result; none mutate input. They cover lineage,
+ * scalars (last wins), dateFormats (concatenated and deduplicated),
+ * customSegments (deep merge, shared with the standard-segment override map)
+ * and the onWarning chain.
  *
  * Zero runtime deps. A local `Set` is used for first-occurrence dedup
  * tracking across lineage + dateFormats helpers; the declaration-map reducer
  * uses a position-indexed `Map` accumulator so later layers overwrite
  * same-position entries while non-colliding positions survive additively.
  *
- * Post-merge re-validation (D-05 Z-only; D-06 duplicate-name defense-in-
- * depth) is the CALLER's responsibility: these helpers are pure reducers.
+ * Post-merge re-validation (Z-segments only; the duplicate-name
+ * defense-in-depth check) is the CALLER's responsibility: these helpers are pure reducers.
  *
  * @internal
  */
@@ -35,7 +35,7 @@ export function normaliseParents(
 }
 
 /**
- * Compute lineage per D-03: flatten parent lineages (or `[parent.name]`
+ * Compute lineage: flatten parent lineages (or `[parent.name]`
  * when a parent has no lineage), append `selfName`, dedupe preserving
  * first occurrence.
  *
@@ -58,9 +58,9 @@ export function mergeLineage(parents: readonly Profile[], selfName: string): rea
 }
 
 /**
- * Merge dateFormats per D-10: concat parents (in order) then child,
+ * Merge dateFormats: concat parents (in order) then child,
  * dedupe preserving first occurrence. Parent formats come first so
- * they're tried FIRST by the TOL-08 cascade (compatible with the
+ * they're tried FIRST by the date-format cascade (compatible with the
  * "parent behavior, then child specialization" layering).
  *
  * @internal
@@ -89,14 +89,14 @@ export function mergeDateFormats(
 }
 
 /**
- * Merge customSegments per D-11: deep-merge by segment name, then by
+ * Merge customSegments: deep-merge by segment name, then by
  * field position. Fields with distinct positions merge additively; child
  * wins on position conflict. Iteration order is: every parent in order
  * (left-to-right), then self. The child's fields map REPLACES any prior
  * entries whose position collides, but preserves parent entries at
  * non-colliding positions within the same Z-segment.
  *
- * Post-merge re-validation (D-05, D-06) is the CALLER's responsibility,
+ * Post-merge re-validation is the CALLER's responsibility,
  * this helper is a pure reducer.
  *
  * @internal
@@ -189,7 +189,7 @@ function mergeSegmentDeclarations(
 }
 
 /**
- * Merge a scalar option per D-09: child value wins when explicitly
+ * Merge a scalar option: child value wins when explicitly
  * provided; otherwise the LAST parent with a non-undefined value.
  * Works for `description` today; signature is a generic-keyed shape so
  * future scalars reuse the same helper without rewrites.
@@ -212,7 +212,7 @@ export function mergeScalar<K extends keyof Profile>(
 }
 
 /**
- * Compose an onWarning chain per D-12: invoke every non-undefined
+ * Compose an onWarning chain: invoke every non-undefined
  * handler from parents (in order) then self. Each handler's throws are
  * silently swallowed so a noisy profile cannot break downstream
  * handlers. Returns `undefined` when no handlers are supplied anywhere

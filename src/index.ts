@@ -13,7 +13,7 @@
  * console.log(VERSION);
  * ```
  */
-export const VERSION: string = "0.1.7";
+export const VERSION: string = "0.1.8";
 
 export { parseHL7 } from "./parser/index.js";
 export { Hl7Message } from "./model/message.js";
@@ -93,6 +93,17 @@ export { unescape, reescape } from "./parser/escapes.js";
 export { renderText } from "./text/render.js";
 export type { RenderedText, TextRun, RenderTextOptions } from "./text/render.js";
 export { decodeText, encodeText } from "./text/codec.js";
+/**
+ * The text codec as one namespace object: `text.decode`, `text.encode` and `text.render` are
+ * `decodeText`, `encodeText` and `renderText` under shorter names.
+ *
+ * @example
+ * ```ts
+ * import { text } from "@cosyte/hl7";
+ *
+ * text.decode("Line one\\.br\\Line two"); // "Line one\nLine two"
+ * ```
+ */
 export * as text from "./text/index.js";
 
 // Phase 3 structural model: read-path foundation.
@@ -136,6 +147,18 @@ export type { XCN } from "./model/types/xcn.js";
 export { parseXcn } from "./model/types/xcn.js";
 
 // Phase 3 HL7 namespace re-export (D-13): `HL7.XPN`, `HL7.XAD`, ..., `HL7.XCN`.
+/**
+ * The composite data type interfaces as one type-only namespace (`HL7.XPN`, `HL7.CX`, `HL7.TS`
+ * and the rest), for code that prefers `HL7.XPN` to a named `XPN` import. It holds types only:
+ * the parsers (`parseXpn` and the rest) are named exports of the package.
+ *
+ * @example
+ * ```ts
+ * import type { HL7 } from "@cosyte/hl7";
+ *
+ * const name: HL7.XPN = { familyName: "Doe", givenName: "Jane" };
+ * ```
+ */
 export * as HL7 from "./model/types/namespace.js";
 
 // Phase 4 named helpers: type-only exports. Runtime behavior lives on
@@ -537,6 +560,23 @@ export {
   type UsageOutcomes,
   type UsageResolution,
 } from "./conformance/types.js";
+/**
+ * The conformance-profile engine as one namespace object: `validateAgainstProfile`,
+ * `defineConformanceProfile`, `usageOutcomes`, the registries and the profile types, each also a
+ * named export of the package, plus `collectProfileDefects` and its `ProfileDefect` type, which
+ * only this namespace exports.
+ *
+ * @example
+ * ```ts
+ * import { conformance, parseHL7 } from "@cosyte/hl7";
+ *
+ * const profile: conformance.ConformanceProfile = {
+ *   name: "intake",
+ *   segments: [{ segment: "PID", usage: "R" }],
+ * };
+ * conformance.validateAgainstProfile(parseHL7(raw), profile).findings; // []
+ * ```
+ */
 export * as conformance from "./conformance/index.js";
 
 // Roadmap Phase S: streaming / incremental parse. `parseStream` consumes a

@@ -327,7 +327,7 @@ export function parseStream(
   source: Hl7StreamSource,
   options: ParseOptions,
 ): AsyncGenerator<StreamMessageEntry, void, void>;
-/** @internal implementation signature; overloads above carry the public JSDoc. */
+// The implementation signature; the overloads above carry the public JSDoc.
 export async function* parseStream(
   source: Hl7StreamSource,
   optionsOrProfile?: ParseOptions | Profile,

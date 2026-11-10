@@ -79,7 +79,7 @@ export interface NoteGrouping {
  * The FULL repetition text is reassembled: a lenient parser tokenizes a
  * non-conformant raw `^`/`&` in the FT narrative into components/subcomponents,
  * so reading only the first would silently truncate the note. Each leaf is
- * already decoded by the tokenizer (parser-02): it is used verbatim, NOT
+ * already decoded by the tokenizer: it is used verbatim, NOT
  * re-unescaped (a second decode would double-decode a value whose bytes look
  * like an escape): and components/subcomponents are
  * rejoined with the literal delimiters so both the conformant (`\S\`-escaped)
@@ -213,7 +213,7 @@ export function groupNotes(msg: Hl7Message): NoteGrouping {
  * that never opens an order (a trailing/dangling `ORC` with no following OBR).
  * Notes that DO attach to a specific patient / order / result are exposed on
  * those helper outputs (`msg.patient?.notes`, `order.notes`, `observation.notes`)
- *: not here. D-05: returns `[]` when there are none. NOT memoized.
+ *: not here. Returns `[]` when there are none. NOT memoized.
  *
  * @example
  * ```ts

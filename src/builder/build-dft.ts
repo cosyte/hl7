@@ -185,7 +185,7 @@ function ft1Segment(charge: DftCharge): RawSegment {
       [10, charge.quantity !== undefined ? encodeComposite("NM", charge.quantity) : undefined],
       [11, amountField(charge.amountExtended)],
       [12, amountField(charge.amountUnit)],
-      [19, charge.diagnoses !== undefined ? repField("CWE", charge.diagnoses) : undefined],
+      [19, repField("CWE", charge.diagnoses)],
     ]),
   );
 }
