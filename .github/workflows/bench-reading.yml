@@ -1,0 +1,84 @@
+name: bench-reading
+
+# A full reading of bench/parse.bench.mjs on a GitHub-hosted runner, of the base build and of the
+# head build: throughput, latency, allocations per call, peak heap, a long run for leaks and the
+# cold import, for every size, the large ones included. The `bench-compare` job in ci.yml times
+# only the sizes its comparison runs and reports no memory; this job is where a pull request that
+# changes how much the parser holds shows it, from a runner rather than a developer's machine.
+#
+# Advisory: it posts its readings to the run's summary and keeps them as an artifact, and it never
+# fails for a number. Never make it a required check.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "bench/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/bench-reading.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  reading:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      # The whole history, so the base commit is on disk for a worktree beside the head.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          cache: pnpm
+      # The head's suite reads both builds, as in bench-compare, so a size the head adds is read on
+      # the base too. A pull request reads its base and its head; a manual run reads the head only.
+      - name: Read the base build and the head build
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          out="${RUNNER_TEMP}/bench-reading"
+          mkdir -p "${out}"
+          pnpm install --frozen-lockfile
+          pnpm build
+          head_sha="$(git rev-parse HEAD)"
+          echo "### Readings of bench/parse.bench.mjs (advisory)" >> "${GITHUB_STEP_SUMMARY}"
+          read_build() {
+            local side="$1" target="$2" commit="$3" status=0
+            pnpm exec cosyte-bench run --suite bench/parse.bench.mjs --target "${target}" \
+              --commit "${commit}" --out "${out}/${side}.json" --summary "${out}/${side}.md" || status=$?
+            if [ "${status}" -ne 0 ]; then
+              echo "::notice::bench-reading: the ${side} reading exited ${status} (2 is a case it could not measure)"
+            fi
+            if [ -f "${out}/${side}.md" ]; then
+              { echo; echo "#### ${side} (${commit})"; echo; cat "${out}/${side}.md"; } >> "${GITHUB_STEP_SUMMARY}"
+            fi
+          }
+          if [ -n "${BASE_SHA}" ]; then
+            base_root="${RUNNER_TEMP}/bench-base"
+            git worktree add --quiet --detach "${base_root}" "${BASE_SHA}"
+            (cd "${base_root}" && pnpm install --frozen-lockfile && pnpm build)
+            read_build base "${base_root}/dist/index.mjs" "${BASE_SHA}"
+          fi
+          read_build head dist/index.mjs "${head_sha}"
+      - name: Keep the readings
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: bench-reading
+          path: ${{ runner.temp }}/bench-reading/
+          if-no-files-found: warn
+          retention-days: 30
