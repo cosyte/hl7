@@ -28,8 +28,8 @@ call, say so in the summary. Its first sentence becomes the release bullet, and 
 
 ## Coverage, mutation and performance
 
-`quality-floor.json` holds today's coverage (lines, branches, functions, statements) and mutation
-score. A floor only rises. `pnpm quality:check --base origin/main`, after `pnpm test:coverage`,
+`quality-floor.json` holds today's coverage (lines, branches, functions, statements) and the
+mutation score of the parser and the serializers. A floor only rises. `pnpm quality:check --base origin/main`, after `pnpm test:coverage`,
 fails when a metric drops below its floor, when a pull request lowers or removes a floor, or when a
 line it changed never ran, and prints each metric's gap to 100. A line no input can reach takes
 `/* v8 ignore next -- the reason */`, and the reason goes in the pull request.
@@ -42,8 +42,10 @@ pnpm mutate changed --base origin/main
 pnpm quality:mutation --base origin/main
 ```
 
-`pnpm mutate full` mutates every file, as the weekly run does. After it and `pnpm test:coverage`,
-`pnpm quality:raise` raises each floor to what was measured. A mutant no test can kill takes
+`pnpm mutate:full` mutates every file `stryker.full.config.mjs` names, the parser and the
+serializers, as the weekly run does; that score is the floor's. After it and `pnpm test:coverage`,
+`pnpm quality:raise` raises each floor to what was measured. `pnpm mutate full` mutates all of
+`src/`, which takes hours. A mutant no test can kill takes
 `// Stryker disable next-line <mutator>: the reason`.
 
 The standard properties (`test/property/standard.property.test.ts`) run 100 cases on every run.

@@ -117,6 +117,7 @@
     "quality:mutation": "cosyte-ratchet check --skip coverage",
     "quality:raise": "cosyte-ratchet raise",
     "mutate": "cosyte-mutate",
+    "mutate:full": "cosyte-mutate full --config stryker.full.config.mjs",
     "clean": "rm -rf dist coverage",
     "examples": "tsx scripts/run-examples.ts",
     "pack:docs": "cosyte-process pack-docs",

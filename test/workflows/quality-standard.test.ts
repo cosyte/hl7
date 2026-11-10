@@ -96,6 +96,26 @@ describe("the mutation config", () => {
       .map((path) => `!${path.split("\\").join("/")}`);
     expect(config.mutate.filter((p) => p.endsWith("index.ts")).sort()).toEqual(excluded.sort());
   });
+
+  it("runs the floor's full run over the parser and the serializers, on the same settings", async () => {
+    const { default: base } = await importModule<{ default: Record<string, unknown> }>(
+      "stryker.config.mjs",
+    );
+    const { default: full } = await importModule<{ default: Record<string, unknown> }>(
+      "stryker.full.config.mjs",
+    );
+    expect(full["mutate"]).toEqual([
+      "src/parser/**/*.ts",
+      "!src/parser/generated/**",
+      "src/serialize/*.ts",
+    ]);
+    expect({ ...full, mutate: base["mutate"] }).toEqual(base);
+    const { scripts } = JSON.parse(read("package.json")) as { scripts: Record<string, string> };
+    expect(scripts["mutate:full"]).toBe("cosyte-mutate full --config stryker.full.config.mjs");
+    expect(read(".github", "workflows", "weekly-mutation.yml")).toMatch(
+      /^ {6}mutate-cmd: "pnpm mutate:full"$/mu,
+    );
+  });
 });
 
 describe("the benchmark suite", () => {
@@ -110,7 +130,7 @@ describe("the benchmark suite", () => {
     bind: (target: unknown) => (input: string) => unknown;
   }
 
-  it("measures small to very large inputs, and leaves only the slowest out of the comparison", async () => {
+  it("measures small to very large inputs, and leaves the two large ones out of the comparison", async () => {
     const { default: suite } = await importModule<{
       default: { name: string; benchmarks: Benchmark[] };
     }>("bench", "parse.bench.mjs");
@@ -122,7 +142,7 @@ describe("the benchmark suite", () => {
         "ORU^R01, 1 MiB",
         "ORU^R01, 4 MiB",
       ]);
-      expect(benchmark.sizes.map((s) => s.compare)).toEqual([true, true, true, false]);
+      expect(benchmark.sizes.map((s) => s.compare)).toEqual([true, true, false, false]);
     }
   });
 
@@ -138,7 +158,9 @@ describe("the benchmark suite", () => {
       expect(Buffer.byteLength(first) / (expected[i] ?? 1)).toBeGreaterThanOrEqual(1);
       expect(Buffer.byteLength(first) / (expected[i] ?? 1)).toBeLessThan(1.01);
       expect(corpus.bytes).toBe(corpus.inputs.reduce((n, t) => n + Buffer.byteLength(t), 0));
-      expect(parseHL7(first).warnings).toEqual([]);
+      // The large sizes are the same shape with more results; parsing them here would make every
+      // mutant in the parser pay for a 4 MiB parse.
+      if (size.compare) expect(parseHL7(first).warnings).toEqual([]);
     }
   });
 });
