@@ -238,7 +238,8 @@ export function resolvePath(
 
   const subIndex = (parsed.subcomponentIndex ?? 1) - 1;
   const subcomponents = comp.subcomponents;
-  const sub = subIndex < subcomponents.length ? (subcomponents[subIndex] ?? "") : undefined;
+  const sub =
+    subIndex >= 0 && subIndex < subcomponents.length ? (subcomponents[subIndex] ?? "") : undefined;
 
   if (sub !== undefined) {
     // The tokenizer already unescaped every subcomponent on parse (parser-02),

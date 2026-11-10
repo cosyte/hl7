@@ -357,3 +357,13 @@ describe("mutating a field that carries a null", () => {
     ).toBe("PID|1||~MRN3|||Doe^Jane");
   });
 });
+
+describe("subcomponent 0 is still out of range on a parsed message", () => {
+  it("get returns undefined for a zero subcomponent index, as before", () => {
+    const raw = readFileSync(path.join(FIXTURES, "canonical", "adt-a01.hl7"), "utf8");
+    const msg = parseHL7(raw);
+    expect(msg.get("PID.3.1.1")).not.toBeUndefined();
+    expect(msg.get("PID.3.1.0")).toBeUndefined();
+    expect(msg.get("PID.5.1.0")).toBeUndefined();
+  });
+});
