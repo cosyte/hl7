@@ -29,7 +29,8 @@
  * the implementable level a rule that declares NO usage is refused too, because
  * silence there means Optional and the level asserts optionality is gone.
  *
- * @internal (the two functions are re-exported from the package root)
+ * @internal (both functions are on the package's `conformance` namespace, and
+ * `defineConformanceProfile` is also a named export of the package root)
  */
 
 import { KNOWN_CODING_SYSTEMS, codingSystem } from "../model/coding-system.js";

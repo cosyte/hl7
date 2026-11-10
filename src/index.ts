@@ -562,8 +562,9 @@ export {
 } from "./conformance/types.js";
 /**
  * The conformance-profile engine as one namespace object: `validateAgainstProfile`,
- * `defineConformanceProfile`, `collectProfileDefects`, `usageOutcomes`, the registries and the
- * profile types, each also a named export of the package.
+ * `defineConformanceProfile`, `usageOutcomes`, the registries and the profile types, each also a
+ * named export of the package, plus `collectProfileDefects` and its `ProfileDefect` type, which
+ * only this namespace exports.
  *
  * @example
  * ```ts
