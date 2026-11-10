@@ -679,14 +679,18 @@ describe("rule 6, internal traceability markers, on both surfaces and in both pa
 /**
  * This repository's own rule, from `extraRules` in `scripts/internal-refs.json`: the design-note
  * ids its source comments once carried (a short upper-case code, a hyphen and a number). The
- * refused samples below are made-up text of that shape, kept so the rule proves it still matches.
+ * refused samples below are made up: ids of the same shapes whose numbers appear nowhere in this
+ * repository's history (each was checked with `git log -S` before it was used), kept so the rule
+ * proves it still matches. One case below fails if any other tracked file carries one of them.
  * The shared identifier rule matches only the configured project prefixes, so these reached the
  * generated API reference and the published types without a hit. The accepted text is the
  * segment-field and code material the rule sits next to in every doc comment here.
  */
 describe("the design-note id rule, on both surfaces and in both passes", () => {
   const RULE = "internal design-note id";
-  const DESIGN_NOTE = "Frozen at the boundary (D-01), never throws (HELPERS-07), as SER-03 says.";
+  const DESIGN_NOTE = "A made-up note (D-917), as HELPERS-88 and SER-71 say.";
+  const THREAT_NOTE = "The T-81-79-74 note on a made-up step (parser-97).";
+  const STRING_NOTE = "A made-up step, routed per D-917.";
   const NEIGHBOURS =
     "MSH-2, PID-3, OBX-5, RXA-21, ZDS-1, DG1-5, TQ1-7 and FT1-4; ICD-10-CM; UTF-8; a D-dimer result; document DOC-1001 in room OR-1; WINDOWS-1252 text";
 
@@ -705,7 +709,7 @@ describe("the design-note id rule, on both surfaces and in both passes", () => {
 
   it("refuses the threat-model and lower-case forms in a src doc comment", () => {
     const run = verdict({
-      "src/index.ts": docComment(" * The T-03-02-02 mitigation in the tokenizer (parser-02)."),
+      "src/index.ts": docComment(` * ${THREAT_NOTE}`),
     });
     expect(run.status).not.toBe(0);
     expect(run.stderr).toContain(RULE);
@@ -713,10 +717,36 @@ describe("the design-note id rule, on both surfaces and in both passes", () => {
 
   it("refuses a design-note id in a src string literal", () => {
     const run = verdict({
-      "src/messages.ts": 'export const MESSAGE = "MSH must be routed per D-06.";\n',
+      "src/messages.ts": `export const MESSAGE = "${STRING_NOTE}";\n`,
     });
     expect(run.status).not.toBe(0);
     expect(run.stderr).toContain(RULE);
+  });
+
+  it("uses sample ids that no other tracked file carries, so no real id is kept alive here", () => {
+    const config = JSON.parse(
+      readFileSync(join(REPO_ROOT, "scripts", "internal-refs.json"), "utf8"),
+    ) as { extraRules: { id: string; patterns: string[]; positives: string[] }[] };
+    const rule = config.extraRules.find((entry) => entry.id === "design-note-id");
+    expect(rule).toBeDefined();
+    const pattern = new RegExp(rule?.patterns.join("|") ?? "", "g");
+    const samples = [...(rule?.positives ?? []), DESIGN_NOTE, THREAT_NOTE, STRING_NOTE];
+    const ids = [...new Set(samples.flatMap((sample) => sample.match(pattern) ?? []))];
+    expect(ids.length).toBeGreaterThanOrEqual(13);
+    const grep = spawnSync("git", ["grep", "-l", "-w", "-F", ...ids.flatMap((id) => ["-e", id])], {
+      cwd: REPO_ROOT,
+      encoding: "utf8",
+    });
+    expect(grep.status === 0 || grep.status === 1).toBe(true);
+    const carriers = grep.stdout
+      .split("\n")
+      .filter((path) => path !== "")
+      .filter(
+        (path) =>
+          path !== "scripts/internal-refs.json" &&
+          path !== "test/scripts/internal-refs-gate.test.ts",
+      );
+    expect(carriers).toEqual([]);
   });
 
   it("accepts the segment-field and code material beside it, on a public page", () => {
