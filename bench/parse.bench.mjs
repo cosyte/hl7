@@ -89,10 +89,14 @@ export function documentMessage(i, bytes) {
 // result report; 1 MiB is far past any message a sender writes by hand. `messages` keeps a pass at
 // the small sizes from being one string repeated.
 //
-// The two large sizes are left out of the pull request comparison; a reading still measures them.
-// On the first comparison, on a 4-CPU GitHub-hosted runner, a 1 MiB call took about 138 ms and
-// its warmup did not settle within its 5 s bound, so both 1 MiB cases were skipped
-// (`warmup-unstable`) and the comparison could never be complete. 4 MiB is slower still.
+// The pull request comparison leaves out every size whose warmup does not settle within its 5 s
+// bound in each of its 24 fresh processes; a reading still measures them. On the first comparison,
+// on a 4-CPU GitHub-hosted runner, a 1 MiB call of the dense shape took about 138 ms and both of
+// its cases were skipped (`warmup-unstable`), so the comparison could never be complete. Since the
+// tree was built without spare array capacity a call takes about 70 ms there, which a reading's
+// three processes settle but a 12-round comparison on a developer machine still did not, so that
+// size and both 4 MiB sizes stay out. The 1 MiB document settles: its parse is one slice of the
+// text, and its `toString()` about 10 ms.
 const SIZES = [
   { label: "ADT^A01, 280 B", messages: 64, build: (i) => adtMessage(i) },
   { label: "ORU^R01, 32 KiB", messages: 8, build: (i) => oruMessage(i, 32 * KIB) },
@@ -112,7 +116,6 @@ const SIZES = [
     label: "ORU^R01 with a base64 document, 1 MiB",
     messages: 1,
     build: (i) => documentMessage(i, 1024 * KIB),
-    compare: false,
   },
   {
     label: "ORU^R01 with a base64 document, 4 MiB",

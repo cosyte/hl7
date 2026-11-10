@@ -131,9 +131,9 @@ describe("the benchmark suite", () => {
   }
 
   /** Which sizes, in order, a pull request's comparison runs; a reading measures every one. */
-  const COMPARED = [true, true, false, false, false, false];
+  const COMPARED = [true, true, false, false, true, false];
 
-  it("measures small to very large inputs, and leaves the large ones out of the comparison", async () => {
+  it("measures small to very large inputs, and compares only the sizes whose warmup settles", async () => {
     const { default: suite } = await importModule<{
       default: { name: string; benchmarks: Benchmark[] };
     }>("bench", "parse.bench.mjs");
