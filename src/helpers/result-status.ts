@@ -84,8 +84,10 @@ const ORDER_STATUS: ReadonlyMap<string, ResultStatusClass> = new Map([
  * @internal
  */
 export function soleValue(field: Field): string | undefined {
-  if (fieldArrivedAltered(field.raw) || field.repetitions.length !== 1) return undefined;
-  const components = field.repetitions[0]?.components ?? [];
+  if (fieldArrivedAltered(field.raw)) return undefined;
+  const [repetition, ...more] = field.repetitions;
+  if (repetition === undefined || more.length > 0) return undefined;
+  const components = repetition.components;
   if (components.length !== 1) return undefined;
   const component = components[0];
   if (component?.subcomponents.length !== 1) return undefined;
