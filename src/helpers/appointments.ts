@@ -75,16 +75,16 @@ const RESOURCE_KIND: Readonly<Record<string, AppointmentResource["kind"]>> = Obj
 });
 
 /**
- * Build one {@link AppointmentResource} from an AI* segment. The resource id
+ * Build one {@link AppointmentResource} of `kind` from an AI* segment. The resource id
  * lives at position 3 for all four segment types; AIP-3 is an `XCN` (personnel)
  * and is additionally surfaced as `person`, while AIS/AIG/AIL-3 surface as a
  * coded `code` (first component verbatim). Returns `undefined` when the segment
  * carries no resource id at all. @internal
  */
-function buildResource(seg: Segment): AppointmentResource | undefined {
-  const kind = RESOURCE_KIND[seg.type];
-  if (kind === undefined) return undefined;
-
+function buildResource(
+  seg: Segment,
+  kind: AppointmentResource["kind"],
+): AppointmentResource | undefined {
   type Mutable<T> = { -readonly [K in keyof T]?: T[K] };
   const out: Mutable<AppointmentResource> = { kind };
 
@@ -166,15 +166,19 @@ export function appointments(msg: Hl7Message): readonly Appointment[] {
   };
 
   for (const seg of msg.allSegments()) {
-    if (seg.type === "SCH") {
+    // Read once: a segment a subclass hands back may answer differently on a
+    // second read, and the kind must be the one the type was matched on.
+    const type = seg.type;
+    if (type === "SCH") {
       closeCurrent();
       currentSch = seg;
       resources = [];
       continue;
     }
     if (currentSch === undefined) continue; // AI* before any SCH: dropped.
-    if (RESOURCE_KIND[seg.type] !== undefined) {
-      const resource = buildResource(seg);
+    const kind = RESOURCE_KIND[type];
+    if (kind !== undefined) {
+      const resource = buildResource(seg, kind);
       if (resource !== undefined) resources.push(resource);
     }
   }

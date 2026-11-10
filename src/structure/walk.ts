@@ -98,6 +98,7 @@ const UNBOUNDED = "*";
 
 /** Multiply two occurrence counts, where nothing multiplied by unbounded is nothing. */
 function multiplyOccurrences(left: number | "*", right: number | "*"): number | "*" {
+  /* v8 ignore next -- no node in the generated registry has a maximum of 0, so neither factor is ever 0 */
   if (left === 0 || right === 0) return 0;
   if (left === UNBOUNDED || right === UNBOUNDED) return UNBOUNDED;
   return left * right;
@@ -242,7 +243,9 @@ function buildOrderAutomaton(
       consume[entry] = { name: child.node.name, to: exit };
       return [entry, exit];
     }
-    connect(chain(entry, children.get(child.index) ?? []), exit);
+    /* v8 ignore next -- every group in the generated registry has at least one child */
+    const members = children.get(child.index) ?? [];
+    connect(chain(entry, members), exit);
     return [entry, exit];
   }
 
@@ -283,7 +286,9 @@ function buildOrderAutomaton(
   // The structure root has no exit state: a message is one message, and where
   // it ends is the cardinality check's question rather than this one's.
   const start = newState();
-  chain(start, children.get(-1) ?? []);
+  /* v8 ignore next -- every structure in the generated registry has nodes at its root */
+  const roots = children.get(-1) ?? [];
+  chain(start, roots);
   return { epsilon, consume, start };
 }
 
@@ -296,7 +301,9 @@ function epsilonClosure(automaton: OrderAutomaton, states: Iterable<number>): Re
     if (state === undefined) break;
     if (reached.has(state)) continue;
     reached.add(state);
-    for (const next of automaton.epsilon[state] ?? []) pending.push(next);
+    /* v8 ignore next -- every state is created by newState, which gives it an epsilon list */
+    const targets = automaton.epsilon[state] ?? [];
+    for (const next of targets) pending.push(next);
   }
   return reached;
 }
@@ -471,7 +478,10 @@ function suffixStates(
     position -= 1;
     const base = setAt(table, position);
     queued.fill(0);
-    for (const reading of consumers.get(segment.name) ?? []) {
+    /* v8 ignore next -- only segments the structure names reach here, and every segment node gets a consuming state because no node has a maximum of 0 */
+    const readings = consumers.get(segment.name) ?? [];
+    for (const reading of readings) {
+      /* v8 ignore next -- a state carries one consume edge, so it is listed once per name and never queued twice here */
       if (queued[reading.state] === 1) continue;
       if (!holds(table, position + 1, reading.to)) continue;
       queued[reading.state] = 1;
@@ -483,7 +493,9 @@ function suffixStates(
       if (state === undefined) break;
       const at = base + wordOf(state);
       table.words.setUint32(at, table.words.getUint32(at) | bitOf(state));
-      for (const before of predecessors[state] ?? []) {
+      /* v8 ignore next -- epsilonPredecessors gives every state a list */
+      const befores = predecessors[state] ?? [];
+      for (const before of befores) {
         if (queued[before] === 1) continue;
         queued[before] = 1;
         pending.push(before);
@@ -531,6 +543,7 @@ function repairingExchange(
     active = step(automaton, active, early.name);
     if (active.size === 0) return undefined;
   }
+  /* v8 ignore next -- firstDivergence stops at the first segment the same walk cannot step, so the step at divergenceIndex empties active and returns above */
   return undefined;
 }
 

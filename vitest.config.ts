@@ -7,8 +7,13 @@ import { cosyteVitest } from "@cosyte/vitest-config";
  * statements, on top of the same global floor. That covers every core directory
  * (parser/model/helpers/serialize/builder/profiles/text/conformance/structure); the per-directory
  * entries and the global `branches: 90` this file used to restate were the shared gate's own values.
+ *
+ * This repository gates every metric at 100 globally, on top of that. A threshold only rises: a line
+ * no input through the public API can reach carries an inline `v8 ignore` comment naming its true
+ * reason, never a lowered number here.
  */
 export default cosyteVitest({
+  coverageThresholds: { lines: 100, branches: 100, functions: 100, statements: 100 },
   coverageDirs: [
     "parser",
     "model",
