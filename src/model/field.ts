@@ -16,6 +16,7 @@
 
 import { DEFAULT_ENCODING_CHARACTERS } from "../parser/delimiters.js";
 import { emitField } from "../serialize/emit-field.js";
+import { denseRepetitions } from "./dense-raw.js";
 import { renderText, type RenderedText, type RenderTextOptions } from "../text/render.js";
 import type { EncodingCharacters, Hl7Position, RawField, RawRepetition } from "../parser/types.js";
 import { parseCe, type CE } from "./types/ce.js";
@@ -61,7 +62,10 @@ export class Field {
   /** HL7 null indicator: `true` iff the underlying field was the two-char literal `""`. */
   public readonly isNull: boolean;
 
-  /** Reference to the underlying `RawField.repetitions` (no defensive copy). */
+  /**
+   * The underlying `RawField.repetitions`, with a hole or `null` that a field
+   * built by hand carries at any depth read as empty. No copy unless it has one.
+   */
   public readonly repetitions: readonly RawRepetition[];
 
   /** The 5 encoding characters for this message. Exposed for composite parsers. @internal */
@@ -97,7 +101,7 @@ export class Field {
   ) {
     this.raw = raw;
     this.isNull = raw.isNull;
-    this.repetitions = raw.repetitions;
+    this.repetitions = denseRepetitions(raw.repetitions);
     this.enc = enc;
     this.position = position;
     this.dateFormats = dateFormats ?? NO_DATE_FORMATS;

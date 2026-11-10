@@ -34,9 +34,10 @@ export function readSubcomponent(
   index: number,
   _enc: EncodingCharacters,
 ): string | undefined {
-  if (component === undefined) return undefined;
-  const sub = component.subcomponents[index];
-  if (sub === undefined || sub === "") return undefined;
+  // `?.` and `??` also read a `null` that a repetition built by hand carries,
+  // in place of a component or a subcomponent, as absent.
+  const sub = component?.subcomponents[index] ?? "";
+  if (sub === "") return undefined;
   // The tokenizer already unescaped every subcomponent on parse (parser-02), so
   // the stored value is decoded: return it directly. A second unescape would
   // double-decode a value whose own bytes look like an escape (wire `\E\F\E\` →

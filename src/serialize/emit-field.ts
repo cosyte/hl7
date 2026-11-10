@@ -52,26 +52,31 @@ export function emitField(field: RawField, enc: EncodingCharacters): string {
   if (field.isNull) return '""';
   if (field.repetitions.length === 0) return "";
   const repStrings: string[] = [];
-  for (const rep of field.repetitions) {
-    repStrings.push(emitRepetition(rep, enc));
+  // Read by index, so a hole in a field built by hand reaches the emitter as
+  // `undefined` and, like a `null`, emits as an empty position.
+  for (let r = 0; r < field.repetitions.length; r++) {
+    repStrings.push(emitRepetition(field.repetitions[r], enc));
   }
   return repStrings.join(enc.repetition);
 }
 
 /** @internal */
-function emitRepetition(rep: RawRepetition, enc: EncodingCharacters): string {
+function emitRepetition(rep: RawRepetition | undefined, enc: EncodingCharacters): string {
   const compStrings: string[] = [];
-  for (const comp of rep.components) {
-    const overlay = comp.rawSubcomponents;
+  const components = rep?.components ?? [];
+  for (let c = 0; c < components.length; c++) {
+    const comp = components[c];
+    const overlay = comp?.rawSubcomponents;
+    const subcomponents = comp?.subcomponents ?? [];
     const subStrings: string[] = [];
-    for (let i = 0; i < comp.subcomponents.length; i++) {
+    for (let i = 0; i < subcomponents.length; i++) {
       // Escape-fidelity overlay (HL7-ESC): when the tokenizer recorded the
       // subcomponent's original wire bytes (a preserve-or-hex escape whose
       // decoded form does not re-escape byte-verbatim), emit them verbatim,
       // otherwise re-escape the decoded value. Delimiter escapes have no
       // overlay and take the reescape path, exactly as before.
       const raw = overlay?.[i];
-      subStrings.push(raw ?? reescape(comp.subcomponents[i] ?? "", enc));
+      subStrings.push(raw ?? reescape(subcomponents[i] ?? "", enc));
     }
     // D-02 trailing-empty strip at subcomponent level.
     while (subStrings.length > 0 && subStrings[subStrings.length - 1] === "") {

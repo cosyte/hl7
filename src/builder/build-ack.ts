@@ -16,6 +16,7 @@
  * Zero runtime deps.
  */
 
+import { denseField } from "../model/dense-raw.js";
 import { Hl7Message } from "../model/message.js";
 import { DEFAULT_ENCODING_CHARACTERS } from "../parser/delimiters.js";
 import type { EncodingCharacters, RawField, RawSegment } from "../parser/types.js";
@@ -186,7 +187,8 @@ export function buildAck(inbound: Hl7Message, options: BuildAckOptions): Hl7Mess
   // (setField et al.) is copy-on-write leaf-to-root: neither message can
   // corrupt the other through the shared subtree.
   const msh = inbound.segments("MSH")[0];
-  const inboundMsh = (n: number): RawField => msh?.field(n).raw ?? absentField();
+  // A hole or a `null` in a field built by hand reads as empty.
+  const inboundMsh = (n: number): RawField => denseField(msh?.field(n).raw ?? absentField());
 
   // Correlation: MSA-2 echoes the inbound RAW MSH-10 field **verbatim**,
   // not the component-1-only `meta.controlId` scalar. A vendor-quirk control

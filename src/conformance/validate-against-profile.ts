@@ -407,9 +407,8 @@ function checkFields(
     // built by a filter, or read from configuration) with no cast at all.
     const componentRules = rule.components;
     if (componentRules !== undefined && componentRules.length > 0) {
-      for (let r = 0; r < reps.length; r++) {
-        const rep = reps[r];
-        if (rep === undefined || !repetitionHasValue(rep)) continue;
+      for (const [r, rep] of reps.entries()) {
+        if (!repetitionHasValue(rep)) continue;
         checkComponents(
           componentRules,
           rep,
@@ -428,9 +427,7 @@ function checkFields(
     // alternate system at 6. A profile with no binding never reads it.
     const expectedSystem = boundCodingSystem(rule);
     const systemComponent = rule.codingSystemComponent ?? component + 2;
-    for (let r = 0; r < reps.length; r++) {
-      const rep = reps[r];
-      if (rep === undefined) continue;
+    for (const [r, rep] of reps.entries()) {
       const value = componentValue(rep, component);
       const locus: FindingLocus = {
         segment: seg.type,

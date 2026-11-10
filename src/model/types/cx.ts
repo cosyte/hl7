@@ -82,10 +82,11 @@ function parseAssigningAuthority(
   comp: RawComponent | undefined,
   enc: EncodingCharacters,
 ): HD | undefined {
-  if (comp === undefined) return undefined;
-  if (comp.subcomponents.every((s) => s === "")) return undefined;
+  // `?.` reads a `null` component of a repetition built by hand as absent.
+  const subcomponents = comp?.subcomponents ?? [];
+  if (subcomponents.every((s) => s === "")) return undefined;
   const synthetic: RawRepetition = {
-    components: comp.subcomponents.map((sub) => ({ subcomponents: [sub] })),
+    components: subcomponents.map((sub) => ({ subcomponents: [sub] })),
   };
   const hd = parseHd(synthetic, enc);
   return Object.keys(hd).length === 0 ? undefined : hd;

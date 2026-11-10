@@ -25,6 +25,7 @@
  * observable benefit given the type-level readonly contract).
  */
 
+import { denseRepetitions } from "../model/dense-raw.js";
 import type { Hl7Message } from "../model/message.js";
 import type { EncodingCharacters } from "../parser/types.js";
 import type { Hl7ParseWarning } from "../parser/warnings.js";
@@ -91,7 +92,8 @@ export function emitJson(msg: Hl7Message): SerializedMessage {
     fields: seg.fields.map((field) => ({
       // D-17 + Claude's-Discretion: `repetitions` is ALWAYS `[]` when the
       // field has zero repetitions: shape-stable, no conditional omission.
-      repetitions: field.repetitions.map((rep) => ({
+      // A hole or a `null` a field built by hand carries reads as empty.
+      repetitions: denseRepetitions(field.repetitions).map((rep) => ({
         components: rep.components.map((comp) => ({
           subcomponents: comp.subcomponents.slice(),
         })),

@@ -226,16 +226,19 @@ export function resolvePath(
   const field = seg.fields[rawFieldIndex];
   if (field === undefined) return undefined;
 
+  // A hole or a `null` that a field built by hand carries reads as empty: an
+  // empty repetition or component (nothing in it), an empty subcomponent.
   const repIndex = parsed.repetitionIndex ?? 0;
-  const rep = field.repetitions[repIndex];
+  const rep = field.repetitions[repIndex] ?? undefined;
   if (rep === undefined) return undefined;
 
   const compIndex = (parsed.componentIndex ?? 1) - 1;
-  const comp = rep.components[compIndex];
+  const comp = rep.components[compIndex] ?? undefined;
   if (comp === undefined) return undefined;
 
   const subIndex = (parsed.subcomponentIndex ?? 1) - 1;
-  const sub = comp.subcomponents[subIndex];
+  const subcomponents = comp.subcomponents;
+  const sub = subIndex < subcomponents.length ? (subcomponents[subIndex] ?? "") : undefined;
 
   if (sub !== undefined) {
     // The tokenizer already unescaped every subcomponent on parse (parser-02),
