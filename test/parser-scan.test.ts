@@ -323,26 +323,42 @@ describe("Scanner: one segment at a time", () => {
   });
 });
 
+/** Check that a scan of `raw` reports what `tokenize` reports, and finds the names it builds. */
+function expectScanAgrees(raw: string): void {
+  const text = normalize(stripMllp(raw).stripped);
+  const segments = splitSegments(text);
+  let custom: EncodingCharacters;
+  try {
+    custom = readDelimiters(segments[0] ?? "");
+  } catch {
+    return;
+  }
+  for (const trimFields of [true, false]) {
+    const scanned = findings();
+    const { names } = scanMessage(text, custom, trimFields, scanned.sink);
+    const tokenized: Hl7ParseWarning[] = [];
+    const tree = tokenize(segments, custom, (w) => tokenized.push(w), trimFields);
+    expect(scanned.warnings).toEqual(tokenized);
+    expect(names).toEqual(tree.map((s) => s.name));
+  }
+}
+
 describe("scanMessage: the findings tokenize reports, segment by segment", () => {
+  it("agrees when a long field's separator search already ran past the next long field", () => {
+    // The last field of PID is longer than a short field and holds no separator, so the search
+    // for one runs on into the next segment and stops after its 40-character name. That name is
+    // long too, and its search reuses the remembered separator rather than searching again.
+    const longName = "Z".repeat(40);
+    expectScanAgrees(`MSH|^~\\&|A\rPID|1|${"x".repeat(40)}\r${longName}|a`);
+    const scanned = findings();
+    const text = `MSH|^~\\&|A\rPID|1|${"x".repeat(40)}\r${longName}|a`;
+    expect(scanMessage(text, enc, true, scanned.sink).names).toEqual(["MSH", "PID", longName]);
+  });
+
   it("agrees with tokenize on every generated message, quirks included", () => {
     checkProperty(
       fc.property(messageText(), (raw) => {
-        const text = normalize(stripMllp(raw).stripped);
-        const segments = splitSegments(text);
-        let custom: EncodingCharacters;
-        try {
-          custom = readDelimiters(segments[0] ?? "");
-        } catch {
-          return;
-        }
-        for (const trimFields of [true, false]) {
-          const scanned = findings();
-          const { names } = scanMessage(text, custom, trimFields, scanned.sink);
-          const tokenized: Hl7ParseWarning[] = [];
-          const tree = tokenize(segments, custom, (w) => tokenized.push(w), trimFields);
-          expect(scanned.warnings).toEqual(tokenized);
-          expect(names).toEqual(tree.map((s) => s.name));
-        }
+        expectScanAgrees(raw);
       }),
       // property-depth: 300 cases on a pull request, as this test ran before the shared runner.
       { numRuns: 300 },
