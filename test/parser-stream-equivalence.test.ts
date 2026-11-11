@@ -379,9 +379,10 @@ function fieldDigests(inputs: readonly [string, readonly unknown[]][]): Record<s
 
 /**
  * The fields Bun records differently from Node.js, which recorded the digests. Bun runs on
- * JavaScriptCore, and the Error objects it builds have own keys a V8 Error does not, so
- * `errorKeys` differs for every error entry. Every other field, `util.inspect` of each message
- * included, hashes the same there, and the test holds Bun to that.
+ * JavaScriptCore, whose Error objects list a different set of own keys from a V8 Error, so
+ * `errorKeys` differs wherever an entry carries an error. Every other field, `util.inspect` of
+ * each message included, hashes the same there, so Bun runs this test held to every field but
+ * that one.
  */
 const BUN_DIFFERS: readonly string[] = ["errorKeys"];
 
