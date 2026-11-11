@@ -21,6 +21,8 @@ Java and .NET (HAPI and nHapi), and two are for Python (python-hl7 and hl7apy).
   as "absent": check the project before you rule it out.
 - We compare features at each library's defaults. We have not run any of these libraries, and we
   make no claim about speed, size or how widely each is used.
+- We are not affiliated with, endorsed by or sponsored by any project or company named here, and
+  each name belongs to its owner ([Trademarks](https://github.com/cosyte/hl7/blob/main/TRADEMARKS.md)).
 
 ## At a glance
 
@@ -28,31 +30,31 @@ The tables summarize the sections below; each library's section links the source
 
 What each library does when it reads a message:
 
-| Library         | Tolerance warnings                              | Typed views of a message type          | Structure checks                          | Streaming input                           |
-| --------------- | ----------------------------------------------- | -------------------------------------- | ----------------------------------------- | ----------------------------------------- |
-| `@cosyte/hl7`   | Yes, with stable codes                          | Yes, `msg.is("ADT^A01")` narrows types | Yes, for 16 message codes                 | Yes                                       |
-| simple-hl7      | Not described                                   | Not described                          | Not described                             | Not described                             |
-| node-hl7-client | No: malformed input throws                      | On the build side, per version         | On the build side, per version            | Not described                             |
-| hl7-standard    | Not described: errors throw or go to a callback | Not described                          | Not described                             | Not described                             |
-| Medplum         | Not described: input not starting `MSH` throws  | Not described                          | Not described                             | Not described                             |
-| HAPI (Java)     | Rule sets, not a warning list                   | A class per structure, per version     | Validation rules, by message type         | Yes, messages one at a time from a stream |
-| nHapi (.NET)    | Not described                                   | A class per structure, per version     | Not described                             | Not described                             |
-| python-hl7      | Not described                                   | Not described                          | Not described                             | Not described                             |
-| hl7apy          | Yes, a `TOLERANT` level and a report            | Elements by name, per version          | Yes, in `STRICT` mode and on `validate()` | Not described                             |
+| Library         | Tolerance warnings                              | Typed views of a message type          | Structure checks                          | Streaming input                             |
+| --------------- | ----------------------------------------------- | -------------------------------------- | ----------------------------------------- | ------------------------------------------- |
+| `@cosyte/hl7`   | Yes, with stable codes                          | Yes, `msg.is("ADT^A01")` narrows types | Yes, for 16 message codes                 | Yes                                         |
+| simple-hl7      | Not described                                   | Not described                          | Not described                             | Not described                               |
+| node-hl7-client | No: malformed input throws                      | On the build side, per version         | On the build side, per version            | Not described                               |
+| hl7-standard    | Not described: errors throw or go to a callback | Not described                          | Not described                             | Not described                               |
+| Medplum         | Not described: input not starting `MSH` throws  | Not described                          | Not described                             | Not described                               |
+| HAPI (Java)     | Rule sets, not a warning list                   | A class per structure, per version     | Validation rules, by message type         | Yes, messages one at a time from a stream   |
+| nHapi (.NET)    | Not described                                   | A C# object model, v2.1 to v2.8.1      | Not described                             | Not described                               |
+| python-hl7      | Not described                                   | Not described                          | Not described                             | Yes, an asyncio stream reader, experimental |
+| hl7apy          | Yes, a `TOLERANT` level and a report            | Elements by name, per version          | Yes, in `STRICT` mode and on `validate()` | Not described                               |
 
 What else each library covers, and its licence and activity:
 
-| Library         | Network transport                 | XML encoding  | Per-version model           | Licence                     | Last commit, latest release     |
-| --------------- | --------------------------------- | ------------- | --------------------------- | --------------------------- | ------------------------------- |
-| `@cosyte/hl7`   | No: see `@cosyte/mllp`            | No            | No: one model, v2.1 to v2.9 | MIT                         | 2026-11-11, 0.1.12              |
-| simple-hl7      | Yes, TCP server and client        | Not described | Not described               | MIT                         | 2024-06-07, tag v2.2.1-a        |
-| node-hl7-client | Yes, MLLP client with TLS         | Not described | Yes, v2.1 to v2.8           | MIT                         | 2026-11-10, v4.1.2 (2026-10-29) |
-| hl7-standard    | Not described                     | Not described | Not described               | Apache 2.0                  | 2022-05-11, no release tag      |
-| Medplum         | Yes, server and client            | Not described | Not described               | Apache 2.0                  | 2026-11-11, 5.2.17              |
-| HAPI (Java)     | Yes, MLLP and HL7 over HTTP       | Yes           | Yes, v2.1 to v2.8.1         | MPL 1.1 or GPL, your choice | 2026-03-26, tag v2.6.0          |
-| nHapi (.NET)    | Not described; see NHapiTools     | Yes           | Yes, v2.1 to v2.8.1         | MPL 2.0                     | 2026-10-06, v3.2.4 (2025-04-09) |
-| python-hl7      | Yes, MLLP client and asyncio MLLP | Not described | Not described               | BSD-style, 3 clauses        | 2025-06-09, tag 0.4.5           |
-| hl7apy          | Yes, MLLP server                  | Not described | Yes, v2.1 to v2.8.2         | MIT                         | 2026-10-26, v1.3.5 (2024-03-13) |
+| Library         | Network transport                 | XML encoding  | Per-version model               | Licence                     | Last commit, latest release            |
+| --------------- | --------------------------------- | ------------- | ------------------------------- | --------------------------- | -------------------------------------- |
+| `@cosyte/hl7`   | No: see `@cosyte/mllp`            | No            | No: one model, v2.1 to v2.9     | MIT                         | 2026-11-11, 0.1.12                     |
+| simple-hl7      | Yes, TCP server and client        | Not described | Not described                   | MIT                         | 2024-06-07, 3.3.0 in package.json      |
+| node-hl7-client | Yes, MLLP client with TLS         | Not described | Yes, v2.1 to v2.8               | MIT                         | 2026-11-10, v4.1.2 (2026-10-29)        |
+| hl7-standard    | Not described                     | Not described | Not described                   | Apache 2.0                  | 2022-05-11, no release tag             |
+| Medplum         | Yes, server and client            | Not described | Not described                   | Apache 2.0                  | 2026-11-11, 5.2.17                     |
+| HAPI (Java)     | Yes, MLLP and HL7 over HTTP       | Yes           | Yes, v2.1 to v2.8.1             | MPL 1.1 or GPL, your choice | 2026-03-26, tag v2.6.0                 |
+| nHapi (.NET)    | Not described; see NHapiTools     | Yes           | An object model, v2.1 to v2.8.1 | MPL 2.0                     | 2026-10-06, v3.2.4 (2025-04-09)        |
+| python-hl7      | Yes, MLLP client and asyncio MLLP | Not described | Not described                   | BSD-style, 3 clauses        | 2025-06-09, tag 0.4.5                  |
+| hl7apy          | Yes, MLLP server                  | Not described | Yes, v2.1 to v2.8.2             | MIT                         | 2026-10-26, v1.4.0-beta.1 (2026-10-26) |
 
 ## What we offer, and what we do not
 
@@ -81,8 +83,9 @@ errors and warnings from `validate()`.
 - **No XML encoding.** We read and write the pipe-delimited encoding only. HAPI and nHapi read and
   write the XML encoding too.
 - **No per-version classes.** We read v2.1 to v2.9 with one structural model and do not convert
-  between versions ([Version-sensitivity matrix](./spec-notes-version-matrix.md)). HAPI and nHapi
-  generate a class for every message structure of every version, node-hl7-client has a typed
+  between versions ([Version-sensitivity matrix](./spec-notes-version-matrix.md)). HAPI
+  generates a class for every message structure of every version, nHapi offers a C# object model
+  for v2.1 to v2.8.1, node-hl7-client has a typed
   builder per version that rejects fields a version withdrew, and hl7apy models each version's
   elements by name. Our typed views come from the published structures, not from one version's
   tables.
@@ -104,8 +107,10 @@ Each fact below links the page it came from. All were read on 2026-11-11.
 - Its README does not describe tolerance warnings, typed views, structure checks, streaming, XML or
   per-version models.
 - Licence: MIT, per its README. Activity: the last commit on its default branch is dated
-  2024-06-07 ([commits](https://github.com/hitgeek/simple-hl7/commits/master)), and its newest tag
-  is v2.2.1-a ([tags](https://github.com/hitgeek/simple-hl7/tags)).
+  2024-06-07 ([commits](https://github.com/hitgeek/simple-hl7/commits/master)), and the
+  [package.json](https://github.com/hitgeek/simple-hl7/blob/master/package.json) there gives version
+  3.3.0. Its git tags stop earlier: the newest by commit date is v2.2.1-a, from 2018-12-21, six
+  minutes after a V2.2.1 tag ([tags](https://github.com/hitgeek/simple-hl7/tags)).
 
 ### node-hl7-client
 
@@ -122,7 +127,9 @@ Each fact below links the page it came from. All were read on 2026-11-11.
   build; checks on messages you parse are not described.
 - Transport: an MLLP client with reconnect, TLS and mutual TLS; the receiving side is the companion
   package node-hl7-server ([monorepo README](https://github.com/Bugs5382/node-hl7#readme)). Batches
-  and file batches with BHS and FHS framing are supported.
+  and file batches with BHS and FHS framing are supported (the same monorepo README, and the package
+  README's
+  [batches section](https://github.com/Bugs5382/node-hl7/blob/main/packages/node-hl7-client/README.md#-building-batches--files)).
 - Streaming input and XML are not described.
 - Licence: MIT. Activity: the last commit on the monorepo is dated 2026-11-10, and release v4.1.2
   was published on 2026-10-29 ([releases](https://github.com/Bugs5382/node-hl7/releases)).
@@ -186,8 +193,8 @@ Each fact below links the page it came from. All were read on 2026-11-11.
 
 ### nHapi (.NET)
 
-- Its [README](https://github.com/nHapiNET/nHapi#readme) describes a .NET port of HAPI with an
-  object model for HL7 v2.1, 2.2, 2.3, 2.3.1, 2.4, 2.5, 2.5.1, 2.6, 2.7, 2.7.1, 2.8 and 2.8.1, which
+- Its [README](https://github.com/nHapiNET/nHapi#readme) describes a .NET port of HAPI with a C#
+  object model that conforms to HL7 v2.1, 2.2, 2.3, 2.3.1, 2.4, 2.5, 2.5.1, 2.6, 2.7, 2.7.1, 2.8 and 2.8.1, which
   parses and encodes both the pipe-delimited and the XML encoding.
 - The README describes no transport of its own and points to a separate project, NHapiTools, for
   MLLP and TCP listening, ACK generation and validation rules.
@@ -202,8 +209,13 @@ Each fact below links the page it came from. All were read on 2026-11-11.
   "a simple library for parsing messages of Health Level 7 (HL7) version 2.x into Python objects":
   a tree of containers read as nested lists or by HL7's 1-based positions.
 - Its [API page](https://github.com/johnpaulett/python-hl7/blob/main/docs/api.rst) lists
-  `parse_batch` and `parse_file` for batches and files, an `MLLPClient`, and experimental asyncio
-  MLLP support with a stream reader and writer.
+  `parse_batch` and `parse_file` for batches and files, an `MLLPClient`, and asyncio MLLP support
+  with a stream reader and writer, which the documentation calls experimental.
+- Streaming: `HL7StreamReader.readmessage` reads one full message at a time from an asyncio stream
+  ([API page](https://github.com/johnpaulett/python-hl7/blob/main/docs/api.rst),
+  [source](https://github.com/johnpaulett/python-hl7/blob/main/hl7/mllp/streams.py)), and the
+  `mllp_send` command reads messages from a file or standard input and posts them to an MLLP server
+  ([documentation](https://github.com/johnpaulett/python-hl7/blob/main/docs/index.rst)).
 - Tolerance warnings, typed views, structure checks, XML and per-version models are not described.
 - Licence: a BSD-style licence of three clauses
   ([LICENSE](https://github.com/johnpaulett/python-hl7/blob/main/LICENSE)). Activity: the last
@@ -221,16 +233,16 @@ Each fact below links the page it came from. All were read on 2026-11-11.
   element and can write a report of the errors and warnings it found.
 - Streaming input and XML encoding are not described.
 - Licence: MIT, per its README. Activity: the last commit on its default branch, `develop`, is dated
-  2026-10-26, and release v1.3.5 was published on 2024-03-13
-  ([releases](https://github.com/crs4/hl7apy/releases)).
+  2026-10-26, the same day it published the pre-release v1.4.0-beta.1; its latest full release,
+  v1.3.5, was published on 2024-03-13 ([releases](https://github.com/crs4/hl7apy/releases)).
 
 ## Choosing
 
 - You need to send and receive over MLLP as well as parse, in Node.js: pair us with
   [`@cosyte/mllp`](https://docs.cosyte.com/mllp), or choose a library that carries both, such as
   node-hl7-client or Medplum.
-- You need the XML encoding, or a class for every structure of a given version: HAPI on Java or
-  nHapi on .NET.
+- You need the XML encoding, or a model of a given version's structures: HAPI on Java or nHapi on
+  .NET.
 - You build messages for one version and want each field checked against that version's tables
   as you build: node-hl7-client's typed builders.
 - You consume traffic from many vendors in Node.js or TypeScript and want every tolerated deviation
