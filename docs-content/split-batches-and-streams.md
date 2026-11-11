@@ -71,6 +71,10 @@ the limits.
 
 ## Stream a large feed
 
+[`readMessages`](./read-as-it-arrives.md) is the reader to start with: it takes a string, bytes,
+a Node `Readable` or a web `ReadableStream`, reads MLLP frames too, and gives each failed message
+its byte position. `parseStream`, below, stays for code that already uses it.
+
 `splitBatch` needs the whole input in memory. `parseStream` reads a source in chunks (a Node
 `Readable`, an async iterable, or an iterable of strings or `Buffer`s) and yields each message as
 soon as it is complete, holding about one message at a time. A message split across chunks, even

@@ -27,6 +27,9 @@ importers:
       '@cosyte/eslint-config':
         specifier: ^0.1.4
         version: 0.1.4(eslint@10.14.0)(typescript@5.9.3)
+      '@cosyte/mllp':
+        specifier: ^0.1.7
+        version: 0.1.7(fast-check@4.10.2)
       '@cosyte/prettier-config':
         specifier: ^0.1
         version: 0.1.2
@@ -395,6 +398,18 @@ packages:
     peerDependencies:
       eslint: ^9.0.0 || ^10.0.0
       typescript: '>=5.0.0'
+
+  '@cosyte/mllp@0.1.7':
+    resolution: {integrity: sha512-vl/0LWcigDGfnIzxQW7k0gJdl7944Sf2myz741uFB+BntgMjmLUB4UK2XgesjOuUWIG32P1pvbsnBHqgz3r3eA==}
+    engines: {node: '>=22.0.0'}
+    peerDependencies:
+      '@cosyte/hl7': '>=0.0.0'
+      fast-check: ^4.0.0
+    peerDependenciesMeta:
+      '@cosyte/hl7':
+        optional: true
+      fast-check:
+        optional: true
 
   '@cosyte/prettier-config@0.1.2':
     resolution: {integrity: sha512-bpcOjNAU+IBscFxZk7CBODgd7VRwOirg8LlffJLAQUTobI1JunbvAZa98u1BNv+/m5ILMGVNFopGW9HPNA2H5Q==}
@@ -3180,6 +3195,10 @@ snapshots:
       typescript-eslint: 8.72.1(eslint@10.14.0)(typescript@5.9.3)
     transitivePeerDependencies:
       - supports-color
+
+  '@cosyte/mllp@0.1.7(fast-check@4.10.2)':
+    optionalDependencies:
+      fast-check: 4.10.2
 
   '@cosyte/prettier-config@0.1.2': {}
 
