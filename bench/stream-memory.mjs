@@ -1,7 +1,7 @@
 // How much memory the streaming readers hold, against the largest item they read, and a gate on
-// it: `readMessages` over a batch should hold about one message, and `readSegments` over one
-// message about one segment, however large the source is. `parseStream` is read on the same batch
-// and reported, not judged (see GATED_READERS).
+// it: `readMessages` over a batch should hold about one message however large the batch is.
+// `parseStream` on the same batch and `readSegments` over one large message are read and reported,
+// not judged (see GATED_READERS).
 //
 //   pnpm build && node bench/stream-memory.mjs --target dist/index.mjs --mib 100 \
 //     --out stream-memory.json --summary stream-memory.md
@@ -40,13 +40,18 @@ const CHUNK = 64 * 1024;
 export const PEAK_MULTIPLE = 3;
 
 /**
- * The readers the gate judges. `parseStream`, the older message reader, is measured beside them on
- * the same batch but not judged: on GitHub-hosted runners it held 2.99 and 3.98 times the largest
- * message in two stream-memory runs (43064467751 and 43063981717), at and over the limit, where
- * `readMessages` held 1.96 and 2.08, so the limit holds the readers we point streaming callers to.
- * Judging it too is a change to `parseStream` first.
+ * The readers the gate judges: `readMessages`, over the 100 MiB batch. Two others are measured and
+ * reported, not judged, from three stream-memory runs on GitHub-hosted runners (43063981717,
+ * 43064467751 and 43066398448), where `readMessages` held 1.96 to 2.08 times its largest message:
+ *
+ * - `parseStream`, the older message reader, held 2.99 to 3.98 times the largest message on the
+ *   same batch, at and over the limit. Judging it is a change to `parseStream` first.
+ * - `readSegments` held 1.82 to 3.41 times its largest segment. That segment is 256 KiB, and what
+ *   the reader and its source hold besides it (a few 64 KiB chunks and the text they decode to) is
+ *   not small beside it, so the ratio moves by more than the limit leaves room for. Judging it
+ *   needs a source whose largest segment dwarfs that, which this file does not build yet.
  */
-export const GATED_READERS = Object.freeze(["readMessages", "readSegments"]);
+export const GATED_READERS = Object.freeze(["readMessages"]);
 
 /**
  * Judge readings against the limit. Exit code 0 when every gated reader is at or under `multiple`

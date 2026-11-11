@@ -65,13 +65,18 @@ size of the source. `bench/stream-memory.mjs` checks that on a GitHub-hosted run
 and one message of about a million segments with a 256 KiB segment every 5000th for
 `readSegments`), and the memory held is read after a full collection every few items.
 
-The job fails when the peak of `readMessages` or `readSegments` is more than **3 times** the
-largest item it read: the item, the text it came from, and room for the reader's own state. A
-reader that buffered its source would hold toward all 100 MiB. It also fails when a reading cannot
-be judged, because a reader read nothing or failed an item. The limit is `PEAK_MULTIPLE` in the
-script. `parseStream`, the older message reader, is read on the same batch and reported but not
-judged: in two runs it held 2.99 and 3.98 times the largest message, at and over the limit, so for
-a large batch `readMessages` is the reader to use.
+The job fails when the peak of `readMessages` is more than **3 times** the largest message it
+read: the message, the text it came from, and room for the reader's own state. A reader that
+buffered its source would hold toward all 100 MiB. It also fails when the reading cannot be judged,
+because the reader read nothing or failed a message. The limit is `PEAK_MULTIPLE` in the script.
+
+The other two readers are measured and reported, not judged. In three runs on GitHub-hosted
+runners (stream-memory runs 43063981717, 43064467751 and 43066398448), `readMessages` held 1.96 to
+2.08 times its largest message; `parseStream`, the older message reader, held 2.99 to 3.98 times
+on the same batch, at and over the limit, so for a large batch `readMessages` is the reader to use;
+and `readSegments` held 1.82 to 3.41 times its largest segment. That segment is 256 KiB, and what
+the reader and its source hold besides it is not small beside it, so its ratio moves too much to
+judge against the same limit.
 
 These are ratios, not absolute budgets. The parse benchmarks' absolute budgets belong in
 `@cosyte/bench`'s budgets file, which we have not written yet; when we do, the numbers here feed it
