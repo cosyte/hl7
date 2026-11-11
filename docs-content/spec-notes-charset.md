@@ -20,7 +20,7 @@ import { parseHL7 } from "@cosyte/hl7";
 // usually come from readFileSync or a socket.
 const bytes = Buffer.from(
   "MSH|^~\\&|A|B|C|D|20260101||ADT^A01|ID1|P|2.5||||||UNICODE UTF-8\r" +
-    "PID|1||MRN12345^^^HOSP^MR||Renée^Ann",
+    "PID|1||MRN12345^^^HOSP^MR||Renée^Anna",
   "utf8",
 );
 
@@ -91,18 +91,18 @@ typographic characters. Declare it in MSH-18 or ask for it with `options.charset
 ```ts runnable
 import { parseHL7 } from "@cosyte/hl7";
 
-// Byte 0x80 is the euro sign in windows-1252 and a C1 control in ISO-8859-1.
-const bytes = Buffer.concat([
-  Buffer.from(
-    "MSH|^~\\&|A|B|C|D|20260101||ADT^A01|ID1|P|2.5\rPID|1||MRN12345^^^HOSP^MR||Doe",
-    "latin1",
-  ),
-  Buffer.from([0x80]),
-  Buffer.from("^Ann", "latin1"),
-]);
+// Byte 0x80 is the euro sign in windows-1252 and a C1 control in ISO-8859-1. The note ends with
+// a placeholder that is then set to that byte.
+const bytes = Buffer.from(
+  "MSH|^~\\&|A|B|C|D|20260101||ADT^A01|ID1|P|2.5\r" +
+    "PID|1||MRN12345^^^HOSP^MR||Doe^Jane\r" +
+    "NTE|1||Copay 10 X",
+  "latin1",
+);
+bytes[bytes.length - 1] = 0x80;
 
-parseHL7(bytes, { charset: "WINDOWS-1252" }).get("PID.5.1")?.codePointAt(3); // => 0x20ac
-parseHL7(bytes, { charset: "8859/1" }).get("PID.5.1")?.codePointAt(3); // => 0x80
+parseHL7(bytes, { charset: "WINDOWS-1252" }).get("NTE.3")?.codePointAt(9); // => 0x20ac
+parseHL7(bytes, { charset: "8859/1" }).get("NTE.3")?.codePointAt(9); // => 0x80
 ```
 
 The decode uses the parser's own copy of the WHATWG Encoding `index-windows-1252` table, not
