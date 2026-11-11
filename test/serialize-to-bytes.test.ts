@@ -396,6 +396,15 @@ describe("toBytes: refuses a character the set cannot hold", () => {
     expect(msg.toBytes()).toEqual(bytes);
   });
 
+  it("refuses an ASCII option on a byte reading whose MSH-18 is a single space", () => {
+    // Untrimmed, MSH-18 is " ": blank, so the ASCII default governed the read, not a declared set.
+    const bytes = messageBytes(" ", [0x52, 0x82, 0x65]);
+    const msg = parseHL7(bytes, { trimFields: false });
+    expect(msg.warnings.map((w) => w.code)).toContain(WARNING_CODES.UNSUPPORTED_CHARSET);
+    expect(caught(() => msg.toBytes({ charset: "ASCII" })).code).toBe("UNENCODABLE_CHARACTER");
+    expect(msg.toBytes()).toEqual(bytes);
+  });
+
   it("writes an ASCII byte reading under any option, the bytes being the same", () => {
     const bytes = messageBytes("CP850", [0x52, 0x65]);
     expect(parseHL7(bytes).toBytes({ charset: "UNICODE UTF-8" })).toEqual(bytes);
