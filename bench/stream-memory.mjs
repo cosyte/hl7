@@ -105,7 +105,7 @@ async function* messageChunks(bytes, onSegment) {
  */
 async function measure(read, every, onItem) {
   for await (const item of read(Math.min(total, MIB / 4))) onItem(item);
-  let start = performance.now();
+  const start = performance.now();
   let count = 0;
   for await (const item of read(total)) {
     onItem(item);
@@ -115,7 +115,6 @@ async function measure(read, every, onItem) {
   const before = held();
   let peak = 0;
   let sampled = 0;
-  start = performance.now();
   for await (const item of read(total)) {
     onItem(item);
     sampled += 1;

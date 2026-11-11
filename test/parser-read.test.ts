@@ -846,7 +846,8 @@ describe("readSegments: MLLP framing", () => {
       `\u000b${body}\u001c\r\r`,
       `\u000b${body}\u001c\rEVN|A01\r`,
       `${body.replace("Doe", "D\u001coe")}`,
-      `${body.replace("\r", "\r\u001c\n")}`,
+      // An FS between the CR and the LF that end MSH: only that one break.
+      `${body.slice(0, body.indexOf("\r"))}\r\u001c\n${body.slice(body.indexOf("\r") + 1)}`,
       `\u000bMSH|^~\\&|A\u001c|F\rPID|1\u000b|2\r\n\u001c\r`,
       `\u000bMSH|^~\\&|A\u001c|F\u000b|G\rPID|1\u000b|2\u001c\u001c\r`,
       "MSH|^~\\&|A\rPID|1| x | y |\r",
