@@ -36,6 +36,9 @@ jobs:
   ci:
     uses: cosyte/.github/.github/workflows/ci.yml@398cd4ded647dddd9f2e220ceb042840f59e1426 # workflows-2026-11-10-398cd4ded647
     with:
+      # `verify` on Linux, Windows and macOS, each on Node 22, 24 and 26: a reader's system is any of
+      # the three, and a path, line ending or spawn that works on one can fail on another.
+      os: '["ubuntu-latest", "windows-latest", "macos-latest"]'
       run-phi-scan: true
       run-coverage-ratchet: true
       run-mutation: true

@@ -25,7 +25,21 @@ jobs:
       contents: write # create tags / the GitHub release
       id-token: write # npm provenance
       pull-requests: write # open the "Version Packages" PR
-    uses: cosyte/.github/.github/workflows/release.yml@c0db8d8e5927269820de4401b3b5ad6141854b76 # workflows-2026-11-08-c0db8d8e5927
+    uses: cosyte/.github/.github/workflows/release.yml@398cd4ded647dddd9f2e220ceb042840f59e1426 # workflows-2026-11-10-398cd4ded647
     with:
       package-name: "@cosyte/hl7"
+      # The release gates, each a step of the shared `version` job, run before anything can publish:
+      # - the latest weekly mutation result: the newest completed run of weekly-mutation.yml on main
+      #   must have succeeded and be 8 days old or less. On for every caller (`mutation-workflow` and
+      #   `mutation-max-age-days` keep their defaults). Until weekly-mutation.yml has a green run on
+      #   main, a release stops here;
+      # - the package checks: the manifest names only specifiers a registry can resolve, then
+      #   `npm pack`, every declared file and `exports` target is in the tarball, it installs into a
+      #   clean directory and each entry point loads by name;
+      # - the docs samples: that exact tarball installed into a clean project, and every TypeScript
+      #   and JavaScript sample under docs-content/ (the generated api/ folder left out) run there.
+      # Provenance and an SBOM attached to the GitHub release are on for every caller.
+      run-package-checks: true
+      run-tarball-samples: true
+      docs-dir: "docs-content"
     secrets: inherit
