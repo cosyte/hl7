@@ -141,6 +141,47 @@ describe("checkAsyncProperty", () => {
     expect(message).toMatch(/Replay exactly: COSYTE_PROPERTY_SEED=-?\d+ COSYTE_PROPERTY_PATH=\d/u);
     expect(message).toContain("Counterexample: [50]");
   });
+
+  it("stops shrinking at its time limit and prints a seed and path that replay what it found", async () => {
+    // A case fails when all 60 numbers are a million or more, and each shrinks toward a million
+    // by halving the distance, one slow case at a time: to the end would take far longer than
+    // this test's 10 s.
+    const numbers = fc.array(fc.noBias(fc.integer({ min: 0, max: 2_000_000_000 })), {
+      minLength: 60,
+      maxLength: 60,
+    });
+    const anySmall = (values: readonly number[]): boolean =>
+      values.some((value) => value < 1_000_000);
+    const slow = fc.asyncProperty(numbers, async (values) => {
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      return anySmall(values);
+    });
+    const started = Date.now();
+    const message = await asyncFailureOf(() => checkAsyncProperty(slow, {}, {}, 300));
+    expect(Date.now() - started).toBeLessThan(5_000);
+    expect(message).toMatch(/property failed after \d+ case\(s\), shrunk [1-9]\d* time\(s\)/u);
+    expect(message).toContain("Shrinking stopped at its 300 ms limit");
+    const [, seed, path] =
+      /COSYTE_PROPERTY_SEED=(-?\d+) COSYTE_PROPERTY_PATH=([\d:]+)/u.exec(message ?? "") ?? [];
+    expect(path).toMatch(/^\d+:\d/u);
+    // The printed seed and path replay the one case shrinking stopped at.
+    let cases = 0;
+    const replayed = await asyncFailureOf(() =>
+      checkAsyncProperty(
+        fc.asyncProperty(numbers, async (values) => {
+          await Promise.resolve();
+          cases++;
+          return anySmall(values);
+        }),
+        {},
+        { COSYTE_PROPERTY_SEED: seed, COSYTE_PROPERTY_PATH: path },
+      ),
+    );
+    const counterexample = (text: string | undefined): string | undefined =>
+      /Counterexample: (.*)/u.exec(text ?? "")?.[1];
+    expect(cases).toBe(1);
+    expect(counterexample(replayed)).toBe(counterexample(message));
+  });
 });
 
 describe("propertyTimeout", () => {
