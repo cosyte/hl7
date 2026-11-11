@@ -99,29 +99,46 @@ and each skipped `parseHL7 with { lazy: false }` at 1 MiB, one of them `parseHL7
 message one segment at a time, so what they hold should track the largest item they read, not the
 size of the source. `bench/stream-memory.mjs` checks that on a GitHub-hosted runner, in the
 `stream-memory` workflow on every pull request: each reader reads a synthetic source of 100 MiB in
-64 KiB chunks (a batch of mostly `ADT^A01` with a 4 MiB message every 2000th for the message readers,
-and one message of about a million segments with a 256 KiB segment every 5000th for
-`readSegments`), and the memory held is read after a full collection every few items.
+64 KiB chunks, and the memory held is read after a full collection every few items. The message
+readers read a batch of mostly `ADT^A01` with a 4 MiB message every 2000th. `readSegments` reads
+one message of about 400,000 segments with a 4 MiB segment (a base64 document in one field) every
+20000th, and that segment is the item being read when memory is sampled.
 
-The job fails when the peak of `readMessages` is more than **3 times** the largest message it
-read: the message, the text it came from, and room for the reader's own state. A reader that
-buffered its source would hold toward all 100 MiB. It also fails when the reading cannot be judged,
-because the reader read nothing or failed a message. The limit is `PEAK_MULTIPLE` in the script.
+The job fails when any of the three readers peaks at more than **3 times** the largest item it
+read: the item, the text it came from, and room for the reader's own state. A reader that buffered
+its source would hold toward all 100 MiB. It also fails when a reading cannot be judged, because a
+reader read nothing or failed an item. The limit is `PEAK_MULTIPLE` in the script.
 
-The other two readers are measured and reported, not judged. Seven stream-memory runs on
-GitHub-hosted runners (43063981717, 43064467751, 43066398448, 43067421821, 43069553162,
-43071783838 and 43073735956) read:
+Peak held over the largest item, lowest to highest, on GitHub-hosted runners:
 
-| Reader         | Largest item | Peak / largest item, lowest to highest | Judged |
-| -------------- | ------------ | -------------------------------------- | ------ |
-| `readMessages` | 4 MiB        | 1.96 to 2.08                           | yes    |
-| `parseStream`  | 4 MiB        | 2.99 to 3.98                           | no     |
-| `readSegments` | 256 KiB      | 1.82 to 3.41                           | no     |
+| Reader         | Largest item       | Before                   | Now          |
+| -------------- | ------------------ | ------------------------ | ------------ |
+| `readMessages` | 4 MiB              | 1.96 to 2.08             | 1.99 to 2.07 |
+| `parseStream`  | 4 MiB              | 2.99 to 3.98, not judged | 1.89 to 2.10 |
+| `readSegments` | 256 KiB, now 4 MiB | 1.82 to 3.41, not judged | 1.10 to 1.68 |
 
-`parseStream`, the older message reader, holds about a message more than `readMessages` on the
-same batch, at and over the limit, so for a large batch `readMessages` is the reader to use.
-`readSegments`'s largest segment is 256 KiB, and what the reader and its source hold besides it is
-not small beside it, so its ratio moves too much to judge against the same limit.
+"Before" is ten stream-memory runs: 43063981717, 43064467751, 43066398448, 43067421821,
+43069553162, 43071783838, 43073735956, 43075730143, 43078011314 and 43078476614. "Now" is six
+readings of the code that reads this way: stream-memory run 43113178670 and five attempts of run
+43116829693. `parseStream` read 2.10, 2.07, 2.06, 2.06, 2.02 and 1.89 times its largest message,
+about two messages, where `readMessages` read 2.00, 2.07, 2.02, 1.99, 2.07 and 1.99 on the same
+batch. `readSegments` read 1.10, 1.11, 1.68, 1.11, 1.11 and 1.65.
+
+`parseStream` used to hold about a message more than `readMessages`, at and over the limit. It cut
+every segment from one buffer that grew with each chunk, and that buffer stayed alive while the
+message was yielded. A message read from bytes also decoded a second copy of the text the entry's
+`raw` already held. Now a segment is cut from the chunk it arrived in, or joined from its pieces
+once it ends. A message read from bytes keeps `raw` itself as its text wherever decoding gives the
+same characters: ASCII bytes in any set the parser decodes, and every 8859/1 or verbatim reading.
+A message with other bytes, under UTF-8, WINDOWS-1252 or another 8859 set, still holds a decoded
+copy beside `raw`. `test/perf/stream-memory.perf.ts`, run by `pnpm test:perf`, holds `parseStream`
+under 1.5 times a 2 MiB message, from bytes and from text.
+
+`readSegments` was not judged while its largest segment was 256 KiB. Beside a segment that small,
+a few 64 KiB chunks and the text they decode to moved its ratio by more than the limit leaves room
+for, and that segment was never the item being read when memory was sampled. With a 4 MiB segment
+in hand when memory is sampled, what the reader holds besides it is small beside it, and the six
+readings above sit at 1.10 to 1.68, well under the limit, so the gate judges it.
 
 These are ratios, not absolute budgets. The parse benchmarks' absolute budgets belong in
 `@cosyte/bench`'s budgets file, which we have not written yet; when we do, the numbers here feed it

@@ -48,7 +48,7 @@
 
 import { Buffer } from "node:buffer";
 
-import { parseHL7 } from "./index.js";
+import { parseBytesRead, parseHL7 } from "./index.js";
 import { isBlankLine } from "./blank-line.js";
 import { Hl7ParseError } from "./errors.js";
 import type { Hl7Position, ParseOptions, Profile } from "./types.js";
@@ -188,44 +188,78 @@ async function* iterateChunks(source: Hl7StreamSource): AsyncGenerator<unknown> 
 }
 
 /**
- * Extract the next complete segment from `buf` starting at `cursor`, or `null`
- * when the buffer does not yet hold a full segment (more data is needed).
- * Terminators are `\r`, `\r\n`, or `\n`. A trailing `\r` at the very end of a
- * non-final buffer returns `null` (it may be the first half of a `\r\n` split
- * across a chunk boundary: waiting avoids a spurious empty segment); on the
- * final drain (`final: true`) the trailing `\r` is a real terminator.
+ * Splits text that arrives in chunks into segments, each ended by `\r`, `\r\n` or `\n`. A
+ * segment that lies inside one chunk is cut from that chunk, so it keeps at most that chunk alive;
+ * one that spans chunks is joined from its pieces once its terminator arrives. The chunks are
+ * never joined into one growing buffer: such a buffer, which every segment was cut from, stayed
+ * alive while a large message was yielded and doubled what the stream held. Each chunk is searched
+ * once, however many segments it holds.
+ *
+ * A `\r` that ends a chunk ends its segment, but the segment is held until the next chunk, whose
+ * first character says whether the terminator was `\r\n` (and is consumed) or `\r` alone; when no
+ * chunk follows, it is a `\r`. Feeding the same text cut anywhere gives the same segments.
  *
  * @internal
  */
-function nextSegment(
-  buf: string,
-  cursor: number,
-  final: boolean,
-): { seg: string; next: number } | null {
-  if (cursor >= buf.length) return null;
-  const r = buf.indexOf("\r", cursor);
-  const n = buf.indexOf("\n", cursor);
-  let idx: number;
-  let isCr: boolean;
-  if (r === -1 && n === -1) return null;
-  else if (r === -1) {
-    idx = n;
-    isCr = false;
-  } else if (n === -1) {
-    idx = r;
-    isCr = true;
-  } else if (r < n) {
-    idx = r;
-    isCr = true;
-  } else {
-    idx = n;
-    isCr = false;
+class SegmentSplitter {
+  // Stryker disable next-line StringLiteral: feed() sets the chunk before next() first reads it
+  private chunk = "";
+  private pos = 0;
+  /** The start of a segment whose terminator has not arrived yet, in pieces. */
+  private carry: string[] = [];
+  /** A segment ended by a `\r` at the very end of the last chunk, waiting to see an `\n`. */
+  private held: string | undefined;
+  /** Finds the first segment terminator at or after its `lastIndex`: `\r` or `\n`. */
+  private readonly terminator = /[\r\n]/gu;
+
+  /**
+   * Take the next chunk. Call only once `next()` has returned `undefined`. An empty chunk is
+   * fed only when no segment is held, since a held segment reads the next chunk's first character.
+   */
+  public feed(chunk: string): void {
+    this.chunk = chunk;
+    this.pos = 0;
   }
-  // A bare trailing \r might be the CR of a \r\n straddling the chunk boundary.
-  if (isCr && idx === buf.length - 1 && !final) return null;
-  let termLen = 1;
-  if (isCr && idx + 1 < buf.length && buf.charCodeAt(idx + 1) === 0x0a) termLen = 2;
-  return { seg: buf.slice(cursor, idx), next: idx + termLen };
+
+  /**
+   * The next terminated segment, its terminator excluded; `undefined` when the chunk is used up.
+   * After the last chunk it also gives a segment held on a `\r` that ended that chunk.
+   */
+  public next(): string | undefined {
+    const chunk = this.chunk;
+    const held = this.held;
+    if (held !== undefined) {
+      // A segment is held only at the end of a chunk, so `pos` is the start of the next chunk, or
+      // the end of the last one when no chunk followed (where there is no character to read).
+      if (chunk.charCodeAt(this.pos) === 0x0a) this.pos += 1;
+      this.held = undefined;
+      return held;
+    }
+    this.terminator.lastIndex = this.pos;
+    const found = this.terminator.exec(chunk);
+    if (found === null) {
+      this.carry.push(chunk.slice(this.pos));
+      this.pos = chunk.length;
+      return undefined;
+    }
+    const at = found.index;
+    const segment = this.carry.join("") + chunk.slice(this.pos, at);
+    this.carry = [];
+    this.pos = at + 1;
+    if (chunk.charCodeAt(at) === 0x0d) {
+      if (this.pos === chunk.length) {
+        this.held = segment;
+        return undefined;
+      }
+      if (chunk.charCodeAt(this.pos) === 0x0a) this.pos += 1;
+    }
+    return segment;
+  }
+
+  /** The text after the last terminator, which has no terminator of its own. */
+  public rest(): string {
+    return this.carry.join("");
+  }
 }
 
 /**
@@ -244,12 +278,13 @@ function parseStreamEntry(
   optionsOrProfile: ParseOptions | Profile | undefined,
   streamWarnings: readonly Hl7ParseWarning[],
 ): StreamMessageEntry {
-  const input: string | Buffer = wasBuffer ? Buffer.from(rawMessage, "latin1") : rawMessage;
   try {
-    const message =
-      optionsOrProfile === undefined
-        ? parseHL7(input)
-        : parseHL7(input, optionsOrProfile as ParseOptions);
+    // From bytes, the message keeps `rawMessage` itself as its text wherever decoding the bytes
+    // gives those characters, so the entry holds the text once, not as `raw` and again in the
+    // message. From text, `parseHL7` keeps the string it is given.
+    const message = wasBuffer
+      ? parseBytesRead(Buffer.from(rawMessage, "latin1"), rawMessage, optionsOrProfile)
+      : parseHL7(rawMessage, optionsOrProfile as ParseOptions);
     return Object.freeze({ ok: true, message, raw: rawMessage, position, streamWarnings });
   } catch (error) {
     if (error instanceof Hl7ParseError) {
@@ -346,9 +381,12 @@ export async function* parseStream(
     );
   }
 
-  // The single partial-segment buffer: text seen but not yet formed into a
-  // complete segment. Bounded by one segment (chunked feed): never the file.
-  let pending = "";
+  // The segments, cut from the chunks as each arrives. It holds only the
+  // pieces of a segment whose terminator has not arrived yet: never the file.
+  const segments = new SegmentSplitter();
+  // The start of the stream, held until it is long enough to say whether it
+  // opens with a byte order mark; `undefined` once that is settled.
+  let head: string | undefined = "";
   // The current in-flight message's completed segment lines. Released on every
   // flush (yield), so at most one message's worth of lines is ever retained.
   let currentLines: string[] = [];
@@ -360,7 +398,6 @@ export async function* parseStream(
   // re-encode. Determined by the first chunk; sources are homogeneous.
   let wasBuffer = false;
   let firstChunkSeen = false;
-  let bomStripped = false;
 
   /**
    * Finalize `currentLines` into an entry, or `null` when the run is empty.
@@ -380,14 +417,16 @@ export async function* parseStream(
     const streamWarnings: readonly Hl7ParseWarning[] = finalUnterminated
       ? Object.freeze([unterminatedStreamMessage(position)])
       : Object.freeze([]);
+    const rawMessage = currentLines.join("\r");
+    // Let the lines go before the parse, so they are not held beside the text joined from them.
+    currentLines = [];
     const entry = parseStreamEntry(
-      currentLines.join("\r"),
+      rawMessage,
       position,
       wasBuffer,
       optionsOrProfile,
       streamWarnings,
     );
-    currentLines = [];
     messageStartIndex = -1;
     return entry;
   };
@@ -425,59 +464,52 @@ export async function* parseStream(
   };
 
   /** Resolve a possibly chunk-split leading BOM before segmenting. */
-  const tryStripBom = (final: boolean): void => {
-    if (bomStripped || pending.length === 0) return;
-    if (pending.charCodeAt(0) === 0xfeff) {
-      pending = pending.slice(1);
-      bomStripped = true;
-    } else if (wasBuffer && pending.startsWith("ï»¿")) {
-      // UTF-8 BOM read through latin1 (bytes EF BB BF). In text these are three letters.
-      pending = pending.slice(3);
-      bomStripped = true;
-    } else if (final || !"ï»¿".startsWith(pending)) {
-      // Not a BOM (and not a partial BOM prefix awaiting more bytes).
-      bomStripped = true;
-    }
+  /**
+   * The text of the stream's start without its byte order mark, once `text`
+   * (everything read so far) is long enough to say whether it opens with one;
+   * `undefined` while it may still be part of one.
+   */
+  const settleHead = (text: string): string | undefined => {
+    if (text.charCodeAt(0) === 0xfeff) return text.slice(1);
+    // UTF-8 BOM read through latin1 (bytes EF BB BF). In text these are three letters.
+    if (wasBuffer && text.startsWith("ï»¿")) return text.slice(3);
+    // Not a BOM (and not a partial BOM prefix awaiting more bytes).
+    if (!"ï»¿".startsWith(text)) return text;
+    return undefined;
   };
 
   for await (const rawChunk of iterateChunks(source)) {
-    const { text, wasBuffer: chunkWasBuffer } = decodeChunk(rawChunk);
+    const decoded = decodeChunk(rawChunk);
     if (!firstChunkSeen) {
-      wasBuffer = chunkWasBuffer;
+      wasBuffer = decoded.wasBuffer;
       firstChunkSeen = true;
     }
-    if (text.length === 0) continue;
-    pending += text;
-    tryStripBom(false);
-    if (!bomStripped) continue; // still disambiguating a split BOM
-    let cursor = 0;
-    for (;;) {
-      const res = nextSegment(pending, cursor, false);
-      if (res === null) break;
-      cursor = res.next;
-      const entry = processSegment(res.seg);
+    if (decoded.text.length === 0) continue;
+    let text: string | undefined = decoded.text;
+    if (head !== undefined) {
+      head += text;
+      text = settleHead(head);
+      if (text === undefined) continue; // still disambiguating a split BOM
+      head = undefined;
+    }
+    segments.feed(text);
+    for (let seg = segments.next(); seg !== undefined; seg = segments.next()) {
+      const entry = processSegment(seg);
       if (entry !== null) yield entry;
     }
-    // Release the consumed prefix; keep only the trailing partial segment.
-    pending = pending.slice(cursor);
   }
 
-  // End of stream. Force-resolve any still-pending BOM, then drain every
-  // remaining complete segment (final: a trailing \r is now a real terminator).
-  tryStripBom(true);
-  {
-    let cursor = 0;
-    for (;;) {
-      const res = nextSegment(pending, cursor, true);
-      if (res === null) break;
-      cursor = res.next;
-      const entry = processSegment(res.seg);
-      if (entry !== null) yield entry;
-    }
-    pending = pending.slice(cursor);
+  // End of stream. A start still too short to say whether it was a byte order
+  // mark is not one: it is at most two of the mark's three characters, so it
+  // holds no terminator and is the start of the last segment.
+  if (head !== undefined) segments.feed(head);
+  // A segment ended by a `\r` at the very end is a real segment now.
+  for (let seg = segments.next(); seg !== undefined; seg = segments.next()) {
+    const entry = processSegment(seg);
+    if (entry !== null) yield entry;
   }
 
-  // Whatever is left in `pending` is a final segment with NO terminator (a
+  // Whatever is left is a final segment with NO terminator (a
   // truncated tail). Route it through the SAME per-segment logic the rest of the
   // stream uses, so a streamed message stays byte-for-byte identical to what
   // `splitBatch` yields for the same bytes: `splitBatch` keeps a final
@@ -486,8 +518,7 @@ export async function* parseStream(
   // when no message is open: the same inter-message-noise rule). The
   // stream-level unterminated flag fires only for a genuine (non-blank) content
   // tail, never for trailing whitespace (which is not a truncation signal).
-  const tail = pending;
-  pending = "";
+  const tail = segments.rest();
   let finalUnterminated = false;
   if (tail.length > 0) {
     const flushed = processSegment(tail);

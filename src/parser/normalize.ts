@@ -47,8 +47,19 @@ const CHARSET_POSITION = { segmentIndex: 0, fieldIndex: 18 } as const;
  *
  * @internal
  */
-function preserveVerbatim(input: Buffer): string {
-  return normalize(input.toString("latin1"));
+function preserveVerbatim(input: Buffer, latin1: string | undefined): string {
+  return normalize(latin1 ?? input.toString("latin1"));
+}
+
+/**
+ * Whether every character of `text` is 7-bit ASCII. Every set the parser decodes (UTF-8, ASCII,
+ * 8859/1 to 8859/16, WINDOWS-1252) reads a byte under 0x80 as the character of the same code, so
+ * bytes whose `latin1` reading passes decode in any of them to that same text.
+ *
+ * @internal
+ */
+function isAscii(text: string): boolean {
+  return /^[\u0000-\u007f]*$/u.test(text);
 }
 
 /**
@@ -112,6 +123,11 @@ export function normalize(input: string): string {
  * Callers remain responsible for the `EMPTY_INPUT` fatal check,
  * BOM stripping, and MLLP framing removal on the returned text.
  *
+ * `latin1`, when given, is `input` already read through `latin1`. The text
+ * returned is the same either way; with it, wherever the decode would give the
+ * same characters (a `latin1` or verbatim reading, or bytes all under 0x80),
+ * the text returned is built from that string rather than decoded again.
+ *
  * @example
  * ```ts
  * import { normalizeBuffer } from "@cosyte/hl7";
@@ -122,9 +138,20 @@ export function normalize(input: string): string {
  * );
  * ```
  */
-export function normalizeBuffer(input: Buffer, charset: string | undefined, emit: EmitFn): string {
+export function normalizeBuffer(
+  input: Buffer,
+  charset: string | undefined,
+  emit: EmitFn,
+  latin1?: string,
+): string {
   const resolution = resolveCharset(charset);
   if (resolution.treatment === "decode") {
+    // A caller that already holds the bytes read through latin1 passes that text, and gets it back
+    // (line endings normalized) wherever a decode would give the same characters: so a message keeps
+    // the caller's string rather than a second copy of it.
+    if (latin1 !== undefined && (resolution.decoder === "latin1" || isAscii(latin1))) {
+      return normalize(latin1);
+    }
     if (resolution.decoder === "latin1") {
       // True ISO-8859-1: latin1 maps every byte losslessly and cannot fail.
       // (Node's `TextDecoder("iso-8859-1")` is windows-1252: wrong for the C1
@@ -142,8 +169,9 @@ export function normalizeBuffer(input: Buffer, charset: string | undefined, emit
       const decoder = new TextDecoder(resolution.decoder, { fatal: true });
       return normalize(decoder.decode(input));
     } catch {
-      emit(unsupportedCharset(CHARSET_POSITION, resolution.canonical));
-      return preserveVerbatim(input);
+      // A byte the set does not define: the bytes are kept verbatim below, with
+      // UNSUPPORTED_CHARSET, as for a set the parser does not decode (every set it
+      // decodes is a recognized one).
     }
   }
   // Verbatim path: recognized-but-not-decoded → UNSUPPORTED_CHARSET;
@@ -155,7 +183,7 @@ export function normalizeBuffer(input: Buffer, charset: string | undefined, emit
     const label = charset ?? "";
     emit(unknownCharset(CHARSET_POSITION, label));
   }
-  return preserveVerbatim(input);
+  return preserveVerbatim(input, latin1);
 }
 
 /**
