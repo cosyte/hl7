@@ -1,15 +1,22 @@
 name: Weekly mutation
 
-# The full mutation run: every file stryker.full.config.mjs names (the parser and the serializers)
-# is mutated, and the score is held to the floor in quality-floor.json. A score below its floor
-# turns the run red. The run never commits: to raise the floor, run `pnpm mutate:full` and
-# `pnpm quality:raise --skip coverage`, and open a pull request. The report is kept in the
+# The full mutation run: every file stryker.full.config.mjs names (all of `src/` but the generated
+# tables and the build-time schema writers) is mutated, split across parallel jobs (shards), and the
+# merged score is held to the floor in quality-floor.json. A score below its floor turns the run red.
+# The run never commits: to raise the floor, run `pnpm mutate:full` and
+# `pnpm quality:raise --skip coverage`, and open a pull request. The merged report is kept in the
 # `mutation-report` artifact.
+#
+# Each shard keeps StrykerJS's incremental results in the Actions cache, so a later run retests only
+# the mutants whose code or tests changed. GitHub drops a cache entry nobody has read for 7 days, so
+# the run is twice a week: each run reads the last one's results before they can lapse.
 
 on:
   schedule:
-    # Sunday 06:37 UTC. An odd minute: GitHub delays scheduled runs at the start of every hour.
+    # Sunday and Wednesday 06:37 UTC. An odd minute: GitHub delays scheduled runs at the start of
+    # every hour.
     - cron: "37 6 * * 0"
+    - cron: "37 6 * * 3"
   workflow_dispatch:
 
 concurrency:
@@ -21,6 +28,10 @@ permissions:
 
 jobs:
   weekly:
-    uses: cosyte/.github/.github/workflows/weekly-mutation.yml@0be6757a773885cbd5165dbfa0f93772d907b3e8 # workflows-2026-11-10-0be6757a7738
+    uses: cosyte/.github/.github/workflows/weekly-mutation.yml@398cd4ded647dddd9f2e220ceb042840f59e1426 # workflows-2026-11-10-398cd4ded647
     with:
       mutate-cmd: "pnpm mutate:full"
+      # 120 source files, a file to one shard by the hash of its path. Measured on 2026-11-11, a
+      # first, full run took 12 to 115 minutes a shard, inside the shared job's 340 minute limit. A
+      # later run retests only what changed.
+      shard-count: 8
