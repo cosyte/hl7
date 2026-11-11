@@ -15,6 +15,7 @@ import {
   parseDtm,
   parseHL7,
   parseStream,
+  readMessages,
   splitBatch,
   type Hl7StreamSource,
   type StreamMessageEntry,
@@ -191,6 +192,28 @@ describe("parseStream", () => {
     expect(entries.map((entry) => entry.ok)).toEqual([true, false, true]);
     expect(entries[2]?.streamWarnings.map((w) => w.code)).toEqual(["UNTERMINATED_STREAM_MESSAGE"]);
     expect(splitBatch(text).messages.map((entry) => entry.ok)).toEqual([true, false, true]);
+  });
+
+  it("strips a byte order mark's three bytes from bytes only: in text they are three letters", async () => {
+    // A property test found this: splitBatch stripped the three letters from text as if they were
+    // the bytes, and readMessages and parseHL7 did not.
+    const body = `${MSH_A}\rPID|1\r`;
+    const letters = `\u00ef\u00bb\u00bf${body}`;
+    const fromText = await collect([letters]);
+    const read: boolean[] = [];
+    for await (const item of readMessages(letters)) read.push(item.ok);
+    expect(fromText.map((entry) => entry.ok)).toEqual([false]);
+    expect(splitBatch(letters).messages.map((entry) => entry.ok)).toEqual([false]);
+    expect(read).toEqual([false]);
+    expect(() => parseHL7(letters)).toThrow(Hl7ParseError);
+    // The bytes of a byte order mark are still one, whole or cut, and the character U+FEFF too.
+    const bytes = Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from(body, "latin1")]);
+    for (const source of [[bytes], [bytes.subarray(0, 2), bytes.subarray(2)], [`\ufeff${body}`]]) {
+      const [entry] = await collect(source);
+      expect(entry?.ok).toBe(true);
+      expect(entry?.raw).toBe(`${MSH_A}\rPID|1`);
+    }
+    expect(splitBatch(bytes).messages.map((entry) => entry.ok)).toEqual([true]);
   });
 
   it("yields the message before an unterminated final MSH, then the final one", async () => {

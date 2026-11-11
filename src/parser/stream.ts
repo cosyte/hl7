@@ -430,8 +430,8 @@ export async function* parseStream(
     if (pending.charCodeAt(0) === 0xfeff) {
       pending = pending.slice(1);
       bomStripped = true;
-    } else if (pending.startsWith("ï»¿")) {
-      // UTF-8 BOM read through latin1 (bytes EF BB BF).
+    } else if (wasBuffer && pending.startsWith("ï»¿")) {
+      // UTF-8 BOM read through latin1 (bytes EF BB BF). In text these are three letters.
       pending = pending.slice(3);
       bomStripped = true;
     } else if (final || !"ï»¿".startsWith(pending)) {

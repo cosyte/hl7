@@ -392,12 +392,13 @@ export function splitBatch(
   // payload embeds 0x0A/0x0D bytes. Such batch files effectively do not exist.
   let text = wasBuffer ? raw.toString("latin1") : raw;
 
-  // Strip a leading BOM (UTF-8 as a string codepoint, or its raw latin1 bytes)
-  // so the first FHS/MSH is still detected. Per-message BOMs are stripped again
-  // by parseHL7.
+  // Strip a leading BOM (UTF-8 as a string codepoint, or its raw bytes read
+  // through latin1) so the first FHS/MSH is still detected. Per-message BOMs are
+  // stripped again by parseHL7. In a string, the three latin1 characters are
+  // text, as parseHL7 and readMessages read them.
   if (text.charCodeAt(0) === 0xfeff) {
     text = text.slice(1);
-  } else if (text.startsWith("ï»¿")) {
+  } else if (wasBuffer && text.startsWith("ï»¿")) {
     text = text.slice(3);
   }
 
