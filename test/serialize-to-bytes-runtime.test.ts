@@ -53,7 +53,7 @@ describe("toBytes: a runtime without a set's decoder", () => {
     expect(refusal.position).toEqual({ segmentIndex: 0, fieldIndex: 18 });
     expect(refusal.charset).toBe("8859/16");
     expect(refusal.message).toBe(
-      'Cannot write character set "8859/16": this runtime has no table for it.',
+      'Cannot write character set "8859/16": the writer has no encoder for it.',
     );
   });
 });

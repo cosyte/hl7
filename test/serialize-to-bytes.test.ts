@@ -13,7 +13,7 @@ import { Buffer } from "node:buffer";
 
 import { describe, expect, it } from "vitest";
 
-import { Hl7EncodeError, WARNING_CODES, parseHL7 } from "../src/index.js";
+import { Hl7EncodeError, WARNING_CODES, buildMessage, parseHL7 } from "../src/index.js";
 
 /** An ADT^A01 header declaring `msh18` (omitted when empty), then `rest` segments. */
 function messageText(msh18: string, ...rest: string[]): string {
@@ -133,24 +133,41 @@ describe("toBytes: a message leaves in the set it declares", () => {
     expect(msg.toBytes()).toEqual(bytes);
   });
 
-  it("writes a set kept as a byte reading from a string one byte per character", () => {
-    const msg = parseHL7(messageText("ISO IR87", "NTE|1||Renée"));
+  it("writes a set it does not decode from a string when the text is ASCII", () => {
+    const msg = parseHL7(messageText("ISO IR87", "NTE|1||Renee"));
     expect(msg.toBytes()).toEqual(Buffer.from(msg.toString(), "latin1"));
   });
 
-  it("writes a byte reading back even under a charset option it disagreed with", () => {
+  it("writes a byte reading back with no option even when the read disagreed with MSH-18", () => {
     // The ASCII default decodes as strict UTF-8, which 0xE9 alone fails: the reader warns twice.
     const bytes = messageBytes("UNICODE UTF-8", [0x52, 0xe9, 0x65]);
     const msg = parseHL7(bytes, { charset: "ASCII" });
     expect(msg.warnings.map((w) => w.code)).toEqual(
       expect.arrayContaining([WARNING_CODES.ENCODING_MISMATCH, WARNING_CODES.UNSUPPORTED_CHARSET]),
     );
-    expect(msg.toBytes({ charset: "ASCII" })).toEqual(bytes);
+    expect(msg.toBytes()).toEqual(bytes);
   });
 
-  it("writes an unrecognized label's byte reading back under any charset option", () => {
+  it("writes a byte reading back under an option naming the set MSH-18 declares", () => {
     const bytes = messageBytes("CP850", [0x52, 0xe9, 0x65]);
-    expect(parseHL7(bytes).toBytes({ charset: "UNICODE UTF-8" })).toEqual(bytes);
+    expect(parseHL7(bytes).toBytes({ charset: " cp850 " })).toEqual(bytes);
+  });
+
+  it("writes the segments a byte reading kept as they arrived around an edited one", () => {
+    const bytes = messageBytes("8859/9", [0x52, 0xdd, 0x65]);
+    const msg = parseHL7(Buffer.concat([bytes, Buffer.from("NTE|1||old\r", "latin1")]));
+    msg.setField("NTE.3", "new");
+    expect(msg.toBytes()).toEqual(Buffer.concat([bytes, Buffer.from("NTE|1||new\r", "latin1")]));
+  });
+
+  it("writes a lazily read byte reading back, and after an edit to another segment", () => {
+    const bytes = messageBytes("CP850", [0x52, 0xe9, 0x65]);
+    const msg = parseHL7(Buffer.concat([bytes, Buffer.from("NTE|1||old\r", "latin1")]), {
+      lazy: true,
+    });
+    expect(msg.toBytes()).toEqual(Buffer.concat([bytes, Buffer.from("NTE|1||old\r", "latin1")]));
+    msg.removeSegment("NTE");
+    expect(msg.toBytes()).toEqual(bytes);
   });
 
   it("writes UTF-8 for a message whose only warnings are not about its character set", () => {
@@ -245,6 +262,117 @@ describe("toBytes: refuses a character the set cannot hold", () => {
   it("refuses the replacement character in a set that has no byte for it", () => {
     const msg = parseHL7(messageText("8859/3", "NTE|1||A�B"));
     expect(caught(() => msg.toBytes()).code).toBe("UNENCODABLE_CHARACTER");
+  });
+
+  it("refuses a Latin-1 letter in 8859/9 read from a string rather than write its 8859/1 byte", () => {
+    // 0xDD is I with a dot above in 8859/9, not Y-acute: the parser has no 8859/9 table.
+    const msg = parseHL7(messageText("8859/9", "NTE|1||Ý"));
+    const err = caught(() => msg.toBytes());
+    expect(err.code).toBe("UNENCODABLE_CHARACTER");
+    expect(err.charset).toBe("8859/9");
+    expect(err.position).toEqual({ segmentIndex: 1, fieldIndex: 3 });
+  });
+
+  it.each([
+    ["8859/11", "NTE|1||é"],
+    ["ISO IR87", "NTE|1||Renée"],
+    ["SYNTH-SET", "NTE|1||é"],
+  ])("refuses a character above U+007F in %s from a string", (label, nte) => {
+    expect(caught(() => parseHL7(messageText(label, nte)).toBytes()).code).toBe(
+      "UNENCODABLE_CHARACTER",
+    );
+  });
+
+  it("refuses a Latin-1 letter in a built message declaring a set it does not decode", () => {
+    const msg = buildMessage({ type: "ADT^A01" }).addSegment("NTE", ["1", "", "Ý"]);
+    msg.setField("MSH.18", "8859/9");
+    expect(caught(() => msg.toBytes()).position).toEqual({ segmentIndex: 1, fieldIndex: 3 });
+  });
+
+  it.each(["UNICODE UTF-16", "UNICODE UTF-32"])(
+    "refuses %s from a string, which one byte per character is not",
+    (label) => {
+      const err = caught(() => parseHL7(messageText(label, "NTE|1||plain")).toBytes());
+      expect(err.code).toBe("UNSUPPORTED_CHARSET");
+      expect(err.position).toEqual({ segmentIndex: 0, fieldIndex: 18 });
+    },
+  );
+
+  it("refuses non-ASCII text under an explicit ASCII declaration rather than write UTF-8", () => {
+    const err = caught(() => parseHL7(messageText("ASCII", "NTE|1||Zörb")).toBytes());
+    expect(err.code).toBe("UNENCODABLE_CHARACTER");
+    expect(err.charset).toBe("ASCII");
+    expect(err.position).toEqual({ segmentIndex: 1, fieldIndex: 3 });
+  });
+
+  it("refuses non-ASCII text under an ASCII option", () => {
+    const msg = parseHL7(messageText("UNICODE UTF-8", "NTE|1||Zörb"));
+    expect(caught(() => msg.toBytes({ charset: "US-ASCII" })).charset).toBe("ASCII");
+  });
+
+  it("refuses an edit that adds a Latin-1 letter to a byte reading", () => {
+    const msg = parseHL7(messageBytes("CP850", [0x52, 0x82, 0x65]));
+    msg.setField("PID.5.2", "Renée");
+    const err = caught(() => msg.toBytes());
+    expect(err.code).toBe("UNENCODABLE_CHARACTER");
+    expect(err.position).toEqual({ segmentIndex: 1, fieldIndex: 5 });
+  });
+
+  it("refuses an added segment's Latin-1 letter in a byte reading", () => {
+    const msg = parseHL7(messageBytes("8859/9", [0x41]));
+    msg.addSegment("NTE", ["1", "", "Ý"]);
+    expect(caught(() => msg.toBytes()).position).toEqual({ segmentIndex: 2, fieldIndex: 3 });
+  });
+
+  it("refuses an edited segment of a UTF-16 byte reading, which ASCII bytes cannot be", () => {
+    const msg = parseHL7(messageBytes("UNICODE UTF-16", [0x41]));
+    msg.setField("PID.5.2", "Jo");
+    expect(caught(() => msg.toBytes()).code).toBe("UNSUPPORTED_CHARSET");
+  });
+
+  it("refuses a byte reading's bytes under an option naming another set", () => {
+    const msg = parseHL7(messageBytes("CP850", [0x52, 0xe9, 0x65]));
+    const err = caught(() => msg.toBytes({ charset: "UNICODE UTF-8" }));
+    expect(err.code).toBe("UNENCODABLE_CHARACTER");
+    expect(err.charset).toBe("UTF-8");
+    expect(err.position).toEqual({ segmentIndex: 1, fieldIndex: 5 });
+  });
+
+  it("refuses a byte reading's bytes once MSH-18 is edited to another set", () => {
+    const msg = parseHL7(messageBytes("CP850", [0x52, 0xe9, 0x65]));
+    msg.setField("MSH.18", "UNICODE UTF-8");
+    expect(caught(() => msg.toBytes()).position).toEqual({ segmentIndex: 1, fieldIndex: 5 });
+  });
+
+  it("refuses an option on a byte reading whose read set is not known", () => {
+    // The parser read in the option's set, not MSH-18's, and keeps no record of which it was.
+    const bytes = messageBytes("UNICODE UTF-8", [0x52, 0xe9, 0x65]);
+    const msg = parseHL7(bytes, { charset: "ASCII" });
+    expect(caught(() => msg.toBytes({ charset: "ASCII" })).code).toBe("UNENCODABLE_CHARACTER");
+  });
+
+  it("refuses an option on a byte reading whose MSH stops before MSH-18", () => {
+    const bytes = Buffer.concat([
+      Buffer.from("MSH|^~\\&|SYNTH|LAB|SYNTH|WARD|20260101||ADT^A01|SYN1|P|2.5\rNTE|1||", "latin1"),
+      Buffer.of(0x52, 0x82, 0x65, 0x0d),
+    ]);
+    const msg = parseHL7(bytes, { charset: "CP850" });
+    expect(msg.warnings.map((w) => w.code)).toContain(WARNING_CODES.UNKNOWN_CHARSET);
+    expect(caught(() => msg.toBytes({ charset: "CP850" })).code).toBe("UNENCODABLE_CHARACTER");
+    expect(msg.toBytes()).toEqual(bytes);
+  });
+
+  it("refuses an option on a byte reading whose MSH-18 is blank", () => {
+    const bytes = messageBytes("", [0x52, 0xe9, 0x65]);
+    const msg = parseHL7(bytes);
+    expect(msg.warnings.map((w) => w.code)).toContain(WARNING_CODES.UNSUPPORTED_CHARSET);
+    expect(caught(() => msg.toBytes({ charset: "ASCII" })).code).toBe("UNENCODABLE_CHARACTER");
+    expect(msg.toBytes()).toEqual(bytes);
+  });
+
+  it("writes an ASCII byte reading under any option, the bytes being the same", () => {
+    const bytes = messageBytes("CP850", [0x52, 0x65]);
+    expect(parseHL7(bytes).toBytes({ charset: "UNICODE UTF-8" })).toEqual(bytes);
   });
 
   it("refuses the option's set too", () => {

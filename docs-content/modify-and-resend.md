@@ -105,7 +105,9 @@ encodes that text in the character set the message declares in MSH-18, the same 
 read it in, and returns a `Buffer`. A message that arrived as Latin-1 (`8859/1`) and was not
 changed leaves as the bytes it arrived as; `Buffer.from(msg.toString(), "utf8")` would instead
 turn each accented letter into two bytes. A character the set cannot hold throws an
-`Hl7EncodeError` naming the segment and field; nothing is replaced.
+`Hl7EncodeError` naming the segment and field; nothing is replaced. In a set the library does not
+decode (for example `8859/9`), only ASCII can be written, apart from the segments of a message read
+from bytes and not edited, which go back as the bytes they arrived as.
 
 ```ts runnable
 import { parseHL7 } from "@cosyte/hl7";

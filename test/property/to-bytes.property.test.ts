@@ -5,8 +5,15 @@
  *      set defines are read with `parseHL7` and written back with `toBytes()` as the same bytes.
  *
  *   2. **Never a substitute.** For any field value, `toBytes()` either refuses with an
- *      `UNENCODABLE_CHARACTER` naming that field, or writes bytes that read back to the value the
- *      text `toString()` writes reads back to (the value itself, for one with no C0 control).
+ *      `Hl7EncodeError` naming that field, or writes bytes that an independent decoder of the set
+ *      reads as exactly the text `toString()` writes. The oracle is not the library's reading: it
+ *      is the definition of the set (ASCII and 8859/1 map a byte to the code point of its value),
+ *      the platform's WHATWG decoder for UTF-8, windows-1252 and the ISO 8859 sets, and, for a set
+ *      the library does not decode, ASCII alone, the one part every such set shares.
+ *
+ *   3. **An edit to a byte reading.** A message read from bytes in a set the library does not
+ *      decode, with one segment replaced by an edit, is either refused at that segment or written
+ *      as the bytes it was read from with the edited segment in ASCII.
  *
  * The content bytes come from the set itself: every byte from 0x20 to 0xFF the reader's own
  * decode accepts, less the five HL7 delimiters, which on the wire are structure rather than
@@ -36,8 +43,14 @@ const SINGLE_BYTE_SETS = [
   "SYNTH-SET",
 ] as const;
 
-/** The MSH-18 values written as UTF-8: blank (the ASCII default), ASCII and UTF-8. */
-const UTF8_SETS = ["", "ASCII", "UNICODE UTF-8"] as const;
+/** The MSH-18 values written as UTF-8: blank (the ASCII default) and UTF-8. */
+const UTF8_SETS = ["", "UNICODE UTF-8"] as const;
+
+/** The sets the library does not decode, which a message from text may use only in ASCII. */
+const UNDECODED_SETS = ["8859/9", "8859/11", "ISO IR87", "SYNTH-SET"] as const;
+
+/** The sets no single-byte writing can be, ASCII included. */
+const WIDE_SETS = ["UNICODE UTF-16", "UNICODE UTF-32"] as const;
 
 /**
  * The strict `TextDecoder` the reader uses for `label`, or `undefined` when it uses none: a set it
@@ -135,6 +148,16 @@ describe("toBytes property: a message read from bytes is written back as those b
     );
   });
 
+  it("7-bit ASCII under MSH-18 ASCII", () => {
+    const ascii = fieldOf(contentBytes("8859/1").filter((b) => b < 0x80));
+    checkProperty(
+      fc.property(fc.tuple(ascii, ascii, ascii), (fields) => {
+        const bytes = messageBytes("ASCII", fields);
+        expect(parseHL7(bytes, { trimFields: false }).toBytes()).toEqual(bytes);
+      }),
+    );
+  });
+
   it.each(UTF8_SETS)("UTF-8 under MSH-18 %j", (label) => {
     checkProperty(
       fc.property(fc.tuple(utf8Field, utf8Field, utf8Field), (fields) => {
@@ -145,13 +168,45 @@ describe("toBytes property: a message read from bytes is written back as those b
   });
 });
 
+/** Code points of `bytes` one to one: the definition of ASCII and of 8859/1. */
+function byteValues(bytes: Uint8Array): string {
+  return Array.from(bytes, (b) => String.fromCharCode(b)).join("");
+}
+
+/**
+ * The text `bytes` stand for in `label`, by an oracle independent of this library, or
+ * `undefined` when they are not valid in it. The labels are listed here rather than looked up.
+ */
+function oracle(label: string, bytes: Uint8Array): string | undefined {
+  const allAscii = bytes.every((b) => b < 0x80);
+  if (label === "ASCII" || (UNDECODED_SETS as readonly string[]).includes(label)) {
+    return allAscii ? byteValues(bytes) : undefined;
+  }
+  if (label === "8859/1") return byteValues(bytes);
+  const whatwg =
+    label === "" || label === "UNICODE UTF-8" ? "utf-8" : label.replace("8859/", "iso-8859-");
+  try {
+    return new TextDecoder(label === "WINDOWS-1252" ? "windows-1252" : whatwg, {
+      fatal: true,
+    }).decode(bytes);
+  } catch {
+    return undefined;
+  }
+}
+
+/** A character from U+0080 to U+00FF: the ones a latin1 byte reading would write as one byte. */
+const latin1High = fc
+  .integer({ min: 0x80, max: 0xff })
+  .map((cp) => String.fromCharCode(cp))
+  .chain((c) => fc.string({ minLength: 0, maxLength: 4 }).map((rest) => c + rest));
+
 describe("toBytes property: a character is written as itself or refused, never replaced", () => {
-  it.each([...SINGLE_BYTE_SETS, ...UTF8_SETS])("%j", (label) => {
-    const fromSet = fieldOf(contentBytes(label === "" ? "8859/1" : label)).map((b) =>
-      textOf(label, b),
+  it.each([...SINGLE_BYTE_SETS, ...UTF8_SETS, "ASCII", "UNICODE UTF-32"])("%j", (label) => {
+    const fromSet = fieldOf(contentBytes(label === "" || label === "ASCII" ? "8859/1" : label)).map(
+      (b) => textOf(label, b),
     );
     const value = fc
-      .oneof(fromSet, fc.string({ unit: "binary", minLength: 1, maxLength: 24 }))
+      .oneof(fromSet, latin1High, fc.string({ unit: "binary", minLength: 1, maxLength: 24 }))
       .filter((s) => s !== '""');
     checkProperty(
       fc.property(value, (s) => {
@@ -160,26 +215,63 @@ describe("toBytes property: a character is written as itself or refused, never r
             `NTE|1||${encodeText(s)}\r`,
           { trimFields: false },
         );
+        const text = msg.toString();
         let bytes: Buffer;
         try {
           bytes = msg.toBytes();
         } catch (err) {
           expect(err).toBeInstanceOf(Hl7EncodeError);
           const refusal = err as Hl7EncodeError;
-          // A string read in a set this runtime cannot decode has no table to be written with.
-          if (decoderMissing(label)) {
-            expect(refusal.code).toBe("UNSUPPORTED_CHARSET");
+          if (refusal.code === "UNSUPPORTED_CHARSET") {
+            // A wide set, or a string read in a set this runtime cannot decode.
+            expect((WIDE_SETS as readonly string[]).includes(label) || decoderMissing(label)).toBe(
+              true,
+            );
             return;
           }
           expect(refusal.code).toBe("UNENCODABLE_CHARACTER");
           expect(refusal.position).toEqual({ segmentIndex: 1, fieldIndex: 3 });
+          // Only a character above ASCII is ever refused.
+          expect([...text].some((c) => c.charCodeAt(0) >= 0x80)).toBe(true);
           return;
         }
-        // Compared with the text read back as text, so only the encoding is under test: the
-        // reader treats a few control characters (the MLLP block start 0x0B) as framing either way.
-        const asText = parseHL7(msg.toString(), { trimFields: false }).get("NTE.3");
-        expect(parseHL7(bytes, { trimFields: false }).get("NTE.3")).toBe(asText);
-        if ([...s].every((c) => c.charCodeAt(0) >= 0x20)) expect(asText).toBe(s);
+        expect((WIDE_SETS as readonly string[]).includes(label)).toBe(false);
+        expect(oracle(label, Uint8Array.from(bytes))).toBe(text);
+      }),
+    );
+  });
+});
+
+describe("toBytes property: an edit to a byte reading is refused or written in ASCII", () => {
+  it.each([...UNDECODED_SETS, ...WIDE_SETS])("%s", (label) => {
+    const field = fieldOf(contentBytes(label));
+    const value = fc
+      .oneof(latin1High, fc.string({ minLength: 1, maxLength: 12 }))
+      .filter((s) => s !== '""');
+    checkProperty(
+      fc.property(fc.tuple(field, field, field), value, (fields, s) => {
+        const bytes = messageBytes(label, fields);
+        const msg = parseHL7(bytes, { trimFields: false });
+        msg.setField("NTE.3", s);
+        const nte = (msg.toString().split("\r")[2] ?? "") + "\r";
+        let out: Buffer;
+        try {
+          out = msg.toBytes();
+        } catch (err) {
+          expect(err).toBeInstanceOf(Hl7EncodeError);
+          const refusal = err as Hl7EncodeError;
+          if ((WIDE_SETS as readonly string[]).includes(label)) {
+            expect(refusal.code).toBe("UNSUPPORTED_CHARSET");
+            return;
+          }
+          expect(refusal.code).toBe("UNENCODABLE_CHARACTER");
+          expect(refusal.position).toEqual({ segmentIndex: 2, fieldIndex: 3 });
+          expect([...nte].some((c) => c.charCodeAt(0) >= 0x80)).toBe(true);
+          return;
+        }
+        const kept = bytes.subarray(0, bytes.indexOf(Buffer.from("\rNTE|", "latin1")) + 1);
+        expect(out).toEqual(Buffer.concat([kept, Buffer.from(nte, "latin1")]));
+        expect(out.subarray(kept.length).every((b) => b < 0x80)).toBe(true);
       }),
     );
   });

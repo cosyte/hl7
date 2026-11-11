@@ -691,8 +691,8 @@ console.log(empty.value); // ""
 ### Hl7EncodeError
 
 Thrown by `Hl7Message.toBytes` when the message cannot be written in its character set: a
-character the set has no byte for (`UNENCODABLE_CHARACTER`), or a set whose table this Node.js
-build lacks (`UNSUPPORTED_CHARSET`). The writer refuses rather than write a substitute byte.
+character the set has no byte for (`UNENCODABLE_CHARACTER`), or a set the writer has no
+encoder for (`UNSUPPORTED_CHARSET`): a table this Node.js build lacks, or UTF-16 and UTF-32. The writer refuses rather than write a substitute byte.
 
 The error names where the character is (segment and field) and the set, never the character or
 any field text. A label outside the registry `resolveCharset` reads is shown as `<withheld>`,
@@ -1752,16 +1752,23 @@ msg.setField("PID.4[2].1", "MRN2");   // create third repetition of PID-4
 Write this message as bytes in the character set it declares in MSH-18 (its first
 repetition), or in `options.charset`, the way `parseHL7` reads a `Buffer` in that set. The
 text is what `toString()` writes, so a message read from bytes and not changed comes back as
-the bytes it arrived as. A blank MSH-18, `ASCII` and `UTF-8` are written as UTF-8; `8859/1` one
-byte per character; `WINDOWS-1252` and the other ISO 8859 sets the parser decodes through
-their tables; and a set the parser keeps as a latin1 byte reading (a set it does not decode,
-an unrecognized label, or a decode that failed and raised `UNSUPPORTED_CHARSET`) one byte per
-character, which gives back the bytes that were read.
+the bytes it arrived as. A blank or absent MSH-18 and `UTF-8` are written as UTF-8; a declared
+`ASCII` as 7-bit ASCII; `8859/1` one byte per character; and `WINDOWS-1252` and the other ISO
+8859 sets the parser decodes through their tables.
+
+A set the parser does not decode (`8859/9`, `8859/11`, the East Asian sets, an unrecognized
+label) has no table here either. When the parser kept a message's bytes as a latin1 reading
+(it raised `UNSUPPORTED_CHARSET` or `UNKNOWN_CHARSET`), a segment not edited since the read is
+written back as the bytes it was read from, as long as MSH-18 still names the set it named then
+(or `options.charset` names that same set). Every other segment, and a message from a string or
+a builder that declares such a set, must be ASCII. `UNICODE UTF-16` and `UNICODE UTF-32` are
+refused outright for anything but the segments read from bytes, since one byte per character
+is not either of them.
 
 Throws [Hl7EncodeError](#hl7encodeerror) for a character the set cannot hold, never writing a substitute:
-the euro sign in `8859/1`, a lone surrogate in UTF-8, a character above U+00FF in a set kept
-as a byte reading. The error names the segment, field and set, never the character. No MLLP
-framing is added.
+the euro sign in `8859/1`, a lone surrogate in UTF-8, a letter with an accent in a declared
+`ASCII`, an edit that adds one to a byte reading. The error names the segment, field and set,
+never the character. No MLLP framing is added.
 
 ###### Parameters
 
@@ -10852,16 +10859,23 @@ msg.setField("PID.4[2].1", "MRN2");   // create third repetition of PID-4
 Write this message as bytes in the character set it declares in MSH-18 (its first
 repetition), or in `options.charset`, the way `parseHL7` reads a `Buffer` in that set. The
 text is what `toString()` writes, so a message read from bytes and not changed comes back as
-the bytes it arrived as. A blank MSH-18, `ASCII` and `UTF-8` are written as UTF-8; `8859/1` one
-byte per character; `WINDOWS-1252` and the other ISO 8859 sets the parser decodes through
-their tables; and a set the parser keeps as a latin1 byte reading (a set it does not decode,
-an unrecognized label, or a decode that failed and raised `UNSUPPORTED_CHARSET`) one byte per
-character, which gives back the bytes that were read.
+the bytes it arrived as. A blank or absent MSH-18 and `UTF-8` are written as UTF-8; a declared
+`ASCII` as 7-bit ASCII; `8859/1` one byte per character; and `WINDOWS-1252` and the other ISO
+8859 sets the parser decodes through their tables.
+
+A set the parser does not decode (`8859/9`, `8859/11`, the East Asian sets, an unrecognized
+label) has no table here either. When the parser kept a message's bytes as a latin1 reading
+(it raised `UNSUPPORTED_CHARSET` or `UNKNOWN_CHARSET`), a segment not edited since the read is
+written back as the bytes it was read from, as long as MSH-18 still names the set it named then
+(or `options.charset` names that same set). Every other segment, and a message from a string or
+a builder that declares such a set, must be ASCII. `UNICODE UTF-16` and `UNICODE UTF-32` are
+refused outright for anything but the segments read from bytes, since one byte per character
+is not either of them.
 
 Throws [Hl7EncodeError](#hl7encodeerror) for a character the set cannot hold, never writing a substitute:
-the euro sign in `8859/1`, a lone surrogate in UTF-8, a character above U+00FF in a set kept
-as a byte reading. The error names the segment, field and set, never the character. No MLLP
-framing is added.
+the euro sign in `8859/1`, a lone surrogate in UTF-8, a letter with an accent in a declared
+`ASCII`, an edit that adds one to a byte reading. The error names the segment, field and set,
+never the character. No MLLP framing is added.
 
 ###### Parameters
 
@@ -12224,6 +12238,12 @@ The character set to write in, in place of the one MSH-18 declares, with the lab
 `parseHL7`'s `charset` option takes. Pass the same value given to `parseHL7` to write a
 message back as the bytes it was read from. MSH-18 itself is written as it is.
 
+A message the parser kept as a latin1 byte reading cannot be moved to another set: its
+segments are bytes in the set they were read in. Under an option naming another set, or when
+that set is not known (the read followed a `charset` option that disagreed with MSH-18, or
+MSH-18 was blank), a non-ASCII byte is refused with `UNENCODABLE_CHARACTER`; call `toBytes()`
+with no option to get the bytes back as they were read.
+
 ***
 
 ### TypedBuilderCoverage
@@ -13318,16 +13338,23 @@ msg.setField("PID.4[2].1", "MRN2");   // create third repetition of PID-4
 Write this message as bytes in the character set it declares in MSH-18 (its first
 repetition), or in `options.charset`, the way `parseHL7` reads a `Buffer` in that set. The
 text is what `toString()` writes, so a message read from bytes and not changed comes back as
-the bytes it arrived as. A blank MSH-18, `ASCII` and `UTF-8` are written as UTF-8; `8859/1` one
-byte per character; `WINDOWS-1252` and the other ISO 8859 sets the parser decodes through
-their tables; and a set the parser keeps as a latin1 byte reading (a set it does not decode,
-an unrecognized label, or a decode that failed and raised `UNSUPPORTED_CHARSET`) one byte per
-character, which gives back the bytes that were read.
+the bytes it arrived as. A blank or absent MSH-18 and `UTF-8` are written as UTF-8; a declared
+`ASCII` as 7-bit ASCII; `8859/1` one byte per character; and `WINDOWS-1252` and the other ISO
+8859 sets the parser decodes through their tables.
+
+A set the parser does not decode (`8859/9`, `8859/11`, the East Asian sets, an unrecognized
+label) has no table here either. When the parser kept a message's bytes as a latin1 reading
+(it raised `UNSUPPORTED_CHARSET` or `UNKNOWN_CHARSET`), a segment not edited since the read is
+written back as the bytes it was read from, as long as MSH-18 still names the set it named then
+(or `options.charset` names that same set). Every other segment, and a message from a string or
+a builder that declares such a set, must be ASCII. `UNICODE UTF-16` and `UNICODE UTF-32` are
+refused outright for anything but the segments read from bytes, since one byte per character
+is not either of them.
 
 Throws [Hl7EncodeError](#hl7encodeerror) for a character the set cannot hold, never writing a substitute:
-the euro sign in `8859/1`, a lone surrogate in UTF-8, a character above U+00FF in a set kept
-as a byte reading. The error names the segment, field and set, never the character. No MLLP
-framing is added.
+the euro sign in `8859/1`, a lone surrogate in UTF-8, a letter with an accent in a declared
+`ASCII`, an edit that adds one to a byte reading. The error names the segment, field and set,
+never the character. No MLLP framing is added.
 
 ###### Parameters
 
@@ -14395,7 +14422,8 @@ Severity of a [ConformanceFinding](#conformancefinding). `error` is a constraint
 > **Hl7EncodeErrorCode** = `"UNENCODABLE_CHARACTER"` \| `"UNSUPPORTED_CHARSET"`
 
 Why `toBytes` refused: `UNENCODABLE_CHARACTER` for a character the set cannot hold,
-`UNSUPPORTED_CHARSET` for a set this runtime has no table for.
+`UNSUPPORTED_CHARSET` for a set the writer has no encoder for (a table this runtime lacks, or
+UTF-16 and UTF-32, which it writes only as the bytes a message was read from).
 
 ***
 
