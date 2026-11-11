@@ -7,6 +7,10 @@
  * ISO-2022-switched East-Asian sets and UTF-16/32, which HL7 renders through
  * stateful `\Mxxyyzz\` escapes the parser deliberately does not fully decode).
  *
+ * One label outside Table 0211 is decoded too: `WINDOWS-1252` (with `CP1252` and `X-CP1252`),
+ * which senders declare in MSH-18 and channels configure. The parser decodes it with its own copy
+ * of the WHATWG Encoding `index-windows-1252` table (see `decodeWindows1252`).
+ *
  * Spec traceability: HL7 v2 Chapter 2, **MSH-18** (item 00692) + **Table 0211**
  * (OID 2.16.840.1.113883.18.116). MSH-18 is **repeating**: the first occurrence
  * is the message's default encoding, later occurrences are alternates activated
@@ -28,6 +32,8 @@
  * of the multibyte codes is not load-bearing for safety: only for which warning
  * (`UNSUPPORTED_CHARSET` vs `UNKNOWN_CHARSET`) fires.
  */
+
+import { Buffer } from "node:buffer";
 
 /**
  * How the parser treats a resolved MSH-18 character set.
@@ -52,13 +58,17 @@ export interface CharsetResolution {
   /** Whether the parser decodes this set or preserves its bytes verbatim. */
   readonly treatment: CharsetTreatment;
   /**
-   * The WHATWG `TextDecoder` label to decode with when `treatment === "decode"`.
-   * Empty when `treatment === "verbatim"`.
+   * The WHATWG Encoding label of the decode when `treatment === "decode"`; empty
+   * when `treatment === "verbatim"`. Two are decoded by the parser itself rather
+   * than by `TextDecoder`: `"latin1"` (true ISO-8859-1, every byte to the code
+   * point of the same value) and `"windows-1252"` (its own copy of the WHATWG
+   * table, so the result does not depend on the runtime's ICU build).
    */
   readonly decoder: string;
   /**
    * `true` when the label is a recognized HL7 Table-0211 code (whether or not
-   * the parser decodes it); `false` when the label is not in Table 0211.
+   * the parser decodes it) or `WINDOWS-1252`, the one set outside the table
+   * that the parser decodes; `false` for any other label.
    * Drives the warning code on the verbatim path: recognized-but-`verbatim`
    * → `UNSUPPORTED_CHARSET`, unrecognized → `UNKNOWN_CHARSET`.
    */
@@ -120,6 +130,12 @@ function buildTable(): ReadonlyMap<string, CharsetEntry> {
   // WHATWG `TextDecoder("iso-8859-1")` is actually windows-1252: it remaps the
   // C1 range (0x80 → €), so it is deliberately NOT used here.
   add(["8859/1", "ISO-8859-1", "ISO 8859-1", "ISO8859-1"], decodeEntry("8859/1", "latin1"));
+
+  // Windows-1252: not a Table-0211 code, but the set many senders mean and
+  // declare. Decoded with the parser's own table (decodeWindows1252), never
+  // with TextDecoder, so every runtime gives the same text. Kept apart from
+  // 8859/1, whose C1 range stays the C1 controls.
+  add(["WINDOWS-1252", "CP1252", "X-CP1252"], decodeEntry("WINDOWS-1252", "windows-1252"));
 
   // The rest of the single-byte ISO 8859 family that Node's ICU decodes
   // FAITHFULLY: i.e. the C1 range 0x80 to 0x9F maps to U+0080 to U+009F (controls),
@@ -193,7 +209,8 @@ const DEFAULT_RESOLUTION: CharsetResolution = Object.freeze({
  * import { resolveCharset } from "@cosyte/hl7";
  * resolveCharset("UNICODE UTF-8"); // { canonical: "UTF-8", treatment: "decode", ... }
  * resolveCharset("ISO IR87");      // { canonical: "ISO IR87", treatment: "verbatim", recognized: true }
- * resolveCharset("WINDOWS-1252");  // { canonical: "WINDOWS-1252", treatment: "verbatim", recognized: false }
+ * resolveCharset("WINDOWS-1252");  // { canonical: "WINDOWS-1252", treatment: "decode", decoder: "windows-1252", ... }
+ * resolveCharset("CP850");         // { canonical: "CP850", treatment: "verbatim", recognized: false }
  * ```
  */
 export function resolveCharset(raw: string | undefined): CharsetResolution {
@@ -228,4 +245,66 @@ export function resolveCharset(raw: string | undefined): CharsetResolution {
  */
 export function canonicalCharset(raw: string): string {
   return resolveCharset(raw).canonical;
+}
+
+/**
+ * The characters windows-1252 gives bytes 0x80 to 0x9F, in byte order: the WHATWG Encoding
+ * `index-windows-1252` entries for pointers 0 to 31. The five bytes Windows leaves undefined
+ * (0x81, 0x8D, 0x8F, 0x90, 0x9D) map to the C1 control of the same value, as the index maps them.
+ * Every other byte maps to the code point of the same value. Written as code points so the source
+ * stays ASCII.
+ *
+ * @internal
+ */
+const WINDOWS_1252_C1 = String.fromCharCode(
+  0x20ac,
+  0x0081,
+  0x201a,
+  0x0192,
+  0x201e,
+  0x2026,
+  0x2020,
+  0x2021,
+  0x02c6,
+  0x2030,
+  0x0160,
+  0x2039,
+  0x0152,
+  0x008d,
+  0x017d,
+  0x008f,
+  0x0090,
+  0x2018,
+  0x2019,
+  0x201c,
+  0x201d,
+  0x2022,
+  0x2013,
+  0x2014,
+  0x02dc,
+  0x2122,
+  0x0161,
+  0x203a,
+  0x0153,
+  0x009d,
+  0x017e,
+  0x0178,
+);
+
+/**
+ * Decode windows-1252 bytes. Single-byte and stateless, so it never fails and a chunk boundary
+ * never splits a character: a stream is decoded chunk by chunk with the same function.
+ *
+ * @example
+ * ```ts
+ * decodeWindows1252(Uint8Array.of(0x80, 0x41)).codePointAt(0); // => 0x20ac, the euro sign
+ * ```
+ *
+ * @internal
+ */
+export function decodeWindows1252(bytes: Uint8Array): string {
+  const latin1 = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength).toString("latin1");
+  // The C1 range, as a latin1 reading of bytes 0x80 to 0x9F gives it. Written here rather than
+  // as a module constant so a mutation run re-evaluates it.
+  return latin1.replace(/[\u0080-\u009F]/gu, (c) => WINDOWS_1252_C1.charAt(c.charCodeAt(0) - 0x80));
 }

@@ -17,7 +17,7 @@
 
 import { Buffer } from "node:buffer";
 
-import { resolveCharset } from "./charset.js";
+import { decodeWindows1252, resolveCharset } from "./charset.js";
 import { Hl7ParseError } from "./errors.js";
 import { WARNING_CODES, unknownCharset, unsupportedCharset } from "./warnings.js";
 import type { Hl7ParseWarning } from "./warnings.js";
@@ -86,6 +86,10 @@ export function normalize(input: string): string {
  * registry ({@link resolveCharset}):
  *
  *  - `8859/1` (Latin-1) is decoded via `latin1`: byte-exact, never fails;
+ *  - `WINDOWS-1252` (not a Table-0211 code) is decoded with the parser's own
+ *    copy of the WHATWG table: bytes 0x80 to 0x9F become their Windows
+ *    characters (0x80 the euro sign), the five bytes Windows leaves undefined
+ *    become the C1 control of the same value, and it never fails;
  *  - the other faithfully-decodable sets (ASCII, `8859/2` to `8859/8`/`10`/`13` to `16`,
  *    UTF-8) are decoded **strictly** (`fatal: true`); a byte invalid / undefined
  *    for the declared set (or an ICU build lacking the label) falls through to
@@ -127,6 +131,7 @@ export function normalizeBuffer(input: Buffer, charset: string | undefined, emit
       // range: so it is intentionally not used here.)
       return normalize(input.toString("latin1"));
     }
+    if (resolution.decoder === "windows-1252") return normalize(decodeWindows1252(input));
     try {
       // STRICT decode (fatal: true): a byte that is invalid / undefined for the
       // declared set throws rather than silently becoming U+FFFD (irreversible
@@ -179,7 +184,7 @@ function latin1Chunk(bytes: Uint8Array): string {
 
 /**
  * A {@link ChunkDecoder} for `charset`: `latin1` for 8859/1 and for every set the parser keeps
- * verbatim, and a strict `TextDecoder` for the others. Reports `UNSUPPORTED_CHARSET` or
+ * verbatim, the parser's own table for WINDOWS-1252, and a strict `TextDecoder` for the others. Reports `UNSUPPORTED_CHARSET` or
  * `UNKNOWN_CHARSET` through `emit` when it is created, as `normalizeBuffer` does.
  *
  * @example
@@ -194,6 +199,7 @@ export function chunkDecoder(charset: string | undefined, emit: EmitFn): ChunkDe
   const resolution = resolveCharset(charset);
   if (resolution.treatment === "decode") {
     if (resolution.decoder === "latin1") return { decode: latin1Chunk };
+    if (resolution.decoder === "windows-1252") return { decode: decodeWindows1252 };
     let decoder: InstanceType<typeof TextDecoder> | undefined;
     try {
       decoder = new TextDecoder(resolution.decoder, { fatal: true });
