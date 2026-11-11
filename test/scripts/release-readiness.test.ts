@@ -60,10 +60,14 @@ import { join } from "node:path";
 
 import { afterAll, describe, expect, it } from "vitest";
 
+import { requireBinScript } from "../_helpers/bin-script.js";
+
 import { runCanonicalSyncVersion } from "../_helpers/sync-version-fixture.js";
 
 const REPO_ROOT = process.cwd();
-const TSX_BIN = join(REPO_ROOT, "node_modules", ".bin", "tsx");
+// Spawned with the running Node rather than through `node_modules/.bin`, whose entry Node cannot
+// start on Windows.
+const TSX_CLI = requireBinScript(REPO_ROOT, "tsx");
 const SCRIPT_PATH = join(REPO_ROOT, "scripts", "release-readiness.ts");
 const RECORD_RELATIVE = join("release", "0.1.0-readiness.md");
 const RECORD_PATH = join(REPO_ROOT, RECORD_RELATIVE);
@@ -154,7 +158,7 @@ interface Run {
 }
 
 function runCheck(args: readonly string[], env?: NodeJS.ProcessEnv): Run {
-  const result = spawnSync(TSX_BIN, [SCRIPT_PATH, ...args], {
+  const result = spawnSync(process.execPath, [TSX_CLI, SCRIPT_PATH, ...args], {
     cwd: REPO_ROOT,
     encoding: "utf8",
     shell: false,

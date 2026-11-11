@@ -2,8 +2,11 @@ import { spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
+import { requireBinScript } from "./_helpers/bin-script.js";
 
 import {
   compileErrors,
@@ -29,7 +32,8 @@ import {
 const root = join(import.meta.dirname, "..");
 const readme = readFileSync(join(root, "README.md"), "utf8");
 const entryPoint = join(root, "src", "index.ts");
-const tsx = join(root, "node_modules", ".bin", "tsx");
+// Spawned with the running Node: Node cannot start the `.bin` entry on Windows.
+const tsx = requireBinScript(root, "tsx");
 const PUBLISHED_SPECIFIER = '"@cosyte/hl7"';
 const CASE_TIMEOUT = 120_000;
 
@@ -52,10 +56,15 @@ function run(source: string, fileName: string): { code: number; stdout: string; 
   const path = join(dir, fileName);
   writeFileSync(
     path,
-    `${source.replace(PUBLISHED_SPECIFIER, JSON.stringify(entryPoint))}\n`,
+    `${source.replace(PUBLISHED_SPECIFIER, JSON.stringify(pathToFileURL(entryPoint).href))}\n`,
     "utf8",
   );
-  const r = spawnSync(tsx, [path], { cwd: root, encoding: "utf8", shell: false, timeout: 60_000 });
+  const r = spawnSync(process.execPath, [tsx, path], {
+    cwd: root,
+    encoding: "utf8",
+    shell: false,
+    timeout: 60_000,
+  });
   return { code: r.status ?? -1, stdout: r.stdout, stderr: r.stderr };
 }
 

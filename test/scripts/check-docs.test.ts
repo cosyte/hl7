@@ -30,9 +30,13 @@ import { join } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
+import { requireBinScript } from "../_helpers/bin-script.js";
+
 const REPO_ROOT = process.cwd();
 const CHECKER_PATH = join(REPO_ROOT, "scripts", "check-docs.ts");
-const TSX_BIN = join(REPO_ROOT, "node_modules", ".bin", "tsx");
+// Spawned with the running Node rather than through `node_modules/.bin`, whose entry Node cannot
+// start on Windows.
+const TSX_CLI = requireBinScript(REPO_ROOT, "tsx");
 const REAL_DOCS = join(REPO_ROOT, "docs-content");
 
 /** A violator identity, assembled so this file's own bytes carry no PHI-shaped run. */
@@ -74,7 +78,7 @@ function newTreeFrom(prepared: string): string {
 }
 
 function run(docs: string): RunResult {
-  const r = spawnSync(TSX_BIN, [CHECKER_PATH, "--docs", docs], {
+  const r = spawnSync(process.execPath, [TSX_CLI, CHECKER_PATH, "--docs", docs], {
     cwd: REPO_ROOT,
     encoding: "utf8",
     shell: false,
@@ -616,7 +620,7 @@ describe("links into the generated reference", () => {
       "[Troubleshooting](./troubleshooting.md)",
       "[the reference](./api/pipe.md)",
     );
-    const r = spawnSync(TSX_BIN, [CHECKER_PATH, "--docs", docs], {
+    const r = spawnSync(process.execPath, [TSX_CLI, CHECKER_PATH, "--docs", docs], {
       cwd: REPO_ROOT,
       encoding: "utf8",
       shell: false,
@@ -964,7 +968,7 @@ describe("enumeration and empty-scan refusals", () => {
     // The checker opens each page once and checks that descriptor. Opened without O_NONBLOCK, a
     // FIFO blocks until something writes to it, so this run carries its own bound: a hang ends
     // in ETIMEDOUT here instead of stalling the suite.
-    const r = spawnSync(TSX_BIN, [CHECKER_PATH, "--docs", docs], {
+    const r = spawnSync(process.execPath, [TSX_CLI, CHECKER_PATH, "--docs", docs], {
       cwd: REPO_ROOT,
       encoding: "utf8",
       shell: false,

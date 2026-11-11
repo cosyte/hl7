@@ -82,6 +82,8 @@ import { dirname, join } from "node:path";
 
 import { afterAll, describe, expect, it } from "vitest";
 
+import { binScript } from "../_helpers/bin-script.js";
+
 const REPO_ROOT = process.cwd();
 const MANIFEST_PATH = join(REPO_ROOT, "package.json");
 const WORKFLOW_PATH = join(REPO_ROOT, ".github", "workflows", "no-internal-refs.yml");
@@ -136,23 +138,31 @@ function runGateOnFixture(root: string): GateRun {
   const argv = rest.map((token) =>
     !token.startsWith("-") && existsSync(join(REPO_ROOT, token)) ? join(REPO_ROOT, token) : token,
   );
-  return spawn(binFrom(REPO_ROOT, command), argv, root);
+  const [bin, ...lead] = binFrom(REPO_ROOT, command);
+  return spawn(bin, [...lead, ...argv], root);
 }
 
 /** Run the gate the way the workflow does: the checkout's own copy, from its own root. */
 function runGateInCheckout(root: string): GateRun {
   const [command, ...rest] = splitInvocation();
-  return spawn(binFrom(root, command), rest, root);
+  const [bin, ...lead] = binFrom(root, command);
+  return spawn(bin, [...lead, ...rest], root);
 }
 
 /**
  * A bare command is a package bin, which `pnpm run` finds in `node_modules/.bin`. Resolve it
  * against the tree that installed it, never against the caller's `PATH`: this suite runs under
  * pnpm, so this repository's own bins are on that path, and a checkout with no install would
- * otherwise reach them.
+ * otherwise reach them. An installed bin runs as its package's JavaScript file under the running
+ * Node, since Node cannot start the `.bin` entry on Windows; a tree with no install keeps the
+ * `.bin` path, which does not exist, so the run fails as it would there.
  */
-function binFrom(base: string, command: string): string {
-  return command.includes("/") ? command : join(base, "node_modules", ".bin", command);
+function binFrom(base: string, command: string): [string, ...string[]] {
+  if (command.includes("/")) return [command];
+  const script = binScript(base, command);
+  return script === undefined
+    ? [join(base, "node_modules", ".bin", command)]
+    : [process.execPath, script];
 }
 
 /** The invocation as a command and its operands, refusing an empty one rather than guessing. */

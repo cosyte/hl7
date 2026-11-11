@@ -43,6 +43,8 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
+
+import { requireBinScript } from "../_helpers/bin-script.js";
 import { spawnSync } from "node:child_process";
 import {
   writeFileSync,
@@ -64,7 +66,9 @@ import { pathToFileURL } from "node:url";
 const REPO_ROOT = process.cwd();
 const SCANNER_PATH = join(REPO_ROOT, "scripts", "phi-scan.ts");
 const OVERRIDES_PATH = join(REPO_ROOT, "phi-scan-overrides.md");
-const TSX_BIN = join(REPO_ROOT, "node_modules", ".bin", "tsx");
+// Spawned with the running Node rather than through `node_modules/.bin`, whose entry Node cannot
+// start on Windows.
+const TSX_CLI = requireBinScript(REPO_ROOT, "tsx");
 
 /** Assemble an HL7 v2 message from segments, joined by the wire `\r` separator. */
 function msg(...segments: string[]): string {
@@ -131,7 +135,7 @@ interface RunResult {
 }
 
 function runScanner(args: string[]): RunResult {
-  const r = spawnSync(TSX_BIN, [SCANNER_PATH, ...args], {
+  const r = spawnSync(process.execPath, [TSX_CLI, SCANNER_PATH, ...args], {
     cwd: REPO_ROOT,
     encoding: "utf8",
     shell: false,
@@ -630,7 +634,12 @@ function runScannerIn(
 ): RunResult {
   const env: NodeJS.ProcessEnv = { ...process.env, ...extraEnv };
   if (shimDir !== null) env["PATH"] = `${shimDir}:${process.env["PATH"] ?? ""}`;
-  const r = spawnSync(TSX_BIN, [SCANNER_PATH], { cwd, encoding: "utf8", shell: false, env });
+  const r = spawnSync(process.execPath, [TSX_CLI, SCANNER_PATH], {
+    cwd,
+    encoding: "utf8",
+    shell: false,
+    env,
+  });
   return { code: r.status ?? -1, stdout: r.stdout ?? "", stderr: r.stderr ?? "" };
 }
 
@@ -841,7 +850,11 @@ function gitOut(cwd: string, args: string[]): string {
 
 /** Run the scanner in a throwaway repo with arbitrary argv (no `git` shim). */
 function runScannerArgsIn(cwd: string, args: string[]): RunResult {
-  const r = spawnSync(TSX_BIN, [SCANNER_PATH, ...args], { cwd, encoding: "utf8", shell: false });
+  const r = spawnSync(process.execPath, [TSX_CLI, SCANNER_PATH, ...args], {
+    cwd,
+    encoding: "utf8",
+    shell: false,
+  });
   return { code: r.status ?? -1, stdout: r.stdout ?? "", stderr: r.stderr ?? "" };
 }
 
@@ -2097,7 +2110,7 @@ describe("phi-scan: the argv the two-field stride is coupled to", () => {
       injected,
       caller.replace(specifier, `import(${JSON.stringify(pathToFileURL(injectedEngine).href)})`),
     );
-    const r = spawnSync(TSX_BIN, [injected, "--staged"], {
+    const r = spawnSync(process.execPath, [TSX_CLI, injected, "--staged"], {
       cwd: repo,
       encoding: "utf8",
       shell: false,
@@ -2906,7 +2919,11 @@ describe("phi-scan: the exit codes and scan roots are hl7's own, and unchanged",
       writeFileSync(join(repo, "test", "fixtures", "axis.txt"), `note: SSN ${SYMLINK_SSN}\n`);
       expect(runScannerIn(repo, null).code).toBe(1);
 
-      const r = spawnSync(TSX_BIN, [orphan], { cwd: repo, encoding: "utf8", shell: false });
+      const r = spawnSync(process.execPath, [TSX_CLI, orphan], {
+        cwd: repo,
+        encoding: "utf8",
+        shell: false,
+      });
       // Stack frames dropped from the message: vitest reads a frame in an assertion
       // message as its own and chokes on the temp copy's source map.
       const said = r.stderr.replace(/^\s+at .*$/gm, "").trim();
