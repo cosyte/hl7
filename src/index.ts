@@ -146,6 +146,32 @@ export { parseHd } from "./model/types/hd.js";
 export type { XCN } from "./model/types/xcn.js";
 export { parseXcn } from "./model/types/xcn.js";
 
+// The common data types read by name: the entity identifier and its pair, the
+// no-exceptions coded element, ranges, money, prices, quantities and the
+// message-header composites. Each is also a type in the `HL7` namespace.
+export type { EI } from "./model/types/ei.js";
+export { parseEi } from "./model/types/ei.js";
+export type { EIP } from "./model/types/eip.js";
+export { parseEip } from "./model/types/eip.js";
+export type { CNE } from "./model/types/cne.js";
+export { parseCne } from "./model/types/cne.js";
+export type { DR } from "./model/types/dr.js";
+export { parseDr } from "./model/types/dr.js";
+export type { MO } from "./model/types/mo.js";
+export { parseMo } from "./model/types/mo.js";
+export type { CP } from "./model/types/cp.js";
+export { parseCp } from "./model/types/cp.js";
+export type { CQ } from "./model/types/cq.js";
+export { parseCq } from "./model/types/cq.js";
+export type { VID } from "./model/types/vid.js";
+export { parseVid } from "./model/types/vid.js";
+export type { MSG } from "./model/types/msg.js";
+export { parseMsg } from "./model/types/msg.js";
+export type { PT } from "./model/types/pt.js";
+export { parsePt } from "./model/types/pt.js";
+export type { FC } from "./model/types/fc.js";
+export { parseFc } from "./model/types/fc.js";
+
 // Phase 3 HL7 namespace re-export (D-13): `HL7.XPN`, `HL7.XAD`, ..., `HL7.XCN`.
 /**
  * The composite data type interfaces as one type-only namespace (`HL7.XPN`, `HL7.CX`, `HL7.TS`
@@ -277,6 +303,17 @@ export {
   encodeTs,
   encodeNm,
   encodeXcn,
+  encodeEi,
+  encodeEip,
+  encodeCne,
+  encodeDr,
+  encodeMo,
+  encodeCp,
+  encodeCq,
+  encodeVid,
+  encodeMsg,
+  encodePt,
+  encodeFc,
 } from "./builder/encode-composite.js";
 export type { CompositeKind, CompositeValueByKind } from "./builder/encode-composite.js";
 export { buildAdt } from "./builder/build-adt.js";

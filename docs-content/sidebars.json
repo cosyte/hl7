@@ -26,6 +26,7 @@
         "read-clinical-lists",
         "handle-patient-merges",
         "read-dates-and-times",
+        "read-data-types-by-name",
         "modify-and-resend",
         "build-messages",
         "acknowledge-messages",
@@ -72,7 +73,7 @@
     {
       "type": "category",
       "label": "Reference",
-      "items": ["warning-and-fatal-codes", "date-token-grammar", "built-in-profiles"]
+      "items": ["warning-and-fatal-codes", "date-token-grammar", "data-types", "built-in-profiles"]
     },
     {
       "type": "category",

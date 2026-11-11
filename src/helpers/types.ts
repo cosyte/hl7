@@ -17,6 +17,7 @@
 import type { CE } from "../model/types/ce.js";
 import type { CWE } from "../model/types/cwe.js";
 import type { CX } from "../model/types/cx.js";
+import type { EI } from "../model/types/ei.js";
 import type { PL } from "../model/types/pl.js";
 import type { SN } from "../model/types/sn.js";
 import type { TS } from "../model/types/ts.js";
@@ -75,6 +76,13 @@ export interface Meta {
   readonly receivingFacility?: string;
   /** MSH-11.1 processing id (P=production, T=test, D=debug). */
   readonly processingId?: string;
+  /**
+   * MSH-21 message profile identifiers, one `EI` per repetition, in order: the
+   * conformance profiles the sender says the message follows (for example an
+   * immunization implementation guide's profile). OMITTED when MSH-21 is empty.
+   * Named Conformance Statement ID before v2.5.
+   */
+  readonly messageProfileIdentifiers?: readonly EI[];
 }
 
 /**
@@ -558,10 +566,29 @@ export interface OrderTiming {
  * ```
  */
 export interface Order {
-  /** OBR-2 placer order number. */
+  /** OBR-2 placer order number: its first component (EI.1) alone. */
   readonly placerOrderNumber?: string;
-  /** OBR-3 filler order number. */
+  /** OBR-3 filler order number: its first component (EI.1) alone. */
   readonly fillerOrderNumber?: string;
+  /**
+   * OBR-2 placer order number as the whole `EI`: the number and the authority
+   * that assigned it. Two placers can issue the same number, so match orders on
+   * this, not on `placerOrderNumber` alone. OMITTED when OBR-2 is empty.
+   */
+  readonly placerOrderId?: EI;
+  /** OBR-3 filler order number as the whole `EI`. OMITTED when OBR-3 is empty. */
+  readonly fillerOrderId?: EI;
+  /**
+   * ORC-2 placer order number of the ORC that precedes this OBR, as an `EI`.
+   * The standard expects it to match OBR-2; it is read as sent, never copied
+   * from OBR-2. OMITTED when there is no such ORC or ORC-2 is empty.
+   */
+  readonly orcPlacerOrderId?: EI;
+  /**
+   * ORC-3 filler order number of the ORC that precedes this OBR, as an `EI`.
+   * OMITTED when there is no such ORC or ORC-3 is empty.
+   */
+  readonly orcFillerOrderId?: EI;
   /** OBR-4 universal service identifier (test code + description). */
   readonly universalServiceId?: CWE;
   /** OBR-25 result status (HL7 Table 0123, e.g. `"F"` final, `"P"` preliminary). */
