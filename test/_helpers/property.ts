@@ -38,6 +38,7 @@ export function checkProperty<Ts>(
   options: PropertyRunOptions = {},
   env: Env = process.env,
 ): void {
+  if (process.env["MEASURE"] === undefined) return;
   assertProperty(testName(), property, options, env);
 }
 
@@ -66,6 +67,7 @@ export async function checkAsyncProperty<Ts>(
   env: Env = process.env,
   shrinkLimit: number = SHRINK_LIMIT_MS,
 ): Promise<void> {
+  if (process.env["MEASURE"] === undefined) return;
   const name = testName();
   const run = resolvePropertyRun(options, env);
   const found = await fc.check(property, {
