@@ -27,6 +27,7 @@
  * Zero runtime deps: pure data derived from the registry, plus one pure lookup.
  */
 
+import { compareCodeUnits } from "../parser/code-order.js";
 import { MESSAGE_STRUCTURE_DEFINITIONS } from "../parser/message-structure.js";
 import type { Meta } from "../helpers/types.js";
 
@@ -311,7 +312,7 @@ function deriveOverlayMessages(): readonly SupportedOverlayMessage[] {
       );
     }
   }
-  out.sort((a, b) => a.key.localeCompare(b.key));
+  out.sort((a, b) => compareCodeUnits(a.key, b.key));
   return Object.freeze(out);
 }
 

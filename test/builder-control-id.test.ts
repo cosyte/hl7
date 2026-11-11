@@ -1,5 +1,47 @@
 import { describe, expect, it } from "vitest";
-import { generateControlId } from "../src/builder/control-id.js";
+import { generateControlId, randomSuffix } from "../src/builder/control-id.js";
+
+describe("randomSuffix: the six random characters of a control ID", () => {
+  /**
+   * A draw that hands out `draws`, one array per call, with every byte it does not set at 255 (a
+   * byte that is always rejected). It throws past the last array rather than loop for ever.
+   */
+  function fixedDraws(...draws: readonly (readonly number[])[]): {
+    draw: (bytes: Uint8Array) => void;
+    calls: () => number;
+  } {
+    let call = 0;
+    return {
+      draw: (bytes) => {
+        const next = draws[call];
+        if (next === undefined) throw new Error("drew past the fixed bytes");
+        bytes.fill(255);
+        bytes.set(next);
+        call += 1;
+      },
+      calls: () => call,
+    };
+  }
+
+  it("maps each accepted byte onto the alphabet modulo 62", () => {
+    // 62 and 123 wrap to A and 9; 247 is the last byte accepted, and 247 - 3 * 62 = 61.
+    expect(randomSuffix(fixedDraws([0, 1, 61, 62, 123, 247]).draw)).toBe("AB9A99");
+  });
+
+  it("skips a byte of 248 or more rather than reduce it, so no character is favored", () => {
+    expect(randomSuffix(fixedDraws([248, 249, 255, 0, 1, 2, 3, 4, 5]).draw)).toBe("ABCDEF");
+  });
+
+  it("draws again when a whole draw is rejected", () => {
+    const draws = fixedDraws([], [7, 8, 9, 10, 11, 12]);
+    expect(randomSuffix(draws.draw)).toBe("HIJKLM");
+    expect(draws.calls()).toBe(2);
+  });
+
+  it("stops at six characters when a draw accepts more", () => {
+    expect(randomSuffix(fixedDraws([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]).draw)).toBe("ABCDEF");
+  });
+});
 
 describe("generateControlId (D-12)", () => {
   it("returns a 23-character string", () => {

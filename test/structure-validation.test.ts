@@ -41,7 +41,7 @@ import {
   validateMessageStructure,
   type StructureFinding,
 } from "../src/index.js";
-import { GENERATED_STRUCTURE_SCHEMAS } from "../src/parser/generated/message-structure-schemas.js";
+import { generatedStructureSchemas } from "../src/parser/generated/message-structure-schemas.js";
 import type {
   PublishedStructureSchema,
   StructureExpectationNode,
@@ -49,6 +49,8 @@ import type {
 import { validateSegmentSequence } from "../src/structure/validate.js";
 import { findPublishedStructureSchema } from "../src/structure/schemas.js";
 import { findingsForSchema } from "../src/structure/walk.js";
+
+const GENERATED_STRUCTURE_SCHEMAS = generatedStructureSchemas();
 
 /** Every fixture shares one header; only MSH-9 changes. */
 function message(messageType: string, ...segments: readonly string[]): string {

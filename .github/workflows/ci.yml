@@ -72,6 +72,11 @@ jobs:
         run: pnpm test:eager
       - name: Build (examples + kit import the built package)
         run: pnpm build
+      # The cold import budget: a new Node.js process imports dist/index.mjs, twenty times, and the
+      # median must be 15 ms or less on this runner. It is read here rather than on a developer's
+      # machine, where other work moves the number by milliseconds.
+      - name: Cold import budget (pnpm check:cold-import)
+        run: pnpm check:cold-import
       - name: Examples (smoke)
         run: pnpm examples
       # The operator, 2026-11-08: "proceed with hl7 past the wave 2. Do not wait for the 24 hours
