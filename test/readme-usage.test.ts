@@ -59,6 +59,13 @@ function run(source: string, fileName: string): { code: number; stdout: string; 
   return { code: r.status ?? -1, stdout: r.stdout, stderr: r.stderr };
 }
 
+/**
+ * Whether the suite runs on Node. CI also runs it under Bun and under Deno, which resolve modules
+ * and report a missing one in their own ways; the cases that spawn this repository's Node tooling
+ * (`tsx`) or assert Node's resolver run on Node only.
+ */
+const ON_NODE = process.versions["bun"] === undefined && !("Deno" in globalThis);
+
 describe("the README ## Usage example", () => {
   it("AC-HL2: the first block under ## Usage is the TypeScript example, the next its output", () => {
     expect(example?.lang).toBe("ts");
@@ -66,7 +73,7 @@ describe("the README ## Usage example", () => {
     expect(example?.body).toContain(`from ${PUBLISHED_SPECIFIER};`);
   });
 
-  it(
+  it.skipIf(!ON_NODE)(
     "AC-HL2: runs, and prints exactly the output the README shows beside it",
     () => {
       const r = run(example?.body ?? "", "usage.mts");
@@ -105,7 +112,7 @@ describe("the README ## Usage example", () => {
     expect(fixtures.get(message ?? "")).toBeDefined();
   });
 
-  it(
+  it.skipIf(!ON_NODE)(
     "AC-HL3: a changed input value changes the output and leaves the fixture corpus",
     () => {
       const body = example?.body ?? "";

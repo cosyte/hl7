@@ -174,6 +174,13 @@ afterAll(() => {
 // Negative tests: genuinely synthetic, allow-listed content PASSES
 // ---------------------------------------------------------------------------
 
+/**
+ * Whether the suite runs on Node. CI also runs it under Bun and under Deno, which resolve modules
+ * and report a missing one in their own ways; the cases that spawn this repository's Node tooling
+ * (`tsx`) or assert Node's resolver run on Node only.
+ */
+const ON_NODE = process.versions["bun"] === undefined && !("Deno" in globalThis);
+
 describe("phi-scan: synthetic / allow-listed content passes (exit 0)", () => {
   it("a clean synthetic message exits 0", () => {
     const r = scan(
@@ -2881,31 +2888,34 @@ describe("phi-scan: the exit codes and scan roots are hl7's own, and unchanged",
     expect(refused.stdout).not.toContain("OK: no hits");
   });
 
-  it("AC-32: with no engine installed the gate refuses at 2 naming the package, and scans nothing", () => {
-    // AC-32's unhappy path, and AC-45's exit contract on it: 1 is PHI found, so
-    // a gate whose engine is missing may not exit 1. A copy of this caller
-    // outside every node_modules tree is exactly that caller.
-    const orphan = join(tempDir("hl7-phi-no-engine-"), "phi-scan.ts");
-    copyFileSync(SCANNER_PATH, orphan);
-    expect(
-      () => createRequire(orphan).resolve("@cosyte/script-utils/phi-scan"),
-      "premise: the copy must not reach an installed engine",
-    ).toThrow();
+  it.skipIf(!ON_NODE)(
+    "AC-32: with no engine installed the gate refuses at 2 naming the package, and scans nothing",
+    () => {
+      // AC-32's unhappy path, and AC-45's exit contract on it: 1 is PHI found, so
+      // a gate whose engine is missing may not exit 1. A copy of this caller
+      // outside every node_modules tree is exactly that caller.
+      const orphan = join(tempDir("hl7-phi-no-engine-"), "phi-scan.ts");
+      copyFileSync(SCANNER_PATH, orphan);
+      expect(
+        () => createRequire(orphan).resolve("@cosyte/script-utils/phi-scan"),
+        "premise: the copy must not reach an installed engine",
+      ).toThrow();
 
-    // Non-vacuity: with the engine this repo resolves, the payload is a hit.
-    const repo = makeScanRepo({ git: true });
-    writeFileSync(join(repo, "test", "fixtures", "axis.txt"), `note: SSN ${SYMLINK_SSN}\n`);
-    expect(runScannerIn(repo, null).code).toBe(1);
+      // Non-vacuity: with the engine this repo resolves, the payload is a hit.
+      const repo = makeScanRepo({ git: true });
+      writeFileSync(join(repo, "test", "fixtures", "axis.txt"), `note: SSN ${SYMLINK_SSN}\n`);
+      expect(runScannerIn(repo, null).code).toBe(1);
 
-    const r = spawnSync(TSX_BIN, [orphan], { cwd: repo, encoding: "utf8", shell: false });
-    // Stack frames dropped from the message: vitest reads a frame in an assertion
-    // message as its own and chokes on the temp copy's source map.
-    const said = r.stderr.replace(/^\s+at .*$/gm, "").trim();
-    expect(r.status, `stderr: ${said}`).toBe(2);
-    expect(r.stderr).toMatch(/Cannot find (package|module) '@cosyte\/script-utils/);
-    expect(r.stderr).not.toContain("HIT:");
-    expect(r.stdout).not.toContain("OK: no hits");
-  });
+      const r = spawnSync(TSX_BIN, [orphan], { cwd: repo, encoding: "utf8", shell: false });
+      // Stack frames dropped from the message: vitest reads a frame in an assertion
+      // message as its own and chokes on the temp copy's source map.
+      const said = r.stderr.replace(/^\s+at .*$/gm, "").trim();
+      expect(r.status, `stderr: ${said}`).toBe(2);
+      expect(r.stderr).toMatch(/Cannot find (package|module) '@cosyte\/script-utils/);
+      expect(r.stderr).not.toContain("HIT:");
+      expect(r.stdout).not.toContain("OK: no hits");
+    },
+  );
 });
 
 // ---------------------------------------------------------------------------
