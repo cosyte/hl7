@@ -214,6 +214,14 @@ describe("parseStream", () => {
       expect(entry?.raw).toBe(`${MSH_A}\rPID|1`);
     }
     expect(splitBatch(bytes).messages.map((entry) => entry.ok)).toEqual([true]);
+    // An envelope after the bytes is found, so the batch has its header.
+    const enveloped = Buffer.concat([
+      Buffer.from([0xef, 0xbb, 0xbf]),
+      Buffer.from(`BHS|^~\\&|A\r${body}BTS|1\r`, "latin1"),
+    ]);
+    const batch = splitBatch(enveloped);
+    expect(batch.messages.map((entry) => entry.ok)).toEqual([true]);
+    expect(batch.batches[0]?.header?.name).toBe("BHS");
   });
 
   it("yields the message before an unterminated final MSH, then the final one", async () => {
