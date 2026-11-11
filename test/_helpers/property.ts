@@ -105,7 +105,6 @@ export function checkProperty<Ts>(
   env: Env = process.env,
   shrinkLimit: number = SHRINK_LIMIT_MS,
 ): void {
-  if (process.env["MEASURE"] === undefined) return;
   const name = testName();
   const run = resolvePropertyRun(options, env);
   const found = fc.check(property, findParameters<Ts>(run));
@@ -130,7 +129,6 @@ export async function checkAsyncProperty<Ts>(
   env: Env = process.env,
   shrinkLimit: number = SHRINK_LIMIT_MS,
 ): Promise<void> {
-  if (process.env["MEASURE"] === undefined) return;
   const name = testName();
   const run = resolvePropertyRun(options, env);
   const found = await fc.check(property, findParameters<Ts>(run));
