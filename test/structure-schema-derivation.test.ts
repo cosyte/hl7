@@ -41,10 +41,12 @@ import {
   main,
   renderSchemasModule,
 } from "../scripts/generate-message-structures.js";
-import { GENERATED_STRUCTURE_SCHEMAS } from "../src/parser/generated/message-structure-schemas.js";
+import { generatedStructureSchemas } from "../src/parser/generated/message-structure-schemas.js";
 import type { StructureExpectationNode } from "../src/parser/structure-types.js";
 import { MESSAGE_STRUCTURE_DEFINITIONS } from "../src/index.js";
 import { occurrenceBounds } from "../src/structure/walk.js";
+
+const GENERATED_STRUCTURE_SCHEMAS = generatedStructureSchemas();
 
 const REPO_ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const REAL_VENDOR = path.join(REPO_ROOT, VENDOR_DIR);

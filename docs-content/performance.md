@@ -14,8 +14,8 @@ is written down in the performance standard in
 [cosyte/config's decision records](https://github.com/cosyte/config/tree/main/documentation/decisions).
 The numbers for the current release are in [Current numbers](#current-numbers) below.
 
-Two things run today: a benchmark you can run anywhere, and a regression guard that runs in CI on
-every pull request.
+Three things run today: a benchmark you can run anywhere, a regression guard that runs in CI on
+every pull request, and a budget for how long the package takes to import.
 
 What a parsed message holds depends on what you read. `parseHL7` builds a segment's tree the first
 time something reads that segment, so a long report read at a few segments holds those few, and
@@ -72,6 +72,29 @@ The guard does not assert a retained-heap ratio. A `heapUsed` change read withou
 collection measures garbage not yet collected, which varies with the runner's settings and would
 fail with no regression. The absolute memory numbers come from the benchmark, which forces a
 collection.
+
+## The cold import budget
+
+Importing the package costs a process time before it parses anything, which matters most to a
+short-lived process: a command-line tool, a serverless function, a test worker.
+`pnpm check:cold-import` starts a new Node.js process twenty times, each timing one
+`await import()` of the built `dist/index.mjs` with `performance.now()`, and fails when the median
+is over 15 ms. CI runs it on a GitHub-hosted runner after every build, interleaved with imports of
+an empty module so a slow runner shows as a slow empty import.
+
+Three things keep the import inside the budget:
+
+- **Nothing collates at load.** The lists sorted while the package loads (the overlay keys, the
+  builder pairs, the warning codes) are plain ASCII identifiers, sorted by code unit. The first
+  `localeCompare` in a process builds an ICU collator, which cost milliseconds; a test holds that
+  the code unit order is the order a collator gives for every one of those lists.
+- **`node:crypto` is not imported.** A generated message control ID draws its random suffix from
+  the Web Crypto global, `crypto.getRandomValues`, which loads on the first ID rather than on the
+  import.
+- **The generated tables are JSON.** The message structure registry and its provenance are parsed
+  from JSON text at load, which the JSON parser reads far faster than the same tables compiled as
+  JavaScript. The published structure schemas, the largest table, are parsed on the first
+  `validateMessageStructure` call rather than at import.
 
 ## What these numbers are not
 

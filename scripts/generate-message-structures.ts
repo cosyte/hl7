@@ -777,13 +777,20 @@ function lit(value: string): string {
   return JSON.stringify(value);
 }
 
-/** Render the array of expectation objects for one entry. */
-function renderExpectedGroups(segments: readonly string[]): string {
-  if (segments.length === 0) return "[]";
-  const items = segments
-    .map((s) => `{ name: ${lit(s)}, anchorSegments: [${lit(s)}], requiredSegment: ${lit(s)} }`)
-    .join(", ");
-  return `[${items}]`;
+/**
+ * Render a table as `JSON.parse` of a raw template literal, one row of JSON per
+ * line. A large table written as a JavaScript literal is compiled and run as
+ * code on every import of the package; as one string it is read in a single
+ * pass and handed to the JSON parser, which costs a fraction of that. The raw
+ * template keeps every JSON escape as written, so the only text it cannot carry
+ * is a backtick or `${`, and no vendored value holds either.
+ */
+export function jsonTable(rows: readonly unknown[], type: string): string {
+  const text = `[\n${rows.map((row) => JSON.stringify(row)).join(",\n")}\n]`;
+  if (text.includes("`") || text.includes("${")) {
+    throw new Error("generate:structures: a table value holds a backtick or `${`");
+  }
+  return `JSON.parse(String.raw\`${text}\`) as ${type}`;
 }
 
 /** Render the generated registry module. Formatted with the repo's prettier. */
@@ -791,48 +798,47 @@ export async function renderRegistryModule(
   model: GeneratedRegistry,
   repoRoot: string,
 ): Promise<string> {
-  const entries = model.entries
-    .map(
-      (e) => `{
-    messageCode: ${lit(e.messageCode)},
-    triggerEvents: [${e.triggerEvents.map(lit).join(", ")}],
-    expectedGroups: ${renderExpectedGroups(e.requiredSegments)},
-    requiredSegments: [${e.requiredSegments.map(lit).join(", ")}],
-    structureId: ${lit(e.structureId)},
-    structureIds: [${e.structureIds.map(lit).join(", ")}],
-    derivation: ${lit(e.derivation)},
-    retainedReason: ${lit(e.retainedReason)},
-  }`,
-    )
-    .join(",\n  ");
+  const entries = model.entries.map((e) => ({
+    messageCode: e.messageCode,
+    triggerEvents: e.triggerEvents,
+    expectedGroups: e.requiredSegments.map((s) => ({
+      name: s,
+      anchorSegments: [s],
+      requiredSegment: s,
+    })),
+    requiredSegments: e.requiredSegments,
+    structureId: e.structureId,
+    structureIds: e.structureIds,
+    derivation: e.derivation,
+    retainedReason: e.retainedReason,
+  }));
 
-  const files = model.files
-    .map(
-      (f) =>
-        `{ path: ${lit(f.path)}, bytes: ${String(f.bytes)}, sha256: ${lit(f.sha256)}, url: ${lit(f.url)} }`,
-    )
-    .join(",\n  ");
+  const files = model.files.map((f) => ({
+    path: f.path,
+    bytes: f.bytes,
+    sha256: f.sha256,
+    url: f.url,
+  }));
 
-  const families = model.families
-    .map(
-      (f) => `{ structureId: ${lit(f.structureId)}, members: [${f.members.map(lit).join(", ")}] }`,
-    )
-    .join(",\n  ");
+  const families = model.families.map((f) => ({
+    structureId: f.structureId,
+    members: f.members,
+  }));
 
-  const pairs = model.pairs
-    .map(
-      (p) =>
-        `{ messageCode: ${lit(p.messageCode)}, triggerEvent: ${lit(p.triggerEvent)}, structureId: ${lit(p.structureId)} }`,
-    )
-    .join(",\n  ");
-
-  const retained = model.entries
-    .filter((e) => e.derivation === "retained-transcription")
-    .map(
-      (e) =>
-        `{ messageCode: ${lit(e.messageCode)}, triggerEvent: ${lit(e.triggerEvents[0] ?? "")}, structureId: "" }`,
-    )
-    .join(",\n  ");
+  const pairs = [
+    ...model.pairs.map((p) => ({
+      messageCode: p.messageCode,
+      triggerEvent: p.triggerEvent,
+      structureId: p.structureId,
+    })),
+    ...model.entries
+      .filter((e) => e.derivation === "retained-transcription")
+      .map((e) => ({
+        messageCode: e.messageCode,
+        triggerEvent: e.triggerEvents[0] ?? "",
+        structureId: "",
+      })),
+  ];
 
   const source = `${GENERATED_HEADER}
 
@@ -841,10 +847,12 @@ import type {
   StructureRegistryProvenance,
 } from "../structure-types.js";
 
-/** The derived registry, one entry per (message code, referenced structure). */
-export const GENERATED_MESSAGE_STRUCTURE_DEFINITIONS: readonly MessageStructureDefinition[] = [
-  ${entries},
-];
+/**
+ * The derived registry, one entry per (message code, referenced structure).
+ * Written as JSON and parsed at import: the JSON parser reads it far faster
+ * than the same table compiled as JavaScript.
+ */
+export const GENERATED_MESSAGE_STRUCTURE_DEFINITIONS: readonly MessageStructureDefinition[] = ${jsonTable(entries, "readonly MessageStructureDefinition[]")};
 
 /** Where every expectation above came from. */
 export const GENERATED_STRUCTURE_REGISTRY_PROVENANCE: StructureRegistryProvenance = {
@@ -857,15 +865,9 @@ export const GENERATED_STRUCTURE_REGISTRY_PROVENANCE: StructureRegistryProvenanc
     tree: ${lit(model.publication.tree)},
   },
   snapshotTakenAt: ${lit(model.snapshotTakenAt)},
-  files: [
-  ${files},
-  ],
-  families: [
-  ${families},
-  ],
-  pairs: [
-  ${pairs},${retained === "" ? "" : `\n  ${retained},`}
-  ],
+  files: ${jsonTable(files, 'StructureRegistryProvenance["files"]')},
+  families: ${jsonTable(families, 'StructureRegistryProvenance["families"]')},
+  pairs: ${jsonTable(pairs, 'StructureRegistryProvenance["pairs"]')},
 };
 `;
 
@@ -889,39 +891,46 @@ const SCHEMAS_HEADER = `/**
  * publication's unbounded marker carried through as itself.
  */`;
 
-/** Render one ordered node as a TypeScript object literal. */
-function renderNode(node: DerivedStructureNode): string {
-  const max = node.max === UNBOUNDED ? lit(UNBOUNDED) : String(node.max);
-  return (
-    `{ name: ${lit(node.name)}, kind: ${lit(node.kind)}, position: ${String(node.position)}, ` +
-    `min: ${String(node.min)}, max: ${max}, parent: ${String(node.parent)} }`
-  );
-}
-
 /** Render the generated ordered-expectation module. Formatted with the repo's prettier. */
 export async function renderSchemasModule(
   model: GeneratedRegistry,
   repoRoot: string,
 ): Promise<string> {
-  const schemas = model.schemas
-    .map(
-      (s) => `{
-    structureId: ${lit(s.structureId)},
-    nodes: [
-      ${s.nodes.map(renderNode).join(",\n      ")},
-    ],
-  }`,
-    )
-    .join(",\n  ");
+  const schemas = model.schemas.map((s) => ({
+    structureId: s.structureId,
+    nodes: s.nodes.map((node) => ({
+      name: node.name,
+      kind: node.kind,
+      position: node.position,
+      min: node.min,
+      max: node.max,
+      parent: node.parent,
+    })),
+  }));
 
   const source = `${SCHEMAS_HEADER}
 
 import type { PublishedStructureSchema } from "../structure-types.js";
 
-/** Every published structure the snapshot carries, with its ordered elements. */
-export const GENERATED_STRUCTURE_SCHEMAS: readonly PublishedStructureSchema[] = [
-  ${schemas},
-];
+/**
+ * Every published structure the snapshot carries, with its ordered elements.
+ *
+ * A function rather than a constant, so the table is parsed when a structure is
+ * first validated rather than on every import of the package: as a constant it
+ * was most of the import's cost. Each call parses a fresh array; the caller
+ * keeps the one it needs.
+ *
+ * @example
+ * \`\`\`ts
+ * const byId = new Map(generatedStructureSchemas().map((s) => [s.structureId, s]));
+ * console.log(byId.get("ADT_A02")?.nodes[0]?.name); // "MSH"
+ * \`\`\`
+ *
+ * @internal
+ */
+export function generatedStructureSchemas(): readonly PublishedStructureSchema[] {
+  return ${jsonTable(schemas, "readonly PublishedStructureSchema[]")};
+}
 `;
 
   const options = (await resolveConfig(path.join(repoRoot, SCHEMAS_MODULE_PATH))) ?? {};

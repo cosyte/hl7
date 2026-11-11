@@ -101,6 +101,7 @@
     "lint:fix": "cosyte-process lint --fix",
     "format": "cosyte-process format",
     "format:check": "cosyte-process format --check",
+    "check:cold-import": "node scripts/check-cold-import.mjs",
     "check:docs": "tsx scripts/check-docs.ts",
     "check:no-emdash": "cosyte-no-emdash",
     "check:no-internal-refs": "cosyte-internal-refs",
