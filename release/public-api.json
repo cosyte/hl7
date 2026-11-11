@@ -3803,7 +3803,7 @@
     {
       "name": "profiles",
       "kind": "variable",
-      "type": "{ readonly athena: typeof athena; readonly cerner: typeof cerner; readonly epic: typeof epic; readonly genericLab: typeof genericLab; readonly meditech: typeof meditech; readonly philips: typeof philips; readonly va: typeof va; readonly visage: typeof visage; }",
+      "type": "{ readonly athena: ReturnType<typeof athena>; readonly cerner: ReturnType<typeof cerner>; readonly epic: ReturnType<typeof epic>; readonly genericLab: ReturnType<typeof genericLab>; readonly meditech: ReturnType<typeof meditech>; readonly philips: ReturnType<typeof philips>; readonly va: ReturnType<typeof va>; readonly visage: ReturnType<typeof visage>; }",
       "members": []
     },
     {
