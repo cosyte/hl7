@@ -1,14 +1,17 @@
-// How much memory the streaming readers hold, against the largest item they read: the reading
-// that shows `readMessages` holds about one message, and `readSegments` about one segment, however
-// large the source is.
+// How much memory the streaming readers hold, against the largest item they read, and a gate on
+// it: `readMessages` over a batch should hold about one message however large the batch is.
+// `parseStream` on the same batch and `readSegments` over one large message are read and reported,
+// not judged (see GATED_READERS).
 //
 //   pnpm build && node bench/stream-memory.mjs --target dist/index.mjs --mib 100 \
 //     --out stream-memory.json --summary stream-memory.md
 //
-// The 100 MiB reading runs on a GitHub-hosted runner, in the bench-reading workflow, never on a
-// shared developer machine; `--mib 1` is a quick local check. Every message is synthetic and built
-// here from an index, as the source produces it: the source is a generator of 64 KiB chunks, so
-// the batch is never held whole by anything but the reader under test.
+// It exits 1 when a gated reader's peak is more than PEAK_MULTIPLE times the largest item it read,
+// and 2 when a reading cannot be judged (a reader read nothing, or failed an item). The 100 MiB reading
+// runs on a GitHub-hosted runner, in the stream-memory workflow, never on a shared developer
+// machine; `--mib 1` is a quick local check. Every message is synthetic and built here from an
+// index, as the source produces it: the source is a generator of 64 KiB chunks, so the batch is
+// never held whole by anything but the reader under test.
 //
 // Each reader reads its source three times: a short read to warm it up, a timed read with no
 // collection forced, then a read that takes a full collection every few items and reads the heap
@@ -27,27 +30,63 @@ import { adtMessage, documentMessage, oruMessage } from "./parse.bench.mjs";
 const MIB = 1024 * 1024;
 const CHUNK = 64 * 1024;
 
-const { values } = parseArgs({
-  options: {
-    target: { type: "string", default: "dist/index.mjs" },
-    mib: { type: "string", default: "1" },
-    out: { type: "string" },
-    summary: { type: "string" },
-  },
-});
+/**
+ * The most a streaming reader may hold at its peak, as a multiple of the largest item it read: the
+ * item itself, the text it was read from, and room for the reader's own state. A reader that
+ * buffered its source would hold toward all of it, far past this on a 100 MiB source. The absolute
+ * budgets of the parse benchmarks live in @cosyte/bench's budgets file; this ratio is not a measure
+ * that file holds, so it is written here.
+ */
+export const PEAK_MULTIPLE = 3;
 
-// A full collection before each reading, as test/perf/parse-memory.perf.ts takes one.
-setFlagsFromString("--expose-gc");
-const gc = runInNewContext("gc");
+/**
+ * The readers the gate judges: `readMessages`, over the 100 MiB batch. Two others are measured and
+ * reported, not judged, from four stream-memory runs on GitHub-hosted runners (43063981717,
+ * 43064467751, 43066398448 and 43067421821), where `readMessages` held 1.96 to 2.08 times its
+ * largest message:
+ *
+ * - `parseStream`, the older message reader, held 2.99 to 3.98 times the largest message on the
+ *   same batch, at and over the limit. Judging it is a change to `parseStream` first.
+ * - `readSegments` held 1.82 to 3.41 times its largest segment. That segment is 256 KiB, and what
+ *   the reader and its source hold besides it (a few 64 KiB chunks and the text they decode to) is
+ *   not small beside it, so the ratio moves by more than the limit leaves room for. Judging it
+ *   needs a source whose largest segment dwarfs that, which this file does not build yet.
+ */
+export const GATED_READERS = Object.freeze(["readMessages"]);
 
-const hl7 = await import(pathToFileURL(resolve(values.target)).href);
-const total = Number(values.mib) * MIB;
-
-/** Heap and array buffers held now, after a full collection. */
-function held() {
-  gc();
-  const usage = process.memoryUsage();
-  return usage.heapUsed + usage.arrayBuffers;
+/**
+ * Judge readings against the limit. Exit code 0 when every gated reader is at or under `multiple`
+ * times its largest item, 1 when one is over, and 2 when a reading cannot be judged: no gated
+ * reading, a gated reader that read nothing or no bytes, or one that failed an item, whose reading
+ * then misses that item's memory. A reading that cannot be judged outranks a finding. A reader not
+ * in `gated` is listed with its ratio and never changes the exit code.
+ */
+export function judge(rows, multiple = PEAK_MULTIPLE, gated = GATED_READERS) {
+  const lines = [];
+  let over = false;
+  let unjudged = !rows.some((r) => gated.includes(r.reader));
+  if (unjudged) lines.push("no gated reader was measured");
+  for (const r of rows) {
+    const ratio = r.largestItemBytes > 0 ? r.peak / r.largestItemBytes : Number.NaN;
+    if (!gated.includes(r.reader)) {
+      lines.push(
+        `${r.reader}: peak ${ratio.toFixed(2)} times the largest item, measured, not gated`,
+      );
+    } else if (r.count === 0 || r.largestItemBytes === 0) {
+      unjudged = true;
+      lines.push(`${r.reader}: read nothing, so there is nothing to judge`);
+    } else if (r.failed > 0) {
+      unjudged = true;
+      lines.push(`${r.reader}: ${String(r.failed)} item(s) failed, so the reading misses them`);
+    } else {
+      const verdict = ratio > multiple ? "over" : "within";
+      if (ratio > multiple) over = true;
+      lines.push(
+        `${r.reader}: peak ${ratio.toFixed(2)} times the largest item, ${verdict} the limit of ${String(multiple)}`,
+      );
+    }
+  }
+  return { exitCode: unjudged ? 2 : over ? 1 : 0, lines };
 }
 
 /**
@@ -100,10 +139,11 @@ async function* messageChunks(bytes, onSegment) {
 
 /**
  * Read every item twice: once timed, with no collection forced, and once sampling memory every
- * `every` items. `read` makes a fresh reader over a fresh source each time. A first, short read
- * warms the reader up, so the code it compiles is not counted as memory it holds.
+ * `every` items. `read` makes a fresh reader over a fresh source of `total` bytes each time, and
+ * `held` reads the memory held after a full collection. A first, short read warms the reader up, so
+ * the code it compiles is not counted as memory it holds.
  */
-async function measure(read, every, onItem) {
+async function measure(read, every, onItem, total, held) {
   for await (const item of read(Math.min(total, MIB / 4))) onItem(item);
   const start = performance.now();
   let count = 0;
@@ -124,86 +164,131 @@ async function measure(read, every, onItem) {
   return { count, ms, peak };
 }
 
-const readings = [];
-
-{
-  let largest = 0;
-  let source = 0;
-  let failed = 0;
-  const result = await measure(
-    (bytes) => {
-      largest = 0;
-      source = 0;
-      failed = 0;
-      return hl7.readMessages(
-        batchChunks(bytes, (n) => {
-          largest = Math.max(largest, n);
-          source += n;
-        }),
-      );
+/** Measure every reader on a source of `mib` MiB from the build at `target`, and judge them. */
+async function main() {
+  const { values } = parseArgs({
+    options: {
+      target: { type: "string", default: "dist/index.mjs" },
+      mib: { type: "string", default: "1" },
+      out: { type: "string" },
+      summary: { type: "string" },
     },
-    200,
-    (item) => {
-      if (!item.ok) failed += 1;
-      // Read the header and the patient, as a consumer would.
-      else item.message.get("PID.3.1");
-    },
-  );
-  readings.push({
-    reader: "readMessages",
-    source: `a batch of ${String(result.count)} messages`,
-    sourceBytes: source,
-    largestItemBytes: largest,
-    failed,
-    ...result,
   });
+
+  // A full collection before each reading, as test/perf/parse-memory.perf.ts takes one.
+  setFlagsFromString("--expose-gc");
+  const gc = runInNewContext("gc");
+  /** Heap and array buffers held now, after a full collection. */
+  const held = () => {
+    gc();
+    const usage = process.memoryUsage();
+    return usage.heapUsed + usage.arrayBuffers;
+  };
+
+  const hl7 = await import(pathToFileURL(resolve(values.target)).href);
+  const total = Number(values.mib) * MIB;
+  const readings = [];
+
+  // The two message readers over the same batch: `readMessages`, and the older `parseStream`.
+  for (const reader of ["readMessages", "parseStream"]) {
+    let largest = 0;
+    let source = 0;
+    let failed = 0;
+    const result = await measure(
+      (bytes) => {
+        largest = 0;
+        source = 0;
+        failed = 0;
+        return hl7[reader](
+          batchChunks(bytes, (n) => {
+            largest = Math.max(largest, n);
+            source += n;
+          }),
+        );
+      },
+      200,
+      (item) => {
+        if (!item.ok) failed += 1;
+        // Read the patient, as a consumer would.
+        else item.message.get("PID.3.1");
+      },
+      total,
+      held,
+    );
+    readings.push({
+      reader,
+      source: `a batch of ${String(result.count)} messages`,
+      sourceBytes: source,
+      largestItemBytes: largest,
+      failed,
+      ...result,
+    });
+  }
+
+  {
+    let largest = 0;
+    let source = 0;
+    const result = await measure(
+      (bytes) => {
+        largest = 0;
+        source = 0;
+        return hl7.readSegments(
+          messageChunks(bytes, (n) => {
+            largest = Math.max(largest, n);
+            source += n;
+          }),
+        );
+      },
+      2000,
+      (item) => item.segment.type,
+      total,
+      held,
+    );
+    readings.push({
+      reader: "readSegments",
+      source: `one message of ${String(result.count)} segments`,
+      sourceBytes: source,
+      largestItemBytes: largest,
+      failed: 0,
+      ...result,
+    });
+  }
+
+  const mib = (n) => (n / MIB).toFixed(2);
+  const rows = readings.map((r) => ({
+    ...r,
+    peakToLargest: r.peak / r.largestItemBytes,
+    mibPerSecond: r.sourceBytes / MIB / (r.ms / 1000),
+  }));
+  const verdict = judge(rows);
+  const markdown = [
+    `Node ${process.version}, ${values.mib} MiB source, read in 64 KiB chunks. ` +
+      `The limit: a peak of at most ${String(PEAK_MULTIPLE)} times the largest item.`,
+    "",
+    "| Reader | Source | Source MiB | Largest item MiB | Peak held MiB | Peak / largest | MiB/s |",
+    "| --- | --- | ---: | ---: | ---: | ---: | ---: |",
+    ...rows.map(
+      (r) =>
+        `| ${r.reader} | ${r.source} | ${mib(r.sourceBytes)} | ${mib(r.largestItemBytes)} | ` +
+        `${mib(r.peak)} | ${r.peakToLargest.toFixed(2)} | ${r.mibPerSecond.toFixed(1)} |`,
+    ),
+    "",
+    ...verdict.lines.map((line) => `- ${line}`),
+  ].join("\n");
+
+  console.log(markdown);
+  if (values.out !== undefined) {
+    const document = { peakMultiple: PEAK_MULTIPLE, exitCode: verdict.exitCode, readers: rows };
+    writeFileSync(values.out, `${JSON.stringify(document, null, 2)}\n`);
+  }
+  if (values.summary !== undefined) writeFileSync(values.summary, `${markdown}\n`);
+  process.exitCode = verdict.exitCode;
 }
 
-{
-  let largest = 0;
-  let source = 0;
-  const result = await measure(
-    (bytes) => {
-      largest = 0;
-      source = 0;
-      return hl7.readSegments(
-        messageChunks(bytes, (n) => {
-          largest = Math.max(largest, n);
-          source += n;
-        }),
-      );
-    },
-    2000,
-    (item) => item.segment.type,
-  );
-  readings.push({
-    reader: "readSegments",
-    source: `one message of ${String(result.count)} segments`,
-    sourceBytes: source,
-    largestItemBytes: largest,
-    failed: 0,
-    ...result,
-  });
+// Run only as a program: a test imports this file for `judge` and `PEAK_MULTIPLE`.
+if (
+  process.argv[1] !== undefined &&
+  import.meta.url === pathToFileURL(resolve(process.argv[1])).href
+) {
+  await main();
 }
-
-const mib = (n) => (n / MIB).toFixed(2);
-const rows = readings.map((r) => ({
-  ...r,
-  peakToLargest: r.peak / r.largestItemBytes,
-  mibPerSecond: r.sourceBytes / MIB / (r.ms / 1000),
-}));
-const markdown = [
-  `Node ${process.version}, ${values.mib} MiB source, read in 64 KiB chunks.`,
-  "",
-  "| Reader | Source | Source MiB | Largest item MiB | Peak held MiB | Peak / largest | MiB/s |",
-  "| --- | --- | ---: | ---: | ---: | ---: | ---: |",
-  ...rows.map(
-    (r) =>
-      `| ${r.reader} | ${r.source} | ${mib(r.sourceBytes)} | ${mib(r.largestItemBytes)} | ` +
-      `${mib(r.peak)} | ${r.peakToLargest.toFixed(2)} | ${r.mibPerSecond.toFixed(1)} |`,
-  ),
-].join("\n");
-
-console.log(markdown);
-if (values.out !== undefined) writeFileSync(values.out, `${JSON.stringify(rows, null, 2)}\n`);
-if (values.summary !== undefined) writeFileSync(values.summary, `${markdown}\n`);

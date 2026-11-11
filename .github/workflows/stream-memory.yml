@@ -1,0 +1,59 @@
+name: stream-memory
+
+# The streaming readers' memory gate: `readMessages` over a 100 MiB batch, read in 64 KiB chunks on
+# a GitHub-hosted runner, with `parseStream` on the same batch and `readSegments` over one 100 MiB
+# message read and reported, not judged. bench/stream-memory.mjs exits 1 when the judged reader's
+# peak is more than PEAK_MULTIPLE (3) times the largest message it read, and 2 when the reading
+# cannot be judged; either fails this job.
+#
+# It runs on every pull request, with no paths filter, so `stream-memory` can be a required check:
+# a required check whose workflow never starts never reports. The 100 MiB source is built in the
+# process from synthetic messages; never run it at this size on a shared machine.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  stream-memory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - name: Read the streaming readers' peak memory on 100 MiB, and judge it
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="${RUNNER_TEMP}/stream-memory"
+          mkdir -p "${out}"
+          # The summary is written before the exit, so a red run still shows its numbers.
+          trap 'if [ -f "${out}/stream-memory.md" ]; then { echo "### Streaming readers, peak memory ($(git rev-parse HEAD))"; echo; cat "${out}/stream-memory.md"; } >> "${GITHUB_STEP_SUMMARY}"; fi' EXIT
+          node bench/stream-memory.mjs --target dist/index.mjs --mib 100 \
+            --out "${out}/stream-memory.json" --summary "${out}/stream-memory.md"
+      - name: Keep the reading
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: stream-memory
+          path: ${{ runner.temp }}/stream-memory/
+          if-no-files-found: warn
+          retention-days: 30

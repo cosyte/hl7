@@ -1,8 +1,9 @@
 /**
  * Performance-regression guard (roadmap Phase W: performance / throughput bar).
  *
- * This is the **CI-gating** half of Phase W (the human-readable benchmark suite
- * with published numbers is `scripts/bench.ts` → `docs-content/benchmarks.md`).
+ * This is the **CI-gating** half of Phase W (the benchmarks are the
+ * `@cosyte/bench` suite in `bench/parse.bench.mjs` and the streaming memory gate
+ * in `bench/stream-memory.mjs`; `docs-content/performance.md` describes both).
  * Its job is narrow: fail if a future change **silently degrades** parse
  * performance or breaks the HL7-S streaming memory guarantee: without
  * false-alarming across CI runners of wildly different speed and under v8

@@ -5,8 +5,10 @@
 //   pnpm build && pnpm bench:reading --out bench-results/reading.json
 // A base against head comparison, the base built in another checkout:
 //   pnpm bench:compare --base <base checkout>/dist/index.mjs --head dist/index.mjs
-// On a pull request CI runs that comparison in its bench-compare job. It is advisory: it posts its
-// numbers and fails nothing until a calibration on its runner class shows false alarms under 1%.
+// On a pull request CI runs that comparison in its bench-compare job, over the sizes marked
+// compared below, and the bench-reading workflow's large-compare job runs the same comparison over
+// the large sizes, from bench/parse-large.compare.mjs. Both are advisory: they post their numbers
+// and fail nothing until a calibration on their runner class shows false alarms under 1%.
 //
 // The suite is handed the module under test rather than importing it, so one file measures both
 // builds. Every message is synthetic and built here from an index: no file is read, and every name,
@@ -89,28 +91,27 @@ export function documentMessage(i, bytes) {
 // result report; 1 MiB is far past any message a sender writes by hand. `messages` keeps a pass at
 // the small sizes from being one string repeated.
 //
-// The pull request comparison leaves out every size whose warmup does not settle within its 5 s
-// bound in each of its 24 fresh processes; a reading still measures them. On the first comparison,
-// on a 4-CPU GitHub-hosted runner, a 1 MiB call of the dense shape took about 138 ms and both of
-// its cases were skipped (`warmup-unstable`), so the comparison could never be complete. Since the
-// tree was built without spare array capacity a call takes about 70 ms there, which a reading's
-// three processes settle but a 12-round comparison on a developer machine still did not, so that
-// size and both 4 MiB sizes stay out. The 1 MiB document settles: its parse is one slice of the
-// text, and its `toString()` about 10 ms.
-const SIZES = [
+// The sizes marked `large` are compared in their own job, bench-reading's large-compare, from
+// bench/parse-large.compare.mjs, and left out of the shared bench-compare job. Their calls are
+// long enough to warm up on @cosyte/bench's large-case plan (one call at a time until two windows
+// of five calls agree, at most 30 s), and twelve rounds of them do not fit the shared job's 600
+// second budget on top of the small sizes. The 1 MiB document stays in the shared job: its parse is
+// one slice of the text, and its `toString()` is short. docs-content/performance.md gives the
+// large comparison's measured false alarm rate.
+export const SIZES = [
   { label: "ADT^A01, 280 B", messages: 64, build: (i) => adtMessage(i) },
   { label: "ORU^R01, 32 KiB", messages: 8, build: (i) => oruMessage(i, 32 * KIB) },
   {
     label: "ORU^R01, 1 MiB",
     messages: 1,
     build: (i) => oruMessage(i, 1024 * KIB),
-    compare: false,
+    large: true,
   },
   {
     label: "ORU^R01, 4 MiB",
     messages: 1,
     build: (i) => oruMessage(i, 4096 * KIB),
-    compare: false,
+    large: true,
   },
   {
     label: "ORU^R01 with a base64 document, 1 MiB",
@@ -121,15 +122,19 @@ const SIZES = [
     label: "ORU^R01 with a base64 document, 4 MiB",
     messages: 1,
     build: (i) => documentMessage(i, 4096 * KIB),
-    compare: false,
+    large: true,
   },
 ];
 
-/** The sizes as @cosyte/bench takes them: each corpus built in code, with its byte count. */
-function sizes() {
-  return SIZES.map((size) => ({
+/**
+ * The sizes as @cosyte/bench takes them: each corpus built in code, with its byte count. In the
+ * suite this file exports (`large` false) every size is read and the large ones are left out of a
+ * comparison; in the large suite (`large` true) only the large sizes are there, each compared.
+ */
+function sizes(large) {
+  return SIZES.filter((size) => !large || size.large === true).map((size) => ({
     label: size.label,
-    compare: size.compare ?? true,
+    compare: large || size.large !== true,
     build: () => {
       const inputs = Array.from({ length: size.messages }, (_, i) => size.build(i));
       return { inputs, bytes: inputs.reduce((n, text) => n + Buffer.byteLength(text), 0) };
@@ -157,28 +162,38 @@ export function readTypical(message) {
 // A parse builds each segment's tree when something first reads it, unless `{ lazy: false }` asks
 // for the whole tree during the parse. A base build from before that option ignores it and builds
 // the whole tree, so every benchmark below compares the head against the eager parse of the base.
-export default defineSuite({
-  name: "@cosyte/hl7 parse",
-  benchmarks: [
+/**
+ * The suite: every size (`large` false), or only the large sizes, each compared (`large` true).
+ * The benchmarks are the same in both, so a large case is the same measurement as in a reading.
+ */
+export function parseSuite(large) {
+  return defineSuite({
+    name: large ? "@cosyte/hl7 parse, large messages" : "@cosyte/hl7 parse",
+    benchmarks: benchmarks(large),
+  });
+}
+
+function benchmarks(large) {
+  return [
     defineBenchmark({
       // The lenient parse every caller starts with. `weigh` runs inside the timed loop, so it
       // reads the version, which a lazy parse has already built, rather than every segment.
       name: "parseHL7",
-      sizes: sizes(),
+      sizes: sizes(large),
       bind: (hl7) => (text) => hl7.parseHL7(text),
       weigh: (message) => message.version.length,
     }),
     defineBenchmark({
       // The parse, then the few segments most readers read.
       name: "parseHL7, then read MSH, PID, PV1 and five OBX",
-      sizes: sizes(),
+      sizes: sizes(large),
       bind: (hl7) => (text) => readTypical(hl7.parseHL7(text)),
       weigh: (found) => found,
     }),
     defineBenchmark({
       // The whole tree built during the parse.
       name: "parseHL7 with { lazy: false }",
-      sizes: sizes(),
+      sizes: sizes(large),
       bind: (hl7) => (text) => hl7.parseHL7(text, { lazy: false }),
       weigh: (message) => message.version.length,
     }),
@@ -186,9 +201,11 @@ export default defineSuite({
       // Parse, then serialize back to text: the round trip an interface engine makes on a message
       // it changes and forwards.
       name: "parseHL7, then toString",
-      sizes: sizes(),
+      sizes: sizes(large),
       bind: (hl7) => (text) => hl7.parseHL7(text).toString(),
       weigh: (text) => text.length,
     }),
-  ],
-});
+  ];
+}
+
+export default parseSuite(false);
