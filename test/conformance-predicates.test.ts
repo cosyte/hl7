@@ -504,6 +504,13 @@ describe("every verb and presence statement decides both ways (criterion 5)", ()
     expect(findingsOf(WITH_DOB, profile)).toEqual([]);
   });
 
+  it('"is valued" at a component reads that component, not the rest of the field', () => {
+    const profile = pid8Profile("C(X/O)", { location: FAMILY, presence: "is valued" });
+    expect(codes(findingsOf(DOE, profile))).toEqual([FINDING_CODES.PROFILE_NOT_PERMITTED]);
+    // PID-5.1 is empty and PID-5.2 is not: the component carries nothing.
+    expect(findingsOf(message("PID|1||MRN1^^^H^MR||^John||19800115|M"), profile)).toEqual([]);
+  });
+
   it("a matches value is anchored over the whole value, not merely found in it", () => {
     const profile = pid8Profile("C(X/O)", { location: FAMILY, verb: "matches", values: ["Do"] });
     // "Do" matches a whole value of "Do" and not the value "Doe".
@@ -965,6 +972,10 @@ describe("a predicate the language does not admit is refused (criterion 9)", () 
     [
       "a subcomponent with no component",
       { location: { segment: "PID", field: 5, subcomponent: 2 }, presence: "is valued" },
+    ],
+    [
+      "a location with a component that is not a position",
+      { location: { segment: "PID", field: 5, component: 0 }, presence: "is valued" },
     ],
     [
       "a comparison whose location stops at the segment",

@@ -69,6 +69,13 @@ describe("text/render: renderText: highlight (§2.7.1 \\H\\/\\N\\)", () => {
       { text: "emphasis to end", highlighted: true },
     ]);
   });
+
+  it("opens no empty run at a boundary with no text before it", () => {
+    const r = renderText("\\H\\\\N\\\\H\\loud\\N\\");
+    expect(r.text).toBe("loud");
+    expect(r.runs).toEqual([{ text: "loud", highlighted: true }]);
+    expect(renderText("").runs).toEqual([]);
+  });
 });
 
 describe("text/render: renderText: formatting commands (§2.7.6, FT)", () => {
