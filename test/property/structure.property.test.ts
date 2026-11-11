@@ -140,7 +140,13 @@ describe("AC14: structural findings are additive warnings and never a refusal", 
       fc.property(
         fc.constantFrom(...RECOGNIZED_PAIRS),
         fc.uniqueArray(fc.constantFrom(...SEGMENT_POOL), { maxLength: 6 }),
-        fc.string({ minLength: 4, maxLength: 24 }).filter((s) => !/[|^~\\&\r\n]/.test(s)),
+        // The payload carries a marker no warning's own wording holds. Without it a random string
+        // can be a piece of the fixed text: "truc" is inside "truncated", and a fresh seed found it
+        // (seed -1291013738, path 94:1:0:0), failing the check with no payload in the message at all.
+        fc
+          .string({ minLength: 4, maxLength: 24 })
+          .filter((s) => !/[|^~\\&\r\n]/.test(s))
+          .map((s) => `ZQ7X${s}`),
         ([code, trigger], segments, payload) => {
           const lines = [
             `MSH|^~\\&|APP|FAC|APP2|FAC2|20250102||${trigger === "" ? code : `${code}^${trigger}`}|MSGID1|P|2.5.1`,
