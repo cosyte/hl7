@@ -33,5 +33,13 @@ export default cosyteStryker({
     // mutants, estimated by StrykerJS at 94% of a run of about 20 hours on 15 workers. They are left
     // out until the suite can afford them; the score and its floor are of the other mutants.
     ignoreStatic: true,
+    // A mutant times out when a test takes longer than timeoutFactor times its first, unmutated
+    // run plus timeoutMS. At StrykerJS's defaults (1.5 and 5,000 ms), TIMEOUTS_BEFORE of the full
+    // run's mutants timed out on hosted runners (2026-11-11), and a mutant near that line can be a
+    // timeout on one run and a survivor on the next, which moves a full score the ratchet compares
+    // exactly. A wider margin lets a slow mutant that still finishes finish every time, so only a
+    // mutant that never ends times out, and the score does not move on the runner's load.
+    timeoutFactor: 3,
+    timeoutMS: 10_000,
   },
 });
