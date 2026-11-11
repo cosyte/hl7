@@ -130,9 +130,14 @@ jobs:
           "${RUNNER_TEMP}/actionlint" -color "${files[@]}"
           echo "actionlint clean over ${#files[@]} kit workflow file(s)."
 
-  # The repository's documents, each graded by the shared checker @cosyte/script-utils ships: the
-  # README against the house skeleton and npm's size limit, CLAUDE.md against the card spec, and
-  # the package.json description against the catalog of our libraries.
+  # The repository's documents, each graded by a shared checker: the README against the house
+  # skeleton and npm's size limit, CLAUDE.md against the card spec, the package.json description
+  # against the catalog of our libraries (all three from @cosyte/script-utils), docs-content/
+  # against the docs-content standard's structure (cosyte-docs-content, @cosyte/script-utils), and
+  # the generated API reference under docs-content/api/ against a fresh generation from the TSDoc
+  # of both entry points (cosyte-docs-reference, @cosyte/process). The last fails when a committed
+  # page differs, when an export has no TSDoc summary, or when a TSDoc comment holds a heading:
+  # regenerate with `pnpm docs:reference` and commit the pages with the change that moved them.
   documents:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -149,3 +154,5 @@ jobs:
       - run: pnpm check:readme
       - run: pnpm check:claude-card
       - run: pnpm check:catalog
+      - run: pnpm check:docs-content
+      - run: pnpm check:docs-reference

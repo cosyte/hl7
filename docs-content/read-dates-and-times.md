@@ -243,11 +243,11 @@ reports no timestamp and no ambiguity.
 
 ## Reference
 
-- [`TS`](./api/README.md#ts), [`DateParts`](./api/README.md#dateparts),
-  [`DtmAmbiguity`](./api/README.md#dtmambiguity)
-- [`parseDtm`](./api/README.md#parsedtm), [`formatDtm`](./api/README.md#formatdtm),
-  [`toObject`](./api/README.md#toobject), [`toISO`](./api/README.md#toiso),
-  [`toDate`](./api/README.md#todate), [`dtmToDate`](./api/README.md#dtmtodate)
-- [`BUILTIN_DATE_FALLBACKS`](./api/README.md#builtin_date_fallbacks),
-  [`AMBIGUOUS_DATE_ORDER`](./api/README.md#ambiguous_date_order),
+- [`TS`](./api/src/README.md#ts), [`DateParts`](./api/src/README.md#dateparts),
+  [`DtmAmbiguity`](./api/src/README.md#dtmambiguity)
+- [`parseDtm`](./api/src/README.md#parsedtm), [`formatDtm`](./api/src/README.md#formatdtm),
+  [`toObject`](./api/src/README.md#toobject), [`toISO`](./api/src/README.md#toiso),
+  [`toDate`](./api/src/README.md#todate), [`dtmToDate`](./api/src/README.md#dtmtodate)
+- [`BUILTIN_DATE_FALLBACKS`](./api/src/README.md#builtin_date_fallbacks),
+  [`AMBIGUOUS_DATE_ORDER`](./api/src/README.md#ambiguous_date_order),
   [Date token grammar](./date-token-grammar.md)

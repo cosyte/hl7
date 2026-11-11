@@ -534,7 +534,7 @@ describe("link refusals", () => {
 /**
  * Links into the generated API reference. The reference lives one level down, in
  * `docs-content/api/`, which the reference generator owns: a how-to guide links the entries it
- * uses as `./api/README.md#parsehl7`. Such a link names a FILE and an ANCHOR, and both break
+ * uses as `./api/src/README.md#parsehl7`. Such a link names a FILE and an ANCHOR, and both break
  * silently when an export is renamed or removed and the reference is regenerated, so the gate
  * resolves both. The anchor is the heading's slug as the docs site computes it: lower case, the
  * punctuation dropped, spaces turned to hyphens, and a repeated heading numbered from `-1`.
@@ -558,7 +558,7 @@ describe("links into the generated reference", () => {
   }
 
   it("accepts a link to a reference page and one of its headings", () => {
-    const r = linkTo(newTree(), "./api/README.md#parsehl7");
+    const r = linkTo(newTree(), "./api/src/README.md#parsehl7");
     expect(r.output).toContain("check-docs: OK");
     expect(r.code).toBe(0);
   });
@@ -578,9 +578,9 @@ describe("links into the generated reference", () => {
   });
 
   it("refuses an anchor no heading on the reference page carries", () => {
-    const r = linkTo(newTree(), "./api/README.md#parsehl8");
+    const r = linkTo(newTree(), "./api/src/README.md#parsehl8");
     expect(r.code).not.toBe(0);
-    expect(r.output).toContain("[the reference](./api/README.md#parsehl8)");
+    expect(r.output).toContain("[the reference](./api/src/README.md#parsehl8)");
     expect(r.output).toContain("names no heading on that reference page");
   });
 
@@ -638,7 +638,7 @@ describe("links into the generated reference", () => {
   });
 
   it("resolves a page two folders down, where the generator puts a namespace", () => {
-    const r = linkTo(newTree(), "./api/@cosyte/namespaces/text.md#references");
+    const r = linkTo(newTree(), "./api/src/namespaces/text.md#references");
     expect(r.output).toContain("check-docs: OK");
     expect(r.code).toBe(0);
   });

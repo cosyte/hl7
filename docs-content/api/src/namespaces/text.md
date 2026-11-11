@@ -15,16 +15,16 @@ text.decode("Line one\\.br\\Line two"); // "Line one\nLine two"
 
 ### decode
 
-Renames and re-exports [decodeText](../../README.md#decodetext)
+Renames and re-exports [decodeText](../README.md#decodetext)
 
 ***
 
 ### encode
 
-Renames and re-exports [encodeText](../../README.md#encodetext)
+Renames and re-exports [encodeText](../README.md#encodetext)
 
 ***
 
 ### render
 
-Renames and re-exports [renderText](../../README.md#rendertext)
+Renames and re-exports [renderText](../README.md#rendertext)

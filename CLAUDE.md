@@ -27,7 +27,7 @@ pnpm examples
 pnpm check:docs
 pnpm check:no-emdash
 pnpm check:no-internal-refs
-pnpm check:documents && pnpm check:process
+pnpm check:documents && pnpm check:docs-content && pnpm check:docs-reference && pnpm check:process
 cd examples/profile-starter-kit && pnpm install --no-frozen-lockfile \
   && pnpm typecheck && pnpm lint && pnpm test && pnpm build
 ```
