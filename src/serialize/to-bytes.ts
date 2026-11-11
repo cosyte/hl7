@@ -103,43 +103,32 @@ export class Hl7EncodeError extends Error {
   }
 }
 
-/** Tables built so far, by decoder label: each is built once, on first use. @internal */
-const tables = new Map<string, ReadonlyMap<number, number>>();
-
 /**
- * The character-to-byte table for a single-byte set, from the reader's own decode of each byte
- * 0x80 to 0xFF: a byte the decode refuses has no character. Bytes below 0x80 are ASCII in every
- * set this serves and are written directly, so they are not in the table. `undefined` when this
- * runtime cannot decode the set.
+ * The character-to-byte table for a single-byte set, from the reader's own decode of bytes 0x80 to
+ * 0xFF. A byte the reader's strict decode refuses decodes here, without `fatal`, as U+FFFD (no
+ * ISO 8859 set defines that character), so it gets no entry. Bytes below 0x80 are ASCII in every
+ * set this serves and are written directly. `undefined` when this runtime cannot decode the set.
+ * Built on each call rather than kept: it is one decode of 128 bytes.
  *
  * @internal
  */
 function tableFor(decoder: string): ReadonlyMap<number, number> | undefined {
-  const cached = tables.get(decoder);
-  if (cached !== undefined) return cached;
-  let decodeByte: (byte: number) => string;
+  const high = Uint8Array.from({ length: 0x80 }, (_, i) => 0x80 + i);
+  let chars: string;
   if (decoder === "windows-1252") {
-    decodeByte = (byte) => decodeWindows1252(Uint8Array.of(byte));
+    chars = decodeWindows1252(high);
   } else {
-    let strict: InstanceType<typeof TextDecoder>;
     try {
-      strict = new TextDecoder(decoder, { fatal: true });
+      chars = new TextDecoder(decoder).decode(high);
     } catch {
       return undefined;
     }
-    decodeByte = (byte) => strict.decode(Uint8Array.of(byte));
   }
   const table = new Map<number, number>();
-  for (let byte = 0x80; byte <= 0xff; byte++) {
-    let text: string;
-    try {
-      text = decodeByte(byte);
-    } catch {
-      continue;
-    }
-    table.set(text.charCodeAt(0), byte);
-  }
-  tables.set(decoder, table);
+  high.forEach((byte, i) => {
+    const unit = chars.charCodeAt(i);
+    if (unit !== 0xfffd) table.set(unit, byte);
+  });
   return table;
 }
 
@@ -246,7 +235,7 @@ export function emitBytes(msg: Hl7Message, options: ToBytesOptions = {}): Buffer
     if (bad !== -1) {
       throw new Hl7EncodeError("UNENCODABLE_CHARACTER", positionOf(text, bad, msg), shown);
     }
-    return Buffer.from(text, "utf8");
+    return Buffer.from(text);
   }
   if (resolution.decoder === "latin1") return writeSingleByte(text, msg, shown, undefined);
   const table = tableFor(resolution.decoder);

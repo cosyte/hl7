@@ -184,7 +184,9 @@ describe("toBytes: refuses a character the set cannot hold", () => {
     expect(err.code).toBe("UNENCODABLE_CHARACTER");
     expect(err.charset).toBe("8859/1");
     expect(err.position).toEqual({ segmentIndex: 1, fieldIndex: 3 });
-    expect(err.message).toContain('"8859/1"');
+    expect(err.message).toBe(
+      'Cannot write segment 1 field 3 in character set "8859/1": it holds a character the set has no byte for.',
+    );
     expect(err.message).not.toContain("Price");
     expect(err.message).not.toContain("€");
     expect(err.name).toBe("Hl7EncodeError");
@@ -209,6 +211,7 @@ describe("toBytes: refuses a character the set cannot hold", () => {
   it("refuses a lone surrogate in UTF-8 rather than writing a replacement character", () => {
     const msg = parseHL7(messageText("UNICODE UTF-8", "NTE|1||A\ud800B"));
     const err = caught(() => msg.toBytes());
+    expect(err.code).toBe("UNENCODABLE_CHARACTER");
     expect(err.position).toEqual({ segmentIndex: 1, fieldIndex: 3 });
     expect(err.charset).toBe("UTF-8");
   });
@@ -220,7 +223,9 @@ describe("toBytes: refuses a character the set cannot hold", () => {
     ["a high surrogate at the end of a field", "AB\ud800"],
   ])("refuses %s in UTF-8", (_name, value) => {
     const msg = parseHL7(messageText("", `NTE|1||${value}`));
-    expect(caught(() => msg.toBytes()).position).toEqual({ segmentIndex: 1, fieldIndex: 3 });
+    const err = caught(() => msg.toBytes());
+    expect(err.code).toBe("UNENCODABLE_CHARACTER");
+    expect(err.position).toEqual({ segmentIndex: 1, fieldIndex: 3 });
   });
 
   it("refuses a character above U+00FF in a set kept as a byte reading", () => {

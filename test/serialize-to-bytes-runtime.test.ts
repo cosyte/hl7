@@ -1,7 +1,6 @@
 /**
- * `Hl7Message.toBytes()` on a runtime without `TextDecoder` for a set. A file of its own, so the
- * writer's character tables start empty and the order of the cases below is the order they are
- * built in. All fixtures are synthetic.
+ * `Hl7Message.toBytes()` on a runtime without `TextDecoder` for a set, which each case here stubs
+ * away. All fixtures are synthetic.
  */
 
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -37,13 +36,6 @@ describe("toBytes: a runtime without a set's decoder", () => {
     withoutTextDecoder();
     const out = parseHL7(messageText("WINDOWS-1252", "Copay 12 €")).toBytes();
     expect(out.at(-2)).toBe(0x80);
-  });
-
-  it("keeps a table it built before the decoder went away", () => {
-    const text = messageText("8859/15", "Copay 12 €");
-    expect(parseHL7(text).toBytes().at(-2)).toBe(0xa4);
-    withoutTextDecoder();
-    expect(parseHL7(text).toBytes().at(-2)).toBe(0xa4);
   });
 
   it("refuses a set it has no table for with UNSUPPORTED_CHARSET rather than guessing", () => {
