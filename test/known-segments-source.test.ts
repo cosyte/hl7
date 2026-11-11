@@ -13,7 +13,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { KNOWN_SEGMENTS } from "../src/index.js";
 import { RETAINED_UNLISTED_SEGMENTS, SEGMENT_INTRODUCED_IN } from "../src/parser/known-segments.js";
@@ -108,7 +108,20 @@ describe("KNOWN_SEGMENTS against its source", () => {
 
   it("holds nothing outside the source except the retained names", () => {
     const outside = [...KNOWN_SEGMENTS].filter((name) => !expected.has(name)).sort();
-    expect(outside).toEqual([...RETAINED_UNLISTED_SEGMENTS].sort());
+    expect(outside).toEqual(["FAM"]);
+    expect([...RETAINED_UNLISTED_SEGMENTS]).toEqual(["FAM"]);
+  });
+
+  // The table is built when its module loads, before any test runs, so a tool
+  // that traces each line to the tests that executed it (mutation testing)
+  // cannot see that the tests above read it. Evaluating the module afresh
+  // inside a test makes that test the one that builds the table.
+  it("a fresh load of the module builds the same table, set and retained names", async () => {
+    vi.resetModules();
+    const fresh = await import("../src/parser/known-segments.js");
+    expect(new Map([...fresh.SEGMENT_INTRODUCED_IN].sort())).toEqual(new Map([...expected].sort()));
+    expect([...fresh.KNOWN_SEGMENTS].sort()).toEqual([...expected.keys(), "FAM"].sort());
+    expect([...fresh.RETAINED_UNLISTED_SEGMENTS]).toEqual(["FAM"]);
   });
 
   it("every name is a three-character standard id, never a Z-segment", () => {
