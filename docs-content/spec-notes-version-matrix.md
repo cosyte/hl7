@@ -1,13 +1,13 @@
 ---
 id: spec-notes-version-matrix
 title: "Spec notes: version-sensitivity matrix"
-description: "How the parser reads HL7 v2.1 through v2.8 structurally without transforming between versions, and when a VERSION_MISMATCH warning is raised."
-sidebar_label: Version-sensitivity (v2.1 to v2.8)
+description: "How the parser reads HL7 v2.1 through v2.9 structurally without transforming between versions, and when a VERSION_MISMATCH warning is raised."
+sidebar_label: Version-sensitivity (v2.1 to v2.9)
 ---
 
 # Spec notes: version-sensitivity matrix
 
-`@cosyte/hl7` parses HL7 v2 messages **structurally across v2.1 to v2.8**. It does
+`@cosyte/hl7` parses HL7 v2 messages **structurally across v2.1 to v2.9**. It does
 **not** transform a message between versions, and it is not a version validator.
 It reads what the sender sent, tolerantly (Postel's Law), and surfaces a
 single `VERSION_MISMATCH` warning only when MSH-12 disagrees with an explicitly
@@ -31,6 +31,25 @@ content it does not yet name.
 | **CWE second-alternate triplet + OIDs** | CWE.10 to CWE.22 added at v2.7 (second-alternate code triplet, coding-system / value-set OIDs) | Preserved verbatim on `extraComponents`, not yet modeled by name (v2 of this library may restore the full shape). |
 | **TS → DTM** | TS (with a now-deprecated degree-of-precision component) superseded by DTM at v2.5 | One parse path covers both: only the timestamp component is read; the deprecated degree-of-precision component is ignored. Precision is recoverable from `.raw` (its string length encodes the precision). |
 | **MSH-21** | Renamed **Conformance Statement ID → Message Profile Identifier** at v2.5 (datatype became EI) | No semantic change to parsing: MSH-21 is read positionally like any field. The rename is naming only; this note records it so the field is not mistaken for two different things. |
+| **New segments** | Each version adds segments: ARV and UAC at v2.6, PRT at v2.7, RXV at v2.8, OH1 to OH4 at v2.9 | Recognized: `KNOWN_SEGMENTS` holds every standard segment name of v2.1 to v2.9, so none of them raises `UNKNOWN_SEGMENT` (see *Which segments are known*). |
+| **v2.9 composite growth** | CX gains CX.11 Security Check and CX.12 Security Check Scheme (10 → 12 components); XPN gains XPN.15 Called By (14 → 15); XPN.6 Degree is listed as ST (see the [standard reference](./spec-notes-primer.md)) | Read, never thrown on: `asCx()` and `asXpn()` return the components they model (10 and 14), and the added ones are read by position like any component (`msg.get("PID.3.11")`, `msg.get("PID.5.15")`). |
+
+## Which segments are known
+
+A segment whose name is neither a standard HL7 v2 segment nor declared by the
+active profile raises `UNKNOWN_SEGMENT`. The standard names are every segment
+any version from v2.1 to v2.9 defines, each with the version that introduced
+it, taken from two published lists the repository vendors under
+`vendor/segment-names/`: the per-version segment tables of hl7apy for v2.1 to
+v2.8.2, and HL7's own v2+ segment list for v2.9. Segments a later version
+dropped (EQL, ERQ, SPR and VTQ leave at v2.6) stay known, since a message of
+the version that defined them is still valid. A test recomputes the list from
+the vendored files and fails if the shipped set differs by one name.
+
+Two limits of the sources, stated rather than hidden: hl7apy carries no v2.7.1,
+so a segment first published there is dated v2.8; and the v2.9 names come from
+the v2+ publication, which continues v2.9, so a name dated v2.9 may have been
+added by a later v2+ ballot.
 
 ## Composite growth: the no-loss contract
 
@@ -76,7 +95,7 @@ information.
 
 ## Known limitations
 
-- **Structural parse, not transformation.** The library reads v2.1 to v2.8
+- **Structural parse, not transformation.** The library reads v2.1 to v2.9
   messages; it does not up-/down-convert between versions.
 - **No full v2.7 CWE model.** CWE.10 to 22 are preserved (above) but not surfaced
   by name; a consumer that needs the second-alternate triplet reads it

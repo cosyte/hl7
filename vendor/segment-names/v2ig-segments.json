@@ -1,0 +1,1161 @@
+{
+  "resourceType": "List",
+  "id": "v2Segments",
+  "status": "current",
+  "mode": "working",
+  "title": "A List of the v2+ segment definitions",
+  "orderedBy": {
+    "coding": {
+      "system": "http://terminology.hl7.org/CodeSystem/list-order",
+      "code": "alphabetic"
+    }
+  },
+  "entry": [
+    {
+      "item": {
+        "reference": "StructureDefinition/ADD",
+        "display": "Addendum"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/BHS",
+        "display": "Batch Header"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/BTS",
+        "display": "Batch Trailer"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/DSC",
+        "display": "Continuation Pointer"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ERR",
+        "display": "Error"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/FHS",
+        "display": "File Header"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/FTS",
+        "display": "File Trailer"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MSA",
+        "display": "Message Acknowledgment"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MSH",
+        "display": "Message Header"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/NTE",
+        "display": "Notes and Comments"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/OVR",
+        "display": "Override"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SFT",
+        "display": "Software"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SGH",
+        "display": "Segment Group Header"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SGT",
+        "display": "Segment Group Trailer"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/UAC",
+        "display": "User Authentication Credential"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/Hxx",
+        "display": "Any segment or segment group"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/EVN",
+        "display": "Event Type"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PID",
+        "display": "Patient Identification"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PV1",
+        "display": "Patient Visit"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PV2",
+        "display": "Patient Visit - Additional Information"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/NK1",
+        "display": "Next of Kin / Associated Parties"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/AL1",
+        "display": "Patient Allergy Information"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/IAM",
+        "display": "Patient Adverse Reaction Information"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/IAR",
+        "display": "Allergy Reaction"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/NPU",
+        "display": "Bed Status Update"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MRG",
+        "display": "Merge Patient Information"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PD1",
+        "display": "Patient Additional Demographic"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/DB1",
+        "display": "Disability"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PDA",
+        "display": "Patient Death and Autopsy"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ARV",
+        "display": "Access Restrictions"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/OH1",
+        "display": "Person Employment Status"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/OH2",
+        "display": "Past or Present Job"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/OH3",
+        "display": "Usual Work"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/OH4",
+        "display": "Combat Zone Work"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/GSP",
+        "display": "Person Gender and Sex"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/GSR",
+        "display": "Recorded Gender and Sex"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/GSC",
+        "display": "Sex Parameter for Clinical Use"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ORC",
+        "display": "Common Order"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/BLG",
+        "display": "Billing"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/OBR",
+        "display": "Observation Request"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/TQ1",
+        "display": "Timing/Quantity"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/TQ2",
+        "display": "Timing/Quantity Relationship"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/IPC",
+        "display": "Imaging Procedure Control"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ODS",
+        "display": "dietary orders, supplements, and preferences"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ODT",
+        "display": "diet tray instructions"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RQD",
+        "display": "Requisition Detail"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RQ1",
+        "display": "Requisition Detail-1"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/BPO",
+        "display": "Blood Product Order"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/BPX",
+        "display": "Blood Product Dispense Status"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/BTX",
+        "display": "Blood Product Transfusion/Disposition"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/DON",
+        "display": "Donation"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/BUI",
+        "display": "Blood Unit information"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RXO",
+        "display": "Pharmacy/Treatment Order"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RXR",
+        "display": "Pharmacy/Treatment Route"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RXC",
+        "display": "Pharmacy/Treatment Component Order"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RXE",
+        "display": "Pharmacy/Treatment Encoded Order"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RXD",
+        "display": "Pharmacy/Treatment Dispense"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RXG",
+        "display": "Pharmacy/Treatment Give"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RXA",
+        "display": "Pharmacy/Treatment Administration"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RXV",
+        "display": "Pharmacy/Treatment Infusion"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/CDO",
+        "display": "Cumulative Dosage"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/DSP",
+        "display": "Display Data"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/QAK",
+        "display": "Query Acknowledgment"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/QID",
+        "display": "Query Identification"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/QPD",
+        "display": "Query Parameter Definition"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/QRI",
+        "display": "Query Response Instance"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RCP",
+        "display": "Response Control Parameter"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RDF",
+        "display": "Table Row Definition"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RDT",
+        "display": "Table Row Data"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/FT1",
+        "display": "Financial Transaction"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/DG1",
+        "display": "Diagnosis"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/DRG",
+        "display": "Diagnosis Related Group"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PR1",
+        "display": "Procedures"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/GT1",
+        "display": "Guarantor"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/IN1",
+        "display": "Insurance"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/IN2",
+        "display": "Insurance Additional Information"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/IN3",
+        "display": "Insurance Additional Information, Certification"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ACC",
+        "display": "Accident"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/UB1",
+        "display": "Uniform Billing 1"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/UB2",
+        "display": "UB92 Data"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ABS",
+        "display": "Abstract"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/BLC",
+        "display": "Blood Code"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RMI",
+        "display": "Risk Management Incident"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/GP1",
+        "display": "Grouping/Reimbursement - Visit"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/GP2",
+        "display": "Grouping/Reimbursement - Procedure Line Item"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/OBX",
+        "display": "Observation/Result"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SPM",
+        "display": "Specimen"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PRT",
+        "display": "Participation Information"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/CSR",
+        "display": "Clinical Study Registration"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/CSP",
+        "display": "Clinical Study Phase"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/CSS",
+        "display": "Clinical Study Data Schedule"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/CTI",
+        "display": "Clinical Trial Identification"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PES",
+        "display": "Product Experience Sender"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PEO",
+        "display": "Product Experience Observation"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PCR",
+        "display": "Possible Causal Relationship"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PSH",
+        "display": "Product Summary Header"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PDC",
+        "display": "Product Detail Country"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/FAC",
+        "display": "Facility"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SHP",
+        "display": "Shipment"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PAC",
+        "display": "Shipment Package"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MFI",
+        "display": "Master File Identification"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MFE",
+        "display": "Master File Entry"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MFA",
+        "display": "Master File Acknowledgment"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/OM1",
+        "display": "General"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/OM2",
+        "display": "Numeric Observation"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/OM3",
+        "display": "Categorical Service/Test/Observation"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/OM4",
+        "display": "Observations That Require Specimens"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/OM5",
+        "display": "Observation Batteries (Sets)"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/OM6",
+        "display": "Observations that are Calculated from Other Observations"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/OM7",
+        "display": "Additional Basic Attributes"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/OMC",
+        "display": "Supporting Clinical Information"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PM1",
+        "display": "Payer Master File"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/MCP",
+        "display": "Master File Coverage Policy"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/DPS",
+        "display": "Diagnosis and Procedure Code"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/LOC",
+        "display": "Location Identification"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/LCH",
+        "display": "Location Characteristic"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/LRL",
+        "display": "Location Relationship"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/LDP",
+        "display": "Location Department"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/LCC",
+        "display": "Location Charge Code"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/CDM",
+        "display": "Charge Description Master"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PRC",
+        "display": "Pricing"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/CM0",
+        "display": "Clinical Study Master"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/CM1",
+        "display": "Clinical Study Phase Master"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/CM2",
+        "display": "Clinical Study Schedule Master"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/DMI",
+        "display": "DRG Master File Information"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/CTR",
+        "display": "Contract Master Outbound"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/CON",
+        "display": "Consent"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/TXA",
+        "display": "Transcription Document Header"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ARQ",
+        "display": "Appointment Request"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SCH",
+        "display": "Schedule Activity Information"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RGS",
+        "display": "Resource Group"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/AIS",
+        "display": "Appointment Information - Service"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/AIG",
+        "display": "Appointment Information - General Resource"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/AIL",
+        "display": "Appointment Information - Location Resource"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/AIP",
+        "display": "Appointment Information - Personnel Resource"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/APR",
+        "display": "Appointment Preferences"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RF1",
+        "display": "Referral Information"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/AUT",
+        "display": "Authorization Information"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PRD",
+        "display": "provider data"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/CTD",
+        "display": "Contact Data"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/GOL",
+        "display": "Goal Detail"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PRB",
+        "display": "Problem Detail"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PTH",
+        "display": "Pathway"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/VAR",
+        "display": "Variance"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/REL",
+        "display": "Clinical Relationship"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/EQU",
+        "display": "Equipment Detail"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ISD",
+        "display": "Interaction Status Detail"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SAC",
+        "display": "Specimen Container Detail"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/INV",
+        "display": "Inventory Detail"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ECD",
+        "display": "Equipment Command"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ECR",
+        "display": "Equipment Command Response"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/NDS",
+        "display": "Notification Detail"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/CNS",
+        "display": "Clear Notification"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/TCC",
+        "display": "Test Code Configuration"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/TCD",
+        "display": "Test Code Detail"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SID",
+        "display": "Substance Identifier"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/EQP",
+        "display": "Equipment Log/Service"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/DST",
+        "display": "Transport Destination"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/NCK",
+        "display": "System Clock"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/NSC",
+        "display": "Application Status Change"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/NST",
+        "display": "Application Control-Level Statistics"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/AFF",
+        "display": "Professional Affiliation"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/CER",
+        "display": "Certificate Detail"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/EDU",
+        "display": "Educational Detail"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/LAN",
+        "display": "Language Detail"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ORG",
+        "display": "Practitioner Organization Unit"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PRA",
+        "display": "Practitioner Detail"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ROL",
+        "display": "Role"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/STF",
+        "display": "Staff Identification"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/RFI",
+        "display": "Request for Information"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/IVC",
+        "display": "Invoice"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PYE",
+        "display": "Payee Information"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PSS",
+        "display": "Product/Service Section"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PSG",
+        "display": "Product/Service Group"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PSL",
+        "display": "Product/Service Line Item"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ADJ",
+        "display": "Adjustment"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PMT",
+        "display": "Payment Information"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/IPR",
+        "display": "Invoice Processing Results"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/IIM",
+        "display": "Inventory Item Master"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ITM",
+        "display": "Material Item"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/STZ",
+        "display": "Sterilization Parameter"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/VND",
+        "display": "Purchasing Vendor"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PKG",
+        "display": "Packaging"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/PCE",
+        "display": "Patient Charge Cost Center Exception"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/IVT",
+        "display": "Material Location"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/ILT",
+        "display": "Material Lot"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SCP",
+        "display": "Sterilizer Configuration"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SLT",
+        "display": "Sterilization Lot"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SDD",
+        "display": "Sterilization Device Data"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/SCD",
+        "display": "Anti-Microbial Cycle Data"
+      }
+    },
+    {
+      "item": {
+        "reference": "StructureDefinition/DEV",
+        "display": "Device"
+      }
+    }
+  ]
+}

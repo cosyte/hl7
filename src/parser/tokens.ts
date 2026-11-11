@@ -44,7 +44,7 @@ const DERIVED_TOKEN_SHAPES = {
    *
    * Two deliberate tightenings, each measured rather than assumed. The first
    * version allowed four characters as "vendor tolerance", which was invented
-   * rather than grounded: all 91 `KNOWN_SEGMENTS` are exactly three, and
+   * rather than grounded: every `KNOWN_SEGMENTS` name is exactly three, and
    * `defineProfile` independently validates custom Z-segments to
    * `/^Z[A-Z0-9]{2}$/`, so nothing legitimate is longer. The second requires a
    * leading letter, which every known segment and every legal Z-segment
