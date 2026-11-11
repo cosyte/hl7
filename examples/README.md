@@ -24,6 +24,7 @@ All three fixtures use synthetic patient identifiers only, no PHI.
 | ----------------------- | ------------ | ----------------------------------------------------------- |
 | `adt-a01.hl7`           | ADT^A01      | Patient admission with PID + PV1.                           |
 | `oru-r01-lab.hl7`       | ORU^R01      | Lab result with OBR + 3 OBX observations (WBC / HGB / HCT). |
-| `adt-mutate-source.hl7` | ADT^A01      | Separate ADT fixture used as the mutation source for EX-03. |
+| `adt-mutate-source.hl7` | ADT^A01      | Separate ADT fixture that `modify-and-resend.ts` edits.     |
 
-See the root [README.md](../README.md) for the full cookbook and API tour.
+The root [README.md](../README.md) has a short usage tour, and the
+[documentation](https://docs.cosyte.com/hl7) has the guides and the API reference.

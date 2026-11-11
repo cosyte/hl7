@@ -35,7 +35,7 @@ A developer-focused HL7 v2 parser and utility library for Node.js and TypeScript
 
 ## Why this exists
 
-HL7 v2 is the format hospital systems actually speak, and reading one field out of it usually costs you a detour through a 2,000-page specification to learn that the patient's medical record number is `PID-3.1` and the message time is `MSH-7`. This library is for the application developer who has to consume that traffic and would rather not become an HL7 expert first: `msg.patient?.mrn` and `msg.meta.timestamp` are the whole learning curve. The nearest alternative is splitting on `|` and `^` yourself, or reaching for a parser that hands back a positional tree and still expects you to know the segment and field numbers. Those give you structure; this gives you the fields, keeps the positional tree underneath for when you need it, and treats vendor-quirky real-world input as the normal case rather than an error.
+HL7 v2 is the format hospital systems actually speak, and reading one field out of it usually costs you a detour through a 2,000-page specification to learn that the patient's medical record number is `PID-3.1` and the message time is `MSH-7`. This library is for the application developer who has to consume that traffic and would rather not become an HL7 expert first: `msg.patient?.mrn` and `msg.meta.timestamp` are the whole learning curve. Other good libraries exist, among them simple-hl7, node-hl7-client, hl7-standard and Medplum's for Node.js, HAPI and nHapi for Java and .NET, and python-hl7 and hl7apy for Python, and several of them carry network transport, the XML encoding or a class per HL7 version, none of which we do (MLLP transport is [`@cosyte/mllp`](https://github.com/cosyte/mllp)). What we add, on top of the positional tree we keep underneath for when you need it, is vendor-quirky input read as the normal case with every tolerated deviation reported as a coded warning, typed views of a message after a type check, and structure checks against HL7's published structures, compared feature by feature, with our gaps, in [How we compare with other HL7 v2 libraries](https://github.com/cosyte/hl7/blob/main/docs-content/compare-hl7-libraries.md).
 
 ---
 
@@ -122,6 +122,10 @@ The full reference lives at [docs.cosyte.com/hl7](https://docs.cosyte.com/hl7), 
 - [Use and write vendor profiles](https://github.com/cosyte/hl7/blob/main/docs-content/profiles.md): built-in profiles, your own, layering, and publishing one.
 - [Tolerance and error handling](https://github.com/cosyte/hl7/blob/main/docs-content/tolerance-and-errors.md): the four tolerance tiers and the errors the library throws.
 - [Warning and fatal codes](https://github.com/cosyte/hl7/blob/main/docs-content/warning-and-fatal-codes.md): every stable code and what it means.
+- The spec notes: what the standard says and how we read it, from [the HL7 v2 primer](https://github.com/cosyte/hl7/blob/main/docs-content/spec-notes-primer.md) and [message structure](https://github.com/cosyte/hl7/blob/main/docs-content/spec-notes-structure.md) to [escape sequences](https://github.com/cosyte/hl7/blob/main/docs-content/spec-notes-escapes.md), [datetime precision](https://github.com/cosyte/hl7/blob/main/docs-content/spec-notes-datetime-precision.md) and [the version matrix](https://github.com/cosyte/hl7/blob/main/docs-content/spec-notes-version-matrix.md); the docs site lists all eighteen under Explanation.
+- [Testing and quality](https://github.com/cosyte/hl7/blob/main/docs-content/testing-and-quality.md): how we test this library, with what each kind of test catches and misses.
+- [Performance](https://github.com/cosyte/hl7/blob/main/docs-content/performance.md): what we measure and how, the CI guard that fails on a regression, and how to run the benchmarks yourself.
+- [API reference](https://github.com/cosyte/hl7/blob/main/docs-content/api/README.md): generated from the TSDoc comments, for both `@cosyte/hl7` and `@cosyte/hl7/arbitraries`.
 
 ---
 

@@ -84,5 +84,5 @@ discharge summary. `profiles.philips.customSegments` lists every `ZAO` and `ZAP`
 
 ## Reference
 
-- [`profiles`](./api/README.md#profiles), [`Profile`](./api/README.md#profile),
-  [`defineProfile`](./api/README.md#defineprofile)
+- [`profiles`](./api/src/README.md#profiles), [`Profile`](./api/src/README.md#profile),
+  [`defineProfile`](./api/src/README.md#defineprofile)

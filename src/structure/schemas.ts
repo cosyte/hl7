@@ -4,7 +4,7 @@
  * The expectations are derived offline from the vendored publication snapshot
  * by `pnpm generate:structures` and committed; nothing here reads a file, makes
  * a network call, or decides anything. It exists so the validator asks for a
- * structure by id instead of scanning an 81-entry array per message.
+ * structure by id instead of scanning a 96-entry array per message.
  */
 
 import { generatedStructureSchemas } from "../parser/generated/message-structure-schemas.js";

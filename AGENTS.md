@@ -37,6 +37,8 @@ pnpm check:docs
 pnpm check:no-emdash
 pnpm check:no-internal-refs
 pnpm check:documents
+pnpm check:docs-content
+pnpm check:docs-reference
 pnpm check:process
 cd examples/profile-starter-kit && pnpm install --no-frozen-lockfile && pnpm typecheck && pnpm lint && pnpm test && pnpm build
 ```
@@ -45,6 +47,14 @@ cd examples/profile-starter-kit && pnpm install --no-frozen-lockfile && pnpm typ
 
 - Synthetic data only. Real patient data never enters this repository: not in a fixture, a test, a
   log, an issue, or a commit. `pnpm phi-scan` runs on every commit.
+- `docs-content/api/` is generated from the TSDoc of both entry points, `@cosyte/hl7` and
+  `@cosyte/hl7/arbitraries`: after a change to an export or its comment, run
+  `pnpm docs:reference` and commit the pages. `pnpm check:docs-reference` fails on a stale page or
+  an export with no TSDoc summary.
+- `release/public-api.json` and `release/public-api-arbitraries.json` record the two entry points'
+  type surfaces, and `test/scripts/api-surface.test.ts` fails when a fresh build differs. After an
+  intended change, regenerate with `pnpm build`, then `pnpm api-surface --write` and
+  `pnpm api-surface --entry arbitraries --write`, and review the diff.
 - A change under `src/` carries a changeset (`pnpm changeset`); `.changeset/README.md` says which
   bump to pick.
 - No em or en dashes anywhere, commit messages included.

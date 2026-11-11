@@ -223,8 +223,8 @@ describe("parser/charset: Table-0211 resolution", () => {
   });
 
   it("resolves an unrecognized label to verbatim + recognized:false", () => {
-    const r = resolveCharset("  windows-1252 ");
-    expect(r.canonical).toBe("WINDOWS-1252");
+    const r = resolveCharset("  cp850 ");
+    expect(r.canonical).toBe("CP850");
     expect(r.treatment).toBe("verbatim");
     expect(r.recognized).toBe(false);
   });

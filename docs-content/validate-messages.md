@@ -41,7 +41,7 @@ The expectations are derived offline from a vendored copy of the published struc
 network call. A segment inside an optional group is not expected, a segment is expected only when
 every published variant of the structure requires it, and a type it does not recognize gives
 `recognized: false` and no warning. It covers the message codes ADT, ORU, ORM, OML, OMG, OMP, OMI,
-SIU, MDM, DFT, VXU and ACK. [Message-type and structure awareness](./spec-notes-structure.md) has the
+ORL, OUL, RAS, RDE, SIU, MDM, DFT, VXU and ACK. [Message-type and structure awareness](./spec-notes-structure.md) has the
 full table and the derivation rules.
 
 ## Check order and counts against the published structure
@@ -171,13 +171,13 @@ which change how a message is read.
 
 ## Reference
 
-- [`Hl7Message`](./api/README.md#hl7message) (`structure`),
-  [`MessageStructure`](./api/README.md#messagestructure)
-- [`validateMessageStructure`](./api/README.md#validatemessagestructure),
-  [`StructureValidationResult`](./api/README.md#structurevalidationresult),
-  [`STRUCTURE_FINDING_CODES`](./api/README.md#structure_finding_codes),
-  [`STRUCTURE_NOT_VALIDATED_REASONS`](./api/README.md#structure_not_validated_reasons)
-- [`validateAgainstProfile`](./api/README.md#validateagainstprofile),
-  [`defineConformanceProfile`](./api/README.md#defineconformanceprofile),
-  [`ConformanceProfile`](./api/README.md#conformanceprofile),
-  [`FINDING_CODES`](./api/README.md#finding_codes)
+- [`Hl7Message`](./api/src/README.md#hl7message) (`structure`),
+  [`MessageStructure`](./api/src/README.md#messagestructure)
+- [`validateMessageStructure`](./api/src/README.md#validatemessagestructure),
+  [`StructureValidationResult`](./api/src/README.md#structurevalidationresult),
+  [`STRUCTURE_FINDING_CODES`](./api/src/README.md#structure_finding_codes),
+  [`STRUCTURE_NOT_VALIDATED_REASONS`](./api/src/README.md#structure_not_validated_reasons)
+- [`validateAgainstProfile`](./api/src/README.md#validateagainstprofile),
+  [`defineConformanceProfile`](./api/src/README.md#defineconformanceprofile),
+  [`ConformanceProfile`](./api/src/README.md#conformanceprofile),
+  [`FINDING_CODES`](./api/src/README.md#finding_codes)

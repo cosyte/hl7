@@ -8,7 +8,7 @@
     "tree": "input/sourceOfTruth"
   },
   "snapshotTakenAt": "2026-08-27",
-  "structureCount": 81,
+  "structureCount": 96,
   "manifestCount": 2,
   "files": [
     {
@@ -456,6 +456,54 @@
       "url": "https://raw.githubusercontent.com/HL7/v2ig/main/input/sourceOfTruth/message-structure/message_structures/OMP_O09.json"
     },
     {
+      "path": "message-structure/ORL_O22.json",
+      "bytes": 11903,
+      "sha256": "83535eab3c550bb7e1f20bc4a9576abe079873a2cb242473cdeeb8966aa7c145",
+      "url": "https://raw.githubusercontent.com/HL7/v2ig/main/input/sourceOfTruth/message-structure/message_structures/ORL_O22.json"
+    },
+    {
+      "path": "message-structure/ORL_O34.json",
+      "bytes": 13475,
+      "sha256": "d065d54846243f9eb3a3d5fb8f85710dc6cb97ad3ea1016f7c7b34b3b8128b92",
+      "url": "https://raw.githubusercontent.com/HL7/v2ig/main/input/sourceOfTruth/message-structure/message_structures/ORL_O34.json"
+    },
+    {
+      "path": "message-structure/ORL_O36.json",
+      "bytes": 14840,
+      "sha256": "c5fd30591c9105f94cc98ee5d319acbb501742ad1d1323a1c642ff3377743e99",
+      "url": "https://raw.githubusercontent.com/HL7/v2ig/main/input/sourceOfTruth/message-structure/message_structures/ORL_O36.json"
+    },
+    {
+      "path": "message-structure/ORL_O40.json",
+      "bytes": 15509,
+      "sha256": "ed805c3e6941fb7c891f0e27086eb55cba348ddf301bd853cc6986383631f783",
+      "url": "https://raw.githubusercontent.com/HL7/v2ig/main/input/sourceOfTruth/message-structure/message_structures/ORL_O40.json"
+    },
+    {
+      "path": "message-structure/ORL_O53.json",
+      "bytes": 11686,
+      "sha256": "7c4e85286f4697418108dae5497badb7cd17fe8a5f34602708a757e6f0f69b4f",
+      "url": "https://raw.githubusercontent.com/HL7/v2ig/main/input/sourceOfTruth/message-structure/message_structures/ORL_O53.json"
+    },
+    {
+      "path": "message-structure/ORL_O54.json",
+      "bytes": 13258,
+      "sha256": "c1bc2b408ffaa976282119263242069b4ddd242c095ea0d6445f783d81edb86d",
+      "url": "https://raw.githubusercontent.com/HL7/v2ig/main/input/sourceOfTruth/message-structure/message_structures/ORL_O54.json"
+    },
+    {
+      "path": "message-structure/ORL_O55.json",
+      "bytes": 14625,
+      "sha256": "46e93c7c37ef0040529f15f84393c07b7e379627942e5e1582940f6b0c0026c0",
+      "url": "https://raw.githubusercontent.com/HL7/v2ig/main/input/sourceOfTruth/message-structure/message_structures/ORL_O55.json"
+    },
+    {
+      "path": "message-structure/ORL_O56.json",
+      "bytes": 14592,
+      "sha256": "33c7fb3c43f70b0d5e31e849ce1cff25a8d9d7c06daef4342d3f45771c8183e5",
+      "url": "https://raw.githubusercontent.com/HL7/v2ig/main/input/sourceOfTruth/message-structure/message_structures/ORL_O56.json"
+    },
+    {
       "path": "message-structure/ORU_R01-A.json",
       "bytes": 36146,
       "sha256": "cee10514f845ec1ef856c3931c9e67fdfcb53eb28eebd8bb1b5154896f2b42fc",
@@ -496,6 +544,48 @@
       "bytes": 18726,
       "sha256": "a20510cd53c4befa49dd91c76912e1166ee2061781ba7fe0c2b026e4fb89d3f1",
       "url": "https://raw.githubusercontent.com/HL7/v2ig/main/input/sourceOfTruth/message-structure/message_structures/ORU_R30-C.json"
+    },
+    {
+      "path": "message-structure/OUL_R22.json",
+      "bytes": 30337,
+      "sha256": "19f2855bda53b8e29d91af0490e56118a6069b021b547f8d71a8e5c68b497b38",
+      "url": "https://raw.githubusercontent.com/HL7/v2ig/main/input/sourceOfTruth/message-structure/message_structures/OUL_R22.json"
+    },
+    {
+      "path": "message-structure/OUL_R23.json",
+      "bytes": 32840,
+      "sha256": "ecb27bc531b3a1bc5eaf3e242e16243685bd3b5de256b7e331c8736d26049344",
+      "url": "https://raw.githubusercontent.com/HL7/v2ig/main/input/sourceOfTruth/message-structure/message_structures/OUL_R23.json"
+    },
+    {
+      "path": "message-structure/OUL_R24.json",
+      "bytes": 31968,
+      "sha256": "7169ce20503da7481c5ce15e91dff1e5c34a70414d1ee57d165e7c0149387685",
+      "url": "https://raw.githubusercontent.com/HL7/v2ig/main/input/sourceOfTruth/message-structure/message_structures/OUL_R24.json"
+    },
+    {
+      "path": "message-structure/RAS_O17.json",
+      "bytes": 27632,
+      "sha256": "f6bddd09144a9ae5a6856d3234cd6646ea661edfd42061606ff18a1bd6559434",
+      "url": "https://raw.githubusercontent.com/HL7/v2ig/main/input/sourceOfTruth/message-structure/message_structures/RAS_O17.json"
+    },
+    {
+      "path": "message-structure/RDE_O11-A.json",
+      "bytes": 31992,
+      "sha256": "f742a3149206864cee3829067afd52d7176e60c1b2edb1deb88491b53e12b7ae",
+      "url": "https://raw.githubusercontent.com/HL7/v2ig/main/input/sourceOfTruth/message-structure/message_structures/RDE_O11-A.json"
+    },
+    {
+      "path": "message-structure/RDE_O11-B.json",
+      "bytes": 31988,
+      "sha256": "eecd507caa62f0d9232a5f5d059c140fa8b8fb9d6ce78b2b78c27f238b5b15e3",
+      "url": "https://raw.githubusercontent.com/HL7/v2ig/main/input/sourceOfTruth/message-structure/message_structures/RDE_O11-B.json"
+    },
+    {
+      "path": "message-structure/RDE_O49.json",
+      "bytes": 24636,
+      "sha256": "752695e25434e963c30fa6cdafbfef7ef2af9b0b61013915c5dd794924f9677b",
+      "url": "https://raw.githubusercontent.com/HL7/v2ig/main/input/sourceOfTruth/message-structure/message_structures/RDE_O49.json"
     },
     {
       "path": "message-structure/SIU_S12.json",

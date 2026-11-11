@@ -129,6 +129,7 @@ describe("AC12: an unresolvable pair is reported, and the parser stays silent on
       "ADT^A39",
       "ADT^A46",
       "ADT^A48",
+      "OUL^R21",
     ]);
     for (const pair of doc.unresolvedPairs) expect(pair.reason).not.toBe("");
   });

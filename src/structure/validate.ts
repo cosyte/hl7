@@ -174,7 +174,7 @@ export function validateSegmentSequence(
  * **Zero findings is not a conformance attestation.** It means this message did
  * not break the published structure in the three ways checked here. Field
  * content, datatypes, value sets and HL7 tables are all unchecked, the covered
- * message codes are twelve rather than the whole standard, and the publication
+ * message codes are sixteen rather than the whole standard, and the publication
  * behind it is vendored at a fixed commit.
  *
  * @param message - a parsed message. Input the parser rejects never reaches

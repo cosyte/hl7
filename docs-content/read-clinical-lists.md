@@ -183,10 +183,10 @@ An amount stays the wire text, never a floating-point number.
 
 ## Reference
 
-- [`Allergy`](./api/README.md#allergy), [`Medication`](./api/README.md#medication),
-  [`Immunization`](./api/README.md#immunization),
-  [`ImmunizationAdministrationStatus`](./api/README.md#immunizationadministrationstatus)
-- [`NextOfKin`](./api/README.md#nextofkin), [`Diagnosis`](./api/README.md#diagnosis),
-  [`Insurance`](./api/README.md#insurance)
-- [`Appointment`](./api/README.md#appointment),
-  [`ClinicalDocument`](./api/README.md#clinicaldocument), [`Charge`](./api/README.md#charge)
+- [`Allergy`](./api/src/README.md#allergy), [`Medication`](./api/src/README.md#medication),
+  [`Immunization`](./api/src/README.md#immunization),
+  [`ImmunizationAdministrationStatus`](./api/src/README.md#immunizationadministrationstatus)
+- [`NextOfKin`](./api/src/README.md#nextofkin), [`Diagnosis`](./api/src/README.md#diagnosis),
+  [`Insurance`](./api/src/README.md#insurance)
+- [`Appointment`](./api/src/README.md#appointment),
+  [`ClinicalDocument`](./api/src/README.md#clinicaldocument), [`Charge`](./api/src/README.md#charge)

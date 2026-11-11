@@ -150,10 +150,10 @@ it would for a message from anywhere else (see [Validate a message](./validate-m
 
 ## Reference
 
-- [`buildMessage`](./api/README.md#buildmessage), [`buildAdt`](./api/README.md#buildadt),
-  [`buildOru`](./api/README.md#buildoru), [`buildOrm`](./api/README.md#buildorm),
-  [`buildSiu`](./api/README.md#buildsiu), [`buildMdm`](./api/README.md#buildmdm),
-  [`buildDft`](./api/README.md#builddft), [`buildVxu`](./api/README.md#buildvxu)
-- [`SUPPORTED_BUILDER_MESSAGES`](./api/README.md#supported_builder_messages),
-  [`supportsBuilderMessage`](./api/README.md#supportsbuildermessage)
+- [`buildMessage`](./api/src/README.md#buildmessage), [`buildAdt`](./api/src/README.md#buildadt),
+  [`buildOru`](./api/src/README.md#buildoru), [`buildOrm`](./api/src/README.md#buildorm),
+  [`buildSiu`](./api/src/README.md#buildsiu), [`buildMdm`](./api/src/README.md#buildmdm),
+  [`buildDft`](./api/src/README.md#builddft), [`buildVxu`](./api/src/README.md#buildvxu)
+- [`SUPPORTED_BUILDER_MESSAGES`](./api/src/README.md#supported_builder_messages),
+  [`supportsBuilderMessage`](./api/src/README.md#supportsbuildermessage)
 - [Acknowledge a message](./acknowledge-messages.md) for `buildAck`
