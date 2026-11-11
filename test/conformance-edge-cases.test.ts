@@ -143,6 +143,36 @@ describe("profile shape defects", () => {
     }
   });
 
+  it("refuses a segments value that is not an array", () => {
+    expect(details({ name: "p", segments: "PID" })).toEqual([
+      "profile.segments must be an array of segment rules.",
+    ]);
+  });
+
+  it("refuses a minimum that is not a non-negative integer", () => {
+    for (const min of [-1, 1.5, "1"]) {
+      expect(
+        details({ name: "p", segments: [{ segment: "PID", cardinality: { min } }] }),
+        String(min),
+      ).toEqual(['segment "PID" cardinality.min must be a non-negative integer.']);
+    }
+  });
+
+  it("refuses a maximum below the minimum", () => {
+    expect(
+      details({ name: "p", segments: [{ segment: "PID", cardinality: { min: 2, max: 1 } }] }),
+    ).toEqual(['segment "PID" cardinality.max (1) is less than min (2).']);
+  });
+
+  it("refuses a field length that is not a non-negative integer", () => {
+    for (const length of [-1, 2.5, "10"]) {
+      expect(
+        details({ name: "p", segments: [{ segment: "PID", fields: [{ field: 5, length }] }] }),
+        String(length),
+      ).toEqual(['segment "PID" field 5 length must be a non-negative integer.']);
+    }
+  });
+
   it("refuses a segment rule that is not an object and keeps checking the rest", () => {
     expect(details({ name: "p", segments: ["PID", { segment: "PV1", usage: "Q" }] })).toEqual([
       "segments[0] must be an object.",
@@ -209,6 +239,31 @@ describe("resolutions against a malformed profile", () => {
       ],
     };
     // The well-formed PID-8 rule is still found: only the entries around it are skipped.
+    const defects = conformance.collectProfileDefects(profile).map((d) => d.detail);
+    const findings = findingsOf(message("PID|1"), profile, resolution);
+    expect(findings.map((f) => f.message)).toEqual(
+      defects.map((d) => expect.stringContaining(d) as string),
+    );
+    expect(findings.some((f) => /resolution/u.test(f.message))).toBe(false);
+  });
+
+  it("are refused as unmatched when the profile's segments are not an array", () => {
+    const findings = findingsOf(message("PID|1"), { name: "p", segments: "PID" }, resolution);
+    expect(findings.length).toBeGreaterThan(0);
+    expect(findings.every((f) => f.code === FINDING_CODES.PROFILE_MALFORMED)).toBe(true);
+  });
+
+  it("skip a field entry whose position is not a positive integer", () => {
+    const profile = {
+      name: "p",
+      segments: [
+        {
+          segment: "PID",
+          fields: [{ field: 0 }, { field: "8" }, { field: 8, usage: "C(R/X)" }],
+        },
+      ],
+    };
+    // The well-formed PID-8 rule is still found: only the entries before it are skipped.
     const defects = conformance.collectProfileDefects(profile).map((d) => d.detail);
     const findings = findingsOf(message("PID|1"), profile, resolution);
     expect(findings.map((f) => f.message)).toEqual(

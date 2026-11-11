@@ -410,6 +410,44 @@ describe("Phase K: repeating groups + document order", () => {
     expect(ev?.parties.map((p) => p.role)).toEqual(["linked", "prior", "linked"]);
   });
 
+  it("an MRG ahead of every PID in a link message is its own prior party, in order", () => {
+    for (const trigger of ["A24", "A37"]) {
+      const msg = parseHL7(
+        raw(
+          `MSH|^~\\&|REG|MAIN|MPI|MAIN|20260704080000||ADT^${trigger}|MSGT10|P|2.5`,
+          "MRG|MRN82016^^^HOSP^MR",
+          "PID|1||MRN82017^^^HOSP^MR",
+        ),
+      );
+      const events = msg.identityEvents();
+      expect(events, trigger).toHaveLength(1);
+      expect(
+        events[0]?.parties.map((p) => [p.role, p.sourceSegment]),
+        trigger,
+      ).toEqual([
+        ["prior", "MRG"],
+        ["linked", "PID"],
+      ]);
+    }
+  });
+
+  it("an MRG ahead of every PID in an add or update message is surfaced on its own event", () => {
+    for (const trigger of ["A28", "A31"]) {
+      const msg = parseHL7(
+        raw(
+          `MSH|^~\\&|REG|MAIN|MPI|MAIN|20260704080000||ADT^${trigger}|MSGT11|P|2.5`,
+          "MRG|MRN82018^^^HOSP^MR",
+          "PID|1||MRN82019^^^HOSP^MR",
+        ),
+      );
+      const events = msg.identityEvents();
+      expect(
+        events.map((ev) => ev.parties.map((p) => [p.role, p.sourceSegment])),
+        trigger,
+      ).toEqual([[["prior", "MRG"]], [["subject", "PID"]]]);
+    }
+  });
+
   it("A28 add surfaces the subject party; A31 update likewise", () => {
     for (const [trigger, kind] of [
       ["A28", "add"],

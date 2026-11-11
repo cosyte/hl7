@@ -30,6 +30,31 @@ async function asyncFailureOf(run: () => Promise<void>): Promise<string | undefi
   }
 }
 
+/** The counterexample a failure message prints. */
+function counterexampleOf(text: string | undefined): string | undefined {
+  return /Counterexample: (.*)/u.exec(text ?? "")?.[1];
+}
+
+/**
+ * Sixty numbers that fail a property when all of them are a million or more. Each shrinks toward a
+ * million by halving the distance, so shrinking one case to the end takes thousands of steps.
+ */
+const slowNumbers = fc.array(fc.noBias(fc.integer({ min: 0, max: 2_000_000_000 })), {
+  minLength: 60,
+  maxLength: 60,
+});
+
+/** Whether any of the numbers is under a million, the property `slowNumbers` fails. */
+function anySmall(values: readonly number[]): boolean {
+  return values.some((value) => value < 1_000_000);
+}
+
+/** `anySmall`, after blocking the thread for 5 ms, as a slow synchronous property would. */
+function slowlyAnySmall(values: readonly number[]): boolean {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 5);
+  return anySmall(values);
+}
+
 describe("checkProperty", () => {
   it("runs 100 cases by default, and the file's own count when it gives one", () => {
     let cases = 0;
@@ -99,6 +124,35 @@ describe("checkProperty", () => {
     expect(cases).toBe(1);
     expect(counterexample(replayed)).toBeDefined();
     expect(counterexample(replayed)).toBe(counterexample(message));
+  });
+
+  it("stops shrinking at its time limit and prints a seed and path that replay what it found", () => {
+    // The synchronous twin of the async case below: a failing case shrinks one slow step at a
+    // time, and to the end would take far longer than the limit. A synchronous property cannot be
+    // stopped by its test's timeout, so this limit is all that ends it.
+    const message = failureOf(() => {
+      checkProperty(fc.property(slowNumbers, slowlyAnySmall), {}, {}, 300);
+    });
+    expect(message).toMatch(/property failed after \d+ case\(s\), shrunk [1-9]\d* time\(s\)/u);
+    expect(message).toContain("Shrinking stopped at its 300 ms limit");
+    const [, seed, path] =
+      /COSYTE_PROPERTY_SEED=(-?\d+) COSYTE_PROPERTY_PATH=([\d:]+)/u.exec(message ?? "") ?? [];
+    expect(path).toMatch(/^\d+:\d/u);
+    // The printed seed and path replay the one case shrinking stopped at.
+    let cases = 0;
+    const replayed = failureOf(() => {
+      checkProperty(
+        fc.property(slowNumbers, (values) => {
+          cases++;
+          return anySmall(values);
+        }),
+        {},
+        { COSYTE_PROPERTY_SEED: seed, COSYTE_PROPERTY_PATH: path },
+      );
+    });
+    expect(cases).toBe(1);
+    expect(counterexampleOf(replayed)).toBeDefined();
+    expect(counterexampleOf(replayed)).toBe(counterexampleOf(message));
   });
 
   it("refuses a depth that is not a whole number of cases", () => {

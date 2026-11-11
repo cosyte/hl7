@@ -97,6 +97,20 @@ describe("Phase T: typed-composite encoders (emit ∘ parse identity)", () => {
     expect(parseCx(rep, ENC)).toEqual(v);
   });
 
+  it("CX encodes an assigning authority with every part empty as an empty component", () => {
+    for (const assigningAuthority of [
+      {},
+      { namespaceId: "", universalId: "", universalIdType: "" },
+    ]) {
+      const field = encodeCx({ idNumber: "MRN002", assigningAuthority, identifierTypeCode: "MR" });
+      expect(field.repetitions[0]?.components[3]).toEqual({ subcomponents: [] });
+      expect(parseCx(roundTripField(field), ENC)).toEqual({
+        idNumber: "MRN002",
+        identifierTypeCode: "MR",
+      });
+    }
+  });
+
   it("CX preserves interior-empty components (id + type, no authority)", () => {
     const v = { idNumber: "123", identifierTypeCode: "MR" };
     const rep = roundTripField(encodeCx(v));

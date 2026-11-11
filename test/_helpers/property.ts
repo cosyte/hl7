@@ -1,6 +1,5 @@
 import {
   DEFAULT_NUM_RUNS,
-  assertProperty,
   propertyFailureMessage,
   resolvePropertyRun,
   type PropertyRunOptions,
@@ -27,33 +26,97 @@ function testName(): string {
 }
 
 /**
+ * How long a property may shrink a counterexample, by default. A case that reads its input once per
+ * cut point can take minutes to shrink, and shrinking runs past a test's own timeout (a synchronous
+ * property cannot be stopped by it at all), so without a limit a failure deep in a nightly run could
+ * outlast the job and print nothing.
+ */
+export const SHRINK_LIMIT_MS = 120_000;
+
+/** The depth, and the seed and path to replay when set, that a run resolves. */
+type ResolvedRun = ReturnType<typeof resolvePropertyRun>;
+
+/** What a run reports when it fails, enough to print the failure and replay it. */
+type Failure<Ts> = fc.RunDetailsFailureProperty<Ts> | fc.RunDetailsFailureInterrupted<Ts>;
+
+/** The parameters of the first pass, which stops at the first failing case without shrinking it. */
+function findParameters<Ts>(run: ResolvedRun): fc.Parameters<Ts> {
+  return { ...run, endOnFailure: true, includeErrorInReport: true };
+}
+
+/**
+ * The parameters of the second pass, which replays the case the first pass found from its seed and
+ * path and shrinks it for at most `shrinkLimit` milliseconds; `undefined` when there is nothing to
+ * shrink: the run was itself a replay of a printed seed and path, or found no path.
+ */
+function shrinkParameters<Ts>(
+  run: ResolvedRun,
+  found: fc.RunDetails<Ts>,
+  shrinkLimit: number,
+): fc.Parameters<Ts> | undefined {
+  if (run.path !== undefined || found.counterexamplePath === null) return undefined;
+  return {
+    numRuns: run.numRuns,
+    seed: found.seed,
+    path: found.counterexamplePath,
+    interruptAfterTimeLimit: shrinkLimit,
+    includeErrorInReport: true,
+  };
+}
+
+/**
+ * The error a failing property throws: the test's name, the seed and path that replay the smallest
+ * case shrinking reached, and whether shrinking stopped at its limit.
+ */
+function failure<Ts>(
+  name: string,
+  found: fc.RunDetails<Ts>,
+  shrunk: fc.RunDetails<Ts> | undefined,
+  shrinkLimit: number,
+): Error {
+  let details = found as Failure<Ts>;
+  // Shrinking replays the case found first; a property that passes it now is reported as found.
+  if (shrunk?.failed === true && shrunk.counterexamplePath !== null) {
+    details = { ...(shrunk as Failure<Ts>), numRuns: found.numRuns };
+  }
+  const stopped = details.interrupted
+    ? `\nShrinking stopped at its ${String(shrinkLimit)} ms limit: the counterexample is the ` +
+      "smallest found by then, and its seed and path replay it exactly."
+    : "";
+  return new Error(propertyFailureMessage(name, details) + stopped, {
+    cause: details.errorInstance,
+  });
+}
+
+/**
  * Run a property at the resolved depth, and throw a replayable error on its first counterexample.
+ * Shrinking stops at `shrinkLimit`: the run finds a failing case without shrinking, then shrinks it
+ * from its seed and path for at most that long, and prints the smallest case found by then, which
+ * its seed and path replay exactly. A passing run is not limited.
  *
  * @param property The fast-check property.
  * @param options The file's own depth, or a seed and path to replay; the environment wins.
  * @param env The environment; defaults to `process.env`.
+ * @param shrinkLimit How long shrinking may take, in milliseconds.
  */
 export function checkProperty<Ts>(
   property: fc.IProperty<Ts>,
   options: PropertyRunOptions = {},
   env: Env = process.env,
+  shrinkLimit: number = SHRINK_LIMIT_MS,
 ): void {
-  assertProperty(testName(), property, options, env);
+  const name = testName();
+  const run = resolvePropertyRun(options, env);
+  const found = fc.check(property, findParameters<Ts>(run));
+  if (!found.failed) return;
+  const shrink = shrinkParameters(run, found, shrinkLimit);
+  const shrunk = shrink === undefined ? undefined : fc.check(property, shrink);
+  throw failure(name, found, shrunk, shrinkLimit);
 }
 
 /**
- * How long an async property may shrink a counterexample, by default. A case that reads its input
- * once per cut point can take minutes to shrink, and shrinking runs past a test's own timeout,
- * so without a limit a failure deep in a nightly run could outlast the job and print nothing.
- */
-export const SHRINK_LIMIT_MS = 120_000;
-
-/**
  * Run an async property at the resolved depth, and reject with a replayable error on its first
- * counterexample. The same as `checkProperty`, for a property that awaits, except that shrinking
- * stops at `shrinkLimit`: the run finds a failing case without shrinking, then shrinks it from its
- * seed and path for at most that long, and prints the smallest case found by then, which its seed
- * and path replay exactly. A passing run is not limited.
+ * counterexample. The same as `checkProperty`, for a property that awaits, shrinking included.
  *
  * @param property The fast-check async property.
  * @param options The file's own depth, or a seed and path to replay; the environment wins.
@@ -68,33 +131,11 @@ export async function checkAsyncProperty<Ts>(
 ): Promise<void> {
   const name = testName();
   const run = resolvePropertyRun(options, env);
-  const found = await fc.check(property, {
-    ...run,
-    endOnFailure: true,
-    includeErrorInReport: true,
-  });
+  const found = await fc.check(property, findParameters<Ts>(run));
   if (!found.failed) return;
-  let details = found;
-  if (run.path === undefined && found.counterexamplePath !== null) {
-    const shrunk = await fc.check(property, {
-      numRuns: run.numRuns,
-      seed: found.seed,
-      path: found.counterexamplePath,
-      interruptAfterTimeLimit: shrinkLimit,
-      includeErrorInReport: true,
-    });
-    // Shrinking replays the case found first; a property that passes it now is reported as found.
-    if (shrunk.failed && shrunk.counterexamplePath !== null) {
-      details = { ...shrunk, numRuns: found.numRuns };
-    }
-  }
-  const stopped = details.interrupted
-    ? `\nShrinking stopped at its ${String(shrinkLimit)} ms limit: the counterexample is the ` +
-      "smallest found by then, and its seed and path replay it exactly."
-    : "";
-  throw new Error(propertyFailureMessage(name, details) + stopped, {
-    cause: details.errorInstance,
-  });
+  const shrink = shrinkParameters(run, found, shrinkLimit);
+  const shrunk = shrink === undefined ? undefined : await fc.check(property, shrink);
+  throw failure(name, found, shrunk, shrinkLimit);
 }
 
 /**
