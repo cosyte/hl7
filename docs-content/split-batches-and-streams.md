@@ -113,10 +113,10 @@ explains the memory bound and the boundary rules.
 
 ## Reference
 
-- [`splitBatch`](./api/README.md#splitbatch), [`BatchSplitResult`](./api/README.md#batchsplitresult),
-  [`BatchMessageEntry`](./api/README.md#batchmessageentry)
-- [`parseStream`](./api/README.md#parsestream), [`StreamMessageEntry`](./api/README.md#streammessageentry),
-  [`Hl7StreamSource`](./api/README.md#hl7streamsource)
-- [`ParseOptions`](./api/README.md#parseoptions) (`stripMllpFraming`)
+- [`splitBatch`](./api/src/README.md#splitbatch), [`BatchSplitResult`](./api/src/README.md#batchsplitresult),
+  [`BatchMessageEntry`](./api/src/README.md#batchmessageentry)
+- [`parseStream`](./api/src/README.md#parsestream), [`StreamMessageEntry`](./api/src/README.md#streammessageentry),
+  [`Hl7StreamSource`](./api/src/README.md#hl7streamsource)
+- [`ParseOptions`](./api/src/README.md#parseoptions) (`stripMllpFraming`)
 - [`MLLP_FRAMING_STRIPPED`, `BATCH_COUNT_MISMATCH`, `BATCH_MISSING_TRAILER` and
   `UNTERMINATED_STREAM_MESSAGE`](./warning-and-fatal-codes.md)

@@ -167,9 +167,9 @@ whole message at once, and both are reported rather than hidden:
 
 ## Reference
 
-- [`readMessages`](./api/README.md#readmessages), [`ReadMessageItem`](./api/README.md#readmessageitem)
-- [`readSegments`](./api/README.md#readsegments), [`ReadSegmentItem`](./api/README.md#readsegmentitem)
-- [`Hl7ReadSource`](./api/README.md#hl7readsource)
+- [`readMessages`](./api/src/README.md#readmessages), [`ReadMessageItem`](./api/src/README.md#readmessageitem)
+- [`readSegments`](./api/src/README.md#readsegments), [`ReadSegmentItem`](./api/src/README.md#readsegmentitem)
+- [`Hl7ReadSource`](./api/src/README.md#hl7readsource)
 - [Streaming large files](./spec-notes-stream.md): the boundary rules.
 - [Split batches and stream large files](./split-batches-and-streams.md): `splitBatch` and
   `parseStream`.
