@@ -119,8 +119,8 @@ lines[2]; // => "PID  [1]=1  [3]=MRN12345^^^HOSP^MR  [5]=Smith^Jane^Q  [7]=19800
 
 ## Reference
 
-- [`Hl7Message`](./api/README.md#hl7message) (`setField`, `setComposite`, `addSegment`,
+- [`Hl7Message`](./api/src/README.md#hl7message) (`setField`, `setComposite`, `addSegment`,
   `removeSegment`, `toString`, `toJSON`, `prettyPrint`)
-- [`encodeComposite`](./api/README.md#encodecomposite),
-  [`CompositeKind`](./api/README.md#compositekind),
-  [`SerializedMessage`](./api/README.md#serializedmessage)
+- [`encodeComposite`](./api/src/README.md#encodecomposite),
+  [`CompositeKind`](./api/src/README.md#compositekind),
+  [`SerializedMessage`](./api/src/README.md#serializedmessage)

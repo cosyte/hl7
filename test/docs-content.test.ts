@@ -26,7 +26,8 @@ import { compileErrors, fences, fixturesByContent, messageLiteral } from "./_hel
  *
  * The pages under `docs-content/api/` are generated from the TSDoc comments in `src/`, and their
  * `@example` blocks are fragments written for an editor's tooltip (many use an undeclared `raw`),
- * so they are not part of this suite: only the top-level pages are passed in.
+ * so they are not part of this suite: the shared runner walks `docs-content/` and, in every-sample
+ * mode, leaves the generated `api/` folder out.
  *
  * Snippets import the package the way a consumer does: against the **built** ESM artifact, not the
  * source tree. The harness executes each block as a standalone ES module, so it can't resolve the
@@ -50,21 +51,21 @@ beforeAll(() => {
 
 const docsDir = join(root, "docs-content");
 
-/** The hand-written pages: every `.md` file at the top of `docs-content/`, not the generated `api/`. */
+/**
+ * `every` runs each TypeScript and JavaScript sample whether or not it is tagged `runnable`,
+ * type-checks each TypeScript one first, and lists a `no-run` sample as skipped with its reason; a
+ * `no-run` with no reason fails. The runner finds the pages itself, from `docsDir`.
+ */
+docSnippetSuite({ docsDir, every: true, resolve, requireSnippet: true });
+
+/**
+ * The hand-written pages, for the one rule the runner does not hold: a sample tagged `runnable`
+ * must not also say `no-run`, which the runner would quietly skip.
+ */
 const pages = readdirSync(docsDir)
   .filter((name) => name.endsWith(".md"))
   .sort()
   .map((name) => join(docsDir, name));
-
-/**
- * `every` runs each TypeScript and JavaScript sample whether or not it is tagged `runnable`, and
- * lists a `no-run` sample as skipped with its reason. It reaches the runner as a variable rather
- * than a literal so the line compiles against a `@cosyte/vitest-config` that predates the option;
- * such a runner ignores it and runs the `runnable` blocks, which is every sample here, as the test
- * below holds.
- */
-const suiteOptions = { files: pages, every: true, resolve };
-docSnippetSuite(suiteOptions);
 
 /** The fence languages that make a block a code sample. */
 const SAMPLE_LANGS = new Set(["ts", "typescript", "tsx", "js", "javascript", "mjs"]);

@@ -109,6 +109,6 @@ has the field map and what is out of scope.
 
 ## Reference
 
-- [`Hl7Message`](./api/README.md#hl7message) (`observations`, `orders`, `medications`)
-- [`Observation`](./api/README.md#observation), [`Order`](./api/README.md#order),
-  [`OrderTiming`](./api/README.md#ordertiming), [`RepeatPattern`](./api/README.md#repeatpattern)
+- [`Hl7Message`](./api/src/README.md#hl7message) (`observations`, `orders`, `medications`)
+- [`Observation`](./api/src/README.md#observation), [`Order`](./api/src/README.md#order),
+  [`OrderTiming`](./api/src/README.md#ordertiming), [`RepeatPattern`](./api/src/README.md#repeatpattern)

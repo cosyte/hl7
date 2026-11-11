@@ -75,7 +75,7 @@ the version rules.
 
 ## Reference
 
-- [`IdentityEvent`](./api/README.md#identityevent),
-  [`IdentityParty`](./api/README.md#identityparty),
-  [`IdentityEventKind`](./api/README.md#identityeventkind)
+- [`IdentityEvent`](./api/src/README.md#identityevent),
+  [`IdentityParty`](./api/src/README.md#identityparty),
+  [`IdentityEventKind`](./api/src/README.md#identityeventkind)
 - [`MERGE_MISSING_PRIOR_OR_SURVIVOR`](./warning-and-fatal-codes.md)

@@ -188,9 +188,12 @@ environment variable, as we do with `COSYTE_PROPERTY_RUNS`.
 
 ## Reference
 
-- [`parseHL7`](./api/README.md#parsehl7), [`Hl7Message`](./api/README.md#hl7message),
-  [`Hl7ParseError`](./api/README.md#hl7parseerror)
-- The generators' options are in their TSDoc comments, which an editor shows on hover.
+- [`parseHL7`](./api/src/README.md#parsehl7), [`Hl7Message`](./api/src/README.md#hl7message),
+  [`Hl7ParseError`](./api/src/README.md#hl7parseerror)
+- [`@cosyte/hl7/arbitraries`](./api/src/arbitraries.md) lists every generator and its options,
+  among them [`message`](./api/src/arbitraries.md#message) and
+  [`MessageOptions`](./api/src/arbitraries.md#messageoptions); an editor shows the same text on
+  hover.
 - [Testing and quality](./testing-and-quality.md) says how we use these generators on this
   library, and [Tolerance and errors](./tolerance-and-errors.md) explains what lenient parsing
   repairs and what it refuses.
