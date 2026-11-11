@@ -70,13 +70,19 @@ read: the message, the text it came from, and room for the reader's own state. A
 buffered its source would hold toward all 100 MiB. It also fails when the reading cannot be judged,
 because the reader read nothing or failed a message. The limit is `PEAK_MULTIPLE` in the script.
 
-The other two readers are measured and reported, not judged. In three runs on GitHub-hosted
-runners (stream-memory runs 43063981717, 43064467751 and 43066398448), `readMessages` held 1.96 to
-2.08 times its largest message; `parseStream`, the older message reader, held 2.99 to 3.98 times
-on the same batch, at and over the limit, so for a large batch `readMessages` is the reader to use;
-and `readSegments` held 1.82 to 3.41 times its largest segment. That segment is 256 KiB, and what
-the reader and its source hold besides it is not small beside it, so its ratio moves too much to
-judge against the same limit.
+The other two readers are measured and reported, not judged. Four stream-memory runs on
+GitHub-hosted runners (43063981717, 43064467751, 43066398448 and 43067421821) read:
+
+| Reader         | Largest item | Peak / largest item, lowest to highest | Judged |
+| -------------- | ------------ | -------------------------------------- | ------ |
+| `readMessages` | 4 MiB        | 1.96 to 2.08                           | yes    |
+| `parseStream`  | 4 MiB        | 2.99 to 3.98                           | no     |
+| `readSegments` | 256 KiB      | 1.82 to 3.41                           | no     |
+
+`parseStream`, the older message reader, holds about a message more than `readMessages` on the
+same batch, at and over the limit, so for a large batch `readMessages` is the reader to use.
+`readSegments`'s largest segment is 256 KiB, and what the reader and its source hold besides it is
+not small beside it, so its ratio moves too much to judge against the same limit.
 
 These are ratios, not absolute budgets. The parse benchmarks' absolute budgets belong in
 `@cosyte/bench`'s budgets file, which we have not written yet; when we do, the numbers here feed it

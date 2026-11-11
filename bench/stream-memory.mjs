@@ -41,8 +41,9 @@ export const PEAK_MULTIPLE = 3;
 
 /**
  * The readers the gate judges: `readMessages`, over the 100 MiB batch. Two others are measured and
- * reported, not judged, from three stream-memory runs on GitHub-hosted runners (43063981717,
- * 43064467751 and 43066398448), where `readMessages` held 1.96 to 2.08 times its largest message:
+ * reported, not judged, from four stream-memory runs on GitHub-hosted runners (43063981717,
+ * 43064467751, 43066398448 and 43067421821), where `readMessages` held 1.96 to 2.08 times its
+ * largest message:
  *
  * - `parseStream`, the older message reader, held 2.99 to 3.98 times the largest message on the
  *   same batch, at and over the limit. Judging it is a change to `parseStream` first.
