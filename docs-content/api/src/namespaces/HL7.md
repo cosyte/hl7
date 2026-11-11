@@ -16,70 +16,70 @@ const name: HL7.XPN = { familyName: "Doe", givenName: "Jane" };
 
 ### CE
 
-Re-exports [CE](../../README.md#ce)
+Re-exports [CE](../README.md#ce)
 
 ***
 
 ### CWE
 
-Re-exports [CWE](../../README.md#cwe-1)
+Re-exports [CWE](../README.md#cwe-1)
 
 ***
 
 ### CX
 
-Re-exports [CX](../../README.md#cx-1)
+Re-exports [CX](../README.md#cx-1)
 
 ***
 
 ### HD
 
-Re-exports [HD](../../README.md#hd-1)
+Re-exports [HD](../README.md#hd-1)
 
 ***
 
 ### NM
 
-Re-exports [NM](../../README.md#nm-1)
+Re-exports [NM](../README.md#nm-1)
 
 ***
 
 ### PL
 
-Re-exports [PL](../../README.md#pl-1)
+Re-exports [PL](../README.md#pl-1)
 
 ***
 
 ### SN
 
-Re-exports [SN](../../README.md#sn)
+Re-exports [SN](../README.md#sn)
 
 ***
 
 ### TS
 
-Re-exports [TS](../../README.md#ts-1)
+Re-exports [TS](../README.md#ts-1)
 
 ***
 
 ### XAD
 
-Re-exports [XAD](../../README.md#xad-1)
+Re-exports [XAD](../README.md#xad-1)
 
 ***
 
 ### XCN
 
-Re-exports [XCN](../../README.md#xcn-1)
+Re-exports [XCN](../README.md#xcn-1)
 
 ***
 
 ### XPN
 
-Re-exports [XPN](../../README.md#xpn-1)
+Re-exports [XPN](../README.md#xpn-1)
 
 ***
 
 ### XTN
 
-Re-exports [XTN](../../README.md#xtn-1)
+Re-exports [XTN](../README.md#xtn-1)

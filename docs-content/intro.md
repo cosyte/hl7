@@ -54,7 +54,7 @@ messages, or a validator in CI.
 - **Round trips that keep bytes.** A parsed field's escape sequences re-emit byte for byte.
 - **Strict TypeScript.** ES2023, `noUncheckedIndexedAccess`, ESM and CommonJS builds, Node.js 22 or
   later. Every export carries a TSDoc summary, and the [API reference](./api/README.md) is
-  generated from them.
+  generated from them, for both entry points: `@cosyte/hl7` and `@cosyte/hl7/arbitraries`.
 
 ## What it is not
 

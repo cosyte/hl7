@@ -86,5 +86,5 @@ would hold.
 
 ## Reference
 
-- `ParseOptions.lazy` in the [API reference](./api/README.md#lazy).
+- `ParseOptions.lazy` in the [API reference](./api/src/README.md#lazy).
 - [Performance](./performance.md): what we measure, and how.

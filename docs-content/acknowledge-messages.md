@@ -98,10 +98,10 @@ One ACK answers one message. Batch acknowledgment is out of scope.
 
 ## Reference
 
-- [`buildAck`](./api/README.md#buildack), [`BuildAckOptions`](./api/README.md#buildackoptions),
-  [`AckErrorDetail`](./api/README.md#ackerrordetail)
-- [`interpretAck`](./api/README.md#interpretack),
-  [`Acknowledgment`](./api/README.md#acknowledgment),
-  [`isPositiveAck`](./api/README.md#ispositiveack),
-  [`detectAckMode`](./api/README.md#detectackmode)
+- [`buildAck`](./api/src/README.md#buildack), [`BuildAckOptions`](./api/src/README.md#buildackoptions),
+  [`AckErrorDetail`](./api/src/README.md#ackerrordetail)
+- [`interpretAck`](./api/src/README.md#interpretack),
+  [`Acknowledgment`](./api/src/README.md#acknowledgment),
+  [`isPositiveAck`](./api/src/README.md#ispositiveack),
+  [`detectAckMode`](./api/src/README.md#detectackmode)
 - [`ACK_NO_CORRELATION_ID`](./warning-and-fatal-codes.md)

@@ -159,7 +159,7 @@ for the segment tree instead of a helper.
 
 ## Reference
 
-- [`parseHL7`](./api/README.md#parsehl7), [`Hl7Message`](./api/README.md#hl7message)
-- [`Patient`](./api/README.md#patient), [`Visit`](./api/README.md#visit),
-  [`Meta`](./api/README.md#meta)
-- [`SUPPORTED_OVERLAY_MESSAGES`](./api/README.md#supported_overlay_messages)
+- [`parseHL7`](./api/src/README.md#parsehl7), [`Hl7Message`](./api/src/README.md#hl7message)
+- [`Patient`](./api/src/README.md#patient), [`Visit`](./api/src/README.md#visit),
+  [`Meta`](./api/src/README.md#meta)
+- [`SUPPORTED_OVERLAY_MESSAGES`](./api/src/README.md#supported_overlay_messages)

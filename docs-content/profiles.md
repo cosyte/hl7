@@ -235,12 +235,12 @@ pnpm publish --access public
 
 ## Reference
 
-- [`defineProfile`](./api/README.md#defineprofile),
-  [`DefineProfileOptions`](./api/README.md#defineprofileoptions),
-  [`Profile`](./api/README.md#profile),
-  [`CustomSegmentDefinition`](./api/README.md#customsegmentdefinition)
-- [`profiles`](./api/README.md#profiles), [`setDefaultProfile`](./api/README.md#setdefaultprofile),
-  [`getDefaultProfile`](./api/README.md#getdefaultprofile)
-- [`ProfileDefinitionError`](./api/README.md#profiledefinitionerror),
-  [`KNOWN_SEGMENTS`](./api/README.md#known_segments),
-  [`SUPPORTED_DATE_TOKENS`](./api/README.md#supported_date_tokens)
+- [`defineProfile`](./api/src/README.md#defineprofile),
+  [`DefineProfileOptions`](./api/src/README.md#defineprofileoptions),
+  [`Profile`](./api/src/README.md#profile),
+  [`CustomSegmentDefinition`](./api/src/README.md#customsegmentdefinition)
+- [`profiles`](./api/src/README.md#profiles), [`setDefaultProfile`](./api/src/README.md#setdefaultprofile),
+  [`getDefaultProfile`](./api/src/README.md#getdefaultprofile)
+- [`ProfileDefinitionError`](./api/src/README.md#profiledefinitionerror),
+  [`KNOWN_SEGMENTS`](./api/src/README.md#known_segments),
+  [`SUPPORTED_DATE_TOKENS`](./api/src/README.md#supported_date_tokens)

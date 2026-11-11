@@ -46,6 +46,8 @@ const TSX_BIN = join(REPO_ROOT, "node_modules", ".bin", "tsx");
 const TSUP_BIN = tsupBinPath();
 const SCRIPT_PATH = join(REPO_ROOT, "scripts", "api-surface.ts");
 const INVENTORY_PATH = join(REPO_ROOT, "release", "public-api.json");
+/** The second entry point's inventory: `@cosyte/hl7/arbitraries`, built to `arbitraries.d.ts`. */
+const ARBITRARIES_INVENTORY_PATH = join(REPO_ROOT, "release", "public-api-arbitraries.json");
 
 /**
  * The `tsup` that `pnpm build` runs. `@cosyte/process` owns the build tool and its version, so
@@ -135,6 +137,7 @@ function readInventory(path: string): { typescript: string; exports: ApiExport[]
  * publishes from.
  */
 let freshDeclarations = "";
+let freshArbitraries = "";
 
 beforeAll(() => {
   const out = tempDir("hl7-api-surface-");
@@ -146,6 +149,7 @@ beforeAll(() => {
   });
   expect(build.status, `${build.stdout ?? ""}${build.stderr ?? ""}`).toBe(0);
   freshDeclarations = join(out, "index.d.ts");
+  freshArbitraries = join(out, "arbitraries.d.ts");
 }, BUILD_TIMEOUT);
 
 describe("the committed public-export inventory", () => {
@@ -239,6 +243,78 @@ describe("a fresh build is compared against the committed inventory", () => {
       expect(readFileSync(INVENTORY_PATH, "utf8")).toBe(committedBefore);
     },
   );
+});
+
+/**
+ * The package publishes a second entry point, `@cosyte/hl7/arbitraries`, with its own
+ * declarations. It gets its own inventory and the same comparison, so an export that leaves it,
+ * changes shape or arrives unnoticed reds here the way one in the main entry point does.
+ */
+describe("the @cosyte/hl7/arbitraries inventory", () => {
+  it("records the generators and their options", () => {
+    const inventory = readInventory(ARBITRARIES_INVENTORY_PATH);
+    const names = new Set(inventory.exports.map((entry) => entry.name));
+    for (const required of [
+      "message",
+      "messageText",
+      "segment",
+      "field",
+      "hostileInput",
+      "encodingCharacters",
+      "MessageOptions",
+      "SegmentOptions",
+    ]) {
+      expect(names.has(required), `inventory is missing ${required}`).toBe(true);
+    }
+    // The main entry point's exports are not re-exported here, so none of them belongs in it.
+    expect(names.has("parseHL7")).toBe(false);
+  });
+
+  it("names its own entry point and how to regenerate it", () => {
+    const text = readFileSync(ARBITRARIES_INVENTORY_PATH, "utf8");
+    expect(text).toContain("dist/arbitraries.d.ts");
+    expect(text).toContain("--entry arbitraries --write");
+    expect(text).not.toMatch(/"[^"]*\/(?:home|Users|workspace|tmp)\//);
+  });
+
+  it("matches a fresh build exactly", { timeout: BUILD_TIMEOUT }, () => {
+    const run = runCheck(["--entry", "arbitraries", "--declarations", freshArbitraries]);
+    expect(run.output).toContain("OK: public export surface matches");
+    expect(run.output).toContain("public-api-arbitraries.json");
+    expect(run.status).toBe(0);
+  });
+
+  it("reds on drift and rewrites nothing", { timeout: BUILD_TIMEOUT }, () => {
+    const inventory = readInventory(ARBITRARIES_INVENTORY_PATH);
+    const mutated = inventory.exports.filter((entry) => entry.name !== "message");
+    const dir = tempDir("hl7-api-drift-arbitraries-");
+    const copyPath = join(dir, "public-api-arbitraries.json");
+    writeFileSync(
+      copyPath,
+      `${JSON.stringify({ typescript: inventory.typescript, exportCount: mutated.length, exports: mutated }, null, 2)}\n`,
+    );
+    const copyBefore = readFileSync(copyPath, "utf8");
+
+    const run = runCheck([
+      "--entry",
+      "arbitraries",
+      "--declarations",
+      freshArbitraries,
+      "--inventory",
+      copyPath,
+    ]);
+
+    expect(run.status).toBe(1);
+    expect(run.output).toContain("added:   message");
+    expect(run.output).toContain("tsx scripts/api-surface.ts --entry arbitraries --write");
+    expect(readFileSync(copyPath, "utf8")).toBe(copyBefore);
+  });
+
+  it("refuses an entry point the package does not publish", () => {
+    const run = runCheck(["--entry", "testing"]);
+    expect(run.status).toBe(2);
+    expect(run.output).toContain("--entry needs one of index, arbitraries");
+  });
 });
 
 describe("missing inputs refuse rather than compare", () => {

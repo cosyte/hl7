@@ -122,6 +122,10 @@ The full reference lives at [docs.cosyte.com/hl7](https://docs.cosyte.com/hl7), 
 - [Use and write vendor profiles](https://github.com/cosyte/hl7/blob/main/docs-content/profiles.md): built-in profiles, your own, layering, and publishing one.
 - [Tolerance and error handling](https://github.com/cosyte/hl7/blob/main/docs-content/tolerance-and-errors.md): the four tolerance tiers and the errors the library throws.
 - [Warning and fatal codes](https://github.com/cosyte/hl7/blob/main/docs-content/warning-and-fatal-codes.md): every stable code and what it means.
+- The spec notes: what the standard says and how we read it, from [the HL7 v2 primer](https://github.com/cosyte/hl7/blob/main/docs-content/spec-notes-primer.md) and [message structure](https://github.com/cosyte/hl7/blob/main/docs-content/spec-notes-structure.md) to [escape sequences](https://github.com/cosyte/hl7/blob/main/docs-content/spec-notes-escapes.md), [datetime precision](https://github.com/cosyte/hl7/blob/main/docs-content/spec-notes-datetime-precision.md) and [the version matrix](https://github.com/cosyte/hl7/blob/main/docs-content/spec-notes-version-matrix.md); the docs site lists all eighteen under Explanation.
+- [Testing and quality](https://github.com/cosyte/hl7/blob/main/docs-content/testing-and-quality.md): how we test this library, with what each kind of test catches and misses.
+- [Performance](https://github.com/cosyte/hl7/blob/main/docs-content/performance.md): what we measure and how, the CI guard that fails on a regression, and how to run the benchmarks yourself.
+- [API reference](https://github.com/cosyte/hl7/blob/main/docs-content/api/README.md): generated from the TSDoc comments, for both `@cosyte/hl7` and `@cosyte/hl7/arbitraries`.
 
 ---
 
