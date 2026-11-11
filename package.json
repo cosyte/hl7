@@ -113,6 +113,7 @@
     "test:watch": "cosyte-process test --watch",
     "test:coverage": "cosyte-process test --coverage",
     "test:perf": "vitest run --config vitest.perf.config.ts",
+    "test:eager": "vitest run --config vitest.eager.config.ts",
     "quality:check": "cosyte-ratchet check --skip mutation",
     "quality:mutation": "cosyte-ratchet check --skip coverage",
     "quality:raise": "cosyte-ratchet raise",

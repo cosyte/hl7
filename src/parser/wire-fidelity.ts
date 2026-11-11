@@ -21,7 +21,7 @@
  * @internal
  */
 
-import type { Hl7Position, RawField, RawSegment } from "./types.js";
+import type { RawField, RawSegment } from "./types.js";
 
 const VT = "\u000B";
 const FS = "\u001C";
@@ -101,46 +101,53 @@ export function locateInteriorFramingBytes(
 }
 
 /**
- * Record, on the tokenized tree, every field the parser altered on the way in:
- * each field at a position in `trimmed`, and each field at a position
- * {@link locateInteriorFramingBytes} returned. `trimmed` holds copies of the
- * positions of the `FIELD_WHITESPACE_TRIMMED` warnings, taken as tokenize
- * emitted them and before any `onWarning` callback ran: a callback may change
- * the warning it receives, and that must not move the mark.
+ * Field positions grouped by segment: entry `i` lists, in order, the field indices (in
+ * `RawSegment.fields`) of the positions in segment `i`. A sparse list; a segment with none reads
+ * as `undefined`.
  *
  * @example
  * ```ts
- * recordAlteredFields(rawSegments, trimmed, locateInteriorFramingBytes(input, "|"));
+ * fieldsBySegment([{ segmentIndex: 2, rawFieldIndex: 11 }]); // [, , [11]]
  * ```
  *
  * @internal
  */
-export function recordAlteredFields(
-  segments: readonly RawSegment[],
-  trimmed: readonly Hl7Position[],
-  framingBytes: readonly RawFieldPosition[],
-): void {
-  for (const position of trimmed) {
-    const segment = segments[position.segmentIndex];
-    const fieldIndex = position.fieldIndex;
-    /* v8 ignore next -- parseHL7 copies each position as tokenize emits it, before any onWarning callback runs, and tokenize emits both indices, for a segment it pushed at that same index */
-    if (segment === undefined || fieldIndex === undefined) continue;
-    // Warnings number MSH fields as HL7 does (MSH-3 is 3); the tree holds MSH-1 at index 0.
-    mark(segment, segment.name === "MSH" ? fieldIndex - 1 : fieldIndex);
+export function fieldsBySegment(
+  positions: readonly RawFieldPosition[],
+): readonly (readonly number[] | undefined)[] {
+  const bySegment: (number[] | undefined)[] = [];
+  for (let i = 0; i < positions.length; i++) {
+    const { segmentIndex, rawFieldIndex } = positions[i] as RawFieldPosition;
+    const fields = bySegment[segmentIndex];
+    if (fields === undefined) bySegment[segmentIndex] = [rawFieldIndex];
+    else fields.push(rawFieldIndex);
   }
-  for (const { segmentIndex, rawFieldIndex } of framingBytes) {
-    mark(segments[segmentIndex], rawFieldIndex);
-  }
+  return bySegment;
 }
 
 /**
- * Mark the field at `rawFieldIndex`. Tokenize shares frozen nodes (one for every empty field, one
- * for every explicit null, one per segment name), and marking a shared node would mark every field
- * that holds it. So the marked field is first replaced, in the segment tokenize just built, by a
- * node of its own with the same content, and that node is marked.
+ * Record, on a segment just built and not yet seen by anything else, each field at a position in
+ * `rawFieldIndices` as altered on the way in.
+ *
+ * @example
+ * ```ts
+ * markAlteredFields(segment, [11]);
+ * ```
+ *
+ * @internal
  */
-function mark(segment: RawSegment | undefined, rawFieldIndex: number): void {
-  if (segment === undefined) return;
+export function markAlteredFields(segment: RawSegment, rawFieldIndices: readonly number[]): void {
+  for (const rawFieldIndex of rawFieldIndices) mark(segment, rawFieldIndex);
+}
+
+/**
+ * Mark the field at `rawFieldIndex`. The build shares frozen nodes (one for every empty field, one
+ * for every explicit null, one per segment name), and marking a shared node would mark every field
+ * that holds it. So the marked field is first replaced, in the segment just built, by a node of its
+ * own with the same content, and that node is marked. A position past the segment's last field
+ * (a framing byte after a trailing separator) marks nothing.
+ */
+function mark(segment: RawSegment, rawFieldIndex: number): void {
   const field = segment.fields[rawFieldIndex];
   if (field === undefined) return;
   const own: RawField = { repetitions: field.repetitions, isNull: field.isNull };

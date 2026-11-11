@@ -99,6 +99,29 @@ export interface ParseOptions {
   readonly dateFormats?: readonly string[];
   readonly stripMllpFraming?: boolean;
   readonly trimFields?: boolean;
+  /**
+   * Build each segment's tree the first time something reads it (the default, `true`), or every
+   * segment's tree during the parse (`false`).
+   *
+   * Either way the parse reads the whole message once and reports every warning before it
+   * returns: `warnings`, `strict` and `onWarning` behave the same in both modes, and a problem is
+   * never reported later, on first read. A lazy parse keeps the message text and where each
+   * segment starts, and builds a segment's tree when `segments()`, `part()`, `get()`, a helper or
+   * an edit first reads it, then keeps it on the message. Reading a few segments of a long
+   * message builds those few.
+   *
+   * Some reads build every segment: `rawSegments`, `toString()`, `toJSON()`, `prettyPrint()`,
+   * and a helper that reads every segment of a type (such as `observations()`, which reads each
+   * OBX). Pass `false` to build the whole tree during the parse instead, for example to keep the
+   * cost of the build inside the parse call.
+   *
+   * @example
+   * ```ts
+   * import { parseHL7 } from "@cosyte/hl7";
+   * const eager = parseHL7(raw, { lazy: false });
+   * ```
+   */
+  readonly lazy?: boolean;
   readonly profile?: Profile | null;
   /**
    * Override the character set used to decode `Buffer` input. When supplied

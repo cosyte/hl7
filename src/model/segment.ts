@@ -10,11 +10,31 @@
 
 import { Field } from "./field.js";
 import { canonicalSegmentName } from "../parser/known-segments.js";
+import { PendingSegment, resolveSegment } from "../parser/segment-source.js";
 import { boundedIdentifier } from "../parser/tokens.js";
 import type { EncodingCharacters, RawField, RawSegment } from "../parser/types.js";
 
 /** Shared frozen empty list for a Segment built without declared date formats. @internal */
 const EMPTY_DATE_FORMATS: readonly string[] = Object.freeze([]);
+
+/**
+ * The key Node's `util.inspect` looks up for a custom view, from the global symbol registry, so the
+ * library imports nothing from Node to honour it.
+ * @internal
+ */
+export const INSPECT = Symbol.for("nodejs.util.inspect.custom");
+
+/**
+ * A plain own property holding `value`: enumerable, writable and configurable, as a class field is.
+ * @internal
+ */
+export function ownValue(value: unknown): PropertyDescriptor {
+  return { value, writable: true, enumerable: true, configurable: true };
+}
+
+/** The own `fields` and `raw` properties of a wrapper whose segment is not built yet. */
+let LAZY_FIELDS: PropertyDescriptor;
+let LAZY_RAW: PropertyDescriptor;
 
 /**
  * Wrapper over a `RawSegment` exposing typed per-position `Field` instances.
@@ -62,19 +82,26 @@ export class Segment<FieldName extends string = string> {
    * raw name fails the shape (a 4-character vendor Z-segment, which HL7 v2
    * Ch. 2 §2.5 does not permit) is not matched by `msg.segments(name)`.
    */
-  public readonly type: string;
+  declare public readonly type: string;
 
-  /** Reference to the underlying `RawSegment.fields`: 1-indexed per HL7 convention. */
-  public readonly fields: readonly RawField[];
+  /**
+   * Reference to the underlying `RawSegment.fields`: 1-indexed per HL7 convention. On a lazily
+   * parsed message, the first read builds this segment's tree (and only this segment's).
+   */
+  declare public readonly fields: readonly RawField[];
 
   /** The 5 encoding characters for this message. Exposed for composite parsers. @internal */
-  public readonly enc: EncodingCharacters;
+  declare public readonly enc: EncodingCharacters;
 
   /** Absolute index of this segment in `Hl7Message.rawSegments[]`. Used for position tracking. @internal */
-  public readonly absoluteIndex: number;
+  declare public readonly absoluteIndex: number;
 
-  /** The full `RawSegment` this wrapper wraps. Exposed for mutation methods. @internal */
-  public readonly raw: RawSegment;
+  /**
+   * The full `RawSegment` this wrapper wraps. Exposed for mutation methods. On a lazily parsed
+   * message, the first read builds this segment's tree (and only this segment's).
+   * @internal
+   */
+  declare public readonly raw: RawSegment;
 
   /**
    * Lookup map from profile-declared field name → 1-indexed HL7 position.
@@ -85,7 +112,7 @@ export class Segment<FieldName extends string = string> {
    * named-field access.
    * @internal
    */
-  public readonly customFields: Readonly<Record<string, number>> | undefined;
+  declare public readonly customFields: Readonly<Record<string, number>> | undefined;
 
   /**
    * The message's merged `dateFormats`, handed to every `Field` this
@@ -94,10 +121,13 @@ export class Segment<FieldName extends string = string> {
    * declared any.
    * @internal
    */
-  public readonly dateFormats: readonly string[];
+  declare public readonly dateFormats: readonly string[];
 
   /** Lazy cache of Field wrappers: one per fields[] position. @internal */
-  private _fieldWrappers: Field[] | undefined;
+  declare private _fieldWrappers: Field[] | undefined;
+
+  /** The pending entry of a segment not built yet; cleared once it is built. @internal */
+  #pending: PendingSegment | undefined;
 
   /**
    * Construct a new `Segment`. Called internally by `Hl7Message`; user code
@@ -120,7 +150,6 @@ export class Segment<FieldName extends string = string> {
     customFields?: Readonly<Record<string, number>>,
     dateFormats?: readonly string[],
   ) {
-    this.raw = raw;
     // Canonicalized THEN bounded, in that order, and both steps matter.
     //
     // Canonical because `type` is what every lookup compares against: not just
@@ -140,11 +169,74 @@ export class Segment<FieldName extends string = string> {
     // of names passes it. `raw.name` keeps the verbatim text for the byte-exact
     // round-trip; see the `type` field JSDoc.
     this.type = boundedIdentifier(canonicalSegmentName(raw.name), "segmentId");
-    this.fields = raw.fields;
+    // The own properties are added here, in the order every release has had them, rather than
+    // declared as class fields: a segment not built yet adds `fields` and `raw` as accessors in
+    // their places, and adding an accessor keeps the wrapper as compact as a plain one, where
+    // turning an existing field into one would not. Not built yet: `fields` and `raw` stay own
+    // enumerable properties, as on a built segment, but each builds the segment on first read and
+    // then becomes a plain value. The pending entry is held in a private field, so nothing that
+    // enumerates this wrapper (a log, `JSON.stringify`, a spread) reaches the message text.
+    const pending = raw instanceof PendingSegment && !raw.built ? raw : undefined;
+    const built = pending === undefined ? resolveSegment(raw) : undefined;
+    if (built === undefined) {
+      this.#pending = pending;
+      Object.defineProperty(this, "fields", LAZY_FIELDS);
+    } else {
+      this.fields = built.fields;
+    }
     this.enc = enc;
     this.absoluteIndex = absoluteIndex;
+    if (built === undefined) Object.defineProperty(this, "raw", LAZY_RAW);
+    else this.raw = built;
     this.customFields = customFields;
     this.dateFormats = dateFormats ?? EMPTY_DATE_FORMATS;
+    this._fieldWrappers = undefined;
+  }
+
+  /**
+   * Build a wrapper's pending segment, if it still has one, and make `fields` and `raw` plain
+   * values. The pending entry resolves through its source's cache: the same built segment every
+   * time.
+   * @internal
+   */
+  static #settle(segment: Segment): void {
+    const pending = segment.#pending;
+    if (pending === undefined) return;
+    const built = resolveSegment(pending);
+    segment.#pending = undefined;
+    Object.defineProperty(segment, "fields", ownValue(built.fields));
+    Object.defineProperty(segment, "raw", ownValue(built));
+  }
+
+  static {
+    // `this`, not the class name: a class that names itself inside its own body is emitted by the
+    // bundler under a renamed inner binding, which changes `Segment.name` and every log label.
+    const settle = this.#settle;
+    /** An own property that builds the segment on first read or write, then holds a value. */
+    const lazy = (key: "fields" | "raw"): PropertyDescriptor => ({
+      get(this: Segment): unknown {
+        settle(this);
+        return this[key];
+      },
+      set(this: Segment, value: unknown): void {
+        settle(this);
+        Object.defineProperty(this, key, ownValue(value));
+      },
+      enumerable: true,
+      configurable: true,
+    });
+    LAZY_FIELDS = lazy("fields");
+    LAZY_RAW = lazy("raw");
+    // A log reads every own property, so `util.inspect` builds a pending segment first and then
+    // prints the wrapper as it is, rather than printing `[Getter/Setter]`.
+    Object.defineProperty(this.prototype, INSPECT, {
+      value(this: Segment): Segment {
+        settle(this);
+        return this;
+      },
+      writable: true,
+      configurable: true,
+    });
   }
 
   /**

@@ -1,6 +1,8 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync, readdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
+import { inspect } from "node:util";
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -9,6 +11,8 @@ import {
   extractRunnableSnippets,
   runSnippet,
 } from "@cosyte/vitest-config/snippets";
+
+import type * as Hl7 from "../src/index.js";
 
 import { compileErrors, fences, fixturesByContent, messageLiteral } from "./_helpers/first-use.js";
 
@@ -165,4 +169,29 @@ describe("the quickstart's first example", () => {
     expect(fixtures.get(messageLiteral(mutated) ?? "")).toBeUndefined();
     await expect(runSnippet(mutated, { resolve, tmpDir: firstUseTmp })).rejects.toThrow();
   });
+});
+
+/**
+ * The built classes keep their own names. A class that names itself inside its own body is emitted
+ * by the bundler under a renamed inner binding (`var Segment = class _Segment`), which turns
+ * `Segment.name`, a message's `constructor.name` and every `util.inspect` label into `_Segment`
+ * and `_Hl7Message`. Only the built artifact shows it, so this reads `dist/`, which the build above
+ * provides. The message is synthetic.
+ */
+describe("the built classes", () => {
+  const TEXT = "MSH|^~\\&|A|B|C|D|20260101||ORU^R01|1|P|2.5\rOBX|1|NM|GLU||81";
+
+  for (const lazy of [true, false]) {
+    it(`keep the names Hl7Message and Segment, ${lazy ? "lazy" : "eager"}`, async () => {
+      const built = (await import(pathToFileURL(distEntry).href)) as typeof Hl7;
+      expect(built.Hl7Message.name).toBe("Hl7Message");
+      expect(built.Segment.name).toBe("Segment");
+      const msg = built.parseHL7(TEXT, { lazy });
+      const obx = msg.segments("OBX")[0];
+      expect(msg.constructor.name).toBe("Hl7Message");
+      expect(obx?.constructor.name).toBe("Segment");
+      expect(inspect(msg, { depth: 0 })).toMatch(/^Hl7Message \{/);
+      expect(inspect(obx, { depth: 0 })).toMatch(/^Segment \{/);
+    });
+  }
 });

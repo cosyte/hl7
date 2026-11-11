@@ -19,7 +19,7 @@ import { runInNewContext } from "node:vm";
 
 import { describe, expect, it } from "vitest";
 
-import { parseHL7, type Hl7Message } from "../../src/index.js";
+import { parseHL7, type Hl7Message, type ParseOptions } from "../../src/index.js";
 
 setFlagsFromString("--expose-gc");
 const collect = runInNewContext("gc") as () => void;
@@ -63,14 +63,39 @@ function documentMessage(bytes: number): string {
   );
 }
 
-/** Heap the parsed messages retain, per byte of the text they were parsed from. */
-function retainedPerByte(texts: readonly string[]): number {
+/**
+ * What a typical reader of a result report reads: MSH, PID, PV1 (absent from these reports, so a
+ * read that finds nothing) and the first five OBX.
+ */
+function readTypical(msg: Hl7Message): unknown[] {
+  return [
+    msg.part("MSH")?.field(10).value,
+    msg.part("PID")?.field(3).value,
+    msg.part("PV1")?.field(3).value,
+    ...msg
+      .segments("OBX")
+      .slice(0, 5)
+      .map((obx) => obx.field(5).value),
+  ];
+}
+
+/**
+ * Heap the parsed messages retain, per byte of the text they were parsed from: parsed with
+ * `options`, then read by `read`. The texts are built before the first reading, so they are not
+ * counted; a lazy message keeps a reference to its text, which is the caller's own string.
+ */
+function retainedPerByte(
+  texts: readonly string[],
+  options: ParseOptions = {},
+  read: (msg: Hl7Message) => unknown = () => undefined,
+): number {
   // Warm up, so code compiled on first use is not counted as the message's.
-  for (let k = 0; k < 3; k++) for (const text of texts) parseHL7(text);
+  for (let k = 0; k < 3; k++) for (const text of texts) read(parseHL7(text, options));
   collect();
   collect();
   const before = process.memoryUsage().heapUsed;
-  const kept: Hl7Message[] = texts.map((text) => parseHL7(text));
+  const kept: Hl7Message[] = texts.map((text) => parseHL7(text, options));
+  for (const msg of kept) read(msg);
   collect();
   collect();
   const after = process.memoryUsage().heapUsed;
@@ -89,5 +114,26 @@ describe("the heap a parsed message holds", () => {
 
   it("is under 3 times the input for a message carrying one large base64 document", () => {
     expect(retainedPerByte([documentMessage(1024 * 1024)])).toBeLessThan(3);
+  });
+
+  // A lazy parse builds a segment when it is first read, so what a message holds depends on what
+  // was read. The whole tree, built during the parse or by reading everything, is held to the
+  // ceilings above.
+  it("is under 5 times the input for a 1 MiB result report read at MSH, PID, PV1 and five OBX", () => {
+    expect(retainedPerByte([denseMessage(1024 * 1024)], {}, readTypical)).toBeLessThan(5);
+  });
+
+  it("is under 70 times the input for a result report built during the parse", () => {
+    expect(retainedPerByte([denseMessage(256 * 1024)], { lazy: false })).toBeLessThan(70);
+  });
+
+  it("is under 70 times the input for a lazily parsed result report read in full", () => {
+    const readAll = (msg: Hl7Message): unknown => msg.rawSegments;
+    expect(retainedPerByte([denseMessage(256 * 1024)], {}, readAll)).toBeLessThan(70);
+  });
+
+  it("is under 80 times the input for a small ADT^A01 built during the parse", () => {
+    const texts = Array.from({ length: 256 }, (_v, i) => adtMessage(i));
+    expect(retainedPerByte(texts, { lazy: false })).toBeLessThan(80);
   });
 });
