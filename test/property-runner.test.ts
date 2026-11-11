@@ -8,6 +8,7 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { checkAsyncProperty, checkProperty, propertyTimeout } from "./_helpers/property.js";
+import { quarterDepth } from "./property/_read.js";
 
 /** The message a failing run throws, or `undefined` when it passes. */
 function failureOf(run: () => void): string | undefined {
@@ -148,5 +149,17 @@ describe("propertyTimeout", () => {
     expect(propertyTimeout(10_000, { COSYTE_PROPERTY_RUNS: "50" })).toBe(10_000);
     expect(propertyTimeout(10_000, { COSYTE_PROPERTY_RUNS: "10000" })).toBe(1_000_000);
     expect(propertyTimeout(120_000, { COSYTE_PROPERTY_RUNS: "10000" }, 25)).toBe(48_000_000);
+  });
+});
+
+describe("the streaming reader properties", () => {
+  it("run at their own 25 on a pull request, and at a quarter of a deeper run", () => {
+    expect(quarterDepth({})).toEqual({});
+    expect(quarterDepth({ COSYTE_PROPERTY_RUNS: "60" })).toEqual({ COSYTE_PROPERTY_RUNS: "25" });
+    expect(quarterDepth({ COSYTE_PROPERTY_RUNS: "10000" })).toEqual({
+      COSYTE_PROPERTY_RUNS: "2500",
+    });
+    const replay = { COSYTE_PROPERTY_SEED: "-7", COSYTE_PROPERTY_PATH: "3:0" };
+    expect(quarterDepth(replay)).toEqual(replay);
   });
 });

@@ -53,7 +53,8 @@ keeps StrykerJS's incremental results between runs. After it and `pnpm test:cove
 Every property test runs through `checkProperty` or `checkAsyncProperty`
 (`test/_helpers/property.ts`) or a runner from `@cosyte/test-utils`: 100 cases on a pull request,
 or the count its file sets with a `property-depth:` note saying why, from a new seed every run.
-`COSYTE_PROPERTY_RUNS` sets the depth of all of them, and the nightly run sets 10,000. A failure
+`COSYTE_PROPERTY_RUNS` sets the depth of all of them, and the nightly run sets 10,000; the four
+streaming reader properties take a quarter of it (`test/property/_read.ts` says why). A failure
 prints `COSYTE_PROPERTY_SEED` and `COSYTE_PROPERTY_PATH`: set both and run the test again to replay
 the failing case, already shrunk. `test/property-depth.test.ts` fails on a bare `fc.assert`, a seed
 or count with no note, or a property the nightly run does not reach.

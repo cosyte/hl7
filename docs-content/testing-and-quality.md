@@ -37,7 +37,9 @@ follows checks values, not only that the parser did not throw.
   request and on `main`, on Node.js 22, 24 and 26. Every property test runs the same way: 100
   cases on a pull request, or the count its file sets with the reason beside it (from 25 to 2,000
   today), from a new seed on every run, so a run can find a case an earlier run missed.
-  `COSYTE_PROPERTY_RUNS` sets the depth of all of them, and a nightly run sets 10,000. A failure
+  `COSYTE_PROPERTY_RUNS` sets the depth of all of them, and a nightly run sets 10,000; the four
+  streaming reader properties, which read each input once for every position it can be cut at,
+  take a quarter of it. A failure
   prints the seed and path that replay it (`COSYTE_PROPERTY_SEED`, `COSYTE_PROPERTY_PATH`): set
   both and run the test again to get the same case, already shrunk. Twelve of them prove the three
   properties every Cosyte parser proves (round trip, idempotent normalize, and never throws in

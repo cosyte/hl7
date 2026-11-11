@@ -1086,11 +1086,12 @@ describe("property: profile levels", () => {
     // leak rather than a coincidental substring of English prose. Every level
     // refusal fires at once here: a leftover usage, a conditional whose
     // outcomes the level does not admit, a rule that declares no usage, and a
-    // level token that is not a level.
+    // level token that is not a level. That token is the profile's own text, which a finding may
+    // name, so it carries no "ZQV": a token of "ZQVLEVEL" once read as the leak of secret "ZQVL".
     checkProperty(
       fc.property(
         fc.stringMatching(/^[A-Za-z0-9]{1,9}$/u).map((s) => `ZQV${s}`),
-        fc.constantFrom("implementable", "ZQVLEVEL"),
+        fc.constantFrom("implementable", "NOTALEVEL"),
         (secret, level) => {
           const raw =
             `MSH|^~\\&|${secret}|B|C|D|20260101||ADT^A01|${secret}|P|2.5\r` +
