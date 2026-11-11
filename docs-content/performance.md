@@ -44,6 +44,12 @@ followed by the reads most callers make (MSH, PID, PV1 and five OBX), `parseHL7`
   large cases each take one call at a time to warm up, until the median of the last five calls is
   within 5% of the five before them, which does not fit the shared job's time budget.
 
+One large case does not settle: `parseHL7 with { lazy: false }` at 1 MiB, about 33 ms a call, is
+too long for the standard warmup to settle and too short for the large-case plan, so the comparison
+skips it (`warmup-unstable`). It did in each of the first three `large-compare` runs (bench-reading
+runs 43064468140, 43067421711 and 43069553065), and `parseHL7` at 4 MiB was skipped once. None of
+the three called a regression.
+
 Both comparisons are advisory: they report a regression on the run's page and never fail the pull
 request. A comparison may become a required check only when an A/A calibration on its runner class
 shows false alarms under 1% with 95% confidence, which takes at least 299 clean comparisons.
@@ -70,8 +76,8 @@ read: the message, the text it came from, and room for the reader's own state. A
 buffered its source would hold toward all 100 MiB. It also fails when the reading cannot be judged,
 because the reader read nothing or failed a message. The limit is `PEAK_MULTIPLE` in the script.
 
-The other two readers are measured and reported, not judged. Four stream-memory runs on
-GitHub-hosted runners (43063981717, 43064467751, 43066398448 and 43067421821) read:
+The other two readers are measured and reported, not judged. Five stream-memory runs on
+GitHub-hosted runners (43063981717, 43064467751, 43066398448, 43067421821 and 43069553162) read:
 
 | Reader         | Largest item | Peak / largest item, lowest to highest | Judged |
 | -------------- | ------------ | -------------------------------------- | ------ |
