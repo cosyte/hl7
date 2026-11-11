@@ -51,23 +51,24 @@ HL7 v2 Chapter 2:
 Charset resolution runs through a **frozen Table-0211 registry** (`resolveCharset`),
 mirroring `KNOWN_SEGMENTS`, one source of truth for how a code is treated:
 
-| Table-0211 code | Treatment |
-| --- | --- |
-| `8859/1` (and `ISO-8859-1` synonyms) | **decode**: via Node `latin1` (**byte-exact**, never fails) |
-| `ASCII` / blank / `ISO IR6` | **decode**: strict UTF-8 (a superset; 7-bit is identical) |
-| `UNICODE UTF-8`, `UNICODE`, `UTF-8` | **decode**: strict UTF-8 |
-| `8859/2` to `8859/8`, `8859/10`, `8859/13` to `8859/16` (and `ISO-8859-N` synonyms) | **decode**: strict `TextDecoder` (C1 range faithful) |
-| `8859/9`, `8859/11` | **preserve verbatim**: no faithful Node decoder (windows-1254/874 alias) |
-| `ISO IR14/87/159`, `GB 18030-2000`, `KS X 1001`, `CNS 11643-1992`, `BIG-5` | **preserve verbatim**: recognized, not decoded |
-| `UNICODE UTF-16`, `UNICODE UTF-32` | **preserve verbatim**: recognized, not decoded |
-| anything not in Table 0211 | **preserve verbatim**: unrecognized |
+| Table-0211 code                                                                     | Treatment                                                                |
+| ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `8859/1` (and `ISO-8859-1` synonyms)                                                | **decode**: via Node `latin1` (**byte-exact**, never fails)              |
+| `ASCII` / blank / `ISO IR6`                                                         | **decode**: strict UTF-8 (a superset; 7-bit is identical)                |
+| `UNICODE UTF-8`, `UNICODE`, `UTF-8`                                                 | **decode**: strict UTF-8                                                 |
+| `WINDOWS-1252` (and `CP1252`, `X-CP1252`), not a Table-0211 code                    | **decode**: the parser's own windows-1252 table (never fails)            |
+| `8859/2` to `8859/8`, `8859/10`, `8859/13` to `8859/16` (and `ISO-8859-N` synonyms) | **decode**: strict `TextDecoder` (C1 range faithful)                     |
+| `8859/9`, `8859/11`                                                                 | **preserve verbatim**: no faithful Node decoder (windows-1254/874 alias) |
+| `ISO IR14/87/159`, `GB 18030-2000`, `KS X 1001`, `CNS 11643-1992`, `BIG-5`          | **preserve verbatim**: recognized, not decoded                           |
+| `UNICODE UTF-16`, `UNICODE UTF-32`                                                  | **preserve verbatim**: recognized, not decoded                           |
+| anything else not in Table 0211                                                     | **preserve verbatim**: unrecognized                                      |
 
 `resolveCharset` and `canonicalCharset` are exported for callers that want to
 inspect this mapping directly.
 
 **`8859/1` decodes via `latin1`, not `TextDecoder`.** Node's WHATWG
 `TextDecoder("iso-8859-1")` is actually **windows-1252**: it remaps the C1 range
-(byte `0x80` → `€`, `0x9F` → `Ÿ`), which is *not* ISO-8859-1. Node's `latin1`
+(byte `0x80` → `€`, `0x9F` → `Ÿ`), which is _not_ ISO-8859-1. Node's `latin1`
 encoding is the true ISO-8859-1 (every byte maps 1:1), so `8859/1` (by far the
 most common non-UTF-8 HL7 charset) is decoded byte-exactly.
 
@@ -80,6 +81,54 @@ Since Node offers no faithful decoder for them, they are **preserved verbatim**
 other ISO-8859 sets (`8859/2` to `8859/8`, `10`, `13` to `16`) decode the C1 range
 faithfully (audited) and are decoded normally.
 
+## Windows-1252
+
+`WINDOWS-1252` is not in Table 0211, but it is what many senders mean, and some declare it in
+MSH-18 or have it configured on the channel. The parser decodes it, apart from `8859/1`: the two
+agree on every byte except 0x80 to 0x9F, where `8859/1` keeps the C1 controls and windows-1252 has
+typographic characters. Declare it in MSH-18 or ask for it with `options.charset`:
+
+```ts runnable
+import { parseHL7 } from "@cosyte/hl7";
+
+// Byte 0x80 is the euro sign in windows-1252 and a C1 control in ISO-8859-1.
+const bytes = Buffer.concat([
+  Buffer.from(
+    "MSH|^~\\&|A|B|C|D|20260101||ADT^A01|ID1|P|2.5\rPID|1||MRN12345^^^HOSP^MR||Doe",
+    "latin1",
+  ),
+  Buffer.from([0x80]),
+  Buffer.from("^Ann", "latin1"),
+]);
+
+parseHL7(bytes, { charset: "WINDOWS-1252" }).get("PID.5.1")?.codePointAt(3); // => 0x20ac
+parseHL7(bytes, { charset: "8859/1" }).get("PID.5.1")?.codePointAt(3); // => 0x80
+```
+
+The decode uses the parser's own copy of the WHATWG Encoding `index-windows-1252` table, not
+`TextDecoder`, so it gives the same text on every Node.js build. Bytes 0x80 to 0x9F map as below;
+every other byte maps to the code point of the same value, as `latin1` does.
+
+| Bytes        | Code points                                                    |
+| ------------ | -------------------------------------------------------------- |
+| 0x80 to 0x87 | U+20AC, U+0081, U+201A, U+0192, U+201E, U+2026, U+2020, U+2021 |
+| 0x88 to 0x8F | U+02C6, U+2030, U+0160, U+2039, U+0152, U+008D, U+017D, U+008F |
+| 0x90 to 0x97 | U+0090, U+2018, U+2019, U+201C, U+201D, U+2022, U+2013, U+2014 |
+| 0x98 to 0x9F | U+02DC, U+2122, U+0161, U+203A, U+0153, U+009D, U+017E, U+0178 |
+
+Windows leaves five of those bytes undefined: 0x81, 0x8D, 0x8F, 0x90 and 0x9D. As the WHATWG table
+does, they become the C1 control of the same value, so no byte is lost and none raises a warning.
+Every byte decodes, so a windows-1252 message never takes the verbatim fail-safe below.
+
+**What changes for a caller.** Before this release `WINDOWS-1252` was an unrecognized label: the
+bytes were read as `latin1` and `UNKNOWN_CHARSET` was raised. Now the message is decoded and no
+charset warning is raised; `resolveCharset("WINDOWS-1252")` answers `treatment: "decode"`,
+`decoder: "windows-1252"` and `recognized: true`. If you re-decoded such fields yourself with
+`Buffer.from(value, "latin1")`, drop that step: the value is already text. An `ENCODING_MISMATCH`
+between `options.charset` and MSH-18 is raised as before whenever one of them is `WINDOWS-1252`
+and the other is not, and its message now shows an MSH-18 of `WINDOWS-1252` instead of
+`<withheld>`.
+
 **Why default to UTF-8 for the ASCII/blank case.** For conformant 7-bit content
 an ASCII decode and a UTF-8 decode are byte-identical, so honouring "blank =
 ASCII" costs nothing, and decoding the default as UTF-8 additionally rescues the
@@ -89,24 +138,25 @@ not become `U+FFFD`: it takes the fail-safe below.
 
 ## Fail-safe: never guess, never silently corrupt
 
-Decoding is **strict** (`fatal: true`) for every set except byte-exact `8859/1`.
+Decoding is **strict** (`fatal: true`) for every set except byte-exact `8859/1`
+and `WINDOWS-1252`, which decode every byte.
 A byte that is invalid or undefined for the declared set does **not** silently
 become `U+FFFD` (irreversible loss); instead the raw bytes are read as a `latin1`
 1:1 mapping and one warning is raised. The same fail-safe covers a charset the
 parser does not decode at all:
 
-- **`UNSUPPORTED_CHARSET`**: a *recognized* Table-0211 code that was not decoded:
+- **`UNSUPPORTED_CHARSET`**: a _recognized_ Table-0211 code that was not decoded:
   either one this parser never decodes (the multibyte / ISO-2022 East-Asian sets,
   UTF-16/32) **or** a decodable set whose strict decode failed (a byte invalid for
   it, or an ICU build lacking the label).
-- **`UNKNOWN_CHARSET`**: a value that is *not* an HL7 Table-0211 code at all.
+- **`UNKNOWN_CHARSET`**: a value that is _not_ an HL7 Table-0211 code at all.
 
 Both read the bytes as `latin1`; the distinction is diagnostic. Neither warning
 can carry a decoded field value: a label is echoed **only when the Table-0211
 registry recognizes it**, and anything else is replaced with `<withheld>`.
 
 That bound is membership rather than spelling for a reason. `UNKNOWN_CHARSET`
-fires precisely *when* a label is absent from the closed table, so at that moment
+fires precisely _when_ a label is absent from the closed table, so at that moment
 there is no spec-defined spelling left to test against, and a shape test cannot
 tell `UNICODE UTF-8` from a patient name. It matters because MSH-18 is read as
 the 18th `|`-token of the text before the first terminator, so on a message
@@ -114,16 +164,16 @@ carrying no segment terminators that token is a data field.
 
 **The cost, stated plainly:** `UNKNOWN_CHARSET` now never reports the label it
 rejected, because by definition the registry does not recognize it. A sender
-declaring `WINDOWS-1252` (the classic non-Table-0211 value) yields
+declaring `CP850` (a code page outside Table 0211) yields
 `Unrecognized character set "<withheld>"`, and the observed label is on no field
 of the warning. To identify it, read MSH-18 off the message yourself. That is a
 deliberate trade of one diagnostic for a leak that reached a downstream report.
 
 **Recoverability is exact for single-byte content, best-effort for multibyte.**
 The HL7 structural bytes (the segment terminator CR (`0x0D`), LF, and the
-`|^~\&` delimiters) are 7-bit and unambiguous, so a *single-byte* undecoded
+`|^~\&` delimiters) are 7-bit and unambiguous, so a _single-byte_ undecoded
 field's content bytes survive and re-decode downstream via
-`Buffer.from(value, "latin1")`. A *multibyte* code unit, however, can contain a
+`Buffer.from(value, "latin1")`. A _multibyte_ code unit, however, can contain a
 byte that equals a structural byte (a UTF-16 `0x0D`, say); the tokenizer then
 frames on it. That is precisely why multibyte **decode** is deferred rather than
 claimed. See the limitations below.
@@ -142,7 +192,7 @@ the override wins.
   verbatim**, not decoded. HL7 renders these through stateful `\Mxxyyzz\`
   switches from an ASCII default; stateless whole-buffer decoding would mis-render
   switched content, so correctness is preferred over a lossy guess. Opt-in decode,
-  for the case where such a set is the *declared default*, may be added later.
+  for the case where such a set is the _declared default_, may be added later.
 - **Multibyte framing on the verbatim path.** A recognized-but-undecoded set is
   read as `latin1` and still tokenized, so a content byte that equals an HL7
   structural byte (the segment terminator CR (`0x0D`) / LF (`0x0A`), or a
@@ -156,17 +206,17 @@ the override wins.
   pass through preserved; the switched bytes are not re-rendered into the target
   repertoire.
 - **Byte-verbatim re-emit of a preserved charset escape** is tracked separately
-  (escape-fidelity work): a preserved `\M…\` decodes losslessly *as text* but the
+  (escape-fidelity work): a preserved `\M…\` decodes losslessly _as text_ but the
   serializer may canonicalize its backslashes.
 - **No transliteration** between character sets.
 
 ## Warning codes
 
-| Code | Meaning |
-| --- | --- |
+| Code                  | Meaning                                                                                                   |
+| --------------------- | --------------------------------------------------------------------------------------------------------- |
 | `UNSUPPORTED_CHARSET` | recognized Table-0211 set not decoded (never-decoded, or a strict-decode failure), bytes read as `latin1` |
-| `UNKNOWN_CHARSET` | value not in Table 0211, bytes read as `latin1` |
-| `ENCODING_MISMATCH` | `options.charset` override disagrees with the declared MSH-18 |
+| `UNKNOWN_CHARSET`     | value not in Table 0211 (and not `WINDOWS-1252`), bytes read as `latin1`                                  |
+| `ENCODING_MISMATCH`   | `options.charset` override disagrees with the declared MSH-18                                             |
 
 ## Put it to use
 
