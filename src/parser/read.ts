@@ -542,7 +542,8 @@ export async function* readMessages(
     tail = lines.term === "" ? lines.text : "";
     line(lines.text, lines.term);
   }
-  flush(parts.length > 0 && !isBlankLine(tail, kinds.kind === "bytes"));
+  // flush() returns at once when no message is open.
+  flush(!isBlankLine(tail, kinds.kind === "bytes"));
   for (const item of out) {
     yield item;
     if (strict && !item.ok) return;

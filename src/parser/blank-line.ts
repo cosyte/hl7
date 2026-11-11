@@ -7,9 +7,6 @@
 
 import { Buffer } from "node:buffer";
 
-/** Only whitespace and bytes above ASCII: a line that could be blank once read as UTF-8. */
-const MAYBE_BLANK_BYTES = /^[\s\u0080-\u00ff]*$/u;
-
 /**
  * Whether `line` holds only whitespace. Text is blank when `String.prototype.trim` leaves
  * nothing. A line of bytes, read one byte to one character, is blank when it is blank read that
@@ -25,6 +22,6 @@ const MAYBE_BLANK_BYTES = /^[\s\u0080-\u00ff]*$/u;
  */
 export function isBlankLine(line: string, bytes: boolean): boolean {
   if (line.trim() === "") return true;
-  if (!bytes || !MAYBE_BLANK_BYTES.test(line)) return false;
-  return Buffer.from(line, "latin1").toString("utf8").trim() === "";
+  // toString() reads UTF-8.
+  return bytes && Buffer.from(line, "latin1").toString().trim() === "";
 }

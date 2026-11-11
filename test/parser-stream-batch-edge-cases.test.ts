@@ -184,6 +184,15 @@ describe("parseStream", () => {
     }
   });
 
+  it("keeps, in text, the three letters a byte order mark reads as one byte to one character", async () => {
+    const letters = "\u00ef\u00bb\u00bf";
+    const text = `${MSH_A}\rBTS|1\r${letters}\r${MSH_B}\r${letters}`;
+    const entries = await collect([text]);
+    expect(entries.map((entry) => entry.ok)).toEqual([true, false, true]);
+    expect(entries[2]?.streamWarnings.map((w) => w.code)).toEqual(["UNTERMINATED_STREAM_MESSAGE"]);
+    expect(splitBatch(text).messages.map((entry) => entry.ok)).toEqual([true, false, true]);
+  });
+
   it("yields the message before an unterminated final MSH, then the final one", async () => {
     const entries = await collect([`${MSH_A}\rPID|1\r${MSH_B}`]);
     expect(entries.map((e) => e.raw)).toEqual([`${MSH_A}\rPID|1`, MSH_B]);

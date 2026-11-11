@@ -493,7 +493,8 @@ export async function* parseStream(
     const flushed = processSegment(tail);
     if (flushed !== null) yield flushed;
     // The message now held in `currentLines` (if any) ends without a terminator.
-    finalUnterminated = currentLines.length > 0 && !isBlankLine(tail, wasBuffer);
+    // flush() yields nothing when no message is open, whatever the flag says.
+    finalUnterminated = !isBlankLine(tail, wasBuffer);
   }
   const finalEntry = flush(finalUnterminated);
   if (finalEntry !== null) yield finalEntry;

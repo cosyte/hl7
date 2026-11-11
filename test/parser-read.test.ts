@@ -338,6 +338,16 @@ describe("readMessages: a batch", () => {
         [true, 3],
       ]);
     }
+    // Text is read as text: the three letters a byte order mark reads as one byte to one
+    // character are content in a string, before a message and as a last line cut short.
+    const letters = "\u00ef\u00bb\u00bf";
+    const [before, w5] = await drain(readMessages(`${letters}\r${adt("W5")}`));
+    expect(before?.ok).toBe(false);
+    expect(w5?.ok === true && w5.message.meta.controlId).toBe("W5");
+    const [w6] = await drain(readMessages(`${adt("W6")}${letters}`));
+    expect(w6?.streamWarnings.map((w) => w.code)).toEqual([
+      WARNING_CODES.UNTERMINATED_STREAM_MESSAGE,
+    ]);
   });
 
   it("yields nothing for an empty or blank source", async () => {
