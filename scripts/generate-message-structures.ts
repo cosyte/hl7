@@ -896,21 +896,32 @@ export async function renderSchemasModule(
   model: GeneratedRegistry,
   repoRoot: string,
 ): Promise<string> {
-  const schemas = model.schemas.map((s) => ({
-    structureId: s.structureId,
-    nodes: s.nodes.map((node) => ({
-      name: node.name,
-      kind: node.kind,
-      position: node.position,
-      min: node.min,
-      max: node.max,
-      parent: node.parent,
-    })),
-  }));
+  // One row per structure, each node as a positional array: the field names would be most of the
+  // text, and the text is what every import of the package reads past.
+  const schemas = model.schemas.map((s) => [
+    s.structureId,
+    s.nodes.map((node) => [node.name, node.kind, node.position, node.min, node.max, node.parent]),
+  ]);
 
   const source = `${SCHEMAS_HEADER}
 
-import type { PublishedStructureSchema } from "../structure-types.js";
+import type { PublishedStructureSchema, StructureNodeKind } from "../structure-types.js";
+
+/**
+ * One structure as written below: its id, then each node as
+ * \`[name, kind, position, min, max, parent]\`.
+ */
+type SchemaRow = readonly [
+  structureId: string,
+  nodes: readonly (readonly [
+    name: string,
+    kind: StructureNodeKind,
+    position: number,
+    min: number,
+    max: number | "*",
+    parent: number,
+  ])[],
+];
 
 /**
  * Every published structure the snapshot carries, with its ordered elements.
@@ -929,7 +940,18 @@ import type { PublishedStructureSchema } from "../structure-types.js";
  * @internal
  */
 export function generatedStructureSchemas(): readonly PublishedStructureSchema[] {
-  return ${jsonTable(schemas, "readonly PublishedStructureSchema[]")};
+  const rows = ${jsonTable(schemas, "readonly SchemaRow[]")};
+  return rows.map(([structureId, nodes]) => ({
+    structureId,
+    nodes: nodes.map(([name, kind, position, min, max, parent]) => ({
+      name,
+      kind,
+      position,
+      min,
+      max,
+      parent,
+    })),
+  }));
 }
 `;
 
