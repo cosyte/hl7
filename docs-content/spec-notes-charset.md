@@ -124,7 +124,10 @@ Every byte decodes, so a windows-1252 message never takes the verbatim fail-safe
 bytes were read as `latin1` and `UNKNOWN_CHARSET` was raised. Now the message is decoded and no
 charset warning is raised; `resolveCharset("WINDOWS-1252")` answers `treatment: "decode"`,
 `decoder: "windows-1252"` and `recognized: true`. If you re-decoded such fields yourself with
-`Buffer.from(value, "latin1")`, drop that step: the value is already text. An `ENCODING_MISMATCH`
+`Buffer.from(value, "latin1")`, drop that step: the value is already text. The serializer
+outputs strings, so the library does not write windows-1252 bytes back, and a caller who
+re-encodes a value with `latin1` gets different bytes for the Windows characters from 0x80 to
+0x9F (the euro sign becomes 0xAC, not 0x80). An `ENCODING_MISMATCH`
 between `options.charset` and MSH-18 is raised as before whenever one of them is `WINDOWS-1252`
 and the other is not, and its message now shows an MSH-18 of `WINDOWS-1252` instead of
 `<withheld>`.
