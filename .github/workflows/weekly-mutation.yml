@@ -32,6 +32,6 @@ jobs:
     with:
       mutate-cmd: "pnpm mutate:full"
       # 120 source files, a file to one shard by the hash of its path. Measured on 2026-11-11, a
-      # first, full run took 13 to 95 minutes a shard, inside the shared job's 340 minute limit. A
+      # first, full run took 12 to 115 minutes a shard, inside the shared job's 340 minute limit. A
       # later run retests only what changed.
       shard-count: 8

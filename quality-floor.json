@@ -1,5 +1,5 @@
 {
-  "$comment": "The mutation floor is the full run's score over all of src/ but the generated tables and the build-time schema writers (stryker.full.config.mjs), with static mutants ignored (ignoreStatic: true): the score is of the other mutants. Measured on GitHub-hosted runners in two full runs on 2026-11-11, both 80.25.",
+  "$comment": "The mutation floor is the full run's score over every source file but the generated tables and the build-time schema writers (stryker.full.config.mjs), with static mutants ignored (ignoreStatic: true): the score is of the other mutants. Measured on GitHub-hosted runners in two full runs on 2026-11-11, 80.49 and 80.50, and set from the lower with cosyte-ratchet raise.",
   "packages": {
     ".": {
       "coverage": {
@@ -8,7 +8,7 @@
         "functions": 100,
         "statements": 100
       },
-      "mutation": 80.25
+      "mutation": 80.49
     }
   }
 }
