@@ -28,13 +28,15 @@ import { defineProfile } from "./define.js";
  * const msg = parseHL7(raw, profiles.genericLab);
  * ```
  */
-export const genericLab = () =>
-  defineProfile({
-    name: "genericLab",
-    description: "Generic reference-laboratory: ASTM-era + ISO-date formats + lab Z-segments",
-    dateFormats: ["YYYYMMDD HHmm", "YYYY-MM-DD"],
-    customSegments: {
-      ZLB: { fields: { specimenOverride: 3, methodOverride: 5 } },
-      ZNT: { fields: { noteText: 3 } },
-    },
-  });
+const options = {
+  name: "genericLab",
+  description: "Generic reference-laboratory: ASTM-era + ISO-date formats + lab Z-segments",
+  dateFormats: ["YYYYMMDD HHmm", "YYYY-MM-DD"],
+  customSegments: {
+    ZLB: { fields: { specimenOverride: 3, methodOverride: 5 } },
+    ZNT: { fields: { noteText: 3 } },
+  },
+};
+
+/** Build the profile above; `profiles.genericLab` calls it on its first read. @internal */
+export const genericLab = () => defineProfile(options);

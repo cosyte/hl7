@@ -148,6 +148,19 @@ describe("the orders sorted at load", () => {
     expect(keys).toEqual(collated(keys));
   });
 
+  it("keep every warning code in the serialized shape, in the order a collator gives", async () => {
+    const { WARNING_CODES } = await importFresh();
+    const { SERIALIZED_MESSAGE_SHAPE } = await import("../src/serialize/schema/shape.js");
+    const warning = SERIALIZED_MESSAGE_SHAPE.definitions.find(
+      (d) => d.name === "SerializedWarning",
+    );
+    const code = warning?.members.find((m) => m.name === "code")?.node;
+    const values = code?.kind === "enum" ? code.values : [];
+    // The registry declares its codes in another order, so an unsorted list would differ.
+    expect(Object.values(WARNING_CODES)).not.toEqual(collated(Object.values(WARNING_CODES)));
+    expect(values).toEqual(collated(Object.values(WARNING_CODES)));
+  });
+
   it("keep the builder pairs in the order a collator gives", async () => {
     const { SUPPORTED_BUILDER_MESSAGES } = await importFresh();
     const pairs = SUPPORTED_BUILDER_MESSAGES.map((m) => [m.messageCode, m.triggerEvent] as const);

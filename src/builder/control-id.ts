@@ -67,16 +67,28 @@ export function generateControlId(): string {
     pad(now.getUTCMinutes(), 2) +
     pad(now.getUTCSeconds(), 2) +
     pad(now.getUTCMilliseconds(), 3);
+  return ts + randomSuffix((bytes) => globalThis.crypto.getRandomValues(bytes));
+}
+
+/**
+ * The six random characters of a control ID, from the bytes `draw` fills in.
+ * A byte below 248 maps onto the alphabet modulo 62; a byte of 248 or more is
+ * skipped, and `draw` is called again until six characters are accepted.
+ * `generateControlId` passes the Web Crypto global; a test passes fixed bytes.
+ *
+ * @internal
+ */
+export function randomSuffix(draw: (bytes: Uint8Array) => void): string {
   let suffix = "";
   // Sixteen bytes per draw: a byte is rejected with probability 8/256, so six
   // accepted bytes almost always come from the first draw.
   const bytes = new Uint8Array(16);
   while (suffix.length < 6) {
-    globalThis.crypto.getRandomValues(bytes);
+    draw(bytes);
     for (const byte of bytes) {
       if (suffix.length === 6) break;
       if (byte < UNBIASED_LIMIT) suffix += ALNUM_ALPHABET.charAt(byte % ALNUM_ALPHABET.length);
     }
   }
-  return ts + suffix;
+  return suffix;
 }

@@ -55,34 +55,36 @@ import { defineProfile } from "./define.js";
  * const msg = parseHL7(raw, profiles.meditech);
  * ```
  */
-export const meditech = () =>
-  defineProfile({
-    name: "meditech",
-    description:
-      "MEDITECH MAGIC/6.x/Expanse: minute-precision timestamps and DFT charge Z-segments (ZF1/ZF2)",
-    dateFormats: ["YYYYMMDDHHmm"],
-    customSegments: {
-      ZF1: {
-        fields: {
-          providerEncounter: 1,
-          misServiceGroup: 2,
-          serviceGroupCopay: 3,
-          visitCopay: 4,
-          copayMinimum: 5,
-          copayMaximum: 6,
-        },
-      },
-      ZF2: {
-        fields: {
-          setId: 1,
-          providerEncounter: 2,
-          encounterDate: 3,
-          encounterProcedure: 4,
-          encounterProcedureQuantity: 5,
-          encounterProcedureCharge: 6,
-          prvProcedureAmountPaid: 7,
-          prvProcedureAmountDue: 8,
-        },
+const options = {
+  name: "meditech",
+  description:
+    "MEDITECH MAGIC/6.x/Expanse: minute-precision timestamps and DFT charge Z-segments (ZF1/ZF2)",
+  dateFormats: ["YYYYMMDDHHmm"],
+  customSegments: {
+    ZF1: {
+      fields: {
+        providerEncounter: 1,
+        misServiceGroup: 2,
+        serviceGroupCopay: 3,
+        visitCopay: 4,
+        copayMinimum: 5,
+        copayMaximum: 6,
       },
     },
-  });
+    ZF2: {
+      fields: {
+        setId: 1,
+        providerEncounter: 2,
+        encounterDate: 3,
+        encounterProcedure: 4,
+        encounterProcedureQuantity: 5,
+        encounterProcedureCharge: 6,
+        prvProcedureAmountPaid: 7,
+        prvProcedureAmountDue: 8,
+      },
+    },
+  },
+};
+
+/** Build the profile above; `profiles.meditech` calls it on its first read. @internal */
+export const meditech = () => defineProfile(options);

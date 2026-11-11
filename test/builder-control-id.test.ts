@@ -1,45 +1,45 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { generateControlId } from "../src/builder/control-id.js";
+import { describe, expect, it } from "vitest";
+import { generateControlId, randomSuffix } from "../src/builder/control-id.js";
 
-describe("generateControlId draws from the Web Crypto global", () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  /** Stub `crypto.getRandomValues` to hand out `draws`, one array per call. */
-  function stubDraws(...draws: readonly (readonly number[])[]): { calls: () => number } {
+describe("randomSuffix: the six random characters of a control ID", () => {
+  /**
+   * A draw that hands out `draws`, one array per call, with every byte it does not set at 255 (a
+   * byte that is always rejected). It throws past the last array rather than loop for ever.
+   */
+  function fixedDraws(...draws: readonly (readonly number[])[]): {
+    draw: (bytes: Uint8Array) => void;
+    calls: () => number;
+  } {
     let call = 0;
-    const spy = vi.spyOn(globalThis.crypto, "getRandomValues");
-    spy.mockImplementation((array) => {
-      const bytes = array as Uint8Array;
-      bytes.fill(255);
-      bytes.set(draws[call] ?? []);
-      call += 1;
-      return array;
-    });
-    return { calls: () => call };
+    return {
+      draw: (bytes) => {
+        const next = draws[call];
+        if (next === undefined) throw new Error("drew past the fixed bytes");
+        bytes.fill(255);
+        bytes.set(next);
+        call += 1;
+      },
+      calls: () => call,
+    };
   }
 
   it("maps each accepted byte onto the alphabet modulo 62", () => {
-    stubDraws([0, 1, 61, 62, 123, 247]);
     // 62 and 123 wrap to A and 9; 247 is the last byte accepted, and 247 - 3 * 62 = 61.
-    expect(generateControlId().slice(17)).toBe("AB9A99");
+    expect(randomSuffix(fixedDraws([0, 1, 61, 62, 123, 247]).draw)).toBe("AB9A99");
   });
 
   it("skips a byte of 248 or more rather than reduce it, so no character is favored", () => {
-    stubDraws([248, 249, 255, 0, 1, 2, 3, 4, 5]);
-    expect(generateControlId().slice(17)).toBe("ABCDEF");
+    expect(randomSuffix(fixedDraws([248, 249, 255, 0, 1, 2, 3, 4, 5]).draw)).toBe("ABCDEF");
   });
 
   it("draws again when a whole draw is rejected", () => {
-    const stub = stubDraws([], [7, 8, 9, 10, 11, 12]);
-    expect(generateControlId().slice(17)).toBe("HIJKLM");
-    expect(stub.calls()).toBe(2);
+    const draws = fixedDraws([], [7, 8, 9, 10, 11, 12]);
+    expect(randomSuffix(draws.draw)).toBe("HIJKLM");
+    expect(draws.calls()).toBe(2);
   });
 
   it("stops at six characters when a draw accepts more", () => {
-    stubDraws([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
-    expect(generateControlId().slice(17)).toBe("ABCDEF");
+    expect(randomSuffix(fixedDraws([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]).draw)).toBe("ABCDEF");
   });
 });
 

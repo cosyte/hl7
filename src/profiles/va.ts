@@ -49,15 +49,17 @@ import { defineProfile } from "./define.js";
  * const msg = parseHL7(raw, profiles.va);
  * ```
  */
-export const va = () =>
-  defineProfile({
-    name: "va",
-    description:
-      "VA VistA Radiology/Nuclear Medicine imaging: ZDS DICOM Study Instance UID segment (ORM + ORU, IHE RAD)",
-    customSegments: {
-      // ZDS-1 = Study Instance UID (RP), UID in the first component (1.1 Pointer).
-      // VA Radiology/Nuclear Medicine 5.0 HL7 IS v3.6 (June 2024): "ZDS Segment
-      // Fields in ORU and ORM".
-      ZDS: { fields: { studyInstanceUid: 1 } },
-    },
-  });
+const options = {
+  name: "va",
+  description:
+    "VA VistA Radiology/Nuclear Medicine imaging: ZDS DICOM Study Instance UID segment (ORM + ORU, IHE RAD)",
+  customSegments: {
+    // ZDS-1 = Study Instance UID (RP), UID in the first component (1.1 Pointer).
+    // VA Radiology/Nuclear Medicine 5.0 HL7 IS v3.6 (June 2024): "ZDS Segment
+    // Fields in ORU and ORM".
+    ZDS: { fields: { studyInstanceUid: 1 } },
+  },
+};
+
+/** Build the profile above; `profiles.va` calls it on its first read. @internal */
+export const va = () => defineProfile(options);
