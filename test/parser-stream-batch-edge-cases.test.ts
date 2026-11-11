@@ -165,6 +165,25 @@ describe("parseStream", () => {
     }
   });
 
+  it("skips a line of only a byte order mark or other whitespace from bytes as from text", async () => {
+    for (const blank of ["\ufeff", "\u00a0", " \u3000\t"]) {
+      const text = `BHS|^~\\&|A\r${blank}\r${MSH_A}\rPID|1\rBTS|1\r${blank}\r${MSH_B}\r${blank}`;
+      const bytes = Buffer.from(text, "utf8");
+      const shape = (entries: readonly { ok: boolean; position: unknown }[]): unknown =>
+        entries.map((entry) => [entry.ok, entry.position]);
+      const fromText = await collect([text]);
+      const fromBytes = await collect([bytes]);
+      expect(shape(fromText)).toEqual([
+        [true, { segmentIndex: 2 }],
+        [true, { segmentIndex: 6 }],
+      ]);
+      expect(shape(fromBytes)).toEqual(shape(fromText));
+      expect(fromBytes.map((entry) => entry.streamWarnings)).toEqual([[], []]);
+      expect(shape(splitBatch(bytes).messages)).toEqual(shape(splitBatch(text).messages));
+      expect(splitBatch(bytes).messages).toHaveLength(2);
+    }
+  });
+
   it("yields the message before an unterminated final MSH, then the final one", async () => {
     const entries = await collect([`${MSH_A}\rPID|1\r${MSH_B}`]);
     expect(entries.map((e) => e.raw)).toEqual([`${MSH_A}\rPID|1`, MSH_B]);

@@ -49,6 +49,7 @@
 import { Buffer } from "node:buffer";
 
 import { parseHL7 } from "./index.js";
+import { isBlankLine } from "./blank-line.js";
 import { Hl7ParseError } from "./errors.js";
 import type { Hl7Position, ParseOptions, Profile } from "./types.js";
 import { unterminatedStreamMessage } from "./warnings.js";
@@ -416,7 +417,7 @@ export async function* parseStream(
     if (currentLines.length === 0) {
       // A blank line between messages is inter-message whitespace: skip it (its
       // index is still consumed above so positions stay stable).
-      if (seg.trim() === "") return null;
+      if (isBlankLine(seg, wasBuffer)) return null;
       messageStartIndex = thisIndex;
     }
     currentLines.push(seg);
@@ -492,7 +493,7 @@ export async function* parseStream(
     const flushed = processSegment(tail);
     if (flushed !== null) yield flushed;
     // The message now held in `currentLines` (if any) ends without a terminator.
-    finalUnterminated = currentLines.length > 0 && tail.trim() !== "";
+    finalUnterminated = currentLines.length > 0 && !isBlankLine(tail, wasBuffer);
   }
   const finalEntry = flush(finalUnterminated);
   if (finalEntry !== null) yield finalEntry;

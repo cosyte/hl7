@@ -33,6 +33,7 @@
 import { Buffer } from "node:buffer";
 
 import { parseHL7 } from "./index.js";
+import { isBlankLine } from "./blank-line.js";
 import { Hl7ParseError } from "./errors.js";
 import { normalize } from "./normalize.js";
 import { splitSegments } from "./segments.js";
@@ -514,7 +515,7 @@ export function splitBatch(
     // blank segment INSIDE an open message is meaningful (HL7 keeps middle empty
     // segments for positional stability) and rides along so the message's `raw`
     // re-parses identically.
-    if (messageLines.length === 0 && segment.trim() === "") continue;
+    if (messageLines.length === 0 && isBlankLine(segment, wasBuffer)) continue;
     const name = segmentName(segment);
 
     if (isEnvelopeName(name)) {
