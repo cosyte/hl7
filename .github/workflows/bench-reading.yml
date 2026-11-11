@@ -1,13 +1,21 @@
 name: bench-reading
 
-# A full reading of bench/parse.bench.mjs on a GitHub-hosted runner, of the base build and of the
-# head build: throughput, latency, allocations per call, peak heap, a long run for leaks and the
-# cold import, for every size, the large ones included. The `bench-compare` job in ci.yml times
-# only the sizes its comparison runs and reports no memory; this job is where a pull request that
-# changes how much the parser holds shows it, from a runner rather than a developer's machine.
+# Two jobs on a GitHub-hosted runner each, for a pull request that can change the parser's speed.
 #
-# Advisory: it posts its readings to the run's summary and keeps them as an artifact, and it never
-# fails for a number. Never make it a required check.
+# - `reading`: a full reading of bench/parse.bench.mjs, of the base build and of the head build:
+#   throughput, latency, allocations per call, peak heap, a long run for leaks and the cold import,
+#   for every size, the large ones included. The `bench-compare` job in ci.yml times only the sizes
+#   it compares and reports no memory; this job is where a pull request that changes how much the
+#   parser holds shows it, from a runner rather than a developer's machine.
+# - `large-compare`: the base against head comparison of the large sizes, from
+#   bench/parse-large.compare.mjs: 12 interleaved rounds, a fresh process per side per case per
+#   round, each case warmed up on @cosyte/bench's large-case plan. These sizes do not fit the shared
+#   bench-compare job's budget, so they are compared here.
+#
+# Advisory: both post to the run's summary and keep their results as an artifact, and neither fails
+# for a number. Never make either a required check while the comparison's false alarm rate on these
+# sizes, in docs-content/performance.md, does not meet the rule for one. The streaming readers'
+# memory gate, which can be required, is the stream-memory workflow.
 
 on:
   pull_request:
@@ -74,24 +82,68 @@ jobs:
             read_build base "${base_root}/dist/index.mjs" "${BASE_SHA}"
           fi
           read_build head dist/index.mjs "${head_sha}"
-          # How much the streaming readers hold on a 100 MiB source, against the largest message
-          # (readMessages) and the largest segment (readSegments) in it: the head build only, since
-          # a base without the readers has nothing to read. Never run at this size on a shared
-          # machine.
-          status=0
-          node bench/stream-memory.mjs --target dist/index.mjs --mib 100 \
-            --out "${out}/stream-memory.json" --summary "${out}/stream-memory.md" || status=$?
-          if [ "${status}" -ne 0 ]; then
-            echo "::notice::bench-reading: the stream memory reading exited ${status}"
-          fi
-          if [ -f "${out}/stream-memory.md" ]; then
-            { echo; echo "#### Streaming readers, peak memory (${head_sha})"; echo; cat "${out}/stream-memory.md"; } >> "${GITHUB_STEP_SUMMARY}"
-          fi
       - name: Keep the readings
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: bench-reading
           path: ${{ runner.temp }}/bench-reading/
+          if-no-files-found: warn
+          retention-days: 30
+
+  large-compare:
+    runs-on: ubuntu-latest
+    # A bound for a comparison or a build that hangs, which would otherwise hold a runner for six hours.
+    timeout-minutes: 90
+    if: ${{ github.event_name == 'pull_request' }}
+    steps:
+      # The whole history, so the base commit is on disk for a worktree beside the head.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          cache: pnpm
+      # The head's suite is handed both builds, as in bench-compare. The tool's exit (1 a regression,
+      # 2 a case it could not measure) becomes a note on the run's page, never a red check.
+      - name: Compare the base build with the head build, large sizes
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          out="${RUNNER_TEMP}/bench-large-compare"
+          mkdir -p "${out}"
+          pnpm install --frozen-lockfile
+          pnpm build
+          head_sha="$(git rev-parse HEAD)"
+          base_root="${RUNNER_TEMP}/bench-base"
+          git worktree add --quiet --detach "${base_root}" "${BASE_SHA}"
+          (cd "${base_root}" && pnpm install --frozen-lockfile && pnpm build)
+          status=0
+          pnpm exec cosyte-bench compare --suite bench/parse-large.compare.mjs \
+            --base "${base_root}/dist/index.mjs" --head dist/index.mjs \
+            --base-commit "${BASE_SHA}" --head-commit "${head_sha}" \
+            --out "${out}/parse-large.json" --summary "${out}/parse-large.md" || status=$?
+          case "${status}" in
+            0) ;;
+            1) echo "::warning::large-compare: the head is slower than the base beyond the threshold in at least one case. Advisory: this does not fail the pull request" ;;
+            2) echo "::notice::large-compare: could not measure every case (a skip, or a process that died), and a skip is not a pass" ;;
+            *) echo "::warning::large-compare: cosyte-bench exited ${status}" ;;
+          esac
+          {
+            echo "### Base against head timing, large sizes (advisory)"
+            echo
+            if [ -f "${out}/parse-large.md" ]; then cat "${out}/parse-large.md"; else echo "No results: cosyte-bench exited ${status}."; fi
+          } >> "${GITHUB_STEP_SUMMARY}"
+      - name: Keep the comparison
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: bench-large-compare
+          path: ${{ runner.temp }}/bench-large-compare/
           if-no-files-found: warn
           retention-days: 30

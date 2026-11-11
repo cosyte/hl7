@@ -1,0 +1,117 @@
+name: bench-calibration
+
+# The A/A calibration of the large comparison (bench/parse-large.compare.mjs) on the runner class
+# it runs on: whole base against head comparisons with both sides the same build, copied into two
+# directories, so every regression verdict is a false alarm. docs-content/performance.md quotes its
+# summary. Not a gate: it asserts nothing, and its output is a dataset.
+#
+# It runs when a pull request that changes the large suite or this workflow is opened or reopened,
+# and by hand. Not on every push: GitHub reads a pull request's paths over its whole diff, so a push
+# that changed only a document would start the whole calibration again. Six runners at once, each
+# with one lane, the way the large-compare job has a runner to itself, each running whole
+# comparisons until its time budget ends; `summary` pools them.
+
+on:
+  pull_request:
+    types: [opened, reopened]
+    branches: [main]
+    paths:
+      - "bench/parse.bench.mjs"
+      - "bench/parse-large.compare.mjs"
+      - "bench/calibration-summary.mjs"
+      - ".github/workflows/bench-calibration.yml"
+  workflow_dispatch:
+    inputs:
+      minutes:
+        description: "Minutes of comparisons per runner"
+        type: string
+        default: "60"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  MINUTES: ${{ inputs.minutes || '60' }}
+
+jobs:
+  calibrate:
+    name: calibrate (${{ matrix.shard }})
+    runs-on: ubuntu-latest
+    # The budget, plus one comparison started just before it ends, plus the install and build.
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ["1", "2", "3", "4", "5", "6"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      # One comparison per results file, so a job stopped by its timeout keeps every finished one.
+      - name: Calibrate
+        shell: bash
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: |
+          set -euo pipefail
+          out="${RUNNER_TEMP}/calibration/shard-${SHARD}"
+          mkdir -p "${out}" "${RUNNER_TEMP}/aa/base" "${RUNNER_TEMP}/aa/head"
+          cp -R dist/. "${RUNNER_TEMP}/aa/base/"
+          cp -R dist/. "${RUNNER_TEMP}/aa/head/"
+          deadline=$(( $(date +%s) + MINUTES * 60 ))
+          n=0
+          while [ "$(date +%s)" -lt "${deadline}" ]; do
+            n=$((n + 1))
+            status=0
+            pnpm exec cosyte-bench calibrate --suite bench/parse-large.compare.mjs \
+              --base "${RUNNER_TEMP}/aa/base/index.mjs" --head "${RUNNER_TEMP}/aa/head/index.mjs" \
+              --comparisons 1 --out "${out}/comparison-${n}.json" 2>> "${out}/calibrate.log" || status=$?
+            echo "comparison ${n}: cosyte-bench exited ${status}"
+          done
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() }}
+        with:
+          name: bench-calibration-shard-${{ matrix.shard }}
+          path: ${{ runner.temp }}/calibration/
+          if-no-files-found: error
+          retention-days: 90
+
+  summary:
+    needs: [calibrate]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          path: ${{ runner.temp }}/artifacts
+          pattern: bench-calibration-shard-*
+      - name: Summarize
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo "### A/A calibration of the large comparison"
+            echo
+            node bench/calibration-summary.mjs "${RUNNER_TEMP}/artifacts"
+          } | tee -a "${GITHUB_STEP_SUMMARY}"

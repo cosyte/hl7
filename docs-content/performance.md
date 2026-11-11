@@ -14,8 +14,9 @@ is written down in the performance standard in
 [cosyte/config's decision records](https://github.com/cosyte/config/tree/main/documentation/decisions).
 The numbers for the current release are in [Current numbers](#current-numbers) below.
 
-Three things run today: a benchmark you can run anywhere, a regression guard that runs in CI on
-every pull request, and a budget for how long the package takes to import.
+Four things run today: the benchmarks, which time base against head on every pull request; a
+regression guard that fails a pull request when parsing cost grows faster than its input; a gate on
+how much memory the streaming readers hold; and a budget for how long the package takes to import.
 
 What a parsed message holds depends on what you read. `parseHL7` builds a segment's tree the first
 time something reads that segment, so a long report read at a few segments holds those few, and
@@ -23,28 +24,55 @@ time something reads that segment, so a long report read at a few segments holds
 [Read a large message without building all of it](./read-large-messages.md) says which reads build
 everything.
 
-## The benchmark
+## The benchmarks
 
-`pnpm bench` (`scripts/bench.ts`) measures:
+`bench/parse.bench.mjs` is our benchmark suite, run by the shared `@cosyte/bench` tool against the
+built `dist/index.mjs`, the entry a consumer imports. It has four benchmarks: `parseHL7`, the parse
+followed by the reads most callers make (MSH, PID, PV1 and five OBX), `parseHL7` with
+`{ lazy: false }`, and the parse followed by `toString()`. Each runs at six sizes: an `ADT^A01` of
+280 bytes, `ORU^R01` result reports of 32 KiB, 1 MiB and 4 MiB, and `ORU^R01` messages of 1 MiB and
+4 MiB that carry one base64 document. Every message is synthetic and built in the process.
 
-- **Throughput**, in messages and megabytes a second, for a small `ADT^A01` (5 segments) and a
-  larger `ORU^R01` (12 segments).
-- **Retained heap per message**: all N parsed messages held at once, divided by N.
-- **Streaming peak memory**: a large ADT batch fed to `parseStream` in 4 KB chunks, with the heap
-  sampled at every message, against the heap a whole-buffer `splitBatch` of the same bytes holds.
-  This is the measurement behind `parseStream`'s claim to hold about one message at a time.
+- **A reading** (`pnpm build && pnpm bench:reading`) measures one build: throughput, latency
+  percentiles, allocations per call, the peak memory of one call, whether the heap stays flat over a
+  long run, and the cold import.
+- **A comparison** times the base build against the head build, interleaved in fresh processes on
+  one machine, and calls a regression only when the whole interval on the median change is above
+  3%. On a pull request it runs on a GitHub-hosted runner in two jobs: CI's `bench-compare` over the
+  280 B, 32 KiB and 1 MiB document sizes, and `large-compare` in the `bench-reading` workflow over
+  the 1 MiB and 4 MiB result reports and the 4 MiB document (`bench/parse-large.compare.mjs`). The
+  large cases each take one call at a time to warm up, until the median of the last five calls is
+  within 5% of the five before them, which does not fit the shared job's time budget.
 
-How it measures:
+Both comparisons are advisory: they report a regression on the run's page and never fail the pull
+request. A comparison may become a required check only when an A/A calibration on its runner class
+shows false alarms under 1% with 95% confidence, which takes at least 299 clean comparisons.
 
-- **Inputs are synthetic and generated in the process.** No fixture files and no patient data, so
-  a run is the same anywhere.
-- **Throughput** is N divided by the median elapsed time, after an unmeasured warm-up. The parsed
-  segment count goes into a sink so the parse cannot be optimized away.
-- **Memory** is the change in `heapUsed`, tightest when Node.js runs with `--expose-gc` so the
-  benchmark can force a collection before it reads the heap.
+### The large comparison's false alarm rate
 
-Absolute numbers depend on the machine and its load, so a figure measured on one machine is
-context, not a guarantee.
+The `bench-calibration` workflow measures it: six GitHub-hosted runners each run whole A/A
+comparisons of `bench/parse-large.compare.mjs` for an hour, both sides the same build from two
+directories, so every regression verdict is a false alarm, and its `summary` job pools them
+(`bench/calibration-summary.mjs`). The first calibration's numbers are added here from its run.
+
+## The streaming memory gate
+
+`readMessages` and `parseStream` read a batch one message at a time, and `readSegments` reads one
+message one segment at a time, so what they hold should track the largest item they read, not the
+size of the source. `bench/stream-memory.mjs` checks that on a GitHub-hosted runner, in the
+`stream-memory` workflow on every pull request: each reader reads a synthetic source of 100 MiB in
+64 KiB chunks (a batch of mostly `ADT^A01` with a 4 MiB message every 2000th for the message readers,
+and one message of about a million segments with a 256 KiB segment every 5000th for
+`readSegments`), and the memory held is read after a full collection every few items.
+
+The job fails when a reader's peak is more than **3 times** the largest item it read: the item, the
+text it came from, and room for the reader's own state. A reader that buffered its source would
+hold toward all 100 MiB. It also fails when a reading cannot be judged, because a reader read
+nothing or failed an item. The limit is `PEAK_MULTIPLE` in the script.
+
+These are ratios, not absolute budgets. The parse benchmarks' absolute budgets belong in
+`@cosyte/bench`'s budgets file, which we have not written yet; when we do, the numbers here feed it
+rather than a second format.
 
 ## The regression guard
 
@@ -101,8 +129,8 @@ These keep the import inside the budget:
 
 ## What these numbers are not
 
-- **Not a guarantee for every input.** Very large messages and adversarial nesting are not
-  characterized here.
+- **Not a guarantee for every input.** The sizes above stop at 4 MiB a message and 100 MiB a
+  stream, and adversarial nesting is not characterized here.
 - **Not a comparison with other libraries.** That is a separate suite with its own written method.
 - **Not a behavior contract.** Nothing here changes how a message parses.
 
@@ -110,10 +138,14 @@ These keep the import inside the budget:
 
 ```bash
 pnpm install --frozen-lockfile
-pnpm bench                                               # a readable table
-node --expose-gc node_modules/.bin/tsx scripts/bench.ts  # tighter memory numbers
-pnpm bench --markdown                                    # the table as Markdown
+pnpm build
+pnpm bench:reading                     # a reading of this build, every size
+pnpm bench:stream-memory --mib 1       # the streaming readers on a 1 MiB source, judged
+pnpm bench:compare --base <base checkout>/dist/index.mjs --head dist/index.mjs
 ```
+
+A reading at the large sizes and the streaming readers at 100 MiB take minutes and a few hundred
+MiB of memory; we run them on GitHub-hosted runners rather than on a shared machine.
 
 ## Current numbers
 

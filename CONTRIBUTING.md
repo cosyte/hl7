@@ -62,7 +62,10 @@ or count with no note, or a property the nightly run does not reach.
 `pnpm test:perf` runs the scaling gate (`test/perf/scaling-gate.perf.ts`) apart from coverage. It
 fails when parsing cost grows faster than the input. `bench/parse.bench.mjs` measures throughput,
 latency, memory and import cost against `dist/`: `pnpm build && pnpm bench:reading` takes a reading,
-and on a pull request CI times the base build against the head build. That comparison is advisory.
+and on a pull request CI times the base build against the head build, the large sizes in the
+`bench-reading` workflow's `large-compare` job. Both comparisons are advisory. `bench/stream-memory.mjs`
+gates the streaming readers' memory on a 100 MiB source in the `stream-memory` workflow, which fails
+when a reader holds more than 3 times the largest item it read.
 
 ## Fuzz and differential testing
 
