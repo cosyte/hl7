@@ -26,12 +26,13 @@ import { defineProfile } from "./define.js";
  * const msg = parseHL7(raw, profiles.cerner);
  * ```
  */
-export const cerner = defineProfile({
-  name: "cerner",
-  description: "Cerner Millennium: ISO-style timestamps and common Z-segments",
-  dateFormats: ["YYYY-MM-DD[T]HH:mm:ss", "YYYY-MM-DD"],
-  customSegments: {
-    ZDS: { fields: { summaryText: 3 } },
-    ZCO: { fields: { commentText: 3, continuationFlag: 5 } },
-  },
-});
+export const cerner = () =>
+  defineProfile({
+    name: "cerner",
+    description: "Cerner Millennium: ISO-style timestamps and common Z-segments",
+    dateFormats: ["YYYY-MM-DD[T]HH:mm:ss", "YYYY-MM-DD"],
+    customSegments: {
+      ZDS: { fields: { summaryText: 3 } },
+      ZCO: { fields: { commentText: 3, continuationFlag: 5 } },
+    },
+  });

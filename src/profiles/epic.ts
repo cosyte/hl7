@@ -29,12 +29,13 @@ import { defineProfile } from "./define.js";
  * const msg = parseHL7(raw, profiles.epic);
  * ```
  */
-export const epic = defineProfile({
-  name: "epic",
-  description: "Epic Bridges Interconnect: ADT-style date formats and common Z-segments",
-  dateFormats: ["MM/DD/YYYY HH:mm:ss", "MM/DD/YYYY"],
-  customSegments: {
-    ZDP: { fields: { departmentCode: 3, departmentName: 4 } },
-    ZRS: { fields: { resultStatus: 1, statusDateTime: 2 } },
-  },
-});
+export const epic = () =>
+  defineProfile({
+    name: "epic",
+    description: "Epic Bridges Interconnect: ADT-style date formats and common Z-segments",
+    dateFormats: ["MM/DD/YYYY HH:mm:ss", "MM/DD/YYYY"],
+    customSegments: {
+      ZDP: { fields: { departmentCode: 3, departmentName: 4 } },
+      ZRS: { fields: { resultStatus: 1, statusDateTime: 2 } },
+    },
+  });

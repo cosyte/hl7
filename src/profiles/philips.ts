@@ -61,72 +61,73 @@ import { defineProfile } from "./define.js";
  * const msg = parseHL7(raw, profiles.philips);
  * ```
  */
-export const philips = defineProfile({
-  name: "philips",
-  description:
-    "Philips Vue PACS (IS Link) imaging: ZDS/ZLK/ZAO/ZEB/ZAP/ZAV order/patient/visit-filler Z-segments",
-  customSegments: {
-    // §5.11 ZDS: Order Filler: DICOM Study Instance UID (RP, comp 1).
-    ZDS: { fields: { studyInstanceUid: 1 } },
-    // §5.12 ZLK: Order Filler: study/order linking ids.
-    ZLK: { fields: { externalWorkitemId: 1, orderLinkId: 2 } },
-    // §5.13 ZAO: Order Filler: order additional details (note: no field 7).
-    ZAO: {
-      fields: {
-        orderAdditionalDetails: 1,
-        orderWithNoImages: 2,
-        modality: 3,
-        bodyPart: 4,
-        resultTransferStatus: 5,
-        departmentId: 6,
-        device: 8,
-        section: 9,
-        orderCustomString1: 10,
-        orderCustomString2: 11,
-        orderCustomString3: 12,
-        orderCustomString4: 13,
-        orderCustomString5: 14,
-        orderCustomString6: 15,
-        orderCustomString7: 16,
-        orderCustomNumber1: 17,
-        orderCustomNumber2: 18,
-        orderCustomDate1: 19,
-        orderCustomDate2: 20,
-        orderCustomDate3: 21,
-        technicianFamilyName: 22,
-        technicianGivenName: 23,
-        technicianMiddleName: 24,
-        technicianId: 25,
-        radiologistFamilyName: 26,
-        radiologistGivenName: 27,
-        radiologistMiddleName: 28,
-        radiologistId: 29,
-        orderCreatedBy: 30,
-        orderUpdatedBy: 31,
-        acquisitionStatus: 32,
+export const philips = () =>
+  defineProfile({
+    name: "philips",
+    description:
+      "Philips Vue PACS (IS Link) imaging: ZDS/ZLK/ZAO/ZEB/ZAP/ZAV order/patient/visit-filler Z-segments",
+    customSegments: {
+      // §5.11 ZDS: Order Filler: DICOM Study Instance UID (RP, comp 1).
+      ZDS: { fields: { studyInstanceUid: 1 } },
+      // §5.12 ZLK: Order Filler: study/order linking ids.
+      ZLK: { fields: { externalWorkitemId: 1, orderLinkId: 2 } },
+      // §5.13 ZAO: Order Filler: order additional details (note: no field 7).
+      ZAO: {
+        fields: {
+          orderAdditionalDetails: 1,
+          orderWithNoImages: 2,
+          modality: 3,
+          bodyPart: 4,
+          resultTransferStatus: 5,
+          departmentId: 6,
+          device: 8,
+          section: 9,
+          orderCustomString1: 10,
+          orderCustomString2: 11,
+          orderCustomString3: 12,
+          orderCustomString4: 13,
+          orderCustomString5: 14,
+          orderCustomString6: 15,
+          orderCustomString7: 16,
+          orderCustomNumber1: 17,
+          orderCustomNumber2: 18,
+          orderCustomDate1: 19,
+          orderCustomDate2: 20,
+          orderCustomDate3: 21,
+          technicianFamilyName: 22,
+          technicianGivenName: 23,
+          technicianMiddleName: 24,
+          technicianId: 25,
+          radiologistFamilyName: 26,
+          radiologistGivenName: 27,
+          radiologistMiddleName: 28,
+          radiologistId: 29,
+          orderCreatedBy: 30,
+          orderUpdatedBy: 31,
+          acquisitionStatus: 32,
+        },
       },
-    },
-    // §5.14 ZEB: Patient Filler: encrypted patient-info blob (PHI-bearing).
-    ZEB: { fields: { encryptedPatientInfo: 1 } },
-    // §5.15 ZAP: Patient Filler: patient additional details (note: no field 2).
-    ZAP: {
-      fields: {
-        patientAdditionalDetails: 1,
-        patientCustomString1: 3,
-        patientCustomString2: 4,
-        patientCustomString3: 5,
-        patientCustomString4: 6,
-        patientCustomString5: 7,
-        patientCustomString6: 8,
-        patientCustomString7: 9,
-        patientCustomNumber1: 10,
-        patientCustomNumber2: 11,
-        patientCustomDate1: 12,
-        patientCustomDate2: 13,
-        patientCustomDate3: 14,
+      // §5.14 ZEB: Patient Filler: encrypted patient-info blob (PHI-bearing).
+      ZEB: { fields: { encryptedPatientInfo: 1 } },
+      // §5.15 ZAP: Patient Filler: patient additional details (note: no field 2).
+      ZAP: {
+        fields: {
+          patientAdditionalDetails: 1,
+          patientCustomString1: 3,
+          patientCustomString2: 4,
+          patientCustomString3: 5,
+          patientCustomString4: 6,
+          patientCustomString5: 7,
+          patientCustomString6: 8,
+          patientCustomString7: 9,
+          patientCustomNumber1: 10,
+          patientCustomNumber2: 11,
+          patientCustomDate1: 12,
+          patientCustomDate2: 13,
+          patientCustomDate3: 14,
+        },
       },
+      // §5.16 ZAV: Visit Filler: visit additional details.
+      ZAV: { fields: { visitAdditionalDetails: 1 } },
     },
-    // §5.16 ZAV: Visit Filler: visit additional details.
-    ZAV: { fields: { visitAdditionalDetails: 1 } },
-  },
-});
+  });

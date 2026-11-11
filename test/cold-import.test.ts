@@ -2,18 +2,19 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type * as Hl7 from "../src/index.js";
 import type * as Schemas from "../src/parser/generated/message-structure-schemas.js";
+import type * as Define from "../src/profiles/define.js";
 
 /**
  * What importing the package does before a caller asks it for anything. A cold import of the built
  * package is held to a time budget on a CI runner (`pnpm check:cold-import`); these cases hold the
- * three changes that brought it there, each of which a reading alone could lose without saying
- * which:
+ * changes that brought it there, each of which a reading alone could lose without saying which:
  *
  * - no `localeCompare` runs at load: the first one in a process builds an ICU collator;
  * - `node:crypto` is not imported: the message control ID draws from the Web Crypto global on its
  *   first use instead;
  * - the published structure schemas, the largest generated table, are parsed on the first
- *   structure validation rather than at import.
+ *   structure validation rather than at import;
+ * - each built-in profile is built on its first read rather than at import.
  *
  * Every case imports a fresh copy of `src/index.ts`, so nothing an earlier case loaded counts.
  */
@@ -22,6 +23,7 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.doUnmock("node:crypto");
   vi.doUnmock("../src/parser/generated/message-structure-schemas.js");
+  vi.doUnmock("../src/profiles/define.js");
   vi.resetModules();
 });
 
@@ -73,6 +75,54 @@ describe("importing the package", () => {
     expect(first.validated).toBe(true);
     expect(second.structureId).toBe(first.structureId);
     expect(parsed).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("the built-in profiles", () => {
+  it("are built on their first read, not at import, and once each", async () => {
+    const defined: string[] = [];
+    vi.doMock("../src/profiles/define.js", async (original) => {
+      const real = await original<typeof Define>();
+      return {
+        ...real,
+        defineProfile: ((opts) => {
+          defined.push(opts.name);
+          return real.defineProfile(opts);
+        }) as typeof real.defineProfile,
+      };
+    });
+    const { profiles } = await importFresh();
+    expect(defined).toEqual([]);
+
+    const epic = profiles.epic;
+    expect(defined).toEqual(["epic"]);
+    expect(profiles.epic).toBe(epic);
+    expect(defined).toEqual(["epic"]);
+
+    expect(Object.keys(profiles)).toEqual([
+      "athena",
+      "cerner",
+      "epic",
+      "genericLab",
+      "meditech",
+      "philips",
+      "va",
+      "visage",
+    ]);
+    for (const name of Object.keys(profiles) as (keyof typeof profiles)[]) {
+      expect(profiles[name].name).toBe(name);
+      expect(Object.isFrozen(profiles[name])).toBe(true);
+    }
+    expect([...defined].sort()).toEqual([
+      "athena",
+      "cerner",
+      "epic",
+      "genericLab",
+      "meditech",
+      "philips",
+      "va",
+      "visage",
+    ]);
   });
 });
 

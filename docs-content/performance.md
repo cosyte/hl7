@@ -82,7 +82,7 @@ short-lived process: a command-line tool, a serverless function, a test worker.
 is over 15 ms. CI runs it on a GitHub-hosted runner after every build, interleaved with imports of
 an empty module so a slow runner shows as a slow empty import.
 
-Three things keep the import inside the budget:
+These keep the import inside the budget:
 
 - **Nothing collates at load.** The lists sorted while the package loads (the overlay keys, the
   builder pairs, the warning codes) are plain ASCII identifiers, sorted by code unit. The first
@@ -95,6 +95,9 @@ Three things keep the import inside the budget:
   from JSON text at load, which the JSON parser reads far faster than the same tables compiled as
   JavaScript. The published structure schemas, the largest table, are parsed on the first
   `validateMessageStructure` call rather than at import.
+- **Built on first use.** Each built-in profile is built the first time it is read
+  (`profiles.epic`), and the same frozen profile comes back on every read after it. The
+  character set table is built on the first message that declares one in MSH-18.
 
 ## What these numbers are not
 
