@@ -1,7 +1,6 @@
 // How much memory the streaming readers hold, against the largest item they read, and a gate on
-// it: `readMessages` over a batch should hold about one message however large the batch is.
-// `parseStream` on the same batch and `readSegments` over one large message are read and reported,
-// not judged (see GATED_READERS).
+// it: `readMessages` and `parseStream` over a batch should hold about one message however large the
+// batch is, and `readSegments` over one large message about one segment (see GATED_READERS).
 //
 //   pnpm build && node bench/stream-memory.mjs --target dist/index.mjs --mib 100 \
 //     --out stream-memory.json --summary stream-memory.md
@@ -40,19 +39,20 @@ const CHUNK = 64 * 1024;
 export const PEAK_MULTIPLE = 3;
 
 /**
- * The readers the gate judges: `readMessages`, over the 100 MiB batch. Two others are measured and
- * reported, not judged, from four stream-memory runs on GitHub-hosted runners (43063981717,
- * 43064467751, 43066398448 and 43067421821), where `readMessages` held 1.96 to 2.08 times its
- * largest message:
+ * The readers the gate judges: all three. `readMessages` and `parseStream` read the 100 MiB batch,
+ * whose largest message is 4 MiB; `readSegments` reads one 100 MiB message whose largest segment is
+ * 4 MiB, a base64 document in one field.
  *
- * - `parseStream`, the older message reader, held 2.99 to 3.98 times the largest message on the
- *   same batch, at and over the limit. Judging it is a change to `parseStream` first.
- * - `readSegments` held 1.82 to 3.41 times its largest segment. That segment is 256 KiB, and what
- *   the reader and its source hold besides it (a few 64 KiB chunks and the text they decode to) is
- *   not small beside it, so the ratio moves by more than the limit leaves room for. Judging it
- *   needs a source whose largest segment dwarfs that, which this file does not build yet.
+ * `parseStream` was measured, not judged, while it held 2.99 to 3.98 times its largest message
+ * (seven stream-memory runs on GitHub-hosted runners: 43063981717, 43064467751, 43066398448,
+ * 43067421821, 43069553162, 43071783838 and 43073735956): it cut every segment from one growing
+ * buffer, kept alive while it yielded the message, and the message decoded a second copy of the
+ * text the entry's `raw` already held. `readSegments` was measured, not judged, on a source whose
+ * largest segment was 256 KiB: beside it, a few 64 KiB chunks and the text they decode to moved
+ * its ratio from 1.82 to 3.41. Its largest segment is now 4 MiB, the item read when memory is
+ * sampled, so the reader's own state is small beside it.
  */
-export const GATED_READERS = Object.freeze(["readMessages"]);
+export const GATED_READERS = Object.freeze(["readMessages", "parseStream", "readSegments"]);
 
 /**
  * Judge readings against the limit. Exit code 0 when every gated reader is at or under `multiple`
@@ -115,23 +115,40 @@ async function* batchChunks(bytes, onMessage) {
   if (pending.length > 0) yield pending;
 }
 
-/** One ORU^R01 of about `bytes` bytes, in 64 KiB chunks, its OBX lines written as they are sent. */
+/** Every SEGMENTS_PER_DOCUMENTth item `readSegments` reads is a 4 MiB document segment. */
+const SEGMENTS_PER_DOCUMENT = 20000;
+/** 64 KiB of base64 text, sent sixty-four times for a 4 MiB document field. */
+const DOCUMENT_PIECE = "QUJD".repeat(CHUNK / 4);
+
+/**
+ * One ORU^R01 of about `bytes` bytes, in 64 KiB chunks, its OBX lines written as they are sent.
+ * Every SEGMENTS_PER_DOCUMENTth segment is a result carrying a 4 MiB base64 document in one field,
+ * the largest segment by far, and it is the item read when memory is sampled (every 2000th). The
+ * document is sent a piece at a time, so the source never holds it whole.
+ */
 async function* messageChunks(bytes, onSegment) {
   let pending = "MSH|^~\\&|LAB|SENDFAC|EHR|RECVFAC|20260101120000||ORU^R01|R1|P|2.5\r";
   pending += "PID|1||FAKE000001^^^HOSP^MR||Roe^Sam^T||19750615|M\r";
   pending += "OBR|1||ACC000001|CBC^Complete Blood Count^LN|||20260101120000\r";
+  // The three segments above are items 1 to 3; result k is item k + 4.
   for (let k = 0, sent = 0; sent < bytes; k++) {
-    const line =
-      k % 5000 === 4999
-        ? // A base64 document of 256 KiB in one field, every 5000th result.
-          `OBX|${String(k + 1)}|ED|DOC^Document^LN||^AP^PDF^Base64^${"QUJD".repeat(64 * 1024)}||||||F\r`
-        : `OBX|${String(k + 1)}|NM|GLU^Glucose^LN||${String(80 + (k % 40))}|mg/dL|70-110|N|||F\r`;
-    onSegment(line.length);
-    sent += line.length;
-    pending += line;
-    while (pending.length >= CHUNK) {
-      yield Buffer.from(pending.slice(0, CHUNK), "latin1");
-      pending = pending.slice(CHUNK);
+    const document = (k + 4) % SEGMENTS_PER_DOCUMENT === 0;
+    const parts = document
+      ? [
+          `OBX|${String(k + 1)}|ED|DOC^Document^LN||^AP^PDF^Base64^`,
+          ...Array.from({ length: (4 * MIB) / CHUNK }, () => DOCUMENT_PIECE),
+          "||||||F\r",
+        ]
+      : [`OBX|${String(k + 1)}|NM|GLU^Glucose^LN||${String(80 + (k % 40))}|mg/dL|70-110|N|||F\r`];
+    const length = parts.reduce((n, part) => n + part.length, 0);
+    onSegment(length);
+    sent += length;
+    for (const part of parts) {
+      pending += part;
+      while (pending.length >= CHUNK) {
+        yield Buffer.from(pending.slice(0, CHUNK), "latin1");
+        pending = pending.slice(CHUNK);
+      }
     }
   }
   if (pending.length > 0) yield Buffer.from(pending, "latin1");
