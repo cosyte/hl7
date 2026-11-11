@@ -142,7 +142,7 @@ const raw = [
   "MSH|^~\\&|CLINIC|MAIN|LAB|REF|20250102153045||ADT^A01|MSG00001|P|2.5",
   "PID|1||MRN12345^^^HOSP^MR~XYZ987^^^STATE^SS||Smith^Jane^Q",
   "NK1|1|Smith^John|SPO",
-  "NK1|2|Smith^Ann|DAU",
+  "NK1|2|Smith^Mary|DAU",
 ].join("\r");
 
 const msg = parseHL7(raw);
@@ -150,7 +150,7 @@ const msg = parseHL7(raw);
 msg.get("PID.5.1"); // => "Smith"
 msg.get("PID.5.2"); // => "Jane"
 msg.get("PID.3[1].1"); // => "XYZ987"
-msg.get("NK1[1].2.2"); // => "Ann"
+msg.get("NK1[1].2.2"); // => "Mary"
 msg.getAll("NK1").length; // => 2
 ```
 
