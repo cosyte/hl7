@@ -9,8 +9,8 @@
  * it. So each is read here, and a pass means each was found as it should be.
  */
 
-import { existsSync, readFileSync, readdirSync } from "node:fs";
-import { join, relative } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { describe, expect, it } from "vitest";
@@ -58,6 +58,15 @@ describe("the floor file", () => {
       expect(value as number).toBeLessThanOrEqual(100);
     }
   });
+
+  it("says which mutants its mutation floor leaves out, as the mutation config does", async () => {
+    const floor = JSON.parse(read("quality-floor.json")) as { $comment?: unknown };
+    const { default: full } = await importModule<{ default: Record<string, unknown> }>(
+      "stryker.full.config.mjs",
+    );
+    expect(full["ignoreStatic"]).toBe(true);
+    expect(floor.$comment).toContain("static mutants ignored (ignoreStatic: true)");
+  });
 });
 
 describe("the scripts", () => {
@@ -72,49 +81,43 @@ describe("the scripts", () => {
 });
 
 describe("the mutation config", () => {
-  it("mutates the parser in src/parser/index.ts and leaves out only the barrels", async () => {
+  it("leaves out only the barrels the shared config finds, so every file holding code is mutated", async () => {
     const { default: config } = await importModule<{
       default: { mutate: string[]; vitest: { configFile?: string } };
     }>("stryker.config.mjs");
-    expect(config.mutate).toContain("src/**/*.ts");
-    expect(config.mutate).not.toContain("!src/**/index.ts");
-    expect(config.mutate).not.toContain("!src/parser/index.ts");
+    const { DEFAULT_MUTATE, findBarrels } = await import("@cosyte/vitest-config/stryker");
+    expect(config.mutate).toEqual([
+      ...DEFAULT_MUTATE,
+      ...findBarrels(REPO_ROOT).map((path) => `!${path}`),
+    ]);
     expect(config.vitest.configFile).toBe("vitest.mutation.config.ts");
 
-    // Every other index.ts under src/ is a barrel and is named, so a new one is a decision.
-    const indexes: string[] = [];
-    const walk = (dir: string): void => {
-      for (const entry of readdirSync(dir, { withFileTypes: true })) {
-        const path = join(dir, entry.name);
-        if (entry.isDirectory()) walk(path);
-        else if (entry.name === "index.ts") indexes.push(relative(REPO_ROOT, path));
-      }
-    };
-    walk(join(REPO_ROOT, "src"));
-    const excluded = indexes
-      .filter((path) => path !== join("src", "parser", "index.ts"))
-      .map((path) => `!${path.split("\\").join("/")}`);
-    expect(config.mutate.filter((p) => p.endsWith("index.ts")).sort()).toEqual(excluded.sort());
+    // These hold code, not only re-exports: parseHL7, the built-in profiles and VERSION.
+    for (const file of ["src/parser/index.ts", "src/profiles/index.ts", "src/index.ts"]) {
+      expect(config.mutate, file).not.toContain(`!${file}`);
+      expect(findBarrels(REPO_ROOT), file).not.toContain(file);
+    }
   });
 
-  it("runs the floor's full run over the parser and the serializers, on the same settings", async () => {
+  it("runs the floor's full run over all of src but the schema writers, on the same settings", async () => {
     const { default: base } = await importModule<{ default: Record<string, unknown> }>(
       "stryker.config.mjs",
     );
     const { default: full } = await importModule<{ default: Record<string, unknown> }>(
       "stryker.full.config.mjs",
     );
-    expect(full["mutate"]).toEqual([
-      "src/parser/**/*.ts",
-      "!src/parser/generated/**",
-      "src/serialize/*.ts",
-    ]);
+    // Every file a pull request's run mutates, but the build-time schema writers. The generated
+    // tables are out of both by the shared list's `generated` rule.
+    expect(base["mutate"]).toContain("!src/**/generated/**");
+    expect(full["mutate"]).toEqual([...(base["mutate"] as string[]), "!src/serialize/schema/**"]);
     expect({ ...full, mutate: base["mutate"] }).toEqual(base);
+    expect(full["ignoreStatic"]).toBe(true);
     const { scripts } = JSON.parse(read("package.json")) as { scripts: Record<string, string> };
     expect(scripts["mutate:full"]).toBe("cosyte-mutate full --config stryker.full.config.mjs");
-    expect(read(".github", "workflows", "weekly-mutation.yml")).toMatch(
-      /^ {6}mutate-cmd: "pnpm mutate:full"$/mu,
-    );
+    const weekly = read(".github", "workflows", "weekly-mutation.yml");
+    expect(weekly).toMatch(/^ {6}mutate-cmd: "pnpm mutate:full"$/mu);
+    // Sharded: one runner cannot finish every file of src/ inside a job's time limit.
+    expect(weekly).toMatch(/^ {6}shard-count: 8$/mu);
   });
 });
 
