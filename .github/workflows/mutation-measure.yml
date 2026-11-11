@@ -1,0 +1,25 @@
+name: Mutation measure (temporary)
+
+# Temporary: measures the full mutation run on hosted runners from this branch, with no incremental
+# results, so every run is a whole one. Removed before the pull request is ready.
+
+on:
+  push:
+    branches: [test/full-mutation-run]
+
+permissions:
+  contents: read
+
+jobs:
+  current:
+    uses: cosyte/.github/.github/workflows/weekly-mutation.yml@398cd4ded647dddd9f2e220ceb042840f59e1426 # workflows-2026-11-10-398cd4ded647
+    with:
+      mutate-cmd: "env -u COSYTE_MUTATE_INCREMENTAL_FILE pnpm exec cosyte-mutate full --config stryker.current.config.mjs"
+      shard-count: 4
+      report-name: mutation-current
+  full:
+    uses: cosyte/.github/.github/workflows/weekly-mutation.yml@398cd4ded647dddd9f2e220ceb042840f59e1426 # workflows-2026-11-10-398cd4ded647
+    with:
+      mutate-cmd: "env -u COSYTE_MUTATE_INCREMENTAL_FILE pnpm mutate:full"
+      shard-count: 8
+      report-name: mutation-full
