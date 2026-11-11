@@ -59,7 +59,14 @@ shows false alarms under 1% with 95% confidence, which takes at least 299 clean 
 The `bench-calibration` workflow measures it: six GitHub-hosted runners each run whole A/A
 comparisons of `bench/parse-large.compare.mjs` for an hour, both sides the same build from two
 directories, so every regression verdict is a false alarm, and its `summary` job pools them
-(`bench/calibration-summary.mjs`). The first calibration's numbers are added here from its run.
+(`bench/calibration-summary.mjs`).
+
+The first `large-compare` runs were A/A comparisons too: the parser on both sides was the same
+code. In four of them (bench-reading runs 43064468140, 43067421711, 43069553065 and 43071783873),
+none of the 43 case verdicts that measured was a regression, an upper bound of 6.73% on the
+per-case false alarm rate with 95% confidence. Every one of the four skipped a case, though
+(`parseHL7 with { lazy: false }` at 1 MiB each time, and `parseHL7` at 4 MiB once), and a skip would
+make a required check red, which is a second reason the comparison stays advisory.
 
 ## The streaming memory gate
 
