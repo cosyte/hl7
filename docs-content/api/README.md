@@ -9879,6 +9879,47 @@ Examples:
 
 ***
 
+### ReadSegmentItem
+
+One segment `readSegments()` yields: the segment, its index in the message, and the warnings
+`parseHL7` reports about it, in the order it reports them. The first item also carries the
+warnings about the message's bytes and framing that `parseHL7` reports before any segment, and
+the last item the warnings that need the whole message: a segment its structure requires and
+that never came, and framing bytes first seen after the first segment.
+
+#### Example
+
+```ts
+import { readSegments } from "@cosyte/hl7";
+
+for await (const { segment, warnings } of readSegments(source)) {
+  if (segment.type === "OBX") store(segment.field(5).value);
+  for (const w of warnings) log(w.code);
+}
+```
+
+#### Properties
+
+##### index
+
+> `readonly` **index**: `number`
+
+Its index in the message: 0 is MSH.
+
+##### segment
+
+> `readonly` **segment**: [`Segment`](#segment)
+
+The segment, built in full.
+
+##### warnings
+
+> `readonly` **warnings**: readonly [`Hl7ParseWarning`](#hl7parsewarning)[]
+
+The warnings about it, frozen.
+
+***
+
 ### RenderedText
 
 The normalized display model produced by [renderText](#rendertext): a flat
@@ -12980,6 +13021,28 @@ Severity of a [ConformanceFinding](#conformancefinding). `error` is a constraint
 
 ***
 
+### Hl7ReadSource
+
+> **Hl7ReadSource** = `string` \| `Uint8Array` \| `ReadableStream`\<`string` \| `Uint8Array`\> \| `AsyncIterable`\<`string` \| `Uint8Array`\> \| `Iterable`\<`string` \| `Uint8Array`\>
+
+What `readMessages()` and `readSegments()` read: the whole input as one string or one
+`Uint8Array` (a Node `Buffer` is one), or its chunks from a web `ReadableStream`, a Node
+`Readable`, or any async or plain iterable. Chunks are all strings or all bytes. Bytes are read
+as `parseHL7` reads a `Buffer`: in the character set MSH-18 declares, or `options.charset`.
+
+#### Example
+
+```ts
+import { createReadStream } from "node:fs";
+import type { Hl7ReadSource } from "@cosyte/hl7";
+
+const fromFile: Hl7ReadSource = createReadStream("feed.hl7");
+const fromFetch: Hl7ReadSource = (await fetch(url)).body!;
+const fromText: Hl7ReadSource = "MSH|^~\\&|A|F|B|G|20260101||ADT^A01|1|P|2.5\r";
+```
+
+***
+
 ### Hl7StreamSource
 
 > **Hl7StreamSource** = `AsyncIterable`\<`string` \| `Buffer` \| `Uint8Array`\> \| `Iterable`\<`string` \| `Buffer` \| `Uint8Array`\>
@@ -13627,6 +13690,45 @@ level is still not one: see [ConformanceResult](#conformanceresult).
 ```ts
 import type { ProfileLevel } from "@cosyte/hl7";
 const level: ProfileLevel = "implementable";
+```
+
+***
+
+### ReadMessageItem
+
+> **ReadMessageItem**\<`M`\> = \{ `byteLength`: `number`; `byteOffset`: `number`; `index`: `number`; `message`: `M`; `ok`: `true`; `position`: [`Hl7Position`](#hl7position); `streamWarnings`: readonly [`Hl7ParseWarning`](#hl7parsewarning)[]; \} \| \{ `byteLength`: `number`; `byteOffset`: `number`; `error`: [`Hl7ParseError`](#hl7parseerror); `index`: `number`; `ok`: `false`; `position`: [`Hl7Position`](#hl7position); `raw`: `string` \| `Uint8Array`; `streamWarnings`: readonly [`Hl7ParseWarning`](#hl7parsewarning)[]; \}
+
+One item `readMessages()` yields: a message, or a message that failed to parse. Both say where
+the message sits in the source: `byteOffset` and `byteLength` count bytes (of the UTF-8 text,
+for a string source), `index` counts the items yielded before this one, and `position` is the
+message's first segment among every segment of the source, blank lines and batch envelope
+segments included.
+
+An `ok` item carries the message `parseHL7` gives for its bytes, built a segment at a time on
+first read unless `{ lazy: false }` was given. A failed item carries the `Hl7ParseError` that
+`parseHL7` threw and the message's text in `raw` (bytes for a byte source), so it can be set
+aside: it may hold patient data.
+
+`streamWarnings` is empty but on a last message whose last segment has no terminator, where it
+holds `UNTERMINATED_STREAM_MESSAGE`: the source may have been cut off.
+
+#### Type Parameters
+
+##### M
+
+`M` *extends* [`Hl7Message`](#hl7message) = [`Hl7Message`](#hl7message)
+
+the message type an `ok` item carries.
+
+#### Example
+
+```ts
+import { readMessages } from "@cosyte/hl7";
+
+for await (const item of readMessages(source)) {
+  if (item.ok) handle(item.message);
+  else quarantine(item.raw, item.error.code, item.byteOffset);
+}
 ```
 
 ***
@@ -18361,6 +18463,110 @@ pickMrn([{ idNumber: "X1" }]);
 
 pickMrn([]);
 // → undefined
+```
+
+***
+
+### readMessages()
+
+> **readMessages**(`source`, `optionsOrProfile?`): `AsyncGenerator`\<[`ReadMessageItem`](#readmessageitem)\<[`Hl7Message`](#hl7message)\>, `void`, `void`\>
+
+Read a batch, a file or a stream of HL7 v2 messages, and yield each message as soon as its
+last segment has arrived. The source is a string, bytes, a Node `Readable`, a web
+`ReadableStream`, or an async or plain iterable of string or byte chunks; the next chunk is read
+only when the next item is asked for. Only the message being read is held, never the source.
+
+Messages are found as `splitBatch` finds them. Each starts at an `MSH` segment and runs to the
+next `MSH`, the next batch envelope segment (`FHS`, `BHS`, `BTS`, `FTS`, which are never
+yielded), or the end. Blank lines between messages are skipped. Text before the first `MSH` is
+not dropped: it is yielded as a failed item. An MLLP frame (`VT`, the message, `FS`, `CR`), as
+`@cosyte/mllp` writes it, is a message of its own: it ends at its `FS` and is yielded at once.
+
+Each message is parsed by `parseHL7` with the given options or profile, from exactly its own
+text or bytes, so it is the message `parseHL7` gives for them, its warnings included, wherever
+the chunks were cut: inside a terminator, an escape sequence or a multi-byte character. A
+message that fails to parse is yielded as a failed item with its byte position, and reading goes
+on. With `{ strict: true }` every warning fails its message, and the first failed item is the
+last item: reading stops there and the source is released.
+
+A profile, or options with a `profile`, narrows each `ok` item's message as it narrows
+`parseHL7`'s result.
+
+#### Parameters
+
+##### source
+
+[`Hl7ReadSource`](#hl7readsource)
+
+##### optionsOrProfile?
+
+[`ParseOptions`](#parseoptions) \| [`Profile`](#profile)
+
+#### Returns
+
+`AsyncGenerator`\<[`ReadMessageItem`](#readmessageitem)\<[`Hl7Message`](#hl7message)\>, `void`, `void`\>
+
+#### Example
+
+```ts
+import { createReadStream } from "node:fs";
+import { readMessages } from "@cosyte/hl7";
+
+for await (const item of readMessages(createReadStream("feed.hl7"))) {
+  if (item.ok) console.log(item.message.meta.controlId);
+  else console.error(item.error.code, "at byte", item.byteOffset);
+}
+```
+
+***
+
+### readSegments()
+
+> **readSegments**(`source`, `optionsOrProfile?`): `AsyncGenerator`\<[`ReadSegmentItem`](#readsegmentitem), `void`, `void`\>
+
+Read one HL7 v2 message, however large, and yield each segment as soon as it has arrived, with
+the warnings `parseHL7` reports about it. The source is a string, bytes, a Node `Readable`, a
+web `ReadableStream`, or an async or plain iterable of string or byte chunks; the next chunk is
+read only when the next segment is asked for. Only the segment being read, and the one after
+it, are held: never the message.
+
+Each segment and its warnings are the ones `parseHL7` gives for the whole message, wherever the
+chunks were cut: the same values, the same warnings, and the same `toString()`. The warnings
+about the message's bytes come with the first segment, and those that need the whole message
+(a segment its structure requires that never came) with the last. A message `parseHL7` refuses
+(`NO_MSH_SEGMENT`, `MSH_TOO_SHORT`, `INVALID_ENCODING_CHARACTERS`, `EMPTY_INPUT`) throws the
+same `Hl7ParseError` before the first segment. With `{ strict: true }` the first warning throws,
+as `parseHL7` does, though in reading order: the segments before it have been yielded, and when
+a message has more than one problem the one thrown can differ from the one `parseHL7`, which
+reads the whole message first, would throw. Bytes in a character set the parser decodes strictly
+(UTF-8, for one) that turn out not to be valid in it throw `UNSUPPORTED_CHARSET` where they are
+met: `parseHL7` reads such a message verbatim instead, which a reader that has handed out
+earlier segments cannot do.
+
+#### Parameters
+
+##### source
+
+[`Hl7ReadSource`](#hl7readsource)
+
+##### optionsOrProfile?
+
+[`ParseOptions`](#parseoptions) \| [`Profile`](#profile)
+
+#### Returns
+
+`AsyncGenerator`\<[`ReadSegmentItem`](#readsegmentitem), `void`, `void`\>
+
+#### Example
+
+```ts
+import { createReadStream } from "node:fs";
+import { readSegments } from "@cosyte/hl7";
+
+let results = 0;
+for await (const { segment } of readSegments(createReadStream("large-report.hl7"))) {
+  if (segment.type === "OBX") results += 1;
+}
 ```
 
 ***

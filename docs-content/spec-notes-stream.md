@@ -127,6 +127,32 @@ a field value**, so no PHI is exposed.
   (the second `MSH` is not at a segment start). The parser will not invent a
   boundary the bytes do not contain.
 
+## `readMessages` and `readSegments`
+
+[`readMessages`](./read-as-it-arrives.md) follows the boundary rules above, with three additions:
+
+- **MLLP frames.** A line that begins with VT (after which comes `MSH`) starts a message, and a
+  line that ends with FS ends one at once, its CR included: an LF after that CR is not part of the
+  frame. So the bytes `@cosyte/mllp` writes are read frame by frame, and each frame is yielded as
+  soon as it ends, without waiting for the next one. Each message is the one `parseHL7` gives for
+  its frame, with `MLLP_FRAMING_STRIPPED`.
+- **Exact bytes.** A message's bytes are passed to `parseHL7` exactly as they arrived, its line
+  breaks included, and `byteOffset` and `byteLength` say where they sit in the source (counting the
+  UTF-8 bytes of a string source). So `parseHL7` of those bytes gives the same item, whatever the
+  chunking.
+- **Strict mode stops.** With `{ strict: true }` the first failed item is the last item.
+
+[`readSegments`](./read-as-it-arrives.md) runs the steps `parseHL7` runs on one message (decode by
+MSH-18, the byte order mark, MLLP framing, line endings, delimiters, the scanner, the segment-name
+and structure checks) one segment at a time, so each segment and its warnings are the ones
+`parseHL7` gives for the whole message. It decodes bytes once MSH has arrived, in the character set
+MSH-18 or `options.charset` names, a chunk at a time. A segment is built when the next one begins,
+and the first only once 42 characters have arrived, so a strict-mode error carries the same
+snippet `parseHL7` gives. Its two documented differences, invalid bytes for a strictly decoded set
+and the order of strict-mode errors, are on the [how-to page](./read-as-it-arrives.md).
+
 ## Put it to use
+
+- [Read messages and segments as they arrive](./read-as-it-arrives.md)
 
 - [Split batches and stream large files](./split-batches-and-streams.md)
