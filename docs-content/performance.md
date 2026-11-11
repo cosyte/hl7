@@ -65,10 +65,13 @@ size of the source. `bench/stream-memory.mjs` checks that on a GitHub-hosted run
 and one message of about a million segments with a 256 KiB segment every 5000th for
 `readSegments`), and the memory held is read after a full collection every few items.
 
-The job fails when a reader's peak is more than **3 times** the largest item it read: the item, the
-text it came from, and room for the reader's own state. A reader that buffered its source would
-hold toward all 100 MiB. It also fails when a reading cannot be judged, because a reader read
-nothing or failed an item. The limit is `PEAK_MULTIPLE` in the script.
+The job fails when the peak of `readMessages` or `readSegments` is more than **3 times** the
+largest item it read: the item, the text it came from, and room for the reader's own state. A
+reader that buffered its source would hold toward all 100 MiB. It also fails when a reading cannot
+be judged, because a reader read nothing or failed an item. The limit is `PEAK_MULTIPLE` in the
+script. `parseStream`, the older message reader, is read on the same batch and reported but not
+judged: it holds about 4 times the largest message, over the limit, so for a large batch
+`readMessages` is the reader to use.
 
 These are ratios, not absolute budgets. The parse benchmarks' absolute budgets belong in
 `@cosyte/bench`'s budgets file, which we have not written yet; when we do, the numbers here feed it

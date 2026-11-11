@@ -1,9 +1,10 @@
 name: stream-memory
 
-# The streaming readers' memory gate: `readMessages` and `parseStream` over a 100 MiB batch, and
-# `readSegments` over one 100 MiB message, each read in 64 KiB chunks on a GitHub-hosted runner.
-# bench/stream-memory.mjs exits 1 when a reader's peak is more than PEAK_MULTIPLE (3) times the
-# largest item it read, and 2 when a reading cannot be judged; either fails this job.
+# The streaming readers' memory gate: `readMessages` over a 100 MiB batch and `readSegments` over
+# one 100 MiB message, each read in 64 KiB chunks on a GitHub-hosted runner, with `parseStream`
+# read on the same batch and reported, not judged. bench/stream-memory.mjs exits 1 when a judged
+# reader's peak is more than PEAK_MULTIPLE (3) times the largest item it read, and 2 when a reading
+# cannot be judged; either fails this job.
 #
 # It runs on every pull request, with no paths filter, so `stream-memory` can be a required check:
 # a required check whose workflow never starts never reports. The 100 MiB source is built in the

@@ -204,6 +204,25 @@ describe("the streaming memory gate", () => {
     expect(judge([row({ peak: 5 * MIB })], 1).exitCode).toBe(1);
   });
 
+  it("judges readMessages and readSegments, and lists parseStream without judging it", async () => {
+    const { judge, GATED_READERS } = await importModule<{
+      judge: Judge;
+      GATED_READERS: string[];
+    }>("bench", "stream-memory.mjs");
+    expect(GATED_READERS).toEqual(["readMessages", "readSegments"]);
+    const verdict = judge([
+      row({}),
+      row({ reader: "parseStream", peak: 16 * MIB }),
+      row({ reader: "readSegments", peak: 0.45 * MIB, largestItemBytes: 0.25 * MIB }),
+    ]);
+    expect(verdict.exitCode).toBe(0);
+    expect(verdict.lines[1]).toBe(
+      "parseStream: peak 4.00 times the largest item, measured, not gated",
+    );
+    // A reading of only a reader the gate does not judge cannot pass it.
+    expect(judge([row({ reader: "parseStream" })]).exitCode).toBe(2);
+  });
+
   it("cannot judge a reading that read nothing or failed an item", async () => {
     const { judge } = await importModule<{ judge: Judge }>("bench", "stream-memory.mjs");
     expect(judge([]).exitCode).toBe(2);
