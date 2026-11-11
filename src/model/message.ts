@@ -62,6 +62,9 @@ import type { MessageStructure } from "../parser/message-structure.js";
 import { buildVisit } from "../helpers/visit.js";
 import { emitPrettyPrint } from "../serialize/pretty-print.js";
 import { emitJson, type SerializedMessage } from "../serialize/to-json.js";
+import type { Buffer } from "node:buffer";
+
+import { emitBytes, type ToBytesOptions } from "../serialize/to-bytes.js";
 import { emitMessage } from "../serialize/to-string.js";
 import {
   encodeComposite,
@@ -975,6 +978,35 @@ export class Hl7Message {
    */
   public toString(): string {
     return emitMessage(this);
+  }
+
+  /**
+   * Write this message as bytes in the character set it declares in MSH-18 (its first
+   * repetition), or in `options.charset`, the way `parseHL7` reads a `Buffer` in that set. The
+   * text is what `toString()` writes, so a message read from bytes and not changed comes back as
+   * the bytes it arrived as. A blank MSH-18, `ASCII` and `UTF-8` are written as UTF-8; `8859/1` one
+   * byte per character; `WINDOWS-1252` and the other ISO 8859 sets the parser decodes through
+   * their tables; and a set the parser keeps as a latin1 byte reading (a set it does not decode,
+   * an unrecognized label, or a decode that failed and raised `UNSUPPORTED_CHARSET`) one byte per
+   * character, which gives back the bytes that were read.
+   *
+   * Throws {@link Hl7EncodeError} for a character the set cannot hold, never writing a substitute:
+   * the euro sign in `8859/1`, a lone surrogate in UTF-8, a character above U+00FF in a set kept
+   * as a byte reading. The error names the segment, field and set, never the character. No MLLP
+   * framing is added.
+   *
+   * @param options - `charset` overrides MSH-18, as the same option of `parseHL7` does.
+   * @returns the message bytes.
+   *
+   * @example
+   * ```ts
+   * import { parseHL7 } from "@cosyte/hl7";
+   * const msg = parseHL7(latin1Bytes); // MSH-18 = 8859/1
+   * msg.toBytes().equals(latin1Bytes); // true: the same bytes, not UTF-8
+   * ```
+   */
+  public toBytes(options?: ToBytesOptions): Buffer {
+    return emitBytes(this, options);
   }
 
   /**

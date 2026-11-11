@@ -124,10 +124,10 @@ Every byte decodes, so a windows-1252 message never takes the verbatim fail-safe
 bytes were read as `latin1` and `UNKNOWN_CHARSET` was raised. Now the message is decoded and no
 charset warning is raised; `resolveCharset("WINDOWS-1252")` answers `treatment: "decode"`,
 `decoder: "windows-1252"` and `recognized: true`. If you re-decoded such fields yourself with
-`Buffer.from(value, "latin1")`, drop that step: the value is already text. The serializer
-outputs strings, so the library does not write windows-1252 bytes back, and a caller who
-re-encodes a value with `latin1` gets different bytes for the Windows characters from 0x80 to
-0x9F (the euro sign becomes 0xAC, not 0x80). An `ENCODING_MISMATCH`
+`Buffer.from(value, "latin1")`, drop that step: the value is already text. To write the
+message back as windows-1252 bytes, use `toBytes()` (see [Write bytes back](#write-bytes-back)):
+a caller who re-encodes the text with `latin1` instead gets different bytes for the Windows
+characters from 0x80 to 0x9F, or a refusal from `toBytes({ charset: "8859/1" })`. An `ENCODING_MISMATCH`
 between `options.charset` and MSH-18 is raised as before whenever one of them is `WINDOWS-1252`
 and the other is not, and its message now shows an MSH-18 of `WINDOWS-1252` instead of
 `<withheld>`.
@@ -187,6 +187,62 @@ claimed. See the limitations below.
 both are present and **disagree** (after canonicalization, so `UNICODE UTF-8` and
 `UTF-8` are treated as equal), an **`ENCODING_MISMATCH`** warning is raised and
 the override wins.
+
+## Write bytes back
+
+`toString()` returns text, and `Buffer.from(msg.toString(), "utf8")` writes it as UTF-8 whatever
+MSH-18 says. `msg.toBytes()` writes the same text in the set the message declares (the first
+repetition of MSH-18), as the reader reads that set, so a message read from bytes and not changed
+is written back as the bytes it arrived as:
+
+| Declared set                                                                 | Written as                                                    |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| blank, `ASCII`, `UTF-8` (and their synonyms)                                 | UTF-8, the superset the reader decodes the ASCII default with |
+| `8859/1`                                                                     | one byte per character, U+0000 to U+00FF                      |
+| `WINDOWS-1252`                                                               | the windows-1252 table the reader decodes with                |
+| `8859/2` to `8859/8`, `8859/10`, `8859/13` to `8859/16`                      | the byte the reader's strict decode maps to each character    |
+| a set kept verbatim (`UNSUPPORTED_CHARSET` or `UNKNOWN_CHARSET` on the read) | one byte per character: the bytes that were read              |
+
+The last row covers a recognized set the reader does not decode, an unrecognized label, and a
+decodable set whose strict decode failed on the read: the reader kept those bytes as a latin1
+reading and warned, and `toBytes()` writes that reading back unchanged.
+
+```ts runnable
+import { parseHL7 } from "@cosyte/hl7";
+
+// Byte 0x80 is the euro sign in windows-1252.
+const bytes = Buffer.from(
+  "MSH|^~\\&|A|B|C|D|20260101||ADT^A01|ID1|P|2.5||||||WINDOWS-1252\r" + "NTE|1||Copay 10 X\r",
+  "latin1",
+);
+bytes[bytes.length - 2] = 0x80;
+const msg = parseHL7(bytes);
+
+msg.toBytes().equals(bytes); // => true
+msg.setField("NTE.3", "Copay 12 €");
+msg.toBytes().at(-2); // => 0x80
+```
+
+**Refuse, never replace.** A character the set has no byte for (the euro sign in `8859/1`, `ñ` in
+`8859/2`, a lone surrogate in UTF-8, a character above U+00FF in a set kept verbatim) throws an
+`Hl7EncodeError` with `code: "UNENCODABLE_CHARACTER"`. Its `position` names the segment and field,
+and `charset` the set, by its registry label or `<withheld>` for a label outside the registry; the
+character and the field text are never in it. On a Node.js build with no decoder for an ISO 8859
+set, a non-ASCII character in that set throws with `code: "UNSUPPORTED_CHARSET"` instead.
+
+```ts runnable throws
+import { parseHL7 } from "@cosyte/hl7";
+
+const msg = parseHL7("MSH|^~\\&|A|B|C|D|20260101||ADT^A01|ID1|P|2.5||||||8859/1\rNTE|1||Copay");
+msg.setField("NTE.3", "Copay 12 €");
+msg.toBytes(); // throws Hl7EncodeError: segment 1 field 3, character set "8859/1"
+```
+
+**`charset` option.** `msg.toBytes({ charset })` writes in that set instead of MSH-18's, as the
+same option of `parseHL7` reads in it, and leaves MSH-18 as it is. If you read a message with
+`options.charset`, pass the same value to `toBytes` to get its bytes back.
+
+`toBytes()` adds no MLLP framing.
 
 ## Known limitations (non-goals)
 
