@@ -237,9 +237,9 @@ describe("the workflow callers", () => {
     );
   });
 
-  it("ci.yml runs verify on Linux, Windows and macOS", () => {
+  it("ci.yml runs verify on Linux and macOS", () => {
     const ci = read(".github", "workflows", "ci.yml");
-    expect(ci).toMatch(/^ {6}os: '\["ubuntu-latest", "windows-latest", "macos-latest"\]'$/mu);
+    expect(ci).toMatch(/^ {6}os: '\["ubuntu-latest", "macos-latest"\]'$/mu);
   });
 
   it("release.yml calls the shared release at the reference ci.yml uses, with every release gate on", () => {
