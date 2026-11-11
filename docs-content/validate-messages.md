@@ -41,7 +41,7 @@ The expectations are derived offline from a vendored copy of the published struc
 network call. A segment inside an optional group is not expected, a segment is expected only when
 every published variant of the structure requires it, and a type it does not recognize gives
 `recognized: false` and no warning. It covers the message codes ADT, ORU, ORM, OML, OMG, OMP, OMI,
-SIU, MDM, DFT, VXU and ACK. [Message-type and structure awareness](./spec-notes-structure.md) has the
+ORL, OUL, RAS, RDE, SIU, MDM, DFT, VXU and ACK. [Message-type and structure awareness](./spec-notes-structure.md) has the
 full table and the derivation rules.
 
 ## Check order and counts against the published structure

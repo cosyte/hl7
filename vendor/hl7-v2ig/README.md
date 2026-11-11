@@ -16,8 +16,12 @@ this repo wrote is `snapshot.json` (and this README).
 | Repository | [HL7/v2ig](https://github.com/HL7/v2ig) |
 | Commit at fetch | `51dfdd968cf2a14038505c5b2f3d97edd21f1b02` (2026-08-24) |
 | Snapshot taken | 2026-08-27 |
-| Structure definitions | 81 |
+| Structure definitions | 96 |
 | Control manifests | 2 |
+
+The `ORL`, `OUL`, `RAS` and `RDE` structure definitions were added on
+2026-11-11, read from the same commit, so every file here is still that
+commit's bytes.
 
 `snapshot.json` carries the same facts machine-readably, plus the byte count,
 the sha256 and the upstream URL of **every** file below it. The shipped registry
@@ -40,7 +44,7 @@ vendor/hl7-v2ig/
     message_structures.json              "A List of the v2+ message structures" (305 entries)
     messages.json                        "A List of the v2+ message definitions"
   message-structure/
-    <StructureId>.json                   81 FHIR StructureDefinition resources
+    <StructureId>.json                   96 FHIR StructureDefinition resources
 ```
 
 `messages.json` is the only file in the publication that maps a

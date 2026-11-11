@@ -8035,6 +8035,38 @@ type A01 = OverlayStructures["ADT^A01"]; // readonly ["EVN", "MSH", "PID", "PV1"
 
 > `readonly` **OMP^O09**: readonly \[`"MSH"`, `"ORC"`, `"RXO"`, `"RXR"`\]
 
+##### ORL^O22
+
+> `readonly` **ORL^O22**: readonly \[`"MSA"`, `"MSH"`\]
+
+##### ORL^O34
+
+> `readonly` **ORL^O34**: readonly \[`"MSA"`, `"MSH"`\]
+
+##### ORL^O36
+
+> `readonly` **ORL^O36**: readonly \[`"MSA"`, `"MSH"`\]
+
+##### ORL^O40
+
+> `readonly` **ORL^O40**: readonly \[`"MSA"`, `"MSH"`\]
+
+##### ORL^O53
+
+> `readonly` **ORL^O53**: readonly \[`"MSA"`, `"MSH"`\]
+
+##### ORL^O54
+
+> `readonly` **ORL^O54**: readonly \[`"MSA"`, `"MSH"`\]
+
+##### ORL^O55
+
+> `readonly` **ORL^O55**: readonly \[`"MSA"`, `"MSH"`\]
+
+##### ORL^O56
+
+> `readonly` **ORL^O56**: readonly \[`"MSA"`, `"MSH"`\]
+
 ##### ORM^O01
 
 > `readonly` **ORM^O01**: readonly \[`"ORC"`\]
@@ -8066,6 +8098,34 @@ type A01 = OverlayStructures["ADT^A01"]; // readonly ["EVN", "MSH", "PID", "PV1"
 ##### ORU^R43
 
 > `readonly` **ORU^R43**: readonly \[`"MSH"`, `"OBR"`\]
+
+##### OUL^R22
+
+> `readonly` **OUL^R22**: readonly \[`"MSH"`, `"OBR"`, `"SPM"`\]
+
+##### OUL^R23
+
+> `readonly` **OUL^R23**: readonly \[`"MSH"`, `"OBR"`, `"SAC"`, `"SPM"`\]
+
+##### OUL^R24
+
+> `readonly` **OUL^R24**: readonly \[`"MSH"`, `"OBR"`\]
+
+##### RAS^O17
+
+> `readonly` **RAS^O17**: readonly \[`"MSH"`, `"ORC"`, `"RXA"`, `"RXR"`\]
+
+##### RDE^O11
+
+> `readonly` **RDE^O11**: readonly \[`"MSH"`, `"ORC"`, `"RXE"`, `"RXR"`, `"TQ1"`\]
+
+##### RDE^O25
+
+> `readonly` **RDE^O25**: readonly \[`"MSH"`, `"ORC"`, `"RXE"`, `"RXR"`, `"TQ1"`\]
+
+##### RDE^O49
+
+> `readonly` **RDE^O49**: readonly \[`"MSH"`, `"ORC"`, `"RXE"`, `"RXR"`, `"TQ1"`\]
 
 ##### SIU^S12
 
@@ -14599,7 +14659,7 @@ console.log(KNOWN_SEGMENTS.has("ZPI")); // false
 The derived expected-segment registry. Generated from HL7's published,
 machine-readable message structures (see `STRUCTURE_REGISTRY_PROVENANCE` for
 the publication, the commit and the per-file hashes) and frozen: data, not
-config. Deliberately narrow in COVERAGE (twelve message codes) and not narrow
+config. Deliberately narrow in COVERAGE (sixteen message codes) and not narrow
 in CONTENT: within those codes it expects exactly what the publication marks
 required. It is still a safety net, not a conformance validator.
 
@@ -19861,7 +19921,7 @@ not "the message is fine".
 **Zero findings is not a conformance attestation.** It means this message did
 not break the published structure in the three ways checked here. Field
 content, datatypes, value sets and HL7 tables are all unchecked, the covered
-message codes are twelve rather than the whole standard, and the publication
+message codes are sixteen rather than the whole standard, and the publication
 behind it is vendored at a fixed commit.
 
 #### Parameters

@@ -1,0 +1,1171 @@
+{
+  "resourceType": "StructureDefinition",
+  "url": "http://hl7.org/v2/StructureDefinition/OUL_R24",
+  "id": "OUL_R24",
+  "meta": {
+    "profile": [
+      "http://hl7.org/v2/StructureDefinition/MessageStructure-Profile"
+    ]
+  },
+  "version": "0.0.1",
+  "status": "active",
+  "kind": "logical",
+  "abstract": false,
+  "baseDefinition": "http://hl7.org/v2/StructureDefinition/MessageStructure",
+  "derivation": "specialization",
+  "differential": {
+    "element": [
+      {
+        "id": "OUL_R24",
+        "path": "OUL_R24",
+        "short": "OUL_R24",
+        "definition": "OUL_R24 Message Structure",
+        "min": 0,
+        "max": "*"
+      },
+      {
+        "id": "OUL_R24.1-MSH",
+        "path": "OUL_R24.1-MSH",
+        "short": "Message Header",
+        "min": 1,
+        "max": "1",
+        "definition": "Message Header",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/MSH"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.2-ARV",
+        "path": "OUL_R24.2-ARV",
+        "short": "Access Restrictions",
+        "min": 0,
+        "max": "*",
+        "definition": "Access Restrictions",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ARV"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.3-SFT",
+        "path": "OUL_R24.3-SFT",
+        "short": "Software",
+        "min": 0,
+        "max": "*",
+        "definition": "Software Segment",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/SFT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.4-UAC",
+        "path": "OUL_R24.4-UAC",
+        "short": "User Authentication Credential",
+        "min": 0,
+        "max": "1",
+        "definition": "User Authentication Credential",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/UAC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.5-NTE",
+        "path": "OUL_R24.5-NTE",
+        "short": "Notes and Comments",
+        "min": 0,
+        "max": "1",
+        "definition": "Notes and Comments",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.6-PATIENT",
+        "path": "OUL_R24.6-PATIENT",
+        "short": "PATIENT",
+        "min": 0,
+        "max": "1",
+        "definition": "PATIENT",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.6-PATIENT.1-PID",
+        "path": "OUL_R24.6-PATIENT.1-PID",
+        "short": "Patient Identification",
+        "min": 1,
+        "max": "1",
+        "definition": "Patient Identification",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PID"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.6-PATIENT.2-PD1",
+        "path": "OUL_R24.6-PATIENT.2-PD1",
+        "short": "Additional Demographics",
+        "min": 0,
+        "max": "1",
+        "definition": "Additional Demographics",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PD1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.6-PATIENT.3-GSP",
+        "path": "OUL_R24.6-PATIENT.3-GSP",
+        "short": "Person Gender and Sex",
+        "min": 0,
+        "max": "*",
+        "definition": "Person Gender and Sex",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSP"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.6-PATIENT.4-GSR",
+        "path": "OUL_R24.6-PATIENT.4-GSR",
+        "short": "Recorded Gender and Sex",
+        "min": 0,
+        "max": "*",
+        "definition": "Recorded Gender and Sex",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSR"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.6-PATIENT.5-GSC",
+        "path": "OUL_R24.6-PATIENT.5-GSC",
+        "short": "Sex Parameter for Clinical Use",
+        "min": 0,
+        "max": "*",
+        "definition": "Sex Parameter for Clinical Use",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.6-PATIENT.6-PRT",
+        "path": "OUL_R24.6-PATIENT.6-PRT",
+        "short": "Participation (for Patient)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (for Patient)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.6-PATIENT.7-OH1",
+        "path": "OUL_R24.6-PATIENT.7-OH1",
+        "short": "Employment Status",
+        "min": 0,
+        "max": "*",
+        "definition": "Employment Status",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OH1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.6-PATIENT.8-OH2",
+        "path": "OUL_R24.6-PATIENT.8-OH2",
+        "short": "Past or Present Job",
+        "min": 0,
+        "max": "*",
+        "definition": "Past or Present Job",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OH2"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.6-PATIENT.9-OH3",
+        "path": "OUL_R24.6-PATIENT.9-OH3",
+        "short": "Usual Work",
+        "min": 0,
+        "max": "1",
+        "definition": "Usual Work",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OH3"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.6-PATIENT.10-OH4",
+        "path": "OUL_R24.6-PATIENT.10-OH4",
+        "short": "Combat Zone Work",
+        "min": 0,
+        "max": "*",
+        "definition": "Combat Zone Work",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OH4"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.6-PATIENT.11-ARV",
+        "path": "OUL_R24.6-PATIENT.11-ARV",
+        "short": "For backwards compatibility only as of V2.9.",
+        "min": 0,
+        "max": "*",
+        "definition": "For backwards compatibility only as of V2.9.",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ARV"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "B"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.6-PATIENT.12-NTE",
+        "path": "OUL_R24.6-PATIENT.12-NTE",
+        "short": "Notes and Comments (for Patient ID)",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes and Comments (for Patient ID)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.6-PATIENT.13-PATIENT_OBSERVATION",
+        "path": "OUL_R24.6-PATIENT.13-PATIENT_OBSERVATION",
+        "short": "PATIENT_OBSERVATION",
+        "min": 0,
+        "max": "*",
+        "definition": "PATIENT_OBSERVATION",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.6-PATIENT.13-PATIENT_OBSERVATION.1-OBX",
+        "path": "OUL_R24.6-PATIENT.13-PATIENT_OBSERVATION.1-OBX",
+        "short": "Observation (for Patient ID)",
+        "min": 1,
+        "max": "1",
+        "definition": "Observation (for Patient ID)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OBX"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.6-PATIENT.13-PATIENT_OBSERVATION.2-PRT",
+        "path": "OUL_R24.6-PATIENT.13-PATIENT_OBSERVATION.2-PRT",
+        "short": "Participation (for Patient Observation)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (for Observation)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.6-PATIENT.14-VISIT",
+        "path": "OUL_R24.6-PATIENT.14-VISIT",
+        "short": "VISIT",
+        "min": 0,
+        "max": "1",
+        "definition": "VISIT",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.6-PATIENT.14-VISIT.1-PV1",
+        "path": "OUL_R24.6-PATIENT.14-VISIT.1-PV1",
+        "short": "Patient Visit",
+        "min": 1,
+        "max": "1",
+        "definition": "Patient Visit",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PV1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.6-PATIENT.14-VISIT.2-PV2",
+        "path": "OUL_R24.6-PATIENT.14-VISIT.2-PV2",
+        "short": "Patient Visit - Additional Information",
+        "min": 0,
+        "max": "1",
+        "definition": "Patient Visit \u2013 Additional Information",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PV2"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.6-PATIENT.14-VISIT.3-PRT",
+        "path": "OUL_R24.6-PATIENT.14-VISIT.3-PRT",
+        "short": "Participation (for Patient Visit)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (for Patient Visit)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.7-NEXT_OF_KIN",
+        "path": "OUL_R24.7-NEXT_OF_KIN",
+        "short": "NEXT_OF_KIN",
+        "min": 0,
+        "max": "*",
+        "definition": "NEXT_OF_KIN",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.7-NEXT_OF_KIN.1-NK1",
+        "path": "OUL_R24.7-NEXT_OF_KIN.1-NK1",
+        "short": "Next of Kin",
+        "min": 1,
+        "max": "1",
+        "definition": "Next of Kin",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NK1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.7-NEXT_OF_KIN.2-GSP",
+        "path": "OUL_R24.7-NEXT_OF_KIN.2-GSP",
+        "short": "Person Gender and Sex",
+        "min": 0,
+        "max": "*",
+        "definition": "Person Gender and Sex",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSP"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.7-NEXT_OF_KIN.3-GSR",
+        "path": "OUL_R24.7-NEXT_OF_KIN.3-GSR",
+        "short": "Recorded Gender and Sex",
+        "min": 0,
+        "max": "*",
+        "definition": "Recorded Gender and Sex",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSR"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.8-ORDER",
+        "path": "OUL_R24.8-ORDER",
+        "short": "ORDER",
+        "min": 1,
+        "max": "*",
+        "definition": "ORDER",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.8-ORDER.1-OBR",
+        "path": "OUL_R24.8-ORDER.1-OBR",
+        "short": "Observation Order",
+        "min": 1,
+        "max": "1",
+        "definition": "Observation Order",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OBR"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.8-ORDER.2-PRT",
+        "path": "OUL_R24.8-ORDER.2-PRT",
+        "short": "Participation (for Observation)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (for observation)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.8-ORDER.3-COMMON_ORDER",
+        "path": "OUL_R24.8-ORDER.3-COMMON_ORDER",
+        "short": "COMMON_ORDER",
+        "min": 0,
+        "max": "1",
+        "definition": "COMMON_ORDER",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.8-ORDER.3-COMMON_ORDER.1-ORC",
+        "path": "OUL_R24.8-ORDER.3-COMMON_ORDER.1-ORC",
+        "short": "Common Order",
+        "min": 1,
+        "max": "1",
+        "definition": "Common Order",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ORC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.8-ORDER.3-COMMON_ORDER.2-PRT",
+        "path": "OUL_R24.8-ORDER.3-COMMON_ORDER.2-PRT",
+        "short": "Participation (for Common Order)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (for common order)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.8-ORDER.3-COMMON_ORDER.3-ORDER_DOCUMENT",
+        "path": "OUL_R24.8-ORDER.3-COMMON_ORDER.3-ORDER_DOCUMENT",
+        "short": "ORDER_DOCUMENT",
+        "min": 0,
+        "max": "1",
+        "definition": "ORDER_DOCUMENT",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.8-ORDER.3-COMMON_ORDER.3-ORDER_DOCUMENT.1-OBX",
+        "path": "OUL_R24.8-ORDER.3-COMMON_ORDER.3-ORDER_DOCUMENT.1-OBX",
+        "short": "Observation containing Document",
+        "min": 1,
+        "max": "1",
+        "definition": "Observation containing Document",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OBX"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.8-ORDER.3-COMMON_ORDER.3-ORDER_DOCUMENT.2-PRT",
+        "path": "OUL_R24.8-ORDER.3-COMMON_ORDER.3-ORDER_DOCUMENT.2-PRT",
+        "short": "Participation",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.8-ORDER.3-COMMON_ORDER.3-ORDER_DOCUMENT.3-TXA",
+        "path": "OUL_R24.8-ORDER.3-COMMON_ORDER.3-ORDER_DOCUMENT.3-TXA",
+        "short": "Transcription Document Header",
+        "min": 1,
+        "max": "1",
+        "definition": "Transcription Document Header",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/TXA"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.8-ORDER.4-NTE",
+        "path": "OUL_R24.8-ORDER.4-NTE",
+        "short": "Notes and Comments (for Detail)",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes and Comments (for Detail)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.8-ORDER.5-PRT",
+        "path": "OUL_R24.8-ORDER.5-PRT",
+        "short": "Deprecated as of V2.8",
+        "min": 0,
+        "max": "*",
+        "definition": "Deprecated as of V2.8",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "D"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.8-ORDER.6-TIMING_QTY",
+        "path": "OUL_R24.8-ORDER.6-TIMING_QTY",
+        "short": "TIMING_QTY",
+        "min": 0,
+        "max": "*",
+        "definition": "TIMING_QTY",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.8-ORDER.6-TIMING_QTY.1-TQ1",
+        "path": "OUL_R24.8-ORDER.6-TIMING_QTY.1-TQ1",
+        "short": "Timing/Quantity",
+        "min": 1,
+        "max": "1",
+        "definition": "Timing/Quantity",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/TQ1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.8-ORDER.6-TIMING_QTY.2-TQ2",
+        "path": "OUL_R24.8-ORDER.6-TIMING_QTY.2-TQ2",
+        "short": "Timing/Quantity Order Sequence",
+        "min": 0,
+        "max": "*",
+        "definition": "Timing/Quantity Order Sequence",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/TQ2"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.8-ORDER.7-SPECIMEN",
+        "path": "OUL_R24.8-ORDER.7-SPECIMEN",
+        "short": "SPECIMEN",
+        "min": 0,
+        "max": "*",
+        "definition": "SPECIMEN",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.8-ORDER.7-SPECIMEN.1-SPM",
+        "path": "OUL_R24.8-ORDER.7-SPECIMEN.1-SPM",
+        "short": "Specimen information",
+        "min": 1,
+        "max": "1",
+        "definition": "Specimen information",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/SPM"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.8-ORDER.7-SPECIMEN.2-SPECIMEN_OBSERVATION",
+        "path": "OUL_R24.8-ORDER.7-SPECIMEN.2-SPECIMEN_OBSERVATION",
+        "short": "SPECIMEN_OBSERVATION",
+        "min": 0,
+        "max": "*",
+        "definition": "SPECIMEN_OBSERVATION",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.8-ORDER.7-SPECIMEN.2-SPECIMEN_OBSERVATION.1-OBX",
+        "path": "OUL_R24.8-ORDER.7-SPECIMEN.2-SPECIMEN_OBSERVATION.1-OBX",
+        "short": "Observation (for Specimen)",
+        "min": 1,
+        "max": "1",
+        "definition": "Observation (for Specimen)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OBX"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.8-ORDER.7-SPECIMEN.2-SPECIMEN_OBSERVATION.2-PRT",
+        "path": "OUL_R24.8-ORDER.7-SPECIMEN.2-SPECIMEN_OBSERVATION.2-PRT",
+        "short": "Participation (for Specimen Observation)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (for Observation)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.8-ORDER.7-SPECIMEN.3-CONTAINER",
+        "path": "OUL_R24.8-ORDER.7-SPECIMEN.3-CONTAINER",
+        "short": "CONTAINER",
+        "min": 0,
+        "max": "*",
+        "definition": "CONTAINER",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.8-ORDER.7-SPECIMEN.3-CONTAINER.1-SAC",
+        "path": "OUL_R24.8-ORDER.7-SPECIMEN.3-CONTAINER.1-SAC",
+        "short": "Container information",
+        "min": 1,
+        "max": "1",
+        "definition": "Container information",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/SAC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.8-ORDER.7-SPECIMEN.3-CONTAINER.2-INV",
+        "path": "OUL_R24.8-ORDER.7-SPECIMEN.3-CONTAINER.2-INV",
+        "short": "Detailed Substance information (e.g., id, lot, manufacturer, ... of QC specimen)",
+        "min": 0,
+        "max": "1",
+        "definition": "Detailed Substance information (e.g., id, lot, manufacturer, ... of QC specimen)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/INV"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.8-ORDER.8-RESULT",
+        "path": "OUL_R24.8-ORDER.8-RESULT",
+        "short": "RESULT",
+        "min": 0,
+        "max": "*",
+        "definition": "RESULT",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.8-ORDER.8-RESULT.1-OBX",
+        "path": "OUL_R24.8-ORDER.8-RESULT.1-OBX",
+        "short": "Observation Result",
+        "min": 1,
+        "max": "1",
+        "definition": "Observation Result",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OBX"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.8-ORDER.8-RESULT.2-PRT",
+        "path": "OUL_R24.8-ORDER.8-RESULT.2-PRT",
+        "short": "Participation",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.8-ORDER.8-RESULT.3-TCD",
+        "path": "OUL_R24.8-ORDER.8-RESULT.3-TCD",
+        "short": "Test Code Detail",
+        "min": 0,
+        "max": "1",
+        "definition": "Test Code Detail",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/TCD"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.8-ORDER.8-RESULT.4-SID",
+        "path": "OUL_R24.8-ORDER.8-RESULT.4-SID",
+        "short": "Substance Identifier (e.g., reagents used for testing)",
+        "min": 0,
+        "max": "*",
+        "definition": "Substance Identifier (e.g., reagents used for testing)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/SID"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "B"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.8-ORDER.8-RESULT.5-INV",
+        "path": "OUL_R24.8-ORDER.8-RESULT.5-INV",
+        "short": "Inventory Detail (Detailed substance data e.g., reagents used for testing)",
+        "min": 0,
+        "max": "*",
+        "definition": "Inventory Detail (Detailed substance data e.g., reagents used for testing)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/INV"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.8-ORDER.8-RESULT.6-NTE",
+        "path": "OUL_R24.8-ORDER.8-RESULT.6-NTE",
+        "short": "Notes and Comments",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes and Comments",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.8-ORDER.9-CTI",
+        "path": "OUL_R24.8-ORDER.9-CTI",
+        "short": "Clinical Trial Identification",
+        "min": 0,
+        "max": "*",
+        "definition": "Clinical Trial Identification",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/CTI"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.8-ORDER.10-DEVICE",
+        "path": "OUL_R24.8-ORDER.10-DEVICE",
+        "short": "DEVICE",
+        "min": 0,
+        "max": "*",
+        "definition": "DEVICE",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.8-ORDER.10-DEVICE.1-DEV",
+        "path": "OUL_R24.8-ORDER.10-DEVICE.1-DEV",
+        "short": "Device (for Participation)",
+        "min": 1,
+        "max": "1",
+        "definition": "Device (for Participation)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/DEV"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.8-ORDER.10-DEVICE.2-OBX",
+        "path": "OUL_R24.8-ORDER.10-DEVICE.2-OBX",
+        "short": "Observation/Result (for Device)",
+        "min": 0,
+        "max": "*",
+        "definition": "Observation/Result (for Device)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OBX"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "OUL_R24.9-DSC",
+        "path": "OUL_R24.9-DSC",
+        "short": "Continuation Pointer",
+        "min": 0,
+        "max": "1",
+        "definition": "Continuation Pointer",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/DSC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      }
+    ]
+  },
+  "title": "HL7 v2 OUL_R24 Message Structure",
+  "name": "OUL_R24",
+  "type": "OUL_R24",
+  "fhirVersion": "5.0.0",
+  "date": "2025-06-13T21:28:59Z"
+}

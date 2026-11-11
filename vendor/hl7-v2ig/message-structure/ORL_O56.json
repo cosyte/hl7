@@ -1,0 +1,511 @@
+{
+  "resourceType": "StructureDefinition",
+  "url": "http://hl7.org/v2/StructureDefinition/ORL_O56",
+  "id": "ORL_O56",
+  "meta": {
+    "profile": [
+      "http://hl7.org/v2/StructureDefinition/MessageStructure-Profile"
+    ]
+  },
+  "version": "0.0.1",
+  "status": "active",
+  "kind": "logical",
+  "abstract": false,
+  "baseDefinition": "http://hl7.org/v2/StructureDefinition/MessageStructure",
+  "derivation": "specialization",
+  "differential": {
+    "element": [
+      {
+        "id": "ORL_O56",
+        "path": "ORL_O56",
+        "short": "ORL_O56",
+        "definition": "ORL_O56 Message Structure",
+        "min": 0,
+        "max": "*"
+      },
+      {
+        "id": "ORL_O56.1-MSH",
+        "path": "ORL_O56.1-MSH",
+        "short": "Message Header",
+        "min": 1,
+        "max": "1",
+        "definition": "Message Header",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/MSH"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORL_O56.2-MSA",
+        "path": "ORL_O56.2-MSA",
+        "short": "Message Acknowledgment",
+        "min": 1,
+        "max": "1",
+        "definition": "Message Acknowledgment",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/MSA"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORL_O56.3-ARV",
+        "path": "ORL_O56.3-ARV",
+        "short": "Access Restrictions",
+        "min": 0,
+        "max": "*",
+        "definition": "Access Restrictions",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ARV"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORL_O56.4-ERR",
+        "path": "ORL_O56.4-ERR",
+        "short": "Error",
+        "min": 0,
+        "max": "*",
+        "definition": "Error",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ERR"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORL_O56.5-SFT",
+        "path": "ORL_O56.5-SFT",
+        "short": "Software",
+        "min": 0,
+        "max": "*",
+        "definition": "Software",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/SFT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORL_O56.6-UAC",
+        "path": "ORL_O56.6-UAC",
+        "short": "User Authentication Credential",
+        "min": 0,
+        "max": "1",
+        "definition": "User Authentication Credential",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/UAC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORL_O56.7-NTE",
+        "path": "ORL_O56.7-NTE",
+        "short": "Notes and Comments (for Header)",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes and Comments (for Header)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORL_O56.8-RESPONSE",
+        "path": "ORL_O56.8-RESPONSE",
+        "short": "RESPONSE",
+        "min": 0,
+        "max": "1",
+        "definition": "RESPONSE",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "ORL_O56.8-RESPONSE.1-PATIENT",
+        "path": "ORL_O56.8-RESPONSE.1-PATIENT",
+        "short": "PATIENT",
+        "min": 0,
+        "max": "1",
+        "definition": "PATIENT",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "ORL_O56.8-RESPONSE.1-PATIENT.1-PID",
+        "path": "ORL_O56.8-RESPONSE.1-PATIENT.1-PID",
+        "short": "Patient Identification",
+        "min": 1,
+        "max": "1",
+        "definition": "Patient Identification",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PID"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORL_O56.8-RESPONSE.1-PATIENT.2-PRT",
+        "path": "ORL_O56.8-RESPONSE.1-PATIENT.2-PRT",
+        "short": "Participation (for Patient)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (for Patient)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORL_O56.8-RESPONSE.2-ORDER",
+        "path": "ORL_O56.8-RESPONSE.2-ORDER",
+        "short": "ORDER",
+        "min": 0,
+        "max": "*",
+        "definition": "ORDER",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "ORL_O56.8-RESPONSE.2-ORDER.1-ORC",
+        "path": "ORL_O56.8-RESPONSE.2-ORDER.1-ORC",
+        "short": "Common Order",
+        "min": 1,
+        "max": "1",
+        "definition": "Common Order",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ORC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORL_O56.8-RESPONSE.2-ORDER.2-PRT",
+        "path": "ORL_O56.8-RESPONSE.2-ORDER.2-PRT",
+        "short": "Participation (for Order)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (for Order)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORL_O56.8-RESPONSE.2-ORDER.3-TIMING",
+        "path": "ORL_O56.8-RESPONSE.2-ORDER.3-TIMING",
+        "short": "TIMING",
+        "min": 0,
+        "max": "*",
+        "definition": "TIMING",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "ORL_O56.8-RESPONSE.2-ORDER.3-TIMING.1-TQ1",
+        "path": "ORL_O56.8-RESPONSE.2-ORDER.3-TIMING.1-TQ1",
+        "short": "Timing/Quantity",
+        "min": 1,
+        "max": "1",
+        "definition": "Timing/Quantity",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/TQ1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORL_O56.8-RESPONSE.2-ORDER.3-TIMING.2-TQ2",
+        "path": "ORL_O56.8-RESPONSE.2-ORDER.3-TIMING.2-TQ2",
+        "short": "Timing/Quantity Order Sequence",
+        "min": 0,
+        "max": "*",
+        "definition": "Timing/Quantity Order Sequence",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/TQ2"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORL_O56.8-RESPONSE.2-ORDER.4-OBSERVATION_REQUEST",
+        "path": "ORL_O56.8-RESPONSE.2-ORDER.4-OBSERVATION_REQUEST",
+        "short": "OBSERVATION_REQUEST",
+        "min": 0,
+        "max": "1",
+        "definition": "OBSERVATION_REQUEST",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "ORL_O56.8-RESPONSE.2-ORDER.4-OBSERVATION_REQUEST.1-OBR",
+        "path": "ORL_O56.8-RESPONSE.2-ORDER.4-OBSERVATION_REQUEST.1-OBR",
+        "short": "Observation Request",
+        "min": 1,
+        "max": "1",
+        "definition": "Observation Request",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OBR"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORL_O56.8-RESPONSE.2-ORDER.4-OBSERVATION_REQUEST.2-PRT",
+        "path": "ORL_O56.8-RESPONSE.2-ORDER.4-OBSERVATION_REQUEST.2-PRT",
+        "short": "Participation (for Observation Request)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (for Observation Request)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORL_O56.8-RESPONSE.2-ORDER.4-OBSERVATION_REQUEST.3-SPECIMEN_SHIPMENT",
+        "path": "ORL_O56.8-RESPONSE.2-ORDER.4-OBSERVATION_REQUEST.3-SPECIMEN_SHIPMENT",
+        "short": "SPECIMEN_SHIPMENT",
+        "min": 0,
+        "max": "*",
+        "definition": "SPECIMEN_SHIPMENT",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "ORL_O56.8-RESPONSE.2-ORDER.4-OBSERVATION_REQUEST.3-SPECIMEN_SHIPMENT.1-SHP",
+        "path": "ORL_O56.8-RESPONSE.2-ORDER.4-OBSERVATION_REQUEST.3-SPECIMEN_SHIPMENT.1-SHP",
+        "short": "Shipment",
+        "min": 1,
+        "max": "1",
+        "definition": "Shipment Segment",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/SHP"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORL_O56.8-RESPONSE.2-ORDER.4-OBSERVATION_REQUEST.3-SPECIMEN_SHIPMENT.2-PACKAGE",
+        "path": "ORL_O56.8-RESPONSE.2-ORDER.4-OBSERVATION_REQUEST.3-SPECIMEN_SHIPMENT.2-PACKAGE",
+        "short": "PACKAGE",
+        "min": 1,
+        "max": "*",
+        "definition": "PACKAGE",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "ORL_O56.8-RESPONSE.2-ORDER.4-OBSERVATION_REQUEST.3-SPECIMEN_SHIPMENT.2-PACKAGE.1-PAC",
+        "path": "ORL_O56.8-RESPONSE.2-ORDER.4-OBSERVATION_REQUEST.3-SPECIMEN_SHIPMENT.2-PACKAGE.1-PAC",
+        "short": "Shipping Package",
+        "min": 1,
+        "max": "1",
+        "definition": "Shipping Package Segment",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PAC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORL_O56.8-RESPONSE.2-ORDER.4-OBSERVATION_REQUEST.3-SPECIMEN_SHIPMENT.2-PACKAGE.2-SPECIMEN_IN_PACKAGE",
+        "path": "ORL_O56.8-RESPONSE.2-ORDER.4-OBSERVATION_REQUEST.3-SPECIMEN_SHIPMENT.2-PACKAGE.2-SPECIMEN_IN_PACKAGE",
+        "short": "SPECIMEN_IN_PACKAGE",
+        "min": 0,
+        "max": "*",
+        "definition": "SPECIMEN_IN_PACKAGE",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "ORL_O56.8-RESPONSE.2-ORDER.4-OBSERVATION_REQUEST.3-SPECIMEN_SHIPMENT.2-PACKAGE.2-SPECIMEN_IN_PACKAGE.1-SPM",
+        "path": "ORL_O56.8-RESPONSE.2-ORDER.4-OBSERVATION_REQUEST.3-SPECIMEN_SHIPMENT.2-PACKAGE.2-SPECIMEN_IN_PACKAGE.1-SPM",
+        "short": "Specimen Information",
+        "min": 1,
+        "max": "1",
+        "definition": "Specimen Information",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/SPM"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "ORL_O56.8-RESPONSE.2-ORDER.4-OBSERVATION_REQUEST.3-SPECIMEN_SHIPMENT.2-PACKAGE.2-SPECIMEN_IN_PACKAGE.2-SPECIMEN_CONTAINER_IN_PACKAGE",
+        "path": "ORL_O56.8-RESPONSE.2-ORDER.4-OBSERVATION_REQUEST.3-SPECIMEN_SHIPMENT.2-PACKAGE.2-SPECIMEN_IN_PACKAGE.2-SPECIMEN_CONTAINER_IN_PACKAGE",
+        "short": "SPECIMEN_CONTAINER_IN_PACKAGE",
+        "min": 0,
+        "max": "*",
+        "definition": "SPECIMEN_CONTAINER_IN_PACKAGE",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "ORL_O56.8-RESPONSE.2-ORDER.4-OBSERVATION_REQUEST.3-SPECIMEN_SHIPMENT.2-PACKAGE.2-SPECIMEN_IN_PACKAGE.2-SPECIMEN_CONTAINER_IN_PACKAGE.1-SAC",
+        "path": "ORL_O56.8-RESPONSE.2-ORDER.4-OBSERVATION_REQUEST.3-SPECIMEN_SHIPMENT.2-PACKAGE.2-SPECIMEN_IN_PACKAGE.2-SPECIMEN_CONTAINER_IN_PACKAGE.1-SAC",
+        "short": "Container Information",
+        "min": 1,
+        "max": "1",
+        "definition": "Container Information",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/SAC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      }
+    ]
+  },
+  "title": "HL7 v2 ORL_O56 Message Structure",
+  "name": "ORL_O56",
+  "type": "ORL_O56",
+  "fhirVersion": "5.0.0",
+  "date": "2025-06-13T21:28:57Z"
+}

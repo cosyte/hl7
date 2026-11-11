@@ -1,0 +1,993 @@
+{
+  "resourceType": "StructureDefinition",
+  "url": "http://hl7.org/v2/StructureDefinition/RAS_O17",
+  "id": "RAS_O17",
+  "meta": {
+    "profile": [
+      "http://hl7.org/v2/StructureDefinition/MessageStructure-Profile"
+    ]
+  },
+  "version": "0.0.1",
+  "status": "active",
+  "kind": "logical",
+  "abstract": false,
+  "baseDefinition": "http://hl7.org/v2/StructureDefinition/MessageStructure",
+  "derivation": "specialization",
+  "differential": {
+    "element": [
+      {
+        "id": "RAS_O17",
+        "path": "RAS_O17",
+        "short": "RAS_O17",
+        "definition": "RAS_O17 Message Structure",
+        "min": 0,
+        "max": "*"
+      },
+      {
+        "id": "RAS_O17.1-MSH",
+        "path": "RAS_O17.1-MSH",
+        "short": "Message Header",
+        "min": 1,
+        "max": "1",
+        "definition": "Message Header",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/MSH"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.2-ARV",
+        "path": "RAS_O17.2-ARV",
+        "short": "Access Restrictions",
+        "min": 0,
+        "max": "*",
+        "definition": "Access Restrictions",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ARV"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.3-SFT",
+        "path": "RAS_O17.3-SFT",
+        "short": "Software",
+        "min": 0,
+        "max": "*",
+        "definition": "Software",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/SFT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.4-UAC",
+        "path": "RAS_O17.4-UAC",
+        "short": "User Authentication Credential",
+        "min": 0,
+        "max": "1",
+        "definition": "User Authentication Credential",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/UAC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.5-NTE",
+        "path": "RAS_O17.5-NTE",
+        "short": "Notes and Comments (for Header)",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes and Comments (for Header)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.6-PATIENT",
+        "path": "RAS_O17.6-PATIENT",
+        "short": "PATIENT",
+        "min": 0,
+        "max": "1",
+        "definition": "PATIENT",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.6-PATIENT.1-PID",
+        "path": "RAS_O17.6-PATIENT.1-PID",
+        "short": "Patient Identification",
+        "min": 1,
+        "max": "1",
+        "definition": "Patient Identification",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PID"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.6-PATIENT.2-PD1",
+        "path": "RAS_O17.6-PATIENT.2-PD1",
+        "short": "Additional Demographics",
+        "min": 1,
+        "max": "1",
+        "definition": "Additional Demographics",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PD1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.6-PATIENT.3-GSP",
+        "path": "RAS_O17.6-PATIENT.3-GSP",
+        "short": "Person Gender and Sex",
+        "min": 0,
+        "max": "*",
+        "definition": "Person Gender and Sex",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSP"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.6-PATIENT.4-GSR",
+        "path": "RAS_O17.6-PATIENT.4-GSR",
+        "short": "Recorded Gender and Sex",
+        "min": 0,
+        "max": "*",
+        "definition": "Recorded Gender and Sex",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSR"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.6-PATIENT.5-GSC",
+        "path": "RAS_O17.6-PATIENT.5-GSC",
+        "short": "Sex Parameter for Clinical Use",
+        "min": 0,
+        "max": "*",
+        "definition": "Sex Parameter for Clinical Use",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/GSC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.6-PATIENT.6-PRT",
+        "path": "RAS_O17.6-PATIENT.6-PRT",
+        "short": "Participation (for Additional Demographics)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (for Additional Demographics)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.6-PATIENT.7-NTE",
+        "path": "RAS_O17.6-PATIENT.7-NTE",
+        "short": "Notes and Comments (for PID)",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes and Comments (for PID)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.6-PATIENT.8-ARV",
+        "path": "RAS_O17.6-PATIENT.8-ARV",
+        "short": "For backwards compatibility only as of V2.9.",
+        "min": 0,
+        "max": "*",
+        "definition": "For backwards compatibility only as of V2.9.",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ARV"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "B"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.6-PATIENT.9-AL1",
+        "path": "RAS_O17.6-PATIENT.9-AL1",
+        "short": "Allergy Information",
+        "min": 0,
+        "max": "*",
+        "definition": "Allergy Information",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/AL1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.6-PATIENT.10-PATIENT_VISIT",
+        "path": "RAS_O17.6-PATIENT.10-PATIENT_VISIT",
+        "short": "PATIENT_VISIT",
+        "min": 0,
+        "max": "1",
+        "definition": "PATIENT_VISIT",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.6-PATIENT.10-PATIENT_VISIT.1-PV1",
+        "path": "RAS_O17.6-PATIENT.10-PATIENT_VISIT.1-PV1",
+        "short": "Patient Visit",
+        "min": 1,
+        "max": "1",
+        "definition": "Patient Visit",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PV1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.6-PATIENT.10-PATIENT_VISIT.2-PV2",
+        "path": "RAS_O17.6-PATIENT.10-PATIENT_VISIT.2-PV2",
+        "short": "Patient Visit - Additional Info",
+        "min": 0,
+        "max": "1",
+        "definition": "Patient Visit \u2013 Additional Info",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PV2"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.6-PATIENT.10-PATIENT_VISIT.3-PRT",
+        "path": "RAS_O17.6-PATIENT.10-PATIENT_VISIT.3-PRT",
+        "short": "Participation (for Patient Visit)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (for Patient Visit)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.6-PATIENT.10-PATIENT_VISIT.4-ARV",
+        "path": "RAS_O17.6-PATIENT.10-PATIENT_VISIT.4-ARV",
+        "short": "For access compatibiliy only as of V2.9.",
+        "min": 0,
+        "max": "*",
+        "definition": "For access compatibiliy only as of V2.9.",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ARV"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "B"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.7-ORDER",
+        "path": "RAS_O17.7-ORDER",
+        "short": "ORDER",
+        "min": 1,
+        "max": "*",
+        "definition": "ORDER",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.7-ORDER.1-ORC",
+        "path": "RAS_O17.7-ORDER.1-ORC",
+        "short": "Common Order",
+        "min": 1,
+        "max": "1",
+        "definition": "Common Order",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/ORC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.7-ORDER.2-PRT",
+        "path": "RAS_O17.7-ORDER.2-PRT",
+        "short": "Participation (for Common Order)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (for ORC)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.7-ORDER.3-TIMING",
+        "path": "RAS_O17.7-ORDER.3-TIMING",
+        "short": "TIMING",
+        "min": 0,
+        "max": "*",
+        "definition": "TIMING",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.7-ORDER.3-TIMING.1-TQ1",
+        "path": "RAS_O17.7-ORDER.3-TIMING.1-TQ1",
+        "short": "Timing/Quantity",
+        "min": 1,
+        "max": "1",
+        "definition": "Timing/Quantity",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/TQ1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.7-ORDER.3-TIMING.2-TQ2",
+        "path": "RAS_O17.7-ORDER.3-TIMING.2-TQ2",
+        "short": "Timing/Quantity Order Sequence",
+        "min": 0,
+        "max": "*",
+        "definition": "Timing/Quantity Order Sequence",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/TQ2"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.7-ORDER.4-ORDER_DETAIL",
+        "path": "RAS_O17.7-ORDER.4-ORDER_DETAIL",
+        "short": "ORDER_DETAIL",
+        "min": 0,
+        "max": "1",
+        "definition": "ORDER_DETAIL",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.7-ORDER.4-ORDER_DETAIL.1-RXO",
+        "path": "RAS_O17.7-ORDER.4-ORDER_DETAIL.1-RXO",
+        "short": "Pharmacy /Treatment Order",
+        "min": 1,
+        "max": "1",
+        "definition": "Pharmacy /Treatment Order",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/RXO"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.7-ORDER.4-ORDER_DETAIL.2-PRT",
+        "path": "RAS_O17.7-ORDER.4-ORDER_DETAIL.2-PRT",
+        "short": "Participation",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.7-ORDER.4-ORDER_DETAIL.3-ORDER_DETAIL_SUPPLEMENT",
+        "path": "RAS_O17.7-ORDER.4-ORDER_DETAIL.3-ORDER_DETAIL_SUPPLEMENT",
+        "short": "ORDER_DETAIL_SUPPLEMENT",
+        "min": 0,
+        "max": "1",
+        "definition": "ORDER_DETAIL_SUPPLEMENT",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.7-ORDER.4-ORDER_DETAIL.3-ORDER_DETAIL_SUPPLEMENT.1-NTE",
+        "path": "RAS_O17.7-ORDER.4-ORDER_DETAIL.3-ORDER_DETAIL_SUPPLEMENT.1-NTE",
+        "short": "Notes and Comments (for RXO)",
+        "min": 1,
+        "max": "*",
+        "definition": "Notes and Comments (for RXO)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.7-ORDER.4-ORDER_DETAIL.3-ORDER_DETAIL_SUPPLEMENT.2-RXR",
+        "path": "RAS_O17.7-ORDER.4-ORDER_DETAIL.3-ORDER_DETAIL_SUPPLEMENT.2-RXR",
+        "short": "Pharmacy/Treatment Route",
+        "min": 1,
+        "max": "*",
+        "definition": "Pharmacy/Treatment Route",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/RXR"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.7-ORDER.4-ORDER_DETAIL.3-ORDER_DETAIL_SUPPLEMENT.3-COMPONENTS",
+        "path": "RAS_O17.7-ORDER.4-ORDER_DETAIL.3-ORDER_DETAIL_SUPPLEMENT.3-COMPONENTS",
+        "short": "COMPONENTS",
+        "min": 0,
+        "max": "*",
+        "definition": "COMPONENTS",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.7-ORDER.4-ORDER_DETAIL.3-ORDER_DETAIL_SUPPLEMENT.3-COMPONENTS.1-RXC",
+        "path": "RAS_O17.7-ORDER.4-ORDER_DETAIL.3-ORDER_DETAIL_SUPPLEMENT.3-COMPONENTS.1-RXC",
+        "short": "Pharmacy/Treatment Component",
+        "min": 1,
+        "max": "1",
+        "definition": "Pharmacy/Treatment Component",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/RXC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.7-ORDER.4-ORDER_DETAIL.3-ORDER_DETAIL_SUPPLEMENT.3-COMPONENTS.2-NTE",
+        "path": "RAS_O17.7-ORDER.4-ORDER_DETAIL.3-ORDER_DETAIL_SUPPLEMENT.3-COMPONENTS.2-NTE",
+        "short": "Notes and Comments (for each RXC)",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes and Comments (for each RXC)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.7-ORDER.5-ENCODING",
+        "path": "RAS_O17.7-ORDER.5-ENCODING",
+        "short": "ENCODING",
+        "min": 0,
+        "max": "1",
+        "definition": "ENCODING",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.7-ORDER.5-ENCODING.1-RXE",
+        "path": "RAS_O17.7-ORDER.5-ENCODING.1-RXE",
+        "short": "Pharmacy/Treatment Encoded Order",
+        "min": 1,
+        "max": "1",
+        "definition": "Pharmacy/Treatment Encoded Order",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/RXE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.7-ORDER.5-ENCODING.2-PRT",
+        "path": "RAS_O17.7-ORDER.5-ENCODING.2-PRT",
+        "short": "Participation (for Encoded Order)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (for Encoded Order)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.7-ORDER.5-ENCODING.3-NTE",
+        "path": "RAS_O17.7-ORDER.5-ENCODING.3-NTE",
+        "short": "Notes and Comments (for RXE)",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes and Comments (for RXE)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.7-ORDER.5-ENCODING.4-TIMING_ENCODED",
+        "path": "RAS_O17.7-ORDER.5-ENCODING.4-TIMING_ENCODED",
+        "short": "TIMING_ENCODED",
+        "min": 1,
+        "max": "*",
+        "definition": "TIMING_ENCODED",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.7-ORDER.5-ENCODING.4-TIMING_ENCODED.1-TQ1",
+        "path": "RAS_O17.7-ORDER.5-ENCODING.4-TIMING_ENCODED.1-TQ1",
+        "short": "Timing/Quantity",
+        "min": 1,
+        "max": "1",
+        "definition": "Timing/Quantity",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/TQ1"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.7-ORDER.5-ENCODING.4-TIMING_ENCODED.2-TQ2",
+        "path": "RAS_O17.7-ORDER.5-ENCODING.4-TIMING_ENCODED.2-TQ2",
+        "short": "Timing/Quantity Order Sequence",
+        "min": 0,
+        "max": "*",
+        "definition": "Timing/Quantity Order Sequence",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/TQ2"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.7-ORDER.5-ENCODING.5-RXR",
+        "path": "RAS_O17.7-ORDER.5-ENCODING.5-RXR",
+        "short": "Pharmacy/Treatment Route",
+        "min": 1,
+        "max": "*",
+        "definition": "Pharmacy/Treatment Route",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/RXR"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.7-ORDER.5-ENCODING.6-RXC",
+        "path": "RAS_O17.7-ORDER.5-ENCODING.6-RXC",
+        "short": "Pharmacy/Treatment Component",
+        "min": 0,
+        "max": "*",
+        "definition": "Pharmacy/Treatment Component",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/RXC"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.7-ORDER.5-ENCODING.7-CDO",
+        "path": "RAS_O17.7-ORDER.5-ENCODING.7-CDO",
+        "short": "Cumulative Dosage",
+        "min": 0,
+        "max": "*",
+        "definition": "Cumulative Dosage Segment",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/CDO"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.7-ORDER.6-ADMINISTRATION",
+        "path": "RAS_O17.7-ORDER.6-ADMINISTRATION",
+        "short": "ADMINISTRATION",
+        "min": 1,
+        "max": "*",
+        "definition": "ADMINISTRATION",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.7-ORDER.6-ADMINISTRATION.1-RXA",
+        "path": "RAS_O17.7-ORDER.6-ADMINISTRATION.1-RXA",
+        "short": "Pharmacy/Treatment Administration",
+        "min": 1,
+        "max": "*",
+        "definition": "Pharmacy/Treatment Administration",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/RXA"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.7-ORDER.6-ADMINISTRATION.2-PRT",
+        "path": "RAS_O17.7-ORDER.6-ADMINISTRATION.2-PRT",
+        "short": "Participation (for Administration)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (for Administration)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.7-ORDER.6-ADMINISTRATION.3-RXR",
+        "path": "RAS_O17.7-ORDER.6-ADMINISTRATION.3-RXR",
+        "short": "Pharmacy/Treatment Route",
+        "min": 1,
+        "max": "1",
+        "definition": "Pharmacy/Treatment Route",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/RXR"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.7-ORDER.6-ADMINISTRATION.4-OBSERVATION",
+        "path": "RAS_O17.7-ORDER.6-ADMINISTRATION.4-OBSERVATION",
+        "short": "OBSERVATION",
+        "min": 0,
+        "max": "*",
+        "definition": "OBSERVATION",
+        "type": [
+          {
+            "code": "BackboneElement"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.7-ORDER.6-ADMINISTRATION.4-OBSERVATION.1-OBX",
+        "path": "RAS_O17.7-ORDER.6-ADMINISTRATION.4-OBSERVATION.1-OBX",
+        "short": "Observation/Result",
+        "min": 1,
+        "max": "1",
+        "definition": "Observation/Result",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/OBX"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.7-ORDER.6-ADMINISTRATION.4-OBSERVATION.2-PRT",
+        "path": "RAS_O17.7-ORDER.6-ADMINISTRATION.4-OBSERVATION.2-PRT",
+        "short": "Participation (for Observation)",
+        "min": 0,
+        "max": "*",
+        "definition": "Participation (for Observation)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/PRT"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.7-ORDER.6-ADMINISTRATION.4-OBSERVATION.3-NTE",
+        "path": "RAS_O17.7-ORDER.6-ADMINISTRATION.4-OBSERVATION.3-NTE",
+        "short": "Notes and Comments (for OBX)",
+        "min": 0,
+        "max": "*",
+        "definition": "Notes and Comments (for OBX)",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/NTE"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      },
+      {
+        "id": "RAS_O17.7-ORDER.7-CTI",
+        "path": "RAS_O17.7-ORDER.7-CTI",
+        "short": "Clinical Trial Identification",
+        "min": 0,
+        "max": "*",
+        "definition": "Clinical Trial Identification",
+        "type": [
+          {
+            "code": "http://hl7.org/v2/StructureDefinition/CTI"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org/v2/StructureDefinition/v2-segment-status",
+            "valueCode": "A"
+          }
+        ]
+      }
+    ]
+  },
+  "title": "HL7 v2 RAS_O17 Message Structure",
+  "name": "RAS_O17",
+  "type": "RAS_O17",
+  "fhirVersion": "5.0.0",
+  "date": "2025-06-13T21:28:58Z"
+}

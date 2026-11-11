@@ -68,9 +68,9 @@ describe("AC4: the provenance names the commit, the hashes and every pair's stru
     const structures = readdirSync(path.join(VENDOR_DIR, "message-structure")).filter((n) =>
       n.endsWith(".json"),
     );
-    expect(structures).toHaveLength(81);
-    // 81 structure definitions plus the two control manifests.
-    expect(STRUCTURE_REGISTRY_PROVENANCE.files).toHaveLength(83);
+    expect(structures).toHaveLength(96);
+    // 96 structure definitions plus the two control manifests.
+    expect(STRUCTURE_REGISTRY_PROVENANCE.files).toHaveLength(98);
 
     for (const file of STRUCTURE_REGISTRY_PROVENANCE.files) {
       const bytes = readFileSync(path.join(VENDOR_DIR, file.path));
