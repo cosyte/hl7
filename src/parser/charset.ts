@@ -291,9 +291,6 @@ const WINDOWS_1252_C1 = String.fromCharCode(
   0x0178,
 );
 
-/** A character in the C1 range, as a `latin1` reading of 0x80 to 0x9F gives it. @internal */
-const C1_RANGE = /[\u0080-\u009F]/gu;
-
 /**
  * Decode windows-1252 bytes. Single-byte and stateless, so it never fails and a chunk boundary
  * never splits a character: a stream is decoded chunk by chunk with the same function.
@@ -307,5 +304,7 @@ const C1_RANGE = /[\u0080-\u009F]/gu;
  */
 export function decodeWindows1252(bytes: Uint8Array): string {
   const latin1 = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength).toString("latin1");
-  return latin1.replace(C1_RANGE, (c) => WINDOWS_1252_C1.charAt(c.charCodeAt(0) - 0x80));
+  // The C1 range, as a latin1 reading of bytes 0x80 to 0x9F gives it. Written here rather than
+  // as a module constant so a mutation run re-evaluates it.
+  return latin1.replace(/[\u0080-\u009F]/gu, (c) => WINDOWS_1252_C1.charAt(c.charCodeAt(0) - 0x80));
 }

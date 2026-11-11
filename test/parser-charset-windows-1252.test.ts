@@ -11,7 +11,7 @@
  * All fixtures are synthetic: no PHI.
  */
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Buffer } from "node:buffer";
 
 import { canonicalCharset, resolveCharset } from "../src/parser/charset.js";
@@ -93,17 +93,19 @@ function charsetCodes(warnings: readonly Hl7ParseWarning[]): string[] {
 }
 
 describe("resolveCharset: WINDOWS-1252 is a recognized, decoded set", () => {
-  it.each(["WINDOWS-1252", "windows-1252", " Windows-1252 ", "CP1252", "x-cp1252"])(
-    "resolves %j to the WINDOWS-1252 decode entry",
-    (label) => {
+  // One test for every alias, and the first in this file to call resolveCharset: the registry is
+  // built once, on the first call, so only the test that builds it covers the alias list, and a
+  // mutation run judges each alias by that test alone.
+  it("resolves every alias to the WINDOWS-1252 decode entry", () => {
+    for (const label of ["WINDOWS-1252", "windows-1252", " Windows-1252 ", "CP1252", "x-cp1252"]) {
       expect(resolveCharset(label)).toEqual({
         canonical: "WINDOWS-1252",
         treatment: "decode",
         decoder: "windows-1252",
         recognized: true,
       });
-    },
-  );
+    }
+  });
 
   it("keeps 8859/1 and its synonyms on the latin1 reading, apart from WINDOWS-1252", () => {
     for (const label of ["8859/1", "ISO-8859-1", "ISO 8859-1", "ISO8859-1"]) {
@@ -145,6 +147,32 @@ describe("normalizeBuffer: each byte 0x80 to 0x9F under WINDOWS-1252", () => {
     const ours = normalizeBuffer(all, "WINDOWS-1252", () => undefined);
     const whatwg = new TextDecoder("windows-1252").decode(all).replace(/\r\n|\n/gu, "\r");
     expect(ours).toBe(whatwg);
+  });
+
+  it("decodes with its own table on a runtime whose TextDecoder lacks windows-1252", () => {
+    const RealTextDecoder = globalThis.TextDecoder;
+    vi.stubGlobal(
+      "TextDecoder",
+      class {
+        constructor(label?: string, options?: { fatal?: boolean }) {
+          if (label === "windows-1252") throw new RangeError("unsupported label");
+          return new RealTextDecoder(label, options);
+        }
+      },
+    );
+    try {
+      const bytes = Buffer.from(C1_EXPECTED.map(([b]) => b));
+      const expected = String.fromCodePoint(...C1_EXPECTED.map(([, cp]) => cp));
+      const warnings: Hl7ParseWarning[] = [];
+      const emit = (w: Hl7ParseWarning): void => {
+        warnings.push(w);
+      };
+      expect(normalizeBuffer(bytes, "WINDOWS-1252", emit)).toBe(expected);
+      expect(chunkDecoder("WINDOWS-1252", emit).decode(bytes, true)).toBe(expected);
+      expect(warnings).toEqual([]);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it("keeps 8859/1 on latin1: 0x80 to 0x9F stay C1 controls", () => {
