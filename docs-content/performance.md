@@ -70,8 +70,8 @@ largest item it read: the item, the text it came from, and room for the reader's
 reader that buffered its source would hold toward all 100 MiB. It also fails when a reading cannot
 be judged, because a reader read nothing or failed an item. The limit is `PEAK_MULTIPLE` in the
 script. `parseStream`, the older message reader, is read on the same batch and reported but not
-judged: it holds about 4 times the largest message, over the limit, so for a large batch
-`readMessages` is the reader to use.
+judged: in two runs it held 2.99 and 3.98 times the largest message, at and over the limit, so for
+a large batch `readMessages` is the reader to use.
 
 These are ratios, not absolute budgets. The parse benchmarks' absolute budgets belong in
 `@cosyte/bench`'s budgets file, which we have not written yet; when we do, the numbers here feed it

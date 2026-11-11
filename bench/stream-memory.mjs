@@ -41,9 +41,10 @@ export const PEAK_MULTIPLE = 3;
 
 /**
  * The readers the gate judges. `parseStream`, the older message reader, is measured beside them on
- * the same batch but not judged: on a GitHub-hosted runner (stream-memory run 43063981717) it held
- * 3.98 times the largest message, over the limit, where `readMessages` held 2.08, so the limit holds the readers we point
- * streaming callers to. Judging it too is a change to `parseStream` first.
+ * the same batch but not judged: on GitHub-hosted runners it held 2.99 and 3.98 times the largest
+ * message in two stream-memory runs (43064467751 and 43063981717), at and over the limit, where
+ * `readMessages` held 1.96 and 2.08, so the limit holds the readers we point streaming callers to.
+ * Judging it too is a change to `parseStream` first.
  */
 export const GATED_READERS = Object.freeze(["readMessages", "readSegments"]);
 
