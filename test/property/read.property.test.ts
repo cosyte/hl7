@@ -255,7 +255,19 @@ const oneMessage: fc.Arbitrary<string | Buffer> = fc
     message({ escapes: true }).map((m): string | Buffer => m.toString()),
     messageText(),
     hostileInput(),
-    messageText().map((text) => `\u000b${text}\u001c\r`),
+    // An MLLP frame, ended as senders end it: FS CR, or with a line feed after or instead of the
+    // CR, after a message that may or may not end with its own CR. Weighted, so the few cases a
+    // default run draws include each ending.
+    {
+      weight: 4,
+      arbitrary: fc
+        .tuple(
+          messageText(),
+          fc.constantFrom("", "\r"),
+          fc.constantFrom("\u001c\r", "\u001c\r\n", "\u001c\n"),
+        )
+        .map(([text, last, end]) => `\u000b${text.replace(/\r+$/u, "")}${last}${end}`),
+    },
   )
   .filter((input) => input.length <= MAX_MESSAGE);
 

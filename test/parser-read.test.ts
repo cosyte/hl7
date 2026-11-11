@@ -830,6 +830,44 @@ describe("readSegments: MLLP framing", () => {
     }
   });
 
+  it("reads a framed byte source whose frame ends FS CR LF or FS LF as parseHL7 reads the bytes", async () => {
+    // parseHL7 decodes a Buffer and normalizes its line endings before it strips the MLLP bytes,
+    // so FS CR LF and FS LF end a frame as FS CR does.
+    const frame = "\u000bMSH|^~\\&|LAB|F|EHR|G|20260101||ADT^A01|1|P|2.5\rEVN|A01\rPID|1\rPV1|1\r";
+    for (const ending of ["\u001c\r\n", "\u001c\n", "\u001c\r", "\u001c\n\n", "\u001c\r\n\r\n"]) {
+      const bytes = Buffer.from(`${frame}${ending}`, "latin1");
+      for (let cut = 0; cut <= bytes.length; cut++) {
+        const items = await expectSegmentsMatch(cutBytes(bytes, [cut]), bytes);
+        expect(
+          items[0]?.warnings.map((w) => w.code),
+          JSON.stringify(ending),
+        ).toEqual([WARNING_CODES.MLLP_FRAMING_STRIPPED]);
+      }
+    }
+    // The case the review found: four segments, as parseHL7 gives, not five.
+    const crlf = Buffer.from(`${frame}\u001c\r\n`, "latin1");
+    expect(parseHL7(crlf).allSegments()).toHaveLength(4);
+    expect(await drain(readSegments(crlf))).toHaveLength(4);
+  });
+
+  it("reads framed bytes ending FS CR LF or FS LF as messages, each parseHL7 of its own bytes", async () => {
+    const frame = (id: string): string =>
+      `\u000bMSH|^~\\&|LAB|F|EHR|G|20260101||ADT^A01|${id}|P|2.5\rEVN|A01\rPID|1\rPV1|1\r`;
+    for (const ending of ["\u001c\r\n", "\u001c\n"]) {
+      const bytes = Buffer.from(`${frame("1")}${ending}${frame("2")}${ending}`, "latin1");
+      const whole = await drain(readMessages(bytes));
+      expect(whole.map((item) => item.ok && item.message.allSegments().length)).toEqual([4, 4]);
+      for (const item of whole) {
+        const slice = bytes.subarray(item.byteOffset, item.byteOffset + item.byteLength);
+        expect(itemView(item)).toEqual(parsed(Buffer.from(slice)));
+      }
+      for (let cut = 0; cut <= bytes.length; cut++) {
+        const items = await drain(readMessages(cutBytes(bytes, [cut])));
+        expect(items.map(itemView)).toEqual(whole.map(itemView));
+      }
+    }
+  });
+
   it("reports framing first seen after MSH with the last segment", async () => {
     const late = `${body}\u001c\r`;
     const items = await expectSegmentsMatch(cutAt(late, [late.length - 2]), late);

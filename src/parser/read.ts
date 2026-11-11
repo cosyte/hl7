@@ -32,7 +32,7 @@ import {
   resolveEffectiveProfile,
 } from "./index.js";
 import { canonicalSegmentName } from "./known-segments.js";
-import { chunkDecoder } from "./normalize.js";
+import { chunkDecoder, normalize } from "./normalize.js";
 import type { ChunkDecoder } from "./normalize.js";
 import { Scanner } from "./scan.js";
 import { markAltered } from "./segment-source.js";
@@ -724,6 +724,8 @@ export async function* readSegments(
   // The decoded text: whether any arrived, whether it began, and its last two characters.
   let sawText = false;
   let lastTwo = "";
+  // Whether the last decoded byte text ended with CR, whose LF may begin the next chunk.
+  let afterCr = false;
   let framed = false;
   let framingReported = false;
   // The first characters of the text as parseHL7 reads it, for a strict-mode error's snippet.
@@ -752,6 +754,15 @@ export async function* readSegments(
   const take = (decoded: string): void => {
     if (decoded.length === 0) return;
     let text = decoded;
+    if (kinds.kind === "bytes") {
+      // parseHL7 normalizes a Buffer's line endings as it decodes it, before it strips the MLLP
+      // bytes, so a frame that ends FS CR LF or FS LF ends as FS CR does. A CR at the end of one
+      // chunk and an LF at the start of the next are one CR LF.
+      if (afterCr && text.charCodeAt(0) === LF) text = text.slice(1);
+      afterCr = text.endsWith("\r");
+      text = normalize(text);
+      if (text.length === 0) return;
+    }
     if (!sawText) {
       sawText = true;
       if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
