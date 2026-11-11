@@ -40,7 +40,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { delimiter, join } from "node:path";
 
 const REPO_ROOT = process.cwd();
 const GATE_BIN = join(REPO_ROOT, "node_modules", ".bin", "cosyte-attw");
@@ -485,15 +485,20 @@ describe("AC-14: the gate fails closed when the shared package is not installed"
       // this suite runs under pnpm, which puts this repository's bins there. Only entries inside
       // this repository go, because pnpm itself can live in a `node_modules/.bin` of its own (CI's
       // pnpm/action-setup installs it under `~/setup-pnpm`).
-      const path = (process.env["PATH"] ?? "")
-        .split(":")
+      // Windows spells the variable `Path` and separates entries with `;`.
+      const pathKey =
+        Object.keys(process.env).find((key) => key.toUpperCase() === "PATH") ?? "PATH";
+      const path = (process.env[pathKey] ?? "")
+        .split(delimiter)
         .filter((entry) => !entry.startsWith(REPO_ROOT))
-        .join(":");
+        .join(delimiter);
+      // On Windows `pnpm` is a `.cmd` shim, which Node runs only through a shell.
       const r = spawnSync("pnpm", ["run", "attw"], {
         cwd: dir,
         encoding: "utf8",
         timeout: 100_000,
-        env: { ...process.env, PATH: path },
+        env: { ...process.env, [pathKey]: path },
+        shell: process.platform === "win32",
       });
       const out = `${r.stdout ?? ""}${r.stderr ?? ""}`;
       expect(r.status).not.toBe(0);

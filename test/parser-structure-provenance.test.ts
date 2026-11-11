@@ -82,10 +82,10 @@ describe("AC4: the provenance names the commit, the hashes and every pair's stru
 
   it("covers both control manifests and every structure file", () => {
     const recorded = new Set(STRUCTURE_REGISTRY_PROVENANCE.files.map((f) => f.path));
-    expect(recorded.has(path.join("control-manifests", "messages.json"))).toBe(true);
-    expect(recorded.has(path.join("control-manifests", "message_structures.json"))).toBe(true);
+    expect(recorded.has("control-manifests/messages.json")).toBe(true);
+    expect(recorded.has("control-manifests/message_structures.json")).toBe(true);
     for (const name of readdirSync(path.join(VENDOR_DIR, "message-structure"))) {
-      expect(recorded.has(path.join("message-structure", name))).toBe(true);
+      expect(recorded.has(`message-structure/${name}`)).toBe(true);
     }
   });
 

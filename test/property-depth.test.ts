@@ -13,13 +13,19 @@
  */
 
 import { readFileSync, readdirSync } from "node:fs";
-import { join, relative } from "node:path";
+import { join, relative, sep } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
 const root = join(import.meta.dirname, "..");
 const testDir = join(root, "test");
-const self = relative(root, import.meta.filename);
+
+/** A path from the repository root with forward slashes, as the lists below and the workflow write it. */
+function fromRoot(path: string): string {
+  return relative(root, path).split(sep).join("/");
+}
+
+const self = fromRoot(import.meta.filename);
 
 /** Every TypeScript file under `test/`, as a path from the repository root. */
 function testSources(dir: string): string[] {
@@ -29,7 +35,7 @@ function testSources(dir: string): string[] {
     if (entry.isDirectory()) {
       if (entry.name !== "fixtures") out.push(...testSources(path));
     } else if (entry.name.endsWith(".ts")) {
-      out.push(relative(root, path));
+      out.push(fromRoot(path));
     }
   }
   return out.sort();
