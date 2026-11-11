@@ -82,6 +82,13 @@ describe("order placer and filler identifiers as EI", () => {
     expect(second !== undefined && "orcFillerOrderId" in second).toBe(false);
   });
 
+  it("omits OBR-2 and OBR-3 when the OBR leaves them empty", () => {
+    const [only] = parseHL7(MSH_PLAIN + "OBR|1|||GLU^Glucose^LN").orders();
+    expect(only?.universalServiceId?.identifier).toBe("GLU");
+    expect(only !== undefined && "placerOrderId" in only).toBe(false);
+    expect(only !== undefined && "fillerOrderId" in only).toBe(false);
+  });
+
   it("omits ORC-2 and ORC-3 when the attached ORC leaves them empty", () => {
     const [only] = parseHL7(MSH_PLAIN + "ORC|NW\rOBR|1|PL-1|FL-1").orders();
     expect(only?.orderControl).toBe("NW");

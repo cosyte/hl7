@@ -279,8 +279,10 @@ const CWE_EXTRAS_FROM = 9;
  */
 export function encodeCwe(v: CWE): RawField {
   const extras = v.extraComponents ?? [];
+  // Below component 10 the index is negative and reads `undefined`: a named
+  // field is the only source there.
   const components: RawComponent[] = CODED_ELEMENT_KEYS.map((key, i) =>
-    sc(v[key] ?? (i >= CWE_EXTRAS_FROM ? extras[i - CWE_EXTRAS_FROM] : undefined)),
+    sc(v[key] ?? extras[i - CWE_EXTRAS_FROM]),
   );
   for (const extra of extras.slice(CODED_ELEMENT_KEYS.length - CWE_EXTRAS_FROM)) {
     components.push(sc(extra));
