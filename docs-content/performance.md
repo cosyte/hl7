@@ -113,17 +113,16 @@ Peak held over the largest item, lowest to highest, on GitHub-hosted runners:
 
 | Reader         | Largest item       | Before                   | Now          |
 | -------------- | ------------------ | ------------------------ | ------------ |
-| `readMessages` | 4 MiB              | 1.96 to 2.08             | 1.97 to 2.10 |
-| `parseStream`  | 4 MiB              | 2.99 to 3.98, not judged | 1.07 to 2.14 |
-| `readSegments` | 256 KiB, now 4 MiB | 1.82 to 3.41, not judged | 1.11 to 1.47 |
+| `readMessages` | 4 MiB              | 1.96 to 2.08             | 1.99 to 2.07 |
+| `parseStream`  | 4 MiB              | 2.99 to 3.98, not judged | 1.89 to 2.10 |
+| `readSegments` | 256 KiB, now 4 MiB | 1.82 to 3.41, not judged | 1.10 to 1.68 |
 
 "Before" is ten stream-memory runs: 43063981717, 43064467751, 43066398448, 43067421821,
-43069553162, 43071783838, 43073735956, 43075730143, 43078011314 and 43078476614. "Now" for
-`parseStream` is five attempts of stream-memory run 43107378516, on the code that reads this way.
-For the other two readers, whose code did not change, it is those five and three earlier runs of
-the same gate (43099439094, 43102322510 and 43102838590), where `parseStream` read 1.96 to 2.07
-with a first version of the same change. `parseStream` read about one message in one attempt and
-about two in the other four, where `readMessages` reads about two on the same batch.
+43069553162, 43071783838, 43073735956, 43075730143, 43078011314 and 43078476614. "Now" is six
+readings of the code that reads this way: stream-memory run 43113178670 and five attempts of run
+43116829693. `parseStream` read 2.10, 2.07, 2.06, 2.06, 2.02 and 1.89 times its largest message,
+about two messages, where `readMessages` read 2.00, 2.07, 2.02, 1.99, 2.07 and 1.99 on the same
+batch. `readSegments` read 1.10, 1.11, 1.68, 1.11, 1.11 and 1.65.
 
 `parseStream` used to hold about a message more than `readMessages`, at and over the limit. It cut
 every segment from one buffer that grew with each chunk, and that buffer stayed alive while the
@@ -137,7 +136,9 @@ under 1.5 times a 2 MiB message, from bytes and from text.
 
 `readSegments` was not judged while its largest segment was 256 KiB. Beside a segment that small,
 a few 64 KiB chunks and the text they decode to moved its ratio by more than the limit leaves room
-for, and that segment was never the item being read when memory was sampled.
+for, and that segment was never the item being read when memory was sampled. With a 4 MiB segment
+in hand when memory is sampled, what the reader holds besides it is small beside it, and the six
+readings above sit at 1.10 to 1.68, well under the limit, so the gate judges it.
 
 These are ratios, not absolute budgets. The parse benchmarks' absolute budgets belong in
 `@cosyte/bench`'s budgets file, which we have not written yet; when we do, the numbers here feed it
