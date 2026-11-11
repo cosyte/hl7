@@ -168,6 +168,7 @@ export function normalizeBuffer(
       // NOT a wholesale wrong-encoding guess.
       const decoder = new TextDecoder(resolution.decoder, { fatal: true });
       return normalize(decoder.decode(input));
+      // Stryker disable next-line BlockStatement: an empty catch falls through to the verbatim path below, which reports the same warning (every decoded set is recognized) and keeps the same text
     } catch {
       emit(unsupportedCharset(CHARSET_POSITION, resolution.canonical));
       return preserveVerbatim(input, latin1);
