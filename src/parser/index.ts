@@ -240,10 +240,12 @@ export function extractMsh18FromTentativeDecode(tentativeText: string): string |
   if (raw === undefined) return undefined;
   // Repetition separator = MSH-2 character 2 (0-indexed 1); default `~` when
   // MSH-2 is short/malformed. Take the first repetition = the message default.
-  /* v8 ignore start -- parts[17] is defined above, so parts[1] is too, and split always returns a first element */
-  const repSep = (parts[1] ?? "").charAt(1) || "~";
+  // Stryker disable next-line StringLiteral: parts[1] is always defined here, so "" is never read
+  /* v8 ignore next -- parts[17] is defined above, so parts[1] is too */
+  const encodingCharacters = parts[1] ?? "";
+  const repSep = encodingCharacters.charAt(1) || "~";
+  /* v8 ignore next -- split always returns a first element */
   const firstRep = raw.split(repSep)[0] ?? raw;
-  /* v8 ignore stop */
   const trimmed = firstRep.trim();
   return trimmed.length > 0 ? trimmed : undefined;
 }

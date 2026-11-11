@@ -76,6 +76,11 @@ describe("extractMsh18FromTentativeDecode", () => {
     expect(extractMsh18FromTentativeDecode("MSH")).toBeUndefined();
   });
 
+  it("splits repetitions on the separator MSH-2 names, not only ~", () => {
+    const fields = ["MSH", "^#\\&", ...Array<string>(15).fill(""), "UNICODE UTF-8#8859/1"];
+    expect(extractMsh18FromTentativeDecode(fields.join("|"))).toBe("UNICODE UTF-8");
+  });
+
   it("splits repetitions on ~ when MSH-2 is too short to name a repetition separator", () => {
     const fields = ["MSH", "^", ...Array<string>(15).fill(""), "UNICODE UTF-8~8859/1"];
     expect(extractMsh18FromTentativeDecode(fields.join("|"))).toBe("UNICODE UTF-8");

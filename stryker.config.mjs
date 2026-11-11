@@ -1,4 +1,4 @@
-import { DEFAULT_MUTATE, cosyteStryker } from "@cosyte/vitest-config/stryker";
+import { cosyteStryker } from "@cosyte/vitest-config/stryker";
 
 // Mutation testing for @cosyte/hl7, on the shared StrykerJS config.
 //
@@ -6,21 +6,12 @@ import { DEFAULT_MUTATE, cosyteStryker } from "@cosyte/vitest-config/stryker";
 //   pnpm mutate changed --base origin/main   only the source files a change touched
 //   pnpm quality:mutation [--base origin/main]
 //
-// The shared list leaves out every `index.ts` as a barrel. Here `src/parser/index.ts` is not one: it
-// holds `parseHL7` itself, so it is mutated, and the barrels are named one by one instead. A file
-// left out of this list is a file no mutant ever tests.
-const BARRELS = [
-  "!src/index.ts",
-  "!src/arbitraries/index.ts",
-  "!src/conformance/index.ts",
-  "!src/helpers/index.ts",
-  "!src/model/types/index.ts",
-  "!src/profiles/index.ts",
-  "!src/text/index.ts",
-];
-
+// The files mutated are the shared default: every `.ts` file under `src/` but tests, declarations,
+// `generated/` tables and barrels. The shared config finds a barrel by reading each file: one that
+// holds nothing but re-exports. So `src/parser/index.ts` (`parseHL7`), `src/profiles/index.ts`
+// (the built-in profiles) and `src/index.ts` (`VERSION`) are mutated, and a new barrel needs no
+// entry here. A file left out of this list is a file no mutant ever tests.
 export default cosyteStryker({
-  mutate: [...DEFAULT_MUTATE.filter((pattern) => pattern !== "!src/**/index.ts"), ...BARRELS],
   // The suite without the tests that read a clock (see that file).
   vitestConfig: "vitest.mutation.config.ts",
   stryker: {
