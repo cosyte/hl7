@@ -79,10 +79,19 @@ function assertMessageNeverEchoesMarker(err: Hl7ParseError, marker: string): voi
   ).toBe(false);
 }
 
+/**
+ * Markers that cannot open an MSH segment. A first segment that begins with `MSH` is an MSH
+ * segment, and the parser is right to read it as one: `MSHAAAAAA` (seed 143205660, path
+ * 100:12:7:7:7:7:7) has field separator `A` and an empty MSH-2, so it fails as
+ * `INVALID_ENCODING_CHARACTERS`, never `NO_MSH_SEGMENT`. The fixed case below keeps that input
+ * covered on the path it really takes.
+ */
+const nonMshMarkerArb = markerArb.filter((s) => !s.startsWith("MSH"));
+
 describe("PHI-exec: NO_MSH_SEGMENT fatal message never echoes field values", () => {
   it("property: PHI-shaped content instead of MSH still yields a structural-only message", () => {
     checkProperty(
-      fc.property(markerArb, (marker) => {
+      fc.property(nonMshMarkerArb, (marker) => {
         // First segment does NOT start with "MSH": NO_MSH_SEGMENT fires.
         // The marker sits where a naive implementation might echo "the
         // offending content" into the message.
@@ -100,6 +109,27 @@ describe("PHI-exec: NO_MSH_SEGMENT fatal message never echoes field values", () 
       }),
       RUN_CONFIG,
     );
+  });
+
+  it("fixed case: a marker that begins with MSH is read as an MSH segment, and its fatal message stays structural", () => {
+    // The shrunk counterexample of the property above. The marker sits in the first segment and
+    // again in PID, so a message that echoed either copy would fail here.
+    const marker = "MSHAAAAAA";
+    const raw = `${marker}|foo|bar\rPID|||${marker}\r`;
+    try {
+      parseHL7(raw);
+      throw new Error("expected INVALID_ENCODING_CHARACTERS to fire");
+    } catch (err) {
+      expect(err).toBeInstanceOf(Hl7ParseError);
+      if (err instanceof Hl7ParseError) {
+        expect(err.code).toBe(FATAL_CODES.INVALID_ENCODING_CHARACTERS);
+        expect(err.message).toBe(
+          "MSH-2 encoding characters must be 4 (v2.1 to v2.6) or 5 (v2.7+ adds truncation) characters (got 0).",
+        );
+        assertMessageNeverEchoesMarker(err, marker);
+        expect(err.snippet.length).toBeLessThanOrEqual(SNIPPET_BOUND);
+      }
+    }
   });
 });
 
