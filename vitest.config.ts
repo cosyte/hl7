@@ -40,6 +40,7 @@ const config = cosyteVitest({
     // Vitest's default would also collect the starter kit's tests under `examples/`, which run
     // against the kit's own install in CI's `extras` job, not this one.
     include: ["test/**/*.test.ts", "src/**/*.test.ts"],
+    exclude: ["test/property/**", "test/property-runner.test.ts", "**/node_modules/**"],
     // The suite has run against a 10 s ceiling, not Vitest's 5 s default, since this config was
     // first written, and many cases spawn `tsx`, `pnpm` or `node`. Lowering it is a measured change
     // of its own; a case that needs more declares its own budget next to its work. A deeper property
