@@ -4104,15 +4104,19 @@ trimmed + upper-cased, so it is still a stable key for comparison.
 
 > `readonly` **decoder**: `string`
 
-The WHATWG `TextDecoder` label to decode with when `treatment === "decode"`.
-Empty when `treatment === "verbatim"`.
+The WHATWG Encoding label of the decode when `treatment === "decode"`; empty
+when `treatment === "verbatim"`. Two are decoded by the parser itself rather
+than by `TextDecoder`: `"latin1"` (true ISO-8859-1, every byte to the code
+point of the same value) and `"windows-1252"` (its own copy of the WHATWG
+table, so the result does not depend on the runtime's ICU build).
 
 ##### recognized
 
 > `readonly` **recognized**: `boolean`
 
 `true` when the label is a recognized HL7 Table-0211 code (whether or not
-the parser decodes it); `false` when the label is not in Table 0211.
+the parser decodes it) or `WINDOWS-1252`, the one set outside the table
+that the parser decodes; `false` for any other label.
 Drives the warning code on the verbatim path: recognized-but-`verbatim`
 → `UNSUPPORTED_CHARSET`, unrecognized → `UNKNOWN_CHARSET`.
 
@@ -9200,13 +9204,16 @@ Override the character set used to decode `Buffer` input. When supplied
 this wins over MSH-18 auto-discovery. When both are supplied and they
 disagree (after alias normalization) the parser emits
 `ENCODING_MISMATCH` and honours this override. Ignored for `string`
-input.
+input. Takes any HL7 Table-0211 code and `WINDOWS-1252`, which the
+parser decodes apart from `8859/1`: bytes 0x80 to 0x9F become the
+Windows characters, where `8859/1` keeps them as C1 controls.
 
 ###### Example
 
 ```ts
 import { parseHL7 } from "@cosyte/hl7";
 parseHL7(buf, { charset: "ISO-8859-1" });
+parseHL7(buf, { charset: "WINDOWS-1252" });
 ```
 
 ##### dateFormats?
@@ -20714,7 +20721,8 @@ the caller preserves bytes and emits `UNKNOWN_CHARSET`.
 import { resolveCharset } from "@cosyte/hl7";
 resolveCharset("UNICODE UTF-8"); // { canonical: "UTF-8", treatment: "decode", ... }
 resolveCharset("ISO IR87");      // { canonical: "ISO IR87", treatment: "verbatim", recognized: true }
-resolveCharset("WINDOWS-1252");  // { canonical: "WINDOWS-1252", treatment: "verbatim", recognized: false }
+resolveCharset("WINDOWS-1252");  // { canonical: "WINDOWS-1252", treatment: "decode", decoder: "windows-1252", ... }
+resolveCharset("CP850");         // { canonical: "CP850", treatment: "verbatim", recognized: false }
 ```
 
 ***
