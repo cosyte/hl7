@@ -342,11 +342,17 @@ function digest(value: unknown): string {
 
 const GENERATED = 300;
 
-describe("parseStream: what a caller sees is unchanged", () => {
+/**
+ * The digests are a Node.js reading. Bun's `util.inspect` and its Error objects are its own, so the
+ * same entries read there do not hash the same; the rest of the stream suite runs under Bun.
+ */
+const ON_BUN = process.versions["bun"] !== undefined;
+
+describe.skipIf(ON_BUN)("parseStream: what a caller sees is unchanged", () => {
   it("matches the recorded digest for every input, read every way", async () => {
     const digests: Record<string, string> = {};
-    for (let seed = 0; seed < GENERATED; seed++) {
-      digests[`generated-${String(seed)}`] = digest(await readAllWays(generatedStream(seed), seed));
+    for (let n = 0; n < GENERATED; n++) {
+      digests[`generated-${String(n)}`] = digest(await readAllWays(generatedStream(n), n));
     }
     for (let i = 0; i < HAND_MADE.length; i++) {
       const bytes = Buffer.from(HAND_MADE[i] as string, "latin1");
