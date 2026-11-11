@@ -58,6 +58,15 @@ describe("the floor file", () => {
       expect(value as number).toBeLessThanOrEqual(100);
     }
   });
+
+  it("says which mutants its mutation floor leaves out, as the mutation config does", async () => {
+    const floor = JSON.parse(read("quality-floor.json")) as { $comment?: unknown };
+    const { default: full } = await importModule<{ default: Record<string, unknown> }>(
+      "stryker.full.config.mjs",
+    );
+    expect(full["ignoreStatic"]).toBe(true);
+    expect(floor.$comment).toContain("static mutants ignored (ignoreStatic: true)");
+  });
 });
 
 describe("the scripts", () => {
