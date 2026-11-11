@@ -122,7 +122,13 @@ describe("Phase T: typed-composite encoders (emit ∘ parse identity)", () => {
       extraComponents: ["1.3.6.1.4.1", "urn:oid:2.16.840"],
     };
     const rep = roundTripField(encodeCwe(v));
-    expect(parseCwe(rep, ENC)).toEqual(v);
+    // The tail is kept verbatim on extraComponents and, since components 10 to
+    // 22 have names, also read onto CWE.10 and CWE.11 by name.
+    expect(parseCwe(rep, ENC)).toEqual({
+      ...v,
+      secondAlternateIdentifier: "1.3.6.1.4.1",
+      secondAlternateText: "urn:oid:2.16.840",
+    });
   });
 
   it("CE round-trips 6 components + extraComponents", () => {

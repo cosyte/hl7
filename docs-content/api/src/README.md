@@ -202,6 +202,60 @@ const code = msg.segments("OBX")[0]?.field(3)?.asCe();
 console.log(code?.identifier, code?.text);
 ```
 
+##### asCne()
+
+> **asCne**(): [`CNE`](#cne)
+
+Coerce this field's first repetition to a typed `CNE` (Coded with No
+Exceptions): the 22 CWE components under the same names.
+
+###### Returns
+
+[`CNE`](#cne)
+
+###### Example
+
+```ts
+const code = msg.segments("OBX")[0]?.field(3)?.asCne();
+console.log(code?.identifier, code?.nameOfCodingSystem);
+```
+
+##### asCp()
+
+> **asCp**(): [`CP`](#cp-1)
+
+Coerce this field's first repetition to a typed `CP` (Composite Price):
+`price` is a nested `MO`, `rangeUnits` a nested coded element.
+
+###### Returns
+
+[`CP`](#cp-1)
+
+###### Example
+
+```ts
+const amount = msg.segments("FT1")[0]?.field(11)?.asCp();
+console.log(amount?.price?.quantity, amount?.price?.denomination);
+```
+
+##### asCq()
+
+> **asCq**(): [`CQ`](#cq-1)
+
+Coerce this field's first repetition to a typed `CQ` (Composite Quantity
+with Units): `units` is a nested coded element.
+
+###### Returns
+
+[`CQ`](#cq-1)
+
+###### Example
+
+```ts
+const quantity = msg.segments("TQ1")[0]?.field(2)?.asCq();
+console.log(quantity?.quantity, quantity?.units?.identifier);
+```
+
 ##### asCwe()
 
 > **asCwe**(): [`CWE`](#cwe-1)
@@ -238,6 +292,80 @@ const mrn = msg.segments("PID")[0]?.field(3)?.asCx();
 console.log(mrn?.idNumber, mrn?.assigningAuthority?.namespaceId);
 ```
 
+##### asDr()
+
+> **asDr**(): [`DR`](#dr-1)
+
+Coerce this field's first repetition to a typed `DR` (Date/Time Range).
+Each endpoint is the raw datetime text.
+
+###### Returns
+
+[`DR`](#dr-1)
+
+###### Example
+
+```ts
+// A site-defined segment carrying a coverage window in its first field:
+const range = msg.segments("ZCV")[0]?.field(1)?.asDr();
+console.log(range?.rangeStartDateTime, range?.rangeEndDateTime);
+```
+
+##### asEi()
+
+> **asEi**(): [`EI`](#ei-1)
+
+Coerce this field's first repetition to a typed `EI` (Entity Identifier).
+Common on MSH-21 (message profile), OBR-2 and OBR-3, ORC-2 and ORC-3
+(placer and filler order numbers). Empty field gives `{}` (never throws).
+
+###### Returns
+
+[`EI`](#ei-1)
+
+###### Example
+
+```ts
+const placer = msg.segments("OBR")[0]?.field(2)?.asEi();
+console.log(placer?.entityIdentifier, placer?.namespaceId);
+```
+
+##### asEip()
+
+> **asEip**(): [`EIP`](#eip-1)
+
+Coerce this field's first repetition to a typed `EIP` (Entity Identifier
+Pair): a placer and a filler `EI`, each read from its subcomponents.
+
+###### Returns
+
+[`EIP`](#eip-1)
+
+###### Example
+
+```ts
+const parent = msg.segments("OBR")[0]?.field(29)?.asEip();
+console.log(parent?.fillerAssignedIdentifier?.entityIdentifier);
+```
+
+##### asFc()
+
+> **asFc**(): [`FC`](#fc-1)
+
+Coerce this field's first repetition to a typed `FC` (Financial Class):
+`financialClassCode` is a nested coded element.
+
+###### Returns
+
+[`FC`](#fc-1)
+
+###### Example
+
+```ts
+const financialClass = msg.segments("PV1")[0]?.field(20)?.asFc();
+console.log(financialClass?.financialClassCode?.identifier);
+```
+
 ##### asHd()
 
 > **asHd**(): [`HD`](#hd-1)
@@ -254,6 +382,42 @@ Designator).
 ```ts
 const sending = msg.segments("MSH")[0]?.field(3)?.asHd();
 console.log(sending?.namespaceId);
+```
+
+##### asMo()
+
+> **asMo**(): [`MO`](#mo-1)
+
+Coerce this field's first repetition to a typed `MO` (Money). The amount
+stays the text the sender wrote, never a `number`.
+
+###### Returns
+
+[`MO`](#mo-1)
+
+###### Example
+
+```ts
+// A site-defined segment carrying an amount in its first field:
+const amount = msg.segments("ZBL")[0]?.field(1)?.asMo();
+console.log(amount?.quantity, amount?.denomination);
+```
+
+##### asMsg()
+
+> **asMsg**(): [`MSG`](#msg-1)
+
+Coerce this field's first repetition to a typed `MSG` (Message Type).
+
+###### Returns
+
+[`MSG`](#msg-1)
+
+###### Example
+
+```ts
+const type = msg.segments("MSH")[0]?.field(9)?.asMsg();
+console.log(type?.messageCode, type?.triggerEvent, type?.messageStructure);
 ```
 
 ##### asNm()
@@ -290,6 +454,23 @@ Coerce this field's first repetition to a typed `PL` (Person Location).
 ```ts
 const loc = msg.segments("PV1")[0]?.field(3)?.asPl();
 console.log(loc?.pointOfCare, loc?.room, loc?.facility?.namespaceId);
+```
+
+##### asPt()
+
+> **asPt**(): [`PT`](#pt-1)
+
+Coerce this field's first repetition to a typed `PT` (Processing Type).
+
+###### Returns
+
+[`PT`](#pt-1)
+
+###### Example
+
+```ts
+const processing = msg.segments("MSH")[0]?.field(11)?.asPt();
+console.log(processing?.processingId, processing?.processingMode);
 ```
 
 ##### asSn()
@@ -343,6 +524,24 @@ console.log(ts?.raw, ts?.precision, ts?.hasTimezone);
 // parseHL7(raw, { dateFormats: ["MM/DD/YYYY"] }) on a PID-7 of "07/05/1988":
 const dob = msg.segments("PID")[0]?.field(7)?.asTs();
 console.log(dob?.month, dob?.matchedFormat); // 7 "MM/DD/YYYY"
+```
+
+##### asVid()
+
+> **asVid**(): [`VID`](#vid-1)
+
+Coerce this field's first repetition to a typed `VID` (Version
+Identifier).
+
+###### Returns
+
+[`VID`](#vid-1)
+
+###### Example
+
+```ts
+const version = msg.segments("MSH")[0]?.field(12)?.asVid();
+console.log(version?.versionId);
 ```
 
 ##### asXad()
@@ -4000,6 +4199,189 @@ TXA-12 unique document number (EI first component, verbatim).
 
 ***
 
+### CNE
+
+HL7 v2 Coded with No Exceptions (CNE): coded element per HL7 Chapter 2, used
+where the value must come from a published table. All 22 components are
+optional here; they are the CWE components under the same names.
+
+Component positions (HL7 1-indexed), the same names from v2.5 to v2.9:
+1. identifier
+2. text
+3. nameOfCodingSystem
+4. alternateIdentifier
+5. alternateText
+6. nameOfAlternateCodingSystem
+7. codingSystemVersionId
+8. alternateCodingSystemVersionId
+9. originalText
+
+Added at v2.7:
+10. secondAlternateIdentifier
+11. secondAlternateText
+12. nameOfSecondAlternateCodingSystem
+13. secondAlternateCodingSystemVersionId
+14. codingSystemOid
+15. valueSetOid
+16. valueSetVersionId (a DTM, kept as its raw text)
+17. alternateCodingSystemOid
+18. alternateValueSetOid
+19. alternateValueSetVersionId
+20. secondAlternateCodingSystemOid
+21. secondAlternateValueSetOid
+22. secondAlternateValueSetVersionId
+
+#### Example
+
+```ts
+import type { CNE } from "@cosyte/hl7";
+const code: CNE = { identifier: "Y", text: "Yes", nameOfCodingSystem: "HL70136" };
+```
+
+#### Properties
+
+##### alternateCodingSystemOid?
+
+> `readonly` `optional` **alternateCodingSystemOid?**: `string`
+
+CNE.17 Alternate Coding System OID (v2.7 and later).
+
+##### alternateCodingSystemVersionId?
+
+> `readonly` `optional` **alternateCodingSystemVersionId?**: `string`
+
+CNE.8 Alternate Coding System Version ID.
+
+##### alternateIdentifier?
+
+> `readonly` `optional` **alternateIdentifier?**: `string`
+
+CNE.4 Alternate Identifier.
+
+##### alternateText?
+
+> `readonly` `optional` **alternateText?**: `string`
+
+CNE.5 Alternate Text.
+
+##### alternateValueSetOid?
+
+> `readonly` `optional` **alternateValueSetOid?**: `string`
+
+CNE.18 Alternate Value Set OID (v2.7 and later).
+
+##### alternateValueSetVersionId?
+
+> `readonly` `optional` **alternateValueSetVersionId?**: `string`
+
+CNE.19 Alternate Value Set Version ID, raw DTM text (v2.7 and later).
+
+##### codingSystemOid?
+
+> `readonly` `optional` **codingSystemOid?**: `string`
+
+CNE.14 Coding System OID (v2.7 and later).
+
+##### codingSystemVersionId?
+
+> `readonly` `optional` **codingSystemVersionId?**: `string`
+
+CNE.7 Coding System Version ID.
+
+##### extraComponents?
+
+> `readonly` `optional` **extraComponents?**: readonly `string`[]
+
+Components past the 22nd, preserved verbatim and in order. OMITTED when
+there are none. An absent interior component is preserved as `""` so
+`extraComponents[i]` maps to HL7 component `23 + i`.
+
+##### identifier?
+
+> `readonly` `optional` **identifier?**: `string`
+
+CNE.1 Identifier.
+
+##### nameOfAlternateCodingSystem?
+
+> `readonly` `optional` **nameOfAlternateCodingSystem?**: `string`
+
+CNE.6 Name of Alternate Coding System.
+
+##### nameOfCodingSystem?
+
+> `readonly` `optional` **nameOfCodingSystem?**: `string`
+
+CNE.3 Name of Coding System.
+
+##### nameOfSecondAlternateCodingSystem?
+
+> `readonly` `optional` **nameOfSecondAlternateCodingSystem?**: `string`
+
+CNE.12 Name of Second Alternate Coding System (v2.7 and later).
+
+##### originalText?
+
+> `readonly` `optional` **originalText?**: `string`
+
+CNE.9 Original Text.
+
+##### secondAlternateCodingSystemOid?
+
+> `readonly` `optional` **secondAlternateCodingSystemOid?**: `string`
+
+CNE.20 Second Alternate Coding System OID (v2.7 and later).
+
+##### secondAlternateCodingSystemVersionId?
+
+> `readonly` `optional` **secondAlternateCodingSystemVersionId?**: `string`
+
+CNE.13 Second Alternate Coding System Version ID (v2.7 and later).
+
+##### secondAlternateIdentifier?
+
+> `readonly` `optional` **secondAlternateIdentifier?**: `string`
+
+CNE.10 Second Alternate Identifier (v2.7 and later).
+
+##### secondAlternateText?
+
+> `readonly` `optional` **secondAlternateText?**: `string`
+
+CNE.11 Second Alternate Text (v2.7 and later).
+
+##### secondAlternateValueSetOid?
+
+> `readonly` `optional` **secondAlternateValueSetOid?**: `string`
+
+CNE.21 Second Alternate Value Set OID (v2.7 and later).
+
+##### secondAlternateValueSetVersionId?
+
+> `readonly` `optional` **secondAlternateValueSetVersionId?**: `string`
+
+CNE.22 Second Alternate Value Set Version ID, raw DTM text (v2.7 and later).
+
+##### text?
+
+> `readonly` `optional` **text?**: `string`
+
+CNE.2 Text.
+
+##### valueSetOid?
+
+> `readonly` `optional` **valueSetOid?**: `string`
+
+CNE.15 Value Set OID (v2.7 and later).
+
+##### valueSetVersionId?
+
+> `readonly` `optional` **valueSetVersionId?**: `string`
+
+CNE.16 Value Set Version ID, a DTM kept as its raw text (v2.7 and later).
+
+***
+
 ### CodedSystemFields
 
 Structural shape of any coded element that carries a primary + alternate
@@ -4214,6 +4596,18 @@ both are emitted verbatim (the serializer never re-formats a claimed value).
 
 > `readonly` **CE**: [`CE`](#ce)
 
+##### CNE
+
+> `readonly` **CNE**: [`CNE`](#cne)
+
+##### CP
+
+> `readonly` **CP**: [`CP`](#cp-1)
+
+##### CQ
+
+> `readonly` **CQ**: [`CQ`](#cq-1)
+
 ##### CWE
 
 > `readonly` **CWE**: [`CWE`](#cwe-1)
@@ -4222,9 +4616,33 @@ both are emitted verbatim (the serializer never re-formats a claimed value).
 
 > `readonly` **CX**: [`CX`](#cx-1)
 
+##### DR
+
+> `readonly` **DR**: [`DR`](#dr-1)
+
+##### EI
+
+> `readonly` **EI**: [`EI`](#ei-1)
+
+##### EIP
+
+> `readonly` **EIP**: [`EIP`](#eip-1)
+
+##### FC
+
+> `readonly` **FC**: [`FC`](#fc-1)
+
 ##### HD
 
 > `readonly` **HD**: [`HD`](#hd-1)
+
+##### MO
+
+> `readonly` **MO**: [`MO`](#mo-1)
+
+##### MSG
+
+> `readonly` **MSG**: [`MSG`](#msg-1)
 
 ##### NM
 
@@ -4234,9 +4652,17 @@ both are emitted verbatim (the serializer never re-formats a claimed value).
 
 > `readonly` **PL**: [`PL`](#pl-1)
 
+##### PT
+
+> `readonly` **PT**: [`PT`](#pt-1)
+
 ##### TS
 
 > `readonly` **TS**: `string` \| [`DtmParts`](#dtmparts)
+
+##### VID
+
+> `readonly` **VID**: [`VID`](#vid-1)
 
 ##### XAD
 
@@ -4459,6 +4885,120 @@ The right-hand operand.
 
 ***
 
+### CP
+
+HL7 v2 Composite Price (CP): a price, optionally for a range of quantities,
+per HL7 Chapter 2. All 6 components are optional. Amounts and range bounds
+stay the text the sender wrote, never a JavaScript `number`.
+
+Component positions (HL7 1-indexed), the same names from v2.5 to v2.9:
+1. price (nested MO: quantity and denomination are subcomponents)
+2. priceType (HL7 Table 0205, e.g. "UP" unit price)
+3. fromValue (an NM, kept as its text)
+4. toValue (an NM, kept as its text)
+5. rangeUnits (nested coded element: a CE at v2.5, a CWE from v2.6; read as
+   a CWE, whose first six parts are the CE's)
+6. rangeType (HL7 Table 0298, P pro-rate or F flat-rate)
+
+Used by FT1-11 and FT1-12 (transaction amounts) and PRC-5 (price).
+
+#### Example
+
+```ts
+import type { CP } from "@cosyte/hl7";
+const amount: CP = { price: { quantity: "150.00", denomination: "USD" }, priceType: "UP" };
+```
+
+#### Properties
+
+##### extraComponents?
+
+> `readonly` `optional` **extraComponents?**: readonly `string`[]
+
+Components past the 6th, preserved verbatim (first subcomponent of each)
+and in order. OMITTED when there are none.
+
+##### fromValue?
+
+> `readonly` `optional` **fromValue?**: `string`
+
+CP.3 From Value, as written.
+
+##### price?
+
+> `readonly` `optional` **price?**: [`MO`](#mo-1)
+
+CP.1 Price (nested MO).
+
+##### priceType?
+
+> `readonly` `optional` **priceType?**: `string`
+
+CP.2 Price Type.
+
+##### rangeType?
+
+> `readonly` `optional` **rangeType?**: `string`
+
+CP.6 Range Type.
+
+##### rangeUnits?
+
+> `readonly` `optional` **rangeUnits?**: [`CWE`](#cwe-1)
+
+CP.5 Range Units (nested coded element).
+
+##### toValue?
+
+> `readonly` `optional` **toValue?**: `string`
+
+CP.4 To Value, as written.
+
+***
+
+### CQ
+
+HL7 v2 Composite Quantity with Units (CQ): a quantity and its unit, per HL7
+Chapter 2. Both components are optional. The quantity stays the text the
+sender wrote, never a JavaScript `number`.
+
+Component positions (HL7 1-indexed), the same names from v2.5 to v2.9:
+1. quantity (an NM, kept as its text, e.g. "2")
+2. units (nested coded element: a CE at v2.5, a CWE from v2.6; read as a
+   CWE, whose first six parts are the CE's)
+
+Used by TQ1-2 (quantity) and other quantity-with-unit fields.
+
+#### Example
+
+```ts
+import type { CQ } from "@cosyte/hl7";
+const dose: CQ = { quantity: "2", units: { identifier: "TAB", text: "tablet" } };
+```
+
+#### Properties
+
+##### extraComponents?
+
+> `readonly` `optional` **extraComponents?**: readonly `string`[]
+
+Components past the 2nd, preserved verbatim (first subcomponent of each)
+and in order. OMITTED when there are none.
+
+##### quantity?
+
+> `readonly` `optional` **quantity?**: `string`
+
+CQ.1 Quantity, as written.
+
+##### units?
+
+> `readonly` `optional` **units?**: [`CWE`](#cwe-1)
+
+CQ.2 Units (nested coded element).
+
+***
+
 ### CustomSegmentDefinition
 
 Shape of a single segment field-name declaration used by profile authoring
@@ -4493,11 +5033,11 @@ const zdp: CustomSegmentDefinition = {
 
 ### CWE
 
-HL7 v2 Coded with Exceptions (CWE): coded element per HL7 Chapter 2. All
-9 components are optional. Fields are OMITTED when the underlying
-component is absent (exactOptionalPropertyTypes).
+HL7 v2 Coded with Exceptions (CWE): coded element per HL7 Chapter 2. All 22
+components are optional. Fields are OMITTED when the underlying component is
+absent (exactOptionalPropertyTypes).
 
-Component positions (HL7 1-indexed; this interface is 0-indexed by key):
+Component positions (HL7 1-indexed), the same names from v2.5 to v2.9:
 1. identifier (e.g. "GLU")
 2. text (human-readable, e.g. "Glucose")
 3. nameOfCodingSystem (e.g. "LN" for LOINC, "SCT" for SNOMED CT)
@@ -4508,8 +5048,23 @@ Component positions (HL7 1-indexed; this interface is 0-indexed by key):
 8. alternateCodingSystemVersionId
 9. originalText
 
-Components 10+ (present only on v2.7+ senders) are surfaced verbatim, in
-order, on `extraComponents`: never silently truncated.
+Added at v2.7:
+10. secondAlternateIdentifier
+11. secondAlternateText
+12. nameOfSecondAlternateCodingSystem
+13. secondAlternateCodingSystemVersionId
+14. codingSystemOid
+15. valueSetOid
+16. valueSetVersionId (a DTM, kept as its raw text)
+17. alternateCodingSystemOid
+18. alternateValueSetOid
+19. alternateValueSetVersionId
+20. secondAlternateCodingSystemOid
+21. secondAlternateValueSetOid
+22. secondAlternateValueSetVersionId
+
+Components 10 onward are also surfaced verbatim, in order, on
+`extraComponents`.
 
 #### Example
 
@@ -4520,52 +5075,148 @@ const code: CWE = { identifier: "GLU", text: "Glucose", nameOfCodingSystem: "LN"
 
 #### Properties
 
+##### alternateCodingSystemOid?
+
+> `readonly` `optional` **alternateCodingSystemOid?**: `string`
+
+CWE.17 Alternate Coding System OID (v2.7 and later).
+
 ##### alternateCodingSystemVersionId?
 
 > `readonly` `optional` **alternateCodingSystemVersionId?**: `string`
+
+CWE.8 Alternate Coding System Version ID.
 
 ##### alternateIdentifier?
 
 > `readonly` `optional` **alternateIdentifier?**: `string`
 
+CWE.4 Alternate Identifier.
+
 ##### alternateText?
 
 > `readonly` `optional` **alternateText?**: `string`
+
+CWE.5 Alternate Text.
+
+##### alternateValueSetOid?
+
+> `readonly` `optional` **alternateValueSetOid?**: `string`
+
+CWE.18 Alternate Value Set OID (v2.7 and later).
+
+##### alternateValueSetVersionId?
+
+> `readonly` `optional` **alternateValueSetVersionId?**: `string`
+
+CWE.19 Alternate Value Set Version ID, raw DTM text (v2.7 and later).
+
+##### codingSystemOid?
+
+> `readonly` `optional` **codingSystemOid?**: `string`
+
+CWE.14 Coding System OID (v2.7 and later).
 
 ##### codingSystemVersionId?
 
 > `readonly` `optional` **codingSystemVersionId?**: `string`
 
+CWE.7 Coding System Version ID.
+
 ##### extraComponents?
 
 > `readonly` `optional` **extraComponents?**: readonly `string`[]
 
-Components beyond the modeled 9 (HL7 component 10 onward), preserved
-verbatim and in order for forward-compatibility with v2.7+ senders that
-carry the second-alternate triplet or coding-system / value-set OIDs.
+Every component from the 10th onward (HL7 component 10 on), preserved
+verbatim and in order, as it was before components 10 to 22 had names.
 OMITTED when the element has no components past the 9th. An absent interior
 component is preserved as `""` so `extraComponents[i]` maps to HL7
-component `10 + i`.
+component `10 + i`. Components 10 to 22 are also on the named fields above;
+this array is the only place a component past the 22nd appears.
 
 ##### identifier?
 
 > `readonly` `optional` **identifier?**: `string`
 
+CWE.1 Identifier.
+
 ##### nameOfAlternateCodingSystem?
 
 > `readonly` `optional` **nameOfAlternateCodingSystem?**: `string`
+
+CWE.6 Name of Alternate Coding System.
 
 ##### nameOfCodingSystem?
 
 > `readonly` `optional` **nameOfCodingSystem?**: `string`
 
+CWE.3 Name of Coding System.
+
+##### nameOfSecondAlternateCodingSystem?
+
+> `readonly` `optional` **nameOfSecondAlternateCodingSystem?**: `string`
+
+CWE.12 Name of Second Alternate Coding System (v2.7 and later).
+
 ##### originalText?
 
 > `readonly` `optional` **originalText?**: `string`
 
+CWE.9 Original Text.
+
+##### secondAlternateCodingSystemOid?
+
+> `readonly` `optional` **secondAlternateCodingSystemOid?**: `string`
+
+CWE.20 Second Alternate Coding System OID (v2.7 and later).
+
+##### secondAlternateCodingSystemVersionId?
+
+> `readonly` `optional` **secondAlternateCodingSystemVersionId?**: `string`
+
+CWE.13 Second Alternate Coding System Version ID (v2.7 and later).
+
+##### secondAlternateIdentifier?
+
+> `readonly` `optional` **secondAlternateIdentifier?**: `string`
+
+CWE.10 Second Alternate Identifier (v2.7 and later).
+
+##### secondAlternateText?
+
+> `readonly` `optional` **secondAlternateText?**: `string`
+
+CWE.11 Second Alternate Text (v2.7 and later).
+
+##### secondAlternateValueSetOid?
+
+> `readonly` `optional` **secondAlternateValueSetOid?**: `string`
+
+CWE.21 Second Alternate Value Set OID (v2.7 and later).
+
+##### secondAlternateValueSetVersionId?
+
+> `readonly` `optional` **secondAlternateValueSetVersionId?**: `string`
+
+CWE.22 Second Alternate Value Set Version ID, raw DTM text (v2.7 and later).
+
 ##### text?
 
 > `readonly` `optional` **text?**: `string`
+
+CWE.2 Text.
+
+##### valueSetOid?
+
+> `readonly` `optional` **valueSetOid?**: `string`
+
+CWE.15 Value Set OID (v2.7 and later).
+
+##### valueSetVersionId?
+
+> `readonly` `optional` **valueSetVersionId?**: `string`
+
+CWE.16 Value Set Version ID, a DTM kept as its raw text (v2.7 and later).
 
 ***
 
@@ -5126,6 +5777,50 @@ parsePath("OBX[2].5.1");
 
 ***
 
+### DR
+
+HL7 v2 Date/Time Range (DR): per HL7 Chapter 2. Both components are
+optional, and each is kept as the raw datetime text the sender wrote: read it
+with the same care as any HL7 datetime (`parseDtm` keeps its precision and
+timezone). A range with only a start is open-ended.
+
+Component positions (HL7 1-indexed), the same names from v2.5 to v2.9:
+1. rangeStartDateTime (a TS at v2.5, a DTM from v2.6; the time itself)
+2. rangeEndDateTime
+
+At v2.5 each endpoint is a TS whose second part (degree of precision) is a
+subcomponent; that part was deprecated at v2.5 and is not read.
+
+#### Example
+
+```ts
+import type { DR } from "@cosyte/hl7";
+const range: DR = { rangeStartDateTime: "20260101", rangeEndDateTime: "20261231" };
+```
+
+#### Properties
+
+##### extraComponents?
+
+> `readonly` `optional` **extraComponents?**: readonly `string`[]
+
+Components past the 2nd, preserved verbatim and in order. OMITTED when
+there are none.
+
+##### rangeEndDateTime?
+
+> `readonly` `optional` **rangeEndDateTime?**: `string`
+
+DR.2 Range End Date/Time, raw datetime text.
+
+##### rangeStartDateTime?
+
+> `readonly` `optional` **rangeStartDateTime?**: `string`
+
+DR.1 Range Start Date/Time, raw datetime text.
+
+***
+
 ### DtmAmbiguity
 
 Report attached to a timestamp the parser REFUSED to resolve because the
@@ -5373,6 +6068,109 @@ an offset. Pass `0` to explicitly treat a naive value as UTC.
 
 ***
 
+### EI
+
+HL7 v2 Entity Identifier (EI): per HL7 Chapter 2. All 4 components are
+optional. Fields are OMITTED when the underlying component is absent.
+
+Component positions (HL7 1-indexed), the same names from v2.5 to v2.9:
+1. entityIdentifier: the identifier itself (e.g. a placer order number).
+2. namespaceId: the assigning authority's local name.
+3. universalId: the assigning authority's universal id (an OID, a UUID).
+4. universalIdType: what kind of id `universalId` is (ISO, UUID, DNS, ...).
+
+Components 2 to 4 are the assigning authority, the same three parts as an
+`HD`. Used by MSH-21 (message profile identifier), OBR-2 and OBR-3, ORC-2 and
+ORC-3 (placer and filler order numbers), among many others.
+
+#### Example
+
+```ts
+import type { EI } from "@cosyte/hl7";
+const order: EI = { entityIdentifier: "PL-1001", namespaceId: "CLINIC", universalId: "2.16.840.1.113883.19.5", universalIdType: "ISO" };
+```
+
+#### Properties
+
+##### entityIdentifier?
+
+> `readonly` `optional` **entityIdentifier?**: `string`
+
+EI.1 Entity Identifier.
+
+##### extraComponents?
+
+> `readonly` `optional` **extraComponents?**: readonly `string`[]
+
+Components past the 4th, preserved verbatim and in order. OMITTED when
+there are none. `extraComponents[i]` maps to HL7 component `5 + i`.
+
+##### namespaceId?
+
+> `readonly` `optional` **namespaceId?**: `string`
+
+EI.2 Namespace ID.
+
+##### universalId?
+
+> `readonly` `optional` **universalId?**: `string`
+
+EI.3 Universal ID.
+
+##### universalIdType?
+
+> `readonly` `optional` **universalIdType?**: `string`
+
+EI.4 Universal ID Type.
+
+***
+
+### EIP
+
+HL7 v2 Entity Identifier Pair (EIP): the placer's and the filler's
+identifier for the same thing, per HL7 Chapter 2. Both components are
+optional nested EIs.
+
+Component positions (HL7 1-indexed), the same names from v2.5 to v2.9:
+1. placerAssignedIdentifier (nested EI: its 4 parts are subcomponents)
+2. fillerAssignedIdentifier (nested EI)
+
+Used by ORC-8 (parent order), OBR-29 (parent), SPM-2 (specimen identifier)
+and others.
+
+#### Example
+
+```ts
+import type { EIP } from "@cosyte/hl7";
+const parent: EIP = {
+  placerAssignedIdentifier: { entityIdentifier: "PL-1001", namespaceId: "CLINIC" },
+  fillerAssignedIdentifier: { entityIdentifier: "FL-2002", namespaceId: "LAB" },
+};
+```
+
+#### Properties
+
+##### extraComponents?
+
+> `readonly` `optional` **extraComponents?**: readonly `string`[]
+
+Components past the 2nd, preserved verbatim (first subcomponent of each)
+and in order. OMITTED when there are none.
+
+##### fillerAssignedIdentifier?
+
+> `readonly` `optional` **fillerAssignedIdentifier?**: [`EI`](#ei-1)
+
+EIP.2 Filler Assigned Identifier (EI).
+
+##### placerAssignedIdentifier?
+
+> `readonly` `optional` **placerAssignedIdentifier?**: [`EI`](#ei-1)
+
+EIP.1 Placer Assigned Identifier (EI).
+
+***
+
 ### EncodingCharacters
 
 The HL7 delimiter characters discovered from MSH-1 (field separator) and
@@ -5455,6 +6253,50 @@ The expectation's label, which is the required segment's name.
 > `readonly` **requiredSegment**: `string`
 
 The segment the published structure gives a minimum of one.
+
+***
+
+### FC
+
+HL7 v2 Financial Class (FC): per HL7 Chapter 2. Both components are
+optional.
+
+Component positions (HL7 1-indexed), the same names from v2.5 to v2.9:
+1. financialClassCode (User Table 0064). An IS (a bare code) up to v2.6 and a
+   CWE from v2.7; read as a nested coded element either way, so a v2.5 code
+   arrives as `financialClassCode.identifier` and a v2.7 one keeps its text
+   and coding system.
+2. effectiveDate (a TS at v2.5, a DTM from v2.6), the raw datetime text.
+
+Used by PV1-20.
+
+#### Example
+
+```ts
+import type { FC } from "@cosyte/hl7";
+const financialClass: FC = { financialClassCode: { identifier: "SP" }, effectiveDate: "20260101" };
+```
+
+#### Properties
+
+##### effectiveDate?
+
+> `readonly` `optional` **effectiveDate?**: `string`
+
+FC.2 Effective Date, raw datetime text.
+
+##### extraComponents?
+
+> `readonly` `optional` **extraComponents?**: readonly `string`[]
+
+Components past the 2nd, preserved verbatim (first subcomponent of each)
+and in order. OMITTED when there are none.
+
+##### financialClassCode?
+
+> `readonly` `optional` **financialClassCode?**: [`CWE`](#cwe-1)
+
+FC.1 Financial Class Code (nested coded element).
 
 ***
 
@@ -7052,6 +7894,15 @@ MSH-10 message control ID: unique per message per sender.
 
 MSH-9.1 message code (e.g. "ADT", "ORU").
 
+##### messageProfileIdentifiers?
+
+> `readonly` `optional` **messageProfileIdentifiers?**: readonly [`EI`](#ei-1)[]
+
+MSH-21 message profile identifiers, one `EI` per repetition, in order: the
+conformance profiles the sender says the message follows (for example an
+immunization implementation guide's profile). OMITTED when MSH-21 is empty.
+Named Conformance Statement ID before v2.5.
+
 ##### messageStructure?
 
 > `readonly` `optional` **messageStructure?**: `string`
@@ -7114,6 +7965,97 @@ MSH-9 full message type string, e.g. "ADT^A01" or "ORU^R01^ORU_R01".
 > `readonly` `optional` **version?**: `string`
 
 MSH-12 HL7 version string (e.g. "2.5", "2.5.1").
+
+***
+
+### MO
+
+HL7 v2 Money (MO): an amount and its currency, per HL7 Chapter 2. Both
+components are optional.
+
+The amount stays the text the sender wrote and is never turned into a
+JavaScript `number`: a float cannot hold every decimal amount exactly, and a
+price rounded on the way in is a quiet error nobody sees.
+
+Component positions (HL7 1-indexed), the same names from v2.5 to v2.9:
+1. quantity (an NM, kept as its text, e.g. "150.00")
+2. denomination (ISO 4217 currency code, e.g. "USD")
+
+#### Example
+
+```ts
+import type { MO } from "@cosyte/hl7";
+const fee: MO = { quantity: "150.00", denomination: "USD" };
+```
+
+#### Properties
+
+##### denomination?
+
+> `readonly` `optional` **denomination?**: `string`
+
+MO.2 Denomination, the currency code.
+
+##### extraComponents?
+
+> `readonly` `optional` **extraComponents?**: readonly `string`[]
+
+Components past the 2nd, preserved verbatim and in order. OMITTED when
+there are none.
+
+##### quantity?
+
+> `readonly` `optional` **quantity?**: `string`
+
+MO.1 Quantity, the amount as written.
+
+***
+
+### MSG
+
+HL7 v2 Message Type (MSG): per HL7 Chapter 2. All 3 components are
+optional.
+
+Component positions (HL7 1-indexed), the same names from v2.5 to v2.9:
+1. messageCode (HL7 Table 0076, e.g. "ADT")
+2. triggerEvent (HL7 Table 0003, e.g. "A01")
+3. messageStructure (HL7 Table 0354, e.g. "ADT_A01")
+
+Used by MSH-9. `msg.meta` reads the same three parts as flat strings.
+
+#### Example
+
+```ts
+import type { MSG } from "@cosyte/hl7";
+const type: MSG = { messageCode: "ADT", triggerEvent: "A01", messageStructure: "ADT_A01" };
+```
+
+#### Properties
+
+##### extraComponents?
+
+> `readonly` `optional` **extraComponents?**: readonly `string`[]
+
+Components past the 3rd, preserved verbatim and in order. OMITTED when
+there are none.
+
+##### messageCode?
+
+> `readonly` `optional` **messageCode?**: `string`
+
+MSG.1 Message Code.
+
+##### messageStructure?
+
+> `readonly` `optional` **messageStructure?**: `string`
+
+MSG.3 Message Structure.
+
+##### triggerEvent?
+
+> `readonly` `optional` **triggerEvent?**: `string`
+
+MSG.2 Trigger Event.
 
 ***
 
@@ -7328,11 +8270,17 @@ const order: Order = {
 
 #### Properties
 
+##### fillerOrderId?
+
+> `readonly` `optional` **fillerOrderId?**: [`EI`](#ei-1)
+
+OBR-3 filler order number as the whole `EI`. OMITTED when OBR-3 is empty.
+
 ##### fillerOrderNumber?
 
 > `readonly` `optional` **fillerOrderNumber?**: `string`
 
-OBR-3 filler order number.
+OBR-3 filler order number: its first component (EI.1) alone.
 
 ##### notes?
 
@@ -7352,6 +8300,21 @@ narrative.
 
 OBX children grouped under this OBR (positional grouping). Always present.
 
+##### orcFillerOrderId?
+
+> `readonly` `optional` **orcFillerOrderId?**: [`EI`](#ei-1)
+
+ORC-3 filler order number of the ORC that precedes this OBR, as an `EI`.
+OMITTED when there is no such ORC or ORC-3 is empty.
+
+##### orcPlacerOrderId?
+
+> `readonly` `optional` **orcPlacerOrderId?**: [`EI`](#ei-1)
+
+ORC-2 placer order number of the ORC that precedes this OBR, as an `EI`.
+The standard expects it to match OBR-2; it is read as sent, never copied
+from OBR-2. OMITTED when there is no such ORC or ORC-2 is empty.
+
 ##### orderControl?
 
 > `readonly` `optional` **orderControl?**: `string`
@@ -7370,11 +8333,19 @@ OBR-16 ordering provider (XCN).
 
 OBR-25 result status (HL7 Table 0123, e.g. `"F"` final, `"P"` preliminary).
 
+##### placerOrderId?
+
+> `readonly` `optional` **placerOrderId?**: [`EI`](#ei-1)
+
+OBR-2 placer order number as the whole `EI`: the number and the authority
+that assigned it. Two placers can issue the same number, so match orders on
+this, not on `placerOrderNumber` alone. OMITTED when OBR-2 is empty.
+
 ##### placerOrderNumber?
 
 > `readonly` `optional` **placerOrderNumber?**: `string`
 
-OBR-2 placer order number.
+OBR-2 placer order number: its first component (EI.1) alone.
 
 ##### resultStatus
 
@@ -9807,6 +10778,48 @@ console.log(msg.toString()); // spec-clean, CR-separated HL7
 
 ***
 
+### PT
+
+HL7 v2 Processing Type (PT): per HL7 Chapter 2. Both components are
+optional.
+
+Component positions (HL7 1-indexed), the same names from v2.5 to v2.9:
+1. processingId (HL7 Table 0103: P production, T training, D debugging)
+2. processingMode (HL7 Table 0207: A archive, R restore, I initial load,
+   T current processing; empty means current processing)
+
+Used by MSH-11. `msg.meta.processingId` keeps reading MSH-11.1 alone.
+
+#### Example
+
+```ts
+import type { PT } from "@cosyte/hl7";
+const processing: PT = { processingId: "P", processingMode: "T" };
+```
+
+#### Properties
+
+##### extraComponents?
+
+> `readonly` `optional` **extraComponents?**: readonly `string`[]
+
+Components past the 2nd, preserved verbatim and in order. OMITTED when
+there are none.
+
+##### processingId?
+
+> `readonly` `optional` **processingId?**: `string`
+
+PT.1 Processing ID.
+
+##### processingMode?
+
+> `readonly` `optional` **processingMode?**: `string`
+
+PT.2 Processing Mode.
+
+***
+
 ### RawComponent
 
 A single component inside a repetition: the most deeply nested data
@@ -10002,7 +11015,7 @@ rendered.
 
 The structured, highlight-aware form: `{ text, highlighted }` runs in
 document order. Empty runs are elided. Use this to preserve emphasis
-(bold / reverse-video / etc.) that the flat [text](#text-3) drops.
+(bold / reverse-video / etc.) that the flat [text](#text-4) drops.
 
 ##### text
 
@@ -10020,7 +11033,7 @@ concatenation of every [runs](#runs) entry's `text`.
 The escape sequences `renderText` **preserved verbatim instead of
 rendering**: vendor `\Zdddd…\`, charset switches `\Cxxyy`/`\Mxxyyzz`,
 and any malformed / unterminated sequence. Their literal characters ALSO
-appear in [text](#text-3)/[runs](#runs) (never silently dropped); this list
+appear in [text](#text-4)/[runs](#runs) (never silently dropped); this list
 exists so a consumer can detect that a non-render decision was made and
 surface or route those sequences deliberately. Empty when everything
 rendered cleanly.
@@ -10969,7 +11982,7 @@ MSH-9.2 trigger event; `""` when the registry matches on message code alone.
 
 One contiguous run of rendered display text, tagged with whether it fell
 inside a `\H`…`\N` highlight span. Runs preserve emphasis boundaries that
-the flat [RenderedText.text](#text-3) intentionally drops.
+the flat [RenderedText.text](#text-4) intentionally drops.
 
 #### Properties
 
@@ -12238,6 +13251,55 @@ Segment name of the target rule (e.g. `"PID"`).
 
 ***
 
+### VID
+
+HL7 v2 Version Identifier (VID): the HL7 version a message claims, per HL7
+Chapter 2. All 3 components are optional.
+
+Component positions (HL7 1-indexed), the same names from v2.5 to v2.9:
+1. versionId (HL7 Table 0104, e.g. "2.5.1")
+2. internationalizationCode (nested coded element: a CE at v2.5, a CWE from
+   v2.6; read as a CWE)
+3. internationalVersionId (nested coded element, read as a CWE)
+
+Used by MSH-12. `msg.meta.version` keeps reading MSH-12.1 alone.
+
+#### Example
+
+```ts
+import type { VID } from "@cosyte/hl7";
+const version: VID = { versionId: "2.5.1" };
+```
+
+#### Properties
+
+##### extraComponents?
+
+> `readonly` `optional` **extraComponents?**: readonly `string`[]
+
+Components past the 3rd, preserved verbatim (first subcomponent of each)
+and in order. OMITTED when there are none.
+
+##### internationalizationCode?
+
+> `readonly` `optional` **internationalizationCode?**: [`CWE`](#cwe-1)
+
+VID.2 Internationalization Code (nested coded element).
+
+##### internationalVersionId?
+
+> `readonly` `optional` **internationalVersionId?**: [`CWE`](#cwe-1)
+
+VID.3 International Version ID (nested coded element).
+
+##### versionId?
+
+> `readonly` `optional` **versionId?**: `string`
+
+VID.1 Version ID.
+
+***
+
 ### Visit
 
 PV1-derived visit view. `msg.visit` is `undefined` when no PV1
@@ -12907,11 +13969,12 @@ How the parser treats a resolved MSH-18 character set.
 
 ### CompositeKind
 
-> **CompositeKind** = `"XPN"` \| `"XAD"` \| `"CX"` \| `"CWE"` \| `"CE"` \| `"XTN"` \| `"PL"` \| `"TS"` \| `"NM"` \| `"HD"` \| `"XCN"`
+> **CompositeKind** = `"XPN"` \| `"XAD"` \| `"CX"` \| `"CWE"` \| `"CE"` \| `"XTN"` \| `"PL"` \| `"TS"` \| `"NM"` \| `"HD"` \| `"XCN"` \| `"EI"` \| `"EIP"` \| `"CNE"` \| `"DR"` \| `"MO"` \| `"CP"` \| `"CQ"` \| `"VID"` \| `"MSG"` \| `"PT"` \| `"FC"`
 
-The 11 typed composite kinds this module can encode. Mirrors the read-side
+The 22 typed composite kinds this module can encode. Mirrors the read-side
 composite set (`XPN`, `XAD`, `CX`, `CWE`, `CE`, `XTN`, `PL`, `TS`, `NM`,
-`HD`, `XCN`).
+`HD`, `XCN`, `EI`, `EIP`, `CNE`, `DR`, `MO`, `CP`, `CQ`, `VID`, `MSG`, `PT`,
+`FC`).
 
 ***
 
@@ -16409,6 +17472,32 @@ encodeCe({ identifier: "GLU", text: "Glucose", nameOfCodingSystem: "L" });
 
 ***
 
+### encodeCne()
+
+> **encodeCne**(`v`): [`RawField`](#rawfield)
+
+Encode a CNE (coded element with no exceptions, 22 named components +
+preserved `extraComponents`, which hold component 23 onward).
+
+#### Parameters
+
+##### v
+
+[`CNE`](#cne)
+
+#### Returns
+
+[`RawField`](#rawfield)
+
+#### Example
+
+```ts
+import { encodeCne } from "@cosyte/hl7";
+encodeCne({ identifier: "Y", text: "Yes", nameOfCodingSystem: "HL70136" });
+```
+
+***
+
 ### encodeComposite()
 
 > **encodeComposite**\<`K`\>(`kind`, `value`): [`RawField`](#rawfield)
@@ -16494,11 +17583,69 @@ const ids = encodeCompositeReps("CX", [
 
 ***
 
+### encodeCp()
+
+> **encodeCp**(`v`): [`RawField`](#rawfield)
+
+Encode a CP (composite price): the price is a nested MO and the range units a
+nested coded element, each emitted as subcomponents.
+
+#### Parameters
+
+##### v
+
+[`CP`](#cp-1)
+
+#### Returns
+
+[`RawField`](#rawfield)
+
+#### Example
+
+```ts
+import { encodeCp } from "@cosyte/hl7";
+encodeCp({ price: { quantity: "150.00", denomination: "USD" }, priceType: "UP" });
+```
+
+***
+
+### encodeCq()
+
+> **encodeCq**(`v`): [`RawField`](#rawfield)
+
+Encode a CQ (quantity with units): the units are a nested coded element
+emitted as subcomponents.
+
+#### Parameters
+
+##### v
+
+[`CQ`](#cq-1)
+
+#### Returns
+
+[`RawField`](#rawfield)
+
+#### Example
+
+```ts
+import { encodeCq } from "@cosyte/hl7";
+encodeCq({ quantity: "2", units: { identifier: "TAB", text: "tablet" } });
+```
+
+***
+
 ### encodeCwe()
 
 > **encodeCwe**(`v`): [`RawField`](#rawfield)
 
-Encode a CWE (coded element, 9 modelled + preserved `extraComponents`).
+Encode a CWE (coded element, 22 named components + preserved
+`extraComponents`).
+
+`extraComponents` holds component 10 onward, as `parseCwe` returns it. For
+components 10 to 22 a named field wins over the entry at the same position,
+so a value read with `parseCwe`, then edited by name, emits the edit;
+entries past the 22nd component are emitted after the named ones.
 
 #### Parameters
 
@@ -16544,6 +17691,112 @@ encodeCx({ idNumber: "MRN001", assigningAuthority: { namespaceId: "HOSP" }, iden
 
 ***
 
+### encodeDr()
+
+> **encodeDr**(`v`): [`RawField`](#rawfield)
+
+Encode a DR (date/time range, 2 components) to a spec-clean field. Each
+endpoint is emitted as the raw text it carries.
+
+#### Parameters
+
+##### v
+
+[`DR`](#dr-1)
+
+#### Returns
+
+[`RawField`](#rawfield)
+
+#### Example
+
+```ts
+import { encodeDr } from "@cosyte/hl7";
+encodeDr({ rangeStartDateTime: "20260101", rangeEndDateTime: "20261231" });
+```
+
+***
+
+### encodeEi()
+
+> **encodeEi**(`v`): [`RawField`](#rawfield)
+
+Encode an EI (entity identifier, 4 components) to a spec-clean field.
+
+#### Parameters
+
+##### v
+
+[`EI`](#ei-1)
+
+#### Returns
+
+[`RawField`](#rawfield)
+
+#### Example
+
+```ts
+import { encodeEi } from "@cosyte/hl7";
+encodeEi({ entityIdentifier: "PL-1001", namespaceId: "CLINIC" });
+```
+
+***
+
+### encodeEip()
+
+> **encodeEip**(`v`): [`RawField`](#rawfield)
+
+Encode an EIP (entity identifier pair): each component is a nested EI whose
+parts are emitted as subcomponents.
+
+#### Parameters
+
+##### v
+
+[`EIP`](#eip-1)
+
+#### Returns
+
+[`RawField`](#rawfield)
+
+#### Example
+
+```ts
+import { encodeEip } from "@cosyte/hl7";
+encodeEip({
+  placerAssignedIdentifier: { entityIdentifier: "PL-1001" },
+  fillerAssignedIdentifier: { entityIdentifier: "FL-2002" },
+});
+```
+
+***
+
+### encodeFc()
+
+> **encodeFc**(`v`): [`RawField`](#rawfield)
+
+Encode an FC (financial class): the class code is a nested coded element
+emitted as subcomponents, the effective date its raw text.
+
+#### Parameters
+
+##### v
+
+[`FC`](#fc-1)
+
+#### Returns
+
+[`RawField`](#rawfield)
+
+#### Example
+
+```ts
+import { encodeFc } from "@cosyte/hl7";
+encodeFc({ financialClassCode: { identifier: "SP" }, effectiveDate: "20260101" });
+```
+
+***
+
 ### encodeHd()
 
 > **encodeHd**(`v`): [`RawField`](#rawfield)
@@ -16565,6 +17818,57 @@ Encode an HD (hierarchic designator, 3 components) to a spec-clean field.
 ```ts
 import { encodeHd } from "@cosyte/hl7";
 encodeHd({ namespaceId: "EPIC", universalId: "1.2.840", universalIdType: "ISO" });
+```
+
+***
+
+### encodeMo()
+
+> **encodeMo**(`v`): [`RawField`](#rawfield)
+
+Encode an MO (money, 2 components) to a spec-clean field. The amount is
+emitted as the text it carries, never re-formatted.
+
+#### Parameters
+
+##### v
+
+[`MO`](#mo-1)
+
+#### Returns
+
+[`RawField`](#rawfield)
+
+#### Example
+
+```ts
+import { encodeMo } from "@cosyte/hl7";
+encodeMo({ quantity: "150.00", denomination: "USD" });
+```
+
+***
+
+### encodeMsg()
+
+> **encodeMsg**(`v`): [`RawField`](#rawfield)
+
+Encode an MSG (message type, 3 components) to a spec-clean field.
+
+#### Parameters
+
+##### v
+
+[`MSG`](#msg-1)
+
+#### Returns
+
+[`RawField`](#rawfield)
+
+#### Example
+
+```ts
+import { encodeMsg } from "@cosyte/hl7";
+encodeMsg({ messageCode: "ADT", triggerEvent: "A01", messageStructure: "ADT_A01" });
 ```
 
 ***
@@ -16618,6 +17922,31 @@ Encode a PL (person location): component 4 is a nested HD (facility).
 ```ts
 import { encodePl } from "@cosyte/hl7";
 encodePl({ pointOfCare: "ICU", room: "101", bed: "A" });
+```
+
+***
+
+### encodePt()
+
+> **encodePt**(`v`): [`RawField`](#rawfield)
+
+Encode a PT (processing type, 2 components) to a spec-clean field.
+
+#### Parameters
+
+##### v
+
+[`PT`](#pt-1)
+
+#### Returns
+
+[`RawField`](#rawfield)
+
+#### Example
+
+```ts
+import { encodePt } from "@cosyte/hl7";
+encodePt({ processingId: "P" });
 ```
 
 ***
@@ -16703,6 +18032,32 @@ from parts) or a pre-formatted HL7 timestamp string.
 ```ts
 import { encodeTs } from "@cosyte/hl7";
 encodeTs("20260721101500");
+```
+
+***
+
+### encodeVid()
+
+> **encodeVid**(`v`): [`RawField`](#rawfield)
+
+Encode a VID (version identifier): components 2 and 3 are nested coded
+elements emitted as subcomponents.
+
+#### Parameters
+
+##### v
+
+[`VID`](#vid-1)
+
+#### Returns
+
+[`RawField`](#rawfield)
+
+#### Example
+
+```ts
+import { encodeVid } from "@cosyte/hl7";
+encodeVid({ versionId: "2.5.1" });
 ```
 
 ***
@@ -17423,6 +18778,107 @@ console.log(ce.identifier); // "GLU"
 
 ***
 
+### parseCne()
+
+> **parseCne**(`rep`, `enc`): [`CNE`](#cne)
+
+Parse an HL7 v2 CNE repetition into a structured `CNE` object. Components
+are returned verbatim (already decoded once by the tokenizer). Absent or
+empty components are OMITTED from the result.
+
+#### Parameters
+
+##### rep
+
+[`RawRepetition`](#rawrepetition)
+
+##### enc
+
+[`EncodingCharacters`](#encodingcharacters-1)
+
+#### Returns
+
+[`CNE`](#cne)
+
+#### Example
+
+```ts
+import { parseCne, DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7";
+const rep = { components: [
+  { subcomponents: ["Y"] },
+  { subcomponents: ["Yes"] },
+  { subcomponents: ["HL70136"] },
+] };
+const cne = parseCne(rep, DEFAULT_ENCODING_CHARACTERS);
+console.log(cne.identifier, cne.nameOfCodingSystem); // "Y" "HL70136"
+```
+
+***
+
+### parseCp()
+
+> **parseCp**(`rep`, `enc`): [`CP`](#cp-1)
+
+Parse an HL7 v2 CP repetition into a structured `CP` object. Absent or empty
+components are OMITTED from the result.
+
+#### Parameters
+
+##### rep
+
+[`RawRepetition`](#rawrepetition)
+
+##### enc
+
+[`EncodingCharacters`](#encodingcharacters-1)
+
+#### Returns
+
+[`CP`](#cp-1)
+
+#### Example
+
+```ts
+import { parseCp, DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7";
+const rep = { components: [{ subcomponents: ["150.00", "USD"] }, { subcomponents: ["UP"] }] };
+const cp = parseCp(rep, DEFAULT_ENCODING_CHARACTERS);
+console.log(cp.price?.quantity, cp.price?.denomination, cp.priceType); // "150.00" "USD" "UP"
+```
+
+***
+
+### parseCq()
+
+> **parseCq**(`rep`, `enc`): [`CQ`](#cq-1)
+
+Parse an HL7 v2 CQ repetition into a structured `CQ` object. Absent or empty
+components are OMITTED from the result.
+
+#### Parameters
+
+##### rep
+
+[`RawRepetition`](#rawrepetition)
+
+##### enc
+
+[`EncodingCharacters`](#encodingcharacters-1)
+
+#### Returns
+
+[`CQ`](#cq-1)
+
+#### Example
+
+```ts
+import { parseCq, DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7";
+const rep = { components: [{ subcomponents: ["2"] }, { subcomponents: ["TAB", "tablet"] }] };
+const cq = parseCq(rep, DEFAULT_ENCODING_CHARACTERS);
+console.log(cq.quantity, cq.units?.identifier); // "2" "TAB"
+```
+
+***
+
 ### parseCwe()
 
 > **parseCwe**(`rep`, `enc`): [`CWE`](#cwe-1)
@@ -17504,6 +18960,38 @@ console.log(cx.assigningAuthority?.namespaceId); // "EPIC"
 
 ***
 
+### parseDr()
+
+> **parseDr**(`rep`, `enc`): [`DR`](#dr-1)
+
+Parse an HL7 v2 DR repetition into a structured `DR` object. Absent or empty
+components are OMITTED from the result.
+
+#### Parameters
+
+##### rep
+
+[`RawRepetition`](#rawrepetition)
+
+##### enc
+
+[`EncodingCharacters`](#encodingcharacters-1)
+
+#### Returns
+
+[`DR`](#dr-1)
+
+#### Example
+
+```ts
+import { parseDr, DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7";
+const rep = { components: [{ subcomponents: ["20260101"] }, { subcomponents: ["20261231"] }] };
+const dr = parseDr(rep, DEFAULT_ENCODING_CHARACTERS);
+console.log(dr.rangeStartDateTime, dr.rangeEndDateTime); // "20260101" "20261231"
+```
+
+***
+
 ### parseDtm()
 
 > **parseDtm**(`raw`): [`DtmParts`](#dtmparts)
@@ -17539,6 +19027,110 @@ parseDtm("20250102153045.5-0500");
 
 parseDtm("not-a-date");
 // { raw: "not-a-date", valid: false, hasTimezone: false }
+```
+
+***
+
+### parseEi()
+
+> **parseEi**(`rep`, `enc`): [`EI`](#ei-1)
+
+Parse an HL7 v2 EI repetition into a structured `EI` object. Components are
+returned verbatim (already decoded once by the tokenizer). Absent or empty
+components are OMITTED from the result.
+
+#### Parameters
+
+##### rep
+
+[`RawRepetition`](#rawrepetition)
+
+##### enc
+
+[`EncodingCharacters`](#encodingcharacters-1)
+
+#### Returns
+
+[`EI`](#ei-1)
+
+#### Example
+
+```ts
+import { parseEi, DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7";
+const rep = { components: [
+  { subcomponents: ["PL-1001"] },
+  { subcomponents: ["CLINIC"] },
+] };
+const ei = parseEi(rep, DEFAULT_ENCODING_CHARACTERS);
+console.log(ei.entityIdentifier, ei.namespaceId); // "PL-1001" "CLINIC"
+```
+
+***
+
+### parseEip()
+
+> **parseEip**(`rep`, `enc`): [`EIP`](#eip-1)
+
+Parse an HL7 v2 EIP repetition into a structured `EIP` object. Each
+component is read as a nested EI from its subcomponents; an empty one is
+OMITTED.
+
+#### Parameters
+
+##### rep
+
+[`RawRepetition`](#rawrepetition)
+
+##### enc
+
+[`EncodingCharacters`](#encodingcharacters-1)
+
+#### Returns
+
+[`EIP`](#eip-1)
+
+#### Example
+
+```ts
+import { parseEip, DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7";
+const rep = { components: [
+  { subcomponents: ["PL-1001", "CLINIC"] },
+  { subcomponents: ["FL-2002", "LAB"] },
+] };
+const eip = parseEip(rep, DEFAULT_ENCODING_CHARACTERS);
+console.log(eip.fillerAssignedIdentifier?.entityIdentifier); // "FL-2002"
+```
+
+***
+
+### parseFc()
+
+> **parseFc**(`rep`, `enc`): [`FC`](#fc-1)
+
+Parse an HL7 v2 FC repetition into a structured `FC` object. Absent or empty
+components are OMITTED from the result.
+
+#### Parameters
+
+##### rep
+
+[`RawRepetition`](#rawrepetition)
+
+##### enc
+
+[`EncodingCharacters`](#encodingcharacters-1)
+
+#### Returns
+
+[`FC`](#fc-1)
+
+#### Example
+
+```ts
+import { parseFc, DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7";
+const rep = { components: [{ subcomponents: ["SP"] }, { subcomponents: ["20260101"] }] };
+const fc = parseFc(rep, DEFAULT_ENCODING_CHARACTERS);
+console.log(fc.financialClassCode?.identifier, fc.effectiveDate); // "SP" "20260101"
 ```
 
 ***
@@ -17818,6 +19410,70 @@ console.log(msg.part("ZDP")?.get("departmentCode")?.value);
 
 ***
 
+### parseMo()
+
+> **parseMo**(`rep`, `enc`): [`MO`](#mo-1)
+
+Parse an HL7 v2 MO repetition into a structured `MO` object. Absent or empty
+components are OMITTED from the result.
+
+#### Parameters
+
+##### rep
+
+[`RawRepetition`](#rawrepetition)
+
+##### enc
+
+[`EncodingCharacters`](#encodingcharacters-1)
+
+#### Returns
+
+[`MO`](#mo-1)
+
+#### Example
+
+```ts
+import { parseMo, DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7";
+const rep = { components: [{ subcomponents: ["150.00"] }, { subcomponents: ["USD"] }] };
+const mo = parseMo(rep, DEFAULT_ENCODING_CHARACTERS);
+console.log(mo.quantity, mo.denomination); // "150.00" "USD"
+```
+
+***
+
+### parseMsg()
+
+> **parseMsg**(`rep`, `enc`): [`MSG`](#msg-1)
+
+Parse an HL7 v2 MSG repetition into a structured `MSG` object. Absent or
+empty components are OMITTED from the result.
+
+#### Parameters
+
+##### rep
+
+[`RawRepetition`](#rawrepetition)
+
+##### enc
+
+[`EncodingCharacters`](#encodingcharacters-1)
+
+#### Returns
+
+[`MSG`](#msg-1)
+
+#### Example
+
+```ts
+import { parseMsg, DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7";
+const rep = { components: [{ subcomponents: ["ORU"] }, { subcomponents: ["R01"] }] };
+const type = parseMsg(rep, DEFAULT_ENCODING_CHARACTERS);
+console.log(type.messageCode, type.triggerEvent); // "ORU" "R01"
+```
+
+***
+
 ### parseNm()
 
 > **parseNm**(`rep`, `_enc`): [`NM`](#nm-1)
@@ -17923,6 +19579,38 @@ const rep = { components: [
 const pl = parsePl(rep, DEFAULT_ENCODING_CHARACTERS);
 console.log(pl.pointOfCare);           // "ICU"
 console.log(pl.facility?.namespaceId); // "HOSP"
+```
+
+***
+
+### parsePt()
+
+> **parsePt**(`rep`, `enc`): [`PT`](#pt-1)
+
+Parse an HL7 v2 PT repetition into a structured `PT` object. Absent or empty
+components are OMITTED from the result.
+
+#### Parameters
+
+##### rep
+
+[`RawRepetition`](#rawrepetition)
+
+##### enc
+
+[`EncodingCharacters`](#encodingcharacters-1)
+
+#### Returns
+
+[`PT`](#pt-1)
+
+#### Example
+
+```ts
+import { parsePt, DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7";
+const rep = { components: [{ subcomponents: ["P"] }, { subcomponents: ["T"] }] };
+const pt = parsePt(rep, DEFAULT_ENCODING_CHARACTERS);
+console.log(pt.processingId, pt.processingMode); // "P" "T"
 ```
 
 ***
@@ -18315,6 +20003,38 @@ console.log(dtmToDate(ts)?.toISOString()); // "2025-01-02T20:30:45.000Z"
 const vendor = { components: [{ subcomponents: ["07/05/1988"] }] };
 const dob = parseTs(vendor, DEFAULT_ENCODING_CHARACTERS, ["MM/DD/YYYY"]);
 console.log(dob.month, dob.matchedFormat); // 7 "MM/DD/YYYY"
+```
+
+***
+
+### parseVid()
+
+> **parseVid**(`rep`, `enc`): [`VID`](#vid-1)
+
+Parse an HL7 v2 VID repetition into a structured `VID` object. Absent or
+empty components are OMITTED from the result.
+
+#### Parameters
+
+##### rep
+
+[`RawRepetition`](#rawrepetition)
+
+##### enc
+
+[`EncodingCharacters`](#encodingcharacters-1)
+
+#### Returns
+
+[`VID`](#vid-1)
+
+#### Example
+
+```ts
+import { parseVid, DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7";
+const rep = { components: [{ subcomponents: ["2.5.1"] }, { subcomponents: ["USA"] }] };
+const vid = parseVid(rep, DEFAULT_ENCODING_CHARACTERS);
+console.log(vid.versionId, vid.internationalizationCode?.identifier); // "2.5.1" "USA"
 ```
 
 ***

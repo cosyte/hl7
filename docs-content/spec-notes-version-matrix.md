@@ -28,9 +28,9 @@ content it does not yet name.
 | **Composite component growth** | Composites gain trailing components across versions (CWE: 9 → 22 at v2.7) | Never assumed fixed; extra components preserved (see below), never truncated, never thrown on. |
 | **CE → CWE** | CE deprecated v2.5, **withdrawn v2.6**; CWE is the successor coded element | Read uniformly: `asCe()` and `asCwe()` accept either shape; neither is lossy (see *CE↔CWE interchange*). |
 | **CWE version ids** | CWE.7 / CWE.8 (coding-system version id, alternate version id) present from v2.5+ | Surfaced as `codingSystemVersionId` / `alternateCodingSystemVersionId` when present. |
-| **CWE second-alternate triplet + OIDs** | CWE.10 to CWE.22 added at v2.7 (second-alternate code triplet, coding-system / value-set OIDs) | Preserved verbatim on `extraComponents`, not yet modeled by name (v2 of this library may restore the full shape). |
+| **CWE second-alternate triplet + OIDs** | CWE.10 to CWE.22 added at v2.7 (second-alternate code triplet, coding-system / value-set OIDs) | Read by name (`secondAlternateIdentifier` through `secondAlternateValueSetVersionId`) and also kept verbatim on `extraComponents`, as before they had names. See [Data types by name](./data-types.md). |
 | **TS → DTM** | TS (with a now-deprecated degree-of-precision component) superseded by DTM at v2.5 | One parse path covers both: only the timestamp component is read; the deprecated degree-of-precision component is ignored. Precision is recoverable from `.raw` (its string length encodes the precision). |
-| **MSH-21** | Renamed **Conformance Statement ID → Message Profile Identifier** at v2.5 (datatype became EI) | No semantic change to parsing: MSH-21 is read positionally like any field. The rename is naming only; this note records it so the field is not mistaken for two different things. |
+| **MSH-21** | Renamed **Conformance Statement ID → Message Profile Identifier** at v2.5 (datatype became EI) | No semantic change to parsing. `msg.meta.messageProfileIdentifiers` reads each MSH-21 repetition as an `EI`. The rename is naming only; this note records it so the field is not mistaken for two different things. |
 | **New segments** | Each version adds segments: ARV and UAC at v2.6, PRT at v2.7, RXV at v2.8, OH1 to OH4 at v2.9 | Recognized: `KNOWN_SEGMENTS` holds every standard segment name of v2.1 to v2.9, so none of them raises `UNKNOWN_SEGMENT` (see *Which segments are known*). |
 | **v2.9 composite growth** | CX gains CX.11 Security Check and CX.12 Security Check Scheme (10 → 12 components); XPN gains XPN.15 Called By (14 → 15); XPN.6 Degree is listed as ST (see the [standard reference](./spec-notes-primer.md)) | Read, never thrown on: `asCx()` and `asXpn()` return the components they model (10 and 14), and the added ones are read by position like any component (`msg.get("PID.3.11")`, `msg.get("PID.5.15")`). |
 
@@ -63,7 +63,9 @@ it can **throw** (assumed a maximum component count) or **silently truncate**
 - **No loss.** Components past the modeled set are preserved verbatim, in
   order, on the composite's `extraComponents` array:
   - **`CWE.extraComponents`**: HL7 components **10+** (the v2.7 second-alternate
-    triplet, coding-system / value-set OIDs).
+    triplet, coding-system / value-set OIDs). Components 10 to 22 are also read
+    by name; the array keeps starting at component 10 so code that reads it by
+    position keeps working.
   - **`CE.extraComponents`**: HL7 components **7+** (only populated when a
     CWE-shaped value is read through the CE accessor).
 
@@ -97,9 +99,6 @@ information.
 
 - **Structural parse, not transformation.** The library reads v2.1 to v2.9
   messages; it does not up-/down-convert between versions.
-- **No full v2.7 CWE model.** CWE.10 to 22 are preserved (above) but not surfaced
-  by name; a consumer that needs the second-alternate triplet reads it
-  positionally from `extraComponents`.
 - **Not a conformance validator.** `VERSION_MISMATCH` is the only
   version-related warning; the parser does not assert that a message conforms to
   its declared version's segment/field rules.
