@@ -13,13 +13,16 @@
 
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
+import { checkProperty } from "../_helpers/property.js";
 
 import { buildAck, interpretAck, parseHL7 } from "../../src/index.js";
 import type { AckCode, AckErrorDetail, ErrSeverity } from "../../src/index.js";
 
 import { specCleanMessageRaw } from "./_arbitraries.js";
 
-const RUN_CONFIG = { numRuns: 300, seed: 0x0c_29_2026 } as const;
+// The pull-request depth this file ran at before the shared runner, kept; the nightly run's
+// COSYTE_PROPERTY_RUNS wins over it (property-depth: kept, not lowered).
+const RUN_CONFIG = { numRuns: 300 } as const;
 
 /** The six Table 0008 dispositions buildAck can be told to emit. */
 const ACK_DISPOSITIONS: readonly AckCode[] = ["AA", "AE", "AR", "CA", "CE", "CR"];
@@ -40,7 +43,7 @@ const errorDetail: fc.Arbitrary<AckErrorDetail | undefined> = fc.option(
 
 describe("property: buildAck clean round-trip", () => {
   it("a built ACK re-parses without warnings and as an ACK message", () => {
-    fc.assert(
+    checkProperty(
       fc.property(specCleanMessageRaw(), ackCode, errorDetail, (raw, code, error) => {
         const inbound = parseHL7(raw);
         const ack = buildAck(inbound, error !== undefined ? { code, error } : { code });
@@ -55,7 +58,7 @@ describe("property: buildAck clean round-trip", () => {
 
 describe("property: buildAck correlation echo", () => {
   it("MSA-2 always echoes the inbound MSH-10", () => {
-    fc.assert(
+    checkProperty(
       fc.property(specCleanMessageRaw(), ackCode, (raw, code) => {
         const inbound = parseHL7(raw);
         const sourceControlId = inbound.meta.controlId;
@@ -86,7 +89,7 @@ describe("property: buildAck verbatim echo for delimiter-bearing control ids", (
     .filter((s) => !/[\^&~]$/.test(s) && /[A-Z0-9]/.test(s));
 
   it("MSA-2 carries the inbound MSH-10 field text verbatim (never component-1 truncation)", () => {
-    fc.assert(
+    checkProperty(
       fc.property(quirkyControlId, ackCode, (controlId, code) => {
         const raw = `MSH|^~\\&|SENDAPP|SENDFAC|RECVAPP|RECVFAC|20260101120000||ADT^A01|${controlId}|P|2.5\r`;
         const inbound = parseHL7(raw);
@@ -109,7 +112,7 @@ describe("property: buildAck verbatim echo for delimiter-bearing control ids", (
   });
 
   it("interpretAck round-trips the verbatim id (read-side symmetry)", () => {
-    fc.assert(
+    checkProperty(
       fc.property(quirkyControlId, (controlId) => {
         const raw = `MSH|^~\\&|SENDAPP|SENDFAC|RECVAPP|RECVFAC|20260101120000||ADT^A01|${controlId}|P|2.5\r`;
         const inbound = parseHL7(raw);

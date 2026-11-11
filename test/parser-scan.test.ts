@@ -23,6 +23,8 @@ import type { EncodingCharacters } from "../src/parser/types.js";
 import { stripMllp } from "../src/parser/mllp.js";
 import { WARNING_CODES, type Hl7ParseWarning } from "../src/parser/warnings.js";
 
+import { checkProperty } from "./_helpers/property.js";
+
 const enc = DEFAULT_ENCODING_CHARACTERS;
 
 interface Findings {
@@ -323,7 +325,7 @@ describe("Scanner: one segment at a time", () => {
 
 describe("scanMessage: the findings tokenize reports, segment by segment", () => {
   it("agrees with tokenize on every generated message, quirks included", () => {
-    fc.assert(
+    checkProperty(
       fc.property(messageText(), (raw) => {
         const text = normalize(stripMllp(raw).stripped);
         const segments = splitSegments(text);
@@ -342,7 +344,8 @@ describe("scanMessage: the findings tokenize reports, segment by segment", () =>
           expect(names).toEqual(tree.map((s) => s.name));
         }
       }),
-      { numRuns: 300, seed: 0x5ca7 },
+      // property-depth: 300 cases on a pull request, as this test ran before the shared runner.
+      { numRuns: 300 },
     );
   });
 });

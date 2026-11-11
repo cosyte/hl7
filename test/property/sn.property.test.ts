@@ -18,11 +18,14 @@
 
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
+import { checkProperty } from "../_helpers/property.js";
 
 import type { SN } from "../../src/model/types/sn.js";
 import { parseHL7 } from "../../src/index.js";
 
-const RUN_CONFIG = { numRuns: 500, seed: 0x0b_5e_2026 } as const;
+// The pull-request depth this file ran at before the shared runner, kept; the nightly run's
+// COSYTE_PROPERTY_RUNS wins over it (property-depth: kept, not lowered).
+const RUN_CONFIG = { numRuns: 500 } as const;
 
 const MSH = "MSH|^~\\&|APP|FAC|||20250102||ORU^R01|1|P|2.5\r";
 
@@ -32,7 +35,7 @@ const numArb = fc.integer({ min: -100_000, max: 100_000 });
 
 describe("property: SN comparator/range is never lost", () => {
   it("projected SN preserves comparator and numbers exactly", () => {
-    fc.assert(
+    checkProperty(
       fc.property(
         comparatorArb,
         numArb,
@@ -57,7 +60,7 @@ describe("property: SN comparator/range is never lost", () => {
   });
 
   it("a `<`/`>` comparator never silently becomes the opposite or disappears", () => {
-    fc.assert(
+    checkProperty(
       fc.property(fc.constantFrom("<", ">", "<=", ">="), numArb, (comparator, num1) => {
         const msg = parseHL7(`${MSH}OBX|1|SN|CRE^Creatinine^LN||${comparator}^${String(num1)}\r`);
         const v = msg.observations()[0]?.value as SN | undefined;
@@ -69,7 +72,7 @@ describe("property: SN comparator/range is never lost", () => {
   });
 
   it("the SN field survives a serialize → parse round-trip byte-for-byte", () => {
-    fc.assert(
+    checkProperty(
       fc.property(
         comparatorArb,
         numArb,

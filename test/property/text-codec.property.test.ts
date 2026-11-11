@@ -11,16 +11,19 @@
 
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
+import { checkProperty } from "../_helpers/property.js";
 
 import { DEFAULT_ENCODING_CHARACTERS } from "../../src/parser/delimiters.js";
 import { decodeText, encodeText, parseHL7, renderText } from "../../src/index.js";
 
 const enc = DEFAULT_ENCODING_CHARACTERS;
-const RUN_CONFIG = { numRuns: 500, seed: 0x07_21_2026 } as const;
+// The pull-request depth this file ran at before the shared runner, kept; the nightly run's
+// COSYTE_PROPERTY_RUNS wins over it (property-depth: kept, not lowered).
+const RUN_CONFIG = { numRuns: 500 } as const;
 
 describe("property: text codec encode-safety", () => {
   it("decodeText(encodeText(s)) === s for every arbitrary string", () => {
-    fc.assert(
+    checkProperty(
       fc.property(fc.string({ maxLength: 40 }), (s) => {
         expect(decodeText(encodeText(s, enc), enc)).toBe(s);
       }),
@@ -32,7 +35,7 @@ describe("property: text codec encode-safety", () => {
     // Trim-stable (default trimFields would strip edge whitespace, orthogonal to
     // injection) and never the explicit-null token `""`.
     const arbitrary = fc.string({ maxLength: 40 }).filter((s) => s.trim() === s && s !== '""');
-    fc.assert(
+    checkProperty(
       fc.property(arbitrary, (s) => {
         const raw = `MSH|^~\\&|A|B|C|D|20260101||ADT^A01|1|P|2.5\rNTE|1||${encodeText(s, enc)}`;
         const nte3 = parseHL7(raw).segments("NTE")[0]?.field(3);
@@ -53,7 +56,7 @@ describe("property: text codec encode-safety", () => {
 
 describe("property: renderText is total and sentinel-free", () => {
   it("never throws for any input and always returns a string `text`", () => {
-    fc.assert(
+    checkProperty(
       fc.property(fc.string({ maxLength: 60 }), (s) => {
         const r = renderText(s, enc);
         expect(typeof r.text).toBe("string");
@@ -71,7 +74,7 @@ describe("property: renderText is total and sentinel-free", () => {
     const bigCount = fc.integer({ min: 0, max: 9_999_999_999 }).map(String);
     const cmd = fc.constantFrom("sp", "sk");
     const input = fc.tuple(cmd, bigCount).map(([c, n]) => `a\\.${c}${n}\\b`);
-    fc.assert(
+    checkProperty(
       fc.property(input, (s) => {
         let out = "";
         expect(() => {
@@ -101,7 +104,7 @@ describe("property: renderText is total and sentinel-free", () => {
     const input = fc
       .array(fc.tuple(safeRun, token), { minLength: 1, maxLength: 10 })
       .map((pairs) => pairs.map(([p, t]) => p + t).join(""));
-    fc.assert(
+    checkProperty(
       fc.property(input, (s) => {
         const rendered = renderText(s, enc).text;
         expect(rendered).not.toMatch(/\\\.(?:br|sp|in|ti|fi|nf|ce|sk)/u);

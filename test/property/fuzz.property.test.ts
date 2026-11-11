@@ -30,11 +30,13 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
+import { checkProperty } from "../_helpers/property.js";
 
 import { FATAL_CODES, Hl7ParseError, WARNING_CODES, parseHL7 } from "../../src/index.js";
 
-/** High run count, fixed seed: deterministic fuzz-scale reproduction. */
-const RUN_CONFIG = { numRuns: 1000, seed: 0x07_09_2026 } as const;
+// The pull-request depth this file ran at before the shared runner, kept; the nightly run's
+// COSYTE_PROPERTY_RUNS wins over it (property-depth: kept, not lowered).
+const RUN_CONFIG = { numRuns: 1000 } as const;
 
 const FATAL_CODE_SET: ReadonlySet<string> = new Set(Object.values(FATAL_CODES));
 
@@ -177,7 +179,7 @@ describe("fuzz: FATAL_CODES / WARNING_CODES registries stay pinned", () => {
 
 describe("fuzz: arbitrary byte/char strings never throw except a 4-fatal Hl7ParseError", () => {
   it("random unicode/binary strings", () => {
-    fc.assert(
+    checkProperty(
       fc.property(fc.string({ minLength: 0, maxLength: 500, unit: "binary" }), (raw) => {
         assertNeverThrowsExceptFatal(raw);
       }),
@@ -191,7 +193,7 @@ describe("fuzz: arbitrary byte/char strings never throw except a 4-fatal Hl7Pars
       minLength: 0,
       maxLength: 80,
     });
-    fc.assert(
+    checkProperty(
       fc.property(fc.array(segLine, { minLength: 0, maxLength: 15 }), (lines) => {
         assertNeverThrowsExceptFatal(lines.join("\r"));
       }),
@@ -202,7 +204,7 @@ describe("fuzz: arbitrary byte/char strings never throw except a 4-fatal Hl7Pars
 
 describe("fuzz: delimiter-mutation of valid canonical messages never throws except a 4-fatal Hl7ParseError", () => {
   it("inject/duplicate/drop mutations of the five HL7 delimiters + segment terminator", () => {
-    fc.assert(
+    checkProperty(
       fc.property(delimiterMutatedMessage(), (raw) => {
         assertNeverThrowsExceptFatal(raw);
       }),
@@ -213,7 +215,7 @@ describe("fuzz: delimiter-mutation of valid canonical messages never throws exce
 
 describe("fuzz: truncations of valid canonical messages never throw except a 4-fatal Hl7ParseError", () => {
   it("every truncation length across the canonical corpus", () => {
-    fc.assert(
+    checkProperty(
       fc.property(truncatedMessage(), (raw) => {
         assertNeverThrowsExceptFatal(raw);
       }),
@@ -229,7 +231,7 @@ describe("fuzz: survivor round-trip: anything that parses can be re-parsed", () 
       { weight: 2, arbitrary: delimiterMutatedMessage() },
       { weight: 2, arbitrary: truncatedMessage() },
     );
-    fc.assert(
+    checkProperty(
       fc.property(anyFuzzInput, (raw) => {
         const msg = assertNeverThrowsExceptFatal(raw);
         if (msg === undefined) return; // fatal on first parse: nothing to round-trip

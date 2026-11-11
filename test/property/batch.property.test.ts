@@ -13,11 +13,13 @@
 
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
+import { checkProperty } from "../_helpers/property.js";
 
 import { splitBatch } from "../../src/index.js";
 
-/** Stable seed + run budget so failures reproduce deterministically. */
-const RUN_CONFIG = { numRuns: 300, seed: 0x07_04_2026 } as const;
+// The pull-request depth this file ran at before the shared runner, kept; the nightly run's
+// COSYTE_PROPERTY_RUNS wins over it (property-depth: kept, not lowered).
+const RUN_CONFIG = { numRuns: 300 } as const;
 
 /** A minimal, spec-clean ADT^A01 with a caller-supplied MSH-10 control id. */
 function validMessage(controlId: string): string {
@@ -35,7 +37,7 @@ const controlId = fc.stringMatching(/^[A-Z0-9]{1,8}$/);
 
 describe("property: splitBatch count fidelity", () => {
   it("returns exactly one entry per MSH boundary for a BHS/BTS-wrapped batch", () => {
-    fc.assert(
+    checkProperty(
       fc.property(fc.array(controlId, { minLength: 1, maxLength: 12 }), (ids) => {
         const body = ids.map(validMessage).join("");
         const stream = `BHS|^~\\&|SENDAPP\r${body}BTS|${String(ids.length)}\r`;
@@ -51,7 +53,7 @@ describe("property: splitBatch count fidelity", () => {
   });
 
   it("returns one entry per MSH across multiple batches in one file", () => {
-    fc.assert(
+    checkProperty(
       fc.property(
         fc.array(fc.array(controlId, { minLength: 1, maxLength: 5 }), {
           minLength: 1,
@@ -80,7 +82,7 @@ describe("property: splitBatch count fidelity", () => {
 
 describe("property: splitBatch isolation (a malformed message never suppresses siblings)", () => {
   it("returns every valid message plus the malformed one, whatever the injection point", () => {
-    fc.assert(
+    checkProperty(
       fc.property(
         fc.array(controlId, { minLength: 1, maxLength: 10 }),
         fc.nat(),

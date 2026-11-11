@@ -20,13 +20,15 @@
 
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
+import { checkProperty } from "../_helpers/property.js";
 
 import { FATAL_CODES, Hl7ParseError, WARNING_CODES, parseHL7 } from "../../src/index.js";
 
 import { hostileInput, randomBytes, quirkyMessageRaw } from "./_arbitraries.js";
 
-/** Stable seed + run budget so failures reproduce deterministically. */
-const RUN_CONFIG = { numRuns: 500, seed: 0x06_25_2026 } as const;
+// The pull-request depth this file ran at before the shared runner, kept; the nightly run's
+// COSYTE_PROPERTY_RUNS wins over it (property-depth: kept, not lowered).
+const RUN_CONFIG = { numRuns: 500 } as const;
 
 /** The set of legal Tier-3 fatal code strings: the ONLY throwable codes. */
 const FATAL_CODE_SET: ReadonlySet<string> = new Set(Object.values(FATAL_CODES));
@@ -72,7 +74,7 @@ function assertWarningsWellFormed(msg: ReturnType<typeof parseHL7>): void {
 
 describe("property: lenient mode never throws except Tier-3 fatals", () => {
   it("hostile string input either parses or throws a Tier-3 fatal: nothing else", () => {
-    fc.assert(
+    checkProperty(
       fc.property(hostileInput(), (raw) => {
         const msg = parseOrAssertFatal(raw);
         if (msg !== undefined) assertWarningsWellFormed(msg);
@@ -82,7 +84,7 @@ describe("property: lenient mode never throws except Tier-3 fatals", () => {
   });
 
   it("pure random bytes never throw a non-fatal / non-Hl7ParseError", () => {
-    fc.assert(
+    checkProperty(
       fc.property(randomBytes(), (raw) => {
         const msg = parseOrAssertFatal(raw);
         if (msg !== undefined) assertWarningsWellFormed(msg);
@@ -92,7 +94,7 @@ describe("property: lenient mode never throws except Tier-3 fatals", () => {
   });
 
   it("random Buffer input (charset path) never throws a non-fatal", () => {
-    fc.assert(
+    checkProperty(
       fc.property(fc.uint8Array({ minLength: 0, maxLength: 200 }), (bytes) => {
         const buf = Buffer.from(bytes);
         const msg = parseOrAssertFatal(buf);
@@ -103,7 +105,7 @@ describe("property: lenient mode never throws except Tier-3 fatals", () => {
   });
 
   it("every warning emitted on quirky input carries a registered code + position", () => {
-    fc.assert(
+    checkProperty(
       fc.property(quirkyMessageRaw(), (raw) => {
         const msg = parseOrAssertFatal(raw);
         if (msg !== undefined) {
@@ -120,7 +122,7 @@ describe("property: lenient vs strict consistency on the same input", () => {
     // Strict mode escalates the FIRST Tier-2 warning into a throw. So: any
     // input that warns in lenient mode must throw in strict mode; any input
     // that throws a Tier-3 fatal in lenient mode also throws in strict mode.
-    fc.assert(
+    checkProperty(
       fc.property(quirkyMessageRaw(), (raw) => {
         let lenient: ReturnType<typeof parseHL7> | undefined;
         let lenientThrew = false;

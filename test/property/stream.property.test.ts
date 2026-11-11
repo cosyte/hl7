@@ -17,12 +17,14 @@
 
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
+import { checkAsyncProperty } from "../_helpers/property.js";
 
 import { parseStream, splitBatch } from "../../src/index.js";
 import type { Hl7StreamSource, StreamMessageEntry } from "../../src/index.js";
 
-/** Stable seed + run budget so failures reproduce deterministically. */
-const RUN_CONFIG = { numRuns: 200, seed: 0x07_21_2026 } as const;
+// The pull-request depth this file ran at before the shared runner, kept; the nightly run's
+// COSYTE_PROPERTY_RUNS wins over it (property-depth: kept, not lowered).
+const RUN_CONFIG = { numRuns: 200 } as const;
 
 /** A minimal, spec-clean ADT^A01 with a caller-supplied MSH-10 control id. */
 function validMessage(controlId: string): string {
@@ -69,7 +71,7 @@ function summarize(entries: readonly StreamMessageEntry[]): Array<{ ok: boolean;
 
 describe("property: parseStream chunk-boundary invariance", () => {
   it("any chunking yields the same messages as one whole chunk (and as splitBatch)", async () => {
-    await fc.assert(
+    await checkAsyncProperty(
       fc.asyncProperty(
         fc.array(controlId, { minLength: 1, maxLength: 8 }),
         fc.array(fc.integer({ min: 1, max: 40 }), { maxLength: 12 }),
@@ -89,7 +91,7 @@ describe("property: parseStream chunk-boundary invariance", () => {
   });
 
   it("1-byte chunks yield the same messages as one whole chunk", async () => {
-    await fc.assert(
+    await checkAsyncProperty(
       fc.asyncProperty(fc.array(controlId, { minLength: 1, maxLength: 6 }), async (ids) => {
         const whole = ids.map(validMessage).join("");
         const perByte = summarize(await collect(whole.split("")));
@@ -103,7 +105,7 @@ describe("property: parseStream chunk-boundary invariance", () => {
 
 describe("property: parseStream count fidelity", () => {
   it("yields exactly one entry per MSH boundary, under any chunking", async () => {
-    await fc.assert(
+    await checkAsyncProperty(
       fc.asyncProperty(
         fc.array(controlId, { minLength: 1, maxLength: 10 }),
         fc.array(fc.integer({ min: 1, max: 30 }), { maxLength: 10 }),
@@ -119,7 +121,7 @@ describe("property: parseStream count fidelity", () => {
   });
 
   it("count == MSH count inside a BHS/BTS batch envelope (envelope not yielded)", async () => {
-    await fc.assert(
+    await checkAsyncProperty(
       fc.asyncProperty(
         fc.array(controlId, { minLength: 1, maxLength: 8 }),
         fc.array(fc.integer({ min: 1, max: 25 }), { maxLength: 8 }),
@@ -138,7 +140,7 @@ describe("property: parseStream count fidelity", () => {
 
 describe("property: parseStream isolation (a malformed message never suppresses siblings)", () => {
   it("returns every valid message plus the malformed one, at any injection point and chunking", async () => {
-    await fc.assert(
+    await checkAsyncProperty(
       fc.asyncProperty(
         fc.array(controlId, { minLength: 1, maxLength: 8 }),
         fc.nat(),

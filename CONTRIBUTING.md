@@ -50,10 +50,13 @@ keeps StrykerJS's incremental results between runs. After it and `pnpm test:cove
 `pnpm quality:raise` raises each floor to what was measured. A mutant no test can kill takes
 `// Stryker disable next-line <mutator>: the reason`.
 
-The standard properties (`test/property/standard.property.test.ts`) run 100 cases on every run.
-`COSYTE_PROPERTY_RUNS` sets the depth, and the nightly run sets 10,000. A failure prints
-`COSYTE_PROPERTY_SEED` and `COSYTE_PROPERTY_PATH`: set both and run the test again to replay the
-failing case, already shrunk.
+Every property test runs through `checkProperty` or `checkAsyncProperty`
+(`test/_helpers/property.ts`) or a runner from `@cosyte/test-utils`: 100 cases on a pull request,
+or the count its file sets with a `property-depth:` note saying why, from a new seed every run.
+`COSYTE_PROPERTY_RUNS` sets the depth of all of them, and the nightly run sets 10,000. A failure
+prints `COSYTE_PROPERTY_SEED` and `COSYTE_PROPERTY_PATH`: set both and run the test again to replay
+the failing case, already shrunk. `test/property-depth.test.ts` fails on a bare `fc.assert`, a seed
+or count with no note, or a property the nightly run does not reach.
 
 `pnpm test:perf` runs the scaling gate (`test/perf/scaling-gate.perf.ts`) apart from coverage. It
 fails when parsing cost grows faster than the input. `bench/parse.bench.mjs` measures throughput,

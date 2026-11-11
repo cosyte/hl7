@@ -41,7 +41,11 @@ import {
 
 const root = join(import.meta.dirname, "..");
 
-/** Draw `n` values from a fixed seed. */
+/**
+ * Draw `n` values from a fixed seed. These are checks on what a generator draws, not properties:
+ * a fixed seed makes every run reach the same cases.
+ */
+// property-depth: a generator sample on a fixed seed, so a check that a case is drawn never flakes.
 function draw<T>(arb: fc.Arbitrary<T>, n = 200, seed = 20261110): T[] {
   return fc.sample(arb, { numRuns: n, seed });
 }

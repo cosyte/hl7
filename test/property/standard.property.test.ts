@@ -28,7 +28,6 @@ import {
   assertProperty,
   idempotentNormalizeProperty,
   lenientNeverThrowsProperty,
-  resolvePropertyRun,
   roundTripProperty,
   type LenientWarning,
 } from "@cosyte/test-utils";
@@ -59,12 +58,13 @@ import {
 } from "../../src/arbitraries/index.js";
 import { cleanMessageText } from "../../src/arbitraries/message.js";
 import { normalize as normalizeLineEndings } from "../../src/parser/normalize.js";
+import { propertyTimeout } from "../_helpers/property.js";
 
 /**
- * Each test's budget at the depth this run resolves: the suite's 10 s floor, or 10 ms a case,
- * whichever is longer, so a nightly run at 10,000 cases is not cut off by a 100-case budget.
+ * Each test's budget at the depth this run resolves: the suite's 10 s at 100 cases, scaled with the
+ * depth, so a nightly run at 10,000 cases is not cut off by a 100-case budget.
  */
-const TIMEOUT = Math.max(10_000, resolvePropertyRun({}).numRuns * 10);
+const TIMEOUT = propertyTimeout(10_000);
 
 const FATAL: ReadonlySet<string> = new Set(Object.values(FATAL_CODES));
 const KNOWN: ReadonlySet<string> = new Set(Object.values(WARNING_CODES));

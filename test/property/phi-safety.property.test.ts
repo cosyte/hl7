@@ -26,11 +26,13 @@
 
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
+import { checkProperty } from "../_helpers/property.js";
 
 import { FATAL_CODES, Hl7ParseError, parseHL7 } from "../../src/index.js";
 
-/** Stable seed + run budget so failures reproduce deterministically. */
-const RUN_CONFIG = { numRuns: 200, seed: 0x06_27_2026 } as const;
+// The pull-request depth this file ran at before the shared runner, kept; the nightly run's
+// COSYTE_PROPERTY_RUNS wins over it (property-depth: kept, not lowered).
+const RUN_CONFIG = { numRuns: 200 } as const;
 
 /**
  * Snippet bound from `parser/segments.ts:50`: 40 raw chars + 1 ellipsis
@@ -142,7 +144,7 @@ describe("property: PHI safety in warning paths", () => {
       .string({ unit: markerChar, minLength: 6, maxLength: 24 })
       .filter((s) => s.length >= 6);
 
-    fc.assert(
+    checkProperty(
       fc.property(fc.array(tokenArb, { minLength: 3, maxLength: 5 }), (tokens) => {
         const raw = quirkyMessageWithMarkers(tokens);
         let parsed: ReturnType<typeof parseHL7>;
@@ -178,7 +180,7 @@ describe("property: PHI safety in warning paths", () => {
       .string({ unit: markerChar, minLength: 6, maxLength: 24 })
       .filter((s) => s.length >= 6);
 
-    fc.assert(
+    checkProperty(
       fc.property(fc.array(tokenArb, { minLength: 2, maxLength: 3 }), (tokens) => {
         const raw = quirkyMessageWithEscapesAndWhitespace(tokens);
         let parsed: ReturnType<typeof parseHL7>;
@@ -272,7 +274,7 @@ describe("property: PHI safety when a field-internal line break forges a segment
       .string({ unit: markerChar, minLength: 6, maxLength: 40 })
       .filter((s) => s.trim().length >= 6);
 
-    fc.assert(
+    checkProperty(
       fc.property(tokenArb, fc.constantFrom(...BREAK_SEQUENCES), (token, breakSeq) => {
         const raw = messageWithFieldInternalLineBreak(token, breakSeq);
         let parsed: ReturnType<typeof parseHL7>;
@@ -299,7 +301,7 @@ describe("Hl7ParseError.snippet length bound", () => {
     // Generate adversarially-sized inputs and check the snippet bound on any
     // fatal that fires. By design, snippet CONTENT may carry PHI: the bound
     // is what locks the consumer-redaction contract.
-    fc.assert(
+    checkProperty(
       fc.property(fc.string({ minLength: 1, maxLength: 4000 }), (raw) => {
         try {
           parseHL7(raw);
@@ -436,7 +438,7 @@ describe("property: PHI safety on the Buffer / MSH-18 charset path", () => {
       .string({ unit: labelChar, minLength: 6, maxLength: 20 })
       .filter((s) => s.trim().length >= 6 && !/^(ASCII|UNICODE|UTF-8)$/i.test(s.trim()));
 
-    fc.assert(
+    checkProperty(
       fc.property(labelArb, (label) => {
         const msg = parseHL7(terminatorFreeBufferWithMarkerAtToken17(label));
         for (const w of msg.warnings) {

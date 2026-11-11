@@ -17,6 +17,7 @@
 
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
+import { checkProperty } from "../_helpers/property.js";
 
 import {
   FINDING_CODES,
@@ -30,7 +31,9 @@ import {
   type UsageResolution,
 } from "../../src/index.js";
 
-const RUN_CONFIG = { numRuns: 500, seed: 0x07_21_2026 } as const;
+// The pull-request depth this file ran at before the shared runner, kept; the nightly run's
+// COSYTE_PROPERTY_RUNS wins over it (property-depth: kept, not lowered).
+const RUN_CONFIG = { numRuns: 500 } as const;
 
 /** A pool of valid messages to validate against (parsed once). */
 const MESSAGE_POOL = [
@@ -86,7 +89,7 @@ const profileArb = fc.record({
 
 describe("property: conformance engine invariants", () => {
   it("never throws for any message × any profile-shaped object", () => {
-    fc.assert(
+    checkProperty(
       fc.property(fc.nat({ max: MESSAGE_POOL.length - 1 }), profileArb, (idx, profile) => {
         const msg = MESSAGE_POOL[idx];
         if (msg === undefined) return;
@@ -99,7 +102,7 @@ describe("property: conformance engine invariants", () => {
   });
 
   it("validation never mutates the message (serialization stable)", () => {
-    fc.assert(
+    checkProperty(
       fc.property(fc.nat({ max: MESSAGE_POOL.length - 1 }), profileArb, (idx, profile) => {
         const msg = MESSAGE_POOL[idx];
         if (msg === undefined) return;
@@ -112,7 +115,7 @@ describe("property: conformance engine invariants", () => {
   });
 
   it("every finding is well-formed (valid severity, structural locus, non-empty message)", () => {
-    fc.assert(
+    checkProperty(
       fc.property(fc.nat({ max: MESSAGE_POOL.length - 1 }), profileArb, (idx, profile) => {
         const msg = MESSAGE_POOL[idx];
         if (msg === undefined) return;
@@ -131,7 +134,7 @@ describe("property: conformance engine invariants", () => {
     // Inject a distinctive value into PID-8 that is guaranteed NOT in the value
     // set, then assert it never surfaces in any finding message: the value-set,
     // length, and required paths all fire, and none may leak the value.
-    fc.assert(
+    checkProperty(
       fc.property(
         // A distinctive sentinel: the "ZQV" prefix cannot occur inside the
         // finding vocabulary (no fixed message word contains it), so a hit means
@@ -165,7 +168,7 @@ describe("property: conformance engine invariants", () => {
       fc.record({ segment: VALID_SEGMENT, usage: fc.constant("O" as const) }),
       { maxLength: 6 },
     );
-    fc.assert(
+    checkProperty(
       fc.property(fc.nat({ max: MESSAGE_POOL.length - 1 }), constraintFree, (idx, segments) => {
         const msg = MESSAGE_POOL[idx];
         if (msg === undefined) return;
@@ -271,7 +274,7 @@ const runWith = (
 
 describe("property: the wider vocabulary and caller-supplied resolutions", () => {
   it("never throws for any message × any profile × any resolution argument", () => {
-    fc.assert(
+    checkProperty(
       fc.property(
         fc.nat({ max: MESSAGE_POOL.length - 1 }),
         wideProfileArb,
@@ -289,7 +292,7 @@ describe("property: the wider vocabulary and caller-supplied resolutions", () =>
   });
 
   it("validation still never mutates the message under a resolution argument", () => {
-    fc.assert(
+    checkProperty(
       fc.property(
         fc.nat({ max: MESSAGE_POOL.length - 1 }),
         wideProfileArb,
@@ -307,7 +310,7 @@ describe("property: the wider vocabulary and caller-supplied resolutions", () =>
   });
 
   it("every finding stays well-formed and PHI-free of the message's own values", () => {
-    fc.assert(
+    checkProperty(
       fc.property(
         fc.nat({ max: MESSAGE_POOL.length - 1 }),
         wideProfileArb,
@@ -329,7 +332,7 @@ describe("property: the wider vocabulary and caller-supplied resolutions", () =>
   });
 
   it("a result carrying any PROFILE_MALFORMED carries no message-level finding", () => {
-    fc.assert(
+    checkProperty(
       fc.property(
         fc.nat({ max: MESSAGE_POOL.length - 1 }),
         wideProfileArb,
@@ -348,7 +351,7 @@ describe("property: the wider vocabulary and caller-supplied resolutions", () =>
   });
 
   it("absent, undefined and an empty list are one argument for any profile", () => {
-    fc.assert(
+    checkProperty(
       fc.property(fc.nat({ max: MESSAGE_POOL.length - 1 }), wideProfileArb, (idx, profile) => {
         const msg = MESSAGE_POOL[idx];
         if (msg === undefined) return;
@@ -362,7 +365,7 @@ describe("property: the wider vocabulary and caller-supplied resolutions", () =>
 
   it("an unresolved declared conditional with NO predicate, and B, are identical to C", () => {
     const substitutable = fc.constantFrom("C(R/X)", "C(RE/X)", "C(O/B)", "C(B/B)", "B");
-    fc.assert(
+    checkProperty(
       fc.property(
         fc.nat({ max: MESSAGE_POOL.length - 1 }),
         VALID_SEGMENT,
@@ -570,7 +573,7 @@ const decidableTree = fc.oneof(
 
 describe("property: condition predicates", () => {
   it("never throws for any message x any predicate-carrying profile x any resolution", () => {
-    fc.assert(
+    checkProperty(
       fc.property(
         fc.nat({ max: MESSAGE_POOL.length - 1 }),
         predicatedProfileArb,
@@ -588,7 +591,7 @@ describe("property: condition predicates", () => {
   });
 
   it("a predicate never mutates the message it reads", () => {
-    fc.assert(
+    checkProperty(
       fc.property(
         fc.nat({ max: MESSAGE_POOL.length - 1 }),
         predicatedProfileArb,
@@ -605,7 +608,7 @@ describe("property: condition predicates", () => {
   });
 
   it("a result carrying any PROFILE_MALFORMED still carries no message-level finding", () => {
-    fc.assert(
+    checkProperty(
       fc.property(
         fc.nat({ max: MESSAGE_POOL.length - 1 }),
         predicatedProfileArb,
@@ -622,7 +625,7 @@ describe("property: condition predicates", () => {
   });
 
   it("a conformant message against a predicate-carrying profile yields ZERO findings", () => {
-    fc.assert(
+    checkProperty(
       fc.property(
         fc.nat({ max: MESSAGE_POOL.length - 1 }),
         decidableTree,
@@ -663,7 +666,7 @@ describe("property: condition predicates", () => {
     // and omitting is the case that was never broken.
     let generated = 0;
 
-    fc.assert(
+    checkProperty(
       fc.property(
         fc.nat({ max: MESSAGE_POOL.length - 1 }),
         strayDiscriminantArb,
@@ -691,7 +694,7 @@ describe("property: condition predicates", () => {
   });
 
   it("a decidable predicate never leaves a stray unevaluatable finding behind", () => {
-    fc.assert(
+    checkProperty(
       fc.property(fc.nat({ max: MESSAGE_POOL.length - 1 }), decidableTree, (idx, condition) => {
         const msg = MESSAGE_POOL[idx];
         if (msg === undefined) return;
@@ -712,7 +715,7 @@ describe("property: condition predicates", () => {
   });
 
   it("no predicate finding echoes a message value or a value list drawn from the profile", () => {
-    fc.assert(
+    checkProperty(
       fc.property(
         // Two distinctive sentinels: one planted in the MESSAGE and one in the
         // PROFILE's own value list. The "ZQV" prefix cannot occur inside the
@@ -765,7 +768,7 @@ describe("property: condition predicates", () => {
     // value is the one failure here no re-run undoes. So: a sentinel in the
     // coding-system component the finding is ABOUT, and a second in the code
     // beside it, neither of which may appear anywhere in any finding.
-    fc.assert(
+    checkProperty(
       fc.property(
         fc.stringMatching(/^[A-Za-z0-9]{1,8}$/u).map((s) => `ZQVSYS${s}`),
         fc.stringMatching(/^[A-Za-z0-9]{1,8}$/u).map((s) => `ZQVCODE${s}`),
@@ -818,7 +821,7 @@ describe("property: condition predicates", () => {
     // is echoed on purpose (an author debugging a typo needs it), so what this
     // pins is the other half: a binding that is not a string has no token worth
     // echoing, and its diagnostic names the value's TYPE instead of its content.
-    fc.assert(
+    checkProperty(
       fc.property(
         fc.stringMatching(/^[A-Za-z0-9]{1,8}$/u).map((s) => `ZQVBIND${s}`),
         (secret) => {
@@ -844,7 +847,7 @@ describe("property: condition predicates", () => {
   });
 
   it("no MALFORMED diagnostic about a predicate echoes its value list either", () => {
-    fc.assert(
+    checkProperty(
       fc.property(
         fc.stringMatching(/^[A-Za-z0-9]{1,8}$/u).map((s) => `ZQVSET${s}`),
         (secret) => {
@@ -928,7 +931,7 @@ const boundProfileArb = fc.record({
 
 describe("property: coding-system bindings", () => {
   it("never throws for any message × any binding-shaped profile", () => {
-    fc.assert(
+    checkProperty(
       fc.property(fc.nat({ max: MESSAGE_POOL.length - 1 }), boundProfileArb, (idx, profile) => {
         const msg = MESSAGE_POOL[idx];
         if (msg === undefined) return;
@@ -940,7 +943,7 @@ describe("property: coding-system bindings", () => {
   });
 
   it("validation never mutates the message, binding or no binding", () => {
-    fc.assert(
+    checkProperty(
       fc.property(fc.nat({ max: MESSAGE_POOL.length - 1 }), boundProfileArb, (idx, profile) => {
         const msg = MESSAGE_POOL[idx];
         if (msg === undefined) return;
@@ -953,7 +956,7 @@ describe("property: coding-system bindings", () => {
   });
 
   it("every coding-system finding is well-formed and names a component it read", () => {
-    fc.assert(
+    checkProperty(
       fc.property(fc.nat({ max: MESSAGE_POOL.length - 1 }), boundProfileArb, (idx, profile) => {
         const msg = MESSAGE_POOL[idx];
         if (msg === undefined) return;
@@ -975,7 +978,7 @@ describe("property: coding-system bindings", () => {
   it("a rule that declares NO binding never produces a coding-system finding", () => {
     // The additive half of the contract, generatively: the previously-shipping
     // bare-array form cannot start emitting a code it never emitted.
-    fc.assert(
+    checkProperty(
       fc.property(fc.nat({ max: MESSAGE_POOL.length - 1 }), profileArb, (idx, profile) => {
         const msg = MESSAGE_POOL[idx];
         if (msg === undefined) return;
@@ -1047,7 +1050,7 @@ const levelledProfileArb = fc.record({
 
 describe("property: profile levels", () => {
   it("never throws, and every result carries one of the three levels", () => {
-    fc.assert(
+    checkProperty(
       fc.property(fc.nat({ max: MESSAGE_POOL.length - 1 }), levelledProfileArb, (idx, profile) => {
         const msg = MESSAGE_POOL[idx];
         if (msg === undefined) return;
@@ -1062,7 +1065,7 @@ describe("property: profile levels", () => {
     // The fail-safe, generatively: a result carrying any PROFILE_MALFORMED
     // never says implementable, whatever the profile claimed, so a consumer
     // cannot read a claim of completeness off a run that assessed nothing.
-    fc.assert(
+    checkProperty(
       fc.property(fc.nat({ max: MESSAGE_POOL.length - 1 }), levelledProfileArb, (idx, profile) => {
         const msg = MESSAGE_POOL[idx];
         if (msg === undefined) return;
@@ -1084,7 +1087,7 @@ describe("property: profile levels", () => {
     // refusal fires at once here: a leftover usage, a conditional whose
     // outcomes the level does not admit, a rule that declares no usage, and a
     // level token that is not a level.
-    fc.assert(
+    checkProperty(
       fc.property(
         fc.stringMatching(/^[A-Za-z0-9]{1,9}$/u).map((s) => `ZQV${s}`),
         fc.constantFrom("implementable", "ZQVLEVEL"),
@@ -1121,7 +1124,7 @@ describe("property: profile levels", () => {
     // The additive half of the contract, generatively: a profile authored
     // before the declaration existed makes no claim, so nothing here can refuse
     // it, and its result is assessed at the weaker level.
-    fc.assert(
+    checkProperty(
       fc.property(fc.nat({ max: MESSAGE_POOL.length - 1 }), wideProfileArb, (idx, profile) => {
         const msg = MESSAGE_POOL[idx];
         if (msg === undefined) return;
@@ -1157,7 +1160,7 @@ describe("property: profile levels", () => {
         { maxLength: 4 },
       ),
     });
-    fc.assert(
+    checkProperty(
       fc.property(fc.nat({ max: MESSAGE_POOL.length - 1 }), acceptedProfileArb, (idx, profile) => {
         const msg = MESSAGE_POOL[idx];
         if (msg === undefined) return;

@@ -17,10 +17,13 @@
 
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
+import { checkProperty } from "../_helpers/property.js";
 
 import { parseHL7 } from "../../src/index.js";
 
-const RUN_CONFIG = { numRuns: 500, seed: 0x0e_5e_2026 } as const;
+// The pull-request depth this file ran at before the shared runner, kept; the nightly run's
+// COSYTE_PROPERTY_RUNS wins over it (property-depth: kept, not lowered).
+const RUN_CONFIG = { numRuns: 500 } as const;
 
 const MSH = "MSH|^~\\&|APP|FAC|||20250102||VXU^V04|1|T|2.5.1\r";
 
@@ -39,7 +42,7 @@ function rxa(fields: Record<number, string>, max = 21): string {
 
 describe("property: immunizations() never throws (HELPERS-07)", () => {
   it("tolerates arbitrary RXA field content", () => {
-    fc.assert(
+    checkProperty(
       fc.property(junkArb, junkArb, junkArb, junkArb, (f5, f6, f9, f21) => {
         const seg = rxa({ 5: f5, 6: f6, 9: f9, 21: f21 });
         expect(() => {
@@ -55,7 +58,7 @@ describe("property: immunizations() never throws (HELPERS-07)", () => {
 
 describe("property: a well-formed CVX vaccine + dose project verbatim", () => {
   it("RXA-5 vaccine code (identifier + provenance) and RXA-6 dose survive", () => {
-    fc.assert(
+    checkProperty(
       fc.property(idArb, fc.constantFrom("CVX", "NDC"), numArb, (code, system, dose) => {
         const seg = rxa({ 5: `${code}^Vaccine^${system}`, 6: String(dose) });
         const imm = parseHL7(`${MSH}PID|||X\r${seg}\r`).immunizations()[0];
@@ -70,7 +73,7 @@ describe("property: a well-formed CVX vaccine + dose project verbatim", () => {
 
 describe("property: action code (RXA-21) is surfaced verbatim, never defaulted", () => {
   it("any non-empty RXA-21 token round-trips exactly onto actionCode", () => {
-    fc.assert(
+    checkProperty(
       fc.property(idArb, (action) => {
         const seg = rxa({ 5: "115^Tdap^CVX", 21: action });
         const imm = parseHL7(`${MSH}PID|||X\r${seg}\r`).immunizations()[0];
@@ -83,7 +86,7 @@ describe("property: action code (RXA-21) is surfaced verbatim, never defaulted",
 
 describe("property: recordOrigin derives only from NIP001, else omitted (fail-safe)", () => {
   it("00 → administered; 01-08 → historical; anything else → undefined", () => {
-    fc.assert(
+    checkProperty(
       fc.property(idArb, (code) => {
         const seg = rxa({ 5: "115^Tdap^CVX", 9: `${code}^Source^NIP001` });
         const imm = parseHL7(`${MSH}PID|||X\r${seg}\r`).immunizations()[0];

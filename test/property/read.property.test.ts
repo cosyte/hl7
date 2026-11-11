@@ -33,21 +33,24 @@ import type {
   ReadSegmentItem,
 } from "../../src/index.js";
 import { fieldArrivedAltered } from "../../src/parser/wire-fidelity.js";
+import { checkAsyncProperty, propertyTimeout } from "../_helpers/property.js";
 
 /**
- * Each case reads its input once for every position it can be cut at, so cases are fewer than
- * elsewhere and inputs are kept short; `READ_PROPERTY_RUNS` raises the count for a deeper run.
+ * Each case reads its input once for every position it can be cut at, so a pull request runs fewer
+ * cases than elsewhere and inputs are kept short. The nightly run's `COSYTE_PROPERTY_RUNS` sets the
+ * depth here as it does everywhere.
  */
-const RUN_CONFIG = {
-  numRuns: Number(process.env["READ_PROPERTY_RUNS"] ?? "25"),
-  seed: 0x0e_ad_2026,
-} as const;
+// property-depth: 25 cases on a pull request, since each case reads its input once per cut point.
+const RUN_CONFIG = { numRuns: 25 } as const;
 
 /** The longest generated message a case uses: every position of it is cut at. */
 const MAX_MESSAGE = 600;
 
-/** Every case reads each input once per cut point, so it needs more than the 10 s default. */
-const BUDGET = { timeout: 120_000 } as const;
+/**
+ * Every case reads each input once per cut point, so it needs more than the 10 s default; a deeper
+ * run scales the budget with its depth.
+ */
+const BUDGET = { timeout: propertyTimeout(120_000, process.env, RUN_CONFIG.numRuns) } as const;
 
 /** One message's text, from any of the generators; MLLP bytes are tested on their own. */
 const messageOfAnyKind: fc.Arbitrary<string> = fc
@@ -172,7 +175,7 @@ async function checkMessages(text: string, options: ParseOptions): Promise<void>
 
 describe("property: readMessages agrees with splitBatch and parseHL7", () => {
   it("on every generated batch, cut at every position", BUDGET, async () => {
-    await fc.assert(
+    await checkAsyncProperty(
       fc.asyncProperty(batch, (text) => checkMessages(text, {})),
       RUN_CONFIG,
     );
@@ -182,7 +185,7 @@ describe("property: readMessages agrees with splitBatch and parseHL7", () => {
     "in strict mode: the same items up to the first failure, and none after it",
     BUDGET,
     async () => {
-      await fc.assert(
+      await checkAsyncProperty(
         fc.asyncProperty(batch, async (text) => {
           const lenient = await drain(readMessages(text, { strict: true, lazy: false }));
           const reference = splitBatch(text, { strict: true }).messages;
@@ -195,7 +198,8 @@ describe("property: readMessages agrees with splitBatch and parseHL7", () => {
             (await drain(readMessages(chunks, { strict: true }))).map(itemView),
           );
         }),
-        { ...RUN_CONFIG, numRuns: 30 },
+        // property-depth: 30 cases on a pull request, as this test ran before the shared runner.
+        { numRuns: 30 },
       );
     },
   );
@@ -273,7 +277,7 @@ const oneMessage: fc.Arbitrary<string | Buffer> = fc
 
 describe("property: readSegments agrees with parseHL7", () => {
   it("on every generated message, as text and bytes, cut at every position", BUDGET, async () => {
-    await fc.assert(
+    await checkAsyncProperty(
       fc.asyncProperty(oneMessage, async (input) => {
         const text = typeof input === "string" ? input : input.toString("latin1");
         const bytes = typeof input === "string" ? Buffer.from(input, "utf8") : input;
@@ -298,7 +302,7 @@ describe("property: readSegments agrees with parseHL7", () => {
   });
 
   it("in strict mode, on messages with at most one problem", BUDGET, async () => {
-    await fc.assert(
+    await checkAsyncProperty(
       fc.asyncProperty(message({ escapes: true }), async (msg) => {
         const text = msg.toString();
         // With two problems, parseHL7 reports the one its whole-message order meets first, and

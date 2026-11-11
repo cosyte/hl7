@@ -17,17 +17,19 @@
 
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
+import { checkProperty } from "../_helpers/property.js";
 
 import { WARNING_CODES, parseHL7 } from "../../src/index.js";
 
 import { specCleanMessageRaw } from "./_arbitraries.js";
 
-/** Stable seed + run budget so failures reproduce deterministically. */
-const RUN_CONFIG = { numRuns: 400, seed: 0x05_17_2026 } as const;
+// The pull-request depth this file ran at before the shared runner, kept; the nightly run's
+// COSYTE_PROPERTY_RUNS wins over it (property-depth: kept, not lowered).
+const RUN_CONFIG = { numRuns: 400 } as const;
 
 describe("property: round-trip (serialize → parse) structural equality", () => {
   it("parse(serialize(m)) deep-equals m for every spec-valid message", () => {
-    fc.assert(
+    checkProperty(
       fc.property(specCleanMessageRaw(), (raw) => {
         // `raw` is already once-serialized output of buildMessage/addSegment,
         // so it is itself spec-clean HL7. Parse it, re-serialize, re-parse.
@@ -43,7 +45,7 @@ describe("property: round-trip (serialize → parse) structural equality", () =>
   });
 
   it("serialization is idempotent from the second pass onward", () => {
-    fc.assert(
+    checkProperty(
       fc.property(specCleanMessageRaw(), (raw) => {
         const once = parseHL7(raw).toString();
         const twice = parseHL7(once).toString();
@@ -61,7 +63,7 @@ describe("property: round-trip (serialize → parse) structural equality", () =>
     // generator builds recognized message types with arbitrary segments and so
     // legitimately omits Required groups, but that warning is purely structural
     // advice: it changes no bytes and is orthogonal to round-trip fidelity.
-    fc.assert(
+    checkProperty(
       fc.property(specCleanMessageRaw(), (raw) => {
         const msg = parseHL7(raw);
         const byteChanging = msg.warnings
@@ -110,7 +112,7 @@ describe("property: HL7-ESC full-alphabet byte-verbatim fidelity", () => {
     .map((pairs) => pairs.map(([p, e]) => p + e).join(""));
 
   it("parse→emit reproduces the escape alphabet byte-verbatim in OBX-5", () => {
-    fc.assert(
+    checkProperty(
       fc.property(escapedContent, (content) => {
         const raw =
           "MSH|^~\\&|LAB|MAIN|EHR|REF|20260101100000||ORU^R01|MSG1|P|2.5\r" +
@@ -134,7 +136,7 @@ describe("property: round-trip escape-sequence fidelity", () => {
     // Targeted: a single NTE field whose value is delimiter-laden. Asserts the
     // decoded leaf survives a full serialize→parse cycle unchanged, which is
     // the load-bearing claim behind reescape/unescape being inverses.
-    fc.assert(
+    checkProperty(
       fc.property(specCleanMessageRaw(), (raw) => {
         const original = parseHL7(raw);
         const roundTripped = parseHL7(original.toString());

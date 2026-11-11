@@ -12,10 +12,13 @@
  */
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
+import { checkProperty } from "../_helpers/property.js";
 
 import { dtmToDate, formatDtm, parseDtm } from "../../src/parser/dates.js";
 
-const RUN_CONFIG = { numRuns: 500, seed: 0x07_05_2026 } as const;
+// The pull-request depth this file ran at before the shared runner, kept; the nightly run's
+// COSYTE_PROPERTY_RUNS wins over it (property-depth: kept, not lowered).
+const RUN_CONFIG = { numRuns: 500 } as const;
 
 const pad = (n: number, w: number): string => n.toString().padStart(w, "0");
 
@@ -49,7 +52,7 @@ const dtmArb = fc
 
 describe("property: DTM parse→format is lossless (no zero-fill, no offset drift)", () => {
   it("formatDtm(parseDtm(raw)) === raw for every precision + offset", () => {
-    fc.assert(
+    checkProperty(
       fc.property(dtmArb, ({ raw }) => {
         const parts = parseDtm(raw);
         expect(parts.valid).toBe(true);
@@ -62,7 +65,7 @@ describe("property: DTM parse→format is lossless (no zero-fill, no offset drif
 
 describe("property: a missing offset is never silently resolved to UTC", () => {
   it("no-tz values are flagged and dtmToDate refuses to guess", () => {
-    fc.assert(
+    checkProperty(
       fc.property(dtmArb, ({ raw, hasTz }) => {
         const parts = parseDtm(raw);
         expect(parts.hasTimezone).toBe(hasTz);
@@ -80,7 +83,7 @@ describe("property: a missing offset is never silently resolved to UTC", () => {
 
 describe("property: an offset value resolves deterministically", () => {
   it("dtmToDate is independent of any host-timezone assumption", () => {
-    fc.assert(
+    checkProperty(
       fc.property(dtmArb, ({ raw, hasTz }) => {
         if (!hasTz) return;
         const parts = parseDtm(raw);

@@ -20,13 +20,16 @@
 
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
+import { checkProperty } from "../_helpers/property.js";
 
 import { DEFAULT_ENCODING_CHARACTERS } from "../../src/parser/delimiters.js";
 import type { RawRepetition } from "../../src/parser/types.js";
 import { parseCe } from "../../src/model/types/ce.js";
 import { parseCwe } from "../../src/model/types/cwe.js";
 
-const RUN_CONFIG = { numRuns: 500, seed: 0x06_30_2026 } as const;
+// The pull-request depth this file ran at before the shared runner, kept; the nightly run's
+// COSYTE_PROPERTY_RUNS wins over it (property-depth: kept, not lowered).
+const RUN_CONFIG = { numRuns: 500 } as const;
 const enc = DEFAULT_ENCODING_CHARACTERS;
 
 /** A single-subcomponent value with no active delimiters (escape-clean). */
@@ -46,7 +49,7 @@ function lastContentIndex(values: readonly string[]): number {
 
 describe("property: CWE/CE tolerate version component-growth without loss or throw", () => {
   it("parseCwe never throws and preserves components 10+ on extraComponents", () => {
-    fc.assert(
+    checkProperty(
       fc.property(fc.array(valueArb, { minLength: 0, maxLength: 25 }), (values) => {
         const out = parseCwe(rep(values), enc);
 
@@ -63,7 +66,7 @@ describe("property: CWE/CE tolerate version component-growth without loss or thr
   });
 
   it("parseCe never throws and preserves components 7+ on extraComponents", () => {
-    fc.assert(
+    checkProperty(
       fc.property(fc.array(valueArb, { minLength: 0, maxLength: 25 }), (values) => {
         const out = parseCe(rep(values), enc);
 
@@ -76,7 +79,7 @@ describe("property: CWE/CE tolerate version component-growth without loss or thr
   });
 
   it("CE↔CWE uniformity: reading a CWE through parseCe loses nothing", () => {
-    fc.assert(
+    checkProperty(
       fc.property(fc.array(valueArb, { minLength: 6, maxLength: 22 }), (values) => {
         const asCwe = parseCwe(rep(values), enc);
         const asCe = parseCe(rep(values), enc);
