@@ -155,6 +155,7 @@ function tableFor(decoder: string): ReadonlyMap<number, number> | undefined {
  */
 function declaredCharset(segments: readonly RawSegment[], msg: Hl7Message): string | undefined {
   const [msh] = segments;
+  // Stryker disable next-line ConditionalExpression: unreachable for the reason below, so no input tells the two apart
   /* v8 ignore next -- the parser and buildMessage put MSH first, and emitMessage refuses a message with no segments before this runs */
   if (msh === undefined) return undefined;
   const field = resolveSegment(msh).fields[17];
@@ -250,8 +251,10 @@ function writeSingleByte(
   return out;
 }
 
-/** The sets one byte per character cannot write, not even ASCII. @internal */
-const WIDE_SETS: ReadonlySet<string> = new Set(["UNICODE UTF-16", "UNICODE UTF-32"]);
+/** Whether `canonical` names a set one byte per character cannot write, not even ASCII. @internal */
+function isWide(canonical: string): boolean {
+  return canonical === "UNICODE UTF-16" || canonical === "UNICODE UTF-32";
+}
 
 /** The error for a set this writer has no encoder for. @internal */
 function unsupported(shown: string): Hl7EncodeError {
@@ -288,7 +291,7 @@ function writeByteReading(
   const kept = new Set<RawSegment | undefined>(asRead.map(resolveSegment));
   return writeSingleByte(text, msg, shown, (segmentIndex) => {
     if (sameSet && kept.has(current[segmentIndex])) return "latin1";
-    if (WIDE_SETS.has(target.canonical)) throw unsupported(shown);
+    if (isWide(target.canonical)) throw unsupported(shown);
     return "refuse";
   });
 }
@@ -313,7 +316,7 @@ export function emitBytes(
   if (resolution.treatment === "verbatim") {
     // A set the reader does not decode has no table here either: ASCII is the same byte in each of
     // them, and anything above it would be a guess.
-    if (WIDE_SETS.has(resolution.canonical)) throw unsupported(shown);
+    if (isWide(resolution.canonical)) throw unsupported(shown);
     return writeSingleByte(text, msg, shown, () => "refuse");
   }
   if (resolution.decoder === "utf-8") {

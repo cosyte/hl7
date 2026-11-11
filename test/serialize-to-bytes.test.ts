@@ -177,6 +177,11 @@ describe("toBytes: a message leaves in the set it declares", () => {
     expect(msg.toBytes()).toEqual(Buffer.from(text, "utf8"));
   });
 
+  it("reads a blank charset option as the ASCII default, written as UTF-8", () => {
+    const text = messageText("UNICODE UTF-8", "NTE|1||Zörb");
+    expect(parseHL7(text).toBytes({ charset: "  " })).toEqual(Buffer.from(text, "utf8"));
+  });
+
   it("writes UTF-8 when MSH stops before MSH-18", () => {
     const text = "MSH|^~\\&|SYNTH|LAB|SYNTH|WARD|20260101||ADT^A01|SYN1|P|2.5\rNTE|1||Zörb\r";
     expect(parseHL7(text).toBytes()).toEqual(Buffer.from(text, "utf8"));
@@ -364,6 +369,27 @@ describe("toBytes: refuses a character the set cannot hold", () => {
 
   it("refuses an option on a byte reading whose MSH-18 is blank", () => {
     const bytes = messageBytes("", [0x52, 0xe9, 0x65]);
+    const msg = parseHL7(bytes);
+    expect(msg.warnings.map((w) => w.code)).toContain(WARNING_CODES.UNSUPPORTED_CHARSET);
+    expect(caught(() => msg.toBytes({ charset: "ASCII" })).code).toBe("UNENCODABLE_CHARACTER");
+    expect(msg.toBytes()).toEqual(bytes);
+  });
+
+  it("refuses an option naming MSH-18's set when a disagreeing option governed the read", () => {
+    // Read in CP437 by the option, not in the CP850 that MSH-18 names.
+    const bytes = messageBytes("CP850", [0x52, 0x82, 0x65]);
+    const msg = parseHL7(bytes, { charset: "CP437" });
+    expect(msg.warnings.map((w) => w.code)).toContain(WARNING_CODES.ENCODING_MISMATCH);
+    expect(caught(() => msg.toBytes({ charset: "CP850" })).code).toBe("UNENCODABLE_CHARACTER");
+    expect(msg.toBytes()).toEqual(bytes);
+  });
+
+  it("refuses an ASCII option on a byte reading whose MSH stops before MSH-18", () => {
+    // The ASCII default decodes as strict UTF-8, which 0x82 alone fails.
+    const bytes = Buffer.concat([
+      Buffer.from("MSH|^~\\&|SYNTH|LAB|SYNTH|WARD|20260101||ADT^A01|SYN1|P|2.5\rNTE|1||", "latin1"),
+      Buffer.of(0x52, 0x82, 0x65, 0x0d),
+    ]);
     const msg = parseHL7(bytes);
     expect(msg.warnings.map((w) => w.code)).toContain(WARNING_CODES.UNSUPPORTED_CHARSET);
     expect(caught(() => msg.toBytes({ charset: "ASCII" })).code).toBe("UNENCODABLE_CHARACTER");
