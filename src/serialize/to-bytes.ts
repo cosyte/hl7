@@ -103,12 +103,6 @@ export class Hl7EncodeError extends Error {
   }
 }
 
-/** How a resolved set is written. @internal */
-type Writer =
-  | { readonly kind: "utf-8" }
-  | { readonly kind: "bytes" }
-  | { readonly kind: "table"; readonly table: ReadonlyMap<number, number> };
-
 /** Tables built so far, by decoder label: each is built once, on first use. @internal */
 const tables = new Map<string, ReadonlyMap<number, number>>();
 
@@ -150,8 +144,9 @@ function tableFor(decoder: string): ReadonlyMap<number, number> | undefined {
 }
 
 /**
- * The first repetition of MSH-18 in the emitted text, trimmed, read as the reader reads it off the
- * wire; `undefined` when blank.
+ * The first repetition of MSH-18 in the emitted text, as the reader reads it off the wire;
+ * `undefined` when MSH stops before MSH-18. `resolveCharset` trims it and reads a blank one as the
+ * ASCII default.
  *
  * @internal
  */
@@ -161,8 +156,7 @@ function declaredCharset(text: string, msg: Hl7Message): string | undefined {
   const field = msh.split(enc.field)[17];
   if (field === undefined) return undefined;
   const repetition = field.indexOf(enc.repetition);
-  const first = (repetition === -1 ? field : field.slice(0, repetition)).trim();
-  return first === "" ? undefined : first;
+  return repetition === -1 ? field : field.slice(0, repetition);
 }
 
 /** Whether the reader kept this message's bytes as a latin1 reading and said so. @internal */
@@ -193,21 +187,45 @@ function positionOf(
 
 /**
  * The index of the first lone surrogate in `text`, which UTF-8 cannot hold; -1 when there is none.
+ * Iterating a string by code point yields a lone surrogate as a one-unit string.
  *
  * @internal
  */
 function loneSurrogate(text: string): number {
-  for (let i = 0; i < text.length; i++) {
-    const unit = text.charCodeAt(i);
-    if (unit < 0xd800 || unit > 0xdfff) continue;
-    const next = text.charCodeAt(i + 1);
-    if (unit <= 0xdbff && next >= 0xdc00 && next <= 0xdfff) {
-      i++;
-      continue;
-    }
-    return i;
+  let index = 0;
+  for (const char of text) {
+    const unit = char.charCodeAt(0);
+    if (char.length === 1 && unit >= 0xd800 && unit <= 0xdfff) return index;
+    index += char.length;
   }
   return -1;
+}
+
+/**
+ * `text` one byte per character: ASCII as itself, any other character through `table`, or, with
+ * no table, as the byte of the same value up to 0xFF. Throws for a character with no byte.
+ *
+ * @internal
+ */
+function writeSingleByte(
+  text: string,
+  msg: Hl7Message,
+  shown: string,
+  table: ReadonlyMap<number, number> | undefined,
+): Buffer {
+  const out = Buffer.allocUnsafe(text.length);
+  for (let i = 0; i < text.length; i++) {
+    const unit = text.charCodeAt(i);
+    let byte: number | undefined;
+    if (unit < 0x80) byte = unit;
+    else if (table === undefined) byte = unit <= 0xff ? unit : undefined;
+    else byte = table.get(unit);
+    if (byte === undefined) {
+      throw new Hl7EncodeError("UNENCODABLE_CHARACTER", positionOf(text, i, msg), shown);
+    }
+    out[i] = byte;
+  }
+  return out;
 }
 
 /**
@@ -218,43 +236,22 @@ function loneSurrogate(text: string): number {
  */
 export function emitBytes(msg: Hl7Message, options: ToBytesOptions = {}): Buffer {
   const text = emitMessage(msg);
-  const label = options.charset ?? declaredCharset(text, msg);
-  const resolution = resolveCharset(label);
+  const resolution = resolveCharset(options.charset ?? declaredCharset(text, msg));
   const shown = safeCharsetLabel(resolution.canonical);
-  let writer: Writer;
   if (resolution.treatment === "verbatim" || readAsBytes(msg)) {
-    writer = { kind: "bytes" };
-  } else if (resolution.decoder === "utf-8") {
-    writer = { kind: "utf-8" };
-  } else if (resolution.decoder === "latin1") {
-    writer = { kind: "bytes" };
-  } else {
-    const table = tableFor(resolution.decoder);
-    if (table === undefined) {
-      throw new Hl7EncodeError("UNSUPPORTED_CHARSET", { segmentIndex: 0, fieldIndex: 18 }, shown);
-    }
-    writer = { kind: "table", table };
+    return writeSingleByte(text, msg, shown, undefined);
   }
-
-  if (writer.kind === "utf-8") {
+  if (resolution.decoder === "utf-8") {
     const bad = loneSurrogate(text);
     if (bad !== -1) {
       throw new Hl7EncodeError("UNENCODABLE_CHARACTER", positionOf(text, bad, msg), shown);
     }
     return Buffer.from(text, "utf8");
   }
-
-  const out = Buffer.allocUnsafe(text.length);
-  for (let i = 0; i < text.length; i++) {
-    const unit = text.charCodeAt(i);
-    let byte: number | undefined;
-    if (unit < 0x80) byte = unit;
-    else if (writer.kind === "bytes") byte = unit <= 0xff ? unit : undefined;
-    else byte = writer.table.get(unit);
-    if (byte === undefined) {
-      throw new Hl7EncodeError("UNENCODABLE_CHARACTER", positionOf(text, i, msg), shown);
-    }
-    out[i] = byte;
+  if (resolution.decoder === "latin1") return writeSingleByte(text, msg, shown, undefined);
+  const table = tableFor(resolution.decoder);
+  if (table === undefined) {
+    throw new Hl7EncodeError("UNSUPPORTED_CHARSET", { segmentIndex: 0, fieldIndex: 18 }, shown);
   }
-  return out;
+  return writeSingleByte(text, msg, shown, table);
 }

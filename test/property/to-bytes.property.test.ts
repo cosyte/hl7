@@ -39,13 +39,36 @@ const SINGLE_BYTE_SETS = [
 /** The MSH-18 values written as UTF-8: blank (the ASCII default), ASCII and UTF-8. */
 const UTF8_SETS = ["", "ASCII", "UNICODE UTF-8"] as const;
 
+/**
+ * The strict `TextDecoder` the reader uses for `label`, or `undefined` when it uses none: a set it
+ * reads as latin1 bytes, windows-1252 (its own table), UTF-8, or a set this runtime has no decoder
+ * for (Node.js 22 has none for `8859/16`), which the reader also keeps as a latin1 byte reading.
+ */
+function strictDecoder(label: string): InstanceType<typeof TextDecoder> | undefined {
+  const { treatment, decoder } = resolveCharset(label);
+  if (treatment === "verbatim" || ["latin1", "windows-1252", "utf-8"].includes(decoder)) {
+    return undefined;
+  }
+  try {
+    return new TextDecoder(decoder, { fatal: true });
+  } catch {
+    return undefined;
+  }
+}
+
+/** Whether this runtime lacks the decoder the reader would use for `label`. */
+function decoderMissing(label: string): boolean {
+  const { treatment, decoder } = resolveCharset(label);
+  return (
+    treatment === "decode" &&
+    !["latin1", "windows-1252", "utf-8"].includes(decoder) &&
+    strictDecoder(label) === undefined
+  );
+}
+
 /** The content bytes `label` defines: every byte 0x20 to 0xFF its reader accepts, less delimiters. */
 function contentBytes(label: string): number[] {
-  const { treatment, decoder } = resolveCharset(label);
-  const strict =
-    treatment === "decode" && decoder !== "latin1" && decoder !== "windows-1252"
-      ? new TextDecoder(decoder, { fatal: true })
-      : undefined;
+  const strict = strictDecoder(label);
   const out: number[] = [];
   for (let byte = 0x20; byte <= 0xff; byte++) {
     if (DELIMITERS.has(byte)) continue;
@@ -61,11 +84,10 @@ function contentBytes(label: string): number[] {
 
 /** The text `bytes` stand for in `label`, as the reader decodes them. */
 function textOf(label: string, bytes: Uint8Array): string {
-  const { treatment, decoder } = resolveCharset(label);
-  if (treatment === "verbatim" || decoder === "latin1" || decoder === "utf-8") {
-    return Buffer.from(bytes).toString("latin1");
+  if (resolveCharset(label).decoder === "windows-1252") {
+    return new TextDecoder("windows-1252").decode(bytes);
   }
-  return new TextDecoder(decoder, { fatal: true }).decode(bytes);
+  return strictDecoder(label)?.decode(bytes) ?? Buffer.from(bytes).toString("latin1");
 }
 
 /** A synthetic ADT^A01 declaring `msh18`, with three content fields of raw bytes. */
@@ -144,6 +166,11 @@ describe("toBytes property: a character is written as itself or refused, never r
         } catch (err) {
           expect(err).toBeInstanceOf(Hl7EncodeError);
           const refusal = err as Hl7EncodeError;
+          // A string read in a set this runtime cannot decode has no table to be written with.
+          if (decoderMissing(label)) {
+            expect(refusal.code).toBe("UNSUPPORTED_CHARSET");
+            return;
+          }
           expect(refusal.code).toBe("UNENCODABLE_CHARACTER");
           expect(refusal.position).toEqual({ segmentIndex: 1, fieldIndex: 3 });
           return;

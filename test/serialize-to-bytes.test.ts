@@ -11,7 +11,7 @@
 
 import { Buffer } from "node:buffer";
 
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { Hl7EncodeError, WARNING_CODES, parseHL7 } from "../src/index.js";
 
@@ -44,7 +44,7 @@ function caught(fn: () => unknown): Hl7EncodeError {
 describe("toBytes: a message leaves in the set it declares", () => {
   it("writes an 8859/1 message back byte for byte, where UTF-8 would change it", () => {
     // 0xE9 is e-acute in Latin-1, 0x85 a C1 control the set keeps.
-    const bytes = messageBytes("8859/1", [0x52, 0x65, 0x6e, 0xe9, 0x85, 0x65]);
+    const bytes = messageBytes("8859/1", [0x52, 0x65, 0x6e, 0xe9, 0x85, 0x65, 0xff]);
     const msg = parseHL7(bytes);
     expect(msg.toBytes()).toEqual(bytes);
     expect(Buffer.from(msg.toString(), "utf8")).not.toEqual(bytes);
@@ -80,9 +80,10 @@ describe("toBytes: a message leaves in the set it declares", () => {
 
   it("writes an ISO 8859 set decoded by the parser, 8859/2 here", () => {
     // 0xA3 is L-stroke in 8859/2 and the pound sign in 8859/1.
-    const bytes = messageBytes("8859/2", [0xa3, 0xf3, 0x64, 0xbf]);
+    const bytes = messageBytes("8859/2", [0xa3, 0xf3, 0x64, 0xbf, 0xff]);
     const msg = parseHL7(bytes);
-    expect(msg.get("PID.5.1")).toBe("Łódż");
+    expect(msg.get("PID.5.1")?.codePointAt(0)).toBe(0x0141);
+    expect(msg.get("PID.5.1")?.codePointAt(4)).toBe(0x02d9);
     expect(msg.toBytes()).toEqual(bytes);
   });
 
@@ -111,8 +112,52 @@ describe("toBytes: a message leaves in the set it declares", () => {
   });
 
   it("reads MSH-18's first repetition as the message's set", () => {
-    const text = messageText("8859/1~ISO IR87", "PID|1||SYN123||Renée");
-    expect(parseHL7(text).toBytes().includes(0xe9)).toBe(true);
+    const text = messageText("UNICODE UTF-8~8859/1", "PID|1||SYN123||Renée");
+    expect(parseHL7(text).toBytes()).toEqual(Buffer.from(text, "utf8"));
+  });
+
+  it("reads MSH-18 from MSH only, not from a later segment's eighteenth field", () => {
+    const text =
+      "MSH|^~\\&|SYNTH|LAB|SYNTH|WARD|20260101||ADT^A01|SYN1|P|2.5\r" +
+      "NTE|1||Zörb" +
+      "|".repeat(14) +
+      "8859/1\r";
+    expect(parseHL7(text).toBytes()).toEqual(Buffer.from(text, "utf8"));
+  });
+
+  it("writes an 8859/3 message, a set with bytes it leaves undefined", () => {
+    // 0xA6 is H-circumflex in 8859/3; 0xA5 just before it is undefined there.
+    const bytes = messageBytes("8859/3", [0xa6, 0x41, 0xff]);
+    const msg = parseHL7(bytes);
+    expect(msg.get("PID.5.1")?.codePointAt(0)).toBe(0x0124);
+    expect(msg.toBytes()).toEqual(bytes);
+  });
+
+  it("writes a set kept as a byte reading from a string one byte per character", () => {
+    const msg = parseHL7(messageText("ISO IR87", "NTE|1||Renée"));
+    expect(msg.toBytes()).toEqual(Buffer.from(msg.toString(), "latin1"));
+  });
+
+  it("writes a byte reading back even under a charset option it disagreed with", () => {
+    // The ASCII default decodes as strict UTF-8, which 0xE9 alone fails: the reader warns twice.
+    const bytes = messageBytes("UNICODE UTF-8", [0x52, 0xe9, 0x65]);
+    const msg = parseHL7(bytes, { charset: "ASCII" });
+    expect(msg.warnings.map((w) => w.code)).toEqual(
+      expect.arrayContaining([WARNING_CODES.ENCODING_MISMATCH, WARNING_CODES.UNSUPPORTED_CHARSET]),
+    );
+    expect(msg.toBytes({ charset: "ASCII" })).toEqual(bytes);
+  });
+
+  it("writes an unrecognized label's byte reading back under any charset option", () => {
+    const bytes = messageBytes("CP850", [0x52, 0xe9, 0x65]);
+    expect(parseHL7(bytes).toBytes({ charset: "UNICODE UTF-8" })).toEqual(bytes);
+  });
+
+  it("writes UTF-8 for a message whose only warnings are not about its character set", () => {
+    const text = messageText("UNICODE UTF-8", "NTE|1||Renée");
+    const msg = parseHL7(`\u000b${text}\u001c\r`);
+    expect(msg.warnings.map((w) => w.code)).toContain(WARNING_CODES.MLLP_FRAMING_STRIPPED);
+    expect(msg.toBytes()).toEqual(Buffer.from(text, "utf8"));
   });
 
   it("writes UTF-8 when MSH stops before MSH-18", () => {
@@ -132,7 +177,9 @@ describe("toBytes: a message leaves in the set it declares", () => {
 
 describe("toBytes: refuses a character the set cannot hold", () => {
   it("refuses the euro sign in 8859/1 and names where it is, not what it is", () => {
-    const msg = parseHL7(messageText("8859/1", "NTE|1||Price€note"));
+    // MSH ends in an empty MSH-19, so the field count starts after a separator.
+    const msg = parseHL7(messageText("8859/1|", "NTE|1||Price€note"));
+    expect(msg.toString().split("\r")[0]?.endsWith("|")).toBe(true);
     const err = caught(() => msg.toBytes());
     expect(err.code).toBe("UNENCODABLE_CHARACTER");
     expect(err.charset).toBe("8859/1");
@@ -168,6 +215,7 @@ describe("toBytes: refuses a character the set cannot hold", () => {
 
   it.each([
     ["a low surrogate alone", "A\udc00B"],
+    ["the last low surrogate alone", "A\udfffB"],
     ["a high surrogate before a non-surrogate", "A\ud800A"],
     ["a high surrogate at the end of a field", "AB\ud800"],
   ])("refuses %s in UTF-8", (_name, value) => {
@@ -177,7 +225,9 @@ describe("toBytes: refuses a character the set cannot hold", () => {
 
   it("refuses a character above U+00FF in a set kept as a byte reading", () => {
     const msg = parseHL7(messageText("ISO IR87", "NTE|1||山"));
-    expect(caught(() => msg.toBytes()).charset).toBe("ISO IR87");
+    const err = caught(() => msg.toBytes());
+    expect(err.code).toBe("UNENCODABLE_CHARACTER");
+    expect(err.charset).toBe("ISO IR87");
   });
 
   it("withholds an unrecognized label from the error", () => {
@@ -187,29 +237,13 @@ describe("toBytes: refuses a character the set cannot hold", () => {
     expect(err.message).not.toContain("SYNTH-SET");
   });
 
+  it("refuses the replacement character in a set that has no byte for it", () => {
+    const msg = parseHL7(messageText("8859/3", "NTE|1||A�B"));
+    expect(caught(() => msg.toBytes()).code).toBe("UNENCODABLE_CHARACTER");
+  });
+
   it("refuses the option's set too", () => {
     const msg = parseHL7(messageText("", "NTE|1||Ł"));
     expect(caught(() => msg.toBytes({ charset: "8859/1" })).charset).toBe("8859/1");
-  });
-});
-
-describe("toBytes: a runtime without the set's decoder", () => {
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
-  it("refuses with UNSUPPORTED_CHARSET rather than guessing", () => {
-    vi.stubGlobal(
-      "TextDecoder",
-      class {
-        public constructor() {
-          throw new RangeError("no such encoding");
-        }
-      },
-    );
-    const msg = parseHL7(messageText("8859/16", "NTE|1||Ł"));
-    const err = caught(() => msg.toBytes());
-    expect(err.code).toBe("UNSUPPORTED_CHARSET");
-    expect(err.position).toEqual({ segmentIndex: 0, fieldIndex: 18 });
   });
 });
