@@ -12,7 +12,7 @@
  */
 
 import fc from "fast-check";
-import { checkProperty } from "../_helpers/property.js";
+import { checkProperty, propertyTimeout } from "../_helpers/property.js";
 import { describe, expect, it } from "vitest";
 
 import { hostileInput, message, messageText } from "../../src/arbitraries/index.js";
@@ -26,9 +26,11 @@ const RUN_CONFIG = { numRuns: 200 } as const;
 
 /**
  * Each case parses every input six times and reads every field of every segment four times, which
- * under coverage instrumentation takes longer than the suite's 10 s default.
+ * under coverage instrumentation takes longer than the suite's 10 s default. The budget is for
+ * this file's own 200 cases and scales with the depth, so the nightly 10,000 is not cut off by it:
+ * a timeout prints no seed to replay.
  */
-const BUDGET = { timeout: 60_000 } as const;
+const BUDGET = { timeout: propertyTimeout(60_000, process.env, RUN_CONFIG.numRuns) } as const;
 
 const MODES: readonly ParseOptions[] = [{}, { trimFields: false }, { strict: true }];
 
