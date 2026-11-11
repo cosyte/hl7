@@ -12,11 +12,14 @@
  */
 
 import fc from "fast-check";
+import { checkProperty } from "../_helpers/property.js";
 import { describe, expect, it } from "vitest";
 
 import { parseHL7, type ResultStatusClass } from "../../src/index.js";
 
-const RUN_CONFIG = { numRuns: 2000, seed: 0x0085_0123 } as const;
+// The pull-request depth this file ran at before the shared runner, kept; the nightly run's
+// COSYTE_PROPERTY_RUNS wins over it (property-depth: kept, not lowered).
+const RUN_CONFIG = { numRuns: 2000 } as const;
 
 const MSH = "MSH|^~\\&|APP|FAC|||20250102||ORU^R01|1|P|2.5";
 const PID = "PID|||X";
@@ -124,7 +127,7 @@ function wireMessage(status: string): string {
 
 describe("property: AC-7 final only for exactly F, undetermined outside the mapped codes", () => {
   it("AC-7: any string on the wire as OBX-11", () => {
-    fc.assert(
+    checkProperty(
       fc.property(wireString, (s) => {
         const classification = parseHL7(wireMessage(s)).observations()[0]?.resultStatus
           .classification;
@@ -135,7 +138,7 @@ describe("property: AC-7 final only for exactly F, undetermined outside the mapp
   });
 
   it("AC-7: any string on the wire as OBR-25", () => {
-    fc.assert(
+    checkProperty(
       fc.property(wireString, (s) => {
         const classification = parseHL7(wireMessage(s)).orders()[0]?.resultStatus.classification;
         expectOracle(s, classification, ORDER_MAPPED);
@@ -145,7 +148,7 @@ describe("property: AC-7 final only for exactly F, undetermined outside the mapp
   });
 
   it("AC-7: any string set as the value of OBX-11 and of OBR-25", () => {
-    fc.assert(
+    checkProperty(
       fc.property(suppliedString, (s) => {
         const msg = parseHL7(wireMessage("P")).setField("OBX.11", s).setField("OBR.25", s);
         expectOracle(s, msg.observations()[0]?.resultStatus.classification, OBSERVATION_MAPPED);

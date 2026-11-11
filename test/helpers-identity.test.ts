@@ -27,6 +27,7 @@ import type { IdentityEvent, IdentityEventKind } from "../src/index.js";
 import { parseHL7, WARNING_CODES } from "../src/index.js";
 
 import { assertStructuralRoundTrip } from "./_helpers/structural-equivalence.js";
+import { checkProperty } from "./_helpers/property.js";
 
 const FIXTURE_DIR = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -484,7 +485,7 @@ describe("Phase K: role-labelling invariant (property)", () => {
     );
     const versionArb = fc.constantFrom("2.3", "2.5", "2.5.1", "2.7", "2.8", "");
 
-    fc.assert(
+    checkProperty(
       fc.property(
         triggerArb,
         versionArb,
@@ -525,6 +526,7 @@ describe("Phase K: role-labelling invariant (property)", () => {
           }
         },
       ),
+      // property-depth: 300 cases on a pull request, as this test ran before the shared runner.
       { numRuns: 300 },
     );
   });

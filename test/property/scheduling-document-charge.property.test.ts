@@ -16,10 +16,13 @@
 
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
+import { checkProperty } from "../_helpers/property.js";
 
 import { parseHL7 } from "../../src/index.js";
 
-const RUN_CONFIG = { numRuns: 500, seed: 0x0e_5e_2026 } as const;
+// The pull-request depth this file ran at before the shared runner, kept; the nightly run's
+// COSYTE_PROPERTY_RUNS wins over it (property-depth: kept, not lowered).
+const RUN_CONFIG = { numRuns: 500 } as const;
 
 const MSH = "MSH|^~\\&|APP|FAC|||20250102||SIU^S12|1|T|2.5.1\r";
 const PID = "PID|||X\r";
@@ -37,7 +40,7 @@ function seg(name: string, fields: Record<number, string>, max: number): string 
 
 describe("property: Phase Q helpers never throw (HELPERS-07)", () => {
   it("appointments() tolerates arbitrary SCH + AI* content", () => {
-    fc.assert(
+    checkProperty(
       fc.property(junkArb, junkArb, junkArb, (s1, s25, ais3) => {
         const raw = `${MSH}${PID}${seg("SCH", { 1: s1, 25: s25 }, 25)}\rAIS|1||${ais3}\r`;
         expect(() => {
@@ -51,7 +54,7 @@ describe("property: Phase Q helpers never throw (HELPERS-07)", () => {
   });
 
   it("documents() tolerates arbitrary TXA content", () => {
-    fc.assert(
+    checkProperty(
       fc.property(junkArb, junkArb, junkArb, (t2, t17, t19) => {
         const raw = `${MSH}${PID}${seg("TXA", { 2: t2, 17: t17, 19: t19 }, 19)}\r`;
         expect(() => {
@@ -65,7 +68,7 @@ describe("property: Phase Q helpers never throw (HELPERS-07)", () => {
   });
 
   it("charges() tolerates arbitrary FT1 content", () => {
-    fc.assert(
+    checkProperty(
       fc.property(junkArb, junkArb, junkArb, (f6, f7, f11) => {
         const raw = `${MSH}${PID}${seg("FT1", { 1: "1", 6: f6, 7: f7, 11: f11 }, 19)}\r`;
         expect(() => {
@@ -81,7 +84,7 @@ describe("property: Phase Q helpers never throw (HELPERS-07)", () => {
 
 describe("property: TXA-17 completion and TXA-19 availability are never conflated", () => {
   it("distinct tokens land on their own axis, never swapped or merged", () => {
-    fc.assert(
+    checkProperty(
       fc.property(idArb, idArb, (completion, availability) => {
         const raw = `${MSH}${PID}${seg("TXA", { 1: "1", 17: completion, 19: availability }, 19)}\r`;
         const doc = parseHL7(raw).documents()[0];
@@ -95,7 +98,7 @@ describe("property: TXA-17 completion and TXA-19 availability are never conflate
   });
 
   it("completion present + availability absent never borrows the completion value", () => {
-    fc.assert(
+    checkProperty(
       fc.property(idArb, (completion) => {
         const raw = `${MSH}${PID}${seg("TXA", { 1: "1", 17: completion }, 17)}\r`;
         const doc = parseHL7(raw).documents()[0];
@@ -109,7 +112,7 @@ describe("property: TXA-17 completion and TXA-19 availability are never conflate
 
 describe("property: SCH-25 filler status is surfaced verbatim", () => {
   it("any identifier-shaped SCH-25 token round-trips onto fillerStatusCode.identifier", () => {
-    fc.assert(
+    checkProperty(
       fc.property(idArb, (status) => {
         const raw = `${MSH}${PID}${seg("SCH", { 1: "A", 25: status }, 25)}\r`;
         const appt = parseHL7(raw).appointments()[0];
@@ -122,7 +125,7 @@ describe("property: SCH-25 filler status is surfaced verbatim", () => {
 
 describe("property: FT1 amounts are always strings, never money-as-float", () => {
   it("a numeric price wire value is preserved exactly, as a string", () => {
-    fc.assert(
+    checkProperty(
       fc.property(fc.stringMatching(/^[0-9]{1,6}(\.[0-9]{1,4})?$/u), (price) => {
         const raw = `${MSH}${PID}${seg("FT1", { 1: "1", 6: "CG", 11: price, 12: price }, 12)}\r`;
         const charge = parseHL7(raw).charges()[0];

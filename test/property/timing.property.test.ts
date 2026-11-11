@@ -15,10 +15,13 @@
 
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
+import { checkProperty } from "../_helpers/property.js";
 
 import { parseHL7 } from "../../src/index.js";
 
-const RUN_CONFIG = { numRuns: 500, seed: 0x0d_5e_2027 } as const;
+// The pull-request depth this file ran at before the shared runner, kept; the nightly run's
+// COSYTE_PROPERTY_RUNS wins over it (property-depth: kept, not lowered).
+const RUN_CONFIG = { numRuns: 500 } as const;
 
 const MSH = "MSH|^~\\&|APP|FAC|||20250102||ORM^O01|1|P|2.5\r";
 const PID = "PID|||X\r";
@@ -40,7 +43,7 @@ const unitArb = fc.constantFrom("S", "M", "H", "D", "W", "L");
 
 describe("property: timing extractors never throw (HELPERS-07)", () => {
   it("tolerates arbitrary TQ1 field content", () => {
-    fc.assert(
+    checkProperty(
       fc.property(junkArb, junkArb, junkArb, junkArb, (f2, f3, f7, f14) => {
         const seg = tq1({ 1: "1", 2: f2, 3: f3, 7: f7, 14: f14 });
         expect(() => {
@@ -55,7 +58,7 @@ describe("property: timing extractors never throw (HELPERS-07)", () => {
 
 describe("property: repeat pattern surfaced as the decoded field value (never normalized)", () => {
   it("the authored TQ1-3 code always round-trips into repeatPattern.code", () => {
-    fc.assert(
+    checkProperty(
       fc.property(codeArb, (code) => {
         const raw = `${MSH}${PID}TQ1|1||${code}\rOBR|1|A|B|X^^L\r`;
         const t = parseHL7(raw).orders()[0]?.timings[0];
@@ -68,7 +71,7 @@ describe("property: repeat pattern surfaced as the decoded field value (never no
 
 describe("property: parametric Q<n><unit> integer is never dropped", () => {
   it("interval.count equals the authored integer and the code is verbatim", () => {
-    fc.assert(
+    checkProperty(
       fc.property(countArb, unitArb, (count, unit) => {
         const code = `Q${String(count)}${unit}`;
         const raw = `${MSH}${PID}TQ1|1||${code}\rOBR|1|A|B|X^^L\r`;
@@ -84,7 +87,7 @@ describe("property: parametric Q<n><unit> integer is never dropped", () => {
 
 describe("property: total occurrences is TQ1-14, not TQ1-11", () => {
   it("a numeric TQ1-14 surfaces as totalOccurrences regardless of TQ1-11 text", () => {
-    fc.assert(
+    checkProperty(
       fc.property(fc.integer({ min: 0, max: 999 }), junkArb, (total, instruction) => {
         // TQ1-11 (Text Instruction) carries junk; TQ1-14 carries the count.
         const seg = tq1({ 1: "1", 3: "Q6H", 11: instruction, 14: String(total) });

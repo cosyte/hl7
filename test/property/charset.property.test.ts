@@ -15,11 +15,14 @@
 
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
+import { checkProperty } from "../_helpers/property.js";
 import { Buffer } from "node:buffer";
 
 import { parseHL7, WARNING_CODES } from "../../src/index.js";
 
-const RUN_CONFIG = { numRuns: 300, seed: 0x07_05_2026 } as const;
+// The pull-request depth this file ran at before the shared runner, kept; the nightly run's
+// COSYTE_PROPERTY_RUNS wins over it (property-depth: kept, not lowered).
+const RUN_CONFIG = { numRuns: 300 } as const;
 
 /**
  * Field-content byte payload: the FULL 0x20 to 0xFF range: **including the C1
@@ -52,7 +55,7 @@ function messageBuffer(msh18: string, name: Buffer): Buffer {
 
 describe("charset property: decodable 8859/1 never mojibakes", () => {
   it("reproduces the exact Latin-1 code points, no replacement chars", () => {
-    fc.assert(
+    checkProperty(
       fc.property(nameBytes, (name) => {
         const msg = parseHL7(messageBuffer("8859/1", name), { trimFields: false });
         const got = msg.get("PID.5.1") ?? "";
@@ -69,7 +72,7 @@ describe("charset property: undecoded set preserves bytes reversibly + warns onc
     ["ISO IR87", WARNING_CODES.UNSUPPORTED_CHARSET],
     ["COBOL-EBCDIC", WARNING_CODES.UNKNOWN_CHARSET],
   ])("%s → bytes re-encode identically and exactly one %s fires", (msh18, expectedCode) => {
-    fc.assert(
+    checkProperty(
       fc.property(nameBytes, (name) => {
         const msg = parseHL7(messageBuffer(msh18, name), { trimFields: false });
         const got = msg.get("PID.5.1") ?? "";

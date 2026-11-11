@@ -1,6 +1,14 @@
 import { fileURLToPath } from "node:url";
 
+import { DEFAULT_NUM_RUNS, resolvePropertyRun } from "@cosyte/test-utils";
 import { cosyteVitest } from "@cosyte/vitest-config";
+
+/**
+ * How many times deeper than a pull request this run takes every property: 1 by default, 100 when
+ * the nightly job sets `COSYTE_PROPERTY_RUNS` to 10,000. A value that is not a whole number of
+ * cases throws here, before any test runs.
+ */
+const propertyDepth = Math.max(1, resolvePropertyRun({}).numRuns / DEFAULT_NUM_RUNS);
 
 /**
  * Vitest config for @cosyte/hl7 from the shared @cosyte/vitest-config standard.
@@ -34,8 +42,10 @@ const config = cosyteVitest({
     include: ["test/**/*.test.ts", "src/**/*.test.ts"],
     // The suite has run against a 10 s ceiling, not Vitest's 5 s default, since this config was
     // first written, and many cases spawn `tsx`, `pnpm` or `node`. Lowering it is a measured change
-    // of its own; a case that needs more declares its own budget next to its work.
-    testTimeout: 10_000,
+    // of its own; a case that needs more declares its own budget next to its work. A deeper property
+    // run scales the ceiling with its depth, so the nightly run is not cut off by a budget set for
+    // 100 cases; `propertyTimeout` in `test/_helpers/property.ts` does the same for a case's own.
+    testTimeout: 10_000 * propertyDepth,
   },
 });
 

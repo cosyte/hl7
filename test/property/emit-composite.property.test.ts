@@ -14,6 +14,7 @@
 
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
+import { checkProperty } from "../_helpers/property.js";
 
 import {
   buildMessage,
@@ -89,7 +90,7 @@ describe("Phase T property: emit ∘ parse identity", () => {
       prefix: optLeaf(),
       nameTypeCode: optLeaf(),
     });
-    fc.assert(
+    checkProperty(
       fc.property(arb, (v) => {
         expect(parseXpn(roundTripField(encodeXpn(v)), ENC)).toEqual(v);
       }),
@@ -105,7 +106,7 @@ describe("Phase T property: emit ∘ parse identity", () => {
       zipOrPostalCode: optLeaf(),
       country: optLeaf(),
     });
-    fc.assert(
+    checkProperty(
       fc.property(arb, (v) => {
         expect(parseXad(roundTripField(encodeXad(v)), ENC)).toEqual(v);
       }),
@@ -120,7 +121,7 @@ describe("Phase T property: emit ∘ parse identity", () => {
       identifierTypeCode: optLeaf(),
       assigningFacility: optLeaf(),
     });
-    fc.assert(
+    checkProperty(
       fc.property(arb, (v) => {
         expect(parseCx(roundTripField(encodeCx(v)), ENC)).toEqual(v);
       }),
@@ -137,7 +138,7 @@ describe("Phase T property: emit ∘ parse identity", () => {
       nameOfAlternateCodingSystem: optLeaf(),
       originalText: optLeaf(),
     });
-    fc.assert(
+    checkProperty(
       fc.property(arb, (v) => {
         expect(parseCwe(roundTripField(encodeCwe(v)), ENC)).toEqual(v);
       }),
@@ -151,7 +152,7 @@ describe("Phase T property: emit ∘ parse identity", () => {
       nameOfCodingSystem: optLeaf(),
       alternateIdentifier: optLeaf(),
     });
-    fc.assert(
+    checkProperty(
       fc.property(arb, (v) => {
         expect(parseCe(roundTripField(encodeCe(v)), ENC)).toEqual(v);
       }),
@@ -165,7 +166,7 @@ describe("Phase T property: emit ∘ parse identity", () => {
       telecommunicationEquipmentType: optLeaf(),
       emailAddress: optLeaf(),
     });
-    fc.assert(
+    checkProperty(
       fc.property(arb, (v) => {
         expect(parseXtn(roundTripField(encodeXtn(v)), ENC)).toEqual(v);
       }),
@@ -180,7 +181,7 @@ describe("Phase T property: emit ∘ parse identity", () => {
       facility: optHd(),
       personLocationType: optLeaf(),
     });
-    fc.assert(
+    checkProperty(
       fc.property(arb, (v) => {
         expect(parsePl(roundTripField(encodePl(v)), ENC)).toEqual(v);
       }),
@@ -193,7 +194,7 @@ describe("Phase T property: emit ∘ parse identity", () => {
       universalId: optLeaf(),
       universalIdType: optLeaf(),
     });
-    fc.assert(
+    checkProperty(
       fc.property(arb, (v) => {
         expect(parseHd(roundTripField(encodeHd(v)), ENC)).toEqual(v);
       }),
@@ -209,7 +210,7 @@ describe("Phase T property: emit ∘ parse identity", () => {
       nameTypeCode: optLeaf(),
       identifierTypeCode: optLeaf(),
     });
-    fc.assert(
+    checkProperty(
       fc.property(arb, (v) => {
         expect(parseXcn(roundTripField(encodeXcn(v)), ENC)).toEqual(v);
       }),
@@ -219,7 +220,7 @@ describe("Phase T property: emit ∘ parse identity", () => {
 
 describe("Phase T property: no delimiter injection", () => {
   it("a delimiter-laden XPN never forges a component boundary", () => {
-    fc.assert(
+    checkProperty(
       fc.property(leafValue(), leafValue(), (family, given) => {
         const rep = roundTripField(encodeXpn({ familyName: family, givenName: given }));
         const xpn = parseXpn(rep, ENC);

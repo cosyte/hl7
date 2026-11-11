@@ -15,10 +15,13 @@
 
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
+import { checkProperty } from "../_helpers/property.js";
 
 import { parseHL7 } from "../../src/index.js";
 
-const RUN_CONFIG = { numRuns: 500, seed: 0x0d_5e_2026 } as const;
+// The pull-request depth this file ran at before the shared runner, kept; the nightly run's
+// COSYTE_PROPERTY_RUNS wins over it (property-depth: kept, not lowered).
+const RUN_CONFIG = { numRuns: 500 } as const;
 
 const MSH = "MSH|^~\\&|APP|FAC|||20250102||RDE^O11|1|P|2.5\r";
 
@@ -34,7 +37,7 @@ const rxTypeArb = fc.constantFrom("RXO", "RXE", "RXD", "RXA");
 
 describe("property: medications() never throws (HELPERS-07)", () => {
   it("tolerates arbitrary RX* field content across all four contexts", () => {
-    fc.assert(
+    checkProperty(
       fc.property(rxTypeArb, junkArb, junkArb, junkArb, junkArb, (rxType, f1, f2, f3, f4) => {
         const seg = `${rxType}|${f1}|${f2}|${f3}|${f4}`;
         expect(() => {
@@ -50,7 +53,7 @@ describe("property: medications() never throws (HELPERS-07)", () => {
 
 describe("property: well-formed give code + amount project verbatim", () => {
   it("RXO give code (identifier + provenance) and min amount survive", () => {
-    fc.assert(
+    checkProperty(
       fc.property(idArb, fc.constantFrom("RXN", "NDC"), numArb, (code, system, amount) => {
         const seg = `RXO|${code}^Drug^${system}|${String(amount)}||mg^^UCUM`;
         const m = parseHL7(`${MSH}PID|||X\r${seg}\r`).medications()[0];
@@ -66,7 +69,7 @@ describe("property: well-formed give code + amount project verbatim", () => {
 
 describe("property: amount and strength are independent (Phase D §4)", () => {
   it("an explicit RXE-25 strength survives unchanged for any give amount", () => {
-    fc.assert(
+    checkProperty(
       fc.property(numArb, numArb, (giveAmount, strength) => {
         // Build RXE by 1-indexed field position so RXE-25/26 land exactly.
         const fields: Record<number, string> = {

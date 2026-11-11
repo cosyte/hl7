@@ -12,6 +12,7 @@
 
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
+import { checkProperty } from "../_helpers/property.js";
 
 import {
   buildMessage,
@@ -160,7 +161,7 @@ function roundTrips<V>(
   encode: (v: V) => RawField,
   parse: (rep: RawRepetition, enc: typeof ENC) => unknown,
 ): void {
-  fc.assert(
+  checkProperty(
     fc.property(arb, (v) => {
       expect(parse(roundTrip(encode(v)), ENC)).toStrictEqual(v);
     }),
@@ -207,7 +208,7 @@ describe("property: the common data types round-trip through the serializer", ()
   });
 
   it("CWE components 10 to 22 by name", () => {
-    fc.assert(
+    checkProperty(
       fc.property(coded(), (v) => {
         const back = parseCwe(roundTrip(encodeCwe(v)), ENC);
         const { extraComponents: _extras, ...named } = back;

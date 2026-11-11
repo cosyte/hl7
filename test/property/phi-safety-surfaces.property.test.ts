@@ -39,11 +39,13 @@
 
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
+import { checkProperty } from "../_helpers/property.js";
 
 import { FATAL_CODES, Hl7ParseError, parseHL7 } from "../../src/index.js";
 
-/** Stable seed + run budget so failures reproduce deterministically. */
-const RUN_CONFIG = { numRuns: 300, seed: 0x07_09_2026 } as const;
+// The pull-request depth this file ran at before the shared runner, kept; the nightly run's
+// COSYTE_PROPERTY_RUNS wins over it (property-depth: kept, not lowered).
+const RUN_CONFIG = { numRuns: 300 } as const;
 
 /** Same bound as `phi-safety.property.test.ts`: 40 raw chars + 1 ellipsis. */
 const SNIPPET_BOUND = 41;
@@ -79,7 +81,7 @@ function assertMessageNeverEchoesMarker(err: Hl7ParseError, marker: string): voi
 
 describe("PHI-exec: NO_MSH_SEGMENT fatal message never echoes field values", () => {
   it("property: PHI-shaped content instead of MSH still yields a structural-only message", () => {
-    fc.assert(
+    checkProperty(
       fc.property(markerArb, (marker) => {
         // First segment does NOT start with "MSH": NO_MSH_SEGMENT fires.
         // The marker sits where a naive implementation might echo "the
@@ -103,7 +105,7 @@ describe("PHI-exec: NO_MSH_SEGMENT fatal message never echoes field values", () 
 
 describe("PHI-exec: MSH_TOO_SHORT fatal message never echoes field values", () => {
   it("property: a truncated MSH containing PHI-shaped content still yields a structural-only message", () => {
-    fc.assert(
+    checkProperty(
       fc.property(markerArb, (marker) => {
         // "MSH" + a short PHI-shaped fragment, kept under the 8-char floor.
         const raw = "MSH" + marker.slice(0, 3);
@@ -125,7 +127,7 @@ describe("PHI-exec: MSH_TOO_SHORT fatal message never echoes field values", () =
 
 describe("PHI-exec: INVALID_ENCODING_CHARACTERS fatal message never echoes field values", () => {
   it("property: PHI-shaped content used as (invalid) encoding characters yields a count-only message, not the values", () => {
-    fc.assert(
+    checkProperty(
       fc.property(markerArb, (marker) => {
         // MSH-2 built from marker chars (deduped, non-whitespace) so the
         // "wrong char count" branch fires with PHI-shaped content sitting
@@ -201,7 +203,7 @@ describe("PHI-exec: documented snippet contract: bounded, not value-free (errors
   it("property: fatal snippets on PHI-shaped adversarial input stay within the documented 41-char bound", () => {
     // This is the ACTUAL contract: snippet may carry PHI, bounded in length.
     // We assert the bound (what's promised), not absence (what's NOT promised).
-    fc.assert(
+    checkProperty(
       fc.property(fc.array(markerArb, { minLength: 1, maxLength: 4 }), (markers) => {
         const raw = markers.join("|") + "X".repeat(50);
         try {
@@ -226,7 +228,7 @@ describe("PHI-exec: documented snippet contract: bounded, not value-free (errors
     // `.stack` is asserted separately from `.message` on purpose: most error
     // reporters ship the stack to a third-party service, so a leak that only
     // reaches `.stack` is still a leak off the box.
-    fc.assert(
+    checkProperty(
       fc.property(markerArb, (marker) => {
         const raw = [
           "MSH|^~\\&|SENDAPP|SENDFAC|RECVAPP|RECVFAC|20250101||ORU^R01|CTRL1|P|2.5",
@@ -261,7 +263,7 @@ describe("PHI-exec: documented snippet contract: bounded, not value-free (errors
     // content sits in a field that trips a warning (unknown Z-segment),
     // well past the 41-char bound, to prove `buildSnippet`'s 80-char
     // pre-slice still collapses to the same documented final bound.
-    fc.assert(
+    checkProperty(
       fc.property(markerArb, (marker) => {
         const raw =
           "MSH|^~\\&|SENDAPP|SENDFAC|RECVAPP|RECVFAC|20250101||ADT^A01|CTRL1|P|2.5\r" +

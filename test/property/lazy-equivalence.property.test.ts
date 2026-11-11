@@ -12,6 +12,7 @@
  */
 
 import fc from "fast-check";
+import { checkProperty, propertyTimeout } from "../_helpers/property.js";
 import { describe, expect, it } from "vitest";
 
 import { hostileInput, message, messageText } from "../../src/arbitraries/index.js";
@@ -19,13 +20,17 @@ import { parseHL7 } from "../../src/index.js";
 import type { Hl7Message, Hl7ParseWarning, ParseOptions } from "../../src/index.js";
 import { fieldArrivedAltered } from "../../src/parser/wire-fidelity.js";
 
-const RUN_CONFIG = { numRuns: 200, seed: 0x1a2e_2026 } as const;
+// The pull-request depth this file ran at before the shared runner, kept; the nightly run's
+// COSYTE_PROPERTY_RUNS wins over it (property-depth: kept, not lowered).
+const RUN_CONFIG = { numRuns: 200 } as const;
 
 /**
  * Each case parses every input six times and reads every field of every segment four times, which
- * under coverage instrumentation takes longer than the suite's 10 s default.
+ * under coverage instrumentation takes longer than the suite's 10 s default. The budget is for
+ * this file's own 200 cases and scales with the depth, so the nightly 10,000 is not cut off by it:
+ * a timeout prints no seed to replay.
  */
-const BUDGET = { timeout: 60_000 } as const;
+const BUDGET = { timeout: propertyTimeout(60_000, process.env, RUN_CONFIG.numRuns) } as const;
 
 const MODES: readonly ParseOptions[] = [{}, { trimFields: false }, { strict: true }];
 
@@ -107,22 +112,22 @@ const KEYS = fc.array(fc.integer(), { minLength: 1, maxLength: 16 });
 
 describe("property: a lazy parse and an eager parse agree", () => {
   it("on generated message text, quirks included", BUDGET, () => {
-    fc.assert(fc.property(messageText(), KEYS, agree), RUN_CONFIG);
+    checkProperty(fc.property(messageText(), KEYS, agree), RUN_CONFIG);
   });
 
   it("on hostile input, strings and buffers", BUDGET, () => {
-    fc.assert(fc.property(hostileInput(), KEYS, agree), RUN_CONFIG);
+    checkProperty(fc.property(hostileInput(), KEYS, agree), RUN_CONFIG);
   });
 
   it("on messages full of escapes, written out and read back", BUDGET, () => {
-    fc.assert(
+    checkProperty(
       fc.property(message({ escapes: true }), KEYS, (msg, keys) => agree(msg.toString(), keys)),
       RUN_CONFIG,
     );
   });
 
   it("on edits: the same edits give the same message", BUDGET, () => {
-    fc.assert(
+    checkProperty(
       fc.property(messageText(), fc.string({ maxLength: 8 }), (text, value) => {
         const eager = parse(text, {}, false);
         const lazy = parse(text, {}, true);

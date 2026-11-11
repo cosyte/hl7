@@ -13,11 +13,14 @@
  */
 
 import fc from "fast-check";
+import { checkProperty } from "../_helpers/property.js";
 import { describe, expect, it } from "vitest";
 
 import { codingSystem, parseHL7, type CWE, type Immunization } from "../../src/index.js";
 
-const RUN_CONFIG = { numRuns: 2000, seed: 0x0322_0323 } as const;
+// The pull-request depth this file ran at before the shared runner, kept; the nightly run's
+// COSYTE_PROPERTY_RUNS wins over it (property-depth: kept, not lowered).
+const RUN_CONFIG = { numRuns: 2000 } as const;
 
 const MSH = "MSH|^~\\&|APP|FAC|IIS|FAC|20260801||VXU^V04|1|P|2.5.1";
 const PID = "PID|||X";
@@ -159,7 +162,7 @@ function wireMessage(s5: string, sys: string, s20: string, s21: string): string 
 
 describe("property: AC-13 completed only when every rule allows it, and D always delete-requested", () => {
   it("AC-13: any strings on the wire as RXA-20, RXA-21 and RXA-5 component 1", () => {
-    fc.assert(
+    checkProperty(
       fc.property(
         rxa5.filter(onTheWire),
         system,
@@ -175,7 +178,7 @@ describe("property: AC-13 completed only when every rule allows it, and D always
   });
 
   it("AC-13: any strings set as the values of RXA-20, RXA-21 and RXA-5 component 1", () => {
-    fc.assert(
+    checkProperty(
       fc.property(rxa5, system, rxa20, rxa21, (s5, sys, s20, s21) => {
         const msg = parseHL7(wireMessage("115", sys, "CP", ""))
           .setField("RXA.20", s20)

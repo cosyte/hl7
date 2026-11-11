@@ -89,6 +89,17 @@ false signal:
   whitespace, not part of the message (`parseHL7` likewise strips a single
   trailing CR); interior empty segments are preserved, so each message's `raw`
   re-parses to exactly the segments the entry reports.
+- **A line of only whitespace between messages** is skipped, from bytes as from
+  text. A line of bytes is whitespace when it is whitespace read one byte to one
+  character or read as UTF-8, so a line holding only a byte order mark or a
+  no-break space is skipped from a `Buffer` just as it is from the same string.
+  `parseStream` and `readMessages` skip the same lines.
+- **A leading byte order mark** is stripped: the character U+FEFF from a
+  string, the bytes EF BB BF from a `Buffer`. In a string, the three characters
+  U+00EF U+00BB U+00BF (those bytes read one byte to one character) are text,
+  as `parseHL7` and `readMessages` read them, so they are not stripped: pass
+  the bytes, not a string decoded from them that way. `parseStream` does the
+  same.
 - **A missing _trailer_ warns** (`BATCH_MISSING_TRAILER`) because content after a
   truncation point may be lost; a missing _header_ does **not** warn: nothing is
   lost by a `BTS`/`FTS` that closes an un-opened scope.

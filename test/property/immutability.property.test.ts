@@ -22,17 +22,19 @@
 
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
+import { checkProperty } from "../_helpers/property.js";
 
 import { type Hl7ParseWarning, parseHL7 } from "../../src/index.js";
 
 import { specCleanMessageRaw, safeValue } from "./_arbitraries.js";
 
-/** Stable seed + run budget so failures reproduce deterministically. */
-const RUN_CONFIG = { numRuns: 300, seed: 20_260_625 } as const;
+// The pull-request depth this file ran at before the shared runner, kept; the nightly run's
+// COSYTE_PROPERTY_RUNS wins over it (property-depth: kept, not lowered).
+const RUN_CONFIG = { numRuns: 300 } as const;
 
 describe("property: parsed model immutability", () => {
   it("warnings array is frozen and identity-stable across a mutation", () => {
-    fc.assert(
+    checkProperty(
       fc.property(specCleanMessageRaw(), safeValue(), (raw, value) => {
         const msg = parseHL7(raw);
         const warningsRef = msg.warnings;
@@ -47,7 +49,7 @@ describe("property: parsed model immutability", () => {
   });
 
   it("segment/allSegments caches are rebuilt (new identity) after setField", () => {
-    fc.assert(
+    checkProperty(
       fc.property(specCleanMessageRaw(), safeValue(), (raw, value) => {
         const msg = parseHL7(raw);
         const beforeAll = msg.allSegments();
@@ -64,7 +66,7 @@ describe("property: parsed model immutability", () => {
   });
 
   it("two independent parses of the same bytes do not share a mutable tree", () => {
-    fc.assert(
+    checkProperty(
       fc.property(specCleanMessageRaw(), safeValue(), (raw, value) => {
         const a = parseHL7(raw);
         const b = parseHL7(raw);
@@ -79,7 +81,7 @@ describe("property: parsed model immutability", () => {
   });
 
   it("a Field wrapper captured before setField is not retroactively mutated", () => {
-    fc.assert(
+    checkProperty(
       fc.property(specCleanMessageRaw(), safeValue(), (raw, value) => {
         const msg = parseHL7(raw);
         const mshBefore = msg.segments("MSH")[0];
@@ -99,7 +101,7 @@ describe("property: parsed model immutability", () => {
   });
 
   it("toString() is a pure read: no mutation of the message", () => {
-    fc.assert(
+    checkProperty(
       fc.property(specCleanMessageRaw(), (raw) => {
         const msg = parseHL7(raw);
         const treeRef = msg.rawSegments;
@@ -117,7 +119,7 @@ describe("property: parsed model immutability", () => {
     // The strongest runtime guarantee the model makes is the frozen warnings
     // array; rawSegments is readonly at the type level. Assert a mutation
     // attempt on the frozen array throws in strict mode (Object.freeze).
-    fc.assert(
+    checkProperty(
       fc.property(specCleanMessageRaw(), (raw) => {
         const msg = parseHL7(raw);
         expect(Object.isFrozen(msg.warnings)).toBe(true);

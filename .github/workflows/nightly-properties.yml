@@ -1,9 +1,10 @@
 name: Nightly properties
 
 # The property tests at depth: every property built on @cosyte/test-utils' runners runs 10,000
-# cases instead of a pull request's 100 (COSYTE_PROPERTY_RUNS). A failure prints the seed and path
-# that replay it, and the shared job keeps each one in its summary and in the `property-run`
-# artifact: set the pair beside the failing test and run it to get the same case, already shrunk.
+# cases instead of a pull request's 100, or its file's own count (COSYTE_PROPERTY_RUNS). A failure
+# prints the seed and path that replay it, and the shared job keeps each one in its summary and in
+# the `property-run` artifact: set the pair beside the failing test and run it to get the same
+# case, already shrunk.
 
 on:
   schedule:
@@ -23,6 +24,7 @@ jobs:
     uses: cosyte/.github/.github/workflows/nightly-properties.yml@398cd4ded647dddd9f2e220ceb042840f59e1426 # workflows-2026-11-10-398cd4ded647
     with:
       # The property suites only: nothing else reads the depth, so the rest of the suite would add
-      # time and no cases.
-      test-cmd: "pnpm exec vitest run test/property"
+      # time and no cases. Three properties sit beside the unit tests of what they check; the
+      # depth check in test/property-depth.test.ts fails when a property sits where this misses it.
+      test-cmd: "pnpm exec vitest run test/property test/helpers-allergies-iam.test.ts test/helpers-identity.test.ts test/parser-scan.test.ts"
       property-runs: "10000"

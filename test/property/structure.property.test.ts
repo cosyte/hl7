@@ -12,6 +12,7 @@
 
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
+import { checkProperty } from "../_helpers/property.js";
 
 import {
   FATAL_CODES,
@@ -22,7 +23,9 @@ import {
 } from "../../src/index.js";
 import { hostileInput, quirkyMessageRaw, specCleanMessageRaw } from "./_arbitraries.js";
 
-const RUN_CONFIG = { numRuns: 400, seed: 0x08_27_2026 } as const;
+// The pull-request depth this file ran at before the shared runner, kept; the nightly run's
+// COSYTE_PROPERTY_RUNS wins over it (property-depth: kept, not lowered).
+const RUN_CONFIG = { numRuns: 400 } as const;
 const FATAL_CODE_SET: ReadonlySet<string> = new Set(Object.values(FATAL_CODES));
 
 /** Every (code, trigger) pair the registry recognizes, plus unmodelled ones. */
@@ -74,7 +77,7 @@ function parseOrFatal(raw: string): ReturnType<typeof parseHL7> | undefined {
 
 describe("AC14: structural findings are additive warnings and never a refusal", () => {
   it("a recognized type with an arbitrary segment set never throws", () => {
-    fc.assert(
+    checkProperty(
       fc.property(
         fc.constantFrom(...RECOGNIZED_PAIRS),
         fc.uniqueArray(fc.constantFrom(...SEGMENT_POOL), { maxLength: 8 }),
@@ -96,7 +99,7 @@ describe("AC14: structural findings are additive warnings and never a refusal", 
   });
 
   it("the message is never rewritten: every segment parsed comes back unchanged", () => {
-    fc.assert(
+    checkProperty(
       fc.property(
         fc.constantFrom(...RECOGNIZED_PAIRS),
         fc.uniqueArray(fc.constantFrom(...SEGMENT_POOL), { maxLength: 8 }),
@@ -113,7 +116,7 @@ describe("AC14: structural findings are additive warnings and never a refusal", 
   });
 
   it("a structural warning is emitted exactly once per genuinely absent segment", () => {
-    fc.assert(
+    checkProperty(
       fc.property(
         fc.constantFrom(...RECOGNIZED_PAIRS),
         fc.uniqueArray(fc.constantFrom(...SEGMENT_POOL), { maxLength: 8 }),
@@ -133,11 +136,17 @@ describe("AC14: structural findings are additive warnings and never a refusal", 
   });
 
   it("a structural warning never quotes anything from the message", () => {
-    fc.assert(
+    checkProperty(
       fc.property(
         fc.constantFrom(...RECOGNIZED_PAIRS),
         fc.uniqueArray(fc.constantFrom(...SEGMENT_POOL), { maxLength: 6 }),
-        fc.string({ minLength: 4, maxLength: 24 }).filter((s) => !/[|^~\\&\r\n]/.test(s)),
+        // The payload carries a marker no warning's own wording holds. Without it a random string
+        // can be a piece of the fixed text: "truc" is inside "truncated", and a fresh seed found it
+        // (seed -1291013738, path 94:1:0:0), failing the check with no payload in the message at all.
+        fc
+          .string({ minLength: 4, maxLength: 24 })
+          .filter((s) => !/[|^~\\&\r\n]/.test(s))
+          .map((s) => `ZQ7X${s}`),
         ([code, trigger], segments, payload) => {
           const lines = [
             `MSH|^~\\&|APP|FAC|APP2|FAC2|20250102||${trigger === "" ? code : `${code}^${trigger}`}|MSGID1|P|2.5.1`,
@@ -156,7 +165,7 @@ describe("AC14: structural findings are additive warnings and never a refusal", 
   });
 
   it("hostile and quirky input never turns a structural finding into a throw", () => {
-    fc.assert(
+    checkProperty(
       fc.property(fc.oneof(hostileInput(), quirkyMessageRaw(), specCleanMessageRaw()), (raw) => {
         const msg = parseOrFatal(raw);
         if (msg === undefined) return;

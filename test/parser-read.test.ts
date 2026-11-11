@@ -303,6 +303,53 @@ describe("readMessages: a batch", () => {
     expect(late?.byteOffset).toBe(3);
   });
 
+  it("skips a line of only a byte order mark between messages, from bytes as from text", async () => {
+    // The batch a property test found: a byte order mark on a line of its own after the envelope.
+    const found = "FHS|^~\\&|SEND\rBHS|^~\\&|SEND\r\ufeff\rMSH\rBTS|2\rFTS|1";
+    for (const source of [found, Buffer.from(found, "utf8")]) {
+      const items = await drain(readMessages(source));
+      expect(items.map((item) => [item.ok, item.byteOffset])).toEqual([[false, 32]]);
+    }
+    // Any line of whitespace between messages is skipped from either, whatever its UTF-8 bytes,
+    // and a message that ends in one is not flagged as cut short.
+    for (const blank of ["\ufeff", "\u00a0", " \u3000\t", "\ufeff\u2028"]) {
+      const text = `BHS|^~\\&|SEND\r${blank}\r${adt("W1")}BTS|1\r${blank}\r${adt("W2")}${blank}`;
+      const fromText = await drain(readMessages(text));
+      const fromBytes = await drain(readMessages(Buffer.from(text, "utf8")));
+      for (const items of [fromText, fromBytes]) {
+        expect(items.map((item) => item.ok && item.message.meta.controlId)).toEqual(["W1", "W2"]);
+        expect(items.map((item) => item.streamWarnings)).toEqual([[], []]);
+      }
+      expect(fromBytes.map((item) => item.byteOffset)).toEqual(
+        fromText.map((item) => item.byteOffset),
+      );
+    }
+    // Bytes that are blank one byte to one character still are: a no-break space in ISO 8859-1.
+    const latin1 = Buffer.concat([Buffer.from([0xa0, 0x0d]), Buffer.from(adt("W3"), "latin1")]);
+    const [w3] = await drain(readMessages(latin1));
+    expect(w3?.ok === true && w3.message.meta.controlId).toBe("W3");
+    expect(w3?.byteOffset).toBe(2);
+    // A line of characters past ASCII that are not whitespace is kept from either, as a failure.
+    const stray = `\u00e9\r${adt("W4")}`;
+    for (const source of [stray, Buffer.from(stray, "utf8")]) {
+      const items = await drain(readMessages(source));
+      expect(items.map((item) => [item.ok, item.byteOffset])).toEqual([
+        [false, 0],
+        [true, 3],
+      ]);
+    }
+    // Text is read as text: the three letters a byte order mark reads as one byte to one
+    // character are content in a string, before a message and as a last line cut short.
+    const letters = "\u00ef\u00bb\u00bf";
+    const [before, w5] = await drain(readMessages(`${letters}\r${adt("W5")}`));
+    expect(before?.ok).toBe(false);
+    expect(w5?.ok === true && w5.message.meta.controlId).toBe("W5");
+    const [w6] = await drain(readMessages(`${adt("W6")}${letters}`));
+    expect(w6?.streamWarnings.map((w) => w.code)).toEqual([
+      WARNING_CODES.UNTERMINATED_STREAM_MESSAGE,
+    ]);
+  });
+
   it("yields nothing for an empty or blank source", async () => {
     expect(await drain(readMessages(""))).toEqual([]);
     expect(await drain(readMessages(new Uint8Array(0)))).toEqual([]);

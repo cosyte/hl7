@@ -41,10 +41,9 @@
 
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
+import { checkProperty } from "../_helpers/property.js";
 
 import { parseHL7 } from "../../src/index.js";
-
-const RUN_CONFIG = { numRuns: 100, seed: 0x07_30_2026 } as const;
 
 /**
  * Longest legitimate value any bounded identifier can hold. Kept only as a
@@ -124,7 +123,7 @@ describe("model invariant: an identifier field carries a bounded identifier", ()
       .string({ unit: markerChar, minLength: 3, maxLength: 40 })
       .filter((t) => t.trim().length >= 3);
 
-    fc.assert(
+    checkProperty(
       fc.property(tokenArb, fc.integer({ min: 1, max: 50 }), (token, repeats) => {
         const msg = parseHL7(messageWithForgedSegment(token, repeats));
         for (const seg of msg.allSegments()) {
@@ -132,7 +131,6 @@ describe("model invariant: an identifier field carries a bounded identifier", ()
           expect(seg.type.includes(token.trim().slice(0, 6))).toBe(false);
         }
       }),
-      RUN_CONFIG,
     );
   });
 

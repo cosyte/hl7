@@ -22,6 +22,8 @@ import { describe, expect, it } from "vitest";
 import type { Allergy } from "../src/index.js";
 import { parseHL7 } from "../src/index.js";
 
+import { checkProperty } from "./_helpers/property.js";
+
 const MSH_A60 = "MSH|^~\\&|APP|FAC|||20250102||ADT^A60^ADT_A60|1|P|2.5\r";
 const MSH_A01 = "MSH|^~\\&|APP|FAC|||20250102||ADT^A01^ADT_A01|1|P|2.5\r";
 const EVN_A60 = "EVN|A60|20250102\r";
@@ -209,7 +211,7 @@ describe("allergies(): entry count and order over any AL1 / IAM mix (AC-5)", () 
   });
 
   it("AC-5: as many entries as AL1 plus IAM segments, sources in segment order", () => {
-    fc.assert(
+    checkProperty(
       fc.property(fc.array(segmentArb, { maxLength: 12 }), (segments) => {
         const body = segments
           .map((s) => [s.name, ...s.fields].join("|"))
@@ -221,7 +223,8 @@ describe("allergies(): entry count and order over any AL1 / IAM mix (AC-5)", () 
           .filter((name) => name === "AL1" || name === "IAM");
         expect(entries.map((e) => e.source)).toEqual(expected);
       }),
-      { numRuns: 300, seed: 0x5e_0365 },
+      // property-depth: 300 cases on a pull request, as this test ran before the shared runner.
+      { numRuns: 300 },
     );
   });
 });
