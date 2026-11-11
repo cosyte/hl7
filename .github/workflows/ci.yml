@@ -34,7 +34,7 @@ jobs:
   # A skipped job satisfies a required check, so require each of the first three only while its
   # input below stays on.
   ci:
-    uses: cosyte/.github/.github/workflows/ci.yml@0be6757a773885cbd5165dbfa0f93772d907b3e8 # workflows-2026-11-10-0be6757a7738
+    uses: cosyte/.github/.github/workflows/ci.yml@398cd4ded647dddd9f2e220ceb042840f59e1426 # workflows-2026-11-10-398cd4ded647
     with:
       run-phi-scan: true
       run-coverage-ratchet: true

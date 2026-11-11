@@ -20,7 +20,7 @@ permissions:
 
 jobs:
   nightly:
-    uses: cosyte/.github/.github/workflows/nightly-properties.yml@0be6757a773885cbd5165dbfa0f93772d907b3e8 # workflows-2026-11-10-0be6757a7738
+    uses: cosyte/.github/.github/workflows/nightly-properties.yml@398cd4ded647dddd9f2e220ceb042840f59e1426 # workflows-2026-11-10-398cd4ded647
     with:
       # The property suites only: nothing else reads the depth, so the rest of the suite would add
       # time and no cases.

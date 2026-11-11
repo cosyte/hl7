@@ -97,24 +97,25 @@ describe("the mutation config", () => {
     expect(config.mutate.filter((p) => p.endsWith("index.ts")).sort()).toEqual(excluded.sort());
   });
 
-  it("runs the floor's full run over the parser and the serializers, on the same settings", async () => {
+  it("runs the floor's full run over all of src but the schema writers, on the same settings", async () => {
     const { default: base } = await importModule<{ default: Record<string, unknown> }>(
       "stryker.config.mjs",
     );
     const { default: full } = await importModule<{ default: Record<string, unknown> }>(
       "stryker.full.config.mjs",
     );
-    expect(full["mutate"]).toEqual([
-      "src/parser/**/*.ts",
-      "!src/parser/generated/**",
-      "src/serialize/*.ts",
-    ]);
+    // Every file a pull request's run mutates, but the build-time schema writers. The generated
+    // tables are out of both by the shared list's `generated` rule.
+    expect(base["mutate"]).toContain("!src/**/generated/**");
+    expect(full["mutate"]).toEqual([...(base["mutate"] as string[]), "!src/serialize/schema/**"]);
     expect({ ...full, mutate: base["mutate"] }).toEqual(base);
+    expect(full["ignoreStatic"]).toBe(true);
     const { scripts } = JSON.parse(read("package.json")) as { scripts: Record<string, string> };
     expect(scripts["mutate:full"]).toBe("cosyte-mutate full --config stryker.full.config.mjs");
-    expect(read(".github", "workflows", "weekly-mutation.yml")).toMatch(
-      /^ {6}mutate-cmd: "pnpm mutate:full"$/mu,
-    );
+    const weekly = read(".github", "workflows", "weekly-mutation.yml");
+    expect(weekly).toMatch(/^ {6}mutate-cmd: "pnpm mutate:full"$/mu);
+    // Sharded: one runner cannot finish every file of src/ inside a job's time limit.
+    expect(weekly).toMatch(/^ {6}shard-count: 8$/mu);
   });
 });
 
