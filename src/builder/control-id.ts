@@ -25,14 +25,6 @@
 const ALNUM_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
 /**
- * The largest multiple of the alphabet's length that fits in a byte: 248, four
- * times 62. A byte below it, reduced modulo 62, lands on every character with
- * the same probability; a byte at or above it is drawn again.
- * @internal
- */
-const UNBIASED_LIMIT = 256 - (256 % ALNUM_ALPHABET.length);
-
-/**
  * Zero-pad a number to N digits (stdlib: avoid regex for perf).
  * @internal
  */
@@ -79,6 +71,10 @@ export function generateControlId(): string {
  * @internal
  */
 export function randomSuffix(draw: (bytes: Uint8Array) => void): string {
+  // The largest multiple of the alphabet's length that fits in a byte: 248,
+  // four times 62. A byte below it, reduced modulo 62, lands on every character
+  // with the same probability; a byte at or above it is skipped.
+  const unbiasedLimit = 256 - (256 % ALNUM_ALPHABET.length);
   let suffix = "";
   // Sixteen bytes per draw: a byte is rejected with probability 8/256, so six
   // accepted bytes almost always come from the first draw.
@@ -87,7 +83,7 @@ export function randomSuffix(draw: (bytes: Uint8Array) => void): string {
     draw(bytes);
     for (const byte of bytes) {
       if (suffix.length === 6) break;
-      if (byte < UNBIASED_LIMIT) suffix += ALNUM_ALPHABET.charAt(byte % ALNUM_ALPHABET.length);
+      if (byte < unbiasedLimit) suffix += ALNUM_ALPHABET.charAt(byte % ALNUM_ALPHABET.length);
     }
   }
   return suffix;
