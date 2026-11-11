@@ -8,8 +8,10 @@
  * position, snippet, own keys), and any error the stream itself throws. Each input's record is
  * hashed and compared with the stored digest.
  *
- * A digest that moves means something a caller sees has changed. The digests are rewritten only
- * when `HL7_STREAM_EQUIVALENCE_WRITE=1` is set, which no CI job sets. Every value here is synthetic.
+ * A digest that moves means something a caller sees has changed. Beside the digest per input, each
+ * recorded field (`raw`, `inspected`, `errorKeys` and so on) has one digest over every input, so a
+ * runtime that differs can be told where. The digests are rewritten only when
+ * `HL7_STREAM_EQUIVALENCE_WRITE=1` is set, which no CI job sets. Every value here is synthetic.
  */
 
 import { createHash } from "node:crypto";
@@ -30,6 +32,7 @@ const DIGESTS = path.join(
   "stream",
   "equivalence-digests.json",
 );
+const FIELD_DIGESTS = path.join(path.dirname(DIGESTS), "equivalence-field-digests.json");
 const WRITE = process.env["HL7_STREAM_EQUIVALENCE_WRITE"] === "1";
 
 /** A small deterministic generator (mulberry32), so the corpus is the same on every run. */
@@ -343,16 +346,52 @@ function digest(value: unknown): string {
 const GENERATED = 300;
 
 /**
- * The digests are a Node.js reading. Bun's `util.inspect` and its Error objects are its own, so the
- * same entries read there do not hash the same; the rest of the stream suite runs under Bun.
+ * One digest per recorded field, over every input in order: each entry's fields, and the error a
+ * stream threw.
  */
+function fieldDigests(inputs: readonly [string, readonly unknown[]][]): Record<string, string> {
+  const hashes = new Map<string, ReturnType<typeof createHash>>();
+  const add = (field: string, where: string, value: unknown): void => {
+    let hash = hashes.get(field);
+    if (hash === undefined) {
+      hash = createHash("sha256");
+      hashes.set(field, hash);
+    }
+    hash.update(`${where}\u0000${JSON.stringify(value) ?? "undefined"}\u0000`);
+  };
+  for (const [name, ways] of inputs) {
+    ways.forEach((way, w) => {
+      const { entries, thrown } = way as { entries: Record<string, unknown>[]; thrown?: unknown };
+      entries.forEach((entry, e) => {
+        for (const [field, value] of Object.entries(entry)) {
+          add(field, `${name}/${String(w)}/${String(e)}`, value);
+        }
+      });
+      if (thrown !== undefined) add("thrown", `${name}/${String(w)}`, thrown);
+    });
+  }
+  return Object.fromEntries(
+    [...hashes.entries()]
+      .sort(([a], [b]) => (a < b ? -1 : 1))
+      .map(([field, hash]) => [field, hash.digest("hex")]),
+  );
+}
+
+/**
+ * The fields Bun records differently from Node.js, which recorded the digests. Bun runs on
+ * JavaScriptCore, and the Error objects it builds have own keys a V8 Error does not, so
+ * `errorKeys` differs for every error entry. Every other field, `util.inspect` of each message
+ * included, hashes the same there, and the test holds Bun to that.
+ */
+const BUN_DIFFERS: readonly string[] = ["errorKeys"];
+
 const ON_BUN = process.versions["bun"] !== undefined;
 
-describe.skipIf(ON_BUN)("parseStream: what a caller sees is unchanged", () => {
+describe("parseStream: what a caller sees is unchanged", () => {
   it("matches the recorded digest for every input, read every way", async () => {
-    const digests: Record<string, string> = {};
+    const inputs: [string, unknown[]][] = [];
     for (let n = 0; n < GENERATED; n++) {
-      digests[`generated-${String(n)}`] = digest(await readAllWays(generatedStream(n), n));
+      inputs.push([`generated-${String(n)}`, await readAllWays(generatedStream(n), n)]);
     }
     for (let i = 0; i < HAND_MADE.length; i++) {
       const bytes = Buffer.from(HAND_MADE[i] as string, "latin1");
@@ -360,7 +399,7 @@ describe.skipIf(ON_BUN)("parseStream: what a caller sees is unchanged", () => {
       // A text source with a real U+FEFF, which latin1 bytes cannot carry.
       ways.push(await record([HAND_MADE[i] as string], undefined));
       ways.push(await record(cut(HAND_MADE[i] as string, 1), undefined));
-      digests[`hand-made-${String(i)}`] = digest(ways);
+      inputs.push([`hand-made-${String(i)}`, ways]);
     }
     // Mixed chunks, and sources that are not chunks at all.
     const misuse = [
@@ -379,14 +418,25 @@ describe.skipIf(ON_BUN)("parseStream: what a caller sees is unchanged", () => {
       await record({}, undefined),
       await record([null], undefined),
     ];
-    digests["misuse"] = digest(misuse);
+    inputs.push(["misuse", misuse]);
+    const digests = Object.fromEntries(inputs.map(([name, ways]) => [name, digest(ways)]));
+    const fields = fieldDigests(inputs);
 
     if (WRITE) {
       writeFileSync(DIGESTS, `${JSON.stringify(digests, null, 2)}\n`);
+      writeFileSync(FIELD_DIGESTS, `${JSON.stringify(fields, null, 2)}\n`);
       return;
     }
     const stored = JSON.parse(readFileSync(DIGESTS, "utf8")) as Record<string, string>;
+    const storedFields = JSON.parse(readFileSync(FIELD_DIGESTS, "utf8")) as Record<string, string>;
     expect(Object.keys(digests)).toEqual(Object.keys(stored));
+    expect(Object.keys(fields)).toEqual(Object.keys(storedFields));
+    const fieldsMoved = Object.keys(fields).filter((k) => fields[k] !== storedFields[k]);
+    if (ON_BUN) {
+      expect(fieldsMoved).toEqual(BUN_DIFFERS);
+      return;
+    }
+    expect(fieldsMoved).toEqual([]);
     const moved = Object.keys(digests).filter((k) => digests[k] !== stored[k]);
     expect(moved).toEqual([]);
   }, 120_000);
