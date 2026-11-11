@@ -86,7 +86,7 @@ function messageSegments(rand: () => number, id: number): Buffer[] {
     nameKind === "latin1"
       ? Buffer.from([0x54, 0x65, 0x73, 0x74, 0xe9]) // "Test" and e acute in Latin-1
       : nameKind === "utf8"
-        ? Buffer.from("Testé中", "utf8")
+        ? Buffer.from(`Test${String.fromCharCode(0xe9, 0x4e2d)}`, "utf8")
         : nameKind === "c1"
           ? Buffer.from([0x54, 0x65, 0x73, 0x74, 0x80, 0x93, 0x9f])
           : nameKind === "invalid"
@@ -167,6 +167,10 @@ function generatedStream(seed: number): Buffer {
   return out;
 }
 
+/** A byte order mark in text, and the same mark's three bytes read one byte to one character. */
+const BOM = String.fromCharCode(0xfeff);
+const LATIN1_BOM = String.fromCharCode(0xef, 0xbb, 0xbf);
+
 /** Hand-made streams: the edges a generator reaches rarely. */
 const HAND_MADE: readonly string[] = [
   "",
@@ -177,19 +181,21 @@ const HAND_MADE: readonly string[] = [
   "MSH|^~\\&|A|F|B|G|20260101||ADT^A01|1|P|2.5\r",
   "MSH|^~\\&|A|F|B|G|20260101||ADT^A01|1|P|2.5\r\n",
   "MSH|^~\\&|A|F|B|G|20260101||ADT^A01|1|P|2.5\n\rPID|1||FAKE1\r\r",
-  "﻿MSH|^~\\&|A|F|B|G|20260101||ADT^A01|1|P|2.5\rPID|1||FAKE1\r",
-  "ï»¿MSH|^~\\&|A|F|B|G|20260101||ADT^A01|1|P|2.5\rPID|1||FAKE1\r",
-  "ï»MSH|^~\\&|A|F|B|G|20260101||ADT^A01|1|P|2.5\r",
-  "ï",
-  "ï»",
-  "ï»¿",
-  "﻿",
+  BOM + "MSH|^~\\&|A|F|B|G|20260101||ADT^A01|1|P|2.5\rPID|1||FAKE1\r",
+  LATIN1_BOM + "MSH|^~\\&|A|F|B|G|20260101||ADT^A01|1|P|2.5\rPID|1||FAKE1\r",
+  LATIN1_BOM.slice(0, 2) + "MSH|^~\\&|A|F|B|G|20260101||ADT^A01|1|P|2.5\r",
+  LATIN1_BOM.slice(0, 1),
+  LATIN1_BOM.slice(0, 2),
+  LATIN1_BOM,
+  BOM,
   "PID|1||FAKE1\rMSH|^~\\&|A|F|B|G|20260101||ADT^A01|1|P|2.5\r",
   "FHS|^~\\&\rBHS|^~\\&\rBTS|0\rFTS|1\r",
   "BHS|^~\\&\rMSH|^~\\&|A|F|B|G|20260101||ADT^A01|1|P|2.5\rBTS|1\rtrailing",
   "MSH|^~\\&|A|F|B|G|20260101||ADT^A01|1|P|2.5\rPID|1||FAKE1\rMSH|^\rMSH|^~\\&|A|F|B|G|20260101||ADT^A01|3|P|2.5\r",
   "\u000bMSH|^~\\&|A|F|B|G|20260101||ADT^A01|1|P|2.5\rPID|1||FAKE1\u001c\r\u000bMSH|^~\\&|A|F|B|G|20260101||ADT^A01|2|P|2.5\u001c\r",
-  "MSH|^~\\&|A|F|B|G|20260101||ADT^A01|1|P|2.5|||||||UNICODE UTF-8\rPID|1||FAKE1||TestÃ©\r",
+  "MSH|^~\\&|A|F|B|G|20260101||ADT^A01|1|P|2.5|||||||UNICODE UTF-8\rPID|1||FAKE1||Doe" +
+    String.fromCharCode(0xc3, 0xa9) +
+    "\r",
   "MSH|^~\\&|A|F|B|G|20260101||ADT^A01|1|P|2.5\r   \r\t\rMSH|^~\\&|A|F|B|G|20260101||ADT^A01|2|P|2.5\r  ",
   "MSH|^~\\&|A|F|B|G|20260101||ADT^A01|1|P|2.5\rPID|1||FAKE1\r\rMSH|^~\\&|A|F|B|G|20260101||ADT^A01|2|P|2.5",
   `MSH|^~\\&|A|F|B|G|20260101||ORU^R01|1|P|2.5\rOBX|1|ED|DOC^Doc^LN||^AP^PDF^Base64^${"QUJD".repeat(5000)}||||||F\rMSH|^~\\&|A|F|B|G|20260101||ADT^A01|2|P|2.5\r`,
