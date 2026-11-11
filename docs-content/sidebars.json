@@ -43,6 +43,7 @@
       "items": [
         "access-patterns",
         "tolerance-and-errors",
+        "compare-hl7-libraries",
         {
           "type": "category",
           "label": "Spec notes",
