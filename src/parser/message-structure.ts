@@ -78,7 +78,7 @@ function freezeDefinition(def: MessageStructureDefinition): MessageStructureDefi
  * The derived expected-segment registry. Generated from HL7's published,
  * machine-readable message structures (see `STRUCTURE_REGISTRY_PROVENANCE` for
  * the publication, the commit and the per-file hashes) and frozen: data, not
- * config. Deliberately narrow in COVERAGE (twelve message codes) and not narrow
+ * config. Deliberately narrow in COVERAGE (sixteen message codes) and not narrow
  * in CONTENT: within those codes it expects exactly what the publication marks
  * required. It is still a safety net, not a conformance validator.
  *

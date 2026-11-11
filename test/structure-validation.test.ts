@@ -390,7 +390,7 @@ describe("AC7: the published order is read with every published bound honoured",
   });
 
   it("reports every leader transposition the published structures admit", () => {
-    // The same shape, swept across all 81 committed expectations: a repeating
+    // The same shape, swept across all 96 committed expectations: a repeating
     // group whose first child is a required segment, paired with each later
     // segment child of that group, both names at exactly one locus in the
     // structure so no alternative placement exists. Such a sequence is

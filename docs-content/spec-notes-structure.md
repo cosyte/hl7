@@ -15,7 +15,7 @@ single additive Tier-2 `MISSING_EXPECTED_GROUP` warning per absent segment,
 naming that segment.
 
 This is **not** a conformance validator. It checks segment presence, not
-ordering, cardinality, or content, and it covers twelve message codes rather than
+ordering, cardinality, or content, and it covers sixteen message codes rather than
 the whole standard. It never throws and never rewrites the message; `strict`
 mode may promote the warning per the usual Postel's-Law model.
 
@@ -48,7 +48,7 @@ def?.requiredSegments.join(","); // => "EVN,MSH,PID,PV1"
 ```
 
 `STRUCTURE_REGISTRY_PROVENANCE` carries the publication and the exact commit it
-was read at, the byte count, sha256, and upstream URL of all 83 vendored files,
+was read at, the byte count, sha256, and upstream URL of all 98 vendored files,
 the variant family behind each referenced structure, and the structure id behind
 each recognized (message code, trigger event) pair.
 
@@ -114,9 +114,23 @@ each recognized (message code, trigger event) pair.
 | OML | O39 | `MSH`, `ORC` | `OML_O39` |
 | OML | O59_A | `MSH`, `ORC` | `OML_O59` |
 | OMP | O09 | `MSH`, `ORC`, `RXO`, `RXR` | `OMP_O09` |
+| ORL | O22 | `MSA`, `MSH` | `ORL_O22` |
+| ORL | O34 | `MSA`, `MSH` | `ORL_O34` |
+| ORL | O36 | `MSA`, `MSH` | `ORL_O36` |
+| ORL | O40 | `MSA`, `MSH` | `ORL_O40` |
+| ORL | O53 | `MSA`, `MSH` | `ORL_O53` |
+| ORL | O54 | `MSA`, `MSH` | `ORL_O54` |
+| ORL | O55 | `MSA`, `MSH` | `ORL_O55` |
+| ORL | O56 | `MSA`, `MSH` | `ORL_O56` |
 | ORM | O01 | `ORC` | (retained transcription) |
 | ORU | R01, R40, R42, R43 | `MSH`, `OBR` | `ORU_R01` |
 | ORU | R30, R31, R32 | `MSH`, `OBR`, `OBX`, `ORC`, `PID` | `ORU_R30` |
+| OUL | R22 | `MSH`, `OBR`, `SPM` | `OUL_R22` |
+| OUL | R23 | `MSH`, `OBR`, `SAC`, `SPM` | `OUL_R23` |
+| OUL | R24 | `MSH`, `OBR` | `OUL_R24` |
+| RAS | O17 | `MSH`, `ORC`, `RXA`, `RXR` | `RAS_O17` |
+| RDE | O11, O25 | `MSH`, `ORC`, `RXE`, `RXR`, `TQ1` | `RDE_O11` |
+| RDE | O49 | `MSH`, `ORC`, `RXE`, `RXR`, `TQ1` | `RDE_O49` |
 | SIU | S12 to S24, S26, S27 | `MSH`, `RGS`, `SCH` | `SIU_S12` |
 | VXU | V04 | `MSH`, `PID` | `VXU_V04` |
 
@@ -244,7 +258,7 @@ conformant, and it is not a certificate anybody issued:
 - Field content, components, datatypes, lengths, value sets, and HL7 tables are
   all unchecked here, and exhaustive coded-value validation is permanently out
   of scope for this package.
-- Coverage is twelve message codes, not the standard.
+- Coverage is sixteen message codes, not the standard.
 - The publication behind it is vendored at a fixed commit, and its publisher
   states that the guide is in development and not yet production ready.
 - Where the publication splits a structure into variants, conforming to **one**
@@ -350,6 +364,40 @@ plus `ACK` on the message code alone.
 | DFT | P11 |
 | SIU | S27 |
 
+### Message codes added later: ORL, OUL, RAS and RDE
+
+The registry first covered the twelve message codes the transcription covered.
+Four more were added afterwards by vendoring their structures, byte for byte, at
+the same publication commit and re-running the generator: the laboratory order
+acknowledgments (`ORL`), the unsolicited laboratory observations (`OUL`), the
+pharmacy administration message (`RAS`) and the pharmacy encoded order (`RDE`).
+Nothing about the rules changed; the new expectations are derived exactly as the
+old ones are.
+
+```ts runnable
+import { findMessageStructureDefinition } from "@cosyte/hl7";
+
+const rde = findMessageStructureDefinition("RDE", "O25");
+rde?.structureId; // => "RDE_O11"
+rde?.structureIds.join(","); // => "RDE_O11-A,RDE_O11-B"
+rde?.requiredSegments.join(","); // => "MSH,ORC,RXE,RXR,TQ1"
+```
+
+| Pair | Expected beyond `MSH` | Why, read off the publication |
+| --- | --- | --- |
+| ORL^O22, O34, O36, O40, O53 to O56 | `MSA` | Everything after `MSA` is optional at the root: the patient and order content sits inside a `RESPONSE` group the publication gives a minimum of zero, so an acknowledgment carrying only `MSH` and `MSA` is conformant. That holds for the "patient segments required" structures too: `PID` is required inside the optional response, not at the root. |
+| OUL^R22 | `SPM`, `OBR` | The `SPECIMEN` group carries a minimum of one at the root, and so does the `ORDER` group inside it. |
+| OUL^R23 | `SPM`, `SAC`, `OBR` | As R22, with a `CONTAINER` group between the specimen and the order, also at a minimum of one. |
+| OUL^R24 | `OBR` | The `ORDER` group is required; the specimen group inside it is not. |
+| RAS^O17 | `ORC`, `RXA`, `RXR` | The `ORDER` group and its `ADMINISTRATION` group are required, and each administration requires `RXA` and `RXR`. The patient group, and the `PD1` inside it, are optional. |
+| RDE^O11, O25, O49 | `ORC`, `RXE`, `TQ1`, `RXR` | Each order requires its encoded segment, at least one encoded timing (`TQ1`) and at least one route (`RXR`). Both published `RDE_O11` variants agree on all four. |
+
+**This is a behaviour change for these four codes.** A message of one of these
+types used to be `recognized: false` and silent; it is now checked, so one that
+lacks a segment the publication requires gets a `MISSING_EXPECTED_GROUP`
+warning at parse time, and `validateMessageStructure` now answers for it rather
+than returning `validated: false`. `Hl7Message.is` narrows on the new pairs too.
+
 ### One retained transcription
 
 `ORM^O01` is the only entry that is not derived, and it is marked as such in the
@@ -375,9 +423,10 @@ carries this paragraph's reason in one sentence.
 
 Eight `ADT` merge and change-identifier messages appear in the publication's
 message list with no structure named: A18, A30, A34, A35, A36, A39, A46, and A48.
-They are recorded as unresolved by the generator, and the parser stays silent on
-them rather than guessing a shape. None of them was recognized before, so
-nothing regressed.
+So does `OUL^R21`, the original unsolicited laboratory observation. They are
+recorded as unresolved by the generator, and the parser stays silent on them
+rather than guessing a shape. None of them was recognized before, so nothing
+regressed.
 
 ## Before you upgrade: the volume change
 
@@ -409,7 +458,7 @@ if it does not match, rather than truncated.
 
 ## Known limitations
 
-- **Coverage is twelve message codes.** Widening it means adding structures to
+- **Coverage is sixteen message codes.** Widening it means adding structures to
   the vendored snapshot and re-running the generator.
 - **The parse-time net is presence, not cardinality or order.** A message
   carrying one malformed `OBR` satisfies an `OBR` expectation. Order and

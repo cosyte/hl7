@@ -208,7 +208,7 @@ describe("AC9: no pair loses recognition", () => {
     expect(analyzeMessageStructure(code, trigger, new Set(["MSH"])).recognized).toBe(true);
   });
 
-  it("the twelve covered message codes are all still present", () => {
+  it("the twelve original message codes are all still present, beside the four added", () => {
     const codes = new Set(MESSAGE_STRUCTURE_DEFINITIONS.map((d) => d.messageCode));
     expect([...codes].sort()).toEqual([
       "ACK",
@@ -219,8 +219,12 @@ describe("AC9: no pair loses recognition", () => {
       "OMI",
       "OML",
       "OMP",
+      "ORL",
       "ORM",
       "ORU",
+      "OUL",
+      "RAS",
+      "RDE",
       "SIU",
       "VXU",
     ]);

@@ -149,7 +149,7 @@ describe("AC1: the committed expectation is the vendored elements, in publicatio
       }
     }
     // A silent zero here would let every assertion above pass vacuously.
-    expect(checkedNodes).toBe(2854);
+    expect(checkedNodes).toBe(3480);
   });
 
   it("gives every published registry entry a non-empty expectation per family member", () => {

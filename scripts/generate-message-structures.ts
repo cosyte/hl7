@@ -61,10 +61,12 @@ import { fileURLToPath } from "node:url";
 import { format, resolveConfig } from "prettier";
 
 /**
- * The message codes the shipped registry recognizes. Exactly the set the
- * hand-transcribed table recognized before it was re-sourced: widening it is
- * adding files to the snapshot and re-running this script, and it is a
- * deliberate separate decision rather than a side effect of a refresh.
+ * The message codes the shipped registry recognizes. The first twelve are the
+ * set the hand-transcribed table recognized before it was re-sourced; ORL, OUL,
+ * RAS and RDE were added later by vendoring their structures at the same
+ * publication commit. Widening it is adding files to the snapshot and
+ * re-running this script, and it is a deliberate separate decision rather than
+ * a side effect of a refresh.
  */
 export const COVERED_MESSAGE_CODES: readonly string[] = [
   "ACK",
@@ -75,8 +77,12 @@ export const COVERED_MESSAGE_CODES: readonly string[] = [
   "OMI",
   "OML",
   "OMP",
+  "ORL",
   "ORM",
   "ORU",
+  "OUL",
+  "RAS",
+  "RDE",
   "SIU",
   "VXU",
 ];
