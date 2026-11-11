@@ -187,9 +187,6 @@ async function* iterateChunks(source: Hl7StreamSource): AsyncGenerator<unknown> 
   );
 }
 
-/** The first segment terminator at or after `lastIndex`: `\r` or `\n`. */
-const TERMINATOR = /[\r\n]/gu;
-
 /**
  * Splits text that arrives in chunks into segments, each ended by `\r`, `\r\n` or `\n`. A
  * segment that lies inside one chunk is cut from that chunk, so it keeps at most that chunk alive;
@@ -212,6 +209,8 @@ class SegmentSplitter {
   private carry: string[] = [];
   /** A segment ended by a `\r` at the very end of the last chunk, waiting to see an `\n`. */
   private held: string | undefined;
+  /** Finds the first segment terminator at or after its `lastIndex`: `\r` or `\n`. */
+  private readonly terminator = /[\r\n]/gu;
 
   /**
    * Take the next chunk. Call only once `next()` has returned `undefined`. An empty chunk is
@@ -236,8 +235,8 @@ class SegmentSplitter {
       this.held = undefined;
       return held;
     }
-    TERMINATOR.lastIndex = this.pos;
-    const found = TERMINATOR.exec(chunk);
+    this.terminator.lastIndex = this.pos;
+    const found = this.terminator.exec(chunk);
     if (found === null) {
       this.carry.push(chunk.slice(this.pos));
       this.pos = chunk.length;
@@ -503,10 +502,7 @@ export async function* parseStream(
   // End of stream. A start still too short to say whether it was a byte order
   // mark is not one: it is at most two of the mark's three characters, so it
   // holds no terminator and is the start of the last segment.
-  if (head !== undefined) {
-    segments.feed(head);
-    segments.next();
-  }
+  if (head !== undefined) segments.feed(head);
   // A segment ended by a `\r` at the very end is a real segment now.
   for (let seg = segments.next(); seg !== undefined; seg = segments.next()) {
     const entry = processSegment(seg);
