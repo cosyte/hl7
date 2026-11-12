@@ -568,6 +568,19 @@ export { batchCountMismatch, batchMissingTrailer } from "./parser/warnings.js";
 export { validateAgainstProfile } from "./conformance/validate-against-profile.js";
 export { defineConformanceProfile } from "./conformance/profile-shape.js";
 export { usageOutcomes } from "./conformance/usage.js";
+// `findMessageProfiles` finds the profile or profiles a message names in MSH-21 in a list of
+// entries the CALLER supplies, each an EI identifier and a profile. The EI is matched as its data
+// type defines it: equal entity identifiers under the same assigning authority, the universal ID
+// deciding when both sides carry one, else the namespace ID, and an identifier with no authority
+// matching only an entry with none. The result names its case (undeclared, none, one, several) and
+// lists the repetitions nothing matched. Still no bundled profile, no XML and no network call.
+export { findMessageProfiles } from "./conformance/message-profile.js";
+export type {
+  MessageProfileClaim,
+  MessageProfileEntry,
+  MessageProfileLookup,
+  MessageProfileMatch,
+} from "./conformance/message-profile.js";
 export {
   FINDING_CODES,
   PREDICATE_CONNECTORS,
@@ -602,7 +615,7 @@ export {
 } from "./conformance/types.js";
 /**
  * The conformance-profile engine as one namespace object: `validateAgainstProfile`,
- * `defineConformanceProfile`, `usageOutcomes`, the registries and the profile types, each also a
+ * `defineConformanceProfile`, `usageOutcomes`, `findMessageProfiles`, the registries and the profile types, each also a
  * named export of the package, plus `collectProfileDefects` and its `ProfileDefect` type, which
  * only this namespace exports.
  *

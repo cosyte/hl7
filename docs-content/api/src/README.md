@@ -5635,11 +5635,11 @@ Four-digit year, exactly as stated. A year below 100 stays below 100.
 ### DefinedProfile
 
 The profile [defineProfile](#defineprofile) produces for one options object: every
-member of the general [Profile](#profile-3) interface, with `customSegments` at the
+member of the general [Profile](#profile-4) interface, with `customSegments` at the
 declarations that options object actually carries (its own, merged with every
 parent's).
 
-It stays assignable to [Profile](#profile-3) with no cast, so a profile built by
+It stays assignable to [Profile](#profile-4) with no cast, so a profile built by
 the factory still passes to every API that accepts the general interface, and
 a caller who annotates a variable with `Profile` simply gives the narrowing
 up rather than hitting a type error.
@@ -5658,7 +5658,7 @@ console.log(asGeneral.name); // "epic"
 
 #### Extends
 
-- `Omit`\<[`Profile`](#profile-3), `"customSegments"`\>
+- `Omit`\<[`Profile`](#profile-4), `"customSegments"`\>
 
 #### Type Parameters
 
@@ -5684,7 +5684,7 @@ form is.
 
 ###### Inherited from
 
-[`Profile`](#profile-3).[`dateFormats`](#dateformats-7)
+[`Profile`](#profile-4).[`dateFormats`](#dateformats-7)
 
 ##### describe?
 
@@ -5696,7 +5696,7 @@ form is.
 
 ###### Inherited from
 
-[`Profile`](#profile-3).[`describe`](#describe-1)
+[`Profile`](#profile-4).[`describe`](#describe-1)
 
 ##### description?
 
@@ -5704,7 +5704,7 @@ form is.
 
 ###### Inherited from
 
-[`Profile`](#profile-3).[`description`](#description-3)
+[`Profile`](#profile-4).[`description`](#description-3)
 
 ##### lineage?
 
@@ -5712,7 +5712,7 @@ form is.
 
 ###### Inherited from
 
-[`Profile`](#profile-3).[`lineage`](#lineage-1)
+[`Profile`](#profile-4).[`lineage`](#lineage-1)
 
 ##### name
 
@@ -5720,7 +5720,7 @@ form is.
 
 ###### Inherited from
 
-[`Profile`](#profile-3).[`name`](#name-16)
+[`Profile`](#profile-4).[`name`](#name-16)
 
 ##### onWarning?
 
@@ -5728,7 +5728,7 @@ form is.
 
 ###### Inherited from
 
-[`Profile`](#profile-3).[`onWarning`](#onwarning-4)
+[`Profile`](#profile-4).[`onWarning`](#onwarning-4)
 
 ##### segmentOverrides?
 
@@ -5749,7 +5749,7 @@ without it.
 
 ###### Inherited from
 
-[`Profile`](#profile-3).[`segmentOverrides`](#segmentoverrides-2)
+[`Profile`](#profile-4).[`segmentOverrides`](#segmentoverrides-2)
 
 ***
 
@@ -5787,7 +5787,7 @@ const profile = defineProfile(opts);
 
 ##### extends?
 
-> `readonly` `optional` **extends?**: [`Profile`](#profile-3) \| readonly [`Profile`](#profile-3)[]
+> `readonly` `optional` **extends?**: [`Profile`](#profile-4) \| readonly [`Profile`](#profile-4)[]
 
 ##### name
 
@@ -7978,6 +7978,160 @@ RXE-25 give strength numeric value (strict-parsed; never `NaN`).
 
 ***
 
+### MessageProfileClaim
+
+One MSH-21 repetition that names something: its 0-indexed position and its `EI`.
+
+#### Extended by
+
+- [`MessageProfileMatch`](#messageprofilematch)
+
+#### Properties
+
+##### identifier
+
+> `readonly` **identifier**: [`EI`](#ei-1)
+
+The repetition read as an `EI`, decoded, with absent components omitted.
+
+##### repetition
+
+> `readonly` **repetition**: `number`
+
+0-indexed MSH-21 repetition, counting empty repetitions, as `FindingLocus.repetition` does.
+
+***
+
+### MessageProfileEntry
+
+One profile the caller can name in MSH-21: the identifier the profile is published under, as an
+`EI`, and the profile itself. `profile` is a [ConformanceProfile](#conformanceprofile) by default, and can be
+any value the caller wants back (a name, a handler, a profile of their own shape).
+
+#### Example
+
+```ts
+import type { MessageProfileEntry } from "@cosyte/hl7";
+const entry: MessageProfileEntry = {
+  identifier: { entityIdentifier: "EXPROF-1", namespaceId: "EXAMPLEORG" },
+  profile: { name: "example-intake", segments: [{ segment: "PID", usage: "R" }] },
+};
+```
+
+#### Type Parameters
+
+##### P
+
+`P` = [`ConformanceProfile`](#conformanceprofile)
+
+#### Properties
+
+##### identifier
+
+> `readonly` **identifier**: [`EI`](#ei-1) & `object`
+
+The profile's identifier, matched against each MSH-21 repetition. `entityIdentifier` is
+required; an entry whose `entityIdentifier` is empty never matches.
+
+###### Type Declaration
+
+###### entityIdentifier
+
+> `readonly` **entityIdentifier**: `string`
+
+##### profile
+
+> `readonly` **profile**: `P`
+
+The value returned when MSH-21 names this entry.
+
+***
+
+### MessageProfileLookup
+
+What MSH-21 named, against the caller's list, as `outcome`:
+
+- `undeclared`: MSH-21 is empty, so the message names no profile;
+- `none`: MSH-21 names one or more profiles and no entry matches any of them;
+- `one`: every match is to one profile (compared by identity, so two entries holding the same
+  profile object count once);
+- `several`: matches reach two or more profiles.
+
+`profiles` holds each distinct profile matched, in MSH-21 order, then list order. `matches`
+holds every pair of a repetition and an entry it matched, in the same order. `unmatched` holds
+every repetition that names something and matched no entry, so a caller can refuse a message
+that claims a profile it does not know, even when another claim matched.
+
+#### Type Parameters
+
+##### P
+
+`P` = [`ConformanceProfile`](#conformanceprofile)
+
+#### Properties
+
+##### matches
+
+> `readonly` **matches**: readonly [`MessageProfileMatch`](#messageprofilematch)\<`P`\>[]
+
+##### outcome
+
+> `readonly` **outcome**: `"undeclared"` \| `"none"` \| `"one"` \| `"several"`
+
+##### profiles
+
+> `readonly` **profiles**: readonly `P`[]
+
+##### unmatched
+
+> `readonly` **unmatched**: readonly [`MessageProfileClaim`](#messageprofileclaim)[]
+
+***
+
+### MessageProfileMatch
+
+One MSH-21 repetition paired with one entry it matched.
+
+#### Extends
+
+- [`MessageProfileClaim`](#messageprofileclaim)
+
+#### Type Parameters
+
+##### P
+
+`P` = [`ConformanceProfile`](#conformanceprofile)
+
+#### Properties
+
+##### entry
+
+> `readonly` **entry**: [`MessageProfileEntry`](#messageprofileentry)\<`P`\>
+
+The caller's entry the repetition matched.
+
+##### identifier
+
+> `readonly` **identifier**: [`EI`](#ei-1)
+
+The repetition read as an `EI`, decoded, with absent components omitted.
+
+###### Inherited from
+
+[`MessageProfileClaim`](#messageprofileclaim).[`identifier`](#identifier-3)
+
+##### repetition
+
+> `readonly` **repetition**: `number`
+
+0-indexed MSH-21 repetition, counting empty repetitions, as `FindingLocus.repetition` does.
+
+###### Inherited from
+
+[`MessageProfileClaim`](#messageprofileclaim).[`repetition`](#repetition-2)
+
+***
+
 ### MessageStructure
 
 The structure summary for a parsed message: the data behind
@@ -9527,11 +9681,11 @@ Caps on the document; see [XmlLimits](#xmllimits).
 
 ##### profile?
 
-> `readonly` `optional` **profile?**: [`Profile`](#profile-3) \| `null`
+> `readonly` `optional` **profile?**: [`Profile`](#profile-4) \| `null`
 
 ###### Inherited from
 
-[`ParseOptions`](#parseoptions).[`profile`](#profile-2)
+[`ParseOptions`](#parseoptions).[`profile`](#profile-3)
 
 ##### strict?
 
@@ -9658,7 +9812,7 @@ const eager = parseHL7(raw, { lazy: false });
 
 ##### profile?
 
-> `readonly` `optional` **profile?**: [`Profile`](#profile-3) \| `null`
+> `readonly` `optional` **profile?**: [`Profile`](#profile-4) \| `null`
 
 ##### strict?
 
@@ -12578,7 +12732,7 @@ elements cannot be named. Only a value typed `TX` or `FT` may carry formatting e
 
 ##### groups?
 
-> `readonly` `optional` **groups?**: [`XmlMessageStructure`](#xmlmessagestructure) \| `"none"`
+> `readonly` `optional` **groups?**: `"none"` \| [`XmlMessageStructure`](#xmlmessagestructure)
 
 The message structure whose groups the segments are placed in, for a structure
 `XML_GROUP_TABLES` does not cover (a partner's schema gives it), or `"none"` to write every
@@ -15509,7 +15663,7 @@ of string literals, or `string` when the compiler cannot know them.
 
 `string` is the answer for every case where a declaration is not statically
 visible, and there are more of those than there are narrowing ones: a value
-typed as the general [Profile](#profile-3) interface, a segment type the profile
+typed as the general [Profile](#profile-4) interface, a segment type the profile
 does not declare, a segment declared with an empty field map, and a
 declaration map typed with an index signature. Narrowing is per segment type,
 never a flat union of every name the profile declares.
@@ -19253,6 +19407,55 @@ const w = fieldWhitespaceTrimmed({ segmentIndex: 1, fieldIndex: 5 }, 2, 1);
 
 ***
 
+### findMessageProfiles()
+
+> **findMessageProfiles**\<`P`\>(`msg`, `entries`): [`MessageProfileLookup`](#messageprofilelookup)\<`P`\>
+
+Find the profile or profiles a message names in MSH-21, in a list of entries the caller
+supplies. Each MSH-21 repetition is read as an `EI` and matched to every entry with the same
+entity identifier under the same assigning authority: the universal ID decides when both carry
+one (with its type, when both carry a type), else the namespace ID, and an identifier that names
+no authority matches only an entry that names none. Values compare exactly as decoded.
+
+The result says which case it is (`undeclared`, `none`, `one`, `several`), so no match is never
+a silent pass, and it lists the repetitions no entry matched. Reads the message and changes
+nothing, whatever MSH-21 carries; makes no network call. The caller writes every profile.
+
+#### Type Parameters
+
+##### P
+
+`P` = [`ConformanceProfile`](#conformanceprofile)
+
+#### Parameters
+
+##### msg
+
+[`Hl7Message`](#hl7message)
+
+##### entries
+
+readonly [`MessageProfileEntry`](#messageprofileentry)\<`P`\>[]
+
+#### Returns
+
+[`MessageProfileLookup`](#messageprofilelookup)\<`P`\>
+
+#### Example
+
+```ts
+import { findMessageProfiles, parseHL7, validateAgainstProfile } from "@cosyte/hl7";
+
+const msg = parseHL7(raw);
+const lookup = findMessageProfiles(msg, [
+  { identifier: { entityIdentifier: "EXPROF-1", namespaceId: "EXAMPLEORG" }, profile: intake },
+]);
+const [profile] = lookup.profiles;
+if (lookup.outcome === "one" && profile !== undefined) validateAgainstProfile(msg, profile);
+```
+
+***
+
 ### findMessageStructureDefinition()
 
 > **findMessageStructureDefinition**(`messageCode`, `triggerEvent`): [`MessageStructureDefinition`](#messagestructuredefinition) \| `undefined`
@@ -19320,7 +19523,7 @@ formatDtm(parseDtm("1970"));         // "1970"
 
 ### getDefaultProfile()
 
-> **getDefaultProfile**(): [`Profile`](#profile-3) \| `undefined`
+> **getDefaultProfile**(): [`Profile`](#profile-4) \| `undefined`
 
 Return the current default profile, or `undefined` if none is
 registered. Consistent with `msg.profile` convention: `undefined`
@@ -19328,7 +19531,7 @@ rather than `null`.
 
 #### Returns
 
-[`Profile`](#profile-3) \| `undefined`
+[`Profile`](#profile-4) \| `undefined`
 
 #### Example
 
@@ -20231,7 +20434,7 @@ with `{ strict: true }` to escalate every Tier-2 warning into an
 
 ###### P
 
-`P` *extends* [`Profile`](#profile-3)
+`P` *extends* [`Profile`](#profile-4)
 
 ##### Parameters
 
@@ -20293,7 +20496,7 @@ with `{ strict: true }` to escalate every Tier-2 warning into an
 
 ###### P
 
-`P` *extends* [`Profile`](#profile-3)
+`P` *extends* [`Profile`](#profile-4)
 
 ##### Parameters
 
@@ -20810,7 +21013,7 @@ The second argument, when given, is forwarded verbatim to [parseHL7](#parsehl7) 
 
 ###### P
 
-`P` *extends* [`Profile`](#profile-3)
+`P` *extends* [`Profile`](#profile-4)
 
 ##### Parameters
 
@@ -20887,7 +21090,7 @@ The second argument, when given, is forwarded verbatim to [parseHL7](#parsehl7) 
 
 ###### P
 
-`P` *extends* [`Profile`](#profile-3)
+`P` *extends* [`Profile`](#profile-4)
 
 ##### Parameters
 
@@ -21395,7 +21598,7 @@ last item: reading stops there and the source is released.
 
 ###### P
 
-`P` *extends* [`Profile`](#profile-3)
+`P` *extends* [`Profile`](#profile-4)
 
 ##### Parameters
 
@@ -21464,7 +21667,7 @@ last item: reading stops there and the source is released.
 
 ###### P
 
-`P` *extends* [`Profile`](#profile-3)
+`P` *extends* [`Profile`](#profile-4)
 
 ##### Parameters
 
@@ -21603,7 +21806,7 @@ earlier segments cannot do.
 
 ##### optionsOrProfile?
 
-[`Profile`](#profile-3) \| [`ParseOptions`](#parseoptions)
+[`Profile`](#profile-4) \| [`ParseOptions`](#parseoptions)
 
 #### Returns
 
@@ -21883,7 +22086,7 @@ infect subsequent tests.
 
 ##### profile
 
-[`Profile`](#profile-3) \| `null`
+[`Profile`](#profile-4) \| `null`
 
 #### Returns
 
@@ -22001,7 +22204,7 @@ result.
 
 ###### P
 
-`P` *extends* [`Profile`](#profile-3)
+`P` *extends* [`Profile`](#profile-4)
 
 ##### Parameters
 
@@ -22075,7 +22278,7 @@ result.
 
 ###### P
 
-`P` *extends* [`Profile`](#profile-3)
+`P` *extends* [`Profile`](#profile-4)
 
 ##### Parameters
 

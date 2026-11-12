@@ -166,7 +166,8 @@ validateAgainstProfile(withoutBirthDate, profile).findings.map((f) => f.code); /
 A predicate the message cannot decide gives `PROFILE_CONDITION_UNEVALUATABLE`, and that element's
 presence is not assessed rather than guessed. [Conformance profiles](./spec-notes-conformance.md)
 covers the usage codes, the predicate verbs, profile levels, value-set bindings and every finding
-code. This is a different thing from the parse profiles of [Use vendor profiles](./profiles.md),
+code. To run the profile a message names in MSH-21, pick it from your own list with
+`findMessageProfiles`: [Supply your own codes and profiles](./supply-your-own-codes-and-profiles.md). This is a different thing from the parse profiles of [Use vendor profiles](./profiles.md),
 which change how a message is read.
 
 ## Reference
