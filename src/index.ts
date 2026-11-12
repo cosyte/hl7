@@ -13,7 +13,7 @@
  * console.log(VERSION);
  * ```
  */
-export const VERSION: string = "0.1.13";
+export const VERSION: string = "0.1.14";
 
 export { parseHL7 } from "./parser/index.js";
 export { Hl7Message } from "./model/message.js";
@@ -645,5 +645,7 @@ export { DEFAULT_XML_LIMITS, V2_XML_NAMESPACE, parseHL7Xml, xmlDataTypes } from 
 export type { ParseHl7XmlOptions, XmlDataTypesOptions, XmlLimits } from "./xml/read.js";
 export { toHl7Xml } from "./xml/write.js";
 export type { ToHl7XmlOptions } from "./xml/write.js";
+export { XML_GROUP_TABLES } from "./xml/groups.js";
+export type { XmlGroupDefinition, XmlMessageStructure, XmlStructureItem } from "./xml/groups.js";
 export { Hl7XmlError, XML_ERROR_CODES } from "./xml/errors.js";
 export type { XmlErrorCode } from "./xml/errors.js";

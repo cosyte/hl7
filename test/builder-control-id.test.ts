@@ -1,45 +1,72 @@
-import { describe, expect, it } from "vitest";
-import { generateControlId, randomSuffix } from "../src/builder/control-id.js";
+import { describe, expect, it, vi } from "vitest";
+import { byteSource, generateControlId, randomSuffix } from "../src/builder/control-id.js";
 
 describe("randomSuffix: the six random characters of a control ID", () => {
-  /**
-   * A draw that hands out `draws`, one array per call, with every byte it does not set at 255 (a
-   * byte that is always rejected). It throws past the last array rather than loop for ever.
-   */
-  function fixedDraws(...draws: readonly (readonly number[])[]): {
-    draw: (bytes: Uint8Array) => void;
-    calls: () => number;
-  } {
-    let call = 0;
-    return {
-      draw: (bytes) => {
-        const next = draws[call];
-        if (next === undefined) throw new Error("drew past the fixed bytes");
-        bytes.fill(255);
-        bytes.set(next);
-        call += 1;
-      },
-      calls: () => call,
+  /** A byte source that hands out `bytes` in order and throws past the last one. */
+  function fixedBytes(...bytes: readonly number[]): () => number {
+    let next = 0;
+    return () => {
+      const byte = bytes[next];
+      if (byte === undefined) throw new Error("read past the fixed bytes");
+      next += 1;
+      return byte;
     };
   }
 
   it("maps each accepted byte onto the alphabet modulo 62", () => {
     // 62 and 123 wrap to A and 9; 247 is the last byte accepted, and 247 - 3 * 62 = 61.
-    expect(randomSuffix(fixedDraws([0, 1, 61, 62, 123, 247]).draw)).toBe("AB9A99");
+    expect(randomSuffix(fixedBytes(0, 1, 61, 62, 123, 247))).toBe("AB9A99");
   });
 
   it("skips a byte of 248 or more rather than reduce it, so no character is favored", () => {
-    expect(randomSuffix(fixedDraws([248, 249, 255, 0, 1, 2, 3, 4, 5]).draw)).toBe("ABCDEF");
+    expect(randomSuffix(fixedBytes(248, 249, 255, 0, 1, 2, 3, 4, 5))).toBe("ABCDEF");
   });
 
-  it("draws again when a whole draw is rejected", () => {
-    const draws = fixedDraws([], [7, 8, 9, 10, 11, 12]);
-    expect(randomSuffix(draws.draw)).toBe("HIJKLM");
-    expect(draws.calls()).toBe(2);
+  it("reads exactly six accepted bytes and no more", () => {
+    const bytes = [7, 8, 9, 10, 11, 12, 13];
+    let read = 0;
+    const suffix = randomSuffix(() => bytes[read++] ?? 255);
+    expect(suffix).toBe("HIJKLM");
+    expect(read).toBe(6);
+  });
+});
+
+describe("byteSource: random bytes drawn many at a time and handed out one at a time", () => {
+  /** A fill that writes 0, 1, 2, ... across its calls, and counts them. */
+  function countingFill(): { fill: (bytes: Uint8Array) => void; calls: () => number } {
+    let calls = 0;
+    let value = 0;
+    return {
+      fill: (bytes) => {
+        calls += 1;
+        for (let i = 0; i < bytes.length; i++) bytes[i] = value++ % 256;
+      },
+      calls: () => calls,
+    };
+  }
+
+  it("draws nothing until the first byte is asked for", () => {
+    const counting = countingFill();
+    byteSource(counting.fill, 4);
+    expect(counting.calls()).toBe(0);
   });
 
-  it("stops at six characters when a draw accepts more", () => {
-    expect(randomSuffix(fixedDraws([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]).draw)).toBe("ABCDEF");
+  it("hands out each drawn byte once, in order, and draws again only when all are used", () => {
+    const counting = countingFill();
+    const next = byteSource(counting.fill, 4);
+    const read = Array.from({ length: 9 }, () => next());
+    expect(read).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8]);
+    expect(counting.calls()).toBe(3);
+  });
+
+  it("draws into a buffer of the size it was given", () => {
+    const sizes: number[] = [];
+    const next = byteSource((bytes) => {
+      sizes.push(bytes.length);
+      bytes.fill(1);
+    }, 5);
+    for (let i = 0; i < 6; i++) next();
+    expect(sizes).toEqual([5, 5]);
   });
 });
 
@@ -84,6 +111,21 @@ describe("generateControlId (D-12)", () => {
     // overwhelming probability. If this ever fails, investigate Math.random
     // being mocked/frozen in the test env.
     expect(ids.size).toBe(100);
+  });
+
+  it("draws its random bytes from Web Crypto many IDs at a time, not once an ID", () => {
+    // A `crypto.getRandomValues` call for every ID made each ACK measurably slower, so the bytes
+    // are drawn a pool of 1,024 at a time. 400 IDs read about 2,480 bytes: two or three pools,
+    // whatever an earlier test left in the one before.
+    const spy = vi.spyOn(globalThis.crypto, "getRandomValues");
+    try {
+      for (let i = 0; i < 400; i++) generateControlId();
+      expect(spy.mock.calls.length).toBeGreaterThanOrEqual(2);
+      expect(spy.mock.calls.length).toBeLessThanOrEqual(3);
+      for (const [bytes] of spy.mock.calls) expect((bytes as Uint8Array).length).toBe(1024);
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it("never throws", () => {

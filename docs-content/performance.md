@@ -27,14 +27,28 @@ everything.
 ## The benchmarks
 
 `bench/parse.bench.mjs` is our benchmark suite, run by the shared `@cosyte/bench` tool against the
-built `dist/index.mjs`, the entry a consumer imports. It has four benchmarks: `parseHL7`, the parse
-followed by the reads most callers make (MSH, PID, PV1 and five OBX), `parseHL7` with
+built `dist/index.mjs`, the entry a consumer imports. It has four parse benchmarks: `parseHL7`, the
+parse followed by the reads most callers make (MSH, PID, PV1 and five OBX), `parseHL7` with
 `{ lazy: false }`, and the parse followed by `toString()`. Each runs at seven sizes: an `ADT^A01` of
 280 bytes, an `ORU^R01` of 1.6 KiB with every identifying segment filled (PID, PV1, NK1, GT1 and
 IN1), `ORU^R01` result reports of 32 KiB, 1 MiB and 4 MiB, and `ORU^R01` messages of 1 MiB and
 4 MiB that carry one base64 document. Every message is synthetic and built in the process. The
 1.6 KiB report is the message a de-identifying pipeline reads whole and writes back one at a time,
 so its peak heap in a reading is what one such message costs, the fixed cost of a call included.
+
+Two ACK benchmarks answer a message, the call an interface engine makes once for every message it
+takes in: `buildAck` then `toString()` on a header parsed beforehand, and the parse of a header, a
+negative `buildAck` with one ERR segment, then `toString()`. Each runs over 64 `ADT^A01` headers,
+one a call, and both are in the shared comparison, so a change that slows an ACK shows on the pull
+request that makes it.
+
+We added them after an engine built on this package measured each ACK slower once it upgraded from
+0.1.9, with no benchmark here to show it. The cause was the control id in MSH-10: from 0.1.12 it
+drew its random characters with one `crypto.getRandomValues` call for every id, where
+`node:crypto`'s `randomInt` before it served them from a pool. It now draws a pool of its own, a
+kilobyte at a time. `buildAck` also no longer builds the inbound header's `meta`, which parses
+MSH-7's date and, from 0.1.13, MSH-21, to read the three values it echoes. 0.1.13 itself was faster
+than 0.1.12 at an ACK, since its writer no longer collects an array for every field.
 
 - **A reading** (`pnpm build && pnpm bench:reading`) measures one build: throughput, latency
   percentiles, allocations per call, the peak memory of one call, whether the heap stays flat over a

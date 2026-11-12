@@ -15,6 +15,7 @@ import { pathToFileURL } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
+import * as hl7Module from "../../src/index.js";
 import { parseHL7 } from "../../src/index.js";
 
 const REPO_ROOT = process.cwd();
@@ -145,8 +146,10 @@ describe("the benchmark suite", () => {
       "parseHL7, then read MSH, PID, PV1 and five OBX",
       "parseHL7 with { lazy: false }",
       "parseHL7, then toString",
+      "buildAck AA, then toString",
+      "parseHL7 of a header, buildAck AE with an error, then toString",
     ]);
-    for (const benchmark of suite.benchmarks) {
+    for (const benchmark of suite.benchmarks.slice(0, 4)) {
       expect(benchmark.sizes.map((s) => s.label)).toEqual([
         "ADT^A01, 280 B",
         "ORU^R01 with every identifying segment, 1.6 KiB",
@@ -200,6 +203,46 @@ describe("the benchmark suite", () => {
     // report: MSH-10, PID-3 and five OBX-5. Document: MSH-10, PID-3 and the note's OBX-5 (the
     // document's OBX-5 starts with an empty component).
     expect(found).toEqual([3, 8, 7, 3]);
+  });
+
+  it("builds an ACK for each of 64 headers, compared in the shared comparison and absent from the large one", async () => {
+    const { default: suite, ackHeader } = await importModule<{
+      default: { benchmarks: Benchmark[] };
+      ackHeader: (i: number) => string;
+    }>("bench", "parse.bench.mjs");
+    const { default: large } = await importModule<{
+      default: { benchmarks: Benchmark[] };
+    }>("bench", "parse-large.compare.mjs");
+    const acks = suite.benchmarks.slice(4);
+    expect(acks).toHaveLength(2);
+    for (const benchmark of acks) {
+      expect(benchmark.sizes.map((s) => [s.label, s.compare])).toEqual([
+        ["ADT^A01 header, 64 in a row", true],
+      ]);
+      const corpus = benchmark.sizes[0]?.build();
+      const inputs = corpus?.inputs ?? [];
+      expect(inputs).toHaveLength(64);
+      expect(new Set(inputs).size).toBe(64);
+      expect(corpus?.bytes).toBe(inputs.reduce((n, t) => n + Buffer.byteLength(t), 0));
+      const call = benchmark.bind(hl7Module);
+      for (const header of inputs.slice(0, 2)) {
+        expect(header).toMatch(/^MSH\|[^\r]*\|ADT\^A01\|A\d{6}\|P\|2\.5$/u);
+        // Twice, so the call that finds its header already parsed is the one checked too.
+        for (let round = 0; round < 2; round++) {
+          const ack = parseHL7(call(header) as string);
+          expect(ack.get("MSA.2")).toBe(parseHL7(header).get("MSH.10"));
+          expect(ack.get("MSH.9.2")).toBe("A01");
+        }
+      }
+    }
+    const first = ackHeader(0);
+    const [positive, negative] = acks.map(
+      (benchmark) => benchmark.bind(hl7Module)(first) as string,
+    );
+    expect(parseHL7(positive ?? "").get("MSA.1")).toBe("AA");
+    expect(parseHL7(negative ?? "").get("MSA.1")).toBe("AE");
+    expect(parseHL7(negative ?? "").get("ERR.3")).toBe("207");
+    expect(large.benchmarks.map((b) => b.name)).not.toContain("buildAck AA, then toString");
   });
 
   it("carries its large document in one OBX of value type ED, as base64 the parser reads whole", async () => {

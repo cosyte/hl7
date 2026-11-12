@@ -1,8 +1,8 @@
 /**
  * The HL7 v2 XML encoding: `parseHL7Xml` reads a message into the model `parseHL7` builds for the
  * same message in the pipe-delimited encoding, `toHl7Xml` writes it back, and both refuse, with a
- * coded `Hl7XmlError`, a hostile document and every case whose encoding rule we have not
- * confirmed. Every fixture is synthetic (see `test/fixtures/xml/README.md`).
+ * coded `Hl7XmlError`, a hostile document and every case the published rules leave open. Every
+ * fixture is synthetic (see `test/fixtures/xml/README.md`).
  */
 
 import { Buffer } from "node:buffer";
@@ -15,11 +15,14 @@ import {
   Hl7Message,
   Hl7XmlError,
   XML_ERROR_CODES,
+  XML_GROUP_TABLES,
   parseHL7,
   parseHL7Xml,
-  toHl7Xml,
+  toHl7Xml as writeXml,
   xmlDataTypes,
+  type ToHl7XmlOptions,
   type XmlErrorCode,
+  type XmlMessageStructure,
 } from "../src/index.js";
 import type { RawField } from "../src/index.js";
 import { forbiddenCharacterAt } from "../src/xml/chars.js";
@@ -46,6 +49,14 @@ function refusal(call: () => unknown): XmlErrorCode {
     return e.code;
   }
   throw new Error("expected an Hl7XmlError, got none");
+}
+
+/**
+ * `toHl7Xml` with every segment directly under the root unless the test asks for groups: most of
+ * these messages are v2.6 ADT_A01, a structure the group tables do not cover.
+ */
+function toHl7Xml(message: Hl7Message, options: ToHl7XmlOptions = {}): string {
+  return writeXml(message, { groups: "none", ...options });
 }
 
 /** An MSH opening with the standard delimiters, for small documents. */
@@ -135,22 +146,28 @@ describe("parseHL7Xml reads the model parseHL7 builds", () => {
 });
 
 describe("toHl7Xml writes v2 XML", () => {
-  it("writes the 2.5 fixture byte for byte with the data types it names", () => {
+  it("writes the 2.5 fixture byte for byte, in its groups, with the data types it names", () => {
     const xml = fixture("oru-r01-v25.xml");
     const dataTypes = xmlDataTypes(xml);
     expect(dataTypes["PID.5"]).toBe("XPN");
     expect(dataTypes["XPN.1"]).toBe("FN");
-    expect(toHl7Xml(parseHL7(fixture("oru-r01-v25.hl7")), { dataTypes })).toBe(xml);
+    expect(writeXml(parseHL7(fixture("oru-r01-v25.hl7")), { dataTypes })).toBe(xml);
   });
 
-  it("writes the grouped 2.6 fixture back to the same model, without groups", () => {
+  it("writes the grouped 2.6 fixture back to the same model, in the groups it is given", () => {
     const xml = fixture("oru-r01-v26-grouped.xml");
     const msg = parseHL7Xml(xml);
-    const written = toHl7Xml(msg, { dataTypes: xmlDataTypes(xml) });
-    expect(written).not.toContain("ORU_R01.PATIENT_RESULT");
+    const dataTypes = xmlDataTypes(xml);
+    expect(refusal(() => writeXml(msg, { dataTypes }))).toBe("GROUPS_UNKNOWN");
+    const groups = XML_GROUP_TABLES["2.5"]?.["ORU_R01"] as XmlMessageStructure;
+    const written = writeXml(msg, { dataTypes, groups });
+    for (const group of ["PATIENT_RESULT", "PATIENT", "ORDER_OBSERVATION", "OBSERVATION"]) {
+      expect(written).toContain(`<ORU_R01.${group}>`);
+    }
     expect(written).toContain('<PID.13>""</PID.13>');
     expect(written).toContain("Line one&#10;Line two");
     expect(parseHL7Xml(written).rawSegments).toEqual(msg.rawSegments);
+    expect(toHl7Xml(msg, { dataTypes })).not.toContain("ORU_R01.PATIENT_RESULT");
   });
 
   it("writes MSH.2 with the truncation character and a value holding it", () => {
@@ -163,9 +180,7 @@ describe("toHl7Xml writes v2 XML", () => {
   it("names the root from MSH-9, or from the structure option, with or without a namespace", () => {
     const pipe = "MSH|^~\\&|||||||ACK^A01|1|P|2.6\rMSA|AA|1\r";
     const dataTypes = { "MSH.9": "MSG" };
-    expect(toHl7Xml(parseHL7(pipe), { dataTypes })).toContain(
-      '<ACK_A01 xmlns="urn:hl7-org:v2xml">',
-    );
+    expect(toHl7Xml(parseHL7(pipe), { dataTypes })).toContain('<ACK xmlns="urn:hl7-org:v2xml">');
     expect(toHl7Xml(parseHL7("MSH|^~\\&|||||||ACK|1|P|2.6\r"))).toContain("<ACK xmlns=");
     const bare = toHl7Xml(parseHL7(pipe), { dataTypes, structure: "ACK", namespace: null });
     expect(bare).toContain("<ACK>\n");
@@ -239,8 +254,8 @@ describe("the reader is hardened", () => {
     ["an unclosed end tag", `<ADT_A01>${MSH}</ADT_A01`, "NOT_WELL_FORMED"],
     ["a tag with no name", `<ADT_A01>${MSH}< /></ADT_A01>`, "NOT_WELL_FORMED"],
     [
-      "a namespace prefix",
-      `<v2:ADT_A01 xmlns:v2="urn:hl7-org:v2xml">${MSH}</v2:ADT_A01>`,
+      "a namespace prefix bound to another namespace",
+      `<v2:ADT_A01 xmlns:v2="urn:example">${MSH}</v2:ADT_A01>`,
       "NAMESPACE_NOT_SUPPORTED",
     ],
     [
@@ -410,16 +425,11 @@ describe("the reader refuses what is not the v2 XML shape", () => {
   }
 });
 
-describe("the cases whose encoding rule we have not confirmed are refused", () => {
+describe("the cases the published rules leave open are refused", () => {
   const reads: readonly (readonly [string, string])[] = [
-    ["an escape element in a field", doc('<NTE><NTE.3>a<escape V=".br"/>b</NTE.3></NTE>')],
     [
-      "an escape element in a component",
-      doc('<NTE><NTE.3><FT.1>a<escape V="H"/></FT.1></NTE.3></NTE>'),
-    ],
-    [
-      "an escape element in a subcomponent",
-      doc('<PID><PID.5><XPN.1><FN.1><escape V="N"/></FN.1></XPN.1></PID.5></PID>'),
+      "an escape element that is not a formatting escape",
+      doc('<NTE><NTE.3>a<escape V="X41"/>b</NTE.3></NTE>'),
     ],
     ["the escape character in a field", doc("<NTE><NTE.3>a\\.br\\b</NTE.3></NTE>")],
     [
@@ -440,9 +450,10 @@ describe("the cases whose encoding rule we have not confirmed are refused", () =
 
   const writes: readonly (readonly [string, string])[] = [
     ["a literal escape character", "NTE|||a\\E\\b"],
-    ["a highlighting escape", "NTE|||a\\H\\b\\N\\"],
-    ["a hex escape", "NTE|||a\\X41\\"],
-    ["a formatting escape other than a line break", "NTE|||a\\.sp\\b"],
+    ["a highlighting escape in a value not typed TX or FT", "NTE|||a\\H\\b\\N\\"],
+    ["a hex escape ASCII cannot decode", "NTE|||a\\XC9\\"],
+    ["a formatting escape other than a line break, untyped", "NTE|||a\\.sp\\b"],
+    ["a character set escape", "NTE|||a\\C2842\\b"],
   ];
 
   for (const [what, segment] of writes) {

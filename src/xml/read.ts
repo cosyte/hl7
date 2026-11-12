@@ -14,6 +14,7 @@
 import { Buffer } from "node:buffer";
 
 import { readDelimiters } from "../parser/delimiters.js";
+import { KNOWN_SEGMENTS } from "../parser/known-segments.js";
 import { reescape } from "../parser/escapes.js";
 import { parseHL7 } from "../parser/index.js";
 import type { EncodingCharacters, ParseOptions } from "../parser/types.js";
@@ -90,8 +91,8 @@ export interface XmlDataTypesOptions {
 }
 
 /**
- * The namespace HL7 gives the v2 XML encoding. The reader accepts it or no namespace; the writer
- * declares it unless told not to.
+ * The namespace HL7 gives the v2 XML encoding. The reader accepts it, as the default namespace or
+ * through a prefix, or no namespace; the writer declares it as the default unless told not to.
  *
  * @example
  * ```ts
@@ -119,12 +120,16 @@ interface SegmentFrame {
   lastPos: number;
 }
 
-/** A field element: text, or component elements gathered in `parts` from position 1. */
+/**
+ * A field element: text, or component elements gathered in `parts` from position 1. `pipe` is the
+ * pipe text of what came before the last `escape` element, and `text` the text after it.
+ */
 interface FieldFrame {
   readonly kind: "field";
   readonly name: string;
   readonly segment: SegmentFrame;
   readonly pos: number;
+  pipe: string;
   text: string;
   parts: string[] | undefined;
   lastPart: number;
@@ -138,6 +143,7 @@ interface ComponentFrame {
   readonly name: string;
   readonly field: FieldFrame;
   readonly pos: number;
+  pipe: string;
   text: string;
   parts: string[] | undefined;
   lastPart: number;
@@ -145,20 +151,43 @@ interface ComponentFrame {
   partType: string | undefined;
 }
 
-/** A subcomponent element: text only. */
+/** A subcomponent element: text and `escape` elements only. */
 interface SubcomponentFrame {
   readonly kind: "subcomponent";
   readonly name: string;
   readonly component: ComponentFrame;
   readonly pos: number;
+  pipe: string;
   text: string;
   readonly parts?: undefined;
 }
 
-type Frame = ContainerFrame | SegmentFrame | FieldFrame | ComponentFrame | SubcomponentFrame;
+/** An `escape` element, already written to its value's pipe text: it holds nothing. */
+interface EscapeFrame {
+  readonly kind: "escape";
+  readonly parts?: undefined;
+}
+
+type Frame =
+  ContainerFrame | SegmentFrame | FieldFrame | ComponentFrame | SubcomponentFrame | EscapeFrame;
+
+/** A value element, which may hold text and `escape` elements. */
+type ValueFrame = FieldFrame | ComponentFrame | SubcomponentFrame;
 
 /** Called with each data type the document names: `PID.5` to `XPN`, `XPN.1` to `FN`. */
 type TypeSink = (key: string, type: string) => void;
+
+/**
+ * Whether `code` is the `V` of an `escape` element the reader accepts: a formatting escape, which
+ * is highlighting (`H`, `N`) or a formatting command (`.br`, `.sp`, `.in+4`). The v2 XML encoding
+ * writes these as `escape` elements; the delimiter escapes are plain characters there, and hex
+ * escapes are character references.
+ *
+ * @internal
+ */
+export function isFormattingEscape(code: string): boolean {
+  return /^(?:H|N|\.(?:br|sp|in|ti|sk|ce|fi|nf)(?:[+-]?[0-9]{1,3})?)$/u.test(code);
+}
 
 /** Whether `name` is a segment element: a three-character segment id. */
 function isSegmentName(name: string): boolean {
@@ -168,6 +197,16 @@ function isSegmentName(name: string): boolean {
 /** Whether `name` is a group element: a structure name, a dot and a group name. */
 function isGroupName(name: string): boolean {
   return /^[A-Za-z][A-Za-z0-9_]*\.[A-Za-z_][A-Za-z0-9_]*$/u.test(name);
+}
+
+/**
+ * Whether a name is a segment id rather than a data type: a segment we know, or a Z-segment. No
+ * HL7 data type shares a name with a segment.
+ *
+ * @internal
+ */
+export function isSegmentId(prefix: string): boolean {
+  return KNOWN_SEGMENTS.has(prefix) || /^Z[A-Z0-9]{2}$/u.test(prefix);
 }
 
 /** A positional element's name split: a segment id or data type, and a position from 1 to 999. */
@@ -240,6 +279,10 @@ class XmlToPipe {
   private readonly limits: Required<XmlLimits>;
   private readonly onType: TypeSink | undefined;
   private readonly stack: Frame[] = [];
+  /** The name each open element was written with, prefix included, to match its end tag. */
+  private readonly tags: string[] = [];
+  /** The namespace prefixes in scope at each open element. */
+  private readonly scopes: ReadonlyMap<string, string>[] = [];
   private readonly segments: string[] = [];
   private pos = 0;
   private elements = 0;
@@ -284,7 +327,7 @@ class XmlToPipe {
       this.pos = lt;
       this.markup();
     }
-    if (this.stack.length > 0) {
+    if (this.tags.length > 0) {
       this.fail(XML_ERROR_CODES.NOT_WELL_FORMED, "The document ends inside an element.");
     }
     if (!this.rootSeen) {
@@ -337,21 +380,22 @@ class XmlToPipe {
     }
     this.pos = at + 1;
     const name = this.name();
+    const attributes = new Map<string, string>();
     for (;;) {
       const hadSpace = this.skipSpace();
       if (src.startsWith(">", this.pos)) {
         this.pos++;
-        this.startElement(name, at);
+        this.startElement(name, at, attributes);
         return;
       }
       if (src.startsWith("/>", this.pos)) {
         this.pos += 2;
-        this.startElement(name, at);
+        this.startElement(name, at, attributes);
         this.endElement(name, at);
         return;
       }
       if (!hadSpace) this.fail(XML_ERROR_CODES.NOT_WELL_FORMED, "A start tag is malformed.");
-      this.attribute(name);
+      this.attribute(attributes);
     }
   }
 
@@ -385,8 +429,8 @@ class XmlToPipe {
     return this.src.slice(start, this.pos);
   }
 
-  /** Read one attribute of element `element`; only a default namespace declaration matters. */
-  private attribute(element: string): void {
+  /** Read one attribute into `attributes`. */
+  private attribute(attributes: Map<string, string>): void {
     const src = this.src;
     const name = this.name();
     this.skipSpace();
@@ -409,13 +453,42 @@ class XmlToPipe {
     }
     const value = this.decode(raw, this.pos + 1);
     this.pos = close + 1;
-    if (name === "xmlns" && value !== "" && value !== V2_XML_NAMESPACE) {
+    attributes.set(name, value);
+  }
+
+  /**
+   * The local name of element `name`, after its namespace declarations in `attributes` are taken
+   * into scope: refused when it is in a namespace other than the v2 XML one or none.
+   */
+  private localName(name: string, attributes: ReadonlyMap<string, string>, at: number): string {
+    let scope = this.scopes.at(-1) ?? new Map<string, string>();
+    for (const [attribute, value] of attributes) {
+      if (attribute === "xmlns" && value !== "" && value !== V2_XML_NAMESPACE) {
+        this.fail(
+          XML_ERROR_CODES.NAMESPACE_NOT_SUPPORTED,
+          "An element declares a default namespace other than the v2 XML one.",
+          name,
+          at,
+        );
+      }
+      if (attribute.startsWith("xmlns:")) {
+        scope = new Map(scope).set(attribute.slice(6), value);
+      }
+    }
+    this.scopes.push(scope);
+    this.tags.push(name);
+    const colon = name.indexOf(":");
+    if (colon === -1) return name;
+    const local = name.slice(colon + 1);
+    if (scope.get(name.slice(0, colon)) !== V2_XML_NAMESPACE || local.includes(":")) {
       this.fail(
         XML_ERROR_CODES.NAMESPACE_NOT_SUPPORTED,
-        "An element declares a default namespace other than the v2 XML one.",
-        element,
+        "An element's namespace prefix is not bound to the v2 XML namespace.",
+        undefined,
+        at,
       );
     }
+    return local;
   }
 
   /**
@@ -487,6 +560,15 @@ class XmlToPipe {
         at,
       );
     }
+    if (top.kind === "escape") {
+      if (isWhitespace(raw)) return;
+      this.fail(
+        XML_ERROR_CODES.ESCAPE_NOT_SUPPORTED,
+        "An escape element holds text.",
+        undefined,
+        at,
+      );
+    }
     if (top.parts !== undefined) {
       if (isWhitespace(raw)) return;
       this.fail(
@@ -513,7 +595,11 @@ class XmlToPipe {
   }
 
   /** An element opens. */
-  private startElement(name: string, at: number): void {
+  private startElement(
+    qualified: string,
+    at: number,
+    attributes: ReadonlyMap<string, string>,
+  ): void {
     if (this.stack.length >= this.limits.maxDepth) {
       this.fail(
         XML_ERROR_CODES.DEPTH_LIMIT_EXCEEDED,
@@ -523,14 +609,7 @@ class XmlToPipe {
       );
     }
     this.count(1, at);
-    if (name.includes(":")) {
-      this.fail(
-        XML_ERROR_CODES.NAMESPACE_NOT_SUPPORTED,
-        "An element name carries a namespace prefix.",
-        undefined,
-        at,
-      );
-    }
+    const name = this.localName(qualified, attributes, at);
     const top = this.stack.at(-1);
     if (top === undefined) {
       if (this.rootSeen) {
@@ -549,29 +628,66 @@ class XmlToPipe {
       this.openInContainer(name, at);
     } else if (top.kind === "segment") {
       this.openField(top, name, at);
+    } else if (top.kind === "escape") {
+      this.fail(
+        XML_ERROR_CODES.ESCAPE_NOT_SUPPORTED,
+        "An escape element holds an element.",
+        undefined,
+        at,
+      );
+    } else if (name === "escape") {
+      this.openEscape(top, attributes, at);
     } else if (top.kind === "subcomponent") {
-      this.refuseBelowSubcomponent(top.name, name, at);
+      this.fail(
+        XML_ERROR_CODES.UNEXPECTED_ELEMENT,
+        "An element nests below a subcomponent.",
+        top.name,
+        at,
+      );
     } else {
       this.openPart(top, name, at);
     }
   }
 
-  /** Refuse an element inside a subcomponent: an `escape` element, or one nested too deep. */
-  private refuseBelowSubcomponent(parent: string, name: string, at: number): never {
-    if (name === "escape") {
+  /**
+   * An `escape` element opens in a value: its `V`, a formatting escape, joins the value's pipe
+   * text between the message's escape characters, as `<escape V="H"/>` is `\H\`.
+   */
+  private openEscape(
+    parent: ValueFrame,
+    attributes: ReadonlyMap<string, string>,
+    at: number,
+  ): void {
+    if (parent.kind === "field" && parent.segment.name === "MSH" && parent.pos <= 2) {
       this.fail(
-        XML_ERROR_CODES.ESCAPE_NOT_SUPPORTED,
-        "The document uses an escape element.",
-        parent,
+        XML_ERROR_CODES.INVALID_ENCODING_CHARACTERS,
+        "MSH.1 and MSH.2 hold text only.",
+        parent.name,
         at,
       );
     }
-    this.fail(
-      XML_ERROR_CODES.UNEXPECTED_ELEMENT,
-      "An element nests below a subcomponent.",
-      parent,
-      at,
-    );
+    if (parent.parts !== undefined) {
+      this.fail(
+        XML_ERROR_CODES.MIXED_CONTENT,
+        "An element holds both text and elements.",
+        parent.name,
+        at,
+      );
+    }
+    // An absent V reads as "undefined", which is no formatting escape.
+    const code = String(attributes.get("V"));
+    if (!isFormattingEscape(code)) {
+      this.fail(
+        XML_ERROR_CODES.ESCAPE_NOT_SUPPORTED,
+        "An escape element's V is not a formatting escape.",
+        parent.name,
+        at,
+      );
+    }
+    const esc = (this.enc as EncodingCharacters).escape;
+    parent.pipe += this.leaf(parent.text, parent.name, at) + esc + code + esc;
+    parent.text = "";
+    this.stack.push({ kind: "escape" });
   }
 
   /** A segment or group opens in the root or a group. */
@@ -648,6 +764,7 @@ class XmlToPipe {
       name,
       segment,
       pos,
+      pipe: "",
       text: "",
       parts: undefined,
       lastPart: 0,
@@ -657,14 +774,6 @@ class XmlToPipe {
 
   /** A component opens in a field, or a subcomponent in a component. */
   private openPart(parent: FieldFrame | ComponentFrame, name: string, at: number): void {
-    if (name === "escape") {
-      this.fail(
-        XML_ERROR_CODES.ESCAPE_NOT_SUPPORTED,
-        "The document uses an escape element.",
-        parent.name,
-        at,
-      );
-    }
     if (parent.kind === "field" && parent.segment.name === "MSH" && parent.pos <= 2) {
       this.fail(
         XML_ERROR_CODES.INVALID_ENCODING_CHARACTERS,
@@ -685,7 +794,7 @@ class XmlToPipe {
       );
     }
     if (parent.parts === undefined) {
-      if (!isWhitespace(parent.text)) {
+      if (!isWhitespace(parent.text) || parent.pipe !== "") {
         this.fail(
           XML_ERROR_CODES.MIXED_CONTENT,
           "An element holds both text and elements.",
@@ -696,10 +805,10 @@ class XmlToPipe {
       parent.parts = [];
     }
     const segment = parent.kind === "field" ? parent.segment : parent.field.segment;
-    if (position.prefix === segment.name) {
+    if (position.prefix === segment.name || isSegmentId(position.prefix)) {
       this.fail(
         XML_ERROR_CODES.UNEXPECTED_ELEMENT,
-        "A component or subcomponent is named for its segment, not a data type.",
+        "A component or subcomponent is named for a segment, not a data type.",
         name,
         at,
       );
@@ -731,13 +840,14 @@ class XmlToPipe {
         name,
         field: parent,
         pos,
+        pipe: "",
         text: "",
         parts: undefined,
         lastPart: 0,
         partType: undefined,
       });
     } else {
-      this.stack.push({ kind: "subcomponent", name, component: parent, pos, text: "" });
+      this.stack.push({ kind: "subcomponent", name, component: parent, pos, pipe: "", text: "" });
     }
   }
 
@@ -757,8 +867,7 @@ class XmlToPipe {
 
   /** An element closes. */
   private endElement(name: string, at: number): void {
-    const top = this.stack.pop();
-    if (top?.name !== name) {
+    if (this.tags.pop() !== name) {
       this.fail(
         XML_ERROR_CODES.NOT_WELL_FORMED,
         "An end tag does not match its start tag.",
@@ -766,16 +875,19 @@ class XmlToPipe {
         at,
       );
     }
-    // A container (the root or a group) has nothing to close, so it matches none of these.
+    this.scopes.pop();
+    // `tags` and `stack` grow and shrink together, so a matched tag has its frame.
+    const top = this.stack.pop() as Frame;
+    // A container (the root or a group) and an escape have nothing to close, so they match none.
     if (top.kind === "segment") this.closeSegment(top, at);
     else if (top.kind === "field") this.closeField(top, at);
     else if (top.kind === "component") {
       (top.field.parts as string[])[top.pos - 1] =
         top.parts === undefined
-          ? this.leaf(top.text, top.name, at)
+          ? top.pipe + this.leaf(top.text, top.name, at)
           : top.parts.join((this.enc as EncodingCharacters).subcomponent);
     } else if (top.kind === "subcomponent") {
-      (top.component.parts as string[])[top.pos - 1] = this.leaf(top.text, top.name, at);
+      (top.component.parts as string[])[top.pos - 1] = top.pipe + this.leaf(top.text, top.name, at);
     }
   }
 
@@ -791,7 +903,7 @@ class XmlToPipe {
     const enc = this.enc as EncodingCharacters;
     const text =
       field.parts === undefined
-        ? this.leaf(field.text, field.name, at)
+        ? field.pipe + this.leaf(field.text, field.name, at)
         : field.parts.join(enc.component);
     const index = segment.name === "MSH" ? field.pos - 1 : field.pos;
     segment.parts[index] =
@@ -862,18 +974,21 @@ export function xmlToPipe(xml: string, limits?: XmlLimits, onType?: TypeSink): s
  * Element names are read by position: `PID.5` is the fifth field of PID, and inside it `XPN.1`
  * (or any data type name ending in `.1`) is its first component, so no data type table is needed
  * to read. The components of one value must all name the same data type, and none may be named
- * for the segment itself (`PID.3` inside `PID.5`). Group elements (`ORU_R01.PATIENT_RESULT`) are
+ * for a segment (`PID.3` or `OBX.1` inside `PID.5`). Group elements (`ORU_R01.PATIENT_RESULT`) are
  * walked through; segments are read in document order. One document is one message: a second
- * MSH is refused. Text is the decoded value: a `|` or `^` in text is that character, written to the model
- * as the pipe parser would read `\F\` or `\S\`. A field whose text is `""` is the explicit null.
+ * MSH is refused. Text is the decoded value: a `|` or `^` in text is that character, written to
+ * the model as the pipe parser would read `\F\` or `\S\`. A field whose text is `""` is the
+ * explicit null. An `escape` element is the formatting escape its `V` names: `<escape V="H"/>` is
+ * `\H\`. Elements may be in the `urn:hl7-org:v2xml` namespace, as the default or through a
+ * prefix, or in none.
  *
  * The reader is hardened: it refuses a DTD or entity declaration, any entity beyond the five XML
  * predefines, a character XML 1.0 forbids, and a document past the size, depth or element caps
  * of `limits` (a limit that is not a number, NaN included, is refused with `INVALID_OPTIONS`;
- * `Infinity` lifts a cap). It refuses, rather than guess, the cases whose encoding rule we have not
- * confirmed: an `escape` element, and the message's escape character (MSH.2's third character)
- * in text. Every refusal is an {@link Hl7XmlError} with a code from `XML_ERROR_CODES`; errors
- * from reading the pipe form are `parseHL7`'s own.
+ * `Infinity` lifts a cap). It refuses, rather than guess, what the published rules leave open:
+ * the message's escape character (MSH.2's third character) in text, and an `escape` element
+ * whose `V` is not a formatting escape. Every refusal is an {@link Hl7XmlError} with a code from
+ * `XML_ERROR_CODES`; errors from reading the pipe form are `parseHL7`'s own.
  *
  * @param xml The document, as text.
  * @param options `parseHL7`'s options and the reader's caps.

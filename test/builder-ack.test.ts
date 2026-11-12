@@ -127,6 +127,36 @@ describe("buildAck: MSH construction", () => {
   });
 });
 
+describe("buildAck: the cost of one ACK", () => {
+  it("reads the trigger event, processing id and version it echoes without building the inbound's meta", () => {
+    // `meta` parses the whole header (the MSH-7 date, MSH-21 and more) when it is first read, which
+    // an ACK builder that parses each header it answers would pay on every ACK. A header whose
+    // `meta` throws shows `buildAck` reads only the fields it uses.
+    const inbound = parseHL7(
+      "MSH|^~\\&|SENDAPP|SENDFAC|RECVAPP|RECVFAC|20260101120000||ADT^A01|MSGMETA|T^A|2.3.1",
+    );
+    Object.defineProperty(inbound, "meta", {
+      get(): never {
+        throw new Error("buildAck read meta");
+      },
+    });
+    const ack = buildAck(inbound, { code: "AA" });
+    expect(ack.get("MSH.9.2")).toBe("A01");
+    expect(ack.get("MSH.11")).toBe("T");
+    expect(ack.get("MSH.12")).toBe("2.3.1");
+  });
+
+  it("falls back as meta did when a value it echoes has an empty first component", () => {
+    // `meta` omits an empty value, so `^X` in MSH-11 and an empty MSH-9.2 read as absent.
+    const inbound = parseHL7("MSH|^~\\&|S|SF|R|RF|20260101120000||ADT^^ADT_A01|MSGEMPTY|^X|^2");
+    const ack = buildAck(inbound, { code: "AA" });
+    expect(ack.toString().split("\r")[0]?.split("|")[8]).toBe("ACK");
+    expect(ack.get("MSH.11")).toBe("P");
+    expect(ack.get("MSH.12")).toBe("2.5");
+    expect(ack.version).toBe("2.5");
+  });
+});
+
 describe("buildAck: MSA construction", () => {
   it("MSA-1 is the disposition told; MSA-2 echoes the inbound MSH-10", () => {
     const ack = buildAck(parseHL7(INBOUND), { code: "AA" });
