@@ -18,13 +18,13 @@ import type {
 import { forbiddenCharacterAt } from "./chars.js";
 import { Hl7XmlError, XML_ERROR_CODES, safePath, type XmlErrorCode } from "./errors.js";
 import {
-  XML_GROUP_TABLES,
+  groupTable,
   placeSegments,
   resolveStructure,
   type PlacedGroup,
   type XmlMessageStructure,
 } from "./groups.js";
-import { FORMATTING_ESCAPE, V2_XML_NAMESPACE, isSegmentId } from "./read.js";
+import { V2_XML_NAMESPACE, isFormattingEscape, isSegmentId } from "./read.js";
 
 /**
  * Options for `toHl7Xml`.
@@ -76,23 +76,12 @@ export interface ToHl7XmlOptions {
 }
 
 /**
- * The primitive data types: a value of one is text, never child elements. HL7 v2 chapter 2A
- * lists them; `TS` and `TN` were primitives in early versions, so they are left out.
+ * Whether `type` is a primitive data type: a value of one is text, never child elements. HL7 v2
+ * chapter 2A lists them; `TS` and `TN` were primitives in early versions, so they are left out.
  */
-const PRIMITIVE_TYPES: ReadonlySet<string> = new Set([
-  "DT",
-  "DTM",
-  "FT",
-  "GTS",
-  "ID",
-  "IS",
-  "NM",
-  "SI",
-  "SNM",
-  "ST",
-  "TM",
-  "TX",
-]);
+function isPrimitive(type: string): boolean {
+  return ["DT", "DTM", "FT", "GTS", "ID", "IS", "NM", "SI", "SNM", "ST", "TM", "TX"].includes(type);
+}
 
 /** Whether `name` is an XML name with no namespace prefix and no dot. */
 function isXmlName(name: string): boolean {
@@ -179,11 +168,13 @@ class XmlWriter {
    */
   private typeOf(key: string): string | undefined {
     const type = this.lookup(key);
-    if (type?.match(/^[A-Za-z][A-Za-z0-9_]*$/u) === null) {
-      fail(XML_ERROR_CODES.INVALID_OPTIONS, "A data type is not an XML name.", key);
-    }
-    if (type === this.segmentName || isSegmentId(type ?? "")) {
-      fail(XML_ERROR_CODES.INVALID_OPTIONS, "A data type is named for a segment.", key);
+    if (type !== undefined) {
+      if (type.match(/^[A-Za-z][A-Za-z0-9_]*$/u) === null) {
+        fail(XML_ERROR_CODES.INVALID_OPTIONS, "A data type is not an XML name.", key);
+      }
+      if (type === this.segmentName || isSegmentId(type)) {
+        fail(XML_ERROR_CODES.INVALID_OPTIONS, "A data type is named for a segment.", key);
+      }
     }
     return type;
   }
@@ -240,7 +231,7 @@ class XmlWriter {
   private repetition(key: string, rep: RawRepetition): string {
     const components = rep.components;
     const type = this.typeOf(key);
-    if (type === undefined || PRIMITIVE_TYPES.has(type)) {
+    if (type === undefined || isPrimitive(type)) {
       const count = extent(components, hasValue);
       if (count > 1) {
         fail(
@@ -269,7 +260,7 @@ class XmlWriter {
   private component(key: string, component: RawComponent): string {
     const subs = component.subcomponents;
     const type = this.typeOf(key);
-    if (type === undefined || PRIMITIVE_TYPES.has(type)) {
+    if (type === undefined || isPrimitive(type)) {
       if (extent(subs, isFilled) > 1) {
         fail(
           XML_ERROR_CODES.DATA_TYPE_UNKNOWN,
@@ -350,7 +341,7 @@ class XmlWriter {
         key,
       );
     }
-    if (FORMATTING_ESCAPE.test(seq)) {
+    if (isFormattingEscape(seq)) {
       if (formatted) return `<escape V="${seq}"/>`;
       if (seq === ".br") return "&#10;";
       fail(
@@ -384,8 +375,8 @@ class XmlWriter {
         key,
       );
     }
-    // Refuses the escape character, which the reader would refuse, and characters XML forbids.
-    this.text(text, key, false);
+    // The escape character, which the reader would refuse, and characters XML forbids.
+    this.check(text, key);
     let out = "";
     for (const ch of text) out += `&#x${(ch.codePointAt(0) as number).toString(16)};`;
     return out;
@@ -393,6 +384,14 @@ class XmlWriter {
 
   /** Decoded text, refused when it holds the escape character or a character XML forbids. */
   private text(text: string, key: string, formatted: boolean): string {
+    this.check(text, key);
+    return formatted
+      ? text.split("\n").map(escapeText).join('<escape V=".br"/>')
+      : escapeText(text);
+  }
+
+  /** Refuse decoded text holding the escape character or a character XML forbids. */
+  private check(text: string, key: string): void {
     if (text.includes(this.enc.escape)) {
       fail(
         XML_ERROR_CODES.ESCAPE_NOT_SUPPORTED,
@@ -407,9 +406,6 @@ class XmlWriter {
         key,
       );
     }
-    return formatted
-      ? text.split("\n").map(escapeText).join('<escape V=".br"/>')
-      : escapeText(text);
   }
 }
 
@@ -445,6 +441,7 @@ function structureName(message: Hl7Message, options: ToHl7XmlOptions): string {
     }
     return structure;
   }
+  // Stryker disable next-line StringLiteral: with no MSH-9.1 no definition matches the empty code or the mutant's text, so the refusal is the same
   const code = message.get("MSH.9.1") ?? "";
   const trigger = message.get("MSH.9.2") ?? "";
   const known = findMessageStructureDefinition(code, trigger)?.structureId ?? "";
@@ -466,10 +463,8 @@ function placed(
   if (groups === "none") return message.rawSegments;
   if (groups !== undefined)
     return placeSegments(resolveStructure(groups).items, message.rawSegments);
-  // `version` is empty, a version's shape or WITHHELD, so it names no other property.
   const version = message.version;
-  const tables = XML_GROUP_TABLES[version];
-  const table = tables !== undefined && Object.hasOwn(tables, root) ? tables[root] : undefined;
+  const table = groupTable(version, root);
   if (table === undefined) {
     const name = safeStructure(root) ?? "this message structure";
     const label = version === "" || version === WITHHELD ? "its version" : `v${version}`;

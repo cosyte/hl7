@@ -133,10 +133,35 @@ describe("the writer places segments in the message structure's groups", () => {
     ]);
   });
 
-  it("lists the structures its tables cover: ORU_R01 in v2.5", () => {
+  it("lists the structures its tables cover: ORU_R01 in v2.5, the one it writes", () => {
     expect(Object.keys(XML_GROUP_TABLES)).toEqual(["2.5"]);
     expect(Object.keys(XML_GROUP_TABLES["2.5"] ?? {})).toEqual(["ORU_R01"]);
-    expect(Object.isFrozen(XML_GROUP_TABLES["2.5"]?.["ORU_R01"]?.items)).toBe(true);
+    const table = XML_GROUP_TABLES["2.5"]?.["ORU_R01"] as XmlMessageStructure;
+    expect(Object.isFrozen(table.items)).toBe(true);
+    expect(Object.isFrozen(table.items[2])).toBe(true);
+    const msg = oru(
+      "PID|1",
+      "PD1|1",
+      "NK1|1",
+      "PV1|1",
+      "PV2|1",
+      "ORC|1",
+      "OBR|1",
+      "CTD|1",
+      "FT1|1",
+    );
+    const dataTypes = { "MSH.9": "MSG" };
+    expect(toHl7Xml(msg, { dataTypes, groups: table })).toBe(toHl7Xml(msg, { dataTypes }));
+  });
+
+  it("places each optional segment at most once", () => {
+    expect(
+      why(() =>
+        toHl7Xml(oru("PID|1", "PD1|1", "PD1|2", "OBR|1"), { dataTypes: { "MSH.9": "MSG" } }),
+      ),
+    ).toBe(
+      "STRUCTURE_MISMATCH: The message lacks a segment or group the message structure requires.",
+    );
   });
 
   it("refuses a structure the tables do not cover, by name, unless given its groups", () => {
@@ -395,6 +420,18 @@ describe("formatting escapes are escape elements, in TX and FT values", () => {
     );
   });
 
+  it("writes every primitive data type as text, and refuses components in one", () => {
+    const primitives = ["DT", "DTM", "FT", "GTS", "ID", "IS", "NM", "SI", "SNM", "ST", "TM", "TX"];
+    for (const type of primitives) {
+      expect(why(() => flat(adt("NTE|||a^b"), { "NTE.3": type }))).toBe(
+        "DATA_TYPE_UNKNOWN: A field given a primitive data type holds components. (NTE.3)",
+      );
+    }
+    expect(flat(adt("NTE|||a^b"), { "NTE.3": "TS" })).toContain(
+      "<NTE.3><TS.1>a</TS.1><TS.2>b</TS.2></NTE.3>",
+    );
+  });
+
   it("writes a primitive data type as text, not a component element", () => {
     expect(flat(adt("NTE|||plain"), { "NTE.3": "FT" })).toContain("<NTE.3>plain</NTE.3>");
     expect(why(() => flat(adt("NTE|||a^b"), { "NTE.3": "ST" }))).toBe(
@@ -412,6 +449,20 @@ describe("formatting escapes are escape elements, in TX and FT values", () => {
     expect(why(() => flat(adt("NTE|||a\\.sp\\b"), { "NTE.3": "ST" }))).toBe(
       "ESCAPE_NOT_SUPPORTED: A formatting escape stands in a value whose data type is not TX or FT. (NTE.3)",
     );
+  });
+
+  it("reads every formatting escape the rules name, with a signed or unsigned number", () => {
+    const read = (v: string): string =>
+      why(() => parseHL7Xml(adtDoc(`<NTE><NTE.3>a<escape V="${v}"/></NTE.3></NTE>`)));
+    for (const v of ["H", "N", ".br", ".sp", ".in", ".ti", ".sk", ".ce", ".fi", ".nf"]) {
+      expect(read(v)).toBe("no refusal");
+    }
+    for (const v of [".sp2", ".ti-12", ".in+4", ".sk999"]) expect(read(v)).toBe("no refusal");
+    for (const v of ["xH", "Hx", "HN", ".in+1234", ".in+", ".in4x", "x.br", ".brx", ".sp--2"]) {
+      expect(read(v)).toBe(
+        "ESCAPE_NOT_SUPPORTED: An escape element's V is not a formatting escape. (NTE.3)",
+      );
+    }
   });
 
   it("refuses an escape element that is not a formatting escape, or holds anything", () => {
@@ -486,6 +537,7 @@ describe("hex escapes are character references", () => {
       "ESCAPE_NOT_SUPPORTED: A hex escape's bytes are not UTF-8. (NTE.3)",
     );
     expect(why(() => flat(withCharset("", "\\X80\\")))).toBe(refusal);
+    expect(why(() => flat(withCharset("", "\\X41C9\\")))).toBe(refusal);
     expect(flat(withCharset("", "\\X7F\\"))).toContain("<NTE.3>&#x7f;</NTE.3>");
     expect(why(() => flat(withCharset("ISO IR87", "\\X41\\")))).toBe(refusal);
     expect(why(() => flat(withCharset("8859/1", "\\X00\\")))).toBe(
@@ -514,6 +566,12 @@ describe("hex escapes are character references", () => {
     expect(flat(v27, { "NTE.3": "FT" })).toContain('<NTE.3>a!b<escape V="H"/></NTE.3>');
     expect(flat(adt("NTE|||a\\P\\b\\H\\"), { "NTE.3": "FT" })).toContain(
       '<NTE.3>a#b<escape V="H"/></NTE.3>',
+    );
+  });
+
+  it("refuses the escape character beside another escape", () => {
+    expect(why(() => flat(adt("NTE|||a\\E\\b\\H\\"), { "NTE.3": "FT" }))).toBe(
+      "ESCAPE_NOT_SUPPORTED: A value holds the message's escape character. (NTE.3)",
     );
   });
 

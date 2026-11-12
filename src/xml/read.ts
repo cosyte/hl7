@@ -178,14 +178,16 @@ type ValueFrame = FieldFrame | ComponentFrame | SubcomponentFrame;
 type TypeSink = (key: string, type: string) => void;
 
 /**
- * The `V` of an `escape` element the reader accepts: a formatting escape, which is highlighting
- * (`H`, `N`) or a formatting command (`.br`, `.sp`, `.in+4`). The v2 XML encoding writes these as
- * `escape` elements; the delimiter escapes are plain characters there, and hex escapes are
- * character references.
+ * Whether `code` is the `V` of an `escape` element the reader accepts: a formatting escape, which
+ * is highlighting (`H`, `N`) or a formatting command (`.br`, `.sp`, `.in+4`). The v2 XML encoding
+ * writes these as `escape` elements; the delimiter escapes are plain characters there, and hex
+ * escapes are character references.
  *
  * @internal
  */
-export const FORMATTING_ESCAPE = /^(?:H|N|\.(?:br|sp|in|ti|sk|ce|fi|nf)(?:[+-]?[0-9]{1,3})?)$/u;
+export function isFormattingEscape(code: string): boolean {
+  return /^(?:H|N|\.(?:br|sp|in|ti|sk|ce|fi|nf)(?:[+-]?[0-9]{1,3})?)$/u.test(code);
+}
 
 /** Whether `name` is a segment element: a three-character segment id. */
 function isSegmentName(name: string): boolean {
@@ -325,7 +327,7 @@ class XmlToPipe {
       this.pos = lt;
       this.markup();
     }
-    if (this.stack.length > 0) {
+    if (this.tags.length > 0) {
       this.fail(XML_ERROR_CODES.NOT_WELL_FORMED, "The document ends inside an element.");
     }
     if (!this.rootSeen) {
@@ -672,8 +674,9 @@ class XmlToPipe {
         at,
       );
     }
-    const code = attributes.get("V");
-    if (code === undefined || !FORMATTING_ESCAPE.test(code)) {
+    // An absent V reads as "undefined", which is no formatting escape.
+    const code = String(attributes.get("V"));
+    if (!isFormattingEscape(code)) {
       this.fail(
         XML_ERROR_CODES.ESCAPE_NOT_SUPPORTED,
         "An escape element's V is not a formatting escape.",

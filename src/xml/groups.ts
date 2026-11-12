@@ -61,49 +61,48 @@ export interface XmlMessageStructure {
   readonly items: readonly XmlStructureItem[];
 }
 
+/** A frozen group of a table. */
+function group(name: string, items: XmlStructureItem[]): XmlGroupDefinition {
+  return Object.freeze({ group: name, items: Object.freeze(items) });
+}
+
 /**
  * The ORU_R01 structure of the HL7 v2.5 XML schema (the message definition `ORU_R01.xsd` in the
- * `urn:hl7-org:v2xml` namespace), as a public copy of that schema shows it.
+ * `urn:hl7-org:v2xml` namespace), as a public copy of that schema shows it. Built on each call, so
+ * the writer reads the same structure the tests pin.
  */
-const ORU_R01_V25: XmlMessageStructure = {
-  structure: "ORU_R01",
-  items: [
-    "MSH",
-    "SFT*",
-    {
-      group: "PATIENT_RESULT+",
-      items: [
-        {
-          group: "PATIENT?",
-          items: ["PID", "PD1?", "NTE*", "NK1*", { group: "VISIT?", items: ["PV1", "PV2?"] }],
-        },
-        {
-          group: "ORDER_OBSERVATION+",
-          items: [
-            "ORC?",
-            "OBR",
-            "NTE*",
-            { group: "TIMING_QTY*", items: ["TQ1", "TQ2*"] },
-            "CTD?",
-            { group: "OBSERVATION*", items: ["OBX", "NTE*"] },
-            "FT1*",
-            "CTI*",
-            { group: "SPECIMEN*", items: ["SPM", "OBX*"] },
-          ],
-        },
-      ],
-    },
-    "DSC?",
-  ],
-};
+function oruR01V25(): XmlMessageStructure {
+  return Object.freeze({
+    structure: "ORU_R01",
+    items: Object.freeze([
+      "MSH",
+      "SFT*",
+      group("PATIENT_RESULT+", [
+        group("PATIENT?", ["PID", "PD1?", "NTE*", "NK1*", group("VISIT?", ["PV1", "PV2?"])]),
+        group("ORDER_OBSERVATION+", [
+          "ORC?",
+          "OBR",
+          "NTE*",
+          group("TIMING_QTY*", ["TQ1", "TQ2*"]),
+          "CTD?",
+          group("OBSERVATION*", ["OBX", "NTE*"]),
+          "FT1*",
+          "CTI*",
+          group("SPECIMEN*", ["SPM", "OBX*"]),
+        ]),
+      ]),
+      "DSC?",
+    ]),
+  });
+}
 
-/** Freeze a structure and everything in it. */
-function deepFreeze<T>(value: T): T {
-  if (typeof value === "object" && value !== null) {
-    for (const inner of Object.values(value)) deepFreeze(inner);
-    Object.freeze(value);
-  }
-  return value;
+/**
+ * The structure the tables give `root` in `version`, or `undefined` when they cover neither.
+ *
+ * @internal
+ */
+export function groupTable(version: string, root: string): XmlMessageStructure | undefined {
+  return version === "2.5" && root === "ORU_R01" ? oruR01V25() : undefined;
 }
 
 /**
@@ -118,10 +117,11 @@ function deepFreeze<T>(value: T): T {
  * console.log(Object.keys(XML_GROUP_TABLES["2.5"] ?? {})); // ["ORU_R01"]
  * ```
  */
-// Stryker disable next-line all: a module constant, evaluated once when the test runner loads the module, so a mutant of it is never live; tests pin the table
+// Stryker disable all: a module constant, evaluated once when the test runner loads the module, so a mutant of it is never live; the writer reads groupTable, and a test pins this to it
 export const XML_GROUP_TABLES: Readonly<
   Record<string, Readonly<Record<string, XmlMessageStructure>>>
-> = deepFreeze({ "2.5": { ORU_R01: ORU_R01_V25 } });
+> = Object.freeze({ "2.5": Object.freeze({ ORU_R01: oruR01V25() }) });
+// Stryker restore all
 
 /** A structure item resolved: a segment or a group, how often it may stand, and its items. */
 interface Node {
@@ -224,7 +224,7 @@ function take(
   let at = start;
   const placed: (RawSegment | PlacedGroup)[] = [];
   for (const node of items) {
-    let count = 0;
+    let found = false;
     do {
       if (node.items === undefined) {
         const segment = segments[at];
@@ -238,9 +238,9 @@ function take(
         placed.push({ name: node.name, children: inner.placed });
         at = inner.end;
       }
-      count++;
+      found = true;
     } while (node.repeats);
-    if (node.required && count === 0) return undefined;
+    if (node.required && !found) return undefined;
   }
   return { end: at, placed };
 }
