@@ -53,10 +53,10 @@ export interface ToHl7XmlOptions {
   readonly namespace?: string | null;
 }
 
-/** An XML name with no namespace prefix and no dot. */
-const NAME_RE = /^[A-Za-z][A-Za-z0-9_]*$/u;
-/** A segment element name. */
-const SEGMENT_RE = /^[A-Z][A-Z0-9]{2}$/u;
+/** Whether `name` is an XML name with no namespace prefix and no dot. */
+function isXmlName(name: string): boolean {
+  return /^[A-Za-z][A-Za-z0-9_]*$/u.test(name);
+}
 
 /** Refuse a message or an option. */
 function fail(code: XmlErrorCode, message: string, path?: string): never {
@@ -73,63 +73,61 @@ function escapeText(text: string): string {
     .replace(/\n/gu, "&#10;");
 }
 
-/** Escape text for a double-quoted attribute value. */
-function escapeAttribute(text: string): string {
-  return escapeText(text).replace(/"/gu, "&quot;");
-}
-
 /** Whether a component holds a non-empty subcomponent. */
 function hasValue(component: RawComponent): boolean {
   return component.subcomponents.some((s) => s !== "");
 }
 
+/** Whether a subcomponent is non-empty. */
+function isFilled(subcomponent: string): boolean {
+  return subcomponent !== "";
+}
+
 /** One past the last index of `items` that `keep` holds for; 0 when none. */
 function extent<T>(items: readonly T[], keep: (item: T) => boolean): number {
-  for (let i = items.length - 1; i >= 0; i--) {
-    if (keep(items[i] as T)) return i + 1;
-  }
-  return 0;
+  return items.findLastIndex(keep) + 1;
 }
 
 /** Writes one message. */
 class XmlWriter {
   private readonly enc: EncodingCharacters;
-  private readonly typeOf: (key: string) => string | undefined;
+  private readonly lookup: (key: string) => string | undefined;
 
   public constructor(enc: EncodingCharacters, dataTypes: ToHl7XmlOptions["dataTypes"]) {
     this.enc = enc;
-    const lookup =
-      dataTypes === undefined
-        ? (): undefined => undefined
-        : typeof dataTypes === "function"
-          ? dataTypes
-          : (key: string): string | undefined =>
-              Object.prototype.hasOwnProperty.call(dataTypes, key) ? dataTypes[key] : undefined;
-    this.typeOf = (key) => {
-      const type = lookup(key);
-      if (type !== undefined && !NAME_RE.test(type)) {
-        fail(XML_ERROR_CODES.INVALID_OPTIONS, "A data type is not an XML name.", key);
-      }
-      return type;
-    };
+    this.lookup =
+      typeof dataTypes === "function"
+        ? dataTypes
+        : (key: string): string | undefined =>
+            dataTypes !== undefined && Object.hasOwn(dataTypes, key) ? dataTypes[key] : undefined;
+  }
+
+  /** The data type `dataTypes` gives `key`, refused when it is not an XML name. */
+  private typeOf(key: string): string | undefined {
+    const type = this.lookup(key);
+    if (type?.match(/^[A-Za-z][A-Za-z0-9_]*$/u) === null) {
+      fail(XML_ERROR_CODES.INVALID_OPTIONS, "A data type is not an XML name.", key);
+    }
+    return type;
   }
 
   /** One segment element, self-closing when the segment has no field. */
   public segment(seg: RawSegment): string {
-    if (!SEGMENT_RE.test(seg.name)) {
+    if (!/^[A-Z][A-Z0-9]{2}$/u.test(seg.name)) {
       fail(XML_ERROR_CODES.UNEXPECTED_ELEMENT, "A segment name is not three letters or digits.");
     }
     let body = "";
-    if (seg.name === "MSH") {
+    // MSH-n sits at fields[n - 1] (MSH-1 is the separator itself); any other SEG-n at fields[n].
+    const msh = seg.name === "MSH";
+    if (msh) {
       const enc = this.enc;
       const msh2 =
         enc.component + enc.repetition + enc.escape + enc.subcomponent + (enc.truncation ?? "");
       body += `<MSH.1>${escapeText(enc.field)}</MSH.1><MSH.2>${escapeText(msh2)}</MSH.2>`;
-      for (let i = 2; i < seg.fields.length; i++)
-        body += this.field(`MSH.${String(i + 1)}`, seg.fields[i]);
-    } else {
-      for (let i = 1; i < seg.fields.length; i++)
-        body += this.field(`${seg.name}.${String(i)}`, seg.fields[i]);
+    }
+    const first = msh ? 2 : 1;
+    for (const [i, field] of seg.fields.slice(first).entries()) {
+      body += this.field(`${seg.name}.${String(i + first + (msh ? 1 : 0))}`, field);
     }
     return body === "" ? `<${seg.name}/>` : `<${seg.name}>${body}</${seg.name}>`;
   }
@@ -139,9 +137,7 @@ class XmlWriter {
     if (field === undefined) return "";
     if (field.isNull) return `<${key}>""</${key}>`;
     const reps = field.repetitions;
-    if (reps.length === 0) return "";
-    if (reps.length === 1 && extent((reps[0] as RawRepetition).components, hasValue) === 0)
-      return "";
+    if (reps.length === 1 && !(reps[0] as RawRepetition).components.some(hasValue)) return "";
     let out = "";
     for (const rep of reps) {
       const content = this.repetition(key, rep);
@@ -153,23 +149,20 @@ class XmlWriter {
   /** A repetition's content: text, or component elements. */
   private repetition(key: string, rep: RawRepetition): string {
     const components = rep.components;
-    const count = extent(components, hasValue);
     const type = this.typeOf(key);
     if (type === undefined) {
-      if (count === 0) return "";
-      const only = components[0] as RawComponent;
-      if (count > 1 || extent(only.subcomponents, (s) => s !== "") > 1) {
+      const count = extent(components, hasValue);
+      if (count > 1) {
         fail(
           XML_ERROR_CODES.DATA_TYPE_UNKNOWN,
           "A composite field has no data type to name its components.",
           key,
         );
       }
-      return this.value(only, 0, key);
+      return count === 0 ? "" : this.component(key, components[0] as RawComponent);
     }
     let out = "";
-    for (let c = 0; c < count; c++) {
-      const component = components[c] as RawComponent;
+    for (const [c, component] of components.entries()) {
       if (!hasValue(component)) continue;
       const name = `${type}.${String(c + 1)}`;
       out += `<${name}>${this.component(name, component)}</${name}>`;
@@ -177,24 +170,26 @@ class XmlWriter {
     return out;
   }
 
-  /** A component's content: text, or subcomponent elements. */
+  /**
+   * A component's content: text, or subcomponent elements. For the one value of an untyped field
+   * `key` is the field's own, which has no type, so the value is written as text.
+   */
   private component(key: string, component: RawComponent): string {
     const subs = component.subcomponents;
-    const count = extent(subs, (s) => s !== "");
     const type = this.typeOf(key);
     if (type === undefined) {
-      if (count > 1) {
+      if (extent(subs, isFilled) > 1) {
         fail(
           XML_ERROR_CODES.DATA_TYPE_UNKNOWN,
-          "A composite component has no data type to name its subcomponents.",
+          "A composite has no data type to name its subcomponents.",
           key,
         );
       }
       return this.value(component, 0, key);
     }
     let out = "";
-    for (let s = 0; s < count; s++) {
-      if (subs[s] === "") continue;
+    for (const [s, sub] of subs.entries()) {
+      if (sub === "") continue;
       const name = `${type}.${String(s + 1)}`;
       out += `<${name}>${this.value(component, s, name)}</${name}>`;
     }
@@ -210,7 +205,6 @@ class XmlWriter {
         key,
       );
     }
-    // Every caller passes the index of a non-empty subcomponent.
     const text = component.subcomponents[index] as string;
     if (text.includes(this.enc.escape)) {
       fail(
@@ -230,24 +224,19 @@ class XmlWriter {
   }
 }
 
-/** The first subcomponent of component `c` (0-based) of MSH-9's first repetition. */
-function messageTypePart(msh: RawSegment | undefined, c: number): string {
-  if (msh?.name !== "MSH") return "";
-  return msh.fields[8]?.repetitions[0]?.components[c]?.subcomponents[0] ?? "";
-}
-
-/** The root element's name. */
-function structureName(msh: RawSegment | undefined, option: string | undefined): string {
+/** The root element's name: the `structure` option, else what MSH-9 gives. */
+function structureName(message: Hl7Message, option: string | undefined): string {
   if (option !== undefined) {
-    if (!NAME_RE.test(option))
+    if (!isXmlName(option)) {
       fail(XML_ERROR_CODES.INVALID_OPTIONS, "The structure name is not an XML name.");
+    }
     return option;
   }
-  const structure = messageTypePart(msh, 2);
-  const code = messageTypePart(msh, 0);
-  const trigger = messageTypePart(msh, 1);
+  const structure = message.get("MSH.9.3") ?? "";
+  const code = message.get("MSH.9.1") ?? "";
+  const trigger = message.get("MSH.9.2") ?? "";
   const name = structure !== "" ? structure : trigger !== "" ? `${code}_${trigger}` : code;
-  if (!NAME_RE.test(name)) {
+  if (!isXmlName(name)) {
     fail(
       XML_ERROR_CODES.STRUCTURE_UNKNOWN,
       "No message structure name can be taken from MSH-9; pass `structure`.",
@@ -284,12 +273,14 @@ function structureName(msh: RawSegment | undefined, option: string | undefined):
  * ```
  */
 export function toHl7Xml(message: Hl7Message, options: ToHl7XmlOptions = {}): string {
-  const segments = message.rawSegments;
-  const root = structureName(segments[0], options.structure);
+  const root = structureName(message, options.structure);
   const namespace = options.namespace === undefined ? V2_XML_NAMESPACE : options.namespace;
   const writer = new XmlWriter(message.encodingCharacters, options.dataTypes);
   let out = '<?xml version="1.0" encoding="UTF-8"?>\n';
-  out += namespace === null ? `<${root}>\n` : `<${root} xmlns="${escapeAttribute(namespace)}">\n`;
-  for (const seg of segments) out += `  ${writer.segment(seg)}\n`;
+  out +=
+    namespace === null
+      ? `<${root}>\n`
+      : `<${root} xmlns="${escapeText(namespace).replace(/"/gu, "&quot;")}">\n`;
+  for (const seg of message.rawSegments) out += `  ${writer.segment(seg)}\n`;
   return `${out}</${root}>\n`;
 }

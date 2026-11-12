@@ -13,6 +13,7 @@
 
 import { Buffer } from "node:buffer";
 
+import { readDelimiters } from "../parser/delimiters.js";
 import { reescape } from "../parser/escapes.js";
 import { parseHL7 } from "../parser/index.js";
 import type { EncodingCharacters, ParseOptions } from "../parser/types.js";
@@ -51,6 +52,7 @@ export interface XmlLimits {
  * console.log(DEFAULT_XML_LIMITS.maxDepth); // 64
  * ```
  */
+// Stryker disable next-line all: a module constant, evaluated once when the test runner loads the module, so a mutant of it is never live; tests pin each default
 export const DEFAULT_XML_LIMITS: Readonly<Required<XmlLimits>> = Object.freeze({
   maxInputBytes: 30_000_000,
   maxDepth: 64,
@@ -86,45 +88,37 @@ export interface XmlDataTypesOptions {
   readonly limits?: XmlLimits;
 }
 
-/** The namespace HL7 gives the v2 XML encoding; a document may also use none. */
+/**
+ * The namespace HL7 gives the v2 XML encoding. The reader accepts it or no namespace; the writer
+ * declares it unless told not to.
+ *
+ * @example
+ * ```ts
+ * import { V2_XML_NAMESPACE } from "@cosyte/hl7";
+ * console.log(V2_XML_NAMESPACE); // "urn:hl7-org:v2xml"
+ * ```
+ */
+// Stryker disable next-line all: a module constant, evaluated once when the test runner loads the module, so a mutant of it is never live; a test pins the value
 export const V2_XML_NAMESPACE = "urn:hl7-org:v2xml";
-
-/** A segment element: a three-character segment id. */
-const SEGMENT_RE = /^[A-Z][A-Z0-9]{2}$/u;
-/** A group element: the structure name, a dot, and the group name (`ORU_R01.PATIENT_RESULT`). */
-const GROUP_RE = /^[A-Za-z][A-Za-z0-9_]*\.[A-Za-z_][A-Za-z0-9_]*$/u;
-/** A positional element: a segment id or data type name, a dot and a position from 1 to 999. */
-const POSITION_RE = /^([A-Za-z][A-Za-z0-9_]*)\.([1-9][0-9]{0,2})$/u;
-/** Whitespace as XML defines it. */
-const WHITESPACE_RE = /^[ \t\r\n]*$/u;
-/** An entity name, told apart from text that is not a reference at all. */
-const ENTITY_NAME_RE = /^[A-Za-z_][A-Za-z0-9._-]*$/u;
-
-/** The five XML predefined entities. */
-const PREDEFINED: Readonly<Record<string, string>> = {
-  amp: "&",
-  lt: "<",
-  gt: ">",
-  quot: '"',
-  apos: "'",
-};
 
 /** A root or group element: it holds segments and groups. */
 interface ContainerFrame {
   readonly kind: "container";
   readonly name: string;
-  readonly root: boolean;
 }
 
-/** A segment element: it holds field elements, gathered as pipe text by position. */
+/**
+ * A segment element. `parts` is its pipe text by field: the segment id first, then each field at
+ * its position (MSH.2 and on one place earlier, since MSH.1 is the separator itself).
+ */
 interface SegmentFrame {
   readonly kind: "segment";
   readonly name: string;
-  readonly fields: string[];
+  readonly parts: string[];
   lastPos: number;
 }
 
-/** A field element: text, or component elements. */
+/** A field element: text, or component elements gathered in `parts` from position 1. */
 interface FieldFrame {
   readonly kind: "field";
   readonly name: string;
@@ -135,7 +129,7 @@ interface FieldFrame {
   lastPart: number;
 }
 
-/** A component element: text, or subcomponent elements. */
+/** A component element: text, or subcomponent elements gathered in `parts` from position 1. */
 interface ComponentFrame {
   readonly kind: "component";
   readonly name: string;
@@ -153,6 +147,7 @@ interface SubcomponentFrame {
   readonly component: ComponentFrame;
   readonly pos: number;
   text: string;
+  readonly parts?: undefined;
 }
 
 type Frame = ContainerFrame | SegmentFrame | FieldFrame | ComponentFrame | SubcomponentFrame;
@@ -160,9 +155,43 @@ type Frame = ContainerFrame | SegmentFrame | FieldFrame | ComponentFrame | Subco
 /** Called with each data type the document names: `PID.5` to `XPN`, `XPN.1` to `FN`. */
 type TypeSink = (key: string, type: string) => void;
 
+/** Whether `name` is a segment element: a three-character segment id. */
+function isSegmentName(name: string): boolean {
+  return /^[A-Z][A-Z0-9]{2}$/u.test(name);
+}
+
+/** Whether `name` is a group element: a structure name, a dot and a group name. */
+function isGroupName(name: string): boolean {
+  return /^[A-Za-z][A-Za-z0-9_]*\.[A-Za-z_][A-Za-z0-9_]*$/u.test(name);
+}
+
+/** A positional element's name split: a segment id or data type, and a position from 1 to 999. */
+function positionOf(name: string): { readonly prefix: string; readonly pos: number } | undefined {
+  const match = /^([A-Za-z][A-Za-z0-9_]*)\.([1-9][0-9]{0,2})$/u.exec(name);
+  return match === null ? undefined : { prefix: match[1] as string, pos: Number(match[2]) };
+}
+
 /** Whether `text` is XML whitespace only. */
 function isWhitespace(text: string): boolean {
-  return WHITESPACE_RE.test(text);
+  return /^[ \t\r\n]*$/u.test(text);
+}
+
+/** The text one of the five XML predefined entities stands for. */
+function predefinedEntity(name: string): string | undefined {
+  switch (name) {
+    case "amp":
+      return "&";
+    case "lt":
+      return "<";
+    case "gt":
+      return ">";
+    case "quot":
+      return '"';
+    case "apos":
+      return "'";
+    default:
+      return undefined;
+  }
 }
 
 /** Whether `code` is a character XML 1.0 allows. */
@@ -175,16 +204,6 @@ function isXmlChar(code: number): boolean {
     (code >= 0xe000 && code <= 0xfffd) ||
     (code >= 0x10000 && code <= 0x10ffff)
   );
-}
-
-/** Join positional parts 1..last with `separator`, an absent position written empty. */
-function joinParts(parts: readonly (string | undefined)[], separator: string): string {
-  let out = "";
-  for (let p = 1; p < parts.length; p++) {
-    if (p > 1) out += separator;
-    out += parts[p] ?? "";
-  }
-  return out;
 }
 
 /** The resolved caps. */
@@ -208,9 +227,9 @@ class XmlToPipe {
   private readonly segments: string[] = [];
   private pos = 0;
   private elements = 0;
-  private rootDone = false;
+  private rootSeen = false;
   private enc: EncodingCharacters | undefined;
-  private msh1: string | undefined;
+  private msh1 = "";
 
   public constructor(src: string, limits: Required<XmlLimits>, onType: TypeSink | undefined) {
     this.src = src;
@@ -226,15 +245,8 @@ class XmlToPipe {
   /** Read the whole document and return its pipe-delimited form. */
   public run(): string {
     const src = this.src;
-    if (src.length * 3 > this.limits.maxInputBytes) {
-      if (Buffer.byteLength(src, "utf8") > this.limits.maxInputBytes) {
-        this.fail(
-          XML_ERROR_CODES.INPUT_TOO_LARGE,
-          "The document is larger than the limit.",
-          undefined,
-          0,
-        );
-      }
+    if (Buffer.byteLength(src) > this.limits.maxInputBytes) {
+      this.fail(XML_ERROR_CODES.INPUT_TOO_LARGE, "The document is larger than the limit.");
     }
     const forbidden = forbiddenCharacterAt(src);
     if (forbidden !== -1) {
@@ -245,21 +257,20 @@ class XmlToPipe {
         forbidden,
       );
     }
-    if (src.charCodeAt(0) === 0xfeff) this.pos = 1;
-    const n = src.length;
-    while (this.pos < n) {
+    this.pos = src.startsWith(String.fromCharCode(0xfeff)) ? 1 : 0;
+    for (;;) {
       const lt = src.indexOf("<", this.pos);
-      const end = lt === -1 ? n : lt;
-      if (end > this.pos) this.text(src.slice(this.pos, end), true);
+      const end = lt === -1 ? src.length : lt;
+      this.text(src.slice(this.pos, end), true);
       if (lt === -1) break;
       this.pos = lt;
       this.markup();
     }
-    if (this.stack.length > 0 || !this.rootDone) {
-      this.fail(
-        XML_ERROR_CODES.NOT_WELL_FORMED,
-        "The document ends inside an element or has no root.",
-      );
+    if (this.stack.length > 0) {
+      this.fail(XML_ERROR_CODES.NOT_WELL_FORMED, "The document ends inside an element.");
+    }
+    if (!this.rootSeen) {
+      this.fail(XML_ERROR_CODES.NOT_WELL_FORMED, "The document has no root element.");
     }
     if (this.segments.length === 0) {
       this.fail(XML_ERROR_CODES.INVALID_ENCODING_CHARACTERS, "The document holds no MSH segment.");
@@ -299,7 +310,7 @@ class XmlToPipe {
       this.pos = at + 2;
       const name = this.name();
       this.skipSpace();
-      if (src.charCodeAt(this.pos) !== 0x3e) {
+      if (src.charAt(this.pos) !== ">") {
         this.fail(XML_ERROR_CODES.NOT_WELL_FORMED, "An end tag is not closed.");
       }
       this.pos++;
@@ -308,68 +319,52 @@ class XmlToPipe {
     }
     this.pos = at + 1;
     const name = this.name();
-    let selfClosing = false;
     for (;;) {
       const hadSpace = this.skipSpace();
-      const c = src.charCodeAt(this.pos);
-      if (c === 0x3e) {
+      if (src.startsWith(">", this.pos)) {
         this.pos++;
-        break;
+        this.startElement(name, at);
+        return;
       }
-      if (c === 0x2f && src.charCodeAt(this.pos + 1) === 0x3e) {
+      if (src.startsWith("/>", this.pos)) {
         this.pos += 2;
-        selfClosing = true;
-        break;
+        this.startElement(name, at);
+        this.endElement(name, at);
+        return;
       }
       if (!hadSpace) this.fail(XML_ERROR_CODES.NOT_WELL_FORMED, "A start tag is malformed.");
       this.attribute(name);
     }
-    this.startElement(name, at);
-    if (selfClosing) this.endElement(name, at);
   }
 
   /** The offset just past the next `terminator` at or after `from`. */
   private after(terminator: string, from: number): number {
     const close = this.src.indexOf(terminator, from);
-    if (close === -1)
+    if (close === -1) {
       this.fail(XML_ERROR_CODES.NOT_WELL_FORMED, "A comment or instruction does not end.");
+    }
     return close + terminator.length;
   }
 
   /** Skip XML whitespace; whether any was skipped. */
   private skipSpace(): boolean {
     const start = this.pos;
-    const src = this.src;
-    for (;;) {
-      const c = src.charCodeAt(this.pos);
-      if (c === 0x20 || c === 0x09 || c === 0x0a || c === 0x0d) this.pos++;
-      else return this.pos > start;
-    }
+    const space = /[ \t\r\n]*/uy;
+    space.lastIndex = start;
+    space.test(this.src);
+    this.pos = space.lastIndex;
+    return this.pos > start;
   }
 
-  /** Read a name: everything up to whitespace, `/`, `>`, `=` or the end. */
+  /** Read a name: everything up to whitespace, `/`, `>`, `=`, `<` or the end. */
   private name(): string {
-    const src = this.src;
     const start = this.pos;
-    for (;;) {
-      const c = src.charCodeAt(this.pos);
-      if (
-        Number.isNaN(c) ||
-        c === 0x20 ||
-        c === 0x09 ||
-        c === 0x0a ||
-        c === 0x0d ||
-        c === 0x2f ||
-        c === 0x3e ||
-        c === 0x3d ||
-        c === 0x3c
-      ) {
-        break;
-      }
-      this.pos++;
-    }
+    const name = /[^ \t\r\n/>=<]*/uy;
+    name.lastIndex = start;
+    name.test(this.src);
+    this.pos = name.lastIndex;
     if (this.pos === start) this.fail(XML_ERROR_CODES.NOT_WELL_FORMED, "A tag has no name.");
-    return src.slice(start, this.pos);
+    return this.src.slice(start, this.pos);
   }
 
   /** Read one attribute of element `element`; only a default namespace declaration matters. */
@@ -377,8 +372,9 @@ class XmlToPipe {
     const src = this.src;
     const name = this.name();
     this.skipSpace();
-    if (src.charCodeAt(this.pos) !== 0x3d)
+    if (src.charAt(this.pos) !== "=") {
       this.fail(XML_ERROR_CODES.NOT_WELL_FORMED, "An attribute has no value.");
+    }
     this.pos++;
     this.skipSpace();
     const quote = src.charAt(this.pos);
@@ -386,11 +382,13 @@ class XmlToPipe {
       this.fail(XML_ERROR_CODES.NOT_WELL_FORMED, "An attribute value is not quoted.");
     }
     const close = src.indexOf(quote, this.pos + 1);
-    if (close === -1)
+    if (close === -1) {
       this.fail(XML_ERROR_CODES.NOT_WELL_FORMED, "An attribute value does not end.");
+    }
     const raw = src.slice(this.pos + 1, close);
-    if (raw.includes("<"))
+    if (raw.includes("<")) {
       this.fail(XML_ERROR_CODES.NOT_WELL_FORMED, "An attribute value holds a '<'.");
+    }
     const value = this.decode(raw, this.pos + 1);
     this.pos = close + 1;
     if (name === "xmlns" && value !== "" && value !== V2_XML_NAMESPACE) {
@@ -407,14 +405,13 @@ class XmlToPipe {
    * `at` is the offset of `raw` in the document, for errors.
    */
   private decode(raw: string, at: number): string {
-    const text = raw.includes("\r") ? raw.replace(/\r\n?/gu, "\n") : raw;
-    if (!text.includes("&")) return text;
+    const text = raw.replace(/\r\n?/gu, "\n");
     let out = "";
     let from = 0;
     for (;;) {
       const amp = text.indexOf("&", from);
       if (amp === -1) return out + text.slice(from);
-      const semi = text.indexOf(";", amp + 1);
+      const semi = text.indexOf(";", amp);
       if (semi === -1) {
         this.fail(XML_ERROR_CODES.NOT_WELL_FORMED, "An '&' starts no reference.", undefined, at);
       }
@@ -425,12 +422,12 @@ class XmlToPipe {
 
   /** The text one reference stands for: a predefined entity or a character reference. */
   private reference(body: string, at: number): string {
-    const predefined = PREDEFINED[body];
+    const predefined = predefinedEntity(body);
     if (predefined !== undefined) return predefined;
-    let code = Number.NaN;
+    let code: number;
     if (/^#[0-9]{1,7}$/u.test(body)) code = Number.parseInt(body.slice(1), 10);
     else if (/^#x[0-9A-Fa-f]{1,6}$/u.test(body)) code = Number.parseInt(body.slice(2), 16);
-    else if (ENTITY_NAME_RE.test(body)) {
+    else if (/^[A-Za-z_][A-Za-z0-9._-]*$/u.test(body)) {
       this.fail(
         XML_ERROR_CODES.ENTITY_NOT_ALLOWED,
         "The document references an entity.",
@@ -472,7 +469,7 @@ class XmlToPipe {
         at,
       );
     }
-    if (top.kind !== "subcomponent" && top.parts !== undefined) {
+    if (top.parts !== undefined) {
       if (isWhitespace(raw)) return;
       this.fail(
         XML_ERROR_CODES.MIXED_CONTENT,
@@ -481,11 +478,10 @@ class XmlToPipe {
         at,
       );
     }
-    const text = decode ? this.decode(raw, at) : raw.replace(/\r\n?/gu, "\n");
-    top.text += text;
+    top.text += decode ? this.decode(raw, at) : raw.replace(/\r\n?/gu, "\n");
   }
 
-  /** Count one element, or `count` empty positions, against the cap. */
+  /** Count `count` elements or empty positions against the cap. */
   private count(count: number, at: number): void {
     this.elements += count;
     if (this.elements > this.limits.maxElements) {
@@ -500,7 +496,7 @@ class XmlToPipe {
 
   /** An element opens. */
   private startElement(name: string, at: number): void {
-    if (this.stack.length + 1 > this.limits.maxDepth) {
+    if (this.stack.length >= this.limits.maxDepth) {
       this.fail(
         XML_ERROR_CODES.DEPTH_LIMIT_EXCEEDED,
         "Elements nest deeper than the limit.",
@@ -519,34 +515,31 @@ class XmlToPipe {
     }
     const top = this.stack.at(-1);
     if (top === undefined) {
-      if (this.rootDone)
+      if (this.rootSeen) {
         this.fail(
           XML_ERROR_CODES.NOT_WELL_FORMED,
           "The document has two root elements.",
           undefined,
           at,
         );
-      this.stack.push({ kind: "container", name, root: true });
+      }
+      this.rootSeen = true;
+      this.stack.push({ kind: "container", name });
       return;
     }
-    switch (top.kind) {
-      case "container":
-        this.openInContainer(name, at);
-        return;
-      case "segment":
-        this.openField(top, name, at);
-        return;
-      case "field":
-      case "component":
-        this.openPart(top, name, at);
-        return;
-      case "subcomponent":
-        this.refuseChild(top.name, name, at);
+    if (top.kind === "container") {
+      this.openInContainer(name, at);
+    } else if (top.kind === "segment") {
+      this.openField(top, name, at);
+    } else if (top.kind === "subcomponent") {
+      this.refuseBelowSubcomponent(top.name, name, at);
+    } else {
+      this.openPart(top, name, at);
     }
   }
 
-  /** Refuse a child of a subcomponent: an `escape` element or one nested too deep. */
-  private refuseChild(parent: string, name: string, at: number): never {
+  /** Refuse an element inside a subcomponent: an `escape` element, or one nested too deep. */
+  private refuseBelowSubcomponent(parent: string, name: string, at: number): never {
     if (name === "escape") {
       this.fail(
         XML_ERROR_CODES.ESCAPE_NOT_SUPPORTED,
@@ -565,8 +558,8 @@ class XmlToPipe {
 
   /** A segment or group opens in the root or a group. */
   private openInContainer(name: string, at: number): void {
-    if (SEGMENT_RE.test(name)) {
-      if (this.segments.length === 0 && name !== "MSH" && this.enc === undefined) {
+    if (isSegmentName(name)) {
+      if (this.segments.length === 0 && name !== "MSH") {
         this.fail(
           XML_ERROR_CODES.INVALID_ENCODING_CHARACTERS,
           "The first segment is not MSH.",
@@ -574,11 +567,11 @@ class XmlToPipe {
           at,
         );
       }
-      this.stack.push({ kind: "segment", name, fields: [], lastPos: 0 });
+      this.stack.push({ kind: "segment", name, parts: [name], lastPos: 0 });
       return;
     }
-    if (GROUP_RE.test(name)) {
-      this.stack.push({ kind: "container", name, root: false });
+    if (isGroupName(name)) {
+      this.stack.push({ kind: "container", name });
       return;
     }
     this.fail(
@@ -591,8 +584,8 @@ class XmlToPipe {
 
   /** A field opens in a segment. */
   private openField(segment: SegmentFrame, name: string, at: number): void {
-    const match = POSITION_RE.exec(name);
-    if (match?.[1] !== segment.name) {
+    const position = positionOf(name);
+    if (position?.prefix !== segment.name) {
       this.fail(
         XML_ERROR_CODES.UNEXPECTED_ELEMENT,
         "An element in a segment is not one of its fields.",
@@ -600,10 +593,10 @@ class XmlToPipe {
         at,
       );
     }
-    const pos = Number(match[2]);
+    const pos = position.pos;
     if (segment.name === "MSH") {
-      const wanted = segment.lastPos === 0 ? 1 : segment.lastPos === 1 ? 2 : undefined;
-      if (wanted !== undefined ? pos !== wanted : pos < 3) {
+      const wanted = segment.lastPos < 2 ? segment.lastPos + 1 : undefined;
+      if (wanted === undefined ? pos < 3 : pos !== wanted) {
         this.fail(
           XML_ERROR_CODES.INVALID_ENCODING_CHARACTERS,
           "MSH must open with MSH.1 and MSH.2, once each.",
@@ -620,7 +613,7 @@ class XmlToPipe {
         at,
       );
     }
-    if (pos > segment.lastPos + 1) this.count(pos - segment.lastPos - 1, at);
+    this.count(Math.max(0, pos - segment.lastPos - 1), at);
     this.stack.push({ kind: "field", name, segment, pos, text: "", parts: undefined, lastPart: 0 });
   }
 
@@ -642,8 +635,8 @@ class XmlToPipe {
         at,
       );
     }
-    const match = POSITION_RE.exec(name);
-    if (match === null) {
+    const position = positionOf(name);
+    if (position === undefined) {
       this.fail(
         XML_ERROR_CODES.UNEXPECTED_ELEMENT,
         parent.kind === "field"
@@ -662,10 +655,9 @@ class XmlToPipe {
           at,
         );
       }
-      parent.text = "";
       parent.parts = [];
     }
-    const pos = Number(match[2]);
+    const pos = position.pos;
     if (pos <= parent.lastPart) {
       this.fail(
         XML_ERROR_CODES.OUT_OF_ORDER,
@@ -674,9 +666,9 @@ class XmlToPipe {
         at,
       );
     }
-    if (pos > parent.lastPart + 1) this.count(pos - parent.lastPart - 1, at);
+    this.count(pos - parent.lastPart - 1, at);
     parent.lastPart = pos;
-    this.onType?.(parent.name, match[1] as string);
+    this.onType?.(parent.name, position.prefix);
     if (parent.kind === "field") {
       this.stack.push({
         kind: "component",
@@ -717,9 +709,9 @@ class XmlToPipe {
         at,
       );
     }
+    const enc = this.enc as EncodingCharacters;
     switch (top.kind) {
       case "container":
-        if (top.root) this.rootDone = true;
         return;
       case "segment":
         this.closeSegment(top, at);
@@ -727,17 +719,14 @@ class XmlToPipe {
       case "field":
         this.closeField(top, at);
         return;
-      case "component": {
-        const enc = this.enc as EncodingCharacters;
-        const text =
+      case "component":
+        (top.field.parts as string[])[top.pos - 1] =
           top.parts === undefined
             ? this.leaf(top.text, top.name, at)
-            : joinParts(top.parts, enc.subcomponent);
-        (top.field.parts as string[])[top.pos] = text;
+            : top.parts.join(enc.subcomponent);
         return;
-      }
       case "subcomponent":
-        (top.component.parts as string[])[top.pos] = this.leaf(top.text, top.name, at);
+        (top.component.parts as string[])[top.pos - 1] = this.leaf(top.text, top.name, at);
     }
   }
 
@@ -754,13 +743,13 @@ class XmlToPipe {
     const text =
       field.parts === undefined
         ? this.leaf(field.text, field.name, at)
-        : joinParts(field.parts, enc.component);
-    if (field.pos === segment.lastPos) {
-      segment.fields[field.pos] = (segment.fields[field.pos] as string) + enc.repetition + text;
-    } else {
-      segment.fields[field.pos] = text;
-      segment.lastPos = field.pos;
-    }
+        : field.parts.join(enc.component);
+    const index = segment.name === "MSH" ? field.pos - 1 : field.pos;
+    segment.parts[index] =
+      field.pos === segment.lastPos
+        ? `${segment.parts[index] as string}${enc.repetition}${text}`
+        : text;
+    segment.lastPos = field.pos;
   }
 
   /** MSH.1 or MSH.2 closes: the delimiters the rest of the message is written with. */
@@ -777,7 +766,6 @@ class XmlToPipe {
         );
       }
       this.msh1 = text;
-      field.segment.fields[1] = text;
       return;
     }
     if (text.length !== 4 && text.length !== 5) {
@@ -788,39 +776,23 @@ class XmlToPipe {
         at,
       );
     }
-    field.segment.fields[2] = text;
-    const [component, repetition, escape, subcomponent, truncation] = [...text] as string[];
-    this.enc = {
-      field: this.msh1 as string,
-      component: component as string,
-      repetition: repetition as string,
-      escape: escape as string,
-      subcomponent: subcomponent as string,
-      ...(truncation === undefined ? {} : { truncation }),
-    };
+    field.segment.parts[1] = text;
+    // The pipe parser's own reading of MSH-1 and MSH-2, which refuses duplicated or blank
+    // delimiters with its own error, as it would in the pipe form.
+    this.enc = readDelimiters(`MSH${this.msh1}${text}`);
   }
 
   /** A segment closes: its pipe text joins the message. */
   private closeSegment(segment: SegmentFrame, at: number): void {
-    if (segment.name === "MSH") {
-      if (segment.lastPos < 2) {
-        this.fail(
-          XML_ERROR_CODES.INVALID_ENCODING_CHARACTERS,
-          "MSH has no MSH.1 and MSH.2.",
-          undefined,
-          at,
-        );
-      }
-      const sep = segment.fields[1] as string;
-      let out = "MSH" + sep + (segment.fields[2] as string);
-      for (let p = 3; p <= segment.lastPos; p++) out += sep + (segment.fields[p] ?? "");
-      this.segments.push(out);
-      return;
+    if (segment.name === "MSH" && segment.lastPos < 2) {
+      this.fail(
+        XML_ERROR_CODES.INVALID_ENCODING_CHARACTERS,
+        "MSH has no MSH.1 and MSH.2.",
+        undefined,
+        at,
+      );
     }
-    const enc = this.enc as EncodingCharacters;
-    let out = segment.name;
-    for (let p = 1; p <= segment.lastPos; p++) out += enc.field + (segment.fields[p] ?? "");
-    this.segments.push(out);
+    this.segments.push(segment.parts.join((this.enc as EncodingCharacters).field));
   }
 }
 
@@ -877,7 +849,7 @@ export function parseHL7Xml(xml: string, options: ParseHl7XmlOptions = {}): Hl7M
  * component elements to the data type they are named for (`PID.5` to `XPN`), and each component
  * that has subcomponent elements to theirs (`XPN.1` to `FN`). Read one message from a partner and
  * write back in its names. A key the document names two ways (OBX.5, whose type follows OBX-2) is
- * left out, so the writer refuses it rather than guess.
+ * left out, so the writer refuses it rather than guess. The keys come in sorted order.
  *
  * @param xml The document, as text.
  * @param options The reader's caps.
@@ -897,13 +869,12 @@ export function xmlDataTypes(
 ): Record<string, string> {
   const seen = new Map<string, string | null>();
   xmlToPipe(xml, options.limits, (key, type) => {
-    const before = seen.get(key);
-    if (before === undefined) seen.set(key, type);
-    else if (before !== type) seen.set(key, null);
+    seen.set(key, seen.has(key) && seen.get(key) !== type ? null : type);
   });
   const out: Record<string, string> = {};
-  for (const [key, type] of [...seen].sort(([a], [b]) => (a < b ? -1 : 1))) {
-    if (type !== null) out[key] = type;
+  for (const key of [...seen.keys()].sort()) {
+    const type = seen.get(key);
+    if (typeof type === "string") out[key] = type;
   }
   return out;
 }

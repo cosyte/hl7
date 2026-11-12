@@ -5,6 +5,7 @@
  * confirmed. Every fixture is synthetic (see `test/fixtures/xml/README.md`).
  */
 
+import { Buffer } from "node:buffer";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -36,7 +37,13 @@ function refusal(call: () => unknown): XmlErrorCode {
     call();
   } catch (error) {
     expect(error).toBeInstanceOf(Hl7XmlError);
-    return (error as Hl7XmlError).code;
+    const e = error as Hl7XmlError;
+    // Every refusal says why in words, apart from the path it may name.
+    expect(e.path === undefined ? e.message : e.message.slice(0, -(e.path.length + 3))).toMatch(
+      /^[A-Z][A-Za-z0-9.]* .+\.$/u,
+    );
+    expect(e.message.endsWith(e.path === undefined ? "." : ` (${e.path})`)).toBe(true);
+    return e.code;
   }
   throw new Error("expected an Hl7XmlError, got none");
 }
@@ -562,6 +569,66 @@ describe("the edges of the reader and writer", () => {
     expect(toHl7Xml(headless, { structure: "ADT_A01" })).toBe(
       '<?xml version="1.0" encoding="UTF-8"?>\n<ADT_A01 xmlns="urn:hl7-org:v2xml">\n</ADT_A01>\n',
     );
+  });
+});
+
+describe("the reader's counts and tokens, exactly", () => {
+  // `doc("")` holds 10 elements (the root, MSH and its eight fields and components) and leaves
+  // MSH.3 to MSH.8 empty: 16 counted in all.
+  it("counts every element and every empty position a later one skips", () => {
+    const limit = (xml: string, maxElements: number): unknown =>
+      parseHL7Xml(xml, { limits: { maxElements } }).version;
+    expect(limit(doc(""), 16)).toBe("2.6");
+    expect(refusal(() => limit(doc(""), 15))).toBe("ELEMENT_LIMIT_EXCEEDED");
+    const field = doc("<NTE><NTE.5>a</NTE.5></NTE>");
+    expect(limit(field, 22)).toBe("2.6");
+    expect(refusal(() => limit(field, 21))).toBe("ELEMENT_LIMIT_EXCEEDED");
+    const component = doc("<NTE><NTE.1><X.3>a</X.3></NTE.1></NTE>");
+    expect(limit(component, 21)).toBe("2.6");
+    expect(refusal(() => limit(component, 20))).toBe("ELEMENT_LIMIT_EXCEEDED");
+    const repeated = doc("<NTE><NTE.1>a</NTE.1><NTE.1>b</NTE.1></NTE>");
+    expect(limit(repeated, 19)).toBe("2.6");
+    expect(refusal(() => limit(repeated, 18))).toBe("ELEMENT_LIMIT_EXCEEDED");
+  });
+
+  it("allows exactly maxDepth levels and the byte limit exactly", () => {
+    const deep = doc("<PID><PID.5><XPN.1><FN.1>a</FN.1></XPN.1></PID.5></PID>");
+    expect(parseHL7Xml(deep, { limits: { maxDepth: 5 } }).version).toBe("2.6");
+    expect(refusal(() => parseHL7Xml(deep, { limits: { maxDepth: 4 } }))).toBe(
+      "DEPTH_LIMIT_EXCEEDED",
+    );
+    const bytes = Buffer.byteLength(deep, "utf8");
+    expect(parseHL7Xml(deep, { limits: { maxInputBytes: bytes } }).version).toBe("2.6");
+    expect(refusal(() => parseHL7Xml(deep, { limits: { maxInputBytes: bytes - 1 } }))).toBe(
+      "INPUT_TOO_LARGE",
+    );
+  });
+
+  it("reads tags spread over whitespace of every kind, and quotes of either kind", () => {
+    const xml = `<ADT_A01\n\txmlns = 'urn:hl7-org:v2xml'\r\n>${MSH}<EVN\ta="1"\rb='2'\n/><NTE\n><NTE.3\t>x</NTE.3\r\n></NTE ></ADT_A01\n>`;
+    expect(parseHL7Xml(xml).toString()).toBe(`${PIPE_MSH}EVN\rNTE|||x\r`);
+  });
+
+  it("refuses a tag the document ends inside", () => {
+    for (const tail of ["<EVN", "<EVN a", "<EVN a=", '<EVN a="1"', "</EVN", "<"]) {
+      expect(refusal(() => parseHL7Xml(`<ADT_A01>${MSH}${tail}`))).toBe("NOT_WELL_FORMED");
+    }
+  });
+
+  it("refuses a name that runs into another tag", () => {
+    expect(refusal(() => parseHL7Xml(`<ADT_A01>${MSH}<EVN<NTE/></ADT_A01>`))).toBe(
+      "NOT_WELL_FORMED",
+    );
+  });
+
+  it("joins text split by comments, instructions and CDATA within one value", () => {
+    const xml = doc("<NTE><NTE.3>a<!-- note -->b<?pi x?>c<![CDATA[d\r\ne]]>f</NTE.3></NTE>");
+    expect(parseHL7Xml(xml).part("NTE")?.field(3).value).toBe("abcd\nef");
+  });
+
+  it("keeps whitespace that is a value, and drops whitespace between elements", () => {
+    const xml = doc("<NTE>\n  <NTE.3> </NTE.3>\n  <NTE.4>\n    <X.1>a</X.1>\n  </NTE.4>\n</NTE>");
+    expect(parseHL7Xml(xml).toString()).toBe(`${PIPE_MSH}NTE||| |a\r`);
   });
 });
 

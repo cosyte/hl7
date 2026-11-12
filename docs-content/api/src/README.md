@@ -16861,7 +16861,15 @@ USAGE_CODES[0]; // "R"
 
 > `const` **V2\_XML\_NAMESPACE**: `"urn:hl7-org:v2xml"` = `"urn:hl7-org:v2xml"`
 
-The namespace HL7 gives the v2 XML encoding; a document may also use none.
+The namespace HL7 gives the v2 XML encoding. The reader accepts it or no namespace; the writer
+declares it unless told not to.
+
+#### Example
+
+```ts
+import { V2_XML_NAMESPACE } from "@cosyte/hl7";
+console.log(V2_XML_NAMESPACE); // "urn:hl7-org:v2xml"
+```
 
 ***
 
@@ -22894,7 +22902,7 @@ The data types a v2 XML document names, as the map `toHl7Xml` takes: each field 
 component elements to the data type they are named for (`PID.5` to `XPN`), and each component
 that has subcomponent elements to theirs (`XPN.1` to `FN`). Read one message from a partner and
 write back in its names. A key the document names two ways (OBX.5, whose type follows OBX-2) is
-left out, so the writer refuses it rather than guess.
+left out, so the writer refuses it rather than guess. The keys come in sorted order.
 
 #### Parameters
 

@@ -111,14 +111,12 @@ export class Hl7XmlError extends Error {
   }
 }
 
-/** The shape of a path that is safe to echo: a segment id or data type name and a position. */
-const SAFE_PATH = /^[A-Z][A-Z0-9]{1,5}\.[1-9][0-9]{0,2}$/u;
-
 /**
- * The path to echo, or `undefined` when `path` does not have the safe shape.
+ * The path to echo, or `undefined` when `path` does not have the safe shape: a segment id or data
+ * type name of two to six capitals and digits, a dot, and a position from 1 to 999.
  *
  * @internal
  */
 export function safePath(path: string | undefined): string | undefined {
-  return path !== undefined && SAFE_PATH.test(path) ? path : undefined;
+  return path?.match(/^[A-Z][A-Z0-9]{1,5}\.[1-9][0-9]{0,2}$/u)?.[0];
 }
