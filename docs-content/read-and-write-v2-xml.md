@@ -105,7 +105,7 @@ The reader builds no DOM and applies the same rules as our C-CDA reader. It refu
 | `INPUT_TOO_LARGE`        | It is over `limits.maxInputBytes`, 30,000,000 by default.                                                                              |
 | `DEPTH_LIMIT_EXCEEDED`   | Its elements nest deeper than `limits.maxDepth`, 64 by default.                                                                        |
 | `ELEMENT_LIMIT_EXCEEDED` | It has more than `limits.maxElements` elements, 1,000,000 by default, each empty position a skipped-over element names counted as one. |
-| `NOT_WELL_FORMED`        | It is not well-formed XML.                                                                                                             |
+| `NOT_WELL_FORMED`        | It is not well-formed XML, an element that repeats an attribute (`<NTE a="1" a="2">`) among them.                                      |
 | `INVALID_OPTIONS`        | A limit is not a number, NaN included. `Infinity` lifts a cap; zero or a negative number refuses every document.                       |
 
 A document that is well-formed XML but not the shape of a v2 message is refused too:
@@ -233,7 +233,10 @@ What the writer does:
   written `&#xc9;`. The bytes are decoded in MSH-18's character set: ASCII (MSH-18 blank),
   `UNICODE UTF-8`, `8859/1` or `WINDOWS-1252`. Bytes that are not text in it, or any other
   character set, are refused with `ESCAPE_NOT_SUPPORTED`, as are character set switches
-  (`\C..\`, `\M..\`) and vendor escapes (`\Z..\`).
+  (`\C..\`, `\M..\`) and vendor escapes (`\Z..\`). In `WINDOWS-1252` that includes the five
+  bytes the set assigns no character (81, 8D, 8F, 90 and 9D): decoded, each would be the C1
+  control of the same number, which no sender means, so the escape is refused rather than written
+  `&#x81;`. In `8859/1` those bytes are the C1 controls the set defines, and are written.
 - **The delimiter escapes are the delimiters:** `\F\` is a `|` in the text, as the encoding has
   no use for them.
 - Each repetition is its own element, an empty one written `<PID.3/>`. The explicit null is `""`.

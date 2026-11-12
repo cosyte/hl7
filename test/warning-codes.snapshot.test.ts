@@ -46,6 +46,7 @@ describe("public API: WARNING_CODES surface is stable", () => {
         "MISSING_EXPECTED_GROUP",
         "MISSING_REQUIRED_FIELD",
         "MLLP_FRAMING_STRIPPED",
+        "NON_REPEATING_FIELD_REPEATED",
         "OUT_OF_ORDER_SEGMENT",
         "SEGMENT_CASE",
         "TIMESTAMP_FALLBACK_FORMAT",
@@ -63,8 +64,8 @@ describe("public API: WARNING_CODES surface is stable", () => {
     for (const [k, v] of Object.entries(WARNING_CODES)) expect(k).toBe(v);
   });
 
-  it("there are exactly 20 Tier-2 warning codes", () => {
-    expect(Object.keys(WARNING_CODES)).toHaveLength(20);
+  it("there are exactly 21 Tier-2 warning codes", () => {
+    expect(Object.keys(WARNING_CODES)).toHaveLength(21);
   });
 });
 

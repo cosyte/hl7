@@ -549,6 +549,21 @@ describe("hex escapes are character references", () => {
     );
   });
 
+  it("refuses the five bytes Windows-1252 leaves undefined, rather than write a C1 control", () => {
+    const refusal =
+      "ESCAPE_NOT_SUPPORTED: A hex escape's bytes are not text in the message's character set. (NTE.3)";
+    for (const byte of ["81", "8D", "8F", "90", "9D"]) {
+      expect(why(() => flat(withCharset("WINDOWS-1252", `\\X${byte}\\`)))).toBe(refusal);
+      expect(why(() => flat(withCharset("WINDOWS-1252", `\\X41${byte}42\\`)))).toBe(refusal);
+    }
+    // Their neighbours are defined, and stay character references.
+    expect(flat(withCharset("WINDOWS-1252", "\\X8E9E9F\\"))).toContain(
+      "<NTE.3>&#x17d;&#x17e;&#x178;</NTE.3>",
+    );
+    // In 8859/1 the same byte is a C1 control the set defines, and is still written.
+    expect(flat(withCharset("8859/1", "\\X81\\"))).toContain("<NTE.3>&#x81;</NTE.3>");
+  });
+
   it("refuses character set and vendor escapes, which v2 XML does not carry", () => {
     for (const seq of ["\\C2842\\", "\\M2442\\", "\\Zvendor\\", "\\X4\\", "\\ZX41\\", "\\X41Z\\"]) {
       expect(why(() => flat(adt(`NTE|||a${seq}b`), { "NTE.3": "FT" }))).toBe(

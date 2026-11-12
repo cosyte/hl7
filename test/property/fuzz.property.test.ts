@@ -172,6 +172,7 @@ describe("fuzz: FATAL_CODES / WARNING_CODES registries stay pinned", () => {
         "BATCH_COUNT_MISMATCH",
         "BATCH_MISSING_TRAILER",
         "UNTERMINATED_STREAM_MESSAGE",
+        "NON_REPEATING_FIELD_REPEATED",
       ].sort(),
     );
   });

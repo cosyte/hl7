@@ -77,6 +77,52 @@ describe("msg.patient: PID-35 to PID-38", () => {
     expect(parseHL7(`${MSH}\r${pid({ 37: "A\\S\\B" })}`).patient?.strain).toBe("A^B");
   });
 
+  it("warns when species, breed or strain repeats, which none of them may, and reads the first", () => {
+    const p = parseHL7(
+      `${MSH}\r${pid({
+        35: "SPX01^Test canine^L~SPX02^Test feline^L",
+        36: "BRX07^Test breed^L~BRX08^Other breed^L~BRX09^Third breed^L",
+        37: "Test strain 4~Test strain 5",
+      })}`,
+    ).patient;
+    expect(p?.species?.identifier).toBe("SPX01");
+    expect(p?.breed?.identifier).toBe("BRX07");
+    expect(p?.strain).toBe("Test strain 4");
+    expect(p?.warnings).toEqual([
+      {
+        code: "NON_REPEATING_FIELD_REPEATED",
+        message: "Field PID-35 may not repeat but holds 2 repetitions; only the first is read.",
+        position: { segmentIndex: 1, fieldIndex: 35 },
+      },
+      {
+        code: "NON_REPEATING_FIELD_REPEATED",
+        message: "Field PID-36 may not repeat but holds 3 repetitions; only the first is read.",
+        position: { segmentIndex: 1, fieldIndex: 36 },
+      },
+      {
+        code: "NON_REPEATING_FIELD_REPEATED",
+        message: "Field PID-37 may not repeat but holds 2 repetitions; only the first is read.",
+        position: { segmentIndex: 1, fieldIndex: 37 },
+      },
+    ]);
+    expect(Object.isFrozen(p?.warnings)).toBe(true);
+  });
+
+  it("carries no warnings when no field repeats, and none for PID-38, which may", () => {
+    const p = parseHL7(ANIMAL).patient;
+    expect(Object.keys(p ?? {})).not.toContain("warnings");
+    // An empty second repetition still counts: the sender sent two.
+    const twice = parseHL7(`${MSH}\r${pid({ 35: "SPX01^Test canine^L~" })}`).patient;
+    expect(twice?.warnings?.map((w) => w.position.fieldIndex)).toEqual([35]);
+  });
+
+  it("leaves the message's own warnings as they were", () => {
+    const msg = parseHL7(`${MSH}\r${pid({ 36: "BRX07~BRX08" })}`);
+    const before = [...msg.warnings];
+    expect(msg.patient?.warnings).toHaveLength(1);
+    expect(msg.warnings).toEqual(before);
+  });
+
   it("leaves PID-8 as the administrative sex code it was, with no neutered reading", () => {
     const p = parseHL7(ANIMAL).patient;
     expect(p?.sex).toBe("M");

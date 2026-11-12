@@ -27,7 +27,7 @@ const msg = parseHL7(raw);
 msg.warnings.some((w) => w.code === "UNKNOWN_SEGMENT"); // => true
 ```
 
-The 20 warning codes are a **public, versioned contract**. They won't be renamed under you without a
+The 21 warning codes are a **public, versioned contract**. They won't be renamed under you without a
 breaking change. See [Warning and fatal codes](./warning-and-fatal-codes.md) for what each one
 means.
 
@@ -134,7 +134,7 @@ Design around these. They're deliberate scope choices, not bugs:
   carry a field's value, but it can carry a residue of up to three characters when a malformed line
   happens to look like a segment identifier, so prefer logging `w.code` and `w.position` over
   `w.message` if your posture is strict.
-- **Below 1.0.** The 20 warning codes are a stable contract, and so are the exported functions and
+- **Below 1.0.** The 21 warning codes are a stable contract, and so are the exported functions and
   the message and helper surfaces; below 1.0 a breaking change moves the minor version, and the
   changelog says how to migrate. For the published version, ask the registry
   (`npm view @cosyte/hl7 version`) rather than a doc page.

@@ -58,7 +58,7 @@ msg.get("PID.5.1"); // => "Doe"
 
 ## Warnings carry stable codes
 
-Each tolerance warning carries a stable code you can branch on. The 20 warning codes are a public,
+Each tolerance warning carries a stable code you can branch on. The 21 warning codes are a public,
 versioned contract: they are not renamed without a breaking release.
 
 ```ts runnable

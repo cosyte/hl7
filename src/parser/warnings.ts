@@ -71,6 +71,7 @@ export const WARNING_CODES = {
   BATCH_COUNT_MISMATCH: "BATCH_COUNT_MISMATCH",
   BATCH_MISSING_TRAILER: "BATCH_MISSING_TRAILER",
   UNTERMINATED_STREAM_MESSAGE: "UNTERMINATED_STREAM_MESSAGE",
+  NON_REPEATING_FIELD_REPEATED: "NON_REPEATING_FIELD_REPEATED",
 } as const;
 
 /**
@@ -636,6 +637,35 @@ export function ackNoCorrelationId(position: Hl7Position): Hl7ParseWarning {
     message:
       "Inbound message has no MSH-10 control ID; ACK MSA-2 left empty and any " +
       "positive accept downgraded to an error code (no fabricated AA/CA).",
+    position,
+  };
+}
+
+/**
+ * Build a `NON_REPEATING_FIELD_REPEATED` warning. Emitted by `msg.patient` (a read-side view: it
+ * attaches to `Patient.warnings`, never to `Hl7Message.warnings`) when PID-35 Species Code, PID-36
+ * Breed Code or PID-37 Strain, none of which the standard lets repeat, holds more than one
+ * repetition. The view reads the first and says so, rather than drop the rest unseen.
+ *
+ * The message carries only the segment id, the field number and the count, never a value.
+ *
+ * @example
+ * ```ts
+ * import { nonRepeatingFieldRepeated } from "@cosyte/hl7";
+ * const w = nonRepeatingFieldRepeated({ segmentIndex: 1, fieldIndex: 35 }, "PID", 35, 2);
+ * ```
+ */
+export function nonRepeatingFieldRepeated(
+  position: Hl7Position,
+  segmentName: string,
+  fieldIndex: number,
+  repetitions: number,
+): Hl7ParseWarning {
+  return {
+    code: WARNING_CODES.NON_REPEATING_FIELD_REPEATED,
+    message:
+      `Field ${safeDerivedToken(segmentName, "segmentId")}-${String(fieldIndex)} may not repeat ` +
+      `but holds ${String(repetitions)} repetitions; only the first is read.`,
     position,
   };
 }

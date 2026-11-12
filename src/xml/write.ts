@@ -127,7 +127,13 @@ function decodeBytes(bytes: Uint8Array, charset: string, key: string): string | 
   if (charset === "ASCII") {
     return bytes.every((b) => b < 0x80) ? String.fromCharCode(...bytes) : undefined;
   }
-  if (charset === "WINDOWS-1252") return decodeWindows1252(bytes);
+  if (charset === "WINDOWS-1252") {
+    // The five bytes Windows-1252 assigns no character (0x81, 0x8D, 0x8F, 0x90 and 0x9D) decode
+    // to the C1 control of the same number, a character no sender meant: refused rather than
+    // written as one.
+    const undefinedBytes = [0x81, 0x8d, 0x8f, 0x90, 0x9d];
+    return bytes.some((b) => undefinedBytes.includes(b)) ? undefined : decodeWindows1252(bytes);
+  }
   if (charset !== "UTF-8") return undefined;
   try {
     return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
@@ -494,8 +500,10 @@ function placed(
  * formatting escape (`\H\`, `\.br\`, `\.in+4\`) is written as an `escape` element
  * (`<escape V="H"/>`); in any other it is refused with `ESCAPE_NOT_SUPPORTED`, except a line break.
  * A hex escape is written as character references, its bytes decoded in MSH-18's character set
- * (ASCII, UTF-8, 8859/1 or Windows-1252). The escape character itself in a value, and a character
- * set or vendor escape, are refused with `ESCAPE_NOT_SUPPORTED`. An empty field is left out,
+ * (ASCII, UTF-8, 8859/1 or Windows-1252); bytes that are not text in it, the five bytes
+ * Windows-1252 assigns no character included, are refused with `ESCAPE_NOT_SUPPORTED`. The escape
+ * character itself in a value, and a character set or vendor escape, are refused with
+ * `ESCAPE_NOT_SUPPORTED` too. An empty field is left out,
  * except that a segment ending in empty fields gets one empty element at its last position
  * (`<PID.3/>`), so it reads back with the same field count. A message holding a second MSH is
  * refused, since one document is one message.

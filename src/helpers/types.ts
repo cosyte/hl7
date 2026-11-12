@@ -25,6 +25,7 @@ import type { XAD } from "../model/types/xad.js";
 import type { XCN } from "../model/types/xcn.js";
 import type { XPN } from "../model/types/xpn.js";
 import type { XTN } from "../model/types/xtn.js";
+import type { Hl7ParseWarning } from "../parser/warnings.js";
 
 /**
  * MSH-derived message metadata. Always defined on
@@ -142,12 +143,19 @@ export interface Patient {
   readonly language?: CE;
   /**
    * PID-35 Species Code, for a patient who is an animal. Absent when PID-35 is
-   * empty; the library never infers a species from any other field.
+   * empty; the library never infers a species from any other field. PID-35 may
+   * not repeat: when it does, this is the first repetition and `warnings` says so.
    */
   readonly species?: CWE;
-  /** PID-36 Breed Code. Absent when PID-36 is empty. */
+  /**
+   * PID-36 Breed Code. Absent when PID-36 is empty. PID-36 may not repeat: when
+   * it does, this is the first repetition and `warnings` says so.
+   */
   readonly breed?: CWE;
-  /** PID-37 Strain, a free-text string. Absent when PID-37 is empty. */
+  /**
+   * PID-37 Strain, a free-text string. Absent when PID-37 is empty. PID-37 may
+   * not repeat: when it does, this is the first repetition and `warnings` says so.
+   */
   readonly strain?: string;
   /**
    * PID-38 Production Class Code (for example a dairy or breeding class), the
@@ -161,6 +169,14 @@ export interface Patient {
    * clinical narrative.
    */
   readonly notes?: readonly string[];
+  /**
+   * The view's own warnings, in field order: a `NON_REPEATING_FIELD_REPEATED`
+   * for each of PID-35, PID-36 and PID-37 that holds more than one repetition,
+   * of which the view read only the first. OMITTED when there are none. They
+   * are not appended to `Hl7Message.warnings`, which a read-side view never
+   * changes.
+   */
+  readonly warnings?: readonly Hl7ParseWarning[];
 }
 
 /**

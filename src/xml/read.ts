@@ -429,10 +429,23 @@ class XmlToPipe {
     return this.src.slice(start, this.pos);
   }
 
-  /** Read one attribute into `attributes`. */
+  /**
+   * Read one attribute into `attributes`, refusing a name the element already has: XML allows an
+   * attribute once per element, so a repeat is not well-formed, and keeping either value would be
+   * a guess.
+   */
   private attribute(attributes: Map<string, string>): void {
     const src = this.src;
+    const start = this.pos;
     const name = this.name();
+    if (attributes.has(name)) {
+      this.fail(
+        XML_ERROR_CODES.NOT_WELL_FORMED,
+        "An element repeats an attribute.",
+        undefined,
+        start,
+      );
+    }
     this.skipSpace();
     if (src.charAt(this.pos) !== "=") {
       this.fail(XML_ERROR_CODES.NOT_WELL_FORMED, "An attribute has no value.");

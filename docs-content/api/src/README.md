@@ -9914,7 +9914,8 @@ PID-11 home address parsed as XAD.
 
 > `readonly` `optional` **breed?**: [`CWE`](#cwe-1)
 
-PID-36 Breed Code. Absent when PID-36 is empty.
+PID-36 Breed Code. Absent when PID-36 is empty. PID-36 may not repeat: when
+it does, this is the first repetition and `warnings` says so.
 
 ##### dateOfBirth?
 
@@ -10017,13 +10018,25 @@ PID-8 administrative sex code.
 > `readonly` `optional` **species?**: [`CWE`](#cwe-1)
 
 PID-35 Species Code, for a patient who is an animal. Absent when PID-35 is
-empty; the library never infers a species from any other field.
+empty; the library never infers a species from any other field. PID-35 may
+not repeat: when it does, this is the first repetition and `warnings` says so.
 
 ##### strain?
 
 > `readonly` `optional` **strain?**: `string`
 
-PID-37 Strain, a free-text string. Absent when PID-37 is empty.
+PID-37 Strain, a free-text string. Absent when PID-37 is empty. PID-37 may
+not repeat: when it does, this is the first repetition and `warnings` says so.
+
+##### warnings?
+
+> `readonly` `optional` **warnings?**: readonly [`Hl7ParseWarning`](#hl7parsewarning)[]
+
+The view's own warnings, in field order: a `NON_REPEATING_FIELD_REPEATED`
+for each of PID-35, PID-36 and PID-37 that holds more than one repetition,
+of which the view read only the first. OMITTED when there are none. They
+are not appended to `Hl7Message.warnings`, which a read-side view never
+changes.
 
 ***
 
@@ -10397,7 +10410,7 @@ changes no parsing behaviour.
 
 ###### Inherited from
 
-[`ProfiledMessage`](#profiledmessage).[`warnings`](#warnings-3)
+[`ProfiledMessage`](#profiledmessage).[`warnings`](#warnings-4)
 
 #### Accessors
 
@@ -12970,7 +12983,7 @@ changes no parsing behaviour.
 
 ###### Inherited from
 
-[`ProfiledMessage`](#profiledmessage).[`warnings`](#warnings-3)
+[`ProfiledMessage`](#profiledmessage).[`warnings`](#warnings-4)
 
 #### Accessors
 
@@ -17237,6 +17250,10 @@ magic-string comparisons for consumers.
 
 > `readonly` **MLLP\_FRAMING\_STRIPPED**: `"MLLP_FRAMING_STRIPPED"` = `"MLLP_FRAMING_STRIPPED"`
 
+##### NON\_REPEATING\_FIELD\_REPEATED
+
+> `readonly` **NON\_REPEATING\_FIELD\_REPEATED**: `"NON_REPEATING_FIELD_REPEATED"` = `"NON_REPEATING_FIELD_REPEATED"`
+
 ##### OUT\_OF\_ORDER\_SEGMENT
 
 > `readonly` **OUT\_OF\_ORDER\_SEGMENT**: `"OUT_OF_ORDER_SEGMENT"` = `"OUT_OF_ORDER_SEGMENT"`
@@ -17334,8 +17351,8 @@ The document references an entity other than the five XML predefines.
 The message's escape character in text, for which no published rule exists; an `escape`
 element whose `V` is not a formatting escape, or that holds text or elements; or a value
 whose escape sequence the writer cannot express: a formatting escape in a value whose data
-type is not TX or FT, a hex escape the message's character set cannot decode, or a character
-set or vendor escape.
+type is not TX or FT, a hex escape the message's character set cannot decode (a byte
+Windows-1252 assigns no character among them), or a character set or vendor escape.
 
 ##### FORBIDDEN\_CHARACTER
 
@@ -17387,7 +17404,7 @@ declared as another, or a prefix bound to another or to none.
 
 > `readonly` **NOT\_WELL\_FORMED**: `"NOT_WELL_FORMED"` = `"NOT_WELL_FORMED"`
 
-The document is not well-formed XML.
+The document is not well-formed XML, an element that repeats an attribute among them.
 
 ##### OUT\_OF\_ORDER
 
@@ -19949,6 +19966,48 @@ trailing `0x0D`) from the input.
 ```ts
 import { mllpFramingStripped } from "@cosyte/hl7";
 const w = mllpFramingStripped({ segmentIndex: 0 });
+```
+
+***
+
+### nonRepeatingFieldRepeated()
+
+> **nonRepeatingFieldRepeated**(`position`, `segmentName`, `fieldIndex`, `repetitions`): [`Hl7ParseWarning`](#hl7parsewarning)
+
+Build a `NON_REPEATING_FIELD_REPEATED` warning. Emitted by `msg.patient` (a read-side view: it
+attaches to `Patient.warnings`, never to `Hl7Message.warnings`) when PID-35 Species Code, PID-36
+Breed Code or PID-37 Strain, none of which the standard lets repeat, holds more than one
+repetition. The view reads the first and says so, rather than drop the rest unseen.
+
+The message carries only the segment id, the field number and the count, never a value.
+
+#### Parameters
+
+##### position
+
+[`Hl7Position`](#hl7position)
+
+##### segmentName
+
+`string`
+
+##### fieldIndex
+
+`number`
+
+##### repetitions
+
+`number`
+
+#### Returns
+
+[`Hl7ParseWarning`](#hl7parsewarning)
+
+#### Example
+
+```ts
+import { nonRepeatingFieldRepeated } from "@cosyte/hl7";
+const w = nonRepeatingFieldRepeated({ segmentIndex: 1, fieldIndex: 35 }, "PID", 35, 2);
 ```
 
 ***
@@ -22625,8 +22684,10 @@ with no type there is refused with `DATA_TYPE_UNKNOWN`. In a value typed `TX` or
 formatting escape (`\H\`, `\.br`, `\.in+4\`) is written as an `escape` element
 (`<escape V="H"/>`); in any other it is refused with `ESCAPE_NOT_SUPPORTED`, except a line break.
 A hex escape is written as character references, its bytes decoded in MSH-18's character set
-(ASCII, UTF-8, 8859/1 or Windows-1252). The escape character itself in a value, and a character
-set or vendor escape, are refused with `ESCAPE_NOT_SUPPORTED`. An empty field is left out,
+(ASCII, UTF-8, 8859/1 or Windows-1252); bytes that are not text in it, the five bytes
+Windows-1252 assigns no character included, are refused with `ESCAPE_NOT_SUPPORTED`. The escape
+character itself in a value, and a character set or vendor escape, are refused with
+`ESCAPE_NOT_SUPPORTED` too. An empty field is left out,
 except that a segment ending in empty fields gets one empty element at its last position
 (`<PID.3/>`), so it reads back with the same field count. A message holding a second MSH is
 refused, since one document is one message.

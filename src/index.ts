@@ -236,6 +236,9 @@ export type {
 // it; this is the default the hooks replace.
 export { pickMrn } from "./helpers/pick-mrn.js";
 
+// The warning factory of the patient view's own warnings (`Patient.warnings`).
+export { nonRepeatingFieldRepeated } from "./parser/warnings.js";
+
 // Patient-identity / merge events. Runtime behavior lives on
 // `Hl7Message.identityEvents()`; the typed views + the event-scoped warning
 // factory are the named exports.
