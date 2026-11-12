@@ -91,10 +91,94 @@ describe("a lazy parse (the default)", () => {
     expect(all).toEqual(parseHL7(TEXT, { lazy: false }).rawSegments);
   });
 
-  it("builds everything on toString and gives the eager text", () => {
+  it("writes an unread segment from its own text on toString and gives the eager text", () => {
     const msg = parseHL7(TEXT);
     expect(msg.toString()).toBe(parseHL7(TEXT, { lazy: false }).toString());
-    expect(pending(msg)).toEqual([]);
+    // OBX 3 had a field trimmed, so it is built and written from its tree; no other segment is.
+    expect(pending(msg)).toEqual([1, 2, 3, 4, 5]);
+    expect(msg.toString()).toBe(parseHL7(TEXT, { lazy: false }).toString());
+    expect(msg.rawSegments).toEqual(parseHL7(TEXT, { lazy: false }).rawSegments);
+  });
+
+  // Each line is a segment whose text the writer changes, so it must be built and written from its
+  // tree, or one it writes back unchanged. `built` says which: true when toString must build it.
+  const WRITES: readonly {
+    readonly segment: string;
+    readonly built: boolean;
+    readonly msh?: string;
+  }[] = [
+    { segment: "PID|1||FAKE1^^^HOSP^MR||Roe^Sam", built: false },
+    { segment: "PID|1||", built: false },
+    { segment: "PID|1", built: false },
+    { segment: 'PID|1|""|A^""', built: false },
+    { segment: "PID|1|A~B~|C", built: false },
+    { segment: "ZZZ", built: false },
+    { segment: "|x|y", built: false },
+    { segment: "", built: false },
+    { segment: "OBX|1|A#B", built: false },
+    { segment: "PID|", built: true },
+    { segment: "PID|1|A^", built: true },
+    { segment: "PID|1|A^~B", built: true },
+    { segment: "PID|1|A^|B", built: true },
+    { segment: "PID|1|A&", built: true },
+    { segment: "PID|1|A&^B", built: true },
+    { segment: "PID|1|A&~B", built: true },
+    { segment: "PID|1|A&|B", built: true },
+    { segment: "PID|1|^", built: true },
+    { segment: "PID|1|&&", built: true },
+    { segment: "PID|1|A\\F\\B", built: true },
+    { segment: "PID|1| A ", built: true },
+    { segment: "MSH", built: true },
+    { segment: "MSH|^~\\&|X", built: true },
+    { segment: "OBX|1|A#B", built: true, msh: "MSH|^~\\&#|A|B|C|D|20260101||ORU^R01|1|P|2.7\r" },
+    { segment: "OBX|1|A\u000bB", built: true },
+  ];
+
+  for (const { segment, built, msh } of WRITES) {
+    it(`writes ${JSON.stringify(segment)} as the eager parse does${msh === undefined ? "" : ", in v2.7"}`, () => {
+      const text = `${msh ?? "MSH|^~\\&|A|B|C|D|20260101||ORU^R01|1|P|2.5\r"}${segment}\rNTE|1||end\r`;
+      const msg = parseHL7(text);
+      expect(msg.toString()).toBe(parseHL7(text, { lazy: false }).toString());
+      expect(pending(msg)).toEqual(built ? [2] : [1, 2]);
+    });
+  }
+
+  // MSH-2 can name a character outside the Basic Multilingual Plane, two UTF-16 code units. No
+  // segment of such a message is written from its text, whichever delimiter it is.
+  const WIDE = "\u{1F600}";
+  for (const [delimiter, msh2, segment] of [
+    ["component", `${WIDE}~\\&`, `PID|1|A${WIDE}`],
+    ["repetition", `^${WIDE}\\&`, `PID|1|A^${WIDE}B`],
+    ["subcomponent", `^~\\${WIDE}`, `PID|1|A${WIDE}`],
+    ["truncation", `^~\\&${WIDE}`, `PID|1|A${WIDE}B`],
+  ] as const) {
+    it(`writes every segment from its tree when the ${delimiter} is two code units`, () => {
+      const text = `MSH|${msh2}|A|B|C|D|20260101||ORU^R01|1|P|2.7\r${segment}\rNTE|1||end\r`;
+      const msg = parseHL7(text);
+      expect(msg.toString()).toBe(parseHL7(text, { lazy: false }).toString());
+      expect(pending(msg)).toEqual([]);
+    });
+  }
+
+  it("writes from the tree when the encoding characters are not the ones the text was read with", () => {
+    const msg = parseHL7(TEXT);
+    const swapped = { ...msg.encodingCharacters, component: "@" };
+    (msg as unknown as { encodingCharacters: unknown }).encodingCharacters = swapped;
+    const eager = parseHL7(TEXT, { lazy: false });
+    (eager as unknown as { encodingCharacters: unknown }).encodingCharacters = swapped;
+    expect(msg.toString()).toBe(eager.toString());
+  });
+
+  it("writes a segment from its tree once something has read it, even an edited tree", () => {
+    const msg = parseHL7(TEXT);
+    const pid = msg.part("PID");
+    expect(pid?.field(5).value).toBe("Roe");
+    const raw = pid?.raw as unknown as {
+      fields: { repetitions: { components: { subcomponents: string[] }[] }[] }[];
+    };
+    const sub = raw.fields[5]?.repetitions[0]?.components[0]?.subcomponents;
+    if (sub !== undefined) sub[0] = "Poe";
+    expect(msg.toString()).toContain("PID|1||FAKE1^^^HOSP^MR||Poe^Sam\r");
   });
 
   it("builds the segment an edit changes, and no other", () => {

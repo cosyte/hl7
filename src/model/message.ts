@@ -192,9 +192,11 @@ export interface Hl7MessageInit {
  * Every warning was already reported by the parse. `get(path)` builds the
  * one segment its path reaches; `segments()`, `part()` and `allSegments()`
  * build a segment when its fields are first read; an edit builds the segment
- * it changes. `rawSegments`, `toString()`, `toJSON()`, `prettyPrint()` and
- * the helpers that read every segment of a type (for example
- * `observations()`) build every segment they reach.
+ * it changes. `rawSegments`, `toJSON()`, `prettyPrint()` and the helpers
+ * that read every segment of a type (for example `observations()`) build
+ * every segment they reach. `toString()` writes a segment nothing has read
+ * straight from its text when that text is what its tree would write, and
+ * builds only the segments it has to write from a tree.
  *
  * @example
  * ```ts
@@ -970,9 +972,12 @@ export class Hl7Message {
   }
 
   /**
-   * Emit this message as spec-clean HL7. Re-walks `rawSegments`
-   * on every call (no caching), so on a lazily parsed message it builds
-   * every segment not read yet. Segments are joined with `\r`;
+   * Emit this message as spec-clean HL7. Re-walks the segments on every
+   * call (no caching). On a lazily parsed message a segment not read yet is
+   * written from its own text when that text is already what its tree
+   * would write, and built otherwise, so the text is the same as from an
+   * eager parse and writing out a message nothing has read builds little or
+   * none of its tree. Segments are joined with `\r`;
    * MSH-1 and MSH-2 are inlined verbatim from
    * `this.encodingCharacters`; every field string passes through
    * `reescape`. `RawField.isNull === true` is preserved as the
@@ -986,7 +991,7 @@ export class Hl7Message {
    * ```
    */
   public toString(): string {
-    return emitMessage(this);
+    return emitMessage(this, this.entries());
   }
 
   /**

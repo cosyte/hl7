@@ -49,9 +49,16 @@ The three whose `field(5)` was read are built; the other 1,997 are not.
 These reads reach every segment, so they build every segment that has not been read yet:
 
 - `rawSegments`, the whole raw tree;
-- `toString()`, `toJSON()` and `prettyPrint()`;
+- `toJSON()` and `prettyPrint()`;
 - a helper that reads every segment of a type, such as `observations()` (every OBX),
   `notes()` (every NTE) or `medications()`.
+
+`toString()` reaches every segment too, but it does not build one it can write from the text: a
+segment nothing has read is written exactly as it arrived when that text is already what its tree
+would write. It builds a segment only when the written text differs from the text read, for
+example a segment with an escape sequence, a field the parser trimmed, or empty components at the
+end of a field, which the writer drops. A message read and written back unchanged, as a
+de-identifying or routing pipeline often does with most of its segments, builds little of its tree.
 
 An edit builds the segment it changes, and only that one. A segment that is built stays built.
 

@@ -19,7 +19,7 @@ import { runInNewContext } from "node:vm";
 
 import { describe, expect, it } from "vitest";
 
-import { parseHL7, type Hl7Message, type ParseOptions } from "../../src/index.js";
+import { parseHL7, splitBatch, type Hl7Message, type ParseOptions } from "../../src/index.js";
 
 setFlagsFromString("--expose-gc");
 const collect = runInNewContext("gc") as () => void;
@@ -135,5 +135,77 @@ describe("the heap a parsed message holds", () => {
   it("is under 80 times the input for a small ADT^A01 built during the parse", () => {
     const texts = Array.from({ length: 256 }, (_v, i) => adtMessage(i));
     expect(retainedPerByte(texts, { lazy: false })).toBeLessThan(80);
+  });
+});
+
+/**
+ * One synthetic ORU^R01 of about 1.6 KiB with every identifying segment filled (PID, PV1, NK1, GT1,
+ * IN1), then an order, eight results and a note: the message a de-identifying pipeline reads and
+ * writes back, the same as `identifiedReport` in bench/parse.bench.mjs. Every value is made up.
+ * No PHI.
+ */
+function identifiedReport(i: number): string {
+  const id = String(i).padStart(8, "0");
+  const lines = [
+    `MSH|^~\\&|LABAPP|LABFAC|EHRAPP|EHRFAC|20240115083000||ORU^R01|SYNTH${id}|P|2.5.1`,
+    `PID|1||ZZMRN${id}^^^HOSP^MR~9${id}^^^SSA^SS||Doe^Jane^Q||19800101|F|||ZZSTREET 001^^ZZCITY^MA^02100||5550000000|5550000001||||ZZACCT${id}|9${id}`,
+    `PV1|1|O|CLINIC^101^A||||DOC123^Smith^Robert|||MED||||1|||||ZZVISIT${id}|||||||||||||||||||||||||20240115080000|20240115120000`,
+    `NK1|1|Doe^John|SPO|ZZNKSTREET^^ZZNKCITY^MA^02101|5550000002`,
+    `GT1|1|ZZGT${id}^^^HOSP^AN|Roe^Sam||ZZGTSTREET^^ZZGTCITY^NY^10001|5550000003||19800108|M||SEL|9${id}`,
+    `IN1|1|PLAN001|INSCO001|SYNTH INSURANCE CO|ORGADDR^^ORGCITY^MA^02101||5559990000|ZZGROUP001||||||||Doe^Jane|SEL|19800104|ZZINSSTREET^^ZZINSCITY^MA^01890|||||||||||||||||ZZPOLICY${id}`,
+    `ORC|RE|ZZPLACER${id}|ZZFILLER${id}`,
+    `OBR|1|ZZPLACER${id}|ZZFILLER${id}|24323-8^Comprehensive metabolic panel^LN|||20240115081500|||||||||ORD1^Welby^Marcus||||||20240115082500|||F`,
+  ];
+  for (let k = 0; k < 8; k++) {
+    lines.push(
+      `OBX|${String(k + 1)}|NM|2951-2^Sodium^LN|1|${String(135 + k)}|mmol/L|135-145|N|||F|||20240115081500`,
+    );
+  }
+  lines.push(
+    `NTE|1|L|Reviewed in full for ZZACCT${id} by the ordering provider, with every result in range. Repeat the panel in three months, sooner if any new symptoms appear today.`,
+  );
+  return `${lines.join("\r")}\r`;
+}
+
+/**
+ * The heap one call takes at its height, per byte of its input: the heap read after a full
+ * collection, before the call and straight after it, with no collection between, so what the call
+ * threw away counts as well as what it returns. The median of 21 calls, after a warmup, so code
+ * compiled on first use is not counted and a call a collection lands in does not decide it.
+ */
+function callPeakPerByte(texts: readonly string[], call: (text: string) => unknown): number {
+  for (let k = 0; k < 2000; k++) call(texts[k % texts.length] as string);
+  const ratios: number[] = [];
+  let kept: unknown;
+  for (let k = 0; k < 21; k++) {
+    const text = texts[k % texts.length] as string;
+    collect();
+    collect();
+    const before = process.memoryUsage().heapUsed;
+    kept = call(text);
+    const after = process.memoryUsage().heapUsed;
+    ratios.push((after - before) / text.length);
+  }
+  expect(kept).toBeDefined();
+  ratios.sort((a, b) => a - b);
+  return ratios[10] as number;
+}
+
+describe("the heap one message takes to read and write back", () => {
+  const texts = Array.from({ length: 64 }, (_v, i) => identifiedReport(i));
+
+  // A lazy parse writes a segment nothing has read straight from its text. When `toString()` built
+  // every segment's tree first, then wrote each tree out, this read several times the ceiling.
+  it("is under 30 times the input for parseHL7, then toString, on a 1.6 KiB report", () => {
+    expect(callPeakPerByte(texts, (text) => parseHL7(text).toString())).toBeLessThan(30);
+  });
+
+  it("is under 30 times the input for splitBatch, then toString, on a 1.6 KiB report", () => {
+    const write = (text: string): string => {
+      let out = "";
+      for (const entry of splitBatch(text).messages) if (entry.ok) out += entry.message.toString();
+      return out;
+    };
+    expect(callPeakPerByte(texts, write)).toBeLessThan(30);
   });
 });

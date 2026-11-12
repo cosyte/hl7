@@ -134,7 +134,7 @@ describe("the benchmark suite", () => {
   }
 
   /** Which sizes, in order, the shared comparison runs; the large comparison runs the rest. */
-  const COMPARED = [true, true, false, false, true, false];
+  const COMPARED = [true, true, true, false, false, true, false];
 
   it("measures small to very large inputs, and leaves the large ones to their own comparison", async () => {
     const { default: suite } = await importModule<{
@@ -149,6 +149,7 @@ describe("the benchmark suite", () => {
     for (const benchmark of suite.benchmarks) {
       expect(benchmark.sizes.map((s) => s.label)).toEqual([
         "ADT^A01, 280 B",
+        "ORU^R01 with every identifying segment, 1.6 KiB",
         "ORU^R01, 32 KiB",
         "ORU^R01, 1 MiB",
         "ORU^R01, 4 MiB",
@@ -164,7 +165,15 @@ describe("the benchmark suite", () => {
       default: { benchmarks: Benchmark[] };
     }>("bench", "parse.bench.mjs");
     const [parse] = suite.benchmarks;
-    const expected = [280, 32 * 1024, 1024 * 1024, 4096 * 1024, 1024 * 1024, 4096 * 1024];
+    const expected = [
+      280,
+      1.6 * 1024,
+      32 * 1024,
+      1024 * 1024,
+      4096 * 1024,
+      1024 * 1024,
+      4096 * 1024,
+    ];
     expect(parse?.sizes.length).toBe(expected.length);
     for (const [i, size] of (parse?.sizes ?? []).entries()) {
       const corpus = size.build();
@@ -187,9 +196,10 @@ describe("the benchmark suite", () => {
     const found = (parse?.sizes ?? [])
       .filter((size) => size.compare)
       .map((size) => readTypical(parseHL7(size.build().inputs[0] ?? "")));
-    // ADT: MSH-10, PID-3 and PV1-3. Result report: MSH-10, PID-3 and five OBX-5. Document: MSH-10,
-    // PID-3 and the note's OBX-5 (the document's OBX-5 starts with an empty component).
-    expect(found).toEqual([3, 7, 3]);
+    // ADT: MSH-10, PID-3 and PV1-3. Identified report: MSH-10, PID-3, PV1-3 and five OBX-5. Result
+    // report: MSH-10, PID-3 and five OBX-5. Document: MSH-10, PID-3 and the note's OBX-5 (the
+    // document's OBX-5 starts with an empty component).
+    expect(found).toEqual([3, 8, 7, 3]);
   });
 
   it("carries its large document in one OBX of value type ED, as base64 the parser reads whole", async () => {

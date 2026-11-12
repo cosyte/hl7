@@ -9,6 +9,9 @@
  *   - every field of every segment, read in a generated order on the lazy side: its raw node, its
  *     value, and whether it is marked as altered on the wire;
  *   - `rawSegments`, the version and `toString()`.
+ *
+ * And `toString()` of a lazy parse nothing has read yet, which writes an unread segment from its own
+ * text when that is what its tree would write, is the eager parse's `toString()`.
  */
 
 import fc from "fast-check";
@@ -108,6 +111,18 @@ function agree(input: string | Buffer, keys: readonly number[]): void {
   }
 }
 
+/** `toString()` of a lazy parse, before anything reads a segment, against the eager parse's. */
+function writesAsEager(input: string | Buffer): void {
+  for (const mode of MODES) {
+    const eager = parse(input, mode, false);
+    const lazy = parse(input, mode, true);
+    if (!eager.ok || !lazy.ok) continue;
+    expect(lazy.msg.toString()).toBe(eager.msg.toString());
+    // A second write, after the first built what it had to, gives the same text.
+    expect(lazy.msg.toString()).toBe(eager.msg.toString());
+  }
+}
+
 const KEYS = fc.array(fc.integer(), { minLength: 1, maxLength: 16 });
 
 describe("property: a lazy parse and an eager parse agree", () => {
@@ -122,6 +137,15 @@ describe("property: a lazy parse and an eager parse agree", () => {
   it("on messages full of escapes, written out and read back", BUDGET, () => {
     checkProperty(
       fc.property(message({ escapes: true }), KEYS, (msg, keys) => agree(msg.toString(), keys)),
+      RUN_CONFIG,
+    );
+  });
+
+  it("on toString before anything is read, for generated, hostile and escaped text", BUDGET, () => {
+    checkProperty(fc.property(messageText(), writesAsEager), RUN_CONFIG);
+    checkProperty(fc.property(hostileInput(), writesAsEager), RUN_CONFIG);
+    checkProperty(
+      fc.property(message({ escapes: true }), (msg) => writesAsEager(msg.toString())),
       RUN_CONFIG,
     );
   });
