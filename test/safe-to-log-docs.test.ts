@@ -279,14 +279,14 @@ function identifying(): Identifying {
       .map((name) => readFileSync(join(root, "examples", name), "utf8")),
   ];
   for (const text of sources) {
-    // Source text: `\\` is one backslash and `\r` ends a segment.
-    const code = text.replace(/\\r/gu, "\n").replace(/\\\\/gu, "\\");
+    // Source text, read in one pass: `\\` is one backslash and `\r` ends a segment.
+    const code = text.replace(/\\([\\r])/gu, (_, c: string) => (c === "r" ? "\n" : "\\"));
     for (const m of code.matchAll(SEGMENT_IN_SOURCE)) readSegment(m[0], out);
     for (const m of code.matchAll(XML_FREE_TEXT)) {
       const value = (m[1] ?? "")
-        .replace(/&amp;/gu, "&")
         .replace(/&lt;/gu, "<")
-        .replace(/&gt;/gu, ">");
+        .replace(/&gt;/gu, ">")
+        .replace(/&amp;/gu, "&");
       freeTextRuns(value).forEach((r) => out.literals.add(r));
     }
   }
