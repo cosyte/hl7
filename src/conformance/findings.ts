@@ -20,11 +20,14 @@ import {
   type FindingLocus,
   type FindingSeverity,
 } from "./types.js";
+import { showNumber } from "./shown-number.js";
 
 /**
  * Render a {@link FindingLocus} as a compact human string for a finding
  * message: `PID`, `PID-3`, `PID-8 component 1`, `PID[1]-3 rep 2`. Structural
- * indices only; never a value. Used only to build the PHI-safe `message`.
+ * indices only; never a value. A field or component index comes from the
+ * profile, so one above 9999 is not shown (see `shown-number.ts`). Used only to
+ * build the PHI-safe `message`.
  *
  * @internal
  */
@@ -34,13 +37,13 @@ export function describeLocus(locus: FindingLocus): string {
     s += `[occurrence ${String(locus.occurrence)}]`;
   }
   if (locus.field !== undefined) {
-    s += `-${String(locus.field)}`;
+    s += `-${showNumber(locus.field)}`;
   }
   if (locus.repetition !== undefined) {
     s += ` rep ${String(locus.repetition)}`;
   }
   if (locus.component !== undefined) {
-    s += ` component ${String(locus.component)}`;
+    s += ` component ${showNumber(locus.component)}`;
   }
   return s;
 }
@@ -127,7 +130,8 @@ function elementKind(locus: FindingLocus): "segment" | "field" | "component" {
 
 /**
  * A repetition / occurrence count is outside the declared cardinality. `actual`
- * and the `min` / `max` bounds are structural integers: never a value.
+ * and the `min` / `max` bounds are structural integers: never a value. A
+ * bound comes from the profile, so one above 9999 is not shown.
  *
  * @internal
  */
@@ -139,8 +143,8 @@ export function cardinality(
   severity: FindingSeverity,
 ): ConformanceFinding {
   const parts: string[] = [];
-  if (bound.min !== undefined) parts.push(`min ${String(bound.min)}`);
-  if (bound.max !== undefined) parts.push(`max ${String(bound.max)}`);
+  if (bound.min !== undefined) parts.push(`min ${showNumber(bound.min)}`);
+  if (bound.max !== undefined) parts.push(`max ${bound.max === "*" ? "*" : showNumber(bound.max)}`);
   return {
     code: FINDING_CODES.PROFILE_CARDINALITY,
     severity,
@@ -156,6 +160,7 @@ export function cardinality(
  * reports the declared `max` and the observed length **count**: never the
  * value, and never any substring of it (a length count is a coarse shape fact,
  * consistent with the parser's `FIELD_WHITESPACE_TRIMMED` count-only policy).
+ * The declared `max` comes from the profile, so one above 9999 is not shown.
  *
  * @internal
  */
@@ -171,7 +176,7 @@ export function length(
     locus,
     message: `${describeLocus(locus)} value length ${String(
       actualLength,
-    )} exceeds the declared maximum of ${String(maxLength)}.`,
+    )} exceeds the declared maximum of ${showNumber(maxLength)}.`,
   };
 }
 

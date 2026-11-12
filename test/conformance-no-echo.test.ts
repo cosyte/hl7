@@ -6,8 +6,9 @@
  * A profile is caller-supplied text, and a caller may build one from anything,
  * so a diagnostic that echoes it is how a value ends up in a log. The one kind
  * of value a diagnostic may still show is a token checked first against a fixed
- * set: a usage code the grammar admits, and a segment name of the form
- * `[A-Z][A-Z0-9]{2}`. Those are the profile's own structure, never free text.
+ * set: a usage code the grammar admits, a segment name of the form
+ * `[A-Z][A-Z0-9]{2}`, and a number that passed its own check and is at most
+ * 9999. Those are the profile's own structure, never free text.
  */
 
 import { describe, expect, it } from "vitest";
@@ -192,5 +193,156 @@ describe("a malformed resolution argument is not echoed", () => {
     expect(findings).toHaveLength(1);
     expect(findings[0]?.message).toContain('resolution for segment "ZZZ" matches no rule');
     expect(findings[0]?.locus.segment).toBe("ZZZ");
+  });
+});
+
+/**
+ * A number from the profile or the resolution argument is shown only when it
+ * passed its own check and is at most 9999: small enough to be a count or an
+ * index and nothing else. A larger one could as well be a date of birth or a
+ * record number, so the text names the position and the fault without it.
+ */
+describe("a number from the profile is shown only when it passed its check and is at most 9999", () => {
+  /** A number that reads as the message's own date of birth. */
+  const BIG = 19800101;
+  /** A negative number that fails every bound's own check. */
+  const NEGATIVE = -1234567;
+
+  /** Every string a finding carries: its code, severity, message and every string in its locus. */
+  const stringsOf = (f: ConformanceFinding): string[] => [
+    f.code,
+    f.severity,
+    f.message,
+    ...Object.values(f.locus).filter((v): v is string => typeof v === "string"),
+  ];
+
+  const expectNoNumber = (
+    findings: readonly ConformanceFinding[],
+    ...numbers: readonly number[]
+  ): void => {
+    expect(findings.length).toBeGreaterThan(0);
+    for (const f of findings) {
+      for (const s of stringsOf(f)) {
+        for (const n of numbers) expect(s).not.toContain(String(Math.abs(n)));
+      }
+    }
+  };
+
+  it("a maximum that failed its own check is not shown in the bounds conflict", () => {
+    const profile = {
+      name: "p",
+      segments: [{ segment: "PID", cardinality: { min: BIG, max: NEGATIVE } }],
+    };
+    expectNoNumber(run(profile), BIG, NEGATIVE);
+    expect(thrownBy(profile)).not.toContain(String(BIG));
+    expect(thrownBy(profile)).not.toContain(String(-NEGATIVE));
+    // The bound that failed its check is reported once, and no conflict is
+    // derived from a number that means nothing.
+    expect(run(profile).map((f) => f.message)).toEqual([
+      'Malformed conformance profile: segment "PID" cardinality.max must be a non-negative integer or "*".',
+    ]);
+  });
+
+  it("a bounds conflict between numbers above 9999 names the conflict without them", () => {
+    const profile = {
+      name: "p",
+      segments: [{ segment: "PID", cardinality: { min: BIG, max: 10000 } }],
+    };
+    expectNoNumber(run(profile), BIG, 10000);
+    expect(run(profile)[0]?.message).toContain('segment "PID" cardinality.max is less than min.');
+    expect(thrownBy(profile)).not.toContain(String(BIG));
+  });
+
+  it("a usage and cardinality conflict does not show a number above 9999", () => {
+    for (const card of [{ min: BIG }, { max: BIG }]) {
+      const usage = card.min === undefined ? "X" : "O";
+      const profile = { name: "p", segments: [{ segment: "PID", usage, cardinality: card }] };
+      expectNoNumber(run(profile), BIG);
+      expect(thrownBy(profile)).not.toContain(String(BIG));
+    }
+  });
+
+  it("a field index or component index above 9999 is not shown in a defect", () => {
+    const profile = {
+      name: "p",
+      segments: [
+        {
+          segment: "PID",
+          fields: [
+            { field: BIG, usage: "nonsense" },
+            {
+              field: 3,
+              components: [
+                { component: BIG, usage: "nonsense" },
+                { component: BIG, usage: "R" },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    expectNoNumber(run(profile), BIG);
+    expect(thrownBy(profile)).not.toContain(String(BIG));
+    expect(run(profile)[0]?.message).toContain('segment "PID" field (a number above 9999) usage');
+  });
+
+  it("a well-formed profile's numbers above 9999 are not shown in a message-level finding", () => {
+    const tooFew = { name: "p", segments: [{ segment: "PID", cardinality: { min: 10000 } }] };
+    expectNoNumber(run(tooFew), 10000);
+    const absent = {
+      name: "p",
+      segments: [{ segment: "PID", fields: [{ field: BIG, usage: "R" }] }],
+    };
+    expectNoNumber(run(absent), BIG);
+    expect(run(absent)[0]?.message).toContain("PID-(a number above 9999)");
+    const raw = `${RAW}|${"x".repeat(10001)}`;
+    const long = validateAgainstProfile(parseHL7(raw), {
+      name: "p",
+      segments: [{ segment: "PID", fields: [{ field: 9, length: 10000 }] }],
+    }).findings;
+    expect(long.map((f) => f.code)).toEqual([FINDING_CODES.PROFILE_LENGTH]);
+    expectNoNumber(long, 10000);
+  });
+
+  it("a predicate location or a resolution field above 9999 is not shown", () => {
+    const predicate = {
+      name: "p",
+      segments: [
+        {
+          segment: "PID",
+          usage: "C",
+          condition: { location: { segment: "PID", field: BIG }, verb: "is", values: ["A"] },
+        },
+      ],
+    };
+    expectNoNumber(run(predicate), BIG);
+    const conditional = { name: "p", segments: [{ segment: "PID", usage: "C(R/X)" }] };
+    expectNoNumber(run(conditional, [{ segment: "PID", field: BIG, outcome: true }]), BIG);
+  });
+
+  it("a number at most 9999 that passed its check is still shown", () => {
+    const profile = {
+      name: "p",
+      segments: [{ segment: "PID", cardinality: { min: 9999, max: 9998 } }],
+    };
+    expect(run(profile)[0]?.message).toContain(
+      'segment "PID" cardinality.max (9998) is less than min (9999).',
+    );
+    const many = { name: "p", segments: [{ segment: "PID", cardinality: { min: 2, max: "*" } }] };
+    expect(run(many)[0]?.message).toContain("outside the declared cardinality (min 2, max *).");
+    const x = { name: "p", segments: [{ segment: "PID", usage: "X", cardinality: { max: "*" } }] };
+    expect(run(x)[0]?.message).toContain('segment "PID" declares usage X with cardinality.max *.');
+    const dup = {
+      name: "p",
+      segments: [
+        {
+          segment: "PID",
+          fields: [{ field: 9999, components: [{ component: 9999 }, { component: 9999 }] }],
+        },
+      ],
+    };
+    expect(run(dup)[0]?.message).toContain(
+      'segment "PID" field 9999 components[1] declares component 9999, which',
+    );
   });
 });

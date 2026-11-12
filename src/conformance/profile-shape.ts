@@ -21,7 +21,11 @@
  * one kind of value a detail does show is a token already checked against a
  * fixed set, so it is profile structure rather than free text: a segment name
  * that matched `[A-Z][A-Z0-9]{2}`, a usage token the declarable-usage grammar
- * admits, and the numbers of a cardinality that passed its own check.
+ * admits, and a number (an index or a cardinality bound) that passed its own
+ * check and is at most 9999. A larger number could as well be a date of birth
+ * or a record number, so the detail names its position without it (see
+ * `shown-number.ts`). A bounds conflict is reported only between two bounds
+ * that each passed their own check, never derived from one that failed.
  *
  * Three families of check here are about COHERENCE rather than shape, and all
  * three come from the HL7 conformance methodology rather than from this
@@ -45,6 +49,7 @@ import { ProfileDefinitionError } from "../parser/errors.js";
 
 import { DEFAULT_PROFILE_LEVEL, claimsImplementable, usageIsImplementable } from "./level.js";
 import { collectPredicateDefects } from "./predicate.js";
+import { isShownNumber, showNumber } from "./shown-number.js";
 import { PROFILE_LEVELS, type ConformanceProfile, type FindingLocus } from "./types.js";
 import {
   SIMPLE_USAGE_CODES,
@@ -103,17 +108,15 @@ function checkCardinality(card: unknown, locus: FindingLocus, out: ProfileDefect
       detail: `${describe(locus)} cardinality.max must be a non-negative integer or "*".`,
     });
   }
-  if (
-    typeof min === "number" &&
-    typeof max === "number" &&
-    Number.isInteger(min) &&
-    Number.isInteger(max) &&
-    max < min
-  ) {
-    out.push({
-      locus,
-      detail: `${describe(locus)} cardinality.max (${String(max)}) is less than min (${String(min)}).`,
-    });
+  // A conflict is derived only from two bounds that each passed their own
+  // check: one that failed has already been reported, and its number is never
+  // shown. The numbers are shown only when both are small enough to be counts.
+  if (isCardinalityBound(min) && isCardinalityBound(max) && max < min) {
+    const detail =
+      isShownNumber(min) && isShownNumber(max)
+        ? `${describe(locus)} cardinality.max (${String(max)}) is less than min (${String(min)}).`
+        : `${describe(locus)} cardinality.max is less than min.`;
+    out.push({ locus, detail });
   }
 }
 
@@ -122,8 +125,8 @@ function describe(locus: FindingLocus): string {
   /* v8 ignore next -- every caller passes a segment or field locus whose name has passed SEGMENT_NAME_RE, which the sentinel cannot match */
   if (locus.segment === "(profile)") return "profile";
   let s = `segment "${locus.segment}"`;
-  if (locus.field !== undefined) s += ` field ${String(locus.field)}`;
-  if (locus.component !== undefined) s += ` component ${String(locus.component)}`;
+  if (locus.field !== undefined) s += ` field ${showNumber(locus.field)}`;
+  if (locus.component !== undefined) s += ` component ${showNumber(locus.component)}`;
   return s;
 }
 
@@ -207,7 +210,7 @@ function checkUsageCardinalityCoherence(
     out.push({
       locus,
       detail:
-        `${where} declares a usage other than R with cardinality.min ${String(min)}. ` +
+        `${where} declares a usage other than R with cardinality.min ${showNumber(min)}. ` +
         `A usage other than R takes a minimum cardinality of 0. The one exception is RE, which may carry a minimum greater than 0 to say that the element is not always present but has that many occurrences when it is.`,
     });
   }
@@ -216,7 +219,7 @@ function checkUsageCardinalityCoherence(
     out.push({
       locus,
       detail:
-        `${where} declares usage X with cardinality.max ${String(max)}. ` +
+        `${where} declares usage X with cardinality.max ${max === "*" ? "*" : showNumber(max)}. ` +
         `A not-supported element admits the cardinality [0..0] and no other, so its maximum must be 0 or left undeclared.`,
     });
   }
@@ -392,7 +395,7 @@ function checkComponentRules(
       out.push({
         locus: compLocus,
         detail:
-          `${at} declares component ${String(index)}, which an earlier component rule on this field already declares. ` +
+          `${at} declares component ${showNumber(index)}, which an earlier component rule on this field already declares. ` +
           `Declare each component once: two rules at one component are two answers to one question.`,
       });
     }

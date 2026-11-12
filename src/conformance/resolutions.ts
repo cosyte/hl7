@@ -90,6 +90,7 @@
 
 import type { ProfileDefect } from "./profile-shape.js";
 import type { FindingLocus, UsageResolution } from "./types.js";
+import { showNumber } from "./shown-number.js";
 import { describeValueType, isRecord, parseUsageToken } from "./usage.js";
 
 /** A resolution the shape check accepted, with the locus it targets. @internal */
@@ -248,11 +249,11 @@ function memberDefect(member: unknown, index: number): string | undefined {
   return undefined;
 }
 
-/** Compact locus label for a resolution defect detail. @internal */
+/** Compact locus label for a resolution defect detail; a field index above 9999 is not shown. @internal */
 function describeTarget(locus: FindingLocus): string {
   return locus.field === undefined
     ? `segment "${locus.segment}"`
-    : `segment "${locus.segment}" field ${String(locus.field)}`;
+    : `segment "${locus.segment}" field ${showNumber(locus.field)}`;
 }
 
 /**

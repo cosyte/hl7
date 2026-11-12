@@ -773,8 +773,23 @@ apart by whether the finding's `locus.field` is set, not by separate codes.
   A profile is caller-supplied text, and a diagnostic that echoes it is how a
   value ends up in a log. The only values a message shows are ones already
   checked against a fixed set: a segment name of the form `[A-Z][A-Z0-9]{2}`, a
-  usage the grammar admits, and cardinality numbers that passed their own check.
+  usage the grammar admits, and a number (a field, component or subcomponent
+  index, a cardinality bound or a declared length) that passed its own check and
+  is at most 9999. A larger number could as well be a date of birth or a record
+  number, so the message names its position and shows
+  `(a number above 9999)` in its place, as in
+  `segment "PID" field (a number above 9999) usage is not a usage code ...`. A
+  bounds conflict (`cardinality.max (1) is less than min (2).`) is reported only
+  when both bounds passed their own check, and without the numbers when either
+  is above 9999. The same rule holds for every finding that shows a profile
+  number, so `PID-(a number above 9999)` and
+  `outside the declared cardinality (min (a number above 9999))` are what a
+  well-formed profile with such numbers produces.
   `defineConformanceProfile` throws the same text in its `ProfileDefinitionError`.
+  The one caller-chosen text handed back is the profile's name, as
+  `result.profileName` and `ProfileDefinitionError.profileName`: it is an
+  identifier you chose and get back in your own hands to tell results apart, not
+  part of a diagnostic, and no message or detail text contains it.
 
 Length and value-set checks read the value at the rule's `component` (default
 `1`, a coded element's code), applied per present repetition. `cardinality.min`

@@ -282,20 +282,82 @@ const MESSAGE_VALUES: readonly string[] = [
 ];
 
 /**
- * A mark no fixed diagnostic text contains. Every free-text profile value the
- * marked arbitraries draw starts with it, so a finding that contains it has
- * echoed a profile value.
+ * The marks every free-text profile value the marked arbitraries draw starts
+ * and ends with. Each mark is three runic letters, far outside ASCII: no fixed
+ * diagnostic text, no message in the pool and no string `fc.string()` draws
+ * holds any of them, so a single one of those characters in a finding is an
+ * echo. That catches an echo cut short to three characters, an echo with its
+ * start dropped and one with its end dropped, and none can happen by chance.
  */
-const PROFILE_MARK = "QPV~";
+const PROFILE_MARK_START = String.fromCodePoint(0x16a0, 0x16a1, 0x16a2);
+const PROFILE_MARK_END = String.fromCodePoint(0x16a3, 0x16a4, 0x16a5);
+const PROFILE_MARK_CHARS: readonly string[] = [...(PROFILE_MARK_START + PROFILE_MARK_END)];
 
 /**
- * Free text in a profile position: any string, marked, and never containing a
- * message value, so a profile value and a message value are always told apart.
+ * Free text in a profile position: any string, marked at both ends, and never
+ * containing a message value, so a profile value and a message value are
+ * always told apart.
  */
 const profileText = fc
   .string()
-  .map((s) => `${PROFILE_MARK}${s}`)
+  .map((s) => `${PROFILE_MARK_START}${s}${PROFILE_MARK_END}`)
   .filter((s) => MESSAGE_VALUES.every((v) => !s.includes(v)));
+
+/**
+ * The message pool's own numbers. A profile number drawn from these and then
+ * shown would read as the message's date of birth, so the check on message
+ * values catches it.
+ */
+const MESSAGE_NUMBERS: readonly number[] = MESSAGE_VALUES.filter((v) => /^\d+$/u.test(v)).map(
+  Number,
+);
+
+/**
+ * A number in a profile position: a small count, one of the message's own
+ * numbers, any integer above the largest shown number, or any integer at all.
+ */
+const profileNumber = fc.oneof(
+  fc.nat({ max: 4 }),
+  fc.constantFrom(...MESSAGE_NUMBERS),
+  fc.integer({ min: 10000 }),
+  fc.integer(),
+);
+
+/** An index in a profile position: mostly a real index, often a number that may not be shown. */
+const profileIndex = fc.oneof(fc.integer({ min: 1, max: 20 }), profileNumber);
+
+/** A cardinality whose bounds are profile numbers, valid shapes and garbage alike. */
+const profileCardinality = fc.oneof(
+  fc.record({ min: profileNumber, max: profileNumber }),
+  fc.record({ min: profileNumber, max: fc.constant("*") }),
+  fc.record({ min: profileNumber }),
+  fc.record({ max: profileNumber }),
+  fc.record({
+    min: fc.oneof(profileNumber, profileText),
+    max: fc.oneof(profileNumber, profileText),
+  }),
+);
+
+/**
+ * A digit run of five or more not inside an identifier: a number above 9999
+ * shown in a finding. Identifiers such as the coding system `HL70001` start
+ * with a letter, so they do not match.
+ */
+const SHOWN_BIG_NUMBER = /(?<![A-Za-z0-9])\d{5,}/u;
+
+/** Every string a value holds, at any depth: a finding's code, message and every string in its locus. */
+const stringsIn = (value: unknown): string[] => {
+  if (typeof value === "string") return [value];
+  if (typeof value === "object" && value !== null) return Object.values(value).flatMap(stringsIn);
+  return [];
+};
+
+/** A diagnostic string shows no profile value, no message value and no number above 9999. */
+const expectNothingEchoed = (text: string): void => {
+  for (const ch of PROFILE_MARK_CHARS) expect(text).not.toContain(ch);
+  for (const value of MESSAGE_VALUES) expect(text).not.toContain(value);
+  expect(text).not.toMatch(SHOWN_BIG_NUMBER);
+};
 
 /** A condition whose every free-text position is marked profile text. */
 const markedConditionArb = fc.record(
@@ -303,7 +365,8 @@ const markedConditionArb = fc.record(
     location: fc.record(
       {
         segment: fc.oneof(VALID_SEGMENT, profileText),
-        field: fc.oneof(fc.integer({ min: 1, max: 20 }), fc.integer(), profileText),
+        field: fc.oneof(profileIndex, profileText),
+        component: profileIndex,
       },
       { requiredKeys: [] },
     ),
@@ -326,12 +389,14 @@ const markedWellFormedProfileArb = fc.record({
       {
         segment: VALID_SEGMENT,
         usage: VALID_USAGE,
+        cardinality: profileCardinality,
         fields: fc.array(
           fc.record(
             {
-              field: fc.integer({ min: 1, max: 12 }),
+              field: fc.oneof(fc.integer({ min: 1, max: 12 }), profileNumber),
               usage: VALID_USAGE,
-              length: fc.nat({ max: 10 }),
+              cardinality: profileCardinality,
+              length: fc.oneof(fc.nat({ max: 10 }), profileNumber),
               valueSet: fc.array(profileText, { minLength: 1, maxLength: 3 }),
             },
             { requiredKeys: ["field"] },
@@ -357,21 +422,25 @@ const markedMalformedProfileArb = fc.record(
             segment: fc.oneof(VALID_SEGMENT, profileText),
             usage: fc.oneof(WIDE_USAGE, profileText),
             condition: markedConditionArb,
-            cardinality: cardinalityArb,
+            cardinality: profileCardinality,
             severity: fc.oneof(fc.constantFrom("error", "warning", "info"), profileText),
             fields: fc.array(
               fc.record(
                 {
-                  field: fc.oneof(fc.integer({ min: 1, max: 20 }), profileText),
+                  field: fc.oneof(profileIndex, profileText),
                   usage: fc.oneof(WIDE_USAGE, profileText),
-                  cardinality: cardinalityArb,
-                  length: fc.nat({ max: 10 }),
+                  cardinality: profileCardinality,
+                  length: fc.oneof(fc.nat({ max: 10 }), profileNumber),
                   valueSet: fc.array(profileText, { maxLength: 3 }),
                   codingSystem: fc.oneof(fc.constantFrom("HL70001", "LN"), profileText),
                   components: fc.array(
                     fc.record(
                       {
-                        component: fc.oneof(fc.integer({ min: 1, max: 4 }), profileText),
+                        component: fc.oneof(
+                          fc.integer({ min: 1, max: 4 }),
+                          profileNumber,
+                          profileText,
+                        ),
                         usage: fc.oneof(WIDE_USAGE, profileText),
                       },
                       { requiredKeys: ["component"] },
@@ -406,7 +475,7 @@ const markedResolutionArgArb = fc.oneof(
       fc.record(
         {
           segment: fc.oneof(VALID_SEGMENT, profileText),
-          field: fc.oneof(fc.integer({ min: 1, max: 20 }), profileText),
+          field: fc.oneof(profileIndex, profileText),
           outcome: fc.oneof(fc.boolean(), profileText),
         },
         { requiredKeys: [] },
@@ -494,9 +563,13 @@ describe("property: the wider vocabulary and caller-supplied resolutions", () =>
 
   it("every finding stays well-formed, echoes no profile value and no message value", () => {
     // Every free-text value in the profile and the resolution argument carries
-    // PROFILE_MARK and none contains a MESSAGE_VALUES entry, so the two are
-    // told apart: a hit on the mark is a profile value echoed, a hit on a
-    // message value is the message leaking, and neither can pass for the other.
+    // the marks at both ends and none contains a MESSAGE_VALUES entry, so the
+    // two are told apart: a hit on a mark character is a profile value echoed,
+    // a hit on a message value is the message leaking (or a profile number
+    // drawn from the message's own numbers being shown), and neither can pass
+    // for the other. A digit run of five or more is a profile number above
+    // 9999 being shown. Every string the finding holds is checked, its locus
+    // included.
     checkProperty(
       fc.property(
         fc.nat({ max: MESSAGE_POOL.length - 1 }),
@@ -509,9 +582,7 @@ describe("property: the wider vocabulary and caller-supplied resolutions", () =>
             expect(["error", "warning", "info"]).toContain(f.severity);
             expect(typeof f.locus.segment).toBe("string");
             expect(f.message.length).toBeGreaterThan(0);
-            expect(f.message).not.toContain(PROFILE_MARK);
-            expect(f.locus.segment).not.toContain(PROFILE_MARK);
-            for (const value of MESSAGE_VALUES) expect(f.message).not.toContain(value);
+            for (const text of stringsIn(f)) expectNothingEchoed(text);
           }
         },
       ),
@@ -526,7 +597,7 @@ describe("property: the wider vocabulary and caller-supplied resolutions", () =>
           defineConformanceProfile(profile);
         } catch (err) {
           expect(err).toBeInstanceOf(ProfileDefinitionError);
-          expect((err as ProfileDefinitionError).message).not.toContain(PROFILE_MARK);
+          expectNothingEchoed((err as ProfileDefinitionError).message);
         }
       }),
       RUN_CONFIG,
