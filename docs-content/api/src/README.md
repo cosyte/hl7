@@ -2475,7 +2475,7 @@ const ack = buildAck(inbound, {
 > `readonly` `optional` **conditionCode?**: `string`
 
 HL7 Table 0357 message error condition code (ERR-3.1). Defaults to `"207"`
-(Application internal error). The standard display text is looked up from
+(Application error). The standard display text is looked up from
 Table 0357 and emitted in ERR-3.2; unknown codes emit with empty text
 (the code is preserved verbatim: never dropped).
 
@@ -16529,9 +16529,12 @@ HL7 Table 0357: Message error condition codes (ERR-3.1 → ERR-3.2 text).
 Frozen read-only map of `code → standard display text`. The code system
 name emitted in ERR-3.3 is [ERR\_CONDITION\_CODE\_SYSTEM](#err_condition_code_system).
 
-Codes `104` (value too long) and `105` (table value not found) are v2.7+
-additions; the rest are present from v2.5. `buildAck` emits whatever code it
-is told (it never invents a condition) and looks up the display text here.
+It carries the sixteen codes of HL7 Terminology 7.5.0 with its display text,
+plus `105` ("Table value not found"), which that publication does not list:
+it stays so that a caller who already sends it still gets text in ERR-3.2.
+The source does not record which version added each code. `buildAck` emits
+whatever code it is told (it never invents a condition) and looks up the
+display text here.
 
 #### Example
 

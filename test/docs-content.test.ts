@@ -38,12 +38,15 @@ import { compileErrors, fences, fixturesByContent, messageLiteral } from "./_hel
 const root = join(import.meta.dirname, "..");
 const distEntry = join(root, "dist", "index.mjs");
 const distArbitraries = join(root, "dist", "arbitraries.mjs");
+const distTables = join(root, "dist", "tables.mjs");
 const resolve = (specifier: string): string | undefined =>
   specifier === "@cosyte/hl7"
     ? distEntry
     : specifier === "@cosyte/hl7/arbitraries"
       ? distArbitraries
-      : undefined;
+      : specifier === "@cosyte/hl7/tables"
+        ? distTables
+        : undefined;
 
 beforeAll(() => {
   execFileSync("pnpm", ["build"], { cwd: root, stdio: "inherit" });

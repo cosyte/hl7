@@ -1,0 +1,9 @@
+{
+  "package-id" : "hl7.terminology",
+  "version" : "7.5.0",
+  "path" : "http://terminology.hl7.org/7.5.0",
+  "mode" : "milestone",
+  "status" : "release",
+  "sequence" : "Publications",
+  "desc" : "Twenty-sixth publication of HL7 Terminology.  11 UTG approved tickets applied."
+}

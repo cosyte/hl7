@@ -1,7 +1,7 @@
 # Third-party material
 
-`@cosyte/hl7` is ours, under the MIT licence in `LICENSE`. Two registries it ships are built from
-material we did not write. This file records where that material came from, as plainly as we can
+`@cosyte/hl7` is ours, under the MIT licence in `LICENSE`. Two registries and the eight code
+tables of the `@cosyte/hl7/tables` entry point are built from material we did not write. This file records where that material came from, as plainly as we can
 state it. It records facts about the sources and draws no conclusion about their terms.
 
 ## HL7 v2+ publication (`HL7/v2ig`)
@@ -23,6 +23,23 @@ against one more file from the same repository, kept under `vendor/segment-names
 
 `vendor/hl7-v2ig/snapshot.json` in the source repository lists every copied file with its byte
 count, sha256 and upstream URL.
+
+## HL7 Terminology 7.5.0 (`HL7/UTG`)
+
+The eight HL7 v2 code tables of the `@cosyte/hl7/tables` entry point (0003, 0008, 0076, 0103,
+0104, 0155, 0211 and 0357) are generated from HL7 Terminology 7.5.0, kept byte for byte in the
+source repository under `vendor/hl7-terminology/`.
+
+| Fact          | Value                                                                                                                                                                            |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Publication   | HL7 Terminology (`hl7.terminology`) 7.5.0, [terminology.hl7.org/7.5.0](https://terminology.hl7.org/7.5.0/)                                                                       |
+| Repository    | [HL7/UTG](https://github.com/HL7/UTG) at commit `828b7136548bc82559a4fff34bc4a47f62197ed5` (2026-10-26), taken 2026-11-12                                                        |
+| Licence       | Each code system's copyright statement says it "is made available under the CC0 designation".                                                                                    |
+| What we alter | Each table keeps only its codes, display text, status and deprecation version; the per-version lists are rebuilt from those; a long dash in display text is written as a hyphen. |
+
+The tables are derived from HL7 Terminology and altered as above. They are not HL7 Terminology
+itself, and HL7 does not endorse this package. `vendor/hl7-terminology/snapshot.json` in the source
+repository lists every copied file with its byte count, sha256 and upstream URL.
 
 ## hl7apy (`crs4/hl7apy`)
 

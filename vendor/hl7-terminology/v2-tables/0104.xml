@@ -1,0 +1,61 @@
+  <concept>
+    <code value="0104"/>
+    <display value="Version ID"/>
+    <definition value="HL7-defined table of codes which are used to identify an HL7 version in the Version 2.x family of published standards."/>
+    <property>
+      <code value="v2-table-oid"/>
+      <valueString value="2.16.840.1.113883.12.104"/>
+    </property>
+    <property>
+      <code value="v2-cs-oid"/>
+      <valueString value="2.16.840.1.113883.18.41"/>
+    </property>
+    <property>
+      <code value="v2-cs-uri"/>
+      <valueCode value="http://terminology.hl7.org/CodeSystem/v2-0104"/>
+    </property>
+    <property>
+      <code value="v2-vs-oid"/>
+      <valueString value="2.16.840.1.113883.21.45"/>
+    </property>
+    <property>
+      <code value="v2-vs-uri"/>
+      <valueCode value="http://terminology.hl7.org/ValueSet/v2-0104"/>
+    </property>
+    <property>
+      <code value="v2-cld"/>
+      <valueString value="1"/>
+    </property>
+    <property>
+      <code value="v2-table-type"/>
+      <valueCode value="HL7"/>
+    </property>
+    <property>
+      <code value="v2-cs-version"/>
+      <valueInteger value="10"/>
+    </property>
+    <property>
+      <code value="steward"/>
+      <valueCode value="inm"/>
+    </property>
+    <property>
+      <code value="v2-where-used"/>
+      <valueString value="VID.1"/>
+    </property>
+    <property>
+      <code value="v2-binding"/>
+      <valueString value="3"/>
+    </property>
+    <property>
+      <code value="v2-version-tbl-introduced"/>
+      <valueString value="2.1"/>
+    </property>
+    <property>
+      <code value="v2-version-csvs-introduced"/>
+      <valueString value="2.9"/>
+    </property>
+    <property>
+      <code value="vocab-domain"/>
+      <valueString value="VersionId"/>
+    </property>
+  </concept>

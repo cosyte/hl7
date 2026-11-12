@@ -4,12 +4,14 @@
  * single owner of this vocabulary; siblings (notably `@cosyte/mllp`) consume
  * `buildAck` rather than re-declaring these codes.
  *
- * Provenance (re-verify before editing: HL7 tables move):
- * - **Table 0008** Acknowledgment code: https://terminology.hl7.org/CodeSystem-v2-0008.html
- * - **Table 0357** Message error condition codes: https://terminology.hl7.org/CodeSystem-v2-0357.html
- * - **Table 0516** Error severity: HL7 v2 Chapter 2 §2.14.5 (ERR-4)
- * - **Table 0155** Accept/application acknowledgment conditions (MSH-15/16),
- *   HL7 v2 Chapter 2 §2.14.9.15 to 16
+ * Provenance: HL7 Terminology 7.5.0, published under the CC0 designation. The
+ * `@cosyte/hl7/tables` entry point ships the same tables from a vendored copy of
+ * that publication, and a test holds these maps to it.
+ * - **Table 0008** Acknowledgment code: https://terminology.hl7.org/7.5.0/en/CodeSystem-v2-0008.html
+ * - **Table 0357** Message error condition codes: https://terminology.hl7.org/7.5.0/en/CodeSystem-v2-0357.html
+ * - **Table 0516** Error severity: https://terminology.hl7.org/7.5.0/en/CodeSystem-v2-0516.html
+ * - **Table 0155** Accept/application acknowledgment conditions (MSH-15/16):
+ *   https://terminology.hl7.org/7.5.0/en/CodeSystem-v2-0155.html
  *
  * Zero runtime deps.
  */
@@ -153,9 +155,12 @@ export type ErrSeverity = (typeof ERR_SEVERITIES)[keyof typeof ERR_SEVERITIES];
  * Frozen read-only map of `code → standard display text`. The code system
  * name emitted in ERR-3.3 is {@link ERR_CONDITION_CODE_SYSTEM}.
  *
- * Codes `104` (value too long) and `105` (table value not found) are v2.7+
- * additions; the rest are present from v2.5. `buildAck` emits whatever code it
- * is told (it never invents a condition) and looks up the display text here.
+ * It carries the sixteen codes of HL7 Terminology 7.5.0 with its display text,
+ * plus `105` ("Table value not found"), which that publication does not list:
+ * it stays so that a caller who already sends it still gets text in ERR-3.2.
+ * The source does not record which version added each code. `buildAck` emits
+ * whatever code it is told (it never invents a condition) and looks up the
+ * display text here.
  *
  * @example
  * ```ts
@@ -163,6 +168,7 @@ export type ErrSeverity = (typeof ERR_SEVERITIES)[keyof typeof ERR_SEVERITIES];
  * ERR_CONDITION_CODES["101"]; // "Required field missing"
  * ```
  */
+// Stryker disable all: a module constant, evaluated once when the test runner loads the module, so a mutant of it is never live; a test pins every entry to table 0357
 export const ERR_CONDITION_CODES: Readonly<Record<string, string>> = Object.freeze({
   "0": "Message accepted",
   "100": "Segment sequence error",
@@ -171,6 +177,8 @@ export const ERR_CONDITION_CODES: Readonly<Record<string, string>> = Object.free
   "103": "Table value not found",
   "104": "Value too long",
   "105": "Table value not found",
+  "198": "Non-Conformant Cardinality",
+  "199": "Other HL7 Error",
   "200": "Unsupported message type",
   "201": "Unsupported event code",
   "202": "Unsupported processing id",
@@ -178,8 +186,9 @@ export const ERR_CONDITION_CODES: Readonly<Record<string, string>> = Object.free
   "204": "Unknown key identifier",
   "205": "Duplicate key identifier",
   "206": "Application record locked",
-  "207": "Application internal error",
+  "207": "Application error",
 });
+// Stryker restore all
 
 /** Code-system name emitted in ERR-3.3 for Table 0357 condition codes. */
 export const ERR_CONDITION_CODE_SYSTEM = "HL70357";

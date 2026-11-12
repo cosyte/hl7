@@ -1,0 +1,168 @@
+{
+  "publication": {
+    "name": "HL7 Terminology",
+    "packageId": "hl7.terminology",
+    "version": "7.5.0",
+    "url": "https://terminology.hl7.org/7.5.0/",
+    "pagesUrl": "https://terminology.hl7.org/7.5.0/en/",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://terminology.hl7.org/license.html",
+    "repository": "HL7/UTG",
+    "repositoryUrl": "https://github.com/HL7/UTG",
+    "commit": "828b7136548bc82559a4fff34bc4a47f62197ed5",
+    "commitDate": "2026-10-26T16:00:57Z"
+  },
+  "snapshotTakenAt": "2026-11-12",
+  "tableList": {
+    "path": "input/sourceOfTruth/v2/v2-tables.xml",
+    "bytes": 1071619,
+    "sha256": "1b03466a2fb1d7d5940640e9f5154e042c38301224d4a479e97d6bbdcf706038",
+    "url": "https://raw.githubusercontent.com/HL7/UTG/828b7136548bc82559a4fff34bc4a47f62197ed5/input/sourceOfTruth/v2/v2-tables.xml"
+  },
+  "files": [
+    {
+      "path": "publication-request.json",
+      "bytes": 280,
+      "sha256": "0d77c887d89ebf4a024d7531df287128967e4c33a31525e09239743c4e5ba828",
+      "url": "https://raw.githubusercontent.com/HL7/UTG/828b7136548bc82559a4fff34bc4a47f62197ed5/publication-request.json"
+    },
+    {
+      "path": "code-systems/cs-v2-0003.xml",
+      "bytes": 181796,
+      "sha256": "29f76619d62273f83b6322eb5da3aab7cfe0149c79814d8b7b64fbdb6a8e228a",
+      "url": "https://raw.githubusercontent.com/HL7/UTG/828b7136548bc82559a4fff34bc4a47f62197ed5/input/sourceOfTruth/v2/codeSystems/cs-v2-0003.xml"
+    },
+    {
+      "path": "code-systems/cs-v2-0008.xml",
+      "bytes": 5856,
+      "sha256": "d7618e24758cae108fb5c80736263a77bd7a310aa951ce707ff40b315b0a862e",
+      "url": "https://raw.githubusercontent.com/HL7/UTG/828b7136548bc82559a4fff34bc4a47f62197ed5/input/sourceOfTruth/v2/codeSystems/cs-v2-0008.xml"
+    },
+    {
+      "path": "code-systems/cs-v2-0076.xml",
+      "bytes": 88638,
+      "sha256": "2490eac1a1450ce2fcf981d840b3a6540837ab217f71770a02f01fcf29cee1f9",
+      "url": "https://raw.githubusercontent.com/HL7/UTG/828b7136548bc82559a4fff34bc4a47f62197ed5/input/sourceOfTruth/v2/codeSystems/cs-v2-0076.xml"
+    },
+    {
+      "path": "code-systems/cs-v2-0103.xml",
+      "bytes": 4699,
+      "sha256": "411e2f4df377e7be7a1dbc4a76c5cbb29c3df61b064e8e8d4bf3d42ba0090e62",
+      "url": "https://raw.githubusercontent.com/HL7/UTG/828b7136548bc82559a4fff34bc4a47f62197ed5/input/sourceOfTruth/v2/codeSystems/cs-v2-0103.xml"
+    },
+    {
+      "path": "code-systems/cs-v2-0104.xml",
+      "bytes": 11252,
+      "sha256": "316b21a92f4bf191cb05b3a32ae0116b91e81eb12e9a7c4a78fb4e2415b77ea7",
+      "url": "https://raw.githubusercontent.com/HL7/UTG/828b7136548bc82559a4fff34bc4a47f62197ed5/input/sourceOfTruth/v2/codeSystems/cs-v2-0104.xml"
+    },
+    {
+      "path": "code-systems/cs-v2-0155.xml",
+      "bytes": 4302,
+      "sha256": "378817d87de8a96dc8280e2b770e09e5f7db01f7deefc544c6561ec0cf1ece50",
+      "url": "https://raw.githubusercontent.com/HL7/UTG/828b7136548bc82559a4fff34bc4a47f62197ed5/input/sourceOfTruth/v2/codeSystems/cs-v2-0155.xml"
+    },
+    {
+      "path": "code-systems/cs-v2-0211.xml",
+      "bytes": 18887,
+      "sha256": "eac6f4abc63ddb73e35e33557ea39bc3743e0ce0a8f58b4820eefb81c38496c6",
+      "url": "https://raw.githubusercontent.com/HL7/UTG/828b7136548bc82559a4fff34bc4a47f62197ed5/input/sourceOfTruth/v2/codeSystems/cs-v2-0211.xml"
+    },
+    {
+      "path": "code-systems/cs-v2-0357.xml",
+      "bytes": 16643,
+      "sha256": "3312e2e23157aaa344cca98f5639f21a4fbce021cdd5c3f49a09c3fb48e45af6",
+      "url": "https://raw.githubusercontent.com/HL7/UTG/828b7136548bc82559a4fff34bc4a47f62197ed5/input/sourceOfTruth/v2/codeSystems/cs-v2-0357.xml"
+    },
+    {
+      "path": "v2-tables/header.xml",
+      "bytes": 4653,
+      "sha256": "699f21a215b095cae33baa6f9997e2bdb3649a2dfb5e6b3d57e8698be353115c",
+      "url": "https://raw.githubusercontent.com/HL7/UTG/828b7136548bc82559a4fff34bc4a47f62197ed5/input/sourceOfTruth/v2/v2-tables.xml",
+      "cutFrom": {
+        "start": 0,
+        "end": 4653
+      }
+    },
+    {
+      "path": "v2-tables/0003.xml",
+      "bytes": 1730,
+      "sha256": "308d96d100697fd2e275b3ca9e2d3f9ad077f1201f62e511787847b1f92852d5",
+      "url": "https://raw.githubusercontent.com/HL7/UTG/828b7136548bc82559a4fff34bc4a47f62197ed5/input/sourceOfTruth/v2/v2-tables.xml",
+      "cutFrom": {
+        "start": 8072,
+        "end": 9802
+      }
+    },
+    {
+      "path": "v2-tables/0008.xml",
+      "bytes": 1825,
+      "sha256": "88abe248579449394bc04cfd2f8f00d54b4f6858266441828d3b380a36867d75",
+      "url": "https://raw.githubusercontent.com/HL7/UTG/828b7136548bc82559a4fff34bc4a47f62197ed5/input/sourceOfTruth/v2/v2-tables.xml",
+      "cutFrom": {
+        "start": 16827,
+        "end": 18652
+      }
+    },
+    {
+      "path": "v2-tables/0076.xml",
+      "bytes": 1701,
+      "sha256": "8c655b8789019c74e03a738e6590c87410b06243338a571db6c1d82c2ae71bee",
+      "url": "https://raw.githubusercontent.com/HL7/UTG/828b7136548bc82559a4fff34bc4a47f62197ed5/input/sourceOfTruth/v2/v2-tables.xml",
+      "cutFrom": {
+        "start": 91923,
+        "end": 93624
+      }
+    },
+    {
+      "path": "v2-tables/0103.xml",
+      "bytes": 1761,
+      "sha256": "fcf4ef5b41508459858920f2f1f71189cb41b5c60e8b2c943c85d4cea69bc6b2",
+      "url": "https://raw.githubusercontent.com/HL7/UTG/828b7136548bc82559a4fff34bc4a47f62197ed5/input/sourceOfTruth/v2/v2-tables.xml",
+      "cutFrom": {
+        "start": 127662,
+        "end": 129423
+      }
+    },
+    {
+      "path": "v2-tables/0104.xml",
+      "bytes": 1759,
+      "sha256": "aef4b3ebc54cd13f6b1421cfafe639378ea52216a281f65b22c3d7d2ca99b408",
+      "url": "https://raw.githubusercontent.com/HL7/UTG/828b7136548bc82559a4fff34bc4a47f62197ed5/input/sourceOfTruth/v2/v2-tables.xml",
+      "cutFrom": {
+        "start": 129423,
+        "end": 131182
+      }
+    },
+    {
+      "path": "v2-tables/0155.xml",
+      "bytes": 1887,
+      "sha256": "2d23d478d50a11f281477ef048800096434f556b27c3d14feac2d5010866cfa9",
+      "url": "https://raw.githubusercontent.com/HL7/UTG/828b7136548bc82559a4fff34bc4a47f62197ed5/input/sourceOfTruth/v2/v2-tables.xml",
+      "cutFrom": {
+        "start": 208825,
+        "end": 210712
+      }
+    },
+    {
+      "path": "v2-tables/0211.xml",
+      "bytes": 1811,
+      "sha256": "cfbd51f64c46c513db3716884d81be1fbcd400c28d2fe9df67fc4a954a66437d",
+      "url": "https://raw.githubusercontent.com/HL7/UTG/828b7136548bc82559a4fff34bc4a47f62197ed5/input/sourceOfTruth/v2/v2-tables.xml",
+      "cutFrom": {
+        "start": 295302,
+        "end": 297113
+      }
+    },
+    {
+      "path": "v2-tables/0357.xml",
+      "bytes": 1755,
+      "sha256": "c7daa9a6601859052377d356f036a7c9c8b7dd7b24c469e43f45fc753b0fdbbe",
+      "url": "https://raw.githubusercontent.com/HL7/UTG/828b7136548bc82559a4fff34bc4a47f62197ed5/input/sourceOfTruth/v2/v2-tables.xml",
+      "cutFrom": {
+        "start": 533278,
+        "end": 535033
+      }
+    }
+  ]
+}

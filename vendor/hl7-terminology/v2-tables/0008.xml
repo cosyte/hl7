@@ -1,0 +1,61 @@
+  <concept>
+    <code value="0008"/>
+    <display value="Acknowledgment code"/>
+    <definition value="HL7-defined table of codes specifying acknowledgment codes used in Version 2.x message.  For details of usage, see message processing rules in the published Standard."/>
+    <property>
+      <code value="v2-table-oid"/>
+      <valueString value="2.16.840.1.113883.12.8"/>
+    </property>
+    <property>
+      <code value="v2-cs-oid"/>
+      <valueString value="2.16.840.1.113883.18.10"/>
+    </property>
+    <property>
+      <code value="v2-cs-uri"/>
+      <valueCode value="http://terminology.hl7.org/CodeSystem/v2-0008"/>
+    </property>
+    <property>
+      <code value="v2-vs-oid"/>
+      <valueString value="2.16.840.1.113883.21.11"/>
+    </property>
+    <property>
+      <code value="v2-vs-uri"/>
+      <valueCode value="http://terminology.hl7.org/ValueSet/v2-0008"/>
+    </property>
+    <property>
+      <code value="v2-cld"/>
+      <valueString value="1"/>
+    </property>
+    <property>
+      <code value="v2-table-type"/>
+      <valueCode value="HL7"/>
+    </property>
+    <property>
+      <code value="v2-cs-version"/>
+      <valueInteger value="10"/>
+    </property>
+    <property>
+      <code value="steward"/>
+      <valueCode value="inm"/>
+    </property>
+    <property>
+      <code value="v2-where-used"/>
+      <valueString value="MSA-1.1"/>
+    </property>
+    <property>
+      <code value="v2-binding"/>
+      <valueString value="3"/>
+    </property>
+    <property>
+      <code value="v2-version-tbl-introduced"/>
+      <valueString value="2.1"/>
+    </property>
+    <property>
+      <code value="v2-version-csvs-introduced"/>
+      <valueString value="2.9"/>
+    </property>
+    <property>
+      <code value="vocab-domain"/>
+      <valueString value="AcknowledgmentCode"/>
+    </property>
+  </concept>

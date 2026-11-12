@@ -35,6 +35,7 @@ const config = cosyteVitest({
     "conformance",
     "structure",
     "arbitraries",
+    "tables",
   ],
   test: {
     // Vitest's default would also collect the starter kit's tests under `examples/`, which run
