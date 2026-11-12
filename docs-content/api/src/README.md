@@ -12552,8 +12552,9 @@ Options for `toHl7Xml`.
 ```ts
 import type { ToHl7XmlOptions } from "@cosyte/hl7";
 const options: ToHl7XmlOptions = {
-  dataTypes: { "PID.5": "XPN", "XPN.1": "FN" },
+  dataTypes: { "PID.5": "XPN", "XPN.1": "FN", "NTE.3": "FT" },
   namespace: null,
+  groups: "none",
 };
 ```
 
@@ -12563,15 +12564,27 @@ const options: ToHl7XmlOptions = {
 
 > `readonly` `optional` **dataTypes?**: `Readonly`\<`Record`\<`string`, `string`\>\> \| ((`key`) => `string` \| `undefined`)
 
-The data type of each composite the message carries, which names its child elements: a
-field key (`PID.5`) to its type (`XPN`), whose components are written `XPN.1`, `XPN.2`, and
-a component key (`XPN.1`) to its type (`FN`), whose subcomponents are written `FN.1`, `FN.2`.
-A map or a function from key to type. `xmlDataTypes` reads one from a sample document.
+The data type of each field and component the message carries, which names its child
+elements: a field key (`PID.5`) to its type (`XPN`), whose components are written `XPN.1`,
+`XPN.2`, and a component key (`XPN.1`) to its type (`FN`), whose subcomponents are written
+`FN.1`, `FN.2`. A map or a function from key to type. `xmlDataTypes` reads the composite
+ones from a sample document.
 
-A field or component with a type is written with child elements, even when it holds one
-value. One without a type is written as text when it holds one value, and refused with
-`DATA_TYPE_UNKNOWN` when it holds more, because its child elements cannot be named. List
-composite types only: a primitive type given here would be written as a composite.
+A field or component with a composite type is written with child elements, even when it
+holds one value, as the encoding requires. One with a primitive type (`ST`, `TX`, `FT`, `NM`,
+`ID`, `IS`, `SI`, `DT`, `DTM`, `TM`, `GTS`, `SNM`) or none is written as text when it holds
+one value, and refused with `DATA_TYPE_UNKNOWN` when it holds more, because its child
+elements cannot be named. Only a value typed `TX` or `FT` may carry formatting escapes.
+
+##### groups?
+
+> `readonly` `optional` **groups?**: [`XmlMessageStructure`](#xmlmessagestructure) \| `"none"`
+
+The message structure whose groups the segments are placed in, for a structure
+`XML_GROUP_TABLES` does not cover (a partner's schema gives it), or `"none"` to write every
+segment directly under the root, for a structure with no groups or a receiver that asks for
+none. By default the writer takes the structure from `XML_GROUP_TABLES` for the message's
+version and refuses one it does not cover with `GROUPS_UNKNOWN`.
 
 ##### namespace?
 
@@ -12584,8 +12597,9 @@ networks ask for none).
 
 > `readonly` `optional` **structure?**: `string`
 
-The root element's name, the message structure (`ORU_R01`). Defaults to MSH-9.3, else
-MSH-9.1 and MSH-9.2 joined by `_`, else MSH-9.1.
+The root element's name, the message structure (`ORU_R01`). Defaults to the structure in
+`groups`, else MSH-9.3, else the structure our message structure registry gives MSH-9.1 and
+MSH-9.2 (`ADT^A04` is `ADT_A01`).
 
 ***
 
@@ -14325,6 +14339,35 @@ Caps on the document; see [XmlLimits](#xmllimits).
 
 ***
 
+### XmlGroupDefinition
+
+One segment group: its name without the structure prefix, ending in a cardinality as a segment
+id may (`"ORDER_OBSERVATION+"`), and its items in order. The writer names its element
+`STRUCTURE.GROUP` (`ORU_R01.ORDER_OBSERVATION`).
+
+#### Example
+
+```ts
+import type { XmlGroupDefinition } from "@cosyte/hl7";
+const observation: XmlGroupDefinition = { group: "OBSERVATION*", items: ["OBX", "NTE*"] };
+```
+
+#### Properties
+
+##### group
+
+> `readonly` **group**: `string`
+
+The group's name, uppercase, with an optional cardinality: `OBSERVATION*`.
+
+##### items
+
+> `readonly` **items**: readonly [`XmlStructureItem`](#xmlstructureitem)[]
+
+The group's segments and groups, in order.
+
+***
+
 ### XmlLimits
 
 Caps on what the XML reader accepts. Each is optional and falls back to
@@ -14357,6 +14400,34 @@ The most elements, each empty position a skipped-over element names counted as o
 > `readonly` `optional` **maxInputBytes?**: `number`
 
 The largest document, in UTF-8 bytes.
+
+***
+
+### XmlMessageStructure
+
+A message structure as the v2 XML writer places segments in it: the structure id, which names
+the root element and prefixes every group element, and its segments and groups in order.
+
+#### Example
+
+```ts
+import type { XmlMessageStructure } from "@cosyte/hl7";
+const ack: XmlMessageStructure = { structure: "ACK", items: ["MSH", "SFT*", "MSA", "ERR*"] };
+```
+
+#### Properties
+
+##### items
+
+> `readonly` **items**: readonly [`XmlStructureItem`](#xmlstructureitem)[]
+
+The structure's segments and groups, in order.
+
+##### structure
+
+> `readonly` **structure**: `string`
+
+The message structure id, the root element's name: `ORU_R01`.
 
 ***
 
@@ -16008,6 +16079,23 @@ import type { XmlErrorCode } from "@cosyte/hl7";
 const code: XmlErrorCode = "DTD_NOT_ALLOWED";
 ```
 
+***
+
+### XmlStructureItem
+
+> **XmlStructureItem** = `string` \| [`XmlGroupDefinition`](#xmlgroupdefinition)
+
+One item of a message structure or of a group in it: a segment id (`"PID"`), or a group. A
+segment id may end in a cardinality: `?` for at most once, `*` for any number, `+` for at least
+once, none for exactly once (`"SFT*"`, `"PD1?"`).
+
+#### Example
+
+```ts
+import type { XmlStructureItem } from "@cosyte/hl7";
+const items: XmlStructureItem[] = ["OBX", "NTE*"];
+```
+
 ## Variables
 
 ### ACK\_CODES
@@ -16862,8 +16950,8 @@ USAGE_CODES[0]; // "R"
 
 > `const` **V2\_XML\_NAMESPACE**: `"urn:hl7-org:v2xml"` = `"urn:hl7-org:v2xml"`
 
-The namespace HL7 gives the v2 XML encoding. The reader accepts it or no namespace; the writer
-declares it unless told not to.
+The namespace HL7 gives the v2 XML encoding. The reader accepts it, as the default namespace or
+through a prefix, or no namespace; the writer declares it as the default unless told not to.
 
 #### Example
 
@@ -16999,9 +17087,9 @@ if (msg.warnings.some((w) => w.code === WARNING_CODES.MLLP_FRAMING_STRIPPED)) {
 
 Every code an [Hl7XmlError](#hl7xmlerror) carries. The XML reader and writer refuse with one of these
 rather than guess: a hostile document (a DTD, an entity, too large, too deep, too many
-elements), a document that is not the HL7 v2 XML shape, and the cases whose encoding rule we
-have not confirmed (an `escape` element, the escape character in text, a composite whose data
-type the writer was not told).
+elements), a document that is not the HL7 v2 XML shape, and the cases the published rules
+leave open (the escape character in text, a composite whose data type the writer was not told,
+a message structure whose groups it does not know).
 
 #### Type Declaration
 
@@ -17039,14 +17127,24 @@ The document references an entity other than the five XML predefines.
 
 > `readonly` **ESCAPE\_NOT\_SUPPORTED**: `"ESCAPE_NOT_SUPPORTED"` = `"ESCAPE_NOT_SUPPORTED"`
 
-An `escape` element, the message's escape character in text, or a value whose escape
-sequence the writer cannot express: rules we have not confirmed, so we refuse them.
+The message's escape character in text, for which no published rule exists; an `escape`
+element whose `V` is not a formatting escape, or that holds text or elements; or a value
+whose escape sequence the writer cannot express: a formatting escape in a value whose data
+type is not TX or FT, a hex escape the message's character set cannot decode, or a character
+set or vendor escape.
 
 ##### FORBIDDEN\_CHARACTER
 
 > `readonly` **FORBIDDEN\_CHARACTER**: `"FORBIDDEN_CHARACTER"` = `"FORBIDDEN_CHARACTER"`
 
 The document or a value holds a character XML 1.0 does not allow.
+
+##### GROUPS\_UNKNOWN
+
+> `readonly` **GROUPS\_UNKNOWN**: `"GROUPS_UNKNOWN"` = `"GROUPS_UNKNOWN"`
+
+The writer knows no groups for the message structure in the message's version and was not
+given them in `groups`: `XML_GROUP_TABLES` lists the structures it knows.
 
 ##### INPUT\_TOO\_LARGE
 
@@ -17064,8 +17162,9 @@ The first segment is not an `MSH` that opens with `MSH.1` and `MSH.2`, or they a
 
 > `readonly` **INVALID\_OPTIONS**: `"INVALID_OPTIONS"` = `"INVALID_OPTIONS"`
 
-An option is malformed: a reader limit that is not a number (NaN included), or a writer's
-data type or structure name that is not an XML name, or a data type named for its segment.
+An option is malformed: a reader limit that is not a number (NaN included), a writer's data
+type or structure name that is not an XML name, a data type named for a segment, or a
+`groups` structure that is malformed or names another root than `structure`.
 
 ##### MIXED\_CONTENT
 
@@ -17077,7 +17176,8 @@ An element holds both text and child elements.
 
 > `readonly` **NAMESPACE\_NOT\_SUPPORTED**: `"NAMESPACE_NOT_SUPPORTED"` = `"NAMESPACE_NOT_SUPPORTED"`
 
-An element carries a namespace prefix, or a default namespace other than `urn:hl7-org:v2xml`.
+An element is in a namespace other than `urn:hl7-org:v2xml` or none: a default namespace
+declared as another, or a prefix bound to another or to none.
 
 ##### NOT\_WELL\_FORMED
 
@@ -17091,19 +17191,27 @@ The document is not well-formed XML.
 
 A field, component or subcomponent comes before one it should follow, or repeats where it cannot.
 
+##### STRUCTURE\_MISMATCH
+
+> `readonly` **STRUCTURE\_MISMATCH**: `"STRUCTURE_MISMATCH"` = `"STRUCTURE_MISMATCH"`
+
+The message's segments do not fit the message structure the writer places them in: a
+required segment or group is missing, or a segment has no place in it.
+
 ##### STRUCTURE\_UNKNOWN
 
 > `readonly` **STRUCTURE\_UNKNOWN**: `"STRUCTURE_UNKNOWN"` = `"STRUCTURE_UNKNOWN"`
 
-The writer cannot name the root element: no `structure` option and no MSH-9 to derive it from.
+The writer cannot name the root element: no `structure` option, no MSH-9.3, and no message
+structure our registry maps MSH-9.1 and MSH-9.2 to.
 
 ##### UNEXPECTED\_ELEMENT
 
 > `readonly` **UNEXPECTED\_ELEMENT**: `"UNEXPECTED_ELEMENT"` = `"UNEXPECTED_ELEMENT"`
 
 An element is not a segment, group, field, component or subcomponent where it stands: a
-second MSH, a component named for its segment, or the components of one value named for two
-data types among them.
+second MSH, a component named for a segment rather than a data type, or the components of
+one value named for two data types among them.
 
 #### Example
 
@@ -17116,6 +17224,24 @@ try {
     // refuse the document
   }
 }
+```
+
+***
+
+### XML\_GROUP\_TABLES
+
+> `const` **XML\_GROUP\_TABLES**: `Readonly`\<`Record`\<`string`, `Readonly`\<`Record`\<`string`, [`XmlMessageStructure`](#xmlmessagestructure)\>\>\>\>
+
+The message structures whose groups the v2 XML writer knows, by HL7 version (MSH-12) and then
+by structure id. Each is read from that version's published v2 XML schema. It covers ORU_R01 in
+v2.5 only: we found no public schema for any other version or structure. `toHl7Xml` refuses any
+other structure with `GROUPS_UNKNOWN` unless it is given one in `groups`.
+
+#### Example
+
+```ts
+import { XML_GROUP_TABLES } from "@cosyte/hl7";
+console.log(Object.keys(XML_GROUP_TABLES["2.5"] ?? {})); // ["ORU_R01"]
 ```
 
 ## Functions
@@ -20281,18 +20407,21 @@ escapes and nulls, the same warnings, lazy by default.
 Element names are read by position: `PID.5` is the fifth field of PID, and inside it `XPN.1`
 (or any data type name ending in `.1`) is its first component, so no data type table is needed
 to read. The components of one value must all name the same data type, and none may be named
-for the segment itself (`PID.3` inside `PID.5`). Group elements (`ORU_R01.PATIENT_RESULT`) are
+for a segment (`PID.3` or `OBX.1` inside `PID.5`). Group elements (`ORU_R01.PATIENT_RESULT`) are
 walked through; segments are read in document order. One document is one message: a second
-MSH is refused. Text is the decoded value: a `|` or `^` in text is that character, written to the model
-as the pipe parser would read `\F\` or `\S`. A field whose text is `""` is the explicit null.
+MSH is refused. Text is the decoded value: a `|` or `^` in text is that character, written to
+the model as the pipe parser would read `\F\` or `\S`. A field whose text is `""` is the
+explicit null. An `escape` element is the formatting escape its `V` names: `<escape V="H"/>` is
+`\H\`. Elements may be in the `urn:hl7-org:v2xml` namespace, as the default or through a
+prefix, or in none.
 
 The reader is hardened: it refuses a DTD or entity declaration, any entity beyond the five XML
 predefines, a character XML 1.0 forbids, and a document past the size, depth or element caps
 of `limits` (a limit that is not a number, NaN included, is refused with `INVALID_OPTIONS`;
-`Infinity` lifts a cap). It refuses, rather than guess, the cases whose encoding rule we have not
-confirmed: an `escape` element, and the message's escape character (MSH.2's third character)
-in text. Every refusal is an [Hl7XmlError](#hl7xmlerror) with a code from `XML_ERROR_CODES`; errors
-from reading the pipe form are `parseHL7`'s own.
+`Infinity` lifts a cap). It refuses, rather than guess, what the published rules leave open:
+the message's escape character (MSH.2's third character) in text, and an `escape` element
+whose `V` is not a formatting escape. Every refusal is an [Hl7XmlError](#hl7xmlerror) with a code from
+`XML_ERROR_CODES`; errors from reading the pipe form are `parseHL7`'s own.
 
 #### Parameters
 
@@ -22222,20 +22351,27 @@ toDate(parseDtm("20240230"), { assumeOffsetMinutes: 0 });
 > **toHl7Xml**(`message`, `options?`): `string`
 
 Write a message in the HL7 v2 XML encoding: a root element named for the message structure,
-one element per segment, `SEG.n` for each field (repeated once per repetition), and each
-composite's components and subcomponents named for its data type (`XPN.1`, `FN.1`). MSH.1 and
-MSH.2 carry the message's delimiters; a field that is the explicit null is written `""`. Values
-are written decoded: a `|` in a value is a `|` in the text, a line break is `&#10;`.
+an element for each segment group (`ORU_R01.PATIENT_RESULT`), one element per segment, `SEG.n`
+for each field (repeated once per repetition), and each composite's components and
+subcomponents named for its data type (`XPN.1`, `FN.1`). MSH.1 and MSH.2 carry the message's
+delimiters; a field that is the explicit null is written `""`. Values are written decoded: a
+`|` in a value is a `|` in the text, a line break is `&#10;`.
 
-The data types come from `options.dataTypes`, because the model does not carry them; a
-composite with no type there is refused with `DATA_TYPE_UNKNOWN`. Segments are written in
-order directly under the root: group elements are not written, so a receiver that validates
-against a schema with groups will not accept the document as it stands. A value holding the
-escape character, or carrying a formatting or hex escape sequence, is refused with
-`ESCAPE_NOT_SUPPORTED`, since we have not confirmed how the XML encoding writes those. An empty
-field is left out, except that a segment ending in empty fields gets one empty element at its
-last position (`<PID.3/>`), so it reads back with the same field count. A message holding a
-second MSH is refused, since one document is one message.
+Groups: the segments are placed in the groups of the message structure, taken from
+`XML_GROUP_TABLES` for the message's version or from `options.groups`, and refused with
+`STRUCTURE_MISMATCH` when they do not fit it. A structure the tables do not cover is refused
+with `GROUPS_UNKNOWN`; `groups: "none"` writes the segments directly under the root.
+
+Data types come from `options.dataTypes`, because the model does not carry them; a composite
+with no type there is refused with `DATA_TYPE_UNKNOWN`. In a value typed `TX` or `FT`, a
+formatting escape (`\H\`, `\.br`, `\.in+4\`) is written as an `escape` element
+(`<escape V="H"/>`); in any other it is refused with `ESCAPE_NOT_SUPPORTED`, except a line break.
+A hex escape is written as character references, its bytes decoded in MSH-18's character set
+(ASCII, UTF-8, 8859/1 or Windows-1252). The escape character itself in a value, and a character
+set or vendor escape, are refused with `ESCAPE_NOT_SUPPORTED`. An empty field is left out,
+except that a segment ending in empty fields gets one empty element at its last position
+(`<PID.3/>`), so it reads back with the same field count. A message holding a second MSH is
+refused, since one document is one message.
 
 `parseHL7Xml` reads the result back to the same model.
 
@@ -22251,7 +22387,7 @@ The message.
 
 [`ToHl7XmlOptions`](#tohl7xmloptions) = `{}`
 
-The data types, the root element's name and its namespace.
+The data types, the root element's name, its namespace and the groups.
 
 #### Returns
 
@@ -22268,7 +22404,10 @@ When the message cannot be written without guessing.
 ```ts
 import { parseHL7, toHl7Xml } from "@cosyte/hl7";
 const msg = parseHL7("MSH|^~\\&|LAB||||20260101||ACK^R01^ACK|1|P|2.6\rMSA|AA|1\r");
-toHl7Xml(msg, { dataTypes: { "MSH.9": "MSG", "MSH.11": "PT", "MSH.12": "VID" } });
+toHl7Xml(msg, {
+  dataTypes: { "MSH.9": "MSG", "MSH.11": "PT", "MSH.12": "VID" },
+  groups: "none",
+});
 ```
 
 ***

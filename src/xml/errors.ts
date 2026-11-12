@@ -6,9 +6,9 @@
 /**
  * Every code an {@link Hl7XmlError} carries. The XML reader and writer refuse with one of these
  * rather than guess: a hostile document (a DTD, an entity, too large, too deep, too many
- * elements), a document that is not the HL7 v2 XML shape, and the cases whose encoding rule we
- * have not confirmed (an `escape` element, the escape character in text, a composite whose data
- * type the writer was not told).
+ * elements), a document that is not the HL7 v2 XML shape, and the cases the published rules
+ * leave open (the escape character in text, a composite whose data type the writer was not told,
+ * a message structure whose groups it does not know).
  *
  * @example
  * ```ts
@@ -37,12 +37,15 @@ export const XML_ERROR_CODES = {
   NOT_WELL_FORMED: "NOT_WELL_FORMED",
   /** The document or a value holds a character XML 1.0 does not allow. */
   FORBIDDEN_CHARACTER: "FORBIDDEN_CHARACTER",
-  /** An element carries a namespace prefix, or a default namespace other than `urn:hl7-org:v2xml`. */
+  /**
+   * An element is in a namespace other than `urn:hl7-org:v2xml` or none: a default namespace
+   * declared as another, or a prefix bound to another or to none.
+   */
   NAMESPACE_NOT_SUPPORTED: "NAMESPACE_NOT_SUPPORTED",
   /**
    * An element is not a segment, group, field, component or subcomponent where it stands: a
-   * second MSH, a component named for its segment, or the components of one value named for two
-   * data types among them.
+   * second MSH, a component named for a segment rather than a data type, or the components of
+   * one value named for two data types among them.
    */
   UNEXPECTED_ELEMENT: "UNEXPECTED_ELEMENT",
   /** An element holds both text and child elements. */
@@ -52,17 +55,34 @@ export const XML_ERROR_CODES = {
   /** The first segment is not an `MSH` that opens with `MSH.1` and `MSH.2`, or they are malformed. */
   INVALID_ENCODING_CHARACTERS: "INVALID_ENCODING_CHARACTERS",
   /**
-   * An `escape` element, the message's escape character in text, or a value whose escape
-   * sequence the writer cannot express: rules we have not confirmed, so we refuse them.
+   * The message's escape character in text, for which no published rule exists; an `escape`
+   * element whose `V` is not a formatting escape, or that holds text or elements; or a value
+   * whose escape sequence the writer cannot express: a formatting escape in a value whose data
+   * type is not TX or FT, a hex escape the message's character set cannot decode, or a character
+   * set or vendor escape.
    */
   ESCAPE_NOT_SUPPORTED: "ESCAPE_NOT_SUPPORTED",
   /** The writer needs the data type of a composite to name its elements and was not given it. */
   DATA_TYPE_UNKNOWN: "DATA_TYPE_UNKNOWN",
-  /** The writer cannot name the root element: no `structure` option and no MSH-9 to derive it from. */
+  /**
+   * The writer cannot name the root element: no `structure` option, no MSH-9.3, and no message
+   * structure our registry maps MSH-9.1 and MSH-9.2 to.
+   */
   STRUCTURE_UNKNOWN: "STRUCTURE_UNKNOWN",
   /**
-   * An option is malformed: a reader limit that is not a number (NaN included), or a writer's
-   * data type or structure name that is not an XML name, or a data type named for its segment.
+   * The writer knows no groups for the message structure in the message's version and was not
+   * given them in `groups`: `XML_GROUP_TABLES` lists the structures it knows.
+   */
+  GROUPS_UNKNOWN: "GROUPS_UNKNOWN",
+  /**
+   * The message's segments do not fit the message structure the writer places them in: a
+   * required segment or group is missing, or a segment has no place in it.
+   */
+  STRUCTURE_MISMATCH: "STRUCTURE_MISMATCH",
+  /**
+   * An option is malformed: a reader limit that is not a number (NaN included), a writer's data
+   * type or structure name that is not an XML name, a data type named for a segment, or a
+   * `groups` structure that is malformed or names another root than `structure`.
    */
   INVALID_OPTIONS: "INVALID_OPTIONS",
 } as const;
