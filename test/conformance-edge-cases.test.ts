@@ -176,7 +176,7 @@ describe("profile shape defects", () => {
   it("refuses a segment rule that is not an object and keeps checking the rest", () => {
     expect(details({ name: "p", segments: ["PID", { segment: "PV1", usage: "Q" }] })).toEqual([
       "segments[0] must be an object.",
-      expect.stringMatching(/^segment "PV1" usage "Q"/) as string,
+      expect.stringMatching(/^segment "PV1" usage is not a usage code/) as string,
     ]);
   });
 

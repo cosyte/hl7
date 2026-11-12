@@ -403,7 +403,9 @@ question by accident of implementation order.
 Omitting the argument, or passing `undefined`, means "no resolutions". **Any
 other value that is not a list of well-formed resolutions is a
 `PROFILE_MALFORMED` finding**, never read as "none": a mis-typed argument must
-not return a clean result for elements nothing checked.
+not return a clean result for elements nothing checked. A resolution whose
+`segment` is not a segment name (`[A-Z][A-Z0-9]{2}`) is one of these: it is
+refused by its index in the list, and its text is not echoed.
 
 **`C`, `CE`, `B`, and a declared conditional are NOT presence-checked when
 nothing decides them**, that is, when the rule declares no predicate and no
@@ -765,6 +767,29 @@ apart by whether the finding's `locus.field` is set, not by separate codes.
   component index the field rule does not declare. Only a rule carrying at least
   one `components` entry can emit it.
 - `PROFILE_MALFORMED`: the profile itself is structurally malformed (a diagnostic).
+  Its message names the position, the kind of fault and what was expected, and
+  never the value you declared there, as in
+  `segment "PID" field 8 usage is not a usage code this profile may declare.`
+  A profile is caller-supplied text, and a diagnostic that echoes it is how a
+  value ends up in a log. The only values a message shows are ones already
+  checked against a fixed set: a segment name of the form `[A-Z][A-Z0-9]{2}`, a
+  usage the grammar admits, and a number (a field, component or subcomponent
+  index, a cardinality bound or a declared length) that passed its own check and
+  is at most 9999. A larger number could as well be a date of birth or a record
+  number, so the message names its position and shows
+  `(a number above 9999)` in its place, as in
+  `segment "PID" field (a number above 9999) usage is not a usage code ...`. A
+  bounds conflict (`cardinality.max (1) is less than min (2).`) is reported only
+  when both bounds passed their own check, and without the numbers when either
+  is above 9999. The same rule holds for every finding that shows a profile
+  number, so `PID-(a number above 9999)` and
+  `outside the declared cardinality (min (a number above 9999))` are what a
+  well-formed profile with such numbers produces.
+  `defineConformanceProfile` throws the same text in its `ProfileDefinitionError`.
+  The one caller-chosen text handed back is the profile's name, as
+  `result.profileName` and `ProfileDefinitionError.profileName`: it is an
+  identifier you chose and get back in your own hands to tell results apart, not
+  part of a diagnostic, and no message or detail text contains it.
 
 Length and value-set checks read the value at the rule's `component` (default
 `1`, a coded element's code), applied per present repetition. `cardinality.min`

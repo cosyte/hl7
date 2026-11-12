@@ -64,6 +64,13 @@
  * rather than repetitive: an author fixing three mistyped members is told about
  * all three at once instead of one per run.
  *
+ * A member whose segment is a string but not a segment name
+ * (`[A-Z][A-Z0-9]{2}`) is one of these. No well-formed profile declares a rule
+ * at such a name, so it could never resolve anything, and refusing it by
+ * position keeps the caller's text out of the diagnostic and out of the
+ * finding's locus: a diagnostic names the position, the fault and what was
+ * expected, never the offending value.
+ *
  * ## The order the diagnostics come back in
  *
  * Resolution defects are reported in SUPPLY ORDER: the order the caller wrote
@@ -83,7 +90,8 @@
 
 import type { ProfileDefect } from "./profile-shape.js";
 import type { FindingLocus, UsageResolution } from "./types.js";
-import { boundedToken, describeValueType, isRecord, parseUsageToken } from "./usage.js";
+import { showNumber } from "./shown-number.js";
+import { describeValueType, isRecord, parseUsageToken } from "./usage.js";
 
 /** A resolution the shape check accepted, with the locus it targets. @internal */
 interface WellFormedResolution {
@@ -205,7 +213,7 @@ function collectDeclaredLoci(profile: unknown): ReadonlyMap<string, DeclaredLocu
 /**
  * Check one member of the resolution list. Returns the defect detail when the
  * member is not a well-formed resolution, naming the offending value's TYPE
- * rather than echoing its content.
+ * or the form it was expected to take, never its content.
  *
  * @internal
  */
@@ -220,6 +228,11 @@ function memberDefect(member: unknown, index: number): string | undefined {
   }
   if (segment.length === 0) {
     return `${at}.segment must be a non-empty segment name.`;
+  }
+  // A segment name: one capital letter, then two capitals or digits. Written
+  // here rather than as a module constant so that each test exercises it live.
+  if (!/^[A-Z][A-Z0-9]{2}$/u.test(segment)) {
+    return `${at}.segment must be a valid segment name ([A-Z][A-Z0-9]{2}).`;
   }
   const field = member["field"];
   if (field !== undefined) {
@@ -236,11 +249,11 @@ function memberDefect(member: unknown, index: number): string | undefined {
   return undefined;
 }
 
-/** Compact locus label for a resolution defect detail. @internal */
+/** Compact locus label for a resolution defect detail; a field index above 9999 is not shown. @internal */
 function describeTarget(locus: FindingLocus): string {
   return locus.field === undefined
     ? `segment "${locus.segment}"`
-    : `segment "${locus.segment}" field ${String(locus.field)}`;
+    : `segment "${locus.segment}" field ${showNumber(locus.field)}`;
 }
 
 /**
@@ -279,12 +292,12 @@ export function analyzeResolutions(resolutions: unknown, profile: unknown): Reso
       continue;
     }
     const resolution = member as UsageResolution;
-    // The segment name is profile-supplied configuration, so the locus echoes
-    // it under the same bound every other echoed token carries.
+    // The segment name has matched the segment-name form in memberDefect, so the
+    // locus carries a checked three-character name and never free text.
     const locus: FindingLocus =
       resolution.field === undefined
-        ? { segment: boundedToken(resolution.segment) }
-        : { segment: boundedToken(resolution.segment), field: resolution.field };
+        ? { segment: resolution.segment }
+        : { segment: resolution.segment, field: resolution.field };
     const key = locusKey(resolution.segment, resolution.field);
     const wellFormed: WellFormedResolution = { locus, outcome: resolution.outcome };
     const group = byLocus.get(key);

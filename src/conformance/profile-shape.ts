@@ -14,7 +14,18 @@
  *   profile-authoring time; the engine itself never throws (task invariant).
  *
  * A defect `detail` describes the profile's SHAPE (`segments[2].fields[0].field
- * must be a positive integer`): profile structure only, never PHI.
+ * must be a positive integer`): profile structure only, never PHI. It names the
+ * position, the kind of fault and what was expected, and **never the offending
+ * value**: a profile is caller-supplied text, a caller may build one from
+ * anything, and a diagnostic that echoes it is how a value ends up in a log. The
+ * one kind of value a detail does show is a token already checked against a
+ * fixed set, so it is profile structure rather than free text: a segment name
+ * that matched `[A-Z][A-Z0-9]{2}`, a usage token the declarable-usage grammar
+ * admits, and a number (an index or a cardinality bound) that passed its own
+ * check and is at most 9999. A larger number could as well be a date of birth
+ * or a record number, so the detail names its position without it (see
+ * `shown-number.ts`). A bounds conflict is reported only between two bounds
+ * that each passed their own check, never derived from one that failed.
  *
  * Three families of check here are about COHERENCE rather than shape, and all
  * three come from the HL7 conformance methodology rather than from this
@@ -38,10 +49,10 @@ import { ProfileDefinitionError } from "../parser/errors.js";
 
 import { DEFAULT_PROFILE_LEVEL, claimsImplementable, usageIsImplementable } from "./level.js";
 import { collectPredicateDefects } from "./predicate.js";
+import { isShownNumber, showNumber } from "./shown-number.js";
 import { PROFILE_LEVELS, type ConformanceProfile, type FindingLocus } from "./types.js";
 import {
   SIMPLE_USAGE_CODES,
-  boundedToken,
   describeValueType,
   parseUsageToken,
   predicateOutcomes,
@@ -97,17 +108,15 @@ function checkCardinality(card: unknown, locus: FindingLocus, out: ProfileDefect
       detail: `${describe(locus)} cardinality.max must be a non-negative integer or "*".`,
     });
   }
-  if (
-    typeof min === "number" &&
-    typeof max === "number" &&
-    Number.isInteger(min) &&
-    Number.isInteger(max) &&
-    max < min
-  ) {
-    out.push({
-      locus,
-      detail: `${describe(locus)} cardinality.max (${String(max)}) is less than min (${String(min)}).`,
-    });
+  // A conflict is derived only from two bounds that each passed their own
+  // check: one that failed has already been reported, and its number is never
+  // shown. The numbers are shown only when both are small enough to be counts.
+  if (isCardinalityBound(min) && isCardinalityBound(max) && max < min) {
+    const detail =
+      isShownNumber(min) && isShownNumber(max)
+        ? `${describe(locus)} cardinality.max (${String(max)}) is less than min (${String(min)}).`
+        : `${describe(locus)} cardinality.max is less than min.`;
+    out.push({ locus, detail });
   }
 }
 
@@ -116,8 +125,8 @@ function describe(locus: FindingLocus): string {
   /* v8 ignore next -- every caller passes a segment or field locus whose name has passed SEGMENT_NAME_RE, which the sentinel cannot match */
   if (locus.segment === "(profile)") return "profile";
   let s = `segment "${locus.segment}"`;
-  if (locus.field !== undefined) s += ` field ${String(locus.field)}`;
-  if (locus.component !== undefined) s += ` component ${String(locus.component)}`;
+  if (locus.field !== undefined) s += ` field ${showNumber(locus.field)}`;
+  if (locus.component !== undefined) s += ` component ${showNumber(locus.component)}`;
   return s;
 }
 
@@ -201,7 +210,7 @@ function checkUsageCardinalityCoherence(
     out.push({
       locus,
       detail:
-        `${where} declares a usage other than R with cardinality.min ${String(min)}. ` +
+        `${where} declares a usage other than R with cardinality.min ${showNumber(min)}. ` +
         `A usage other than R takes a minimum cardinality of 0. The one exception is RE, which may carry a minimum greater than 0 to say that the element is not always present but has that many occurrences when it is.`,
     });
   }
@@ -210,7 +219,7 @@ function checkUsageCardinalityCoherence(
     out.push({
       locus,
       detail:
-        `${where} declares usage X with cardinality.max ${String(max)}. ` +
+        `${where} declares usage X with cardinality.max ${max === "*" ? "*" : showNumber(max)}. ` +
         `A not-supported element admits the cardinality [0..0] and no other, so its maximum must be 0 or left undeclared.`,
     });
   }
@@ -226,11 +235,10 @@ function checkUsageCardinalityCoherence(
  *
  * A level that is not one of the three is a defect however it is wrong: a token
  * outside the set, a mis-spelling, or a value of another type entirely reaching
- * the engine through an unchecked cast. The detail names the offending
- * declaration the way {@link checkUsage} names an offending usage token, which
- * is to say bounded and by type where there is no token worth echoing. A
- * profile's level is author-supplied configuration rather than message content,
- * so echoing it is what lets an author find their typo.
+ * the engine through an unchecked cast. The detail names the position, the
+ * fault and the three levels it expected, and never the value declared: a
+ * string outside the set is free text, and a value of another type is named by
+ * its type alone.
  *
  * @internal
  */
@@ -248,7 +256,7 @@ function checkLevel(level: unknown, out: ProfileDefect[]): void {
   if ((PROFILE_LEVELS as readonly string[]).includes(level)) return;
   out.push({
     locus,
-    detail: `profile.level "${boundedToken(level)}" is not a conformance profile level. ${expected}`,
+    detail: `profile.level is not a conformance profile level. ${expected}`,
   });
 }
 
@@ -290,7 +298,9 @@ const IMPLEMENTABLE_TERMINUS =
  *
  * A token the declarable-usage grammar does not admit at all is skipped:
  * {@link checkUsage} has already reported it, and a level complaint derived
- * from a token that means nothing would only restate it.
+ * from a token that means nothing would only restate it. So the usage this
+ * detail names has passed that grammar first: it is one of the fixed codes or a
+ * conditional built from them, never free text.
  *
  * @internal
  */
@@ -311,7 +321,7 @@ function checkImplementableUsage(usage: unknown, locus: FindingLocus, out: Profi
   out.push({
     locus,
     detail:
-      `${where} declares usage "${boundedToken(usage)}", which this profile's claim of the implementable level does not admit. ` +
+      `${where} declares usage "${usage}", which this profile's claim of the implementable level does not admit. ` +
       IMPLEMENTABLE_TERMINUS,
   });
 }
@@ -385,7 +395,7 @@ function checkComponentRules(
       out.push({
         locus: compLocus,
         detail:
-          `${at} declares component ${String(index)}, which an earlier component rule on this field already declares. ` +
+          `${at} declares component ${showNumber(index)}, which an earlier component rule on this field already declares. ` +
           `Declare each component once: two rules at one component are two answers to one question.`,
       });
     }
@@ -484,10 +494,9 @@ export function collectProfileDefects(profile: unknown): readonly ProfileDefect[
  * placeholder notation and a token whose outcomes are not simple codes, and it
  * yields exactly ONE `PROFILE_MALFORMED` finding, not one for each reading.
  *
- * The defect names the offending token AS A WHOLE (rather than only its bad
- * part) so an author can find their typo, bounded to the first 32 characters; a
- * usage that is not a string at all has no token worth echoing, so that defect
- * names the value's TYPE instead.
+ * The defect names the rule's position and the codes it expected, and never the
+ * token declared: a token the grammar refuses is free text by definition. A
+ * usage that is not a string at all is named by its TYPE.
  *
  * @internal
  */
@@ -504,7 +513,7 @@ function checkUsage(usage: unknown, locus: FindingLocus, out: ProfileDefect[]): 
   out.push({
     locus,
     detail:
-      `${describe(locus)} usage "${boundedToken(usage)}" is not a usage code this profile may declare. ` +
+      `${describe(locus)} usage is not a usage code this profile may declare. ` +
       `Expected one of ${SIMPLE_USAGE_CODES.join("/")}, or a declared conditional written C(<true>/<false>) with both outcomes drawn from them.`,
   });
 }
@@ -588,7 +597,8 @@ const RECOGNIZED_CODING_SYSTEMS: string = KNOWN_CODING_SYSTEMS.map((s) => s.id).
  * detail says the identifier is not one this library recognizes: it is not a
  * claim that the identifier is unregistered, and refusing at authoring time is
  * the fail-safe direction against silently comparing a message to a system that
- * cannot be resolved.
+ * cannot be resolved. The detail lists the identifiers it recognizes and never
+ * echoes the one declared.
  *
  * @internal
  */
@@ -633,7 +643,7 @@ function checkCodingSystem(
     out.push({
       locus,
       detail:
-        `${describe(locus)} codingSystem "${boundedToken(bound)}" is not a coding-system identifier this library recognizes. ` +
+        `${describe(locus)} codingSystem is not a coding-system identifier this library recognizes. ` +
         `Recognized identifiers (and their well-known aliases): ${RECOGNIZED_CODING_SYSTEMS}.`,
     });
   }

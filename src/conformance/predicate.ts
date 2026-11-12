@@ -79,6 +79,7 @@ import type {
   PresencePredicate,
 } from "./types.js";
 import { PREDICATE_CONNECTORS, PREDICATE_VERBS } from "./types.js";
+import { showNumber } from "./shown-number.js";
 import { describeValueType, isRecord } from "./usage.js";
 
 /** Segment-name shape a predicate location must satisfy. Mirrors the profile's rule. @internal */
@@ -128,16 +129,17 @@ export function compileAnchored(source: string): RegExp | undefined {
  * Render a {@link PredicateLocation} as a compact structural string for a
  * finding message: `PID`, `PID-8`, `RXA-9 component 1`, `PID-5 component 1
  * subcomponent 2`. Indices and a segment name only: never a value, and never
- * anything drawn from the predicate's value list.
+ * anything drawn from the predicate's value list. An index comes from the
+ * profile, so one above 9999 is not shown (see `shown-number.ts`).
  *
  * @internal
  */
 export function describeLocation(location: PredicateLocation): string {
   let s = location.segment;
-  if (location.field !== undefined) s += `-${String(location.field)}`;
-  if (location.component !== undefined) s += ` component ${String(location.component)}`;
+  if (location.field !== undefined) s += `-${showNumber(location.field)}`;
+  if (location.component !== undefined) s += ` component ${showNumber(location.component)}`;
   if (location.subcomponent !== undefined) {
-    s += ` subcomponent ${String(location.subcomponent)}`;
+    s += ` subcomponent ${showNumber(location.subcomponent)}`;
   }
   return s;
 }
