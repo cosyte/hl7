@@ -55,7 +55,11 @@ describe("the provenance cited in ack-tables.ts", () => {
     }
   });
 
-  it("cites no unversioned HL7 Terminology page", () => {
-    expect(text.includes("https://terminology.hl7.org/CodeSystem-")).toBe(false);
+  it("cites every HL7 Terminology page under the 7.5.0 publication", () => {
+    const cited = (text.match(/https:\/\/\S+/gu) ?? [])
+      .map((raw) => new URL(raw))
+      .filter((url) => url.hostname === "terminology.hl7.org");
+    expect(cited.length).toBeGreaterThan(0);
+    for (const url of cited) expect(url.pathname.startsWith("/7.5.0/en/")).toBe(true);
   });
 });
