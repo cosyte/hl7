@@ -183,6 +183,12 @@ Re-exports [MessageProfileMatch](../README.md#messageprofilematch)
 
 ***
 
+### MessageProfileMiss
+
+Re-exports [MessageProfileMiss](../README.md#messageprofilemiss)
+
+***
+
 ### PREDICATE\_CONNECTORS
 
 Re-exports [PREDICATE_CONNECTORS](../README.md#predicate_connectors)

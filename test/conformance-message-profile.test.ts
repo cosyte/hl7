@@ -36,6 +36,18 @@ function message(msh21: string): ReturnType<typeof parseHL7> {
   );
 }
 
+/**
+ * The same VXU under a delimiter set of its own: `#` fields, `$` components, `%` repetitions, `*`
+ * escapes and `@` subcomponents. `msh21` is written in those delimiters.
+ */
+function customMessage(msh21: string): ReturnType<typeof parseHL7> {
+  return parseHL7(
+    "MSH#$%*@#EXAPP#EXFAC#EXREG#EXSTATE#20260102080000##VXU$V04$VXU_V04#EX90001#P#2.5.1###ER#AL#####" +
+      msh21 +
+      "\rPID#1##EX0001$$$EXHOSP$MR##Doe$Jane",
+  );
+}
+
 const intake: ConformanceProfile = { name: "example-intake", segments: [] };
 const registry: ConformanceProfile = { name: "example-registry", segments: [] };
 const local: ConformanceProfile = { name: "example-local", segments: [] };
@@ -165,8 +177,16 @@ describe("findMessageProfiles: no match", () => {
     expect(result.profiles).toEqual([]);
     expect(result.matches).toEqual([]);
     expect(result.unmatched).toEqual([
-      { repetition: 0, identifier: { entityIdentifier: "EXPROF-9", namespaceId: "EXAMPLEORG" } },
-      { repetition: 1, identifier: { entityIdentifier: "EXPROF-8", namespaceId: "EXAMPLEORG" } },
+      {
+        repetition: 0,
+        identifier: { entityIdentifier: "EXPROF-9", namespaceId: "EXAMPLEORG" },
+        reason: "unlisted",
+      },
+      {
+        repetition: 1,
+        identifier: { entityIdentifier: "EXPROF-8", namespaceId: "EXAMPLEORG" },
+        reason: "unlisted",
+      },
     ]);
   });
 
@@ -218,7 +238,7 @@ describe("findMessageProfiles: no match", () => {
     const result = findMessageProfiles(message("^EXAMPLEORG"), [INTAKE]);
     expect(result.outcome).toBe("none");
     expect(result.unmatched).toEqual([
-      { repetition: 0, identifier: { namespaceId: "EXAMPLEORG" } },
+      { repetition: 0, identifier: { namespaceId: "EXAMPLEORG" }, reason: "unlisted" },
     ]);
   });
 
@@ -228,6 +248,106 @@ describe("findMessageProfiles: no match", () => {
       profile: local,
     } satisfies MessageProfileEntry;
     expect(findMessageProfiles(message("^EXAMPLEORG"), [blank]).outcome).toBe("none");
+  });
+});
+
+describe("findMessageProfiles: a repetition that is not the shape of an EI", () => {
+  // EI components are primitives: none holds a subcomponent, and an EI has four components. A
+  // repetition that carries more is a different or broken identifier, so it never matches, even
+  // when its first subcomponents read like a listed entry. It counts as declared.
+
+  it("never matches a subcomponent past the first in the entity identifier", () => {
+    const result = findMessageProfiles(message("EXPROF-1&X^EXAMPLEORG"), [INTAKE]);
+    expect(result.outcome).toBe("none");
+    expect(result.profiles).toEqual([]);
+    expect(result.matches).toEqual([]);
+    expect(result.unmatched).toEqual([
+      {
+        repetition: 0,
+        identifier: { entityIdentifier: "EXPROF-1", namespaceId: "EXAMPLEORG" },
+        reason: "malformed",
+      },
+    ]);
+  });
+
+  it("never matches a subcomponent past the first in the namespace ID", () => {
+    const result = findMessageProfiles(message("EXPROF-1^EXAMPLEORG&OTHER"), [INTAKE]);
+    expect(result.outcome).toBe("none");
+    expect(result.unmatched.map((u) => [u.repetition, u.reason])).toEqual([[0, "malformed"]]);
+  });
+
+  it("counts a repetition of only a later subcomponent as declared, and malformed", () => {
+    const result = findMessageProfiles(message("&X"), [INTAKE]);
+    expect(result.outcome).toBe("none");
+    expect(result.unmatched).toEqual([{ repetition: 0, identifier: {}, reason: "malformed" }]);
+  });
+
+  it("never matches a subcomponent in the universal ID or its type", () => {
+    const viaId = findMessageProfiles(message(`EXPROF-2^^${OID_A}&X^ISO`), [REGISTRY]);
+    expect(viaId.outcome).toBe("none");
+    const viaType = findMessageProfiles(message(`EXPROF-2^^${OID_A}^ISO&X`), [REGISTRY]);
+    expect(viaType.outcome).toBe("none");
+    expect(viaType.unmatched.map((u) => u.reason)).toEqual(["malformed"]);
+  });
+
+  it("never matches a fifth component", () => {
+    const result = findMessageProfiles(message("EXPROF-1^EXAMPLEORG^^^EXTRA"), [INTAKE]);
+    expect(result.outcome).toBe("none");
+    expect(result.matches).toEqual([]);
+    expect(result.unmatched.map((u) => [u.repetition, u.reason])).toEqual([[0, "malformed"]]);
+  });
+
+  it("never matches a subcomponent in a component past the fourth", () => {
+    const result = findMessageProfiles(message("EXPROF-1^EXAMPLEORG^^^&X"), [INTAKE]);
+    expect(result.unmatched.map((u) => u.reason)).toEqual(["malformed"]);
+  });
+
+  it("still matches when the extra subcomponents or components are empty", () => {
+    expect(findMessageProfiles(message("EXPROF-1&^EXAMPLEORG"), [INTAKE]).outcome).toBe("one");
+    expect(findMessageProfiles(message("EXPROF-1^EXAMPLEORG^^^"), [INTAKE]).outcome).toBe("one");
+    expect(findMessageProfiles(message("EXPROF-1^EXAMPLEORG^^^&"), [INTAKE]).outcome).toBe("one");
+  });
+
+  it("keeps a malformed repetition apart from a well-formed one beside it", () => {
+    const result = findMessageProfiles(message("EXPROF-1&X^EXAMPLEORG~EXPROF-1^EXAMPLEORG"), [
+      INTAKE,
+    ]);
+    expect(result.outcome).toBe("one");
+    expect(result.matches.map((m) => m.repetition)).toEqual([1]);
+    expect(result.unmatched.map((u) => [u.repetition, u.reason])).toEqual([[0, "malformed"]]);
+  });
+
+  it("reads the message's own delimiters: the reviewer's three inputs and a fifth component", () => {
+    const sub = findMessageProfiles(customMessage("EXPROF-1@X$EXAMPLEORG"), [INTAKE]);
+    expect(sub.outcome).toBe("none");
+    expect(sub.unmatched).toEqual([
+      {
+        repetition: 0,
+        identifier: { entityIdentifier: "EXPROF-1", namespaceId: "EXAMPLEORG" },
+        reason: "malformed",
+      },
+    ]);
+    const namespace = findMessageProfiles(customMessage("EXPROF-1$EXAMPLEORG@OTHER"), [INTAKE]);
+    expect(namespace.unmatched.map((u) => u.reason)).toEqual(["malformed"]);
+    const only = findMessageProfiles(customMessage("@X"), [INTAKE]);
+    expect(only.outcome).toBe("none");
+    expect(only.unmatched).toEqual([{ repetition: 0, identifier: {}, reason: "malformed" }]);
+    const fifth = findMessageProfiles(customMessage("EXPROF-1$EXAMPLEORG$$$EXTRA"), [INTAKE]);
+    expect(fifth.outcome).toBe("none");
+    expect(fifth.unmatched.map((u) => u.reason)).toEqual(["malformed"]);
+  });
+
+  it("matches under the message's own delimiters, where & is an ordinary character", () => {
+    expect(findMessageProfiles(customMessage("EXPROF-1$EXAMPLEORG"), [INTAKE]).outcome).toBe("one");
+    const amp = findMessageProfiles(customMessage("EXPROF-1&X$EXAMPLEORG"), [INTAKE]);
+    expect(amp.outcome).toBe("none");
+    expect(amp.unmatched).toEqual([
+      {
+        repetition: 0,
+        identifier: { entityIdentifier: "EXPROF-1&X", namespaceId: "EXAMPLEORG" },
+        reason: "unlisted",
+      },
+    ]);
   });
 });
 

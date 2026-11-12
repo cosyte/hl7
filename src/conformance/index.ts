@@ -20,6 +20,7 @@ export type {
   MessageProfileEntry,
   MessageProfileLookup,
   MessageProfileMatch,
+  MessageProfileMiss,
 } from "./message-profile.js";
 export {
   FINDING_CODES,

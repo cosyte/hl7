@@ -141,7 +141,21 @@ trimming.
 `profiles` holds each distinct profile matched, in MSH-21 order and then your list's order.
 `matches` pairs each repetition (0-indexed, counting empty ones) with each entry it matched.
 `unmatched` lists every repetition that named something and matched nothing, even when another
-repetition matched, so you can refuse a message that claims a profile you do not know.
+repetition matched, so you can refuse a message that claims a profile you do not know. Each one
+carries a `reason`: `unlisted` when it is a well-formed EI that is not in your list, `malformed`
+when it is not the shape of an EI at all.
+
+An EI has at most four components, and none of them holds a subcomponent. A repetition with a
+non-empty subcomponent after the first in any component (`EXPROF-1&X^EXAMPLEORG`), or a non-empty
+component past the fourth (`EXPROF-1^EXAMPLEORG^^^EXTRA`), never matches, even when its first parts
+read like one of your entries: it is listed with `reason: "malformed"`, and it counts as declared,
+so `outcome` is never `undeclared` while MSH-21 carries something. Its `identifier` holds only the
+first subcomponent of each of the first four components, so read the `reason` before you trust it.
+The check splits MSH-21 by the message's own delimiters, whatever they are.
+
+Unlike conformance findings, which withhold message values, this lookup hands the MSH-21
+identifiers back to you by design, in `matches` and `unmatched`: they are what you asked about.
+Treat them as message data when you log them.
 
 ```ts runnable
 import { type ConformanceProfile, findMessageProfiles, parseHL7 } from "@cosyte/hl7";
@@ -162,7 +176,11 @@ both.matches.map((m) => [m.repetition, m.entry.profile.name]); // => [[0, "examp
 
 const unknown = findMessageProfiles(parseHL7(header + "EXPROF-9^OTHERORG"), ours);
 unknown.outcome; // => "none"
-unknown.unmatched; // => [{ repetition: 0, identifier: { entityIdentifier: "EXPROF-9", namespaceId: "OTHERORG" } }]
+unknown.unmatched; // => [{ repetition: 0, identifier: { entityIdentifier: "EXPROF-9", namespaceId: "OTHERORG" }, reason: "unlisted" }]
+
+const broken = findMessageProfiles(parseHL7(header + "EXPROF-1&X^EXAMPLEORG"), ours);
+broken.outcome; // => "none"
+broken.unmatched.map((u) => u.reason); // => ["malformed"]
 
 findMessageProfiles(parseHL7(header), ours).outcome; // => "undeclared"
 ```
@@ -174,7 +192,8 @@ as a `ConformanceProfile`, as in [Validate a message](./validate-messages.md).
 
 - [`findMessageProfiles`](./api/src/README.md#findmessageprofiles),
   [`MessageProfileEntry`](./api/src/README.md#messageprofileentry),
-  [`MessageProfileLookup`](./api/src/README.md#messageprofilelookup)
+  [`MessageProfileLookup`](./api/src/README.md#messageprofilelookup),
+  [`MessageProfileMiss`](./api/src/README.md#messageprofilemiss)
 - [`validateAgainstProfile`](./api/src/README.md#validateagainstprofile),
   [`ConformanceProfile`](./api/src/README.md#conformanceprofile)
 - [`msg.meta.messageProfileIdentifiers`](./read-data-types-by-name.md#read-the-message-profile-a-sender-claims)

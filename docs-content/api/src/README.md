@@ -7985,6 +7985,7 @@ One MSH-21 repetition that names something: its 0-indexed position and its `EI`.
 #### Extended by
 
 - [`MessageProfileMatch`](#messageprofilematch)
+- [`MessageProfileMiss`](#messageprofilemiss)
 
 #### Properties
 
@@ -8059,8 +8060,12 @@ What MSH-21 named, against the caller's list, as `outcome`:
 
 `profiles` holds each distinct profile matched, in MSH-21 order, then list order. `matches`
 holds every pair of a repetition and an entry it matched, in the same order. `unmatched` holds
-every repetition that names something and matched no entry, so a caller can refuse a message
-that claims a profile it does not know, even when another claim matched.
+every repetition that names something and matched no entry, with its `reason`, so a caller can
+refuse a message that claims a profile it does not know, or claims one in a shape no `EI` has,
+even when another claim matched.
+
+Unlike conformance findings, which withhold message values, `matches` and `unmatched` hand the
+MSH-21 identifiers back to the caller by design: they are what the caller asked about.
 
 #### Type Parameters
 
@@ -8084,7 +8089,7 @@ that claims a profile it does not know, even when another claim matched.
 
 ##### unmatched
 
-> `readonly` **unmatched**: readonly [`MessageProfileClaim`](#messageprofileclaim)[]
+> `readonly` **unmatched**: readonly [`MessageProfileMiss`](#messageprofilemiss)[]
 
 ***
 
@@ -8119,6 +8124,51 @@ The repetition read as an `EI`, decoded, with absent components omitted.
 ###### Inherited from
 
 [`MessageProfileClaim`](#messageprofileclaim).[`identifier`](#identifier-3)
+
+##### repetition
+
+> `readonly` **repetition**: `number`
+
+0-indexed MSH-21 repetition, counting empty repetitions, as `FindingLocus.repetition` does.
+
+###### Inherited from
+
+[`MessageProfileClaim`](#messageprofileclaim).[`repetition`](#repetition-2)
+
+***
+
+### MessageProfileMiss
+
+One MSH-21 repetition that names something and matched no entry, with why, as `reason`:
+
+- `unlisted`: the repetition is a well-formed `EI` and no entry in the list has its identifier;
+- `malformed`: the repetition is not the shape of an `EI`, so it never matches. An `EI` has at
+  most four components and none of them holds a subcomponent: a repetition with a non-empty
+  subcomponent after the first in any component, or a non-empty component past the fourth, is
+  a different or broken identifier. Its `identifier` then holds only the first subcomponent of
+  each of the first four components, so it is not the whole of what MSH-21 carries.
+
+#### Extends
+
+- [`MessageProfileClaim`](#messageprofileclaim)
+
+#### Properties
+
+##### identifier
+
+> `readonly` **identifier**: [`EI`](#ei-1)
+
+The repetition read as an `EI`, decoded, with absent components omitted.
+
+###### Inherited from
+
+[`MessageProfileClaim`](#messageprofileclaim).[`identifier`](#identifier-3)
+
+##### reason
+
+> `readonly` **reason**: `"unlisted"` \| `"malformed"`
+
+Why the repetition matched nothing.
 
 ##### repetition
 
@@ -19416,6 +19466,11 @@ supplies. Each MSH-21 repetition is read as an `EI` and matched to every entry w
 entity identifier under the same assigning authority: the universal ID decides when both carry
 one (with its type, when both carry a type), else the namespace ID, and an identifier that names
 no authority matches only an entry that names none. Values compare exactly as decoded.
+
+A repetition that is not the shape of an `EI` (a non-empty subcomponent after the first in any
+component, or a non-empty component past the fourth) never matches: it is listed in `unmatched`
+with `reason: "malformed"` and counts as declared, so a wrong profile is never picked from a
+partial read.
 
 The result says which case it is (`undeclared`, `none`, `one`, `several`), so no match is never
 a silent pass, and it lists the repetitions no entry matched. Reads the message and changes

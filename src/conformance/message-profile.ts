@@ -7,6 +7,7 @@
 
 import type { Hl7Message } from "../model/message.js";
 import { parseEi, type EI } from "../model/types/ei.js";
+import type { RawRepetition } from "../parser/types.js";
 
 import type { ConformanceProfile } from "./types.js";
 
@@ -42,6 +43,21 @@ export interface MessageProfileClaim {
   readonly identifier: EI;
 }
 
+/**
+ * One MSH-21 repetition that names something and matched no entry, with why, as `reason`:
+ *
+ * - `unlisted`: the repetition is a well-formed `EI` and no entry in the list has its identifier;
+ * - `malformed`: the repetition is not the shape of an `EI`, so it never matches. An `EI` has at
+ *   most four components and none of them holds a subcomponent: a repetition with a non-empty
+ *   subcomponent after the first in any component, or a non-empty component past the fourth, is
+ *   a different or broken identifier. Its `identifier` then holds only the first subcomponent of
+ *   each of the first four components, so it is not the whole of what MSH-21 carries.
+ */
+export interface MessageProfileMiss extends MessageProfileClaim {
+  /** Why the repetition matched nothing. */
+  readonly reason: "unlisted" | "malformed";
+}
+
 /** One MSH-21 repetition paired with one entry it matched. */
 export interface MessageProfileMatch<P = ConformanceProfile> extends MessageProfileClaim {
   /** The caller's entry the repetition matched. */
@@ -59,14 +75,37 @@ export interface MessageProfileMatch<P = ConformanceProfile> extends MessageProf
  *
  * `profiles` holds each distinct profile matched, in MSH-21 order, then list order. `matches`
  * holds every pair of a repetition and an entry it matched, in the same order. `unmatched` holds
- * every repetition that names something and matched no entry, so a caller can refuse a message
- * that claims a profile it does not know, even when another claim matched.
+ * every repetition that names something and matched no entry, with its `reason`, so a caller can
+ * refuse a message that claims a profile it does not know, or claims one in a shape no `EI` has,
+ * even when another claim matched.
+ *
+ * Unlike conformance findings, which withhold message values, `matches` and `unmatched` hand the
+ * MSH-21 identifiers back to the caller by design: they are what the caller asked about.
  */
 export interface MessageProfileLookup<P = ConformanceProfile> {
   readonly outcome: "undeclared" | "none" | "one" | "several";
   readonly profiles: readonly P[];
   readonly matches: readonly MessageProfileMatch<P>[];
-  readonly unmatched: readonly MessageProfileClaim[];
+  readonly unmatched: readonly MessageProfileMiss[];
+}
+
+/** The number of components an `EI` has. @internal */
+const EI_COMPONENTS = 4;
+
+/**
+ * Whether a raw repetition carries more than an `EI` can hold: a non-empty subcomponent after the
+ * first in any component, or a non-empty component past the fourth. The raw tree was split under
+ * the message's own delimiters, so this holds for any delimiter set.
+ *
+ * @internal
+ */
+function malformed(rep: RawRepetition): boolean {
+  return rep.components.some((component, index) => {
+    // `?.` and `??` read a `null` that a repetition built by hand carries as absent.
+    const subcomponents = component?.subcomponents ?? [];
+    const from = index < EI_COMPONENTS ? 1 : 0;
+    return subcomponents.slice(from).some((sub) => (sub ?? "") !== "");
+  });
 }
 
 /** A component's value, or `undefined` when it is absent or empty. @internal */
@@ -111,6 +150,11 @@ function sameIdentifier(a: EI, b: EI): boolean {
  * one (with its type, when both carry a type), else the namespace ID, and an identifier that names
  * no authority matches only an entry that names none. Values compare exactly as decoded.
  *
+ * A repetition that is not the shape of an `EI` (a non-empty subcomponent after the first in any
+ * component, or a non-empty component past the fourth) never matches: it is listed in `unmatched`
+ * with `reason: "malformed"` and counts as declared, so a wrong profile is never picked from a
+ * partial read.
+ *
  * The result says which case it is (`undeclared`, `none`, `one`, `several`), so no match is never
  * a silent pass, and it lists the repetitions no entry matched. Reads the message and changes
  * nothing, whatever MSH-21 carries; makes no network call. The caller writes every profile.
@@ -133,13 +177,18 @@ export function findMessageProfiles<P = ConformanceProfile>(
 ): MessageProfileLookup<P> {
   const profiles: P[] = [];
   const matches: MessageProfileMatch<P>[] = [];
-  const unmatched: MessageProfileClaim[] = [];
+  const unmatched: MessageProfileMiss[] = [];
   let declared = false;
 
   // A message built by hand can have no MSH; it names no profile.
   const repetitions = msg.segments("MSH")[0]?.field(21).repetitions ?? [];
   for (const [repetition, rep] of repetitions.entries()) {
     const identifier = Object.freeze(parseEi(rep, msg.encodingCharacters));
+    if (malformed(rep)) {
+      declared = true;
+      unmatched.push(Object.freeze({ repetition, identifier, reason: "malformed" }));
+      continue;
+    }
     if (Object.keys(identifier).length === 0) continue;
     declared = true;
     let matched = false;
@@ -149,7 +198,7 @@ export function findMessageProfiles<P = ConformanceProfile>(
       matches.push(Object.freeze({ repetition, identifier, entry }));
       if (!profiles.includes(entry.profile)) profiles.push(entry.profile);
     }
-    if (!matched) unmatched.push(Object.freeze({ repetition, identifier }));
+    if (!matched) unmatched.push(Object.freeze({ repetition, identifier, reason: "unlisted" }));
   }
 
   const outcome = !declared

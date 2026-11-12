@@ -580,6 +580,7 @@ export type {
   MessageProfileEntry,
   MessageProfileLookup,
   MessageProfileMatch,
+  MessageProfileMiss,
 } from "./conformance/message-profile.js";
 export {
   FINDING_CODES,
