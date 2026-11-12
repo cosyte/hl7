@@ -24,7 +24,8 @@ import { Hl7XmlError, XML_ERROR_CODES, safePath, type XmlErrorCode } from "./err
 
 /**
  * Caps on what the XML reader accepts. Each is optional and falls back to
- * {@link DEFAULT_XML_LIMITS}.
+ * {@link DEFAULT_XML_LIMITS}. A cap that is given must be a number: NaN or a value of another
+ * type is refused with `INVALID_OPTIONS`, and `Infinity` lifts the cap.
  *
  * @example
  * ```ts
@@ -127,6 +128,8 @@ interface FieldFrame {
   text: string;
   parts: string[] | undefined;
   lastPart: number;
+  /** The data type its first component is named for; every later one must name the same. */
+  partType: string | undefined;
 }
 
 /** A component element: text, or subcomponent elements gathered in `parts` from position 1. */
@@ -138,6 +141,8 @@ interface ComponentFrame {
   text: string;
   parts: string[] | undefined;
   lastPart: number;
+  /** The data type its first subcomponent is named for; every later one must name the same. */
+  partType: string | undefined;
 }
 
 /** A subcomponent element: text only. */
@@ -205,12 +210,24 @@ function isXmlChar(code: number): boolean {
   );
 }
 
+/**
+ * One resolved cap: the default when `value` is absent. A value that is not a number, or is NaN,
+ * is refused: every cap check is a comparison, and NaN would turn the cap off.
+ */
+function resolveLimit(key: keyof XmlLimits, value: unknown): number {
+  if (value === undefined) return DEFAULT_XML_LIMITS[key];
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    throw new Hl7XmlError(XML_ERROR_CODES.INVALID_OPTIONS, `The limit ${key} is not a number.`);
+  }
+  return value;
+}
+
 /** The resolved caps. */
 function resolveLimits(limits: XmlLimits | undefined): Required<XmlLimits> {
   return {
-    maxInputBytes: limits?.maxInputBytes ?? DEFAULT_XML_LIMITS.maxInputBytes,
-    maxDepth: limits?.maxDepth ?? DEFAULT_XML_LIMITS.maxDepth,
-    maxElements: limits?.maxElements ?? DEFAULT_XML_LIMITS.maxElements,
+    maxInputBytes: resolveLimit("maxInputBytes", limits?.maxInputBytes),
+    maxDepth: resolveLimit("maxDepth", limits?.maxDepth),
+    maxElements: resolveLimit("maxElements", limits?.maxElements),
   };
 }
 
@@ -568,6 +585,17 @@ class XmlToPipe {
           at,
         );
       }
+      // One document is one message. A second MSH would set new delimiters for the segments
+      // after it, which `parseHL7` reads with the first MSH's, so their values would be split
+      // wrong without an error.
+      if (this.segments.length > 0 && name === "MSH") {
+        this.fail(
+          XML_ERROR_CODES.UNEXPECTED_ELEMENT,
+          "The document holds a second MSH segment.",
+          undefined,
+          at,
+        );
+      }
       this.stack.push({ kind: "segment", name, parts: [name], lastPos: 0 });
       return;
     }
@@ -615,7 +643,16 @@ class XmlToPipe {
       );
     }
     this.count(Math.max(0, pos - segment.lastPos - 1), at);
-    this.stack.push({ kind: "field", name, segment, pos, text: "", parts: undefined, lastPart: 0 });
+    this.stack.push({
+      kind: "field",
+      name,
+      segment,
+      pos,
+      text: "",
+      parts: undefined,
+      lastPart: 0,
+      partType: undefined,
+    });
   }
 
   /** A component opens in a field, or a subcomponent in a component. */
@@ -658,6 +695,24 @@ class XmlToPipe {
       }
       parent.parts = [];
     }
+    const segment = parent.kind === "field" ? parent.segment : parent.field.segment;
+    if (position.prefix === segment.name) {
+      this.fail(
+        XML_ERROR_CODES.UNEXPECTED_ELEMENT,
+        "A component or subcomponent is named for its segment, not a data type.",
+        name,
+        at,
+      );
+    }
+    if (parent.partType !== undefined && parent.partType !== position.prefix) {
+      this.fail(
+        XML_ERROR_CODES.UNEXPECTED_ELEMENT,
+        "The components or subcomponents of one value name two data types.",
+        name,
+        at,
+      );
+    }
+    parent.partType = position.prefix;
     const pos = position.pos;
     if (pos <= parent.lastPart) {
       this.fail(
@@ -679,6 +734,7 @@ class XmlToPipe {
         text: "",
         parts: undefined,
         lastPart: 0,
+        partType: undefined,
       });
     } else {
       this.stack.push({ kind: "subcomponent", name, component: parent, pos, text: "" });
@@ -804,14 +860,17 @@ export function xmlToPipe(xml: string, limits?: XmlLimits, onType?: TypeSink): s
  * escapes and nulls, the same warnings, lazy by default.
  *
  * Element names are read by position: `PID.5` is the fifth field of PID, and inside it `XPN.1`
- * (or any name ending in `.1`) is its first component, so no data type table is needed to read.
- * Group elements (`ORU_R01.PATIENT_RESULT`) are walked through; segments are read in document
- * order. Text is the decoded value: a `|` or `^` in text is that character, written to the model
+ * (or any data type name ending in `.1`) is its first component, so no data type table is needed
+ * to read. The components of one value must all name the same data type, and none may be named
+ * for the segment itself (`PID.3` inside `PID.5`). Group elements (`ORU_R01.PATIENT_RESULT`) are
+ * walked through; segments are read in document order. One document is one message: a second
+ * MSH is refused. Text is the decoded value: a `|` or `^` in text is that character, written to the model
  * as the pipe parser would read `\F\` or `\S\`. A field whose text is `""` is the explicit null.
  *
  * The reader is hardened: it refuses a DTD or entity declaration, any entity beyond the five XML
  * predefines, a character XML 1.0 forbids, and a document past the size, depth or element caps
- * of `limits`. It refuses, rather than guess, the cases whose encoding rule we have not
+ * of `limits` (a limit that is not a number, NaN included, is refused with `INVALID_OPTIONS`;
+ * `Infinity` lifts a cap). It refuses, rather than guess, the cases whose encoding rule we have not
  * confirmed: an `escape` element, and the message's escape character (MSH.2's third character)
  * in text. Every refusal is an {@link Hl7XmlError} with a code from `XML_ERROR_CODES`; errors
  * from reading the pipe form are `parseHL7`'s own.

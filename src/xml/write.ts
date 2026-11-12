@@ -102,32 +102,56 @@ class XmlWriter {
             dataTypes !== undefined && Object.hasOwn(dataTypes, key) ? dataTypes[key] : undefined;
   }
 
-  /** The data type `dataTypes` gives `key`, refused when it is not an XML name. */
+  /** The name of the segment being written, which no data type may take. */
+  private segmentName: string | undefined;
+  /** Whether the message's MSH has been written: one document holds one message. */
+  private mshWritten = false;
+
+  /**
+   * The data type `dataTypes` gives `key`, refused when it is not an XML name or is the name of
+   * the segment it stands in, which the reader would refuse.
+   */
   private typeOf(key: string): string | undefined {
     const type = this.lookup(key);
     if (type?.match(/^[A-Za-z][A-Za-z0-9_]*$/u) === null) {
       fail(XML_ERROR_CODES.INVALID_OPTIONS, "A data type is not an XML name.", key);
     }
+    if (type === this.segmentName) {
+      fail(XML_ERROR_CODES.INVALID_OPTIONS, "A data type is named for its segment.", key);
+    }
     return type;
   }
 
-  /** One segment element, self-closing when the segment has no field. */
+  /**
+   * One segment element, self-closing when the segment has no field. A field past the last
+   * filled one is written as one empty element at the last position, so the segment keeps its
+   * field count: `PID|a||` is `<PID><PID.1>a</PID.1><PID.3/></PID>`.
+   */
   public segment(seg: RawSegment): string {
     if (!/^[A-Z][A-Z0-9]{2}$/u.test(seg.name)) {
       fail(XML_ERROR_CODES.UNEXPECTED_ELEMENT, "A segment name is not three letters or digits.");
     }
+    this.segmentName = seg.name;
     let body = "";
     // MSH-n sits at fields[n - 1] (MSH-1 is the separator itself); any other SEG-n at fields[n].
     const msh = seg.name === "MSH";
     if (msh) {
+      if (this.mshWritten) {
+        fail(XML_ERROR_CODES.UNEXPECTED_ELEMENT, "The message holds a second MSH segment.");
+      }
+      this.mshWritten = true;
       const enc = this.enc;
       const msh2 =
         enc.component + enc.repetition + enc.escape + enc.subcomponent + (enc.truncation ?? "");
       body += `<MSH.1>${escapeText(enc.field)}</MSH.1><MSH.2>${escapeText(msh2)}</MSH.2>`;
     }
     const first = msh ? 2 : 1;
-    for (const [i, field] of seg.fields.slice(first).entries()) {
-      body += this.field(`${seg.name}.${String(i + first + (msh ? 1 : 0))}`, field);
+    const fields = seg.fields.slice(first);
+    for (const [i, field] of fields.entries()) {
+      const key = `${seg.name}.${String(i + first + (msh ? 1 : 0))}`;
+      const written = this.field(key, field);
+      body +=
+        written === "" && i === fields.length - 1 && field !== undefined ? `<${key}/>` : written;
     }
     return body === "" ? `<${seg.name}/>` : `<${seg.name}>${body}</${seg.name}>`;
   }
@@ -233,8 +257,10 @@ function structureName(message: Hl7Message, option: string | undefined): string 
     return option;
   }
   const structure = message.get("MSH.9.3") ?? "";
-  // Stryker disable next-line StringLiteral: with no MSH-9.1 the name is empty or starts with "_", and the mutant's text holds a space, so isXmlName refuses either way with the same error
-  const code = message.get("MSH.9.1") ?? "";
+  const code =
+    message.get("MSH.9.1") ??
+    // Stryker disable next-line StringLiteral: with no MSH-9.1 the name is empty or starts with "_", and the mutant's text holds a space, so isXmlName refuses either way with the same error
+    "";
   const trigger = message.get("MSH.9.2") ?? "";
   const name = structure !== "" ? structure : trigger !== "" ? `${code}_${trigger}` : code;
   if (!isXmlName(name)) {
@@ -258,7 +284,10 @@ function structureName(message: Hl7Message, option: string | undefined): string 
  * order directly under the root: group elements are not written, so a receiver that validates
  * against a schema with groups will not accept the document as it stands. A value holding the
  * escape character, or carrying a formatting or hex escape sequence, is refused with
- * `ESCAPE_NOT_SUPPORTED`, since we have not confirmed how the XML encoding writes those.
+ * `ESCAPE_NOT_SUPPORTED`, since we have not confirmed how the XML encoding writes those. An empty
+ * field is left out, except that a segment ending in empty fields gets one empty element at its
+ * last position (`<PID.3/>`), so it reads back with the same field count. A message holding a
+ * second MSH is refused, since one document is one message.
  *
  * `parseHL7Xml` reads the result back to the same model.
  *

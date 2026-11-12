@@ -609,3 +609,135 @@ describe("xmlDataTypes", () => {
     expect(xmlDataTypes(twoWays)).toEqual({ "MSH.9": "MSG" });
   });
 });
+
+describe("one document is one message", () => {
+  /** An MSH whose MSH.1 is `separator`, with the standard MSH.2. */
+  const mshWith = (separator: string): string =>
+    `<MSH><MSH.1>${separator}</MSH.1><MSH.2>^~\\&amp;</MSH.2>` +
+    "<MSH.9><MSG.1>ADT</MSG.1><MSG.2>A01</MSG.2></MSH.9><MSH.10>1</MSH.10></MSH>";
+
+  it("refuses a second MSH that would redefine the delimiters of the segments after it", () => {
+    const xml =
+      `<ADT_A01>${mshWith("|")}<PID><PID.3>a</PID.3></PID>${mshWith("#")}` +
+      "<OBX><OBX.5>120|H</OBX.5><OBX.8>N</OBX.8></OBX></ADT_A01>";
+    expect(read(xml)).toBe("UNEXPECTED_ELEMENT: The document holds a second MSH segment.");
+  });
+
+  it("refuses a second MSH with the same delimiters, inside a group too", () => {
+    expect(read(`<ADT_A01>${mshWith("|")}<EVN/>${mshWith("|")}</ADT_A01>`)).toBe(
+      "UNEXPECTED_ELEMENT: The document holds a second MSH segment.",
+    );
+    expect(read(`<ADT_A01>${mshWith("|")}<G.A>${mshWith("|")}</G.A></ADT_A01>`)).toBe(
+      "UNEXPECTED_ELEMENT: The document holds a second MSH segment.",
+    );
+  });
+
+  it("refuses to write a message holding a second MSH", () => {
+    const msg = handBuilt([{ name: "MSH", fields: [field(["|"]), field(["^~\\&"])] }]);
+    expect(why(() => write(msg))).toBe(
+      "UNEXPECTED_ELEMENT: The message holds a second MSH segment.",
+    );
+  });
+});
+
+describe("the limits must be numbers", () => {
+  for (const key of ["maxInputBytes", "maxDepth", "maxElements"] as const) {
+    for (const bad of [Number.NaN, "3", null, true]) {
+      it(`refuses ${key}: ${String(bad)} with INVALID_OPTIONS`, () => {
+        const limits = { [key]: bad } as unknown as Record<string, number>;
+        const expected = `INVALID_OPTIONS: The limit ${key} is not a number.`;
+        expect(why(() => parseHL7Xml(doc(""), { limits }))).toBe(expected);
+        expect(why(() => xmlDataTypes(doc(""), { limits }))).toBe(expected);
+      });
+    }
+  }
+
+  it("refuses the reviewer's NaN probes, and lets Infinity lift a cap", () => {
+    const deep = `<ADT_A01>${MSH}${"<G.A>".repeat(100)}${"</G.A>".repeat(100)}</ADT_A01>`;
+    expect(why(() => parseHL7Xml(deep, { limits: { maxDepth: Number.NaN } }))).toContain(
+      "INVALID_OPTIONS",
+    );
+    expect(parseHL7Xml(deep, { limits: { maxDepth: Infinity } }).version).toBe("2.6");
+    const many = doc(`<PID>${"<PID.3>a</PID.3>".repeat(10)}</PID>`);
+    expect(why(() => parseHL7Xml(many, { limits: { maxElements: Number.NaN } }))).toContain(
+      "INVALID_OPTIONS",
+    );
+    expect(why(() => parseHL7Xml(many, { limits: { maxInputBytes: Number.NaN } }))).toContain(
+      "INVALID_OPTIONS",
+    );
+  });
+});
+
+describe("components are named for one data type, not for the segment", () => {
+  const cases: readonly (readonly [string, string, string])[] = [
+    [
+      "a component named for its segment",
+      doc("<PID><PID.5><PID.3>A</PID.3></PID.5></PID>"),
+      "UNEXPECTED_ELEMENT: A component or subcomponent is named for its segment, not a data type. (PID.3)",
+    ],
+    [
+      "a subcomponent named for its segment",
+      doc("<PID><PID.5><XPN.1><PID.1>A</PID.1></XPN.1></PID.5></PID>"),
+      "UNEXPECTED_ELEMENT: A component or subcomponent is named for its segment, not a data type. (PID.1)",
+    ],
+    [
+      "components of two types in one field",
+      doc("<PID><PID.5><XPN.1>A</XPN.1><CX.2>C</CX.2></PID.5></PID>"),
+      "UNEXPECTED_ELEMENT: The components or subcomponents of one value name two data types. (CX.2)",
+    ],
+    [
+      "subcomponents of two types in one component",
+      doc("<PID><PID.5><XPN.1><FN.1>a</FN.1><HD.2>b</HD.2></XPN.1></PID.5></PID>"),
+      "UNEXPECTED_ELEMENT: The components or subcomponents of one value name two data types. (HD.2)",
+    ],
+  ];
+  for (const [what, xml, expected] of cases) {
+    it(`refuses ${what}`, () => {
+      expect(read(xml)).toBe(expected);
+    });
+  }
+
+  it("reads one type per value, each repetition and each component on its own", () => {
+    const xml = doc(
+      "<PID><PID.3><CX.1>1</CX.1><CX.4><HD.1>A</HD.1></CX.4></PID.3><PID.3><CX.1>2</CX.1></PID.3>" +
+        "<PID.5><XPN.1><FN.1>a</FN.1></XPN.1><XPN.3>c</XPN.3></PID.5></PID>",
+    );
+    expect(xmlToPipe(xml)).toBe(`${PIPE_MSH}PID|||1^^^A~2||a^^c\r`);
+  });
+
+  it("refuses to write a data type named for the segment it stands in", () => {
+    expect(why(() => write(pipe("PID|||1^2"), { "PID.3": "PID" }))).toBe(
+      "INVALID_OPTIONS: A data type is named for its segment. (PID.3)",
+    );
+    expect(why(() => write(pipe("PID|||1&2"), { "PID.3": "CX", "CX.1": "PID" }))).toBe(
+      "INVALID_OPTIONS: A data type is named for its segment. (CX.1)",
+    );
+  });
+});
+
+describe("trailing empty fields", () => {
+  it("are written as one empty element at the last position and read back", () => {
+    const msg = pipe("PID|a||");
+    const xml = write(msg);
+    expect(xml).toContain("<PID><PID.1>a</PID.1><PID.3/></PID>");
+    const back = parseHL7Xml(xml);
+    expect(back.toString()).toBe(msg.toString());
+    expect(back.rawSegments).toEqual(msg.rawSegments);
+  });
+
+  it("are kept on a segment of no values and on MSH", () => {
+    const msg = parseHL7("MSH|^~\\&|||||||ADT^A01|X1|P|2.6||\rZZZ||\r");
+    const xml = write(msg);
+    expect(xml).toContain("<MSH.12>2.6</MSH.12><MSH.14/></MSH>");
+    expect(xml).toContain("<ZZZ><ZZZ.2/></ZZZ>");
+    expect(parseHL7Xml(xml).toString()).toBe(msg.toString());
+    expect(parseHL7Xml(xml).rawSegments).toEqual(msg.rawSegments);
+  });
+
+  it("are not written for a field the model leaves out", () => {
+    const msg = handBuilt([
+      { name: "NTE", fields: [field(["NTE"]), field(["a"]), undefined as never] },
+    ]);
+    expect(write(msg)).toContain("<NTE><NTE.1>a</NTE.1></NTE>");
+  });
+});

@@ -66,8 +66,11 @@ msg.toString().split("\r")[1]; // => "PID|||TESTID01^^^TESTLAB^MR||Test^Patient"
 What the reader does:
 
 - **It reads by position.** A field element is `SEG.n`, and inside it any element whose name ends
-  in `.n` is component `n`, and inside that any `.n` is subcomponent `n`. The data type in the name
-  does not matter to the reader, so it needs no table of data types for any version.
+  in `.n` is component `n`, and inside that any `.n` is subcomponent `n`. Which data type the name
+  carries does not matter to the reader, so it needs no table of data types for any version. Two
+  things about it do: the components of one value must all name the same type, and none may be
+  named for the segment itself (`PID.3` inside `PID.5`). Either is refused with
+  `UNEXPECTED_ELEMENT`.
 - **It walks through groups.** An element named `STRUCTURE.GROUP` (`ORU_R01.PATIENT_RESULT`) is a
   group, and its segments are read in document order.
 - **Text is the value.** A `|` or `&` in text is that character, and reaches the model as the pipe
@@ -76,6 +79,8 @@ What the reader does:
 - **`""` is the explicit null,** as it is in the pipe form.
 - **MSH.1 and MSH.2 set the delimiters,** and must be the first two fields of the first segment,
   which must be MSH. A five-character MSH.2 declares the v2.7 truncation character.
+- **One document is one message.** A second MSH anywhere in the document is refused with
+  `UNEXPECTED_ELEMENT`, so it cannot set new delimiters for the segments after it.
 - **It takes `parseHL7`'s options** (`strict`, `onWarning`, `profile`, `lazy` and the rest), and
   reports the same warnings. A message read from XML is lazy by default, as any other is.
 - **It reads a string.** Decode the bytes you received (UTF-8 for most senders) before you call
@@ -86,15 +91,30 @@ What the reader does:
 The reader builds no DOM and applies the same rules as our C-CDA reader. It refuses, with an
 `Hl7XmlError` whose `code` comes from `XML_ERROR_CODES`:
 
-| Code | When |
-| --- | --- |
-| `DTD_NOT_ALLOWED` | The document declares a DTD or an entity (`<!DOCTYPE`, `<!ENTITY`). |
-| `ENTITY_NOT_ALLOWED` | It references an entity other than the five XML predefines. |
-| `FORBIDDEN_CHARACTER` | It holds a character XML 1.0 does not allow, written or referenced. |
-| `INPUT_TOO_LARGE` | It is over `limits.maxInputBytes`, 30,000,000 by default. |
-| `DEPTH_LIMIT_EXCEEDED` | Its elements nest deeper than `limits.maxDepth`, 64 by default. |
+| Code                     | When                                                                                                                                   |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `DTD_NOT_ALLOWED`        | The document declares a DTD or an entity (`<!DOCTYPE`, `<!ENTITY`).                                                                    |
+| `ENTITY_NOT_ALLOWED`     | It references an entity other than the five XML predefines.                                                                            |
+| `FORBIDDEN_CHARACTER`    | It holds a character XML 1.0 does not allow, written or referenced.                                                                    |
+| `INPUT_TOO_LARGE`        | It is over `limits.maxInputBytes`, 30,000,000 by default.                                                                              |
+| `DEPTH_LIMIT_EXCEEDED`   | Its elements nest deeper than `limits.maxDepth`, 64 by default.                                                                        |
 | `ELEMENT_LIMIT_EXCEEDED` | It has more than `limits.maxElements` elements, 1,000,000 by default, each empty position a skipped-over element names counted as one. |
-| `NOT_WELL_FORMED` | It is not well-formed XML. |
+| `NOT_WELL_FORMED`        | It is not well-formed XML.                                                                                                             |
+| `INVALID_OPTIONS`        | A limit is not a number, NaN included. `Infinity` lifts a cap; zero or a negative number refuses every document.                       |
+
+A document that is well-formed XML but not the shape of a v2 message is refused too:
+
+| Code                          | When                                                                                                                                                                                                                    |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NAMESPACE_NOT_SUPPORTED`     | An element carries a namespace prefix, or a default namespace other than `urn:hl7-org:v2xml`.                                                                                                                           |
+| `INVALID_ENCODING_CHARACTERS` | The first segment is not MSH, MSH does not open with one MSH.1 and one MSH.2, or they are not one and four or five characters.                                                                                          |
+| `UNEXPECTED_ELEMENT`          | An element is not a segment, group, field, component or subcomponent where it stands: a second MSH, a field of another segment, a component named for its segment, or components of one value named for two data types. |
+| `MIXED_CONTENT`               | An element holds both text and child elements, or text stands between segments or fields.                                                                                                                               |
+| `OUT_OF_ORDER`                | A field comes before one it should follow, or a component or subcomponent repeats or comes out of order.                                                                                                                |
+| `ESCAPE_NOT_SUPPORTED`        | An `escape` element, or the escape character in text (see below).                                                                                                                                                       |
+
+Delimiters that `parseHL7` itself refuses, such as two the same, are left to its own
+`Hl7ParseError`, as they would be in the pipe form.
 
 The error carries `offset`, where in the document the reader stopped, and `path` when the place
 has the shape of an HL7 position (`PID.5`). Neither it nor the message ever holds text from the
@@ -125,10 +145,7 @@ is to read them from a message your partner sent, or from one of their examples,
 import { parseHL7, toHl7Xml } from "@cosyte/hl7";
 
 const msg = parseHL7(
-  [
-    "MSH|^~\\&|TESTLAB||||20260102101500||ACK^R01^ACK|XMLACK01|P|2.6",
-    "MSA|AA|XMLDOC01",
-  ].join("\r"),
+  ["MSH|^~\\&|TESTLAB||||20260102101500||ACK^R01^ACK|XMLACK01|P|2.6", "MSA|AA|XMLDOC01"].join("\r"),
 );
 
 const xml = toHl7Xml(msg, {
@@ -163,6 +180,13 @@ What the writer does:
   holds one value. One without a type is written as text when it holds one value, and refused with
   `DATA_TYPE_UNKNOWN` when it holds more. List composite types only.
 - Each repetition is its own element, an empty one written `<PID.3/>`. The explicit null is `""`.
+- An empty field is left out, except at the end of a segment: a segment ending in empty fields
+  (`PID|a||`) gets one empty element at its last position (`<PID.3/>`), so it reads back with the
+  same field count. Empty components and subcomponents after the last filled one are not kept:
+  `a^` is written and read back as `a`, the same value.
+- A data type named for the segment it stands in (`"PID.3": "PID"`) is refused with
+  `INVALID_OPTIONS`, and a message holding a second MSH with `UNEXPECTED_ELEMENT`, since the reader
+  refuses both.
 - A line break in a value is written `&#10;` and a carriage return `&#13;`.
 - `parseHL7Xml` reads what it writes back to the same model, for any delimiters.
 
@@ -188,9 +212,10 @@ guess:
   receiver that validates against a schema with groups will refuse the document as it stands.
 - **Batches.** A batch (`BHS`, `FHS`) in XML is not read or written.
 
-Three things we wrote by our reading of a positional translation, rather than a rule we read: a
+Four things we wrote by our reading of a positional translation, rather than a rule we read: a
 line break is written as a character reference, not an `escape` element; the explicit null is the
-text `""`; and an empty repetition is an empty element.
+text `""`; an empty repetition is an empty element; and trailing empty fields are kept as one
+empty element at the segment's last position.
 
 ## Related
 

@@ -39,7 +39,11 @@ export const XML_ERROR_CODES = {
   FORBIDDEN_CHARACTER: "FORBIDDEN_CHARACTER",
   /** An element carries a namespace prefix, or a default namespace other than `urn:hl7-org:v2xml`. */
   NAMESPACE_NOT_SUPPORTED: "NAMESPACE_NOT_SUPPORTED",
-  /** An element is not a segment, group, field, component or subcomponent where it stands. */
+  /**
+   * An element is not a segment, group, field, component or subcomponent where it stands: a
+   * second MSH, a component named for its segment, or the components of one value named for two
+   * data types among them.
+   */
   UNEXPECTED_ELEMENT: "UNEXPECTED_ELEMENT",
   /** An element holds both text and child elements. */
   MIXED_CONTENT: "MIXED_CONTENT",
@@ -56,7 +60,10 @@ export const XML_ERROR_CODES = {
   DATA_TYPE_UNKNOWN: "DATA_TYPE_UNKNOWN",
   /** The writer cannot name the root element: no `structure` option and no MSH-9 to derive it from. */
   STRUCTURE_UNKNOWN: "STRUCTURE_UNKNOWN",
-  /** A writer option is malformed: a data type or structure name that is not an XML name. */
+  /**
+   * An option is malformed: a reader limit that is not a number (NaN included), or a writer's
+   * data type or structure name that is not an XML name, or a data type named for its segment.
+   */
   INVALID_OPTIONS: "INVALID_OPTIONS",
 } as const;
 

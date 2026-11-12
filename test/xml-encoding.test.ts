@@ -99,7 +99,7 @@ describe("parseHL7Xml reads the model parseHL7 builds", () => {
   it("reads the truncation character a five-character MSH.2 declares", () => {
     const msg = parseHL7Xml(fixture("adt-a01-v27.xml"));
     expect(msg.encodingCharacters.truncation).toBe("#");
-    expect(msg.part("NTE")?.field(3).value).toBe("Room #4 ok");
+    expect(msg.get("PV1.3.1")).toBe("SYNTHWARD#2");
   });
 
   it("passes parseHL7's options through", () => {
@@ -525,8 +525,13 @@ describe("the edges of the reader and writer", () => {
   });
 
   it("writes nothing for a field the tree leaves out or holds only empty components", () => {
-    const base = parseHL7(`${PIPE_MSH}PID|||^\r`);
-    expect(toHl7Xml(base, { dataTypes: { "MSH.9": "MSG" } })).toContain("<PID/>");
+    const base = parseHL7(`${PIPE_MSH}PID|||^|x\r`);
+    expect(toHl7Xml(base, { dataTypes: { "MSH.9": "MSG" } })).toContain(
+      "<PID><PID.4>x</PID.4></PID>",
+    );
+    // The last field keeps the segment's field count with one empty element, not its components.
+    const last = parseHL7(`${PIPE_MSH}PID|||^\r`);
+    expect(toHl7Xml(last, { dataTypes: { "MSH.9": "MSG" } })).toContain("<PID><PID.3/></PID>");
     const value: RawField = {
       isNull: false,
       repetitions: [{ components: [{ subcomponents: ["a"] }] }],

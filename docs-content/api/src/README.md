@@ -14328,7 +14328,8 @@ Caps on the document; see [XmlLimits](#xmllimits).
 ### XmlLimits
 
 Caps on what the XML reader accepts. Each is optional and falls back to
-[DEFAULT\_XML\_LIMITS](#default_xml_limits).
+[DEFAULT\_XML\_LIMITS](#default_xml_limits). A cap that is given must be a number: NaN or a value of another
+type is refused with `INVALID_OPTIONS`, and `Infinity` lifts the cap.
 
 #### Example
 
@@ -17063,7 +17064,8 @@ The first segment is not an `MSH` that opens with `MSH.1` and `MSH.2`, or they a
 
 > `readonly` **INVALID\_OPTIONS**: `"INVALID_OPTIONS"` = `"INVALID_OPTIONS"`
 
-A writer option is malformed: a data type or structure name that is not an XML name.
+An option is malformed: a reader limit that is not a number (NaN included), or a writer's
+data type or structure name that is not an XML name, or a data type named for its segment.
 
 ##### MIXED\_CONTENT
 
@@ -17099,7 +17101,9 @@ The writer cannot name the root element: no `structure` option and no MSH-9 to d
 
 > `readonly` **UNEXPECTED\_ELEMENT**: `"UNEXPECTED_ELEMENT"` = `"UNEXPECTED_ELEMENT"`
 
-An element is not a segment, group, field, component or subcomponent where it stands.
+An element is not a segment, group, field, component or subcomponent where it stands: a
+second MSH, a component named for its segment, or the components of one value named for two
+data types among them.
 
 #### Example
 
@@ -20275,14 +20279,17 @@ builds for that message: the same segments, fields, repetitions, components, sub
 escapes and nulls, the same warnings, lazy by default.
 
 Element names are read by position: `PID.5` is the fifth field of PID, and inside it `XPN.1`
-(or any name ending in `.1`) is its first component, so no data type table is needed to read.
-Group elements (`ORU_R01.PATIENT_RESULT`) are walked through; segments are read in document
-order. Text is the decoded value: a `|` or `^` in text is that character, written to the model
+(or any data type name ending in `.1`) is its first component, so no data type table is needed
+to read. The components of one value must all name the same data type, and none may be named
+for the segment itself (`PID.3` inside `PID.5`). Group elements (`ORU_R01.PATIENT_RESULT`) are
+walked through; segments are read in document order. One document is one message: a second
+MSH is refused. Text is the decoded value: a `|` or `^` in text is that character, written to the model
 as the pipe parser would read `\F\` or `\S`. A field whose text is `""` is the explicit null.
 
 The reader is hardened: it refuses a DTD or entity declaration, any entity beyond the five XML
 predefines, a character XML 1.0 forbids, and a document past the size, depth or element caps
-of `limits`. It refuses, rather than guess, the cases whose encoding rule we have not
+of `limits` (a limit that is not a number, NaN included, is refused with `INVALID_OPTIONS`;
+`Infinity` lifts a cap). It refuses, rather than guess, the cases whose encoding rule we have not
 confirmed: an `escape` element, and the message's escape character (MSH.2's third character)
 in text. Every refusal is an [Hl7XmlError](#hl7xmlerror) with a code from `XML_ERROR_CODES`; errors
 from reading the pipe form are `parseHL7`'s own.
@@ -22225,7 +22232,10 @@ composite with no type there is refused with `DATA_TYPE_UNKNOWN`. Segments are w
 order directly under the root: group elements are not written, so a receiver that validates
 against a schema with groups will not accept the document as it stands. A value holding the
 escape character, or carrying a formatting or hex escape sequence, is refused with
-`ESCAPE_NOT_SUPPORTED`, since we have not confirmed how the XML encoding writes those.
+`ESCAPE_NOT_SUPPORTED`, since we have not confirmed how the XML encoding writes those. An empty
+field is left out, except that a segment ending in empty fields gets one empty element at its
+last position (`<PID.3/>`), so it reads back with the same field count. A message holding a
+second MSH is refused, since one document is one message.
 
 `parseHL7Xml` reads the result back to the same model.
 

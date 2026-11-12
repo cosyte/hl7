@@ -1,7 +1,7 @@
 /**
  * Property tests for the HL7 v2 XML encoding: a message goes pipe to XML to pipe and XML to pipe
  * to XML with every field, component, repetition, escape and null kept, under any encoding
- * characters, the v2.7 truncation character included. A value the writer cannot carry (one with
+ * characters, the v2.7 truncation character included, and with trailing empty fields kept. A value the writer cannot carry (one with
  * the escape character, or a formatting or hex escape) is refused, and refused only then.
  */
 
@@ -36,21 +36,29 @@ function pipeText(enc: EncodingCharacters, version: string, body: string[]): str
   return [msh, ...body].join("\r") + "\r";
 }
 
-/** A message whose values never hold its escape character: every one the writer can carry. */
+/**
+ * A message whose values never hold its escape character: every one the writer can carry. Any
+ * segment, MSH included, may end in up to three empty fields, which the writer keeps.
+ */
 const writable: fc.Arbitrary<Hl7Message> = encodingCharacters().chain((enc) =>
   fc
     .tuple(
       fc.constantFrom("2.5", "2.5.1", "2.6", "2.7", "2.7.1"),
-      fc.array(segment({ values: value().filter((v) => !v.includes(enc.escape)), maxFields: 6 }), {
-        maxLength: 5,
-      }),
+      fc.nat({ max: 3 }),
+      fc.array(
+        fc.tuple(
+          segment({ values: value().filter((v) => !v.includes(enc.escape)), maxFields: 6 }),
+          fc.nat({ max: 3 }),
+        ),
+        { maxLength: 5 },
+      ),
     )
-    .map(([version, segments]) =>
+    .map(([version, mshEmpties, segments]) =>
       parseHL7(
         pipeText(
           enc,
-          version,
-          segments.map((s) => emitSegment(s, enc)),
+          version + enc.field.repeat(mshEmpties),
+          segments.map(([s, empties]) => emitSegment(s, enc) + enc.field.repeat(empties)),
         ),
       ),
     ),
