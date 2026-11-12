@@ -154,8 +154,8 @@ describe("AC17: the entry point still exports everything it used to", () => {
     expect(w.message).toContain("OBR/OBX");
   });
 
-  it("the warning code set is unchanged (no code added, renamed or removed)", () => {
-    expect(Object.keys(hl7.WARNING_CODES)).toHaveLength(20);
+  it("the warning code set lost no code: 21, one added since, none renamed or removed", () => {
+    expect(Object.keys(hl7.WARNING_CODES)).toHaveLength(21);
     expect(hl7.WARNING_CODES.MISSING_EXPECTED_GROUP).toBe("MISSING_EXPECTED_GROUP");
   });
 });

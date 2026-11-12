@@ -10,6 +10,7 @@ import {
   fieldWhitespaceTrimmed,
   missingRequiredField,
   mllpFramingStripped,
+  nonRepeatingFieldRepeated,
   outOfOrderSegment,
   segmentCase,
   timestampFallbackFormat,
@@ -21,9 +22,9 @@ import {
 } from "../src/parser/warnings.js";
 
 describe("parser/warnings: registry + factories", () => {
-  it("WARNING_CODES has exactly 20 entries with matching key/value strings", () => {
+  it("WARNING_CODES has exactly 21 entries with matching key/value strings", () => {
     const entries = Object.entries(WARNING_CODES);
-    expect(entries).toHaveLength(20);
+    expect(entries).toHaveLength(21);
     for (const [k, v] of entries) expect(k).toBe(v);
   });
 
@@ -66,6 +67,17 @@ describe("parser/warnings: registry + factories", () => {
     ] as const;
     for (const [w, expected] of cases) expect(w.code).toBe(expected);
     expect(cases).toHaveLength(14);
+  });
+
+  it("nonRepeatingFieldRepeated names the field and the count, and withholds a malformed name", () => {
+    expect(nonRepeatingFieldRepeated({ segmentIndex: 1, fieldIndex: 35 }, "PID", 35, 2)).toEqual({
+      code: "NON_REPEATING_FIELD_REPEATED",
+      message: "Field PID-35 may not repeat but holds 2 repetitions; only the first is read.",
+      position: { segmentIndex: 1, fieldIndex: 35 },
+    });
+    const forged = nonRepeatingFieldRepeated({ segmentIndex: 0 }, "Test Name", 3, 4);
+    expect(forged.message).not.toContain("Test Name");
+    expect(forged.message).toContain("-3 may not repeat but holds 4 repetitions");
   });
 
   it("warning messages are non-empty and carry the contextual payload", () => {
