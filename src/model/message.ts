@@ -993,9 +993,9 @@ export class Hl7Message {
    * Write this message as bytes in the character set it declares in MSH-18 (its first
    * repetition), or in `options.charset`, the way `parseHL7` reads a `Buffer` in that set. The
    * text is what `toString()` writes, so a message read from bytes and not changed comes back as
-   * the bytes it arrived as. A blank or absent MSH-18 and `UTF-8` are written as UTF-8; a declared
-   * `ASCII` as 7-bit ASCII; `8859/1` one byte per character; and `WINDOWS-1252` and the other ISO
-   * 8859 sets the parser decodes through their tables.
+   * the bytes it arrived as, line endings aside (below). A blank or absent MSH-18 and `UTF-8` are
+   * written as UTF-8; a declared `ASCII` as 7-bit ASCII; `8859/1` one byte per character; and
+   * `WINDOWS-1252` and the other ISO 8859 sets the parser decodes through their tables.
    *
    * A set the parser does not decode (`8859/9`, `8859/11`, the East Asian sets, an unrecognized
    * label) has no table here either. When the parser kept a message's bytes as a latin1 reading
@@ -1005,6 +1005,13 @@ export class Hl7Message {
    * a builder that declares such a set, must be ASCII. `UNICODE UTF-16` and `UNICODE UTF-32` are
    * refused outright for anything but the segments read from bytes, since one byte per character
    * is not either of them.
+   *
+   * One limit holds for every message read from bytes: the reader reads line endings before it
+   * frames segments, so a 0x0A byte comes back as 0x0D and a 0x0D 0x0A pair as 0x0D alone. In a
+   * single-byte set those bytes are only ever line endings, and no character of an East Asian set
+   * the parser keeps as bytes (ISO-2022, GB 18030, EUC, BIG-5) holds either one. In `UNICODE
+   * UTF-16` and `UNICODE UTF-32` a character can hold either byte: the reader frames a segment on
+   * it, and the bytes written back differ there from the bytes read.
    *
    * Throws {@link Hl7EncodeError} for a character the set cannot hold, never writing a substitute:
    * the euro sign in `8859/1`, a lone surrogate in UTF-8, a letter with an accent in a declared

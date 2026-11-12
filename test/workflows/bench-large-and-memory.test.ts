@@ -186,6 +186,11 @@ function row(over: Partial<Row>): Row {
   };
 }
 
+/** One row for each reader the gate judges, each with `over` applied. */
+function readings(over: Partial<Row> = {}): Row[] {
+  return ["readMessages", "parseStream", "readSegments"].map((reader) => row({ reader, ...over }));
+}
+
 describe("the streaming memory gate", () => {
   it("writes its limit down: three times the largest item", async () => {
     const { PEAK_MULTIPLE } = await importModule<{ PEAK_MULTIPLE: number }>(
@@ -197,11 +202,15 @@ describe("the streaming memory gate", () => {
 
   it("passes a reading at or under the limit and fails one over it", async () => {
     const { judge } = await importModule<{ judge: Judge }>("bench", "stream-memory.mjs");
-    expect(judge([row({ peak: 12 * MIB })]).exitCode).toBe(0);
-    const over = judge([row({ reader: "someOtherReader" }), row({ peak: 12 * MIB + 1 })]);
+    expect(judge(readings({ peak: 12 * MIB })).exitCode).toBe(0);
+    const over = judge([
+      row({ reader: "someOtherReader" }),
+      row({ peak: 12 * MIB + 1 }),
+      ...readings().slice(1),
+    ]);
     expect(over.exitCode).toBe(1);
     expect(over.lines.join("\n")).toMatch(/readMessages.*over/u);
-    expect(judge([row({ peak: 5 * MIB })], 1).exitCode).toBe(1);
+    expect(judge(readings({ peak: 5 * MIB }), 1).exitCode).toBe(1);
   });
 
   it("judges readMessages, parseStream and readSegments", async () => {
@@ -222,17 +231,29 @@ describe("the streaming memory gate", () => {
       "readSegments: peak 1.05 times the largest item, within the limit of 3",
     ]);
     // parseStream at the reading it gave before it was judged: over the limit.
-    const over = judge([row({}), row({ reader: "parseStream", peak: 3.98 * 4 * MIB })]);
+    const over = judge([
+      row({}),
+      row({ reader: "parseStream", peak: 3.98 * 4 * MIB }),
+      row({ reader: "readSegments" }),
+    ]);
     expect(over.exitCode).toBe(1);
     expect(over.lines[1]).toBe(
       "parseStream: peak 3.98 times the largest item, over the limit of 3",
     );
-    expect(judge([row({ reader: "readSegments", peak: 12 * MIB + 1 })]).exitCode).toBe(1);
+    const segments = judge([
+      ...readings().slice(0, 2),
+      row({ reader: "readSegments", peak: 12 * MIB + 1 }),
+    ]);
+    expect(segments.exitCode).toBe(1);
   });
 
   it("lists a reader it does not judge, and a reading of only such a reader cannot pass", async () => {
     const { judge } = await importModule<{ judge: Judge }>("bench", "stream-memory.mjs");
-    const verdict = judge([row({}), row({ reader: "someOtherReader", peak: 16 * MIB })]);
+    const verdict = judge([
+      row({}),
+      row({ reader: "someOtherReader", peak: 16 * MIB }),
+      ...readings().slice(1),
+    ]);
     expect(verdict.exitCode).toBe(0);
     expect(verdict.lines[1]).toBe(
       "someOtherReader: peak 4.00 times the largest item, measured, not gated",
@@ -240,15 +261,54 @@ describe("the streaming memory gate", () => {
     expect(judge([row({ reader: "someOtherReader" })]).exitCode).toBe(2);
   });
 
+  it.each(["readMessages", "parseStream", "readSegments"])(
+    "cannot judge a reading %s is missing from, however well the others read",
+    async (missing) => {
+      const { judge } = await importModule<{ judge: Judge }>("bench", "stream-memory.mjs");
+      const verdict = judge(readings().filter((r) => r.reader !== missing));
+      expect(verdict.exitCode).toBe(2);
+      expect(verdict.lines.at(-1)).toBe(`${missing}: not measured, so there is nothing to judge`);
+      // Missing outranks a finding, as a reading that read nothing does.
+      const over = readings({ peak: 100 * MIB }).filter((r) => r.reader !== missing);
+      expect(judge(over).exitCode).toBe(2);
+    },
+  );
+
   it("cannot judge a reading that read nothing or failed an item", async () => {
     const { judge } = await importModule<{ judge: Judge }>("bench", "stream-memory.mjs");
     expect(judge([]).exitCode).toBe(2);
-    expect(judge([row({ count: 0 })]).exitCode).toBe(2);
-    expect(judge([row({ largestItemBytes: 0 })]).exitCode).toBe(2);
-    expect(judge([row({ failed: 1 })]).exitCode).toBe(2);
+    // The other two readers read well, so each verdict is that one row's.
+    const others = readings().slice(1);
+    expect(judge([row({ count: 0 }), ...others]).exitCode).toBe(2);
+    expect(judge([row({ largestItemBytes: 0 }), ...others]).exitCode).toBe(2);
+    expect(judge([row({ failed: 1 }), ...others]).exitCode).toBe(2);
     // Could not judge outranks a finding: a broken reading is not a pass of the other rows.
-    expect(judge([row({ peak: 100 * MIB }), row({ failed: 1 })]).exitCode).toBe(2);
+    const broken = [row({ peak: 100 * MIB }), row({ reader: "parseStream", failed: 1 })];
+    expect(judge([...broken, row({ reader: "readSegments" })]).exitCode).toBe(2);
   });
+
+  it.each([
+    ["peak", undefined],
+    ["peak", Number.NaN],
+    ["peak", Number.POSITIVE_INFINITY],
+    ["peak", -1],
+    ["largestItemBytes", undefined],
+    ["largestItemBytes", Number.NaN],
+    ["largestItemBytes", Number.POSITIVE_INFINITY],
+    ["largestItemBytes", -1],
+  ] as const)(
+    "cannot judge a row whose %s is %s, however well the others read",
+    async (field, value) => {
+      const { judge } = await importModule<{ judge: Judge }>("bench", "stream-memory.mjs");
+      // A row as a broken reading could hand over: the field absent, not a number, or negative.
+      const broken: Row = { ...row({}), [field]: value };
+      const verdict = judge([broken, ...readings().slice(1)]);
+      expect(verdict.exitCode).toBe(2);
+      expect(verdict.lines[0]).toBe(
+        "readMessages: no peak or no largest item size, so there is nothing to judge",
+      );
+    },
+  );
 
   it("runs as its own job on every pull request, at 100 MiB, and its exit fails the job", () => {
     const workflow = read(".github", "workflows", "stream-memory.yml");

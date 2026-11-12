@@ -86,6 +86,19 @@ describe("parser/normalize: Buffer path", () => {
     expect(Buffer.from(out, "latin1")).toEqual(bytes);
   });
 
+  it("normalizes line-ending bytes on the verbatim fail-safe, inside a wide character too", () => {
+    // As UTF-16LE, U+010A is 0x0A 0x01 and U+0A0D is 0x0D 0x0A: the latin1 reading keeps neither.
+    const quiet = (): void => undefined;
+    const lf = Buffer.from([0x4d, 0x53, 0x48, 0x7c, 0x0a, 0x01]);
+    expect(Buffer.from(normalizeBuffer(lf, "UNICODE UTF-16", quiet), "latin1")).toEqual(
+      Buffer.from([0x4d, 0x53, 0x48, 0x7c, 0x0d, 0x01]),
+    );
+    const crlf = Buffer.from([0x4d, 0x53, 0x48, 0x7c, 0x0d, 0x0a, 0x41]);
+    expect(Buffer.from(normalizeBuffer(crlf, "UNICODE UTF-16", quiet), "latin1")).toEqual(
+      Buffer.from([0x4d, 0x53, 0x48, 0x7c, 0x0d, 0x41]),
+    );
+  });
+
   it("falls back to verbatim + UNSUPPORTED_CHARSET when the runtime TextDecoder lacks a decodable label", () => {
     // Simulate a minimal-ICU Node build where constructing the 8859/15 decoder
     // throws: the parser must preserve bytes rather than propagate the error.

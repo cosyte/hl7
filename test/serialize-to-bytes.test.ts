@@ -13,7 +13,13 @@ import { Buffer } from "node:buffer";
 
 import { describe, expect, it } from "vitest";
 
-import { Hl7EncodeError, WARNING_CODES, buildMessage, parseHL7 } from "../src/index.js";
+import {
+  Hl7EncodeError,
+  WARNING_CODES,
+  buildMessage,
+  parseHL7,
+  readMessages,
+} from "../src/index.js";
 
 /** An ADT^A01 header declaring `msh18` (omitted when empty), then `rest` segments. */
 function messageText(msh18: string, ...rest: string[]): string {
@@ -194,6 +200,65 @@ describe("toBytes: a message leaves in the set it declares", () => {
 
   it("returns a Buffer", () => {
     expect(Buffer.isBuffer(parseHL7(messageText("8859/1")).toBytes())).toBe(true);
+  });
+});
+
+describe("toBytes: the limit of a byte reading, line-ending bytes", () => {
+  // The bytes of a wide character whose code unit holds a line-ending byte: as UTF-16LE, U+010A is
+  // 0x0A 0x01, U+0A0D is 0x0D 0x0A and U+010D is 0x0D 0x01. The reader keeps a UTF-16 message as a latin1 reading, but
+  // it reads line endings before it frames segments, so these bytes do not come back as they came.
+  const name = (bytes: readonly number[]): Buffer => messageBytes("UNICODE UTF-16", bytes);
+  const at = (bytes: Buffer, byte: number): number =>
+    bytes.indexOf(Buffer.concat([Buffer.from("SYN^MR||", "latin1"), Buffer.from([byte])])) + 8;
+
+  it("writes a lone 0x0A byte back as 0x0D, and frames a segment on it", async () => {
+    const bytes = name([0x0a, 0x01]);
+    const msg = parseHL7(bytes);
+    expect(msg.warnings.map((w) => w.code)).toContain(WARNING_CODES.UNSUPPORTED_CHARSET);
+    const expected = Buffer.from(bytes);
+    expected[at(bytes, 0x0a)] = 0x0d;
+    expect(msg.toBytes()).toEqual(expected);
+    expect(msg.rawSegments.length).toBe(3);
+    // readMessages reads the same bytes the same way.
+    const read: (Buffer | false)[] = [];
+    for await (const item of readMessages([bytes])) read.push(item.ok && item.message.toBytes());
+    expect(read).toEqual([expected]);
+  });
+
+  it("writes a 0x0D 0x0A pair back as 0x0D alone, one byte shorter", () => {
+    const bytes = name([0x0d, 0x0a]);
+    const i = at(bytes, 0x0d);
+    const expected = Buffer.concat([bytes.subarray(0, i + 1), bytes.subarray(i + 2)]);
+    expect(parseHL7(bytes).toBytes()).toEqual(expected);
+  });
+
+  it("keeps a lone 0x0D byte, though it frames a segment on it too", () => {
+    const bytes = name([0x0d, 0x01]);
+    const msg = parseHL7(bytes);
+    expect(msg.toBytes()).toEqual(bytes);
+    expect(msg.rawSegments.length).toBe(3);
+  });
+
+  // The East Asian sets kept as a byte reading never put 0x0A or 0x0D inside a character: ISO-2022
+  // uses ESC and 0x21 to 0x7E, GB 18030 0x30 to 0x39 and 0x40 to 0xFE past its lead byte, EUC 0xA1
+  // to 0xFE, BIG-5 trail bytes 0x40 to 0x7E and 0xA1 to 0xFE. So the limit above does not reach them.
+  it.each([
+    ["ISO IR87", [0x1b, 0x24, 0x42, 0x30, 0x21, 0x1b, 0x28, 0x42]],
+    ["ISO IR159", [0x1b, 0x24, 0x28, 0x44, 0x30, 0x21, 0x1b, 0x28, 0x42]],
+    ["GB 18030-2000", [0xb0, 0xa1, 0x81, 0x30, 0x81, 0x30]],
+    ["KS X 1001", [0xb0, 0xa1, 0xc8, 0xfe]],
+    ["CNS 11643-1992", [0xa1, 0xa1, 0xc4, 0xa1]],
+    ["BIG-5", [0xa4, 0x40, 0xa4, 0xa1]],
+  ] as const)("writes a %s byte reading back byte for byte", async (set, chars) => {
+    const bytes = messageBytes(set, chars);
+    expect(bytes.includes(0x0a)).toBe(false);
+    const msg = parseHL7(bytes);
+    expect(msg.warnings.map((w) => w.code)).toContain(WARNING_CODES.UNSUPPORTED_CHARSET);
+    expect(msg.rawSegments.length).toBe(2);
+    expect(msg.toBytes()).toEqual(bytes);
+    const read: (Buffer | false)[] = [];
+    for await (const item of readMessages([bytes])) read.push(item.ok && item.message.toBytes());
+    expect(read).toEqual([bytes]);
   });
 });
 
