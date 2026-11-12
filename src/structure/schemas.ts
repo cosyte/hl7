@@ -4,16 +4,18 @@
  * The expectations are derived offline from the vendored publication snapshot
  * by `pnpm generate:structures` and committed; nothing here reads a file, makes
  * a network call, or decides anything. It exists so the validator asks for a
- * structure by id instead of scanning an 81-entry array per message.
+ * structure by id instead of scanning a 96-entry array per message.
  */
 
-import { GENERATED_STRUCTURE_SCHEMAS } from "../parser/generated/message-structure-schemas.js";
+import { generatedStructureSchemas } from "../parser/generated/message-structure-schemas.js";
 import type { PublishedStructureSchema } from "../parser/structure-types.js";
 
-/** Every generated ordered expectation, keyed by its published structure id. */
-const SCHEMAS_BY_ID: ReadonlyMap<string, PublishedStructureSchema> = new Map(
-  GENERATED_STRUCTURE_SCHEMAS.map((schema) => [schema.structureId, schema]),
-);
+/**
+ * Every generated ordered expectation, keyed by its published structure id.
+ * Built on the first lookup rather than at import: the table is large, and a
+ * caller who never validates a structure never pays for it.
+ */
+let schemasById: ReadonlyMap<string, PublishedStructureSchema> | undefined;
 
 /**
  * The ordered expectation for one published structure variant, or `undefined`
@@ -24,5 +26,8 @@ const SCHEMAS_BY_ID: ReadonlyMap<string, PublishedStructureSchema> = new Map(
 export function findPublishedStructureSchema(
   structureId: string,
 ): PublishedStructureSchema | undefined {
-  return SCHEMAS_BY_ID.get(structureId);
+  schemasById ??= new Map(
+    generatedStructureSchemas().map((schema) => [schema.structureId, schema]),
+  );
+  return schemasById.get(structureId);
 }

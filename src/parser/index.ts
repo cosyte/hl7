@@ -93,7 +93,9 @@ const OPTIONS_ONLY_KEYS: readonly (keyof ParseOptions)[] = [
  *
  * @internal
  */
-function discriminateOptionsOrProfile(arg: ParseOptions | Profile | undefined): ParseOptions {
+export function discriminateOptionsOrProfile(
+  arg: ParseOptions | Profile | undefined,
+): ParseOptions {
   if (arg === undefined) return {};
   // A Profile is REQUIRED to have `name: string` (parser/types.ts locked
   // interface). Any arg without a string `name` is therefore unambiguously
@@ -143,10 +145,10 @@ function discriminateOptionsOrProfile(arg: ParseOptions | Profile | undefined): 
  *
  * @internal
  */
-function makeEmitter(
+export function makeEmitter(
   warnings: Hl7ParseWarning[],
   options: ParseOptions,
-  input: string,
+  input: string | (() => string),
   effectiveProfile: Profile | undefined,
 ): (w: Hl7ParseWarning) => void {
   return (w) => {
@@ -154,8 +156,10 @@ function makeEmitter(
       // Strict mode escalates every Tier-2 warning into a thrown
       // `Hl7ParseError` that keeps the warning's own code, so consumers have
       // one catch surface. `Hl7ParseError.code` is typed
-      // `FatalCode | WarningCode` to say so.
-      throw new Hl7ParseError(w.code, w.message, w.position, buildSnippet(input, w.position));
+      // `FatalCode | WarningCode` to say so. A reader that streams a message passes the head of
+      // the text as a function, read only when a warning is escalated.
+      const text = typeof input === "string" ? input : input();
+      throw new Hl7ParseError(w.code, w.message, w.position, buildSnippet(text, w.position));
     }
     warnings.push(w);
     // D-22: profile.onWarning fires BEFORE options.onWarning. Each call is
@@ -220,8 +224,9 @@ function buildSnippet(input: string, _position: Hl7Position): string {
  *
  * @internal
  */
-function extractMsh18FromTentativeDecode(tentativeText: string): string | undefined {
+export function extractMsh18FromTentativeDecode(tentativeText: string): string | undefined {
   const firstSegment = tentativeText.split(/[\r\n]/)[0];
+  /* v8 ignore next -- split always returns at least one element, so the first is never undefined */
   if (firstSegment === undefined) return undefined;
   if (!firstSegment.startsWith("MSH")) return undefined;
   // HL7 field-separator character is at index 3 of the MSH segment (after
@@ -235,7 +240,11 @@ function extractMsh18FromTentativeDecode(tentativeText: string): string | undefi
   if (raw === undefined) return undefined;
   // Repetition separator = MSH-2 character 2 (0-indexed 1); default `~` when
   // MSH-2 is short/malformed. Take the first repetition = the message default.
-  const repSep = (parts[1] ?? "").charAt(1) || "~";
+  // Stryker disable next-line StringLiteral: parts[1] is always defined here, so "" is never read
+  /* v8 ignore next -- parts[17] is defined above, so parts[1] is too */
+  const encodingCharacters = parts[1] ?? "";
+  const repSep = encodingCharacters.charAt(1) || "~";
+  /* v8 ignore next -- split always returns a first element */
   const firstRep = raw.split(repSep)[0] ?? raw;
   const trimmed = firstRep.trim();
   return trimmed.length > 0 ? trimmed : undefined;
@@ -267,15 +276,35 @@ function resolveBufferCharset(
   raw: Buffer,
   options: ParseOptions,
   emit: (w: Hl7ParseWarning) => void,
+  latin1: string | undefined,
 ): string {
-  const override = options.charset;
   // Pass 1: tentative UTF-8 decode to read MSH-18. This is cheap: for
   // UTF-8 payloads the tentative decode is exactly what `normalizeBuffer`
   // would produce anyway; for non-UTF-8 payloads the MSH header bytes are
   // ASCII so MSH-18 still surfaces correctly even if the body garbles.
   const tentative = new TextDecoder("utf-8").decode(raw);
   const declared = extractMsh18FromTentativeDecode(tentative);
+  return normalizeBuffer(raw, chooseBufferCharset(declared, options, emit), emit, latin1);
+}
 
+/**
+ * The charset a `Buffer` input is decoded with, from `options.charset` and the declared MSH-18,
+ * by the precedence `resolveBufferCharset` documents: the override wins, and an override that
+ * disagrees with MSH-18 reports `ENCODING_MISMATCH`. `undefined` is the ASCII default.
+ *
+ * @example
+ * ```ts
+ * chooseBufferCharset("8859/1", {}, emit); // => "8859/1"
+ * ```
+ *
+ * @internal
+ */
+export function chooseBufferCharset(
+  declared: string | undefined,
+  options: ParseOptions,
+  emit: (w: Hl7ParseWarning) => void,
+): string | undefined {
+  const override = options.charset;
   if (override !== undefined && declared !== undefined) {
     const overrideNorm = canonicalCharset(override);
     const declaredNorm = canonicalCharset(declared);
@@ -292,15 +321,9 @@ function resolveBufferCharset(
         ),
       );
     }
-    return normalizeBuffer(raw, override, emit);
+    return override;
   }
-  if (override !== undefined) {
-    return normalizeBuffer(raw, override, emit);
-  }
-  if (declared !== undefined) {
-    return normalizeBuffer(raw, declared, emit);
-  }
-  return normalizeBuffer(raw, undefined, emit);
+  return override ?? declared;
 }
 
 /**
@@ -314,7 +337,7 @@ function resolveBufferCharset(
  *
  * @internal
  */
-function extractVersion(msh: RawSegment | undefined): string {
+export function extractVersion(msh: RawSegment | undefined): string {
   if (msh === undefined || msh.name !== "MSH") return "";
   const versionField = msh.fields[11];
   if (versionField === undefined) return "";
@@ -336,7 +359,7 @@ function extractVersion(msh: RawSegment | undefined): string {
  *
  * @internal
  */
-function extractMessageType(msh: RawSegment | undefined): {
+export function extractMessageType(msh: RawSegment | undefined): {
   readonly messageCode: string;
   readonly triggerEvent: string;
 } {
@@ -348,6 +371,152 @@ function extractMessageType(msh: RawSegment | undefined): {
   const messageCode = firstRep.components[0]?.subcomponents[0] ?? "";
   const triggerEvent = firstRep.components[1]?.subcomponents[0] ?? "";
   return { messageCode, triggerEvent };
+}
+
+/**
+ * The profile a parse applies, by the rule "explicit wins; null opts out; undefined falls back
+ * to the registered default": `options.profile === null` applies none, a given profile wins over
+ * any registered default, and an absent one falls back to `getDefaultProfile()`, which may itself
+ * be `undefined`.
+ *
+ * @example
+ * ```ts
+ * resolveEffectiveProfile({ profile: null }); // => undefined
+ * ```
+ *
+ * @internal
+ */
+export function resolveEffectiveProfile(options: ParseOptions): Profile | undefined {
+  if (options.profile === null) return undefined;
+  if (options.profile !== undefined) return options.profile;
+  return getDefaultProfile();
+}
+
+/**
+ * Report `UNKNOWN_SEGMENT` for a segment name that is neither a standard segment nor claimed by
+ * the profile, or `SEGMENT_CASE` for a known name that is not spelled in canonical uppercase. The
+ * two never both fire for one name.
+ *
+ * Both checks read the CANONICAL name, so `pid` resolves as PID rather than reading as an unknown
+ * segment: the defect that silently dropped a flagged lab result from `observations()` because
+ * the sender shipped `obx`. Profile customSegments keys are validated to /^Z[A-Z0-9]{2}$/ at
+ * defineProfile time, so they are already canonical and need no folding on that side.
+ *
+ * The two warnings are MUTUALLY EXCLUSIVE, which is what keeps each of them honest. SEGMENT_CASE
+ * says "this is a real segment, merely miscased", so it fires only when the canonical name
+ * actually resolves. Emitting it on any lowercase text would make it fire on a forged segment
+ * name -- an unescaped line break inside a narrative field hands the parser a line of clinical
+ * prose as a "segment name" -- and tell the reader it had been resolved as something. A name that
+ * resolves to nothing gets UNKNOWN_SEGMENT alone, whose message already states that the
+ * comparison ignored case. Because they cannot both fire, strict mode (where the first emit
+ * throws) reports the same code it always did for an unrecognized segment.
+ *
+ * Uses Object.prototype.hasOwnProperty.call to guard against prototype pollution.
+ *
+ * @example
+ * ```ts
+ * emitSegmentNameWarning("pid", 1, undefined, emit); // emits SEGMENT_CASE
+ * ```
+ *
+ * @internal
+ */
+export function emitSegmentNameWarning(
+  name: string,
+  segIdx: number,
+  profileCustomSegments: Readonly<Record<string, CustomSegmentDefinition>> | undefined,
+  emit: (w: Hl7ParseWarning) => void,
+): void {
+  const canonicalName = canonicalSegmentName(name);
+  // The profile claim is checked under BOTH spellings. `defineProfile`
+  // validates customSegments keys to /^Z[A-Z0-9]{2}$/, so a declared key is
+  // canonical and the folded lookup is the one that matters. But `parseHL7`
+  // also accepts a hand-rolled `Profile` literal, which gets no such
+  // validation, and a literal keyed `zpi` was the only way to claim a
+  // lowercase Z-feed before this change. Checking the raw name too keeps
+  // those callers working rather than silently unclaiming their segment.
+  const isKnown = KNOWN_SEGMENTS.has(canonicalName);
+  const isProfileClaimed =
+    profileCustomSegments !== undefined &&
+    (Object.prototype.hasOwnProperty.call(profileCustomSegments, canonicalName) ||
+      Object.prototype.hasOwnProperty.call(profileCustomSegments, name));
+  if (!isKnown && !isProfileClaimed) {
+    emit(unknownSegment({ segmentIndex: segIdx }, name));
+  } else if (canonicalName !== name) {
+    emit(segmentCase({ segmentIndex: segIdx }, name));
+  }
+}
+
+/**
+ * The structural-conformance safety net: for a message type the registry recognizes, report
+ * `MISSING_REQUIRED_SEGMENT` for each segment its published structure requires that none of
+ * `presentSegmentNames` (canonical names) is. The warning carries only structural identifiers
+ * (message type, segment name, published structure id), never a field value. An unrecognized
+ * type expects nothing and reports nothing.
+ *
+ * @example
+ * ```ts
+ * emitStructureWarnings("ORU", "R01", new Set(["MSH", "PID"]), emit); // OBR, OBX missing
+ * ```
+ *
+ * @internal
+ */
+export function emitStructureWarnings(
+  messageCode: string,
+  triggerEvent: string,
+  presentSegmentNames: ReadonlySet<string>,
+  emit: (w: Hl7ParseWarning) => void,
+): void {
+  const structure = analyzeMessageStructure(messageCode, triggerEvent, presentSegmentNames);
+  const messageType = triggerEvent !== "" ? `${messageCode}^${triggerEvent}` : messageCode;
+  // The structure id is registry data, not anything read off the message, so
+  // it is interpolated as-is; the message type is shape-checked inside the
+  // warning factory.
+  const structureId = findMessageStructureDefinition(messageCode, triggerEvent)?.structureId ?? "";
+  for (const segmentName of structure.missingSegments) {
+    emit(
+      missingRequiredSegment(
+        { segmentIndex: 0, fieldIndex: 9 },
+        messageType,
+        segmentName,
+        structureId,
+      ),
+    );
+  }
+}
+
+/**
+ * The date formats a message tries, `options.dateFormats` before the profile's, each once, in
+ * first-seen order; `undefined` when neither supplied any.
+ *
+ * @example
+ * ```ts
+ * mergeDateFormats({ dateFormats: ["YYYYMMDD"] }, undefined); // => ["YYYYMMDD"]
+ * ```
+ *
+ * @internal
+ */
+export function mergeDateFormats(
+  options: ParseOptions,
+  effectiveProfile: Profile | undefined,
+): readonly string[] | undefined {
+  // D-21: options.dateFormats precede profile.dateFormats in the try-order.
+  const optionFormats = options.dateFormats ?? [];
+  const profileFormats = effectiveProfile?.dateFormats ?? [];
+  const mergedFormats: string[] = [];
+  const seenFormats = new Set<string>();
+  for (const f of optionFormats) {
+    if (!seenFormats.has(f)) {
+      seenFormats.add(f);
+      mergedFormats.push(f);
+    }
+  }
+  for (const f of profileFormats) {
+    if (!seenFormats.has(f)) {
+      seenFormats.add(f);
+      mergedFormats.push(f);
+    }
+  }
+  return mergedFormats.length > 0 ? Object.freeze(mergedFormats) : undefined;
 }
 
 /**
@@ -401,6 +570,37 @@ export function parseHL7(
   raw: string | Buffer,
   optionsOrProfile?: ParseOptions | Profile,
 ): Hl7Message {
+  return parseInput(raw, optionsOrProfile, undefined);
+}
+
+/**
+ * Parse a message's bytes, given with the same bytes read through `latin1`, as `parseHL7` parses
+ * the bytes alone: the same message, warnings and errors. Where the decoded text would be that
+ * string's characters, the message keeps that string instead of decoding a second copy of it, so a
+ * caller that keeps `latin1` too holds the text once.
+ *
+ * @example
+ * ```ts
+ * const text = "MSH|^~\\&|A|F|B|G|20260101||ADT^A01|1|P|2.5";
+ * parseBytesRead(Buffer.from(text, "latin1"), text, undefined).version; // "2.5"
+ * ```
+ *
+ * @internal
+ */
+export function parseBytesRead(
+  bytes: Buffer,
+  latin1: string,
+  optionsOrProfile: ParseOptions | Profile | undefined,
+): Hl7Message {
+  return parseInput(bytes, optionsOrProfile, latin1);
+}
+
+/** `parseHL7`'s body; `latin1`, when given, is `raw` (bytes) read through `latin1`. */
+function parseInput(
+  raw: string | Buffer,
+  optionsOrProfile: ParseOptions | Profile | undefined,
+  latin1: string | undefined,
+): Hl7Message {
   const options = discriminateOptionsOrProfile(optionsOrProfile);
   const warnings: Hl7ParseWarning[] = [];
 
@@ -415,7 +615,7 @@ export function parseHL7(
   if (typeof raw === "string") {
     text = raw;
   } else {
-    text = resolveBufferCharset(raw, options, bufferEmit);
+    text = resolveBufferCharset(raw, options, bufferEmit, latin1);
   }
 
   // Step 2: EMPTY_INPUT fatal check at the top of the pipeline (D-03).
@@ -463,14 +663,7 @@ export function parseHL7(
   //     case effectiveProfile stays undefined and parseHL7 behaves exactly
   //     like the no-profile case: zero semantic change for unregistered
   //     consumers).
-  let effectiveProfile: Profile | undefined;
-  if (options.profile === null) {
-    effectiveProfile = undefined;
-  } else if (options.profile !== undefined) {
-    effectiveProfile = options.profile;
-  } else {
-    effectiveProfile = getDefaultProfile();
-  }
+  const effectiveProfile = resolveEffectiveProfile(options);
 
   // Step 7: All Tier-3 fatals are past. Build the real emitter (now
   // profile-aware per D-22) and forward any warnings captured during the
@@ -569,56 +762,12 @@ export function parseHL7(
     );
   }
 
-  // Step 11.5: Emit UNKNOWN_SEGMENT for any non-standard segment name that
-  // is not declared in the active profile (D-31), and SEGMENT_CASE for any
-  // name that is not already the canonical ASCII-uppercase spelling. Uses the
-  // already-resolved effectiveProfile for customSegments suppression. O(N):
-  // one Set.has + one hasOwnProperty per segment. Uses
-  // Object.prototype.hasOwnProperty.call to guard against prototype pollution
-  // (matches the T-02-06-01 mitigation in discriminateOptionsOrProfile).
-  //
-  // Both checks read the CANONICAL name, so `pid` resolves as PID rather than
-  // reading as an unknown segment: the defect that silently dropped a flagged
-  // lab result from `observations()` because the sender shipped `obx`. Profile
-  // customSegments keys are validated to /^Z[A-Z0-9]{2}$/ at defineProfile
-  // time, so they are already canonical and need no folding on that side.
-  //
-  // The two warnings are MUTUALLY EXCLUSIVE, which is what keeps each of them
-  // honest. SEGMENT_CASE says "this is a real segment, merely miscased", so it
-  // fires only when the canonical name actually resolves. Emitting it on any
-  // lowercase text would make it fire on a forged segment name -- an unescaped
-  // line break inside a narrative field hands the parser a line of clinical
-  // prose as a "segment name" -- and tell the reader it had been resolved as
-  // something, which is the same misdirection this slice removed from the
-  // UNKNOWN_SEGMENT text. A name that resolves to nothing gets UNKNOWN_SEGMENT
-  // alone, whose message already states that the comparison ignored case.
-  //
-  // Because they cannot both fire, strict mode (where the first emit throws)
-  // reports the same code it always did for an unrecognized segment, and
-  // SEGMENT_CASE only for a known segment that used to be misreported as
-  // unknown. Strict keeps throwing on every input it threw on before and
-  // accepts nothing new.
+  // Step 11.5: Emit UNKNOWN_SEGMENT for any non-standard segment name that is not declared in
+  // the active profile (D-31), and SEGMENT_CASE for any name that is not already the canonical
+  // ASCII-uppercase spelling; `emitSegmentNameWarning` says why the two never both fire. O(N).
   const profileCustomSegments = effectiveProfile?.customSegments;
   for (let segIdx = 0; segIdx < segmentNames.length; segIdx++) {
-    const name = segmentNames[segIdx] as string;
-    const canonicalName = canonicalSegmentName(name);
-    // The profile claim is checked under BOTH spellings. `defineProfile`
-    // validates customSegments keys to /^Z[A-Z0-9]{2}$/, so a declared key is
-    // canonical and the folded lookup is the one that matters. But `parseHL7`
-    // also accepts a hand-rolled `Profile` literal, which gets no such
-    // validation, and a literal keyed `zpi` was the only way to claim a
-    // lowercase Z-feed before this change. Checking the raw name too keeps
-    // those callers working rather than silently unclaiming their segment.
-    const isKnown = KNOWN_SEGMENTS.has(canonicalName);
-    const isProfileClaimed =
-      profileCustomSegments !== undefined &&
-      (Object.prototype.hasOwnProperty.call(profileCustomSegments, canonicalName) ||
-        Object.prototype.hasOwnProperty.call(profileCustomSegments, name));
-    if (!isKnown && !isProfileClaimed) {
-      emit(unknownSegment({ segmentIndex: segIdx }, name));
-    } else if (canonicalName !== name) {
-      emit(segmentCase({ segmentIndex: segIdx }, name));
-    }
+    emitSegmentNameWarning(segmentNames[segIdx] as string, segIdx, profileCustomSegments, emit);
   }
 
   // Step 11.6 (Phase G): structural-conformance safety net. For the message
@@ -639,23 +788,7 @@ export function parseHL7(
     for (let i = 0; i < segmentNames.length; i++) {
       presentSegmentNames.add(canonicalSegmentName(segmentNames[i] as string));
     }
-    const structure = analyzeMessageStructure(messageCode, triggerEvent, presentSegmentNames);
-    const messageType = triggerEvent !== "" ? `${messageCode}^${triggerEvent}` : messageCode;
-    // The structure id is registry data, not anything read off the message, so
-    // it is interpolated as-is; the message type is shape-checked inside the
-    // warning factory.
-    const structureId =
-      findMessageStructureDefinition(messageCode, triggerEvent)?.structureId ?? "";
-    for (const segmentName of structure.missingSegments) {
-      emit(
-        missingRequiredSegment(
-          { segmentIndex: 0, fieldIndex: 9 },
-          messageType,
-          segmentName,
-          structureId,
-        ),
-      );
-    }
+    emitStructureWarnings(messageCode, triggerEvent, presentSegmentNames, emit);
   }
 
   // Step 12: Version extraction: Phase 4 extends this via msg.meta.
@@ -676,24 +809,7 @@ export function parseHL7(
   // Dedupe preserving first occurrence. `mergedDateFormats` stays undefined
   // when neither source supplied any formats so the Hl7MessageInit omission
   // discipline (exactOptionalPropertyTypes) is honoured.
-  const optionFormats = options.dateFormats ?? [];
-  const profileFormats = effectiveProfile?.dateFormats ?? [];
-  const mergedFormats: string[] = [];
-  const seenFormats = new Set<string>();
-  for (const f of optionFormats) {
-    if (!seenFormats.has(f)) {
-      seenFormats.add(f);
-      mergedFormats.push(f);
-    }
-  }
-  for (const f of profileFormats) {
-    if (!seenFormats.has(f)) {
-      seenFormats.add(f);
-      mergedFormats.push(f);
-    }
-  }
-  const mergedDateFormats: readonly string[] | undefined =
-    mergedFormats.length > 0 ? Object.freeze(mergedFormats) : undefined;
+  const mergedDateFormats = mergeDateFormats(options, effectiveProfile);
 
   const mergedCustomSegments = effectiveProfile?.customSegments;
   // The standard-segment override map rides alongside, never inside, the

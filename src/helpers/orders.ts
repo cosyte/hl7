@@ -12,7 +12,9 @@
  *   - OBX attached positionally to the preceding OBR; pre-OBR OBX are
  *     NOT grouped here (but still surface via `msg.observations()`).
  *   - Order field contract (placerOrderNumber, fillerOrderNumber,
- *     universalServiceId, orderStatus, orderControl, orderedBy, observations).
+ *     universalServiceId, orderStatus, orderControl, orderedBy, observations),
+ *     plus OBR-2/3 and the attached ORC-2/3 as whole EIs (placerOrderId,
+ *     fillerOrderId, orcPlacerOrderId, orcFillerOrderId).
  *   - `orderStatus` uses OBR-25 (resultStatus).
  *   - Never throws: malformed OBR/OBX surface as omitted keys.
  *   - `orderedBy` is an XCN composite (not a flat string).
@@ -31,6 +33,7 @@
 import type { Hl7Message } from "../model/message.js";
 import type { Segment } from "../model/segment.js";
 import type { CWE } from "../model/types/cwe.js";
+import type { EI } from "../model/types/ei.js";
 import type { XCN } from "../model/types/xcn.js";
 
 import { groupNotes, type NoteGrouping } from "./notes.js";
@@ -42,6 +45,12 @@ import type { Observation, Order, OrderTiming } from "./types.js";
 /** Normalize HL7 empty-string to `undefined` for the helper layer. @internal */
 function stringOrUndefined(v: string): string | undefined {
   return v === "" ? undefined : v;
+}
+
+/** A field read as a frozen `EI`, or `undefined` when it carries nothing. @internal */
+function eiOrUndefined(seg: Segment, n: number): EI | undefined {
+  const ei = seg.field(n).asEi();
+  return Object.keys(ei).length > 0 ? Object.freeze(ei) : undefined;
 }
 
 /**
@@ -94,6 +103,12 @@ function finalizeOrder(
   const filler = stringOrUndefined(obr.field(3).value);
   if (filler !== undefined) out.fillerOrderNumber = filler;
 
+  // OBR-2 / OBR-3 as the whole EI: the number and its assigning authority.
+  const placerId = eiOrUndefined(obr, 2);
+  if (placerId !== undefined) out.placerOrderId = placerId;
+  const fillerId = eiOrUndefined(obr, 3);
+  if (fillerId !== undefined) out.fillerOrderId = fillerId;
+
   const usvc: CWE = obr.field(4).asCwe();
   if (Object.keys(usvc).length > 0) out.universalServiceId = usvc;
 
@@ -105,6 +120,11 @@ function finalizeOrder(
   if (attachedOrc !== undefined) {
     const oc = stringOrUndefined(attachedOrc.field(1).value);
     if (oc !== undefined) out.orderControl = oc;
+    // ORC-2 / ORC-3 as read from the ORC itself: never copied from OBR-2/3.
+    const orcPlacer = eiOrUndefined(attachedOrc, 2);
+    if (orcPlacer !== undefined) out.orcPlacerOrderId = orcPlacer;
+    const orcFiller = eiOrUndefined(attachedOrc, 3);
+    if (orcFiller !== undefined) out.orcFillerOrderId = orcFiller;
   }
 
   // D-24 (a): orderedBy is an XCN composite read from OBR-16.

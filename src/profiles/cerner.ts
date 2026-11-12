@@ -26,7 +26,7 @@ import { defineProfile } from "./define.js";
  * const msg = parseHL7(raw, profiles.cerner);
  * ```
  */
-export const cerner = defineProfile({
+const options = {
   name: "cerner",
   description: "Cerner Millennium: ISO-style timestamps and common Z-segments",
   dateFormats: ["YYYY-MM-DD[T]HH:mm:ss", "YYYY-MM-DD"],
@@ -34,4 +34,7 @@ export const cerner = defineProfile({
     ZDS: { fields: { summaryText: 3 } },
     ZCO: { fields: { commentText: 3, continuationFlag: 5 } },
   },
-});
+};
+
+/** Build the profile above; `profiles.cerner` calls it on its first read. @internal */
+export const cerner = () => defineProfile(options);

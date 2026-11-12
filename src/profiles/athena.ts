@@ -28,11 +28,14 @@ import { defineProfile } from "./define.js";
  * const msg = parseHL7(raw, profiles.athena);
  * ```
  */
-export const athena = defineProfile({
+const options = {
   name: "athena",
   description: "athenahealth Interop: US-short-date format and care-team Z-segment",
   dateFormats: ["MM/DD/YYYY"],
   customSegments: {
     ZCA: { fields: { careTeamRole: 3, providerId: 5, providerName: 6 } },
   },
-});
+};
+
+/** Build the profile above; `profiles.athena` calls it on its first read. @internal */
+export const athena = () => defineProfile(options);
