@@ -1970,6 +1970,88 @@ A [FatalCode](#fatalcode), or the [WarningCode](#warningcode) of a warning escal
 
 ***
 
+### Hl7XmlError
+
+Thrown by `parseHL7Xml`, `xmlDataTypes` and `toHl7Xml` when they refuse a document or a
+message. `code` says why. `offset` is the character offset in the document where the reader
+stopped (the writer gives none), and `path` names the place in HL7 terms (`PID.5`, `XPN.1`)
+when the name has that shape. Neither the message nor any field carries text from the document:
+an element name is echoed only when it is a segment id or a data type name followed by a
+position, never a value.
+
+#### Example
+
+```ts
+import { parseHL7Xml, Hl7XmlError } from "@cosyte/hl7";
+try {
+  parseHL7Xml("<ORU_R01><MSH><MSH.1>|</MSH.1></MSH>");
+} catch (err) {
+  if (err instanceof Hl7XmlError) console.log(err.code, err.offset);
+}
+```
+
+#### Extends
+
+- `Error`
+
+#### Constructors
+
+##### Constructor
+
+> **new Hl7XmlError**(`code`, `message`, `offset?`, `path?`): [`Hl7XmlError`](#hl7xmlerror)
+
+**`Internal`**
+
+Construct a new `Hl7XmlError`.
+
+###### Parameters
+
+###### code
+
+[`XmlErrorCode`](#xmlerrorcode)
+
+###### message
+
+`string`
+
+###### offset?
+
+`number`
+
+###### path?
+
+`string`
+
+###### Returns
+
+[`Hl7XmlError`](#hl7xmlerror)
+
+###### Overrides
+
+`Error.constructor`
+
+#### Properties
+
+##### code
+
+> `readonly` **code**: [`XmlErrorCode`](#xmlerrorcode)
+
+Why the document or message was refused.
+
+##### offset
+
+> `readonly` **offset**: `number` \| `undefined`
+
+The character offset in the document where the reader stopped; absent from the writer.
+
+##### path
+
+> `readonly` **path**: `string` \| `undefined`
+
+The place in HL7 terms, such as `PID.5`, when one is known and has a safe shape.
+
+***
+
 ### ProfileDefinitionError
 
 Thrown by `defineProfile()` and profile-validation code when a
@@ -5553,11 +5635,11 @@ Four-digit year, exactly as stated. A year below 100 stays below 100.
 ### DefinedProfile
 
 The profile [defineProfile](#defineprofile) produces for one options object: every
-member of the general [Profile](#profile-2) interface, with `customSegments` at the
+member of the general [Profile](#profile-3) interface, with `customSegments` at the
 declarations that options object actually carries (its own, merged with every
 parent's).
 
-It stays assignable to [Profile](#profile-2) with no cast, so a profile built by
+It stays assignable to [Profile](#profile-3) with no cast, so a profile built by
 the factory still passes to every API that accepts the general interface, and
 a caller who annotates a variable with `Profile` simply gives the narrowing
 up rather than hitting a type error.
@@ -5576,7 +5658,7 @@ console.log(asGeneral.name); // "epic"
 
 #### Extends
 
-- `Omit`\<[`Profile`](#profile-2), `"customSegments"`\>
+- `Omit`\<[`Profile`](#profile-3), `"customSegments"`\>
 
 #### Type Parameters
 
@@ -5602,7 +5684,7 @@ form is.
 
 ###### Inherited from
 
-[`Profile`](#profile-2).[`dateFormats`](#dateformats-6)
+[`Profile`](#profile-3).[`dateFormats`](#dateformats-7)
 
 ##### describe?
 
@@ -5614,7 +5696,7 @@ form is.
 
 ###### Inherited from
 
-[`Profile`](#profile-2).[`describe`](#describe-1)
+[`Profile`](#profile-3).[`describe`](#describe-1)
 
 ##### description?
 
@@ -5622,7 +5704,7 @@ form is.
 
 ###### Inherited from
 
-[`Profile`](#profile-2).[`description`](#description-3)
+[`Profile`](#profile-3).[`description`](#description-3)
 
 ##### lineage?
 
@@ -5630,7 +5712,7 @@ form is.
 
 ###### Inherited from
 
-[`Profile`](#profile-2).[`lineage`](#lineage-1)
+[`Profile`](#profile-3).[`lineage`](#lineage-1)
 
 ##### name
 
@@ -5638,7 +5720,7 @@ form is.
 
 ###### Inherited from
 
-[`Profile`](#profile-2).[`name`](#name-16)
+[`Profile`](#profile-3).[`name`](#name-16)
 
 ##### onWarning?
 
@@ -5646,7 +5728,7 @@ form is.
 
 ###### Inherited from
 
-[`Profile`](#profile-2).[`onWarning`](#onwarning-3)
+[`Profile`](#profile-3).[`onWarning`](#onwarning-4)
 
 ##### segmentOverrides?
 
@@ -5667,7 +5749,7 @@ without it.
 
 ###### Inherited from
 
-[`Profile`](#profile-2).[`segmentOverrides`](#segmentoverrides-2)
+[`Profile`](#profile-3).[`segmentOverrides`](#segmentoverrides-2)
 
 ***
 
@@ -5705,7 +5787,7 @@ const profile = defineProfile(opts);
 
 ##### extends?
 
-> `readonly` `optional` **extends?**: [`Profile`](#profile-2) \| readonly [`Profile`](#profile-2)[]
+> `readonly` `optional` **extends?**: [`Profile`](#profile-3) \| readonly [`Profile`](#profile-3)[]
 
 ##### name
 
@@ -9338,6 +9420,145 @@ type A01 = OverlayStructures["ADT^A01"]; // readonly ["EVN", "MSH", "PID", "PV1"
 
 ***
 
+### ParseHl7XmlOptions
+
+Options for `parseHL7Xml`: every `parseHL7` option, applied to the message as it reads the
+pipe-delimited form, plus the XML reader's caps.
+
+#### Example
+
+```ts
+import type { ParseHl7XmlOptions } from "@cosyte/hl7";
+const options: ParseHl7XmlOptions = { strict: true, limits: { maxDepth: 32 } };
+```
+
+#### Extends
+
+- [`ParseOptions`](#parseoptions)
+
+#### Properties
+
+##### charset?
+
+> `readonly` `optional` **charset?**: `string`
+
+Override the character set used to decode `Buffer` input. When supplied
+this wins over MSH-18 auto-discovery. When both are supplied and they
+disagree (after alias normalization) the parser emits
+`ENCODING_MISMATCH` and honours this override. Ignored for `string`
+input. Takes any HL7 Table-0211 code and `WINDOWS-1252`, which the
+parser decodes apart from `8859/1`: bytes 0x80 to 0x9F become the
+Windows characters, where `8859/1` keeps them as C1 controls.
+
+###### Example
+
+```ts
+import { parseHL7 } from "@cosyte/hl7";
+parseHL7(buf, { charset: "ISO-8859-1" });
+parseHL7(buf, { charset: "WINDOWS-1252" });
+```
+
+###### Inherited from
+
+[`ParseOptions`](#parseoptions).[`charset`](#charset-2)
+
+##### dateFormats?
+
+> `readonly` `optional` **dateFormats?**: readonly `string`[]
+
+Date formats your sender writes, tried in order after the canonical HL7
+shape fails. They reach **every** datetime the library returns, from
+`msg.meta.timestamp` to `patient.dateOfBirth` to an appointment's start
+time, and a `TS` that matched one names it on `matchedFormat`.
+
+These are tried ahead of an applied profile's own `dateFormats`, and they
+are the ONLY non-canonical formats a typed datetime field accepts: a value
+you have not described stays `valid: false` rather than being guessed at.
+Tokens come from `SUPPORTED_DATE_TOKENS`; an entry with no supported token
+matches nothing rather than throwing.
+
+###### Inherited from
+
+[`ParseOptions`](#parseoptions).[`dateFormats`](#dateformats-6)
+
+##### lazy?
+
+> `readonly` `optional` **lazy?**: `boolean`
+
+Build each segment's tree the first time something reads it (the default, `true`), or every
+segment's tree during the parse (`false`).
+
+Either way the parse reads the whole message once and reports every warning before it
+returns: `warnings`, `strict` and `onWarning` behave the same in both modes, and a problem is
+never reported later, on first read. A lazy parse keeps the message text and where each
+segment starts, and builds a segment's tree when `segments()`, `part()`, `get()`, a helper or
+an edit first reads it, then keeps it on the message. Reading a few segments of a long
+message builds those few.
+
+Some reads build every segment: `rawSegments`, `toString()`, `toJSON()`, `prettyPrint()`,
+and a helper that reads every segment of a type (such as `observations()`, which reads each
+OBX). Pass `false` to build the whole tree during the parse instead, for example to keep the
+cost of the build inside the parse call.
+
+###### Example
+
+```ts
+import { parseHL7 } from "@cosyte/hl7";
+const eager = parseHL7(raw, { lazy: false });
+```
+
+###### Inherited from
+
+[`ParseOptions`](#parseoptions).[`lazy`](#lazy-1)
+
+##### limits?
+
+> `readonly` `optional` **limits?**: [`XmlLimits`](#xmllimits)
+
+Caps on the document; see [XmlLimits](#xmllimits).
+
+##### onWarning?
+
+> `readonly` `optional` **onWarning?**: [`OnWarningCallback`](#onwarningcallback)
+
+###### Inherited from
+
+[`ParseOptions`](#parseoptions).[`onWarning`](#onwarning-3)
+
+##### profile?
+
+> `readonly` `optional` **profile?**: [`Profile`](#profile-3) \| `null`
+
+###### Inherited from
+
+[`ParseOptions`](#parseoptions).[`profile`](#profile-2)
+
+##### strict?
+
+> `readonly` `optional` **strict?**: `boolean`
+
+###### Inherited from
+
+[`ParseOptions`](#parseoptions).[`strict`](#strict-1)
+
+##### stripMllpFraming?
+
+> `readonly` `optional` **stripMllpFraming?**: `boolean`
+
+###### Inherited from
+
+[`ParseOptions`](#parseoptions).[`stripMllpFraming`](#stripmllpframing-1)
+
+##### trimFields?
+
+> `readonly` `optional` **trimFields?**: `boolean`
+
+###### Inherited from
+
+[`ParseOptions`](#parseoptions).[`trimFields`](#trimfields-1)
+
+***
+
 ### ParseOptions
 
 Options accepted by `parseHL7` to tune lenient/strict behaviour, inject a
@@ -9363,6 +9584,10 @@ const opts: ParseOptions = {
 };
 parseHL7(raw, opts);
 ```
+
+#### Extended by
+
+- [`ParseHl7XmlOptions`](#parsehl7xmloptions)
 
 #### Properties
 
@@ -9433,7 +9658,7 @@ const eager = parseHL7(raw, { lazy: false });
 
 ##### profile?
 
-> `readonly` `optional` **profile?**: [`Profile`](#profile-2) \| `null`
+> `readonly` `optional` **profile?**: [`Profile`](#profile-3) \| `null`
 
 ##### strict?
 
@@ -9910,7 +10135,7 @@ added up to.
 
 ###### Inherited from
 
-[`ProfiledMessage`](#profiledmessage).[`dateFormats`](#dateformats-7)
+[`ProfiledMessage`](#profiledmessage).[`dateFormats`](#dateformats-8)
 
 ##### encodingCharacters
 
@@ -12318,6 +12543,52 @@ with no option to get the bytes back as they were read.
 
 ***
 
+### ToHl7XmlOptions
+
+Options for `toHl7Xml`.
+
+#### Example
+
+```ts
+import type { ToHl7XmlOptions } from "@cosyte/hl7";
+const options: ToHl7XmlOptions = {
+  dataTypes: { "PID.5": "XPN", "XPN.1": "FN" },
+  namespace: null,
+};
+```
+
+#### Properties
+
+##### dataTypes?
+
+> `readonly` `optional` **dataTypes?**: `Readonly`\<`Record`\<`string`, `string`\>\> \| ((`key`) => `string` \| `undefined`)
+
+The data type of each composite the message carries, which names its child elements: a
+field key (`PID.5`) to its type (`XPN`), whose components are written `XPN.1`, `XPN.2`, and
+a component key (`XPN.1`) to its type (`FN`), whose subcomponents are written `FN.1`, `FN.2`.
+A map or a function from key to type. `xmlDataTypes` reads one from a sample document.
+
+A field or component with a type is written with child elements, even when it holds one
+value. One without a type is written as text when it holds one value, and refused with
+`DATA_TYPE_UNKNOWN` when it holds more, because its child elements cannot be named. List
+composite types only: a primitive type given here would be written as a composite.
+
+##### namespace?
+
+> `readonly` `optional` **namespace?**: `string` \| `null`
+
+The root element's default namespace: `urn:hl7-org:v2xml` by default, `null` for none (some
+networks ask for none).
+
+##### structure?
+
+> `readonly` `optional` **structure?**: `string`
+
+The root element's name, the message structure (`ORU_R01`). Defaults to MSH-9.3, else
+MSH-9.1 and MSH-9.2 joined by `_`, else MSH-9.1.
+
+***
+
 ### TypedBuilderCoverage
 
 One typed builder's emit capability: the message code it authors and the
@@ -12413,7 +12684,7 @@ added up to.
 
 ###### Inherited from
 
-[`ProfiledMessage`](#profiledmessage).[`dateFormats`](#dateformats-7)
+[`ProfiledMessage`](#profiledmessage).[`dateFormats`](#dateformats-8)
 
 ##### encodingCharacters
 
@@ -14033,6 +14304,62 @@ const orderingProvider: XCN = {
 
 ***
 
+### XmlDataTypesOptions
+
+Options for `xmlDataTypes`.
+
+#### Example
+
+```ts
+import type { XmlDataTypesOptions } from "@cosyte/hl7";
+const options: XmlDataTypesOptions = { limits: { maxElements: 10_000 } };
+```
+
+#### Properties
+
+##### limits?
+
+> `readonly` `optional` **limits?**: [`XmlLimits`](#xmllimits)
+
+Caps on the document; see [XmlLimits](#xmllimits).
+
+***
+
+### XmlLimits
+
+Caps on what the XML reader accepts. Each is optional and falls back to
+[DEFAULT\_XML\_LIMITS](#default_xml_limits). A cap that is given must be a number: NaN or a value of another
+type is refused with `INVALID_OPTIONS`, and `Infinity` lifts the cap.
+
+#### Example
+
+```ts
+import type { XmlLimits } from "@cosyte/hl7";
+const limits: XmlLimits = { maxInputBytes: 5_000_000 };
+```
+
+#### Properties
+
+##### maxDepth?
+
+> `readonly` `optional` **maxDepth?**: `number`
+
+The deepest nesting of elements, the root counted as one.
+
+##### maxElements?
+
+> `readonly` `optional` **maxElements?**: `number`
+
+The most elements, each empty position a skipped-over element names counted as one.
+
+##### maxInputBytes?
+
+> `readonly` `optional` **maxInputBytes?**: `number`
+
+The largest document, in UTF-8 bytes.
+
+***
+
 ### XPN
 
 HL7 v2 Extended Person Name (XPN): structured name per HL7 Chapter 2. All
@@ -15111,7 +15438,7 @@ of string literals, or `string` when the compiler cannot know them.
 
 `string` is the answer for every case where a declaration is not statically
 visible, and there are more of those than there are narrowing ones: a value
-typed as the general [Profile](#profile-2) interface, a segment type the profile
+typed as the general [Profile](#profile-3) interface, a segment type the profile
 does not declare, a segment declared with an empty field map, and a
 declaration map typed with an index signature. Narrowing is per segment type,
 never a flat union of every name the profile declares.
@@ -15666,6 +15993,21 @@ function describe(w: Hl7ParseWarning): string {
 }
 ```
 
+***
+
+### XmlErrorCode
+
+> **XmlErrorCode** = *typeof* [`XML_ERROR_CODES`](#xml_error_codes)\[keyof *typeof* [`XML_ERROR_CODES`](#xml_error_codes)\]
+
+One code of [XML\_ERROR\_CODES](#xml_error_codes).
+
+#### Example
+
+```ts
+import type { XmlErrorCode } from "@cosyte/hl7";
+const code: XmlErrorCode = "DTD_NOT_ALLOWED";
+```
+
 ## Variables
 
 ### ACK\_CODES
@@ -15815,6 +16157,23 @@ escape map, `parseHL7`) as a synthetic-message fallback.
 ```ts
 import { DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7";
 DEFAULT_ENCODING_CHARACTERS.field; // "|"
+```
+
+***
+
+### DEFAULT\_XML\_LIMITS
+
+> `const` **DEFAULT\_XML\_LIMITS**: `Readonly`\<`Required`\<[`XmlLimits`](#xmllimits)\>\>
+
+The reader's default caps: 30,000,000 bytes, a depth of 64 and 1,000,000 elements. A v2 XML
+message nests a root, its groups, a segment, a field, a component and a subcomponent, so a
+depth of 64 leaves room for deep group nesting and still stops pathological input early.
+
+#### Example
+
+```ts
+import { DEFAULT_XML_LIMITS } from "@cosyte/hl7";
+console.log(DEFAULT_XML_LIMITS.maxDepth); // 64
 ```
 
 ***
@@ -16499,6 +16858,22 @@ USAGE_CODES[0]; // "R"
 
 ***
 
+### V2\_XML\_NAMESPACE
+
+> `const` **V2\_XML\_NAMESPACE**: `"urn:hl7-org:v2xml"` = `"urn:hl7-org:v2xml"`
+
+The namespace HL7 gives the v2 XML encoding. The reader accepts it or no namespace; the writer
+declares it unless told not to.
+
+#### Example
+
+```ts
+import { V2_XML_NAMESPACE } from "@cosyte/hl7";
+console.log(V2_XML_NAMESPACE); // "urn:hl7-org:v2xml"
+```
+
+***
+
 ### VERSION
 
 > `const` **VERSION**: `string` = `"0.1.13"`
@@ -16613,6 +16988,133 @@ import { parseHL7, WARNING_CODES } from "@cosyte/hl7";
 const msg = parseHL7(raw);
 if (msg.warnings.some((w) => w.code === WARNING_CODES.MLLP_FRAMING_STRIPPED)) {
   // handle MLLP-wrapped input
+}
+```
+
+***
+
+### XML\_ERROR\_CODES
+
+> `const` **XML\_ERROR\_CODES**: `object`
+
+Every code an [Hl7XmlError](#hl7xmlerror) carries. The XML reader and writer refuse with one of these
+rather than guess: a hostile document (a DTD, an entity, too large, too deep, too many
+elements), a document that is not the HL7 v2 XML shape, and the cases whose encoding rule we
+have not confirmed (an `escape` element, the escape character in text, a composite whose data
+type the writer was not told).
+
+#### Type Declaration
+
+##### DATA\_TYPE\_UNKNOWN
+
+> `readonly` **DATA\_TYPE\_UNKNOWN**: `"DATA_TYPE_UNKNOWN"` = `"DATA_TYPE_UNKNOWN"`
+
+The writer needs the data type of a composite to name its elements and was not given it.
+
+##### DEPTH\_LIMIT\_EXCEEDED
+
+> `readonly` **DEPTH\_LIMIT\_EXCEEDED**: `"DEPTH_LIMIT_EXCEEDED"` = `"DEPTH_LIMIT_EXCEEDED"`
+
+Elements are nested deeper than `limits.maxDepth`.
+
+##### DTD\_NOT\_ALLOWED
+
+> `readonly` **DTD\_NOT\_ALLOWED**: `"DTD_NOT_ALLOWED"` = `"DTD_NOT_ALLOWED"`
+
+The document declares a DTD or an entity (`<!DOCTYPE`, `<!ENTITY`).
+
+##### ELEMENT\_LIMIT\_EXCEEDED
+
+> `readonly` **ELEMENT\_LIMIT\_EXCEEDED**: `"ELEMENT_LIMIT_EXCEEDED"` = `"ELEMENT_LIMIT_EXCEEDED"`
+
+The document has more elements, empty positions counted, than `limits.maxElements`.
+
+##### ENTITY\_NOT\_ALLOWED
+
+> `readonly` **ENTITY\_NOT\_ALLOWED**: `"ENTITY_NOT_ALLOWED"` = `"ENTITY_NOT_ALLOWED"`
+
+The document references an entity other than the five XML predefines.
+
+##### ESCAPE\_NOT\_SUPPORTED
+
+> `readonly` **ESCAPE\_NOT\_SUPPORTED**: `"ESCAPE_NOT_SUPPORTED"` = `"ESCAPE_NOT_SUPPORTED"`
+
+An `escape` element, the message's escape character in text, or a value whose escape
+sequence the writer cannot express: rules we have not confirmed, so we refuse them.
+
+##### FORBIDDEN\_CHARACTER
+
+> `readonly` **FORBIDDEN\_CHARACTER**: `"FORBIDDEN_CHARACTER"` = `"FORBIDDEN_CHARACTER"`
+
+The document or a value holds a character XML 1.0 does not allow.
+
+##### INPUT\_TOO\_LARGE
+
+> `readonly` **INPUT\_TOO\_LARGE**: `"INPUT_TOO_LARGE"` = `"INPUT_TOO_LARGE"`
+
+The document is larger than `limits.maxInputBytes`.
+
+##### INVALID\_ENCODING\_CHARACTERS
+
+> `readonly` **INVALID\_ENCODING\_CHARACTERS**: `"INVALID_ENCODING_CHARACTERS"` = `"INVALID_ENCODING_CHARACTERS"`
+
+The first segment is not an `MSH` that opens with `MSH.1` and `MSH.2`, or they are malformed.
+
+##### INVALID\_OPTIONS
+
+> `readonly` **INVALID\_OPTIONS**: `"INVALID_OPTIONS"` = `"INVALID_OPTIONS"`
+
+An option is malformed: a reader limit that is not a number (NaN included), or a writer's
+data type or structure name that is not an XML name, or a data type named for its segment.
+
+##### MIXED\_CONTENT
+
+> `readonly` **MIXED\_CONTENT**: `"MIXED_CONTENT"` = `"MIXED_CONTENT"`
+
+An element holds both text and child elements.
+
+##### NAMESPACE\_NOT\_SUPPORTED
+
+> `readonly` **NAMESPACE\_NOT\_SUPPORTED**: `"NAMESPACE_NOT_SUPPORTED"` = `"NAMESPACE_NOT_SUPPORTED"`
+
+An element carries a namespace prefix, or a default namespace other than `urn:hl7-org:v2xml`.
+
+##### NOT\_WELL\_FORMED
+
+> `readonly` **NOT\_WELL\_FORMED**: `"NOT_WELL_FORMED"` = `"NOT_WELL_FORMED"`
+
+The document is not well-formed XML.
+
+##### OUT\_OF\_ORDER
+
+> `readonly` **OUT\_OF\_ORDER**: `"OUT_OF_ORDER"` = `"OUT_OF_ORDER"`
+
+A field, component or subcomponent comes before one it should follow, or repeats where it cannot.
+
+##### STRUCTURE\_UNKNOWN
+
+> `readonly` **STRUCTURE\_UNKNOWN**: `"STRUCTURE_UNKNOWN"` = `"STRUCTURE_UNKNOWN"`
+
+The writer cannot name the root element: no `structure` option and no MSH-9 to derive it from.
+
+##### UNEXPECTED\_ELEMENT
+
+> `readonly` **UNEXPECTED\_ELEMENT**: `"UNEXPECTED_ELEMENT"` = `"UNEXPECTED_ELEMENT"`
+
+An element is not a segment, group, field, component or subcomponent where it stands: a
+second MSH, a component named for its segment, or the components of one value named for two
+data types among them.
+
+#### Example
+
+```ts
+import { parseHL7Xml, Hl7XmlError, XML_ERROR_CODES } from "@cosyte/hl7";
+try {
+  parseHL7Xml("<!DOCTYPE x><x/>");
+} catch (err) {
+  if (err instanceof Hl7XmlError && err.code === XML_ERROR_CODES.DTD_NOT_ALLOWED) {
+    // refuse the document
+  }
 }
 ```
 
@@ -18692,7 +19194,7 @@ formatDtm(parseDtm("1970"));         // "1970"
 
 ### getDefaultProfile()
 
-> **getDefaultProfile**(): [`Profile`](#profile-2) \| `undefined`
+> **getDefaultProfile**(): [`Profile`](#profile-3) \| `undefined`
 
 Return the current default profile, or `undefined` if none is
 registered. Consistent with `msg.profile` convention: `undefined`
@@ -18700,7 +19202,7 @@ rather than `null`.
 
 #### Returns
 
-[`Profile`](#profile-2) \| `undefined`
+[`Profile`](#profile-3) \| `undefined`
 
 #### Example
 
@@ -19603,7 +20105,7 @@ with `{ strict: true }` to escalate every Tier-2 warning into an
 
 ###### P
 
-`P` *extends* [`Profile`](#profile-2)
+`P` *extends* [`Profile`](#profile-3)
 
 ##### Parameters
 
@@ -19665,7 +20167,7 @@ with `{ strict: true }` to escalate every Tier-2 warning into an
 
 ###### P
 
-`P` *extends* [`Profile`](#profile-2)
+`P` *extends* [`Profile`](#profile-3)
 
 ##### Parameters
 
@@ -19764,6 +20266,69 @@ const vendor = defineProfile({
 const msg = parseHL7(raw, vendor);
 console.log(msg.part("ZDP")?.get("departmentCode")?.value);
 // msg.part("ZDP")?.get("departmentCod"); // does not compile: not declared
+```
+
+***
+
+### parseHL7Xml()
+
+> **parseHL7Xml**(`xml`, `options?`): [`Hl7Message`](#hl7message)
+
+Parse a message in the HL7 v2 XML encoding into the same `Hl7Message` the pipe-delimited parser
+builds for that message: the same segments, fields, repetitions, components, subcomponents,
+escapes and nulls, the same warnings, lazy by default.
+
+Element names are read by position: `PID.5` is the fifth field of PID, and inside it `XPN.1`
+(or any data type name ending in `.1`) is its first component, so no data type table is needed
+to read. The components of one value must all name the same data type, and none may be named
+for the segment itself (`PID.3` inside `PID.5`). Group elements (`ORU_R01.PATIENT_RESULT`) are
+walked through; segments are read in document order. One document is one message: a second
+MSH is refused. Text is the decoded value: a `|` or `^` in text is that character, written to the model
+as the pipe parser would read `\F\` or `\S`. A field whose text is `""` is the explicit null.
+
+The reader is hardened: it refuses a DTD or entity declaration, any entity beyond the five XML
+predefines, a character XML 1.0 forbids, and a document past the size, depth or element caps
+of `limits` (a limit that is not a number, NaN included, is refused with `INVALID_OPTIONS`;
+`Infinity` lifts a cap). It refuses, rather than guess, the cases whose encoding rule we have not
+confirmed: an `escape` element, and the message's escape character (MSH.2's third character)
+in text. Every refusal is an [Hl7XmlError](#hl7xmlerror) with a code from `XML_ERROR_CODES`; errors
+from reading the pipe form are `parseHL7`'s own.
+
+#### Parameters
+
+##### xml
+
+`string`
+
+The document, as text.
+
+##### options?
+
+[`ParseHl7XmlOptions`](#parsehl7xmloptions) = `{}`
+
+`parseHL7`'s options and the reader's caps.
+
+#### Returns
+
+[`Hl7Message`](#hl7message)
+
+The parsed message.
+
+#### Throws
+
+When the document is refused.
+
+#### Example
+
+```ts
+import { parseHL7Xml } from "@cosyte/hl7";
+const msg = parseHL7Xml(
+  '<ACK><MSH><MSH.1>|</MSH.1><MSH.2>^~\\&amp;</MSH.2><MSH.9><MSG.1>ACK</MSG.1></MSH.9>' +
+    "<MSH.10>1</MSH.10><MSH.11><PT.1>P</PT.1></MSH.11><MSH.12><VID.1>2.6</VID.1></MSH.12></MSH>" +
+    "<MSA><MSA.1>AA</MSA.1><MSA.2>1</MSA.2></MSA></ACK>",
+);
+msg.get("MSA.1"); // "AA"
+msg.toString(); // the same message, pipe-delimited
 ```
 
 ***
@@ -20116,7 +20681,7 @@ The second argument, when given, is forwarded verbatim to [parseHL7](#parsehl7) 
 
 ###### P
 
-`P` *extends* [`Profile`](#profile-2)
+`P` *extends* [`Profile`](#profile-3)
 
 ##### Parameters
 
@@ -20193,7 +20758,7 @@ The second argument, when given, is forwarded verbatim to [parseHL7](#parsehl7) 
 
 ###### P
 
-`P` *extends* [`Profile`](#profile-2)
+`P` *extends* [`Profile`](#profile-3)
 
 ##### Parameters
 
@@ -20701,7 +21266,7 @@ last item: reading stops there and the source is released.
 
 ###### P
 
-`P` *extends* [`Profile`](#profile-2)
+`P` *extends* [`Profile`](#profile-3)
 
 ##### Parameters
 
@@ -20770,7 +21335,7 @@ last item: reading stops there and the source is released.
 
 ###### P
 
-`P` *extends* [`Profile`](#profile-2)
+`P` *extends* [`Profile`](#profile-3)
 
 ##### Parameters
 
@@ -20909,7 +21474,7 @@ earlier segments cannot do.
 
 ##### optionsOrProfile?
 
-[`Profile`](#profile-2) \| [`ParseOptions`](#parseoptions)
+[`Profile`](#profile-3) \| [`ParseOptions`](#parseoptions)
 
 #### Returns
 
@@ -21189,7 +21754,7 @@ infect subsequent tests.
 
 ##### profile
 
-[`Profile`](#profile-2) \| `null`
+[`Profile`](#profile-3) \| `null`
 
 #### Returns
 
@@ -21307,7 +21872,7 @@ result.
 
 ###### P
 
-`P` *extends* [`Profile`](#profile-2)
+`P` *extends* [`Profile`](#profile-3)
 
 ##### Parameters
 
@@ -21381,7 +21946,7 @@ result.
 
 ###### P
 
-`P` *extends* [`Profile`](#profile-2)
+`P` *extends* [`Profile`](#profile-3)
 
 ##### Parameters
 
@@ -21648,6 +22213,62 @@ toDate(parseDtm("20250102153045-0500"))?.toISOString();
 // "2025-01-02T20:30:45.000Z": exact, offset-derived
 toDate(parseDtm("20240230"), { assumeOffsetMinutes: 0 });
 // undefined: February has no 30th, and 1 March is not what was written
+```
+
+***
+
+### toHl7Xml()
+
+> **toHl7Xml**(`message`, `options?`): `string`
+
+Write a message in the HL7 v2 XML encoding: a root element named for the message structure,
+one element per segment, `SEG.n` for each field (repeated once per repetition), and each
+composite's components and subcomponents named for its data type (`XPN.1`, `FN.1`). MSH.1 and
+MSH.2 carry the message's delimiters; a field that is the explicit null is written `""`. Values
+are written decoded: a `|` in a value is a `|` in the text, a line break is `&#10;`.
+
+The data types come from `options.dataTypes`, because the model does not carry them; a
+composite with no type there is refused with `DATA_TYPE_UNKNOWN`. Segments are written in
+order directly under the root: group elements are not written, so a receiver that validates
+against a schema with groups will not accept the document as it stands. A value holding the
+escape character, or carrying a formatting or hex escape sequence, is refused with
+`ESCAPE_NOT_SUPPORTED`, since we have not confirmed how the XML encoding writes those. An empty
+field is left out, except that a segment ending in empty fields gets one empty element at its
+last position (`<PID.3/>`), so it reads back with the same field count. A message holding a
+second MSH is refused, since one document is one message.
+
+`parseHL7Xml` reads the result back to the same model.
+
+#### Parameters
+
+##### message
+
+[`Hl7Message`](#hl7message)
+
+The message.
+
+##### options?
+
+[`ToHl7XmlOptions`](#tohl7xmloptions) = `{}`
+
+The data types, the root element's name and its namespace.
+
+#### Returns
+
+`string`
+
+The document, with an XML declaration, UTF-8, and a trailing line break.
+
+#### Throws
+
+When the message cannot be written without guessing.
+
+#### Example
+
+```ts
+import { parseHL7, toHl7Xml } from "@cosyte/hl7";
+const msg = parseHL7("MSH|^~\\&|LAB||||20260101||ACK^R01^ACK|1|P|2.6\rMSA|AA|1\r");
+toHl7Xml(msg, { dataTypes: { "MSH.9": "MSG", "MSH.11": "PT", "MSH.12": "VID" } });
 ```
 
 ***
@@ -22279,4 +22900,49 @@ expected.
 ```ts
 import { versionMismatch } from "@cosyte/hl7";
 const w = versionMismatch({ segmentIndex: 0, fieldIndex: 12 }, "2.9", "2.5");
+```
+
+***
+
+### xmlDataTypes()
+
+> **xmlDataTypes**(`xml`, `options?`): `Record`\<`string`, `string`\>
+
+The data types a v2 XML document names, as the map `toHl7Xml` takes: each field that has
+component elements to the data type they are named for (`PID.5` to `XPN`), and each component
+that has subcomponent elements to theirs (`XPN.1` to `FN`). Read one message from a partner and
+write back in its names. A key the document names two ways (OBX.5, whose type follows OBX-2) is
+left out, so the writer refuses it rather than guess. The keys come in sorted order.
+
+#### Parameters
+
+##### xml
+
+`string`
+
+The document, as text.
+
+##### options?
+
+[`XmlDataTypesOptions`](#xmldatatypesoptions) = `{}`
+
+The reader's caps.
+
+#### Returns
+
+`Record`\<`string`, `string`\>
+
+The data type map.
+
+#### Throws
+
+When the document is refused, as `parseHL7Xml` refuses it.
+
+#### Example
+
+```ts
+import { parseHL7Xml, toHl7Xml, xmlDataTypes } from "@cosyte/hl7";
+declare const sample: string;
+const dataTypes = xmlDataTypes(sample); // { "PID.5": "XPN", "XPN.1": "FN", ... }
+const xml = toHl7Xml(parseHL7Xml(sample), { dataTypes });
 ```

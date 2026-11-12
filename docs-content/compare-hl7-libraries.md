@@ -46,7 +46,7 @@ What else each library covers, and its licence and activity:
 
 | Library         | Network transport                 | XML encoding  | Per-version model               | Licence                     | Last commit, latest release            |
 | --------------- | --------------------------------- | ------------- | ------------------------------- | --------------------------- | -------------------------------------- |
-| `@cosyte/hl7`   | No: see `@cosyte/mllp`            | No            | No: one model, v2.1 to v2.9     | MIT                         | 2026-11-11, 0.1.12                     |
+| `@cosyte/hl7`   | No: see `@cosyte/mllp`            | Yes, partly   | No: one model, v2.1 to v2.9     | MIT                         | 2026-11-11, 0.1.12                     |
 | simple-hl7      | Yes, TCP server and client        | Not described | Not described                   | MIT                         | 2024-06-07, 3.3.0 in package.json      |
 | node-hl7-client | Yes, MLLP client with TLS         | Not described | Yes, v2.1 to v2.8               | MIT                         | 2026-11-10, v4.1.2 (2026-10-29)        |
 | hl7-standard    | Not described                     | Not described | Not described                   | Apache 2.0                  | 2022-05-11, no release tag             |
@@ -80,8 +80,11 @@ errors and warnings from `validate()`.
   receiving over MLLP is [`@cosyte/mllp`](https://docs.cosyte.com/mllp), a separate package.
   simple-hl7, node-hl7-client, Medplum, HAPI, python-hl7 and hl7apy each carry transport of their
   own.
-- **No XML encoding.** We read and write the pipe-delimited encoding only. HAPI and nHapi read and
-  write the XML encoding too.
+- **The XML encoding, in part.** `parseHL7Xml` reads a v2 XML message into the same model as the
+  pipe-delimited form, and `toHl7Xml` writes one back. The writer takes the composite data types
+  from you and writes no group elements, and both refuse the escape element and the escape
+  character in text ([Read and write the v2 XML encoding](./read-and-write-v2-xml.md)). HAPI and
+  nHapi carry the XML encoding with each version's own tables.
 - **No per-version classes.** We read v2.1 to v2.9 with one structural model and do not convert
   between versions ([Version-sensitivity matrix](./spec-notes-version-matrix.md)). HAPI
   generates a class for every message structure of every version, nHapi offers a C# object model
@@ -241,8 +244,8 @@ Each fact below links the page it came from. All were read on 2026-11-11.
 - You need to send and receive over MLLP as well as parse, in Node.js: pair us with
   [`@cosyte/mllp`](https://docs.cosyte.com/mllp), or choose a library that carries both, such as
   node-hl7-client or Medplum.
-- You need the XML encoding, or a model of a given version's structures: HAPI on Java or nHapi on
-  .NET.
+- You need to write the XML encoding with each version's groups and data types filled in for you,
+  or a model of a given version's structures: HAPI on Java or nHapi on .NET.
 - You build messages for one version and want each field checked against that version's tables
   as you build: node-hl7-client's typed builders.
 - You consume traffic from many vendors in Node.js or TypeScript and want every tolerated deviation
