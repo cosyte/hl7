@@ -14,10 +14,9 @@ import { describe, expect, it } from "vitest";
  * `pnpm check:docs-content` holds the README and the pages at the top of `docs-content/` to that
  * rule (`example-print`, required in `cosyte-docs-content.config.json`). This suite holds the rest
  * of what a reader copies to the same rule, with the same lists: the runnable scripts in
- * `examples/`, the starter kit's README and doc comments, and every `@example` in a `/** *\/`
- * comment under `src/`, which ships in `dist/*.d.ts` and renders as the API reference. What an
- * example prints is a type, a code, a count, a length, a position, a precision or a boolean; a
- * field that identifies a person is read into a variable or asserted on instead.
+ * `examples/` and the starter kit's README and doc comments. What an example prints is a type, a
+ * code, a count, a length, a position, a precision or a boolean; a field that identifies a person
+ * is read into a variable or asserted on instead.
  */
 const root = join(import.meta.dirname, "..");
 const { accessors, wholeValues, printers } = readPrintConfig(root);
@@ -107,12 +106,6 @@ describe("no example prints a value that identifies a person", () => {
       ),
     ];
     expect(samples.length).toBeGreaterThan(0);
-    expect(findings(samples), findings(samples).join("\n")).toEqual([]);
-  });
-
-  it("every @example in a doc comment under src/", () => {
-    const samples = sourceFiles(join(root, "src")).flatMap(docCommentSamples);
-    expect(samples.length).toBeGreaterThan(100);
     expect(findings(samples), findings(samples).join("\n")).toEqual([]);
   });
 

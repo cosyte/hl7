@@ -76,7 +76,7 @@ export interface XTN {
  *   { subcomponents: ["PH"] },
  * ] };
  * const xtn = parseXtn(rep, DEFAULT_ENCODING_CHARACTERS);
- * const phone = xtn.telephoneNumber; // "555-1234", synthetic
+ * console.log(xtn.telephoneNumber); // "555-1234"
  * ```
  */
 export function parseXtn(rep: RawRepetition, enc: EncodingCharacters): XTN {

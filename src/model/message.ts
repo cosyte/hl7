@@ -202,8 +202,10 @@ export interface Hl7MessageInit {
  * ```ts
  * import { parseHL7 } from "@cosyte/hl7";
  * const msg = parseHL7(raw);
- * const family = msg.get("PID.5.1"); // "Smith", synthetic
- * const results = msg.segments("OBX").map((obx) => obx.field(5).value);
+ * console.log(msg.get("PID.5.1"));         // "Smith"
+ * for (const obx of msg.segments("OBX")) {
+ *   console.log(obx.field(5).value);
+ * }
  * for (const w of msg.warnings) console.warn(w.code);
  * ```
  */
@@ -448,7 +450,9 @@ export class Hl7Message {
    *
    * @example
    * ```ts
-   * const results = msg.getAll("OBX").map((obx) => obx.field(5).value);
+   * for (const obx of msg.getAll("OBX")) {
+   *   console.log(obx.field(5).value);
+   * }
    * ```
    */
   public getAll(segmentType: string): readonly Segment[] {
@@ -470,7 +474,7 @@ export class Hl7Message {
    * @example
    * ```ts
    * const pid = msg.segments("PID")[0];
-   * const name = pid?.field(5).value; // "Smith^Jane", synthetic
+   * if (pid !== undefined) console.log(pid.field(5).value);
    * ```
    */
   public segments(segmentType: string): readonly Segment[] {
@@ -575,7 +579,7 @@ export class Hl7Message {
    * @example
    * ```ts
    * const pid = msg.part("PID");
-   * const name = pid?.field(5).value; // "Smith^Jane", synthetic
+   * console.log(pid?.field(5).value);
    * ```
    */
   public part(segmentType: string): Segment | undefined {
@@ -594,7 +598,7 @@ export class Hl7Message {
    *
    * @example
    * ```ts
-   * const results = msg.parts("OBX").map((obx) => obx.field(5).value);
+   * for (const obx of msg.parts("OBX")) console.log(obx.field(5).value);
    * ```
    */
   public parts(segmentType: string): readonly Segment[] {
@@ -650,7 +654,7 @@ export class Hl7Message {
    * @example
    * ```ts
    * console.log(msg.meta.type);                     // "ADT^A01"
-   * console.log(msg.meta.timestamp?.precision);     // "second": a fidelity TS
+   * console.log(msg.meta.timestamp?.raw);           // fidelity TS
    * console.log(msg.meta.controlId);                // "MSG001"
    * ```
    */
@@ -684,9 +688,9 @@ export class Hl7Message {
    *
    * @example
    * ```ts
-   * const mrn = msg.patient?.mrn; // "MRN12345", synthetic
-   * const fullName = msg.patient?.fullName; // "John Q Doe", synthetic
-   * console.log(msg.patient?.dateOfBirth?.precision); // "day": a fidelity TS
+   * console.log(msg.patient?.mrn);
+   * console.log(msg.patient?.fullName);
+   * console.log(msg.patient?.dateOfBirth?.raw); // fidelity TS: e.g. "19800115"
    * ```
    */
   public get patient(): Patient | undefined {
@@ -703,8 +707,8 @@ export class Hl7Message {
    * @example
    * ```ts
    * console.log(msg.visit?.patientClass);                 // "I"
-   * console.log(msg.visit?.admitDateTime?.precision);   // "minute": a fidelity TS
-   * const doctor = msg.visit?.attendingDoctor?.familyName; // "Smith", synthetic
+   * console.log(msg.visit?.admitDateTime?.raw); // fidelity TS
+   * console.log(msg.visit?.attendingDoctor?.familyName);
    * ```
    */
   public get visit(): Visit | undefined {
@@ -722,7 +726,7 @@ export class Hl7Message {
    * @example
    * ```ts
    * for (const obs of msg.observations()) {
-   *   if (obs.valueType === "NM") console.log(typeof obs.value); // "number" or "undefined"
+   *   if (obs.valueType === "NM") console.log(obs.value); // number | undefined
    * }
    * ```
    */
@@ -739,8 +743,7 @@ export class Hl7Message {
    * @example
    * ```ts
    * for (const order of msg.orders()) {
-   *   const placer = order.placerOrderNumber; // "ORD-001", synthetic
-   *   console.log(order.observations.length);
+   *   console.log(order.placerOrderNumber, order.observations.length);
    *   for (const t of order.timings) console.log(t.repeatPattern?.code); // e.g. "Q6H": verbatim
    * }
    * ```
@@ -759,8 +762,7 @@ export class Hl7Message {
    *
    * @example
    * ```ts
-   * const notes = msg.notes(); // message-level narrative: read it, never log it
-   * console.log(notes.length);
+   * for (const note of msg.notes()) console.log(note); // message-level narrative
    * ```
    */
   public notes(): readonly string[] {
@@ -811,9 +813,8 @@ export class Hl7Message {
    * ```ts
    * for (const med of msg.medications()) {
    *   console.log(med.orderControl); // e.g. "NW" (new) or "DC" (discontinue), verbatim
-   *   const giveCode = med.giveCode?.identifier; // the drug code, such as an NDC
-   *   console.log(med.context, med.giveCode?.nameOfCodingSystem);
-   *   const amount = med.amount?.minimum; // the dose: read it, never log it
+   *   console.log(med.context, med.giveCode?.identifier, med.giveCode?.nameOfCodingSystem);
+   *   console.log(med.amount?.minimum, med.strength?.value);
    *   for (const t of med.timings) console.log(t.repeatPattern?.code, t.totalOccurrences);
    * }
    * ```
@@ -834,8 +835,7 @@ export class Hl7Message {
    * @example
    * ```ts
    * for (const imm of msg.immunizations()) {
-   *   const vaccine = imm.vaccineCode?.identifier; // a CVX code, such as "08"
-   *   console.log(imm.vaccineCode?.nameOfCodingSystem, imm.recordOrigin);
+   *   console.log(imm.vaccineCode?.identifier, imm.doseAmount, imm.recordOrigin);
    *   console.log(imm.actionCode, imm.completionStatus);
    * }
    * ```
@@ -851,8 +851,7 @@ export class Hl7Message {
    * @example
    * ```ts
    * for (const nk of msg.nextOfKin()) {
-   *   const family = nk.name?.familyName; // "Smith", synthetic
-   *   console.log(nk.relationship?.text); // "Spouse"
+   *   console.log(nk.name?.familyName, nk.relationship?.text);
    * }
    * ```
    */
@@ -876,7 +875,7 @@ export class Hl7Message {
    * ```ts
    * for (const al of msg.allergies()) {
    *   const kind = al.deleteRequested === true ? "delete request" : "allergy";
-   *   console.log(kind, al.source, al.severity, al.actionCode);
+   *   console.log(kind, al.source, al.code?.text, al.severity, al.actionCode);
    * }
    * ```
    */
@@ -890,7 +889,7 @@ export class Hl7Message {
    *
    * @example
    * ```ts
-   * const codes = msg.diagnoses().map((dg) => dg.code?.identifier); // ["I10"], synthetic
+   * for (const dg of msg.diagnoses()) console.log(dg.code?.identifier);
    * ```
    */
   public diagnoses(): readonly Diagnosis[] {
@@ -922,9 +921,8 @@ export class Hl7Message {
    * @example
    * ```ts
    * for (const appt of msg.appointments()) {
-   *   const id = appt.fillerAppointmentId; // "APPT-001", synthetic
-   *   const status = appt.fillerStatusCode?.identifier; // "Booked"
-   *   console.log(appt.resources.map((r) => r.kind)); // ["location", "personnel"]
+   *   console.log(appt.fillerAppointmentId, appt.fillerStatusCode?.identifier);
+   *   for (const r of appt.resources) console.log(r.kind, r.code?.identifier);
    * }
    * ```
    */
@@ -945,7 +943,7 @@ export class Hl7Message {
    * ```ts
    * for (const doc of msg.documents()) {
    *   console.log(doc.documentType, doc.completionStatus, doc.availabilityStatus);
-   *   const body = doc.observations.map((obx) => obx.value); // narrative text: read it, never log it
+   *   for (const obx of doc.observations) console.log(obx.value); // narrative body
    * }
    * ```
    */
@@ -964,9 +962,8 @@ export class Hl7Message {
    * @example
    * ```ts
    * for (const charge of msg.charges()) {
-   *   const code = charge.transactionCode?.identifier; // the charge code
-   *   const amount = charge.amountExtended; // "150.00^USD", synthetic: verbatim, never a number
-   *   console.log(charge.transactionType); // "CG"
+   *   console.log(charge.transactionType, charge.transactionCode?.identifier);
+   *   console.log(charge.amountExtended); // verbatim, never a number
    * }
    * ```
    */
@@ -990,7 +987,7 @@ export class Hl7Message {
    * ```ts
    * import { parseHL7 } from "@cosyte/hl7";
    * const msg = parseHL7(raw);
-   * const wire = msg.toString(); // spec-clean, CR-separated HL7: send it, never log it
+   * console.log(msg.toString()); // spec-clean, CR-separated HL7
    * ```
    */
   public toString(): string {
@@ -1055,7 +1052,7 @@ export class Hl7Message {
    * const msg = parseHL7(raw);
    * const snap = msg.toJSON();
    * console.log(snap.segments[0]?.name); // "MSH"
-   * const json = JSON.stringify(msg);     // same content, auto-invokes toJSON
+   * console.log(JSON.stringify(msg));     // same content, auto-invokes toJSON
    * ```
    */
   public toJSON(): SerializedMessage {
@@ -1083,7 +1080,7 @@ export class Hl7Message {
    * ```ts
    * import { parseHL7 } from "@cosyte/hl7";
    * const msg = parseHL7(raw);
-   * const view = msg.prettyPrint(); // a debug view of patient data: never log it
+   * console.log(msg.prettyPrint());
    * // HL7 ADT^A01  controlId=MSG001  timestamp=2026-04-19T10:15:00Z  (5 segments)
    * // MSH  [3]=SENDAPP  [4]=SENDFAC  ...
    * // PID  [1]=1  [3]=MRN123  [5]=Doe^John

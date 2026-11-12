@@ -33,8 +33,7 @@ function stringOrUndefined(v: string): string | undefined {
  * import { parseHL7 } from "@cosyte/hl7";
  * const msg = parseHL7(raw);
  * for (const dg of msg.diagnoses()) {
- *   const code = dg.code?.identifier; // "I10", synthetic
- *   console.log(dg.type); // "F" (final)
+ *   console.log(dg.code?.identifier, dg.description, dg.type);
  * }
  * ```
  *

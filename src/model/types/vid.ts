@@ -53,8 +53,7 @@ export interface VID {
  * import { parseVid, DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7";
  * const rep = { components: [{ subcomponents: ["2.5.1"] }, { subcomponents: ["USA"] }] };
  * const vid = parseVid(rep, DEFAULT_ENCODING_CHARACTERS);
- * vid.versionId; // "2.5.1"
- * vid.internationalizationCode?.identifier; // "USA"
+ * console.log(vid.versionId, vid.internationalizationCode?.identifier); // "2.5.1" "USA"
  * ```
  */
 export function parseVid(rep: RawRepetition, enc: EncodingCharacters): VID {

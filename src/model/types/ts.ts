@@ -34,8 +34,8 @@ import type { EncodingCharacters, RawRepetition } from "../../parser/types.js";
  * import { dtmToDate } from "@cosyte/hl7";
  * const dob: TS = { raw: "19880705", valid: true, precision: "day",
  *   year: 1988, month: 7, day: 5, hasTimezone: false };
- * console.log(dob.precision);                   // "day": not a full timestamp
- * console.log(dtmToDate(dob) === undefined);    // true: refuses to guess the zone
+ * console.log(dob.precision);          // "day": not a full timestamp
+ * console.log(dtmToDate(dob));         // undefined: refuses to guess the zone
  * ```
  */
 export type TS = DtmParts;
@@ -62,14 +62,13 @@ export type TS = DtmParts;
  * import { parseTs, DEFAULT_ENCODING_CHARACTERS, dtmToDate } from "@cosyte/hl7";
  * const rep = { components: [{ subcomponents: ["20250102153045-0500"] }] };
  * const ts = parseTs(rep, DEFAULT_ENCODING_CHARACTERS);
- * ts.raw;                                  // "20250102153045-0500"
+ * console.log(ts.raw);                     // "20250102153045-0500"
  * console.log(ts.precision, ts.hasTimezone); // "second" true
- * dtmToDate(ts)?.toISOString();             // "2025-01-02T20:30:45.000Z"
+ * console.log(dtmToDate(ts)?.toISOString()); // "2025-01-02T20:30:45.000Z"
  *
  * const vendor = { components: [{ subcomponents: ["07/05/1988"] }] };
  * const dob = parseTs(vendor, DEFAULT_ENCODING_CHARACTERS, ["MM/DD/YYYY"]);
- * dob.month; // 7, synthetic
- * dob.matchedFormat; // "MM/DD/YYYY"
+ * console.log(dob.month, dob.matchedFormat); // 7 "MM/DD/YYYY"
  * ```
  */
 export function parseTs(

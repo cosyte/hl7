@@ -109,7 +109,7 @@ export type IdentityRole = "surviving" | "prior" | "linked" | "subject";
  * if (ev?.prior) {
  *   console.log(ev.prior.role);          // "prior"
  *   console.log(ev.prior.sourceSegment); // "MRG"
- *   const prior = ev.prior.identifiers.map((cx) => cx.idNumber); // ["MRN-OLD-1"], synthetic
+ *   for (const cx of ev.prior.identifiers) console.log(cx.idNumber);
  * }
  * ```
  */

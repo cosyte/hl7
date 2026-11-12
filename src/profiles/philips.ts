@@ -45,7 +45,7 @@
  * import { parseHL7, profiles } from "@cosyte/hl7";
  * const msg = parseHL7(raw, profiles.philips);
  * const zds = msg.allSegments().find((s) => s.type === "ZDS");
- * const study = zds?.get("studyInstanceUid")?.value; // "1.2.826.0.1.3680043.10.99999.20250326.7", synthetic
+ * console.log(zds?.get("studyInstanceUid")?.value); // "1.2.826.0.1.3680043.10.99999.20250326.7"
  * ```
  */
 

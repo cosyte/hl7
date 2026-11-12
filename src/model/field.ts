@@ -66,7 +66,7 @@ const NO_DATE_FORMATS: readonly string[] = Object.freeze([]);
  * import { parseHL7 } from "@cosyte/hl7";
  * const msg = parseHL7(raw);
  * const pid5 = msg.segments("PID")[0]?.field(5);
- * const name = pid5?.value;              // "Smith", synthetic: decoded at parse
+ * console.log(pid5?.value);              // "Smith": decoded at parse
  * console.log(pid5?.isNull);             // false: HL7 explicit null is "", absent is not
  * console.log(pid5?.repetitions.length); // 1
  * ```
@@ -130,7 +130,7 @@ export class Field {
    * ```ts
    * const pid5 = msg.segments("PID")[0]?.field(5);
    * // wire "Smith\F\Jr" was decoded at parse → the field separator escape:
-   * const name = pid5?.value; // "Smith|Jr", synthetic
+   * console.log(pid5?.value); // "Smith|Jr"
    * ```
    */
   public get value(): string {
@@ -243,8 +243,7 @@ export class Field {
    * ```ts
    * const pid5 = msg.segments("PID")[0]?.field(5);
    * const name = pid5?.asXpn();
-   * const family = name?.familyName; // "Smith", synthetic
-   * const given = name?.givenName;   // "Jane", synthetic
+   * console.log(name?.familyName, name?.givenName);
    * ```
    */
   public asXpn(): XPN {
@@ -257,8 +256,7 @@ export class Field {
    * @example
    * ```ts
    * const addr = msg.segments("PID")[0]?.field(11)?.asXad();
-   * const street = addr?.street; // "123 Main St", synthetic
-   * const city = addr?.city;     // "Boston", synthetic
+   * console.log(addr?.street, addr?.city, addr?.stateOrProvince);
    * ```
    */
   public asXad(): XAD {
@@ -272,8 +270,7 @@ export class Field {
    * @example
    * ```ts
    * const mrn = msg.segments("PID")[0]?.field(3)?.asCx();
-   * const id = mrn?.idNumber; // "MRN12345", synthetic
-   * mrn?.assigningAuthority?.namespaceId; // "HOSP"
+   * console.log(mrn?.idNumber, mrn?.assigningAuthority?.namespaceId);
    * ```
    */
   public asCx(): CX {
@@ -287,8 +284,7 @@ export class Field {
    * @example
    * ```ts
    * const code = msg.segments("OBX")[0]?.field(3)?.asCwe();
-   * code?.identifier; // "GLU"
-   * code?.text;       // "Glucose"
+   * console.log(code?.identifier, code?.text);
    * ```
    */
   public asCwe(): CWE {
@@ -301,8 +297,7 @@ export class Field {
    * @example
    * ```ts
    * const code = msg.segments("OBX")[0]?.field(3)?.asCe();
-   * code?.identifier; // "GLU"
-   * code?.text;       // "Glucose"
+   * console.log(code?.identifier, code?.text);
    * ```
    */
   public asCe(): CE {
@@ -316,7 +311,7 @@ export class Field {
    * @example
    * ```ts
    * const phone = msg.segments("PID")[0]?.field(13)?.asXtn();
-   * const number = phone?.telephoneNumber; // "555-1234", synthetic
+   * console.log(phone?.telephoneNumber);
    * ```
    */
   public asXtn(): XTN {
@@ -353,12 +348,11 @@ export class Field {
    * @example
    * ```ts
    * const ts = msg.segments("MSH")[0]?.field(7)?.asTs();
-   * console.log(ts?.precision, ts?.hasTimezone);
+   * console.log(ts?.raw, ts?.precision, ts?.hasTimezone);
    *
    * // parseHL7(raw, { dateFormats: ["MM/DD/YYYY"] }) on a PID-7 of "07/05/1988":
    * const dob = msg.segments("PID")[0]?.field(7)?.asTs();
-   * dob?.month; // 7, synthetic
-   * dob?.matchedFormat; // "MM/DD/YYYY"
+   * console.log(dob?.month, dob?.matchedFormat); // 7 "MM/DD/YYYY"
    * ```
    */
   public asTs(): TS {
@@ -372,7 +366,7 @@ export class Field {
    * @example
    * ```ts
    * const nm = msg.segments("OBX")[0]?.field(5)?.asNm();
-   * const value = nm?.value; // 7.5, synthetic
+   * console.log(nm?.value);
    * ```
    */
   public asNm(): NM {
@@ -420,9 +414,7 @@ export class Field {
    * @example
    * ```ts
    * const orderedBy = msg.segments("OBR")[0]?.field(16)?.asXcn();
-   * const id = orderedBy?.idNumber;         // "1234567890", synthetic
-   * const family = orderedBy?.familyName;   // "Smith", synthetic
-   * orderedBy?.identifierTypeCode;          // "NPI"
+   * console.log(orderedBy?.idNumber, orderedBy?.familyName, orderedBy?.identifierTypeCode);
    * ```
    */
   public asXcn(): XCN {
@@ -437,8 +429,7 @@ export class Field {
    * @example
    * ```ts
    * const placer = msg.segments("OBR")[0]?.field(2)?.asEi();
-   * const id = placer?.entityIdentifier; // "ORD-001", synthetic
-   * console.log(placer?.namespaceId); // "CLINIC"
+   * console.log(placer?.entityIdentifier, placer?.namespaceId);
    * ```
    */
   public asEi(): EI {
@@ -452,7 +443,7 @@ export class Field {
    * @example
    * ```ts
    * const parent = msg.segments("OBR")[0]?.field(29)?.asEip();
-   * const filler = parent?.fillerAssignedIdentifier?.entityIdentifier; // "FL-2002", synthetic
+   * console.log(parent?.fillerAssignedIdentifier?.entityIdentifier);
    * ```
    */
   public asEip(): EIP {
@@ -466,8 +457,7 @@ export class Field {
    * @example
    * ```ts
    * const code = msg.segments("OBX")[0]?.field(3)?.asCne();
-   * code?.identifier;         // "Y"
-   * code?.nameOfCodingSystem; // "HL70136"
+   * console.log(code?.identifier, code?.nameOfCodingSystem);
    * ```
    */
   public asCne(): CNE {
@@ -525,8 +515,7 @@ export class Field {
    * @example
    * ```ts
    * const quantity = msg.segments("TQ1")[0]?.field(2)?.asCq();
-   * quantity?.quantity;          // "2"
-   * quantity?.units?.identifier; // "TAB"
+   * console.log(quantity?.quantity, quantity?.units?.identifier);
    * ```
    */
   public asCq(): CQ {
@@ -580,7 +569,7 @@ export class Field {
    * @example
    * ```ts
    * const financialClass = msg.segments("PV1")[0]?.field(20)?.asFc();
-   * financialClass?.financialClassCode?.identifier; // "SP"
+   * console.log(financialClass?.financialClassCode?.identifier);
    * ```
    */
   public asFc(): FC {

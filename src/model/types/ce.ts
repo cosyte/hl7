@@ -73,7 +73,7 @@ export interface CE {
  *   { subcomponents: ["LN"] },
  * ] };
  * const ce = parseCe(rep, DEFAULT_ENCODING_CHARACTERS);
- * ce.identifier; // "GLU"
+ * console.log(ce.identifier); // "GLU"
  * ```
  */
 export function parseCe(rep: RawRepetition, enc: EncodingCharacters): CE {

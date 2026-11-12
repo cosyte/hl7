@@ -162,7 +162,7 @@ export function detectAckMode(inbound: Hl7Message): AckMode {
  * import { buildAck, parseHL7 } from "@cosyte/hl7";
  * const inbound = parseHL7(raw);
  * const ack = buildAck(inbound, { code: "AA" });
- * const wire = ack.toString();            // MSH|...\rMSA|AA|<inbound MSH-10>
+ * console.log(ack.toString());            // MSH|...\rMSA|AA|<inbound MSH-10>
  * parseHL7(ack.toString()).meta.type;     // "ACK" (round-trips clean)
  * ```
  */

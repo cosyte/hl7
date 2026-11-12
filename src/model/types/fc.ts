@@ -51,8 +51,7 @@ export interface FC {
  * import { parseFc, DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7";
  * const rep = { components: [{ subcomponents: ["SP"] }, { subcomponents: ["20260101"] }] };
  * const fc = parseFc(rep, DEFAULT_ENCODING_CHARACTERS);
- * fc.financialClassCode?.identifier; // "SP"
- * fc.effectiveDate; // "20260101"
+ * console.log(fc.financialClassCode?.identifier, fc.effectiveDate); // "SP" "20260101"
  * ```
  */
 export function parseFc(rep: RawRepetition, enc: EncodingCharacters): FC {

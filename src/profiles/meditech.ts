@@ -39,7 +39,7 @@
  * import { parseHL7, profiles } from "@cosyte/hl7";
  * const msg = parseHL7(raw, profiles.meditech);
  * const zf1 = msg.allSegments().find((s) => s.type === "ZF1");
- * const copay = zf1?.get("visitCopay")?.value; // "20.00", synthetic
+ * console.log(zf1?.get("visitCopay")?.value);
  * ```
  */
 

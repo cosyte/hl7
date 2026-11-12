@@ -12,7 +12,7 @@
  * import { parseHL7, profiles } from "@cosyte/hl7";
  * const msg = parseHL7(raw, profiles.genericLab);
  * const znt = msg.allSegments().find((s) => s.type === "ZNT");
- * const note = znt?.get("noteText")?.value; // free text: read it, never log it
+ * console.log(znt?.get("noteText")?.value);
  * ```
  */
 

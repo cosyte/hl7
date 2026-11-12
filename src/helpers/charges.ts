@@ -110,10 +110,9 @@ function finalizeCharge(ft1: Segment): Charge {
  * import { parseHL7 } from "@cosyte/hl7";
  * const msg = parseHL7(raw);
  * for (const charge of msg.charges()) {
- *   const code = charge.transactionCode?.identifier; // the charge code
- *   const amount = charge.amountExtended; // "150.00^USD", synthetic: wire text, never a number
- *   const diagnoses = charge.diagnoses.map((dx) => dx.identifier); // ["I10"], synthetic
- *   console.log(charge.transactionType, charge.diagnoses.length); // "CG" 1
+ *   console.log(charge.transactionType, charge.transactionCode?.identifier);
+ *   console.log(charge.amountExtended); // e.g. "150.00^USD": wire text, never a number
+ *   for (const dx of charge.diagnoses) console.log(dx.identifier);
  * }
  * ```
  *

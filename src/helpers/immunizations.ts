@@ -331,12 +331,11 @@ function finalizeImmunization(
  * import { parseHL7 } from "@cosyte/hl7";
  * const msg = parseHL7(raw);
  * for (const imm of msg.immunizations()) {
- *   const vaccine = imm.vaccineCode?.identifier; // a CVX code, such as "08"
- *   const dose = imm.doseAmount; // the dose: read it, never log it
- *   console.log(imm.vaccineCode?.nameOfCodingSystem, imm.recordOrigin);
+ *   console.log(imm.vaccineCode?.identifier, imm.vaccineCode?.nameOfCodingSystem);
+ *   console.log(imm.doseAmount, imm.doseUnits?.identifier, imm.recordOrigin);
  *   console.log(imm.actionCode, imm.completionStatus);
  *   console.log(imm.administrationStatus.classification); // "completed" for a dose given
- *   const routes = imm.routes.map((r) => r.route?.identifier); // ["IM"]
+ *   for (const r of imm.routes) console.log(r.route?.identifier);
  * }
  * ```
  *

@@ -119,8 +119,8 @@ function parseAssigningAuthority(
  *   { subcomponents: ["NPI"] },
  * ] };
  * const xcn = parseXcn(rep, DEFAULT_ENCODING_CHARACTERS);
- * const id = xcn.idNumber;                         // "1234567890", synthetic
- * const family = xcn.familyName;                   // "Smith", synthetic
+ * console.log(xcn.idNumber);                        // "1234567890"
+ * console.log(xcn.familyName);                      // "Smith"
  * console.log(xcn.assigningAuthority?.namespaceId); // "HOSP"
  * console.log(xcn.identifierTypeCode);              // "NPI"
  * ```

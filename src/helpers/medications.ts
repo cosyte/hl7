@@ -280,11 +280,9 @@ function finalize(
  * const msg = parseHL7(raw);
  * for (const med of msg.medications()) {
  *   console.log(med.orderControl); // e.g. "NW" or "DC", verbatim; undefined without an ORC
- *   const giveCode = med.giveCode?.identifier; // the drug code, such as an NDC
- *   const amount = med.amount?.minimum; // the dose: read it, never log it
- *   const units = med.amount?.units?.identifier; // "mg"
- *   const routes = med.routes.map((r) => r.route?.identifier); // ["PO"]
- *   console.log(med.context, med.giveCode?.nameOfCodingSystem);
+ *   console.log(med.context, med.giveCode?.identifier, med.giveCode?.nameOfCodingSystem);
+ *   console.log(med.amount?.minimum, med.amount?.units?.identifier);
+ *   for (const r of med.routes) console.log(r.route?.identifier);
  * }
  * ```
  *
