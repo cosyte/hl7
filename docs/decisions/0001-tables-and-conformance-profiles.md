@@ -1,7 +1,7 @@
 # Decision 0001: HL7 tables and conformance-profile XML
 
 - **Status:** Question 1 accepted on 2026-11-12: the tables ship on `@cosyte/hl7/tables`, built
-  from HL7 Terminology 7.5.0. The Decision section below records the operator's words. Question 2
+  from HL7 Terminology 7.5.0. The Decision section below records the maintainers' decision. Question 2
   is not decided in this note.
 - **Date:** 2026-11-12
 - **Scope:** `@cosyte/hl7` only. Any build this note leads to is its own change, with its own tests,
