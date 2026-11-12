@@ -49,7 +49,7 @@ jobs:
           mkdir -p "${out}"
           # The summary is written before the exit, so a red run still shows its numbers.
           trap 'if [ -f "${out}/stream-memory.md" ]; then { echo "### Streaming readers, peak memory ($(git rev-parse HEAD))"; echo; cat "${out}/stream-memory.md"; } >> "${GITHUB_STEP_SUMMARY}"; fi' EXIT
-          node bench/stream-memory.mjs --target dist/index.mjs --mib 100 --runs 20 \
+          node bench/stream-memory.mjs --target dist/index.mjs --mib 100 \
             --out "${out}/stream-memory.json" --summary "${out}/stream-memory.md"
       - name: Show that the gate fails a planted regression
         shell: bash
