@@ -264,6 +264,12 @@ describe("lookupV2Code", () => {
     });
   });
 
+  it("covers a table from exactly the version it was introduced in", () => {
+    expect(lookupV2Code("0357", "100", "2.3.1").result).toBe("listed");
+    expect(lookupV2Code("0003", "A01", "2.1").result).toBe("listed");
+    expect(v2TableCodes("0155", "2.2")).toEqual(["AL", "NE", "ER", "SU"]);
+  });
+
   it("says unknown for a version the table does not cover, never rejecting the code", () => {
     expect(lookupV2Code("0357", "100", "2.3")).toMatchObject({
       result: "unknown",
