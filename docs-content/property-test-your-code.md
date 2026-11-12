@@ -143,18 +143,20 @@ readControlId("not a message"); // => undefined
 
 ## Pick the generators
 
-| Generator | Generates | Options |
-| --- | --- | --- |
-| `message()` | a parsed, spec-clean `Hl7Message` that serializes back to the text it was parsed from | `encodingCharacters`, `maxExtraSegments`, `maxFields`, `escapes` |
-| `messageText()` | messy message text the parser accepts | the same as `message()` |
-| `hostileInput()` | a string or a `Buffer` the parser may refuse | `maxLength` |
-| `messageType()` | `{ code, trigger }`, such as `{ code: "ORU", trigger: "R01" }` | none |
-| `segment()` | a non-MSH `RawSegment`: a common segment or a `Z` segment | `names`, `maxFields`, and the field options |
-| `field()` | a `RawField`: repetitions of components of subcomponents, or the explicit null | `maxRepetitions`, `maxComponents`, `maxSubcomponents`, `nullable`, `values` |
-| `repetition()`, `component()` | one level of a field | the field options |
-| `value()` | the decoded text of one subcomponent | `minLength`, `maxLength` |
-| `encodingCharacters()` | the five delimiters, standard or any distinct punctuation, with or without the truncation character | `delimiters`, `truncation` |
-| `escapeSequence()` | one escape sequence as written on the wire, such as `\F\` or `\X0D\` | `encodingCharacters` |
+| Generator                                   | Generates                                                                                                            | Options                                                                     |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `message()`                                 | a parsed, spec-clean `Hl7Message` that serializes back to the text it was parsed from                                | `encodingCharacters`, `maxExtraSegments`, `maxFields`, `escapes`            |
+| `messageText()`                             | messy message text the parser accepts                                                                                | the same as `message()`                                                     |
+| `hostileInput()`                            | a string or a `Buffer` the parser may refuse                                                                         | `maxLength`                                                                 |
+| `messageType()`                             | `{ code, trigger }`, such as `{ code: "ORU", trigger: "R01" }`                                                       | none                                                                        |
+| `segment()`                                 | a non-MSH `RawSegment`: a common segment or a `Z` segment                                                            | `names`, `maxFields`, and the field options                                 |
+| `field()`                                   | a `RawField`: repetitions of components of subcomponents, or the explicit null                                       | `maxRepetitions`, `maxComponents`, `maxSubcomponents`, `nullable`, `values` |
+| `repetition()`, `component()`               | one level of a field                                                                                                 | the field options                                                           |
+| `value()`                                   | the decoded text of one subcomponent                                                                                 | `minLength`, `maxLength`                                                    |
+| `encodingCharacters()`                      | the five delimiters, standard or any distinct punctuation, with or without the truncation character                  | `delimiters`, `truncation`                                                  |
+| `escapeSequence()`                          | one escape sequence as written on the wire, such as `\F\` or `\X0D\`                                                 | `encodingCharacters`                                                        |
+| `species()`, `breed()`, `productionClass()` | a random `CWE` with at least one of identifier, text, coding system and original text, for PID-35, PID-36 and PID-38 | none                                                                        |
+| `strain()`                                  | the random text of PID-37                                                                                            | none                                                                        |
 
 `field()`, `segment()` and the levels below them end every list on a non-empty item, because the
 serializer drops a trailing empty one (it writes `a^b`, never `a^b^`). So a generated field or

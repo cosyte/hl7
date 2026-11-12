@@ -26,16 +26,13 @@ import type { CWE } from "../model/types/cwe.js";
 import type { TS } from "../model/types/ts.js";
 import type { XCN } from "../model/types/xcn.js";
 
-import {
-  encodeComposite,
-  encodeCompositeReps,
-  type CompositeKind,
-  type CompositeValueByKind,
-} from "./encode-composite.js";
+import { encodeComposite } from "./encode-composite.js";
 import type { AdtPatient } from "./build-adt.js";
+import { pidSegment } from "./segment-bodies.js";
 import {
   assembleSegment,
   buildMshSegment,
+  repField,
   scalarField,
   type MessageEnvelope,
 } from "./segment-fields.js";
@@ -94,23 +91,6 @@ export interface BuildOruInit extends MessageEnvelope {
   readonly order?: OruOrder;
   /** OBX content. **Required, non-empty**: an ORU with no result is a typed error. */
   readonly observations: readonly OruObservation[];
-}
-
-/**
- * Encode a typed composite, or an array of them, into a (possibly repeating)
- * field; `undefined` yields `undefined`, which `assembleSegment` writes as an
- * absent field. Callers pass the member straight in, reading it once.
- * @internal
- */
-function repField<K extends CompositeKind>(
-  kind: K,
-  value: CompositeValueByKind[K] | readonly CompositeValueByKind[K][] | undefined,
-): RawField | undefined {
-  if (value === undefined) return undefined;
-  if (Array.isArray(value)) {
-    return encodeCompositeReps(kind, value as readonly CompositeValueByKind[K][]);
-  }
-  return encodeComposite(kind, value as CompositeValueByKind[K]);
 }
 
 /**
@@ -175,28 +155,8 @@ export function buildOru(init: BuildOruInit): Hl7Message {
   const segments: RawSegment[] = [buildMshSegment("ORU^R01", init)];
 
   // ── PID ──────────────────────────────────────────────────────────────────
-  const p = init.patient;
-  segments.push(
-    assembleSegment(
-      "PID",
-      new Map<number, RawField | undefined>([
-        [1, p.setId !== undefined ? scalarField(p.setId) : undefined],
-        [3, repField("CX", p.identifiers)],
-        [5, repField("XPN", p.name)],
-        [
-          6,
-          p.mothersMaidenName !== undefined
-            ? encodeComposite("XPN", p.mothersMaidenName)
-            : undefined,
-        ],
-        [7, p.birthDateTime !== undefined ? encodeComposite("TS", p.birthDateTime) : undefined],
-        [8, p.administrativeSex !== undefined ? scalarField(p.administrativeSex) : undefined],
-        [11, repField("XAD", p.address)],
-        [13, repField("XTN", p.phoneHome)],
-        [18, p.accountNumber !== undefined ? encodeComposite("CX", p.accountNumber) : undefined],
-      ]),
-    ),
-  );
+  // The same PID mapping every family shares, so no typed member is dropped here.
+  segments.push(pidSegment(init.patient));
 
   // ── OBR ──────────────────────────────────────────────────────────────────
   // One OBR groups the OBX result children. Always emitted (empty when no order

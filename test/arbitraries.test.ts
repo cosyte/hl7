@@ -13,6 +13,7 @@ import { describe, expect, it } from "vitest";
 import { Hl7Message, KNOWN_SEGMENTS, WARNING_CODES, parseHL7 } from "../src/index.js";
 import type { EncodingCharacters, RawField } from "../src/index.js";
 import {
+  breed,
   component,
   encodingCharacters,
   escapeSequence,
@@ -21,8 +22,11 @@ import {
   message,
   messageText,
   messageType,
+  productionClass,
   repetition,
   segment,
+  species,
+  strain,
   value,
 } from "../src/arbitraries/index.js";
 import { DELIMITER_POOL } from "../src/arbitraries/encoding.js";
@@ -230,6 +234,31 @@ describe("component, repetition, field and segment", () => {
 
   it("uses only segment names the library knows, apart from Z segments", () => {
     for (const name of BODY_SEGMENT_NAMES) expect(KNOWN_SEGMENTS.has(name)).toBe(true);
+  });
+});
+
+describe("species, breed, strain and productionClass", () => {
+  it("give coded values with at least one clean part, from the four parts a reader most often sees", () => {
+    for (const arb of [species(), breed(), productionClass()]) {
+      const codes = draw(arb);
+      for (const code of codes) {
+        const keys = Object.keys(code);
+        expect(keys.length).toBeGreaterThan(0);
+        for (const key of keys) {
+          expect(["identifier", "text", "nameOfCodingSystem", "originalText"]).toContain(key);
+        }
+        for (const part of Object.values(code)) expect(isCleanValue(part as string)).toBe(true);
+      }
+      expect(codes.some((c) => Object.keys(c).length === 1)).toBe(true);
+      expect(codes.some((c) => Object.keys(c).length === 4)).toBe(true);
+    }
+  });
+
+  it("strain gives one clean, non-empty value", () => {
+    for (const text of draw(strain())) {
+      expect(text.length).toBeGreaterThan(0);
+      expect(isCleanValue(text)).toBe(true);
+    }
   });
 });
 

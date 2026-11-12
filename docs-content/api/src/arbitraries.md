@@ -2,8 +2,8 @@
 
 fast-check generators for HL7 v2, at `@cosyte/hl7/arbitraries`: encoding characters, escape
 sequences, values, components, repetitions, fields, segments, message types, whole messages,
-messy message text and hostile input. We use them to test this library, and you can use them
-to test code you build on it.
+messy message text, hostile input, and an animal patient's species, breed, strain and production
+class. We use them to test this library, and you can use them to test code you build on it.
 
 `fast-check` is an optional peer dependency: install it to use this entry point. The main
 entry point, `@cosyte/hl7`, never loads it.
@@ -265,6 +265,30 @@ The longest value, in characters. Defaults to 12.
 The shortest value, at least 1. Defaults to 1.
 
 ## Functions
+
+### breed()
+
+> **breed**(): `Arbitrary`\<[`CWE`](README.md#cwe-1)\>
+
+Generate a PID-36 Breed Code: a random coded value, never a real breed code.
+
+#### Returns
+
+`Arbitrary`\<[`CWE`](README.md#cwe-1)\>
+
+An arbitrary of the code, the shape `Patient.breed` reads and `AdtPatient.breed` takes.
+
+#### Example
+
+```ts
+import fc from "fast-check";
+import { breed } from "@cosyte/hl7/arbitraries";
+
+const [code] = fc.sample(breed(), 1);
+// code is a CWE with at least one part
+```
+
+***
 
 ### component()
 
@@ -553,6 +577,31 @@ const [type] = fc.sample(messageType(), 1);
 
 ***
 
+### productionClass()
+
+> **productionClass**(): `Arbitrary`\<[`CWE`](README.md#cwe-1)\>
+
+Generate a PID-38 Production Class Code: a random coded value, never a real class code.
+
+#### Returns
+
+`Arbitrary`\<[`CWE`](README.md#cwe-1)\>
+
+An arbitrary of the code, the shape `Patient.productionClass` reads and
+`AdtPatient.productionClass` takes.
+
+#### Example
+
+```ts
+import fc from "fast-check";
+import { productionClass } from "@cosyte/hl7/arbitraries";
+
+const [code] = fc.sample(productionClass(), 1);
+// code is a CWE with at least one part
+```
+
+***
+
 ### repetition()
 
 > **repetition**(`options?`): `Arbitrary`\<[`RawRepetition`](README.md#rawrepetition)\>
@@ -614,6 +663,56 @@ import { segment } from "@cosyte/hl7/arbitraries";
 
 const [seg] = fc.sample(segment({ names: ["NTE"], maxFields: 3 }), 1);
 seg?.name; // "NTE"
+```
+
+***
+
+### species()
+
+> **species**(): `Arbitrary`\<[`CWE`](README.md#cwe-1)\>
+
+Generate a PID-35 Species Code: a random coded value, never a real species code.
+
+#### Returns
+
+`Arbitrary`\<[`CWE`](README.md#cwe-1)\>
+
+An arbitrary of the code, the shape `Patient.species` reads and `AdtPatient.species`
+takes.
+
+#### Example
+
+```ts
+import fc from "fast-check";
+import { species } from "@cosyte/hl7/arbitraries";
+
+const [code] = fc.sample(species(), 1);
+// code is a CWE with at least one part, such as { identifier: "Q7", text: "a^b" }
+```
+
+***
+
+### strain()
+
+> **strain**(): `Arbitrary`\<`string`\>
+
+Generate a PID-37 Strain: one random decoded value, the free text `Patient.strain` reads and
+`AdtPatient.strain` takes.
+
+#### Returns
+
+`Arbitrary`\<`string`\>
+
+An arbitrary of the strain text.
+
+#### Example
+
+```ts
+import fc from "fast-check";
+import { strain } from "@cosyte/hl7/arbitraries";
+
+const [text] = fc.sample(strain(), 1);
+// text is a non-empty string, such as "x&Y"
 ```
 
 ***

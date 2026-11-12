@@ -2551,6 +2551,12 @@ PID-8 Administrative Sex (e.g. `"F"`, `"M"`, `"U"`).
 
 PID-7 Date/Time of Birth.
 
+##### breed?
+
+> `readonly` `optional` **breed?**: [`CWE`](#cwe-1)
+
+PID-36 Breed Code.
+
 ##### identifiers?
 
 > `readonly` `optional` **identifiers?**: [`CX`](#cx-1) \| readonly [`CX`](#cx-1)[]
@@ -2575,11 +2581,29 @@ PID-5 Patient Name.
 
 PID-13 Phone Number - Home: one or more XTN telecoms.
 
+##### productionClass?
+
+> `readonly` `optional` **productionClass?**: [`CWE`](#cwe-1)
+
+PID-38 Production Class Code.
+
 ##### setId?
 
 > `readonly` `optional` **setId?**: `string`
 
 PID-1 Set ID.
+
+##### species?
+
+> `readonly` `optional` **species?**: [`CWE`](#cwe-1)
+
+PID-35 Species Code, for a patient who is an animal.
+
+##### strain?
+
+> `readonly` `optional` **strain?**: `string`
+
+PID-37 Strain.
 
 ***
 
@@ -9457,6 +9481,12 @@ console.log(p.dateOfBirth?.raw, p.dateOfBirth?.precision);
 
 PID-11 home address parsed as XAD.
 
+##### breed?
+
+> `readonly` `optional` **breed?**: [`CWE`](#cwe-1)
+
+PID-36 Breed Code. Absent when PID-36 is empty.
+
 ##### dateOfBirth?
 
 > `readonly` `optional` **dateOfBirth?**: [`DtmParts`](#dtmparts)
@@ -9534,6 +9564,13 @@ clinical narrative.
 
 PID-13 (home) + PID-14 (business) repetitions concatenated. Always present.
 
+##### productionClass?
+
+> `readonly` `optional` **productionClass?**: [`CWE`](#cwe-1)
+
+PID-38 Production Class Code (for example a dairy or breeding class), the
+first repetition. Absent when PID-38 is empty.
+
 ##### race?
 
 > `readonly` `optional` **race?**: [`CWE`](#cwe-1)
@@ -9545,6 +9582,19 @@ PID-10 race.
 > `readonly` `optional` **sex?**: `string`
 
 PID-8 administrative sex code.
+
+##### species?
+
+> `readonly` `optional` **species?**: [`CWE`](#cwe-1)
+
+PID-35 Species Code, for a patient who is an animal. Absent when PID-35 is
+empty; the library never infers a species from any other field.
+
+##### strain?
+
+> `readonly` `optional` **strain?**: `string`
+
+PID-37 Strain, a free-text string. Absent when PID-37 is empty.
 
 ***
 
