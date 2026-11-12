@@ -48,6 +48,8 @@ const SCRIPT_PATH = join(REPO_ROOT, "scripts", "api-surface.ts");
 const INVENTORY_PATH = join(REPO_ROOT, "release", "public-api.json");
 /** The second entry point's inventory: `@cosyte/hl7/arbitraries`, built to `arbitraries.d.ts`. */
 const ARBITRARIES_INVENTORY_PATH = join(REPO_ROOT, "release", "public-api-arbitraries.json");
+/** The third entry point's inventory: `@cosyte/hl7/tables`, built to `tables.d.ts`. */
+const TABLES_INVENTORY_PATH = join(REPO_ROOT, "release", "public-api-tables.json");
 
 /**
  * The `tsup` that `pnpm build` runs. `@cosyte/process` owns the build tool and its version, so
@@ -138,6 +140,7 @@ function readInventory(path: string): { typescript: string; exports: ApiExport[]
  */
 let freshDeclarations = "";
 let freshArbitraries = "";
+let freshTables = "";
 
 beforeAll(() => {
   const out = tempDir("hl7-api-surface-");
@@ -150,6 +153,7 @@ beforeAll(() => {
   expect(build.status, `${build.stdout ?? ""}${build.stderr ?? ""}`).toBe(0);
   freshDeclarations = join(out, "index.d.ts");
   freshArbitraries = join(out, "arbitraries.d.ts");
+  freshTables = join(out, "tables.d.ts");
 }, BUILD_TIMEOUT);
 
 describe("the committed public-export inventory", () => {
@@ -314,6 +318,36 @@ describe("the @cosyte/hl7/arbitraries inventory", () => {
     const run = runCheck(["--entry", "testing"]);
     expect(run.status).toBe(2);
     expect(run.output).toContain("--entry needs one of index, arbitraries");
+  });
+});
+
+/**
+ * The third entry point, `@cosyte/hl7/tables`, gets the same comparison against its own inventory.
+ */
+describe("the @cosyte/hl7/tables inventory", () => {
+  it("records the tables, their source and the lookups", () => {
+    const inventory = readInventory(TABLES_INVENTORY_PATH);
+    const names = new Set(inventory.exports.map((entry) => entry.name));
+    for (const required of [
+      "V2_TABLES",
+      "V2_TABLE_IDS",
+      "V2_TABLE_SOURCE",
+      "V2_VERSIONS",
+      "lookupV2Code",
+      "v2TableCodes",
+      "V2CodeLookup",
+      "V2Table",
+    ]) {
+      expect(names.has(required), `inventory is missing ${required}`).toBe(true);
+    }
+    expect(names.has("parseHL7")).toBe(false);
+  });
+
+  it("matches a fresh build exactly", { timeout: BUILD_TIMEOUT }, () => {
+    const run = runCheck(["--entry", "tables", "--declarations", freshTables]);
+    expect(run.output).toContain("OK: public export surface matches");
+    expect(run.output).toContain("public-api-tables.json");
+    expect(run.status).toBe(0);
   });
 });
 

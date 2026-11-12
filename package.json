@@ -67,12 +67,25 @@
         "default": "./dist/arbitraries.cjs"
       }
     },
+    "./tables": {
+      "import": {
+        "types": "./dist/tables.d.ts",
+        "default": "./dist/tables.mjs"
+      },
+      "require": {
+        "types": "./dist/tables.d.cts",
+        "default": "./dist/tables.cjs"
+      }
+    },
     "./package.json": "./package.json"
   },
   "typesVersions": {
     "*": {
       "arbitraries": [
         "./dist/arbitraries.d.ts"
+      ],
+      "tables": [
+        "./dist/tables.d.ts"
       ]
     }
   },
@@ -96,6 +109,7 @@
     "phi-scan": "tsx scripts/phi-scan.ts",
     "generate:structures": "tsx scripts/generate-message-structures.ts",
     "generate:schema": "tsx scripts/generate-schema-artifacts.ts",
+    "generate:tables": "tsx scripts/generate-v2-tables.ts",
     "bench:reading": "cosyte-bench run --suite bench/parse.bench.mjs --target dist/index.mjs",
     "bench:compare": "cosyte-bench compare --suite bench/parse.bench.mjs",
     "bench:stream-memory": "node bench/stream-memory.mjs --target dist/index.mjs",

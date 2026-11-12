@@ -31,7 +31,10 @@ The design boundary is deliberate and load-bearing:
 
 - **You bring the profile, and every value set.** hl7 ships **no** vendor / IHE /
   regulatory profile, **no** bundled code set (no LOINC / SNOMED / ICD / RxNorm),
-  and makes **no** network call. Value-set membership is a literal check against
+  and makes **no** network call. The one exception is opt-in data: eight
+  structural HL7 v2 tables on the separate `@cosyte/hl7/tables` entry point,
+  which the engine never reads on its own; you bind one into a `valueSet` the
+  way you would your own list. Value-set membership is a literal check against
   the array of codes _you_ supply, and a condition predicate is decided by
   reading the message in front of it against values _you_ wrote down. This is
   what keeps the engine a small, corpus-free tool rather than a validator that
@@ -618,7 +621,7 @@ Two consequences worth stating plainly:
 
 **This checks the sender's claim, never the code.** Nothing here verifies that
 the code exists in the system the message names, or that the system is current.
-hl7 still ships no code set and makes no network call; the binding lets you
+hl7 still bundles no code set into the engine and makes no network call; the binding lets you
 encode the assertion your own interface requires, and asserts nothing of its own.
 
 ## Declaring what a field's components are

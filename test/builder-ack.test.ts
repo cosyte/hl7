@@ -208,7 +208,7 @@ describe("buildAck: ERR segments", () => {
       .allSegments()
       .find((s) => s.type === "ERR");
     expect(err?.field(3).asCwe().identifier).toBe("207");
-    expect(err?.field(3).asCwe().text).toBe("Application internal error");
+    expect(err?.field(3).asCwe().text).toBe("Application error");
     expect(err?.field(4).value).toBe("E");
   });
 

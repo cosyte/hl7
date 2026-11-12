@@ -1,0 +1,61 @@
+  <concept>
+    <code value="0211"/>
+    <display value="Alternate Character Sets"/>
+    <definition value="Table of codes that identify one of a number of possible standard alternate character sets for a message, either single-byte or double-byte."/>
+    <property>
+      <code value="v2-table-oid"/>
+      <valueString value="2.16.840.1.113883.12.211"/>
+    </property>
+    <property>
+      <code value="v2-cs-oid"/>
+      <valueString value="2.16.840.1.113883.18.116"/>
+    </property>
+    <property>
+      <code value="v2-cs-uri"/>
+      <valueCode value="http://terminology.hl7.org/CodeSystem/v2-0211"/>
+    </property>
+    <property>
+      <code value="v2-vs-oid"/>
+      <valueString value="2.16.840.1.113883.21.128"/>
+    </property>
+    <property>
+      <code value="v2-vs-uri"/>
+      <valueCode value="http://terminology.hl7.org/ValueSet/v2-0211"/>
+    </property>
+    <property>
+      <code value="v2-cld"/>
+      <valueString value="1"/>
+    </property>
+    <property>
+      <code value="v2-table-type"/>
+      <valueCode value="HL7"/>
+    </property>
+    <property>
+      <code value="v2-cs-version"/>
+      <valueInteger value="10"/>
+    </property>
+    <property>
+      <code value="steward"/>
+      <valueCode value="inm"/>
+    </property>
+    <property>
+      <code value="v2-where-used"/>
+      <valueString value="MSH-18"/>
+    </property>
+    <property>
+      <code value="v2-binding"/>
+      <valueString value="3"/>
+    </property>
+    <property>
+      <code value="v2-version-tbl-introduced"/>
+      <valueString value="2.3"/>
+    </property>
+    <property>
+      <code value="v2-version-csvs-introduced"/>
+      <valueString value="2.9"/>
+    </property>
+    <property>
+      <code value="vocab-domain"/>
+      <valueString value="AlternateCharacterSets"/>
+    </property>
+  </concept>

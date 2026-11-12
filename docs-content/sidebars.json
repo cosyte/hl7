@@ -77,7 +77,13 @@
     {
       "type": "category",
       "label": "Reference",
-      "items": ["warning-and-fatal-codes", "date-token-grammar", "data-types", "built-in-profiles"]
+      "items": [
+        "warning-and-fatal-codes",
+        "date-token-grammar",
+        "data-types",
+        "built-in-profiles",
+        "v2-code-tables"
+      ]
     },
     {
       "type": "category",

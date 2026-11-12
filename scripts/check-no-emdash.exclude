@@ -23,6 +23,15 @@
 vendor/hl7-v2ig/message-structure/
 vendor/hl7-v2ig/control-manifests/
 
+# THE VERBATIM BYTES OF HL7 TERMINOLOGY 7.5.0, one file of it and nothing else. The tables the
+# @cosyte/hl7/tables entry point ships are generated from HL7's own files, committed byte for byte
+# under vendor/hl7-terminology/. This one carries the banned character as an XML character reference
+# inside HL7's own display and definition text for table 0003. The same bargain as above holds:
+# snapshot.json beside it records its sha256, the generator refuses it if its bytes no longer match,
+# and the generator writes every long dash in shipped display text as a hyphen, so none reaches the
+# package. The other vendored files there, the README and snapshot.json are still scanned.
+vendor/hl7-terminology/code-systems/cs-v2-0003.xml
+
 # THE CHANGELOG'S ARCHIVE, and only the archive. Every entry above "Released before this file was
 # generated" is written by the release tool from a changeset and is read for both dashes like any
 # other file. From that heading down is the frozen archive of releases before the tool, which is

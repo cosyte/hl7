@@ -1,7 +1,8 @@
 # Decision 0001: HL7 tables and conformance-profile XML
 
-- **Status:** Proposed. Waiting for the operator's choice; nothing is built until it is recorded
-  below.
+- **Status:** Question 1 accepted on 2026-11-12: the tables ship on `@cosyte/hl7/tables`, built
+  from HL7 Terminology 7.5.0. The Decision section below records the operator's words. Question 2
+  is not decided in this note.
 - **Date:** 2026-11-12
 - **Scope:** `@cosyte/hl7` only. Any build this note leads to is its own change, with its own tests,
   measurements and changeset.
@@ -17,16 +18,16 @@ recommend:
 
 The picture is less empty than "no tables ship". Read from the source at commit `4d89126`:
 
-| Table | What ships | Where |
-| --- | --- | --- |
-| 0008 Acknowledgment code | the six codes as `ACK_CODES`, with `isPositiveAck` and its kin | `src/builder/ack-tables.ts` |
-| 0155 Accept/application acknowledgment conditions | the four codes as `ACK_CONDITIONS` | `src/builder/ack-tables.ts` |
-| 0357 Message error condition codes | fifteen codes with display text as `ERR_CONDITION_CODES`, used by `buildAck` to write ERR-3 | `src/builder/ack-tables.ts` |
-| 0516 Error severity | three codes as `ERR_SEVERITIES` | `src/builder/ack-tables.ts` |
-| 0211 Alternate character sets | a registry the parser resolves MSH-18 against, built on the first message that declares a set | `src/parser/charset.ts` |
-| 0076 Message type, 0003 Event type | no table; the message structure registry keys on the code and event pairs of the vendored HL7 v2+ publication | `src/parser/generated/message-structures.ts` |
-| 0103 Processing ID | no table; `buildMessage` and `buildAck` default MSH-11 to `P`, and nothing checks it | `src/builder/` |
-| 0104 Version ID | no table; MSH-12 is compared only against a version the caller expects (`VERSION_MISMATCH`) | `src/parser/` |
+| Table                                             | What ships                                                                                                    | Where                                        |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| 0008 Acknowledgment code                          | the six codes as `ACK_CODES`, with `isPositiveAck` and its kin                                                | `src/builder/ack-tables.ts`                  |
+| 0155 Accept/application acknowledgment conditions | the four codes as `ACK_CONDITIONS`                                                                            | `src/builder/ack-tables.ts`                  |
+| 0357 Message error condition codes                | fifteen codes with display text as `ERR_CONDITION_CODES`, used by `buildAck` to write ERR-3                   | `src/builder/ack-tables.ts`                  |
+| 0516 Error severity                               | three codes as `ERR_SEVERITIES`                                                                               | `src/builder/ack-tables.ts`                  |
+| 0211 Alternate character sets                     | a registry the parser resolves MSH-18 against, built on the first message that declares a set                 | `src/parser/charset.ts`                      |
+| 0076 Message type, 0003 Event type                | no table; the message structure registry keys on the code and event pairs of the vendored HL7 v2+ publication | `src/parser/generated/message-structures.ts` |
+| 0103 Processing ID                                | no table; `buildMessage` and `buildAck` default MSH-11 to `P`, and nothing checks it                          | `src/builder/`                               |
+| 0104 Version ID                                   | no table; MSH-12 is compared only against a version the caller expects (`VERSION_MISMATCH`)                   | `src/parser/`                                |
 
 The reader surfaces MSA-1 and ERR-3 verbatim and looks nothing up (`src/helpers/acknowledgment.ts`).
 The QAK segment is recognized by name and not modeled.
@@ -100,12 +101,12 @@ to need.
 Four candidate sources. We could not read any of their terms for this note (no web access), so each
 is listed with what we know from this repository and what is still open.
 
-| Source | What we know | Still open |
-| --- | --- | --- |
-| HL7 Terminology (`terminology.hl7.org`), the `CodeSystem-v2-NNNN` pages | `src/builder/ack-tables.ts` already cites the 0008 and 0357 pages as its provenance | the licence on that content and whether an MIT package may redistribute it; whether every one of the eight tables has a page; which v2 version each page reflects |
-| HL7's v2+ publication on GitHub (`HL7/v2ig`), already vendored for message structures | it carries the message list we use for 0003 and 0076 codes | whether it carries the tables themselves; the licence on the repository's content |
-| hl7apy's per-version tables (`crs4/hl7apy`) | the code is MIT, per its README, and we already vendor its segment lists | whether its table content is derived from HL7 material with terms of its own, which the MIT licence on the code would not settle |
-| The HL7 v2 standard's own text | the authority for every table | HL7's licence terms for the standard and its tables, and whether reproducing a table in a package is allowed to a non-member |
+| Source                                                                                | What we know                                                                        | Still open                                                                                                                                                        |
+| ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| HL7 Terminology (`terminology.hl7.org`), the `CodeSystem-v2-NNNN` pages               | `src/builder/ack-tables.ts` already cites the 0008 and 0357 pages as its provenance | the licence on that content and whether an MIT package may redistribute it; whether every one of the eight tables has a page; which v2 version each page reflects |
+| HL7's v2+ publication on GitHub (`HL7/v2ig`), already vendored for message structures | it carries the message list we use for 0003 and 0076 codes                          | whether it carries the tables themselves; the licence on the repository's content                                                                                 |
+| hl7apy's per-version tables (`crs4/hl7apy`)                                           | the code is MIT, per its README, and we already vendor its segment lists            | whether its table content is derived from HL7 material with terms of its own, which the MIT licence on the code would not settle                                  |
+| The HL7 v2 standard's own text                                                        | the authority for every table                                                       | HL7's licence terms for the standard and its tables, and whether reproducing a table in a package is allowed to a non-member                                      |
 
 The facts this note does not confirm, and on which the recommendation rests:
 
@@ -196,6 +197,35 @@ measures its own cost on the CI runner, before and after, and states it in its p
 
 ## Decision
 
-Not yet recorded. When the operator chooses, this section records the choice in their words, with
-the date, and the status above changes to Accepted or Rejected. Each option chosen becomes its own
-piece of work.
+### Question 1: tables
+
+On 2026-11-12 the operator chose, in these words: "Ship them (Recommended)" (entry
+`noahDesktop.20261112T185410Z.1`). The choice followed a reading of HL7's terms, which found that
+HL7 Terminology 7.5.0 is published under the CC0 designation, so option A went ahead on that source.
+
+What the build found against this note's open questions, read from HL7's own files at commit
+`828b7136548bc82559a4fff34bc4a47f62197ed5` of [HL7/UTG](https://github.com/HL7/UTG), the commit that
+requests the 7.5.0 publication:
+
+- **Licence.** Each code system's copyright statement says THO "is made available under the CC0
+  designation". The licence page asks that a derivative say it is one and claim no endorsement; the
+  package, its README and its docs page say both.
+- **Coverage.** All eight tables have a code system. HL7's master list records each as HL7-defined
+  and gives the version it was introduced in (2.1 for 0003, 0008, 0076, 0103 and 0104; 2.2 for 0155;
+  2.3 for 0211; 2.3.1 for 0357).
+- **Versions.** The source records the version some codes were deprecated in (always 2.9 in these
+  tables) and marks others deprecated without a version. It does not record the version a code was
+  added in. The lookup therefore answers "unknown" wherever that would decide the answer.
+- **Table 0357.** The source lists sixteen codes. The package shipped fifteen: it lacked 198 and 199,
+  carried a 105 the source does not list, and gave 207 a different text. `ERR_CONDITION_CODES` now
+  carries all sixteen with the source's text and keeps 105 for callers that already send it.
+
+The data is vendored byte for byte under `vendor/hl7-terminology/` with a sha256 per file (HL7's
+master table list, at over a megabyte, as the nine byte ranges the build reads), and
+`pnpm generate:tables` writes the shipped module from it. The existing `ACK_CODES`, `ACK_CONDITIONS`
+and `ERR_CONDITION_CODES` are held to the same tables by a test. The charset registry is not: it
+maps labels to decoders, aliases included, rather than restating table 0211.
+
+### Question 2: conformance-profile XML and MSH-21
+
+Not recorded in this note.

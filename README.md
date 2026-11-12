@@ -65,7 +65,7 @@ Permanently out of scope:
 pnpm add @cosyte/hl7
 ```
 
-Requires Node.js 22 or later, tested on 22, 24, and 26 (`engines.node` is `>=22.0.0`). The package ships dual ESM and CommonJS builds with type declarations for both, so `import` and `require` both work and neither needs a compatibility shim. There are zero runtime dependencies: the Node standard library is all it loads. The optional `@cosyte/hl7/arbitraries` entry point, fast-check generators for [property-testing your own code](https://github.com/cosyte/hl7/blob/main/docs-content/property-test-your-code.md), needs `fast-check` installed beside it; the main entry point never loads it.
+Requires Node.js 22 or later, tested on 22, 24, and 26 (`engines.node` is `>=22.0.0`). The package ships dual ESM and CommonJS builds with type declarations for both, so `import` and `require` both work and neither needs a compatibility shim. There are zero runtime dependencies: the Node standard library is all it loads. The optional `@cosyte/hl7/arbitraries` entry point, fast-check generators for [property-testing your own code](https://github.com/cosyte/hl7/blob/main/docs-content/property-test-your-code.md), needs `fast-check` installed beside it; the main entry point never loads it. The `@cosyte/hl7/tables` entry point, eight structural HL7 v2 code tables from HL7 Terminology 7.5.0 ([HL7 v2 code tables](https://github.com/cosyte/hl7/blob/main/docs-content/v2-code-tables.md)), needs nothing installed, and the main entry point never loads it either.
 
 ---
 
@@ -125,7 +125,8 @@ The full reference lives at [docs.cosyte.com/hl7](https://docs.cosyte.com/hl7), 
 - The spec notes: what the standard says and how we read it, from [the HL7 v2 primer](https://github.com/cosyte/hl7/blob/main/docs-content/spec-notes-primer.md) and [message structure](https://github.com/cosyte/hl7/blob/main/docs-content/spec-notes-structure.md) to [escape sequences](https://github.com/cosyte/hl7/blob/main/docs-content/spec-notes-escapes.md), [datetime precision](https://github.com/cosyte/hl7/blob/main/docs-content/spec-notes-datetime-precision.md) and [the version matrix](https://github.com/cosyte/hl7/blob/main/docs-content/spec-notes-version-matrix.md); the docs site lists all eighteen under Explanation.
 - [Testing and quality](https://github.com/cosyte/hl7/blob/main/docs-content/testing-and-quality.md): how we test this library, with what each kind of test catches and misses.
 - [Performance](https://github.com/cosyte/hl7/blob/main/docs-content/performance.md): what we measure and how, the CI guard that fails on a regression, and how to run the benchmarks yourself.
-- [API reference](https://github.com/cosyte/hl7/blob/main/docs-content/api/README.md): generated from the TSDoc comments, for both `@cosyte/hl7` and `@cosyte/hl7/arbitraries`.
+- [HL7 v2 code tables](https://github.com/cosyte/hl7/blob/main/docs-content/v2-code-tables.md): the eight tables on `@cosyte/hl7/tables`, how a lookup answers for a version, and where the data comes from.
+- [API reference](https://github.com/cosyte/hl7/blob/main/docs-content/api/README.md): generated from the TSDoc comments, for `@cosyte/hl7`, `@cosyte/hl7/arbitraries` and `@cosyte/hl7/tables`.
 
 ---
 
@@ -173,6 +174,8 @@ sponsored by any of them: the names identify the systems whose real-world messag
 ## License
 
 MIT, Copyright (c) 2026 Cosyte LLC. See [LICENSE](https://github.com/cosyte/hl7/blob/main/LICENSE).
+
+The tables on `@cosyte/hl7/tables` are derived from HL7 Terminology 7.5.0 (<https://terminology.hl7.org/7.5.0/>), which Health Level Seven International publishes under the CC0 designation. They are altered: each keeps only its codes, display text, status and deprecation version, the per-version lists are rebuilt from those deprecation versions, and a long dash in display text is written as a hyphen. They are not HL7 Terminology itself, and HL7 does not endorse this package.
 
 ---
 

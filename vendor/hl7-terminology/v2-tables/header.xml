@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<CodeSystem xmlns="http://hl7.org/fhir">
+  <id value="v2-tables"/>
+  <url value="http://terminology.hl7.org/CodeSystem/v2-tables"/>
+  <version value="7.0.0"/>
+  <name value="V2Tables"/>
+  <title value="V2 Table List"/>
+  <status value="active"/>
+  <experimental value="false"/>
+  <date value="2025-02-24"/>
+  <publisher value="Health Level Seven International"/>
+  <contact>
+    <telecom>
+      <system value="url"/>
+      <value value="http://hl7.org"/>
+    </telecom>
+    <telecom>
+      <system value="email"/>
+      <value value="hq@HL7.org"/>
+    </telecom>
+  </contact>
+  <description value="Master List of V2 Tables&#13;&#10;&#13;&#10;Please note that V2 Code System and Value Set URIs are present, but the URIs do not resolve. The addition of the appropriate THO artifacts for these are in progress."/>
+  <copyright value="Copyright HL7. Licensed under creative commons public domain"/>
+  <caseSensitive value="true"/>
+  <hierarchyMeaning value="is-a"/>
+  <compositional value="false"/>
+  <versionNeeded value="false"/>
+  <content value="complete"/>
+  <property>
+    <code value="v2-table-oid"/>
+    <uri value="http://terminology.hl7.org/CodeSystem/utg-concept-properties#v2-table-oid"/>
+    <description value="V2 Table OID"/>
+    <type value="string"/>
+  </property>
+  <property>
+    <code value="v2-cs-oid"/>
+    <uri value="http://terminology.hl7.org/CodeSystem/utg-concept-properties#v2-cs-oid"/>
+    <description value="V2 Code System OID"/>
+    <type value="string"/>
+  </property>
+  <property>
+    <code value="v2-cs-uri"/>
+    <uri value="http://terminology.hl7.org/CodeSystem/utg-concept-properties#v2-cs-uri"/>
+    <description value="V2 Code System URI"/>
+    <type value="code"/>
+  </property>
+  <property>
+    <code value="v2-vs-oid"/>
+    <uri value="http://terminology.hl7.org/CodeSystem/utg-concept-properties#v2-vs-oid"/>
+    <description value="V2 Value Set OID"/>
+    <type value="string"/>
+  </property>
+  <property>
+    <code value="v2-vs-uri"/>
+    <uri value="http://terminology.hl7.org/CodeSystem/utg-concept-properties#v2-vs-uri"/>
+    <description value="V2 Value Set URI"/>
+    <type value="code"/>
+  </property>
+  <property>
+    <code value="v2-table-type"/>
+    <uri value="http://terminology.hl7.org/CodeSystem/utg-concept-properties#v2-table-type"/>
+    <description value="V2 Table Type"/>
+    <type value="code"/>
+  </property>
+  <property>
+    <code value="v2-cs-version"/>
+    <uri value="http://terminology.hl7.org/CodeSystem/utg-concept-properties#v2-cs-version"/>
+    <description value="V2 Code System Version"/>
+    <type value="integer"/>
+  </property>
+  <property>
+    <code value="steward"/>
+	<extension url="http://hl7.org/fhir/StructureDefinition/codesystem-property-valueset">
+      <valueCanonical value="http://terminology.hl7.org/ValueSet/hl7-work-group"/> 
+    </extension> 
+    <uri value="http://terminology.hl7.org/CodeSystem/utg-concept-properties#steward"/>
+    <description value="Steward WorkGroup"/>
+    <type value="code"/>
+  </property>
+  <property>
+    <code value="v2-where-used"/>
+    <uri value="http://terminology.hl7.org/CodeSystem/utg-concept-properties#v2-where-used"/>
+    <description value="Field Where Used"/>
+    <type value="string"/>
+  </property>
+  <property>
+    <code value="v2-binding"/>
+    <uri value="http://terminology.hl7.org/CodeSystem/utg-concept-properties#v2-binding"/>
+    <description value="V2 Binding Code"/>
+    <type value="string"/>
+  </property>
+  <property>
+    <code value="v2-version-tbl-introduced"/>
+    <uri value="http://terminology.hl7.org/CodeSystem/utg-concept-properties#v2-version-tbl-introduced"/>
+    <description value="version-tbl-introduced"/>
+    <type value="string"/>
+  </property>
+  <property>
+    <code value="v2-version-csvs-introduced"/>
+    <uri value="http://terminology.hl7.org/CodeSystem/utg-concept-properties#v2-version-csvs-introduced"/>
+    <description value="version-csvs-introduced"/>
+    <type value="string"/>
+  </property>
+  <property>
+    <code value="v2-cld"/>
+    <uri value="http://terminology.hl7.org/CodeSystem/utg-concept-properties#v2-cld"/>
+    <description value="V2 VS CLD Type"/>
+    <type value="string"/>
+  </property>
+  <property>
+    <code value="vocab-domain"/>
+    <uri value="http://terminology.hl7.org/CodeSystem/utg-concept-properties#vocab-domain"/>
+    <description value="Concept Domain"/>
+    <type value="string"/>
+  </property>
+  <property>
+    <code value="v2-codes-table-comment"/>
+    <uri value="http://hl7.org/fhir/concept-properties#comment"/>
+    <description value="V2 Codes Table Comment."/>
+    <type value="string"/>
+  </property>

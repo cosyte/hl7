@@ -229,3 +229,8 @@ EMAILDOMAIN example.test
 # email floor from here on. The name, DOB, MRN and address gates are what still
 # cover such a fixture.
 EMAILDOMAIN cosyte.com
+# HL7 International's contact address, hq@HL7.org, which every HL7 Terminology file
+# vendored under vendor/hl7-terminology/ carries in its publisher contact. It is a
+# standards body's address, not a patient's. The same cost as above applies: an
+# address at this domain inside a fixture would pass the email floor from here on.
+EMAILDOMAIN hl7.org

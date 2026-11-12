@@ -53,7 +53,7 @@ import { formatHl7Timestamp } from "./format-timestamp.js";
 export interface AckErrorDetail {
   /**
    * HL7 Table 0357 message error condition code (ERR-3.1). Defaults to `"207"`
-   * (Application internal error). The standard display text is looked up from
+   * (Application error). The standard display text is looked up from
    * Table 0357 and emitted in ERR-3.2; unknown codes emit with empty text
    * (the code is preserved verbatim: never dropped).
    */

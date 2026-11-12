@@ -7,9 +7,11 @@ description: "Bind the code lists your interface allows into a conformance profi
 
 # Supply your own codes and profiles
 
-The package ships no conformance profile and no code set, and it makes no network call. You bring
-both: the codes a field may carry, written into a profile, and the profiles themselves, each under
-the identifier a sender puts in MSH-21. This page shows the two together.
+The package ships no conformance profile, and it makes no network call. Apart from eight
+structural HL7 v2 tables on the separate `@cosyte/hl7/tables` entry point ([HL7 v2 code
+tables](./v2-code-tables.md)), it ships no code set either. You bring both: the codes a field may
+carry, written into a profile, and the profiles themselves, each under the identifier a sender puts
+in MSH-21. This page shows the two together.
 
 ## Bind your own codes
 

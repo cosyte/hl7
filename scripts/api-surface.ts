@@ -1,8 +1,9 @@
 #!/usr/bin/env tsx
 /**
  * Derive the package's public export surface from a built `.d.ts` and compare it against the
- * committed inventory: `release/public-api.json` for the main entry point, `@cosyte/hl7`, and
- * `release/public-api-arbitraries.json` for `@cosyte/hl7/arbitraries`.
+ * committed inventory: `release/public-api.json` for the main entry point, `@cosyte/hl7`,
+ * `release/public-api-arbitraries.json` for `@cosyte/hl7/arbitraries`, and
+ * `release/public-api-tables.json` for `@cosyte/hl7/tables`.
  *
  * WHY THIS EXISTS. `dist/index.d.ts` is what every consumer's editor and compiler reads, and it
  * is assembled by a bundler from a barrel: nothing in `pnpm lint`, `pnpm typecheck` or the test
@@ -59,8 +60,9 @@
  *
  *     tsx scripts/api-surface.ts [--entry <name>] [--declarations <path>] [--inventory <path>] [--write]
  *
- *   --entry         the entry point: `index` (the default, `@cosyte/hl7`) or `arbitraries`
- *                   (`@cosyte/hl7/arbitraries`). It sets the two defaults below.
+ *   --entry         the entry point: `index` (the default, `@cosyte/hl7`), `arbitraries`
+ *                   (`@cosyte/hl7/arbitraries`) or `tables` (`@cosyte/hl7/tables`). It sets
+ *                   the two defaults below.
  *   --declarations  the built `.d.ts` to read (default `dist/<entry>.d.ts`, relative to cwd)
  *   --inventory     the committed inventory (default `release/public-api.json` for `index`,
  *                   `release/public-api-<entry>.json` otherwise, relative to cwd)
@@ -110,6 +112,12 @@ const ENTRIES = {
     inventory: "release/public-api-arbitraries.json",
     specifier: "@cosyte/hl7/arbitraries",
     regenerate: "tsx scripts/api-surface.ts --entry arbitraries --write",
+  },
+  tables: {
+    declarations: "dist/tables.d.ts",
+    inventory: "release/public-api-tables.json",
+    specifier: "@cosyte/hl7/tables",
+    regenerate: "tsx scripts/api-surface.ts --entry tables --write",
   },
 } as const;
 
@@ -548,7 +556,7 @@ function main(argv: readonly string[]): number {
       `REFUSED: api-surface - ${error instanceof Error ? error.message : String(error)}`,
     );
     console.error(
-      "Usage: tsx scripts/api-surface.ts [--entry index|arbitraries] [--declarations <path>] [--inventory <path>] [--write]",
+      "Usage: tsx scripts/api-surface.ts [--entry index|arbitraries|tables] [--declarations <path>] [--inventory <path>] [--write]",
     );
     return 2;
   }
