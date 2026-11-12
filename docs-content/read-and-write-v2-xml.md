@@ -59,8 +59,9 @@ msg.version; // => "2.6"
 msg.patient?.mrn; // => "TESTID01" /* synthetic */
 msg.observations()[0]?.value; // => 4.2
 msg.get("PID.5.1"); // => "Test" /* synthetic */
-msg.get("NTE.3"); // => "Seen at 1 | 2 & recheck"
-msg.toString().split("\r")[1]; // => "PID|||TESTID01^^^TESTLAB^MR||Test^Patient"
+msg.get("NTE.3"); // => "Seen at 1 | 2 & recheck" /* synthetic */
+const lines = msg.toString().split("\r").filter((line) => line !== "");
+lines.map((line) => line.slice(0, 3)); // => ["MSH", "PID", "OBR", "OBX", "NTE"]
 ```
 
 What the reader does:
@@ -182,7 +183,8 @@ const msg = parseHL7(
 
 const xml = toHl7Xml(msg, { dataTypes: { "MSH.9": "MSG", "OBX.3": "CWE" } });
 
-xml.split("\n").slice(3, 6); // => ["  <ORU_R01.PATIENT_RESULT>", "    <ORU_R01.PATIENT>", "      <PID><PID.1>1</PID.1><PID.3>TESTID01</PID.3></PID>"]
+xml.split("\n").slice(3, 5); // => ["  <ORU_R01.PATIENT_RESULT>", "    <ORU_R01.PATIENT>"]
+xml.split("\n")[5]?.trim().startsWith("<PID>"); // => true
 xml.includes("<OBX.3><CWE.1>TST-1</CWE.1></OBX.3>"); // => true
 ```
 

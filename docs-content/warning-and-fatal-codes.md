@@ -103,7 +103,8 @@ matched; // => true
 ```
 
 `Hl7ParseError.snippet` carries up to 40 characters of the raw input verbatim and the library never
-redacts it. It is the field to scrub at your logging edge.
+redacts it. It is the only error field that echoes input; results carry input too, and the section
+below names every field never to log.
 
 ## What is safe to log
 

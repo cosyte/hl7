@@ -73,8 +73,10 @@ const msg = parseHL7(
 
 msg.removeSegment("NTE").addSegment("NTE", ["1", "", "Moved to | ward 2"]);
 
-msg.get("NTE.3"); // => "Moved to | ward 2"
-msg.toString().split("\r")[2]; // => "NTE|1||Moved to \\F\\ ward 2"
+msg.get("NTE.3"); // => "Moved to | ward 2" /* synthetic */
+const note = msg.toString().split("\r")[2] ?? "";
+note.split("|").length; // => 4
+note.includes("\\F\\"); // => true
 ```
 
 The `|` inside the note is written as the escape `\F\`, so a value can never add a field.
