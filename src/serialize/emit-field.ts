@@ -30,13 +30,7 @@
  */
 
 import { reescape } from "../parser/escapes.js";
-import type {
-  EncodingCharacters,
-  RawComponent,
-  RawField,
-  RawRepetition,
-  RawSegment,
-} from "../parser/types.js";
+import type { EncodingCharacters, RawField, RawRepetition, RawSegment } from "../parser/types.js";
 
 /**
  * Emit a single HL7 field as its spec-clean string fragment. Joins
@@ -56,65 +50,45 @@ import type {
  */
 export function emitField(field: RawField, enc: EncodingCharacters): string {
   if (field.isNull) return '""';
-  // Written by concatenation rather than collected and joined: a parsed field is most often one
-  // value, and an array per repetition, component and subcomponent cost several times the bytes
-  // written. Read by index, so a hole in a field built by hand reaches the emitter as `undefined`
-  // and, like a `null`, emits as an empty position.
-  let out = "";
+  if (field.repetitions.length === 0) return "";
+  const repStrings: string[] = [];
+  // Read by index, so a hole in a field built by hand reaches the emitter as
+  // `undefined` and, like a `null`, emits as an empty position.
   for (let r = 0; r < field.repetitions.length; r++) {
-    if (r > 0) out += enc.repetition;
-    out += emitRepetition(field.repetitions[r], enc);
+    repStrings.push(emitRepetition(field.repetitions[r], enc));
   }
-  return out;
+  return repStrings.join(enc.repetition);
 }
 
-/**
- * A repetition's components joined by the component separator, the empty components at its end
- * dropped with their separators: a separator is written only when a component after it writes
- * something.
- *
- * @internal
- */
+/** @internal */
 function emitRepetition(rep: RawRepetition | undefined, enc: EncodingCharacters): string {
+  const compStrings: string[] = [];
   const components = rep?.components ?? [];
-  let out = "";
-  let owed = 0;
-  // Stryker disable next-line EqualityOperator: one past the end reads undefined, which writes nothing
   for (let c = 0; c < components.length; c++) {
-    if (c > 0) owed++;
-    const text = emitComponent(components[c], enc);
-    if (text === "") continue;
-    for (; owed > 0; owed--) out += enc.component;
-    out += text;
+    const comp = components[c];
+    const overlay = comp?.rawSubcomponents;
+    const subcomponents = comp?.subcomponents ?? [];
+    const subStrings: string[] = [];
+    for (let i = 0; i < subcomponents.length; i++) {
+      // Escape-fidelity overlay (HL7-ESC): when the tokenizer recorded the
+      // subcomponent's original wire bytes (a preserve-or-hex escape whose
+      // decoded form does not re-escape byte-verbatim), emit them verbatim,
+      // otherwise re-escape the decoded value. Delimiter escapes have no
+      // overlay and take the reescape path, exactly as before.
+      const raw = overlay?.[i];
+      subStrings.push(raw ?? reescape(subcomponents[i] ?? "", enc));
+    }
+    // D-02 trailing-empty strip at subcomponent level.
+    while (subStrings.length > 0 && subStrings[subStrings.length - 1] === "") {
+      subStrings.pop();
+    }
+    compStrings.push(subStrings.join(enc.subcomponent));
   }
-  return out;
-}
-
-/**
- * A component's subcomponents joined by the subcomponent separator, the empty subcomponents at its
- * end dropped with their separators, as `emitRepetition` drops components.
- *
- * @internal
- */
-function emitComponent(comp: RawComponent | undefined, enc: EncodingCharacters): string {
-  const overlay = comp?.rawSubcomponents;
-  const subcomponents = comp?.subcomponents ?? [];
-  let out = "";
-  let owed = 0;
-  // Stryker disable next-line EqualityOperator: one past the end reads undefined, which writes nothing
-  for (let i = 0; i < subcomponents.length; i++) {
-    if (i > 0) owed++;
-    // Escape-fidelity overlay (HL7-ESC): when the tokenizer recorded the
-    // subcomponent's original wire bytes (a preserve-or-hex escape whose
-    // decoded form does not re-escape byte-verbatim), emit them verbatim,
-    // otherwise re-escape the decoded value. Delimiter escapes have no
-    // overlay and take the reescape path, exactly as before.
-    const text = overlay?.[i] ?? reescape(subcomponents[i] ?? "", enc);
-    if (text === "") continue;
-    for (; owed > 0; owed--) out += enc.subcomponent;
-    out += text;
+  // D-02 trailing-empty strip at component level.
+  while (compStrings.length > 0 && compStrings[compStrings.length - 1] === "") {
+    compStrings.pop();
   }
-  return out;
+  return compStrings.join(enc.component);
 }
 
 /**
@@ -146,15 +120,15 @@ export function emitSegment(seg: RawSegment, enc: EncodingCharacters): string {
         "emitSegment would re-escape the encoding chars and produce garbage output.",
     );
   }
-  let region = "";
+  const parts: string[] = [];
   for (let i = 1; i < seg.fields.length; i++) {
-    if (i > 1) region += enc.field;
     const f = seg.fields[i];
-    region += f === undefined ? "" : emitField(f, enc);
+    parts.push(f === undefined ? "" : emitField(f, enc));
   }
   // The parser reads a segment whose field region is empty (`PV1|`) as a segment with no fields,
   // so a region that writes as nothing is written with no separator either. Otherwise a lone
   // field holding only empty components (`PV1|^`) would write as `PV1|`, which reads back as `PV1`,
   // and serializing a parsed message a second time would change its text.
+  const region = parts.join(enc.field);
   return region === "" ? seg.name : seg.name + enc.field + region;
 }

@@ -122,12 +122,12 @@ function emitMshSegment(seg: RawSegment, enc: EncodingCharacters): string {
     enc.component + enc.repetition + enc.escape + enc.subcomponent + (enc.truncation ?? "");
   // MSH-3..N: fields[2..N] via emitField, joined by enc.field. Trailing empty fields are kept:
   // each is written after its separator.
-  let tail = "";
+  const tailParts: string[] = [];
   for (let i = 2; i < seg.fields.length; i++) {
-    if (i > 2) tail += enc.field;
     const f = seg.fields[i];
-    tail += f === undefined ? "" : emitField(f, enc);
+    tailParts.push(f === undefined ? "" : emitField(f, enc));
   }
+  const tail = tailParts.join(enc.field);
   // D-06 exact emission trace:
   // "MSH" + enc.field + enc.component + enc.repetition + enc.escape +
   //   enc.subcomponent + enc.field + <tail>
