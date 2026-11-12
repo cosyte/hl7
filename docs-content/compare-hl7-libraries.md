@@ -83,7 +83,8 @@ errors and warnings from `validate()`.
 - **The XML encoding, in part.** `parseHL7Xml` reads a v2 XML message into the same model as the
   pipe-delimited form, and `toHl7Xml` writes one back. The writer takes the composite data types
   and each structure's group elements from you. Both refuse the escape character in text, for
-  which we found no published rule ([Read and write the v2 XML encoding](./read-and-write-v2-xml.md)). HAPI and nHapi
+  which we found no published rule
+  ([Read and write the v2 XML encoding](./read-and-write-v2-xml.md)). HAPI and nHapi
   carry the XML encoding with each version's own tables.
 - **No per-version classes.** We read v2.1 to v2.9 with one structural model and do not convert
   between versions ([Version-sensitivity matrix](./spec-notes-version-matrix.md)). HAPI

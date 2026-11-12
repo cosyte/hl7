@@ -238,9 +238,9 @@ What the writer does:
 - **Formatting escapes are `escape` elements, in `TX` and `FT` values.** In a value typed `TX` or
   `FT`, `\H\` is written `<escape V="H"/>`, `\.br\` and a line break `<escape V=".br"/>`, and
   `\.in+4\` `<escape V=".in+4"/>`. In any other value a formatting escape is refused with
-  `ESCAPE_NOT_SUPPORTED`, except a line break, which is written `&#10;`: the schemas allow an
-  `escape` element only in those two types, so tell the writer which fields are `TX` or `FT`
-  (`"NTE.3": "FT"`).
+  `ESCAPE_NOT_SUPPORTED`, except a line break, which is written `&#10;`: the standard allows
+  formatting escapes only in text fields (HL7 v2 chapter 2, the escape sequences in text fields),
+  so tell the writer which fields are `TX` or `FT` (`"NTE.3": "FT"`).
 - **Hex escapes are character references.** `\Xc9\` in a message whose MSH-18 is `8859/1` is
   written `&#xc9;`. The bytes are decoded in MSH-18's character set: ASCII (MSH-18 blank),
   `UNICODE UTF-8`, `8859/1` or `WINDOWS-1252`. Bytes that are not text in it, or any other
@@ -273,10 +273,13 @@ XML schemas and an implementation guide that uses them. We quote none of their t
   them). They give the group element names, the `escape` element, character references in place
   of hex escapes, the component element kept for a one-component composite, MSH.1 and MSH.2, and
   the namespace.
+- The HL7 v2 standard, chapter 2, on escape sequences in text fields. It names `TX`, `FT` and `CF`
+  as the types that carry formatting escapes. The writer allows `escape` elements in `TX` and `FT`
+  only, so a `CF` value that holds a formatting escape is refused with `ESCAPE_NOT_SUPPORTED`; we
+  found no published rule for how the XML encoding writes it.
 - A public copy of the v2.5 and v2.4 v2 XML schemas
   (<https://schemas.liquid-technologies.com/HL7/hl7_25_xsd/oru_r01_xsd.html> and the pages beside
-  it). The rule that only `TX` and `FT` take `escape` elements comes from its data type
-  definitions.
+  it), for the element layout.
 - The NAHLN Order and Response implementation guide and its results schema, published by the
   Virginia Tech veterinary laboratory site
   (<https://vtsl.vetmed.vt.edu/vs/Documents/NAHLN_Order_Resp%20IG%20v2.1.pdf>,
