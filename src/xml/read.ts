@@ -987,7 +987,7 @@ export function xmlToPipe(xml: string, limits?: XmlLimits, onType?: TypeSink): s
  * Element names are read by position: `PID.5` is the fifth field of PID, and inside it `XPN.1`
  * (or any data type name ending in `.1`) is its first component, so no data type table is needed
  * to read. The components of one value must all name the same data type, and none may be named
- * for a segment (`PID.3` or `OBX.1` inside `PID.5`). Group elements (`ORU_R01.PATIENT_RESULT`) are
+ * for a segment (`PID.3` or `OBX.1` inside `PID.5`). Group elements (`ORU_R01.RESULT`) are
  * walked through; segments are read in document order. One document is one message: a second
  * MSH is refused. Text is the decoded value: a `|` or `^` in text is that character, written to
  * the model as the pipe parser would read `\F\` or `\S\`. A field whose text is `""` is the

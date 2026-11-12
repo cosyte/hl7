@@ -70,8 +70,8 @@ export const XML_ERROR_CODES = {
    */
   STRUCTURE_UNKNOWN: "STRUCTURE_UNKNOWN",
   /**
-   * The writer knows no groups for the message structure in the message's version and was not
-   * given them in `groups`: `XML_GROUP_TABLES` lists the structures it knows.
+   * The writer was not given the message structure's groups in `groups`. We ship no group table,
+   * so it takes every structure's groups from its caller.
    */
   GROUPS_UNKNOWN: "GROUPS_UNKNOWN",
   /**

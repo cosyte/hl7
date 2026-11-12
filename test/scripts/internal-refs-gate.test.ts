@@ -183,6 +183,7 @@ type Files = Record<string, string | Buffer>;
 const BASE: Files = {
   "README.md": "# Fixture parser\n\nReads MSH-2 encoding characters and PID-3 identifier lists.\n",
   "TRADEMARKS.md": "# Trademarks\n\nCosyte is a trademark of Cosyte.\n",
+  "THIRD-PARTY-NOTICES.md": "# Third-party material\n\nThe PID-3 list is read from a source.\n",
   LICENSE: "MIT License\n\nPermission is hereby granted.\n",
   "docs-content/reference.md": "# Reference\n\nTQ1-7 start and NM1-03 name are field references.\n",
   "package.json":
