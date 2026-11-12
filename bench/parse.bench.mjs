@@ -164,6 +164,31 @@ export const SIZES = [
 ];
 
 /**
+ * The header of the synthetic ADT^A01 for index `i`, one MSH segment: what an interface engine
+ * parses from each message it takes in to answer it with an ACK.
+ */
+export function ackHeader(i) {
+  return adtMessage(i).split("\r")[0];
+}
+
+/**
+ * The ACK benchmarks' one size: 64 headers, each a different message, answered one at a time. It
+ * is compared in the shared bench-compare job and has no large counterpart.
+ */
+function ackSizes() {
+  return [
+    {
+      label: "ADT^A01 header, 64 in a row",
+      compare: true,
+      build: () => {
+        const inputs = Array.from({ length: 64 }, (_, i) => ackHeader(i));
+        return { inputs, bytes: inputs.reduce((n, text) => n + Buffer.byteLength(text), 0) };
+      },
+    },
+  ];
+}
+
+/**
  * The sizes as @cosyte/bench takes them: each corpus built in code, with its byte count. In the
  * suite this file exports (`large` false) every size is read and the large ones are left out of a
  * comparison; in the large suite (`large` true) only the large sizes are there, each compared.
@@ -212,6 +237,14 @@ export function parseSuite(large) {
 
 function benchmarks(large) {
   return [
+    ...parseBenchmarks(large),
+    // The ACK benchmarks have one small size, so the large suite leaves them out.
+    ...(large ? [] : ackBenchmarks()),
+  ];
+}
+
+function parseBenchmarks(large) {
+  return [
     defineBenchmark({
       // The lenient parse every caller starts with. `weigh` runs inside the timed loop, so it
       // reads the version, which a lazy parse has already built, rather than every segment.
@@ -240,6 +273,45 @@ function benchmarks(large) {
       name: "parseHL7, then toString",
       sizes: sizes(large),
       bind: (hl7) => (text) => hl7.parseHL7(text).toString(),
+      weigh: (text) => text.length,
+    }),
+  ];
+}
+
+/**
+ * Answering a message with an ACK, the call an interface engine makes once for every message it
+ * takes in: the control ID it generates, the header fields it echoes, and the text it writes. A
+ * regression here once added microseconds to every ACK unseen, since no benchmark built one.
+ */
+function ackBenchmarks() {
+  return [
+    defineBenchmark({
+      // The header parsed once, on the warmup call, so the timed calls are `buildAck` and
+      // `toString()` alone: the cost an engine adds to a header it has already read.
+      name: "buildAck AA, then toString",
+      sizes: ackSizes(),
+      bind: (hl7) => {
+        const headers = new Map();
+        return (text) => {
+          let inbound = headers.get(text);
+          if (inbound === undefined) {
+            inbound = hl7.parseHL7(text);
+            headers.set(text, inbound);
+          }
+          return hl7.buildAck(inbound, { code: "AA" }).toString();
+        };
+      },
+      weigh: (text) => text.length,
+    }),
+    defineBenchmark({
+      // Each header parsed in the timed call, as an engine parses each message it answers, then a
+      // negative ACK with one ERR segment: everything `buildAck` reads from a fresh header counts.
+      name: "parseHL7 of a header, buildAck AE with an error, then toString",
+      sizes: ackSizes(),
+      bind: (hl7) => (text) =>
+        hl7
+          .buildAck(hl7.parseHL7(text), { code: "AE", error: { conditionCode: "207" } })
+          .toString(),
       weigh: (text) => text.length,
     }),
   ];
