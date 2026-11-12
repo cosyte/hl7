@@ -107,22 +107,27 @@ one message of about 400,000 segments with a 4 MiB segment (a base64 document in
 The job fails when any of the three readers peaks at more than **3 times** the largest item it
 read: the item, the text it came from, and room for the reader's own state. A reader that buffered
 its source would hold toward all 100 MiB. It also fails when a reading cannot be judged, because a
-reader read nothing or failed an item. The limit is `PEAK_MULTIPLE` in the script.
+reader is missing from it, read nothing or failed an item. The limit is `PEAK_MULTIPLE` in the script.
 
 Peak held over the largest item, lowest to highest, on GitHub-hosted runners:
 
 | Reader         | Largest item       | Before                   | Now          |
 | -------------- | ------------------ | ------------------------ | ------------ |
 | `readMessages` | 4 MiB              | 1.96 to 2.08             | 1.99 to 2.07 |
-| `parseStream`  | 4 MiB              | 2.99 to 3.98, not judged | 1.89 to 2.10 |
+| `parseStream`  | 4 MiB              | 2.99 to 3.98, not judged | 1.66 to 2.13 |
 | `readSegments` | 256 KiB, now 4 MiB | 1.82 to 3.41, not judged | 1.10 to 1.68 |
 
 "Before" is ten stream-memory runs: 43063981717, 43064467751, 43066398448, 43067421821,
-43069553162, 43071783838, 43073735956, 43075730143, 43078011314 and 43078476614. "Now" is six
-readings of the code that reads this way: stream-memory run 43113178670 and five attempts of run
-43116829693. `parseStream` read 2.10, 2.07, 2.06, 2.06, 2.02 and 1.89 times its largest message,
-about two messages, where `readMessages` read 2.00, 2.07, 2.02, 1.99, 2.07 and 1.99 on the same
-batch. `readSegments` read 1.10, 1.11, 1.68, 1.11, 1.11 and 1.65.
+43069553162, 43071783838, 43073735956, 43075730143, 43078011314 and 43078476614. "Now" is every
+reading of the code that reads this way, fifteen stream-memory readings, in this order: run
+43113178670; five attempts of run 43116829693; two attempts of run 43118492093; five attempts of
+run 43119481814; run 43123783208, on `main` once that code merged; and run 43124134355, the
+release pull request, which changed only the version. `parseStream` read 2.10; 2.07, 2.06, 2.06,
+2.02 and 1.89; 2.12 and 2.06; 2.13, 2.05, 2.09, 1.66 and 2.12; 2.11; and 2.11 times its largest
+message, 1.66 to 2.13, about two messages. `readMessages` read 2.00; 2.07, 2.02, 1.99, 2.07 and
+1.99; 2.07 and 2.05; 2.00, 2.02, 1.99, 2.02 and 2.00; 1.99; and 2.00 on the same batch, 1.99 to
+2.07. `readSegments` read 1.10; 1.11, 1.68, 1.11, 1.11 and 1.65; 1.11 and 1.11; 1.11, 1.49, 1.10,
+1.11 and 1.10; 1.10; and 1.10, 1.10 to 1.68.
 
 `parseStream` used to hold about a message more than `readMessages`, at and over the limit. It cut
 every segment from one buffer that grew with each chunk, and that buffer stayed alive while the
@@ -137,7 +142,7 @@ under 1.5 times a 2 MiB message, from bytes and from text.
 `readSegments` was not judged while its largest segment was 256 KiB. Beside a segment that small,
 a few 64 KiB chunks and the text they decode to moved its ratio by more than the limit leaves room
 for, and that segment was never the item being read when memory was sampled. With a 4 MiB segment
-in hand when memory is sampled, what the reader holds besides it is small beside it, and the six
+in hand when memory is sampled, what the reader holds besides it is small beside it, and the fifteen
 readings above sit at 1.10 to 1.68, well under the limit, so the gate judges it.
 
 These are ratios, not absolute budgets. The parse benchmarks' absolute budgets belong in
