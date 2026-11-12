@@ -121,7 +121,8 @@ export interface CNE {
  *   { subcomponents: ["HL70136"] },
  * ] };
  * const cne = parseCne(rep, DEFAULT_ENCODING_CHARACTERS);
- * console.log(cne.identifier, cne.nameOfCodingSystem); // "Y" "HL70136"
+ * cne.identifier; // "Y"
+ * cne.nameOfCodingSystem; // "HL70136"
  * ```
  */
 export function parseCne(rep: RawRepetition, enc: EncodingCharacters): CNE {

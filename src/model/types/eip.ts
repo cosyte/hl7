@@ -58,7 +58,7 @@ export interface EIP {
  *   { subcomponents: ["FL-2002", "LAB"] },
  * ] };
  * const eip = parseEip(rep, DEFAULT_ENCODING_CHARACTERS);
- * console.log(eip.fillerAssignedIdentifier?.entityIdentifier); // "FL-2002"
+ * const filler = eip.fillerAssignedIdentifier?.entityIdentifier; // "FL-2002", synthetic
  * ```
  */
 export function parseEip(rep: RawRepetition, enc: EncodingCharacters): EIP {

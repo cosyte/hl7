@@ -109,6 +109,14 @@ describe("no example prints a value that identifies a person", () => {
     expect(findings(samples), findings(samples).join("\n")).toEqual([]);
   });
 
+  // The doc comments under src/ ship in dist/*.d.ts and the API pages. They follow the rule one
+  // directory at a time; a directory joins this list once its comments do.
+  it.each(["src/model"])("the doc comments under %s", (dir) => {
+    const samples = sourceFiles(join(root, dir)).flatMap(docCommentSamples);
+    expect(samples.length).toBeGreaterThan(0);
+    expect(findings(samples), findings(samples).join("\n")).toEqual([]);
+  });
+
   it("reads a doc-comment sample, so a print planted in one is found", () => {
     const planted = [
       "/**",

@@ -51,7 +51,8 @@ export interface CQ {
  * import { parseCq, DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7";
  * const rep = { components: [{ subcomponents: ["2"] }, { subcomponents: ["TAB", "tablet"] }] };
  * const cq = parseCq(rep, DEFAULT_ENCODING_CHARACTERS);
- * console.log(cq.quantity, cq.units?.identifier); // "2" "TAB"
+ * cq.quantity; // "2"
+ * cq.units?.identifier; // "TAB"
  * ```
  */
 export function parseCq(rep: RawRepetition, enc: EncodingCharacters): CQ {
