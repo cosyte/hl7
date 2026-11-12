@@ -487,6 +487,7 @@ describe("property: the wider vocabulary and caller-supplied resolutions", () =>
           }
         },
       ),
+      // property-depth: the recorded seed and path of the case a run found, as a regression.
       { seed: 187685056, path: "444:0:0:2:1:5:1:27:25:25:25:25" },
     );
   });
