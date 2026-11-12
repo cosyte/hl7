@@ -149,9 +149,18 @@ single collection left unfreed.
 
 A second step in the same job shows the gate fails a reader holding a single item more than it
 does. It runs the gate on `bench/planted-regression.mjs`, the build with each of the three readers
-fed its source through a wrapper that keeps a copy of the last 4 MiB of it alive: one 4 MiB message
-for `readMessages` and `parseStream`, one 4 MiB segment for `readSegments`, to within one 64 KiB
-chunk. The step fails unless the gate exits 1 with all three readers over their limits.
+fed its source through a wrapper, `bench/hold-one-more.mjs`, that keeps a copy of the last 4 MiB
+of it alive until the reader has yielded its last item: one 4 MiB message for `readMessages` and
+`parseStream`, one 4 MiB segment for `readSegments`, to within one 64 KiB chunk. The step fails
+unless the gate exits 1 with all three readers over their limits.
+
+The copy is held to the reader's last item, not only while the source is read, because a reader's
+peak can come after its source has ended: both sources end on a 4 MiB item. A first version
+dropped the copy when the source ended, and in stream-memory run 43147338279 (commit 3bfd166) the
+planted `readMessages` read 2.07 to 2.09, within its limit, where the same run read the build's own
+`readMessages` at 1.75 to 1.98. The planted `parseStream` read 2.06 to 2.08 and the planted
+`readSegments` 2.12 in all five, against the build's own 1.06 to 1.09 and 1.11 to 1.12. A copy
+dropped at the end of the source missed the sample that gave `readMessages` its peak.
 
 Before this change the planted build held more, and only two readers: `readMessages` kept a copy
 of the last 12 MiB it read, three of the 4 MiB messages, and `parseStream` read its whole source

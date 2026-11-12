@@ -567,13 +567,57 @@ describe("the streaming memory gate", () => {
     expect(workflow).not.toContain("within the limit");
     const planted = read("bench", "planted-regression.mjs");
     expect(planted).toContain('from "../dist/index.mjs"');
-    // Each reader keeps a copy of the last 4 MiB of its source: one of the 4 MiB items it reads.
-    expect(planted).toContain("const ONE_MESSAGE = 4 * MIB;");
+    // Each of the three readers is the build's own, holding one item more.
     for (const reader of ["readMessages", "parseStream", "readSegments"]) {
       expect(planted).toContain(
-        `export function ${reader}(source, options) {\n  return built.${reader}(keepingCopies(source, ONE_MESSAGE), options);\n}`,
+        `export function ${reader}(source, options) {\n  return holdingOneMore(built.${reader}, source, options);\n}`,
       );
     }
+  });
+
+  it("plants one 4 MiB item more, a copy, held until the reader has yielded its last item", async () => {
+    const { holdingOneMore, ONE_MESSAGE } = await importModule<{
+      holdingOneMore: (
+        read: (source: AsyncIterable<Buffer>) => AsyncIterable<string>,
+        source: Iterable<Buffer>,
+        options: undefined,
+        kept: { copies: Buffer[]; bytes: number },
+      ) => AsyncIterable<string>;
+      ONE_MESSAGE: number;
+    }>("bench", "hold-one-more.mjs");
+    expect(ONE_MESSAGE).toBe(4 * MIB);
+    const CHUNK = 64 * 1024;
+    const chunks = Array.from({ length: 96 }, (_, i) => Buffer.alloc(CHUNK, i));
+    const seen: Buffer[] = [];
+    // A reader that yields after each chunk, and once more after its source has ended, as the
+    // message readers yield the last message of a batch.
+    async function* reader(from: AsyncIterable<Buffer>): AsyncIterable<string> {
+      for await (const chunk of from) {
+        seen.push(chunk);
+        yield "chunk";
+      }
+      yield "last";
+    }
+    const kept = { copies: [] as Buffer[], bytes: 0 };
+    const items: string[] = [];
+    for await (const item of holdingOneMore(reader, chunks, undefined, kept)) {
+      items.push(item);
+      if (seen.length * CHUNK >= ONE_MESSAGE) {
+        // One item's worth, to within one chunk, from the first 4 MiB on.
+        expect(kept.bytes).toBeGreaterThanOrEqual(ONE_MESSAGE);
+        expect(kept.bytes).toBeLessThan(ONE_MESSAGE + CHUNK);
+        expect(kept.copies.reduce((n, copy) => n + copy.length, 0)).toBe(kept.bytes);
+      }
+    }
+    expect(items.at(-1)).toBe("last");
+    // The reader read the source's own chunks; what is kept is copies of the last ones.
+    expect(seen).toEqual(chunks);
+    expect(seen.every((chunk, i) => chunk === chunks[i])).toBe(true);
+    const last = chunks.slice(-kept.copies.length);
+    expect(kept.copies).toEqual(last);
+    expect(kept.copies.some((copy, i) => copy === last[i] || copy.buffer === last[i]?.buffer)).toBe(
+      false,
+    );
   });
 
   it("runs as its own job on every pull request, at 100 MiB, and its exit fails the job", () => {
