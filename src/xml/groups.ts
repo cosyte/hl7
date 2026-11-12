@@ -96,161 +96,31 @@ function oruR01V25(): XmlMessageStructure {
   });
 }
 
-/** A frozen message structure of a table. */
-function structure(name: string, items: XmlStructureItem[]): XmlMessageStructure {
-  return Object.freeze({ structure: name, items: Object.freeze(items) });
-}
-
-/**
- * The OPU_R25 structure (population or location based laboratory observations, the results
- * message of animal health laboratory networks) of the HL7 v2.6 XML schema, as HL7's database
- * generates the message definition `OPU_R25.xsd`. Three public copies of that schema, generated in
- * 2008, 2016 and 2022, give the same groups. The OBX and NTE after PV2 stand at the root there, in
- * no group, and so they do here.
- */
-function opuR25V26(): XmlMessageStructure {
-  return structure("OPU_R25", [
-    "MSH",
-    "SFT*",
-    "UAC?",
-    "NTE?",
-    "PV1",
-    "PV2?",
-    "OBX*",
-    "NTE*",
-    "ROL+",
-    group("ACCESSION_DETAIL+", [
-      "NK1+",
-      group("PATIENT?", ["PID", "PD1?", group("PATIENT_OBSERVATION*", ["OBX", "NTE*"])]),
-      group("SPECIMEN+", [
-        "SPM",
-        group("SPECIMEN_OBSERVATION*", ["OBX", "NTE*"]),
-        group("CONTAINER*", ["SAC", "INV?"]),
-        group("ORDER+", [
-          "OBR",
-          "ORC?",
-          "NTE*",
-          "ROL*",
-          group("TIMING_QTY*", ["TQ1", "TQ2*"]),
-          group("RESULT+", ["OBX", "NTE*"]),
-        ]),
-      ]),
-    ]),
-  ]);
-}
-
-/**
- * The OPL_O37 structure (a population or location based laboratory order) of the HL7 v2.6 XML
- * schema, from the same three copies. The 2008 copy writes four group names with a space
- * (`OBSERVATION REQUEST`), which is not an XML name; the 2016 and 2022 copies write an underscore,
- * and so do we.
- */
-function oplO37V26(): XmlMessageStructure {
-  return structure("OPL_O37", [
-    "MSH",
-    "SFT*",
-    "UAC?",
-    "NTE*",
-    "ROL+",
-    group("GUARANTOR?", ["GT1", "NTE*"]),
-    group("ORDER+", [
-      "NK1+",
-      group("PATIENT?", [
-        "PID",
-        "PD1?",
-        "OBX*",
-        group("INSURANCE*", ["IN1", "IN2?", "IN3?"]),
-        "AL1*",
-      ]),
-      group("SPECIMEN+", [
-        "SPM",
-        "OBX*",
-        group("CONTAINER*", ["SAC", "OBX*"]),
-        group("OBSERVATION_REQUEST+", [
-          "ORC",
-          "OBR",
-          "ROL*",
-          group("TIMING*", ["TQ1", "TQ2*"]),
-          "TCD?",
-          "DG1*",
-          "OBX*",
-        ]),
-      ]),
-      group("PRIOR_RESULT?", [
-        "NK1+",
-        group("PATIENT_PRIOR?", ["PID", "PD1?"]),
-        group("PATIENT_VISIT_PRIOR?", ["PV1", "PV2?"]),
-        "AL1?",
-        group("ORDER_PRIOR+", ["OBR", "ORC?", "ROL*", group("TIMING?", ["TQ1", "TQ2*"]), "OBX+"]),
-      ]),
-      "FT1*",
-      "CTI*",
-      "BLG?",
-    ]),
-  ]);
-}
-
-/**
- * The OPR_O38 structure (the response to an OPL_O37 order) of the HL7 v2.6 XML schema, from the
- * same three copies.
- */
-function oprO38V26(): XmlMessageStructure {
-  return structure("OPR_O38", [
-    "MSH",
-    "MSA",
-    "ERR*",
-    "SFT*",
-    "UAC?",
-    "NTE*",
-    group("RESPONSE?", [
-      group("ORDER+", [
-        "NK1+",
-        "PID?",
-        group("SPECIMEN*", [
-          "SPM",
-          "OBX*",
-          "SAC*",
-          group("OBSERVATION_REQUEST*", ["ORC", "OBR", "ROL*"]),
-          group("TIMING*", ["TQ1", "TQ2*"]),
-        ]),
-      ]),
-    ]),
-  ]);
-}
-
 /**
  * The structure the tables give `root` in `version`, or `undefined` when they cover neither.
  *
  * @internal
  */
 export function groupTable(version: string, root: string): XmlMessageStructure | undefined {
-  if (version === "2.5") return root === "ORU_R01" ? oruR01V25() : undefined;
-  if (version !== "2.6") return undefined;
-  if (root === "OPU_R25") return opuR25V26();
-  if (root === "OPL_O37") return oplO37V26();
-  return root === "OPR_O38" ? oprO38V26() : undefined;
+  return version === "2.5" && root === "ORU_R01" ? oruR01V25() : undefined;
 }
 
 /**
  * The message structures whose groups the v2 XML writer knows, by HL7 version (MSH-12) and then
- * by structure id. Each is read from public copies of that version's v2 XML schema: ORU_R01 in
- * v2.5, and the laboratory structures OPU_R25, OPL_O37 and OPR_O38 in v2.6. `toHl7Xml` refuses any
- * other structure or version with `GROUPS_UNKNOWN` unless it is given one in `groups`; a message
- * whose MSH-12 names another version can be given a table here in `groups`.
+ * by structure id. Each is read from that version's published v2 XML schema. It covers ORU_R01 in
+ * v2.5 only: we found no public schema for any other version or structure. `toHl7Xml` refuses any
+ * other structure with `GROUPS_UNKNOWN` unless it is given one in `groups`.
  *
  * @example
  * ```ts
  * import { XML_GROUP_TABLES } from "@cosyte/hl7";
- * console.log(Object.keys(XML_GROUP_TABLES["2.6"] ?? {})); // ["OPU_R25", "OPL_O37", "OPR_O38"]
+ * console.log(Object.keys(XML_GROUP_TABLES["2.5"] ?? {})); // ["ORU_R01"]
  * ```
  */
 // Stryker disable all: a module constant, evaluated once when the test runner loads the module, so a mutant of it is never live; the writer reads groupTable, and a test pins this to it
 export const XML_GROUP_TABLES: Readonly<
   Record<string, Readonly<Record<string, XmlMessageStructure>>>
-> = Object.freeze({
-  "2.5": Object.freeze({ ORU_R01: oruR01V25() }),
-  "2.6": Object.freeze({ OPU_R25: opuR25V26(), OPL_O37: oplO37V26(), OPR_O38: oprO38V26() }),
-});
+> = Object.freeze({ "2.5": Object.freeze({ ORU_R01: oruR01V25() }) });
 // Stryker restore all
 
 /** A structure item resolved: a segment or a group, how often it may stand, and its items. */

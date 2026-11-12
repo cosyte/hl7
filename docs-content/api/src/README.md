@@ -17454,16 +17454,15 @@ try {
 > `const` **XML\_GROUP\_TABLES**: `Readonly`\<`Record`\<`string`, `Readonly`\<`Record`\<`string`, [`XmlMessageStructure`](#xmlmessagestructure)\>\>\>\>
 
 The message structures whose groups the v2 XML writer knows, by HL7 version (MSH-12) and then
-by structure id. Each is read from public copies of that version's v2 XML schema: ORU_R01 in
-v2.5, and the laboratory structures OPU_R25, OPL_O37 and OPR_O38 in v2.6. `toHl7Xml` refuses any
-other structure or version with `GROUPS_UNKNOWN` unless it is given one in `groups`; a message
-whose MSH-12 names another version can be given a table here in `groups`.
+by structure id. Each is read from that version's published v2 XML schema. It covers ORU_R01 in
+v2.5 only: we found no public schema for any other version or structure. `toHl7Xml` refuses any
+other structure with `GROUPS_UNKNOWN` unless it is given one in `groups`.
 
 #### Example
 
 ```ts
 import { XML_GROUP_TABLES } from "@cosyte/hl7";
-console.log(Object.keys(XML_GROUP_TABLES["2.6"] ?? {})); // ["OPU_R25", "OPL_O37", "OPR_O38"]
+console.log(Object.keys(XML_GROUP_TABLES["2.5"] ?? {})); // ["ORU_R01"]
 ```
 
 ## Functions

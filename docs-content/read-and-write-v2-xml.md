@@ -148,8 +148,8 @@ is to read them from a message your partner sent, or from one of their examples,
 `xmlDataTypes`.
 
 The writer also places the segments in the message structure's group elements. It knows the
-groups of the structures in `XML_GROUP_TABLES`, ORU_R01 in v2.5 and the laboratory structures
-OPU_R25, OPL_O37 and OPR_O38 in v2.6, and takes any other from you in `groups`. An ACK has no groups, so this one is written with `groups: "none"`:
+groups of the structures in `XML_GROUP_TABLES`, ORU_R01 in v2.5, and takes any other from you in
+`groups`. An ACK has no groups, so this one is written with `groups: "none"`:
 
 ```ts runnable
 import { parseHL7, toHl7Xml } from "@cosyte/hl7";
@@ -269,48 +269,12 @@ XML schemas and an implementation guide that uses them. We quote none of their t
   Virginia Tech veterinary laboratory site
   (<https://vtsl.vetmed.vt.edu/vs/Documents/NAHLN_Order_Resp%20IG%20v2.1.pdf>,
   <https://vtsl.vetmed.vt.edu/vs/Documents/NAHLNMessageSchemas/NAHLNResultBase.xsd>). The network
-  writes no namespace (`namespace: null`), and its results message is OPU_R25.
-- Three public copies of the v2.6 v2 XML schemas, each generated from HL7's database: of 2008
-  (<https://github.com/niquola/hl7-clj/tree/61c5b0f9af1ad65606518aabb830b8c4dbd09c6d/resources/2.6>),
-  of 2016
-  (<https://github.com/OPALE-dev/HL7Swift/tree/a42d0ddbed95dc9667f5a64ec913107e70770de0/Sources/HL7Swift/Spec/Resources/v2.6/messages>)
-  and of 2022
-  (<https://github.com/databricks-industry-solutions/funke-hl7v2/tree/c89a83c0d6708224c22062987d08d3ea84b52112/data/hl7-schemas/HL7-xml-v2.6>).
-  The OPU_R25, OPL_O37 and OPR_O38 group tables come from their message definitions of those
-  names, which give the same segments, groups and cardinalities in all three. The 2008 OPL_O37
-  writes four group names with a space (`OBSERVATION REQUEST`), which is not an XML name; the later
-  two write an underscore, and so do we.
+  writes no namespace (`namespace: null`), and its results message is OPU_R25, whose groups you
+  pass in `groups`.
 
 Group names come from the schemas, not from the standard's chapter text, which leaves some groups
-unnamed or names them with spaces. We found public schemas for ORU_R01 in v2.5 and for OPU_R25,
-OPL_O37 and OPR_O38 in v2.6, so those are the tables we ship.
-
-The tables are keyed by MSH-12. A message that carries one of these structures under another
-version in MSH-12 is refused with `GROUPS_UNKNOWN`. When the receiver's schema gives the same
-groups as the v2.6 one, pass the table yourself; check that schema first, since a network may name
-or nest its groups its own way.
-
-```ts runnable
-import { XML_GROUP_TABLES, parseHL7, toHl7Xml } from "@cosyte/hl7";
-
-const msg = parseHL7(
-  [
-    "MSH|^~\\&|TESTLAB||||20260102101500||OPU^R25^OPU_R25|XMLOPU01|P|2.5.1",
-    "PV1|1",
-    "ROL|1",
-    "NK1|1",
-    "SPM|1",
-    "OBR|1",
-    "OBX|1|NM|TST-1||4.2",
-  ].join("\r"),
-);
-
-const groups = XML_GROUP_TABLES["2.6"]?.["OPU_R25"];
-const xml = groups === undefined ? "" : toHl7Xml(msg, { dataTypes: { "MSH.9": "MSG" }, groups });
-
-xml.includes("<OPU_R25.ACCESSION_DETAIL>"); // => true
-xml.includes("<OPU_R25.RESULT>"); // => true
-```
+unnamed or names them with spaces. We found a public schema for ORU_R01 in v2.5 only, so that is
+the one table we ship.
 
 ## What the published rules leave open, and we refuse
 
