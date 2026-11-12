@@ -1,0 +1,9 @@
+---
+"@cosyte/hl7": patch
+---
+
+`Hl7Message.toBytes()` writes a message as bytes in the character set its MSH-18 declares, so a message read as Latin-1, windows-1252 or another single-byte set and not changed leaves as the bytes it arrived as instead of as UTF-8.
+
+Each set is written the way `parseHL7` reads it: a blank or absent MSH-18 and `UTF-8` as UTF-8; a declared `ASCII` as 7-bit ASCII; `8859/1` one byte per character; and `WINDOWS-1252` and the other ISO 8859 sets the parser decodes through their tables. A set the parser does not decode (`8859/9`, `8859/11`, the East Asian sets, an unrecognized label) has no table, so a message in it is written in ASCII only, and `UNICODE UTF-16` and `UNICODE UTF-32` are refused. The exception is a message the parser kept as a latin1 byte reading (it raised `UNSUPPORTED_CHARSET` or `UNKNOWN_CHARSET`): each segment not edited since the read goes back as the bytes it was read from, while the set it was read in is the one being written, and an edited segment must be ASCII. `toBytes({ charset })` writes in another set, as the `charset` option of `parseHL7` reads in one, but cannot move a byte reading's non-ASCII bytes to another set. A character the set cannot hold is never replaced: `toBytes()` throws the new `Hl7EncodeError` (`code: "UNENCODABLE_CHARACTER"`, or `"UNSUPPORTED_CHARSET"` for a set it has no encoder for), whose `position` names the segment and field and whose `charset` names the set, never the character. `ToBytesOptions` and `Hl7EncodeErrorCode` are exported types.
+
+What a caller must change: nothing. A caller that wrote `Buffer.from(msg.toString(), "utf8")` can call `msg.toBytes()` to keep the declared set, and should catch `Hl7EncodeError` where a transform may add a character the set lacks, including any letter with an accent in a message that declares `ASCII` or a set the parser does not decode.

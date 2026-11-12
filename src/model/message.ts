@@ -62,6 +62,9 @@ import type { MessageStructure } from "../parser/message-structure.js";
 import { buildVisit } from "../helpers/visit.js";
 import { emitPrettyPrint } from "../serialize/pretty-print.js";
 import { emitJson, type SerializedMessage } from "../serialize/to-json.js";
+import type { Buffer } from "node:buffer";
+
+import { emitBytes, readAsBytes, type ToBytesOptions } from "../serialize/to-bytes.js";
 import { emitMessage } from "../serialize/to-string.js";
 import {
   encodeComposite,
@@ -225,6 +228,14 @@ export class Hl7Message {
    */
   #lazy: readonly RawSegment[] | undefined;
 
+  /**
+   * The segment list the message was read with, kept only when the reader kept its bytes as a
+   * latin1 reading: `toBytes` writes a segment still in it back as the bytes it was read from, and
+   * holds any other to ASCII. `undefined` for every other message.
+   * @internal
+   */
+  readonly #asRead: readonly RawSegment[] | undefined;
+
   public readonly encodingCharacters: EncodingCharacters;
   /**
    * HL7 version the model asserts for this message, from MSH-12.1.1, e.g.
@@ -340,6 +351,7 @@ export class Hl7Message {
     // cannot mutate parser output after handoff. `slice()` first to avoid
     // sharing a reference the parser may still hold internally.
     this.warnings = Object.freeze(init.warnings.slice());
+    this.#asRead = readAsBytes(init.warnings) ? init.segments : undefined;
     // exactOptionalPropertyTypes: `init.profile` is `{...} | undefined`
     // (the optional key was omitted or the caller passed the real value).
     // The public field declares `... | undefined`, so direct assignment is
@@ -975,6 +987,42 @@ export class Hl7Message {
    */
   public toString(): string {
     return emitMessage(this);
+  }
+
+  /**
+   * Write this message as bytes in the character set it declares in MSH-18 (its first
+   * repetition), or in `options.charset`, the way `parseHL7` reads a `Buffer` in that set. The
+   * text is what `toString()` writes, so a message read from bytes and not changed comes back as
+   * the bytes it arrived as. A blank or absent MSH-18 and `UTF-8` are written as UTF-8; a declared
+   * `ASCII` as 7-bit ASCII; `8859/1` one byte per character; and `WINDOWS-1252` and the other ISO
+   * 8859 sets the parser decodes through their tables.
+   *
+   * A set the parser does not decode (`8859/9`, `8859/11`, the East Asian sets, an unrecognized
+   * label) has no table here either. When the parser kept a message's bytes as a latin1 reading
+   * (it raised `UNSUPPORTED_CHARSET` or `UNKNOWN_CHARSET`), a segment not edited since the read is
+   * written back as the bytes it was read from, as long as MSH-18 still names the set it named then
+   * (or `options.charset` names that same set). Every other segment, and a message from a string or
+   * a builder that declares such a set, must be ASCII. `UNICODE UTF-16` and `UNICODE UTF-32` are
+   * refused outright for anything but the segments read from bytes, since one byte per character
+   * is not either of them.
+   *
+   * Throws {@link Hl7EncodeError} for a character the set cannot hold, never writing a substitute:
+   * the euro sign in `8859/1`, a lone surrogate in UTF-8, a letter with an accent in a declared
+   * `ASCII`, an edit that adds one to a byte reading. The error names the segment, field and set,
+   * never the character. No MLLP framing is added.
+   *
+   * @param options - `charset` overrides MSH-18, as the same option of `parseHL7` does.
+   * @returns the message bytes.
+   *
+   * @example
+   * ```ts
+   * import { parseHL7 } from "@cosyte/hl7";
+   * const msg = parseHL7(latin1Bytes); // MSH-18 = 8859/1
+   * msg.toBytes().equals(latin1Bytes); // true: the same bytes, not UTF-8
+   * ```
+   */
+  public toBytes(options?: ToBytesOptions): Buffer {
+    return emitBytes(this, options, this.#asRead);
   }
 
   /**

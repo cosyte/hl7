@@ -257,6 +257,10 @@ export { mergeMissingPriorOrSurvivor } from "./parser/warnings.js";
 export { buildMessage } from "./builder/build-message.js";
 export type { BuildMessageInit } from "./builder/build-message.js";
 export type { SerializedMessage } from "./serialize/to-json.js";
+// `Hl7Message.toBytes()` writes a message in the character set MSH-18 declares and refuses a
+// character the set cannot hold with this error.
+export { Hl7EncodeError } from "./serialize/to-bytes.js";
+export type { Hl7EncodeErrorCode, ToBytesOptions } from "./serialize/to-bytes.js";
 
 // Schema emission for the serialized projection. The library authors the
 // description of the object `toJSON()` returns, so a consumer validating a

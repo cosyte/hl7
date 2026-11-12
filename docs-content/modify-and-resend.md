@@ -98,6 +98,34 @@ msg.toJSON().segments.length; // => 1
 
 [Emit a schema for the JSON snapshot](./schema-emission.md) describes the shape `toJSON()` returns.
 
+## Serialize as bytes
+
+`toString()` returns text. To send a message over a socket or write it to a file, `toBytes()`
+encodes that text in the character set the message declares in MSH-18, the same set `parseHL7`
+read it in, and returns a `Buffer`. A message that arrived as Latin-1 (`8859/1`) and was not
+changed leaves as the bytes it arrived as; `Buffer.from(msg.toString(), "utf8")` would instead
+turn each accented letter into two bytes. A character the set cannot hold throws an
+`Hl7EncodeError` naming the segment and field; nothing is replaced. In a set the library does not
+decode (for example `8859/9`), only ASCII can be written, apart from the segments of a message read
+from bytes and not edited, which go back as the bytes they arrived as.
+
+```ts runnable
+import { parseHL7 } from "@cosyte/hl7";
+
+// MSH-18 declares Latin-1, where byte 0xE9 is e-acute.
+const bytes = Buffer.from(
+  "MSH|^~\\&|CLINIC|MAIN|LAB|REF|20250102153045||ADT^A08|MSG00007|P|2.5||||||8859/1\r" +
+    "PID|1||MRN12345^^^HOSP^MR||Renée^Anna\r",
+  "latin1",
+);
+const msg = parseHL7(bytes);
+
+msg.toBytes().equals(bytes); // => true
+Buffer.from(msg.toString(), "utf8").equals(bytes); // => false
+```
+
+[Character sets](./spec-notes-charset.md#write-bytes-back) lists how each set is written.
+
 ## Print a message for a log
 
 `prettyPrint()` returns a readable dump: a header line, then one line per segment with each
@@ -120,7 +148,9 @@ lines[2]; // => "PID  [1]=1  [3]=MRN12345^^^HOSP^MR  [5]=Smith^Jane^Q  [7]=19800
 ## Reference
 
 - [`Hl7Message`](./api/src/README.md#hl7message) (`setField`, `setComposite`, `addSegment`,
-  `removeSegment`, `toString`, `toJSON`, `prettyPrint`)
+  `removeSegment`, `toString`, `toBytes`, `toJSON`, `prettyPrint`)
+- [`Hl7EncodeError`](./api/src/README.md#hl7encodeerror),
+  [`ToBytesOptions`](./api/src/README.md#tobytesoptions)
 - [`encodeComposite`](./api/src/README.md#encodecomposite),
   [`CompositeKind`](./api/src/README.md#compositekind),
   [`SerializedMessage`](./api/src/README.md#serializedmessage)

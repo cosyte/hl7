@@ -688,6 +688,93 @@ console.log(empty.value); // ""
 
 ***
 
+### Hl7EncodeError
+
+Thrown by `Hl7Message.toBytes` when the message cannot be written in its character set: a
+character the set has no byte for (`UNENCODABLE_CHARACTER`), or a set the writer has no
+encoder for (`UNSUPPORTED_CHARSET`): a table this Node.js build lacks, or UTF-16 and UTF-32. The writer refuses rather than write a substitute byte.
+
+The error names where the character is (segment and field) and the set, never the character or
+any field text. A label outside the registry `resolveCharset` reads is shown as `<withheld>`,
+since MSH-18 on a malformed message can be a data field.
+
+#### Example
+
+```ts
+import { Hl7EncodeError, parseHL7 } from "@cosyte/hl7";
+try {
+  msg.toBytes();
+} catch (err) {
+  if (err instanceof Hl7EncodeError && err.code === "UNENCODABLE_CHARACTER") {
+    console.warn(err.charset, err.position.segmentIndex, err.position.fieldIndex);
+  }
+}
+```
+
+#### Extends
+
+- `Error`
+
+#### Constructors
+
+##### Constructor
+
+> **new Hl7EncodeError**(`code`, `position`, `charset`): [`Hl7EncodeError`](#hl7encodeerror)
+
+**`Internal`**
+
+Construct a new `Hl7EncodeError`.
+
+###### Parameters
+
+###### code
+
+[`Hl7EncodeErrorCode`](#hl7encodeerrorcode-1)
+
+###### position
+
+###### fieldIndex
+
+`number`
+
+###### segmentIndex
+
+`number`
+
+###### charset
+
+`string`
+
+###### Returns
+
+[`Hl7EncodeError`](#hl7encodeerror)
+
+###### Overrides
+
+`Error.constructor`
+
+#### Properties
+
+##### charset
+
+> `readonly` **charset**: `string`
+
+The canonical label of the set, or `<withheld>` for a label outside the registry.
+
+##### code
+
+> `readonly` **code**: [`Hl7EncodeErrorCode`](#hl7encodeerrorcode-1)
+
+Why the message could not be written.
+
+##### position
+
+> `readonly` **position**: [`Hl7Position`](#hl7position)
+
+The segment (0 is MSH) and field the refused character is in; MSH-18 for a missing table.
+
+***
+
 ### Hl7Message
 
 Parsed HL7 v2 message. Produced by `parseHL7`. Exposes the raw positional
@@ -1656,6 +1743,53 @@ The frozen `warnings` array is never touched.
 msg.setField("PID.8", "F");           // patient sex → F
 msg.setField("PID.5.1", "Jones");     // family name
 msg.setField("PID.4[2].1", "MRN2");   // create third repetition of PID-4
+```
+
+##### toBytes()
+
+> **toBytes**(`options?`): `Buffer`
+
+Write this message as bytes in the character set it declares in MSH-18 (its first
+repetition), or in `options.charset`, the way `parseHL7` reads a `Buffer` in that set. The
+text is what `toString()` writes, so a message read from bytes and not changed comes back as
+the bytes it arrived as. A blank or absent MSH-18 and `UTF-8` are written as UTF-8; a declared
+`ASCII` as 7-bit ASCII; `8859/1` one byte per character; and `WINDOWS-1252` and the other ISO
+8859 sets the parser decodes through their tables.
+
+A set the parser does not decode (`8859/9`, `8859/11`, the East Asian sets, an unrecognized
+label) has no table here either. When the parser kept a message's bytes as a latin1 reading
+(it raised `UNSUPPORTED_CHARSET` or `UNKNOWN_CHARSET`), a segment not edited since the read is
+written back as the bytes it was read from, as long as MSH-18 still names the set it named then
+(or `options.charset` names that same set). Every other segment, and a message from a string or
+a builder that declares such a set, must be ASCII. `UNICODE UTF-16` and `UNICODE UTF-32` are
+refused outright for anything but the segments read from bytes, since one byte per character
+is not either of them.
+
+Throws [Hl7EncodeError](#hl7encodeerror) for a character the set cannot hold, never writing a substitute:
+the euro sign in `8859/1`, a lone surrogate in UTF-8, a letter with an accent in a declared
+`ASCII`, an edit that adds one to a byte reading. The error names the segment, field and set,
+never the character. No MLLP framing is added.
+
+###### Parameters
+
+###### options?
+
+[`ToBytesOptions`](#tobytesoptions)
+
+`charset` overrides MSH-18, as the same option of `parseHL7` does.
+
+###### Returns
+
+`Buffer`
+
+the message bytes.
+
+###### Example
+
+```ts
+import { parseHL7 } from "@cosyte/hl7";
+const msg = parseHL7(latin1Bytes); // MSH-18 = 8859/1
+msg.toBytes().equals(latin1Bytes); // true: the same bytes, not UTF-8
 ```
 
 ##### toJSON()
@@ -10718,6 +10852,57 @@ msg.setField("PID.4[2].1", "MRN2");   // create third repetition of PID-4
 
 [`Hl7Message`](#hl7message).[`setField`](#setfield)
 
+##### toBytes()
+
+> **toBytes**(`options?`): `Buffer`
+
+Write this message as bytes in the character set it declares in MSH-18 (its first
+repetition), or in `options.charset`, the way `parseHL7` reads a `Buffer` in that set. The
+text is what `toString()` writes, so a message read from bytes and not changed comes back as
+the bytes it arrived as. A blank or absent MSH-18 and `UTF-8` are written as UTF-8; a declared
+`ASCII` as 7-bit ASCII; `8859/1` one byte per character; and `WINDOWS-1252` and the other ISO
+8859 sets the parser decodes through their tables.
+
+A set the parser does not decode (`8859/9`, `8859/11`, the East Asian sets, an unrecognized
+label) has no table here either. When the parser kept a message's bytes as a latin1 reading
+(it raised `UNSUPPORTED_CHARSET` or `UNKNOWN_CHARSET`), a segment not edited since the read is
+written back as the bytes it was read from, as long as MSH-18 still names the set it named then
+(or `options.charset` names that same set). Every other segment, and a message from a string or
+a builder that declares such a set, must be ASCII. `UNICODE UTF-16` and `UNICODE UTF-32` are
+refused outright for anything but the segments read from bytes, since one byte per character
+is not either of them.
+
+Throws [Hl7EncodeError](#hl7encodeerror) for a character the set cannot hold, never writing a substitute:
+the euro sign in `8859/1`, a lone surrogate in UTF-8, a letter with an accent in a declared
+`ASCII`, an edit that adds one to a byte reading. The error names the segment, field and set,
+never the character. No MLLP framing is added.
+
+###### Parameters
+
+###### options?
+
+[`ToBytesOptions`](#tobytesoptions)
+
+`charset` overrides MSH-18, as the same option of `parseHL7` does.
+
+###### Returns
+
+`Buffer`
+
+the message bytes.
+
+###### Example
+
+```ts
+import { parseHL7 } from "@cosyte/hl7";
+const msg = parseHL7(latin1Bytes); // MSH-18 = 8859/1
+msg.toBytes().equals(latin1Bytes); // true: the same bytes, not UTF-8
+```
+
+###### Inherited from
+
+[`Hl7Message`](#hl7message).[`toBytes`](#tobytes)
+
 ##### toJSON()
 
 > **toJSON**(): [`SerializedMessage`](#serializedmessage)
@@ -12031,6 +12216,36 @@ CQ.1 quantity numeric value (strict-parsed; never `NaN`).
 
 ***
 
+### ToBytesOptions
+
+Options for `Hl7Message.toBytes`.
+
+#### Example
+
+```ts
+import { parseHL7, type ToBytesOptions } from "@cosyte/hl7";
+const options: ToBytesOptions = { charset: "8859/1" };
+parseHL7(bytes, options).toBytes(options);
+```
+
+#### Properties
+
+##### charset?
+
+> `readonly` `optional` **charset?**: `string`
+
+The character set to write in, in place of the one MSH-18 declares, with the labels
+`parseHL7`'s `charset` option takes. Pass the same value given to `parseHL7` to write a
+message back as the bytes it was read from. MSH-18 itself is written as it is.
+
+A message the parser kept as a latin1 byte reading cannot be moved to another set: its
+segments are bytes in the set they were read in. Under an option naming another set, or when
+that set is not known (the read followed a `charset` option that disagreed with MSH-18, or
+MSH-18 was blank), a non-ASCII byte is refused with `UNENCODABLE_CHARACTER`; call `toBytes()`
+with no option to get the bytes back as they were read.
+
+***
+
 ### TypedBuilderCoverage
 
 One typed builder's emit capability: the message code it authors and the
@@ -13116,6 +13331,57 @@ msg.setField("PID.4[2].1", "MRN2");   // create third repetition of PID-4
 
 [`Hl7Message`](#hl7message).[`setField`](#setfield)
 
+##### toBytes()
+
+> **toBytes**(`options?`): `Buffer`
+
+Write this message as bytes in the character set it declares in MSH-18 (its first
+repetition), or in `options.charset`, the way `parseHL7` reads a `Buffer` in that set. The
+text is what `toString()` writes, so a message read from bytes and not changed comes back as
+the bytes it arrived as. A blank or absent MSH-18 and `UTF-8` are written as UTF-8; a declared
+`ASCII` as 7-bit ASCII; `8859/1` one byte per character; and `WINDOWS-1252` and the other ISO
+8859 sets the parser decodes through their tables.
+
+A set the parser does not decode (`8859/9`, `8859/11`, the East Asian sets, an unrecognized
+label) has no table here either. When the parser kept a message's bytes as a latin1 reading
+(it raised `UNSUPPORTED_CHARSET` or `UNKNOWN_CHARSET`), a segment not edited since the read is
+written back as the bytes it was read from, as long as MSH-18 still names the set it named then
+(or `options.charset` names that same set). Every other segment, and a message from a string or
+a builder that declares such a set, must be ASCII. `UNICODE UTF-16` and `UNICODE UTF-32` are
+refused outright for anything but the segments read from bytes, since one byte per character
+is not either of them.
+
+Throws [Hl7EncodeError](#hl7encodeerror) for a character the set cannot hold, never writing a substitute:
+the euro sign in `8859/1`, a lone surrogate in UTF-8, a letter with an accent in a declared
+`ASCII`, an edit that adds one to a byte reading. The error names the segment, field and set,
+never the character. No MLLP framing is added.
+
+###### Parameters
+
+###### options?
+
+[`ToBytesOptions`](#tobytesoptions)
+
+`charset` overrides MSH-18, as the same option of `parseHL7` does.
+
+###### Returns
+
+`Buffer`
+
+the message bytes.
+
+###### Example
+
+```ts
+import { parseHL7 } from "@cosyte/hl7";
+const msg = parseHL7(latin1Bytes); // MSH-18 = 8859/1
+msg.toBytes().equals(latin1Bytes); // true: the same bytes, not UTF-8
+```
+
+###### Inherited from
+
+[`Hl7Message`](#hl7message).[`toBytes`](#tobytes)
+
 ##### toJSON()
 
 > **toJSON**(): [`SerializedMessage`](#serializedmessage)
@@ -14148,6 +14414,16 @@ exhaustive `switch` narrowing (the `switch-exhaustiveness-check` lint rule).
 Severity of a [ConformanceFinding](#conformancefinding). `error` is a constraint violation;
 `warning` / `info` are author-downgraded advisories (via a rule's
 `severity`). [FINDING\_CODES.PROFILE\_MALFORMED](#profile_malformed) is always `error`.
+
+***
+
+### Hl7EncodeErrorCode
+
+> **Hl7EncodeErrorCode** = `"UNENCODABLE_CHARACTER"` \| `"UNSUPPORTED_CHARSET"`
+
+Why `toBytes` refused: `UNENCODABLE_CHARACTER` for a character the set cannot hold,
+`UNSUPPORTED_CHARSET` for a set the writer has no encoder for (a table this runtime lacks, or
+UTF-16 and UTF-32, which it writes only as the bytes a message was read from).
 
 ***
 

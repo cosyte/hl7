@@ -124,10 +124,10 @@ Every byte decodes, so a windows-1252 message never takes the verbatim fail-safe
 bytes were read as `latin1` and `UNKNOWN_CHARSET` was raised. Now the message is decoded and no
 charset warning is raised; `resolveCharset("WINDOWS-1252")` answers `treatment: "decode"`,
 `decoder: "windows-1252"` and `recognized: true`. If you re-decoded such fields yourself with
-`Buffer.from(value, "latin1")`, drop that step: the value is already text. The serializer
-outputs strings, so the library does not write windows-1252 bytes back, and a caller who
-re-encodes a value with `latin1` gets different bytes for the Windows characters from 0x80 to
-0x9F (the euro sign becomes 0xAC, not 0x80). An `ENCODING_MISMATCH`
+`Buffer.from(value, "latin1")`, drop that step: the value is already text. To write the
+message back as windows-1252 bytes, use `toBytes()` (see [Write bytes back](#write-bytes-back)):
+a caller who re-encodes the text with `latin1` instead gets different bytes for the Windows
+characters from 0x80 to 0x9F, or a refusal from `toBytes({ charset: "8859/1" })`. An `ENCODING_MISMATCH`
 between `options.charset` and MSH-18 is raised as before whenever one of them is `WINDOWS-1252`
 and the other is not, and its message now shows an MSH-18 of `WINDOWS-1252` instead of
 `<withheld>`.
@@ -187,6 +187,83 @@ claimed. See the limitations below.
 both are present and **disagree** (after canonicalization, so `UNICODE UTF-8` and
 `UTF-8` are treated as equal), an **`ENCODING_MISMATCH`** warning is raised and
 the override wins.
+
+## Write bytes back
+
+`toString()` returns text, and `Buffer.from(msg.toString(), "utf8")` writes it as UTF-8 whatever
+MSH-18 says. `msg.toBytes()` writes the same text in the set the message declares (the first
+repetition of MSH-18), as the reader reads that set, so a message read from bytes and not changed
+is written back as the bytes it arrived as:
+
+| Declared set                                                       | Written as                                                    |
+| ------------------------------------------------------------------ | ------------------------------------------------------------- |
+| blank or absent, `UTF-8` (and its synonyms)                        | UTF-8, the superset the reader decodes the ASCII default with |
+| `ASCII` (and its synonyms), declared                               | 7-bit ASCII                                                   |
+| `8859/1`                                                           | one byte per character, U+0000 to U+00FF                      |
+| `WINDOWS-1252`                                                     | the windows-1252 table the reader decodes with                |
+| `8859/2` to `8859/8`, `8859/10`, `8859/13` to `8859/16`            | the byte the reader's strict decode maps to each character    |
+| a set the reader does not decode (`8859/9`, `8859/11`, East Asian) | ASCII only                                                    |
+| `UNICODE UTF-16`, `UNICODE UTF-32`                                 | refused, unless read from bytes (below)                       |
+
+A declared `ASCII` is 7-bit, so `toBytes()` refuses a letter with an accent under it rather than
+write UTF-8 bytes a strict receiver would reject, even though the reader decodes it as UTF-8 to
+tolerate feeds that send UTF-8 under that label. A blank or absent MSH-18 has no such promise, and
+is written as UTF-8.
+
+**A message kept as bytes.** When the reader keeps a message's bytes as a latin1 reading (it raised
+`UNSUPPORTED_CHARSET` or `UNKNOWN_CHARSET`: a recognized set it does not decode, an unrecognized
+label, or a decodable set whose strict decode failed), its fields hold bytes, not text. `toBytes()`
+writes each segment that is still as it was read back as those bytes, one byte per character, so the
+message leaves as it arrived. A segment an edit added or replaced holds text the writer has no table
+for in that set, so it must be ASCII: setting `PID.5.2` to `Renée` on a `CP850` message read from
+bytes throws, since writing U+00E9 as byte 0xE9 would be another letter in CP850. In `UNICODE
+UTF-16` and `UNICODE UTF-32` even ASCII is refused in an edited segment. If MSH-18 is edited to
+name another set, the read segments' non-ASCII bytes are refused too.
+
+```ts runnable
+import { parseHL7 } from "@cosyte/hl7";
+
+// Byte 0x80 is the euro sign in windows-1252.
+const bytes = Buffer.from(
+  "MSH|^~\\&|A|B|C|D|20260101||ADT^A01|ID1|P|2.5||||||WINDOWS-1252\r" + "NTE|1||Copay 10 X\r",
+  "latin1",
+);
+bytes[bytes.length - 2] = 0x80;
+const msg = parseHL7(bytes);
+
+msg.toBytes().equals(bytes); // => true
+msg.setField("NTE.3", "Copay 12 €");
+msg.toBytes().at(-2); // => 0x80
+```
+
+**Refuse, never replace.** A character the set has no byte for (the euro sign in `8859/1`, `ñ` in
+`8859/2`, a lone surrogate in UTF-8, `é` in a declared `ASCII`, `Ý` in an `8859/9` message built
+from text, where byte 0xDD is a different letter) throws an `Hl7EncodeError` with
+`code: "UNENCODABLE_CHARACTER"`. Its `position` names the segment and field, and `charset` the set,
+by its registry label or `<withheld>` for a label outside the registry; the character and the field
+text are never in it. A set the writer has no encoder for throws with `code: "UNSUPPORTED_CHARSET"`
+instead: `UNICODE UTF-16` or `UNICODE UTF-32` outside a byte reading, or an ISO 8859 set on a
+Node.js build with no decoder for it, for a message built from
+text.
+
+```ts runnable throws
+import { parseHL7 } from "@cosyte/hl7";
+
+const msg = parseHL7("MSH|^~\\&|A|B|C|D|20260101||ADT^A01|ID1|P|2.5||||||8859/1\rNTE|1||Copay");
+msg.setField("NTE.3", "Copay 12 €");
+msg.toBytes(); // throws Hl7EncodeError: segment 1 field 3, character set "8859/1"
+```
+
+**`charset` option.** `msg.toBytes({ charset })` writes in that set instead of MSH-18's, as the
+same option of `parseHL7` reads in it, and leaves MSH-18 as it is. If you read a message with
+`options.charset`, pass the same value to `toBytes` to get its bytes back. A message kept as bytes
+cannot be moved to another set, since the writer does not know what its bytes mean: under an option
+naming a set other than the one it was read in, a non-ASCII byte from the read throws
+`UNENCODABLE_CHARACTER`. The same holds when the set it was read in is not known, because MSH-18
+was blank or a `charset` option that disagreed with MSH-18 governed the read. Call `toBytes()` with
+no option to write such a message back as the bytes it arrived as.
+
+`toBytes()` adds no MLLP framing.
 
 ## Known limitations (non-goals)
 
