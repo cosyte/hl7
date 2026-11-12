@@ -32,7 +32,7 @@ import type { Meta } from "./types.js";
  * const msg = parseHL7(raw);
  * console.log(msg.meta.type);                     // "ADT^A01^ADT_A01"
  * console.log(msg.meta.controlId);                // "MSG001"
- * console.log(msg.meta.timestamp?.raw); // fidelity TS
+ * console.log(msg.meta.timestamp?.precision); // "second": a fidelity TS
  * ```
  *
  * @internal

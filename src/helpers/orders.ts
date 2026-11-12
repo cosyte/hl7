@@ -148,8 +148,9 @@ function finalizeOrder(
  * import { parseHL7 } from "@cosyte/hl7";
  * const msg = parseHL7(raw);
  * for (const order of msg.orders()) {
- *   console.log(order.placerOrderNumber, order.observations.length);
- *   for (const obs of order.observations) console.log(obs.value);
+ *   const placer = order.placerOrderNumber; // "ORD-001", synthetic
+ *   const results = order.observations.map((obs) => obs.value); // read them, never log them
+ *   console.log(order.observations.length);
  * }
  * ```
  *

@@ -81,7 +81,8 @@ function finalizeInsurance(in1: Segment, hasIn2: boolean, hasIn3: boolean): Insu
  * import { parseHL7 } from "@cosyte/hl7";
  * const msg = parseHL7(raw);
  * for (const ins of msg.insurance()) {
- *   console.log(ins.companyName, ins.policyNumber, ins.hasIn2);
+ *   const policy = ins.policyNumber; // "POL-0001", synthetic
+ *   console.log(ins.hasIn2); // false
  * }
  * ```
  *

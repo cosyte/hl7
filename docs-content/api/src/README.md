@@ -2850,7 +2850,9 @@ repetition's component 1, joined by the message's repetition separator
 
 ```ts
 for (const al of msg.allergies()) {
-  if (al.actionCode === "U") console.log("update to", al.uniqueIdentifier?.entityIdentifier);
+  if (al.actionCode === "U") {
+    const target = al.uniqueIdentifier?.entityIdentifier; // the allergy entry to update
+  }
 }
 ```
 
@@ -7000,7 +7002,7 @@ const ev = parseHL7(raw).identityEvents()[0];
 if (ev?.prior) {
   console.log(ev.prior.role);          // "prior"
   console.log(ev.prior.sourceSegment); // "MRG"
-  for (const cx of ev.prior.identifiers) console.log(cx.idNumber);
+  const prior = ev.prior.identifiers.map((cx) => cx.idNumber); // ["MRN-OLD-1"], synthetic
 }
 ```
 
@@ -8348,7 +8350,7 @@ const meta: Meta = {
   controlId: "MSG001",
   version: "2.5",
 };
-console.log(meta.timestamp?.raw, meta.timestamp?.precision);
+console.log(meta.timestamp?.precision); // undefined: no MSH-7 here
 ```
 
 #### Properties
@@ -9914,7 +9916,7 @@ const p: Patient = {
   fullName: "Jane Smith",
   phoneNumbers: [],
 };
-console.log(p.dateOfBirth?.raw, p.dateOfBirth?.precision);
+console.log(p.dateOfBirth?.precision); // undefined: no PID-7 here
 ```
 
 #### Properties
@@ -14194,8 +14196,8 @@ const v: Visit = {
   location: { pointOfCare: "ICU", room: "101" },
   visitNumber: "VISIT001",
 };
-console.log(v.attendingDoctor?.familyName);
-console.log(v.admitDateTime?.raw);
+const doctor = v.attendingDoctor?.familyName; // undefined: no PV1-7 here
+console.log(v.admitDateTime?.precision); // undefined: no PV1-44 here
 ```
 
 #### Properties
