@@ -652,4 +652,16 @@ describe("the error registry", () => {
   it("names each code by itself", () => {
     for (const [key, value] of Object.entries(XML_ERROR_CODES)) expect(key).toBe(value);
   });
+
+  it("names its error Hl7XmlError, as a log or a stack trace shows it", () => {
+    let caught: unknown;
+    try {
+      parseHL7Xml("<!DOCTYPE x><x/>");
+    } catch (error) {
+      caught = error;
+    }
+    expect(caught).toBeInstanceOf(Hl7XmlError);
+    expect((caught as Hl7XmlError).name).toBe("Hl7XmlError");
+    expect(String(caught)).toMatch(/^Hl7XmlError: /u);
+  });
 });

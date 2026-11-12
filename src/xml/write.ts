@@ -233,6 +233,7 @@ function structureName(message: Hl7Message, option: string | undefined): string 
     return option;
   }
   const structure = message.get("MSH.9.3") ?? "";
+  // Stryker disable next-line StringLiteral: with no MSH-9.1 the name is empty or starts with "_", and the mutant's text holds a space, so isXmlName refuses either way with the same error
   const code = message.get("MSH.9.1") ?? "";
   const trigger = message.get("MSH.9.2") ?? "";
   const name = structure !== "" ? structure : trigger !== "" ? `${code}_${trigger}` : code;

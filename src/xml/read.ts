@@ -189,9 +189,8 @@ function predefinedEntity(name: string): string | undefined {
       return '"';
     case "apos":
       return "'";
-    default:
-      return undefined;
   }
+  return undefined;
 }
 
 /** Whether `code` is a character XML 1.0 allows. */
@@ -229,7 +228,9 @@ class XmlToPipe {
   private elements = 0;
   private rootSeen = false;
   private enc: EncodingCharacters | undefined;
-  private msh1 = "";
+  // Set when MSH.1 closes, which `openField` makes the first field of MSH, so MSH.2 always
+  // finds it set.
+  private msh1!: string;
 
   public constructor(src: string, limits: Required<XmlLimits>, onType: TypeSink | undefined) {
     this.src = src;
@@ -709,24 +710,16 @@ class XmlToPipe {
         at,
       );
     }
-    const enc = this.enc as EncodingCharacters;
-    switch (top.kind) {
-      case "container":
-        return;
-      case "segment":
-        this.closeSegment(top, at);
-        return;
-      case "field":
-        this.closeField(top, at);
-        return;
-      case "component":
-        (top.field.parts as string[])[top.pos - 1] =
-          top.parts === undefined
-            ? this.leaf(top.text, top.name, at)
-            : top.parts.join(enc.subcomponent);
-        return;
-      case "subcomponent":
-        (top.component.parts as string[])[top.pos - 1] = this.leaf(top.text, top.name, at);
+    // A container (the root or a group) has nothing to close, so it matches none of these.
+    if (top.kind === "segment") this.closeSegment(top, at);
+    else if (top.kind === "field") this.closeField(top, at);
+    else if (top.kind === "component") {
+      (top.field.parts as string[])[top.pos - 1] =
+        top.parts === undefined
+          ? this.leaf(top.text, top.name, at)
+          : top.parts.join((this.enc as EncodingCharacters).subcomponent);
+    } else if (top.kind === "subcomponent") {
+      (top.component.parts as string[])[top.pos - 1] = this.leaf(top.text, top.name, at);
     }
   }
 

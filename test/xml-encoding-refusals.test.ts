@@ -114,6 +114,10 @@ describe("the reader names each refusal", () => {
       "NAMESPACE_NOT_SUPPORTED: An element declares a default namespace other than the v2 XML one.",
     ],
     [doc("<NTE><NTE.3>a & b</NTE.3></NTE>"), "NOT_WELL_FORMED: An '&' starts no reference."],
+    // No ';' anywhere after the '&': read as a reference cut one short, these would name an
+    // entity or a forbidden character instead.
+    [doc("<NTE><NTE.3>&name</NTE.3></NTE>"), "NOT_WELL_FORMED: An '&' starts no reference."],
+    [doc("<NTE><NTE.3>a&#65</NTE.3></NTE>"), "NOT_WELL_FORMED: An '&' starts no reference."],
     [doc("<NTE><NTE.3>&#65x;</NTE.3></NTE>"), "NOT_WELL_FORMED: An '&' starts no reference."],
     [doc("<NTE><NTE.3>&x!;</NTE.3></NTE>"), "NOT_WELL_FORMED: An '&' starts no reference."],
     [doc("<NTE><NTE.3>&x#65;</NTE.3></NTE>"), "NOT_WELL_FORMED: An '&' starts no reference."],
