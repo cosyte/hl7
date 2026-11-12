@@ -419,6 +419,60 @@ describe("the streaming memory gate", () => {
     },
   );
 
+  it.skipIf(!ON_NODE)(
+    "ends a reading that hangs at its timeout, and cannot judge the reader it was of",
+    () => {
+      const out = mkdtempSync(join(tmpdir(), "stream-memory-"));
+      try {
+        const started = Date.now();
+        const result = spawnSync(
+          process.execPath,
+          [
+            join("bench", "stream-memory.mjs"),
+            "--target",
+            join("test", "fixtures", "stream-memory", "hang.mjs"),
+            "--mib",
+            "0.25",
+            "--runs",
+            "1",
+            "--timeout",
+            "2",
+            "--out",
+            join(out, "stream-memory.json"),
+          ],
+          { cwd: REPO_ROOT, encoding: "utf8", shell: false, timeout: 60_000 },
+        );
+        expect(result.error).toBeUndefined();
+        expect(result.status).toBe(2);
+        expect(Date.now() - started).toBeLessThan(30_000);
+        const document = JSON.parse(readFileSync(join(out, "stream-memory.json"), "utf8")) as {
+          verdict: string[];
+          readers: (Row & { timedOut?: boolean })[];
+        };
+        expect(document.verdict).toContain(
+          "readMessages: a reading did not finish in 2 seconds, so there is nothing to judge",
+        );
+        const hung = document.readers.filter((r) => r.reader === "readMessages");
+        expect(hung.map((r) => r.timedOut)).toEqual([true]);
+        // The readers that finished are still read and listed.
+        expect(document.readers.filter((r) => r.timedOut !== true)).toHaveLength(2);
+      } finally {
+        rmSync(out, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it("gives each reading a timeout well inside the job's", async () => {
+    const { READING_TIMEOUT_SECONDS, RUNS } = await importModule<{
+      READING_TIMEOUT_SECONDS: number;
+      RUNS: number;
+    }>("bench", "stream-memory.mjs");
+    // A reading at 100 MiB takes seconds on a GitHub-hosted runner; a whole step's worth of hung
+    // readings of one reader still ends inside the job's 30 minutes.
+    expect(READING_TIMEOUT_SECONDS).toBeGreaterThanOrEqual(60);
+    expect(READING_TIMEOUT_SECONDS * RUNS).toBeLessThanOrEqual(15 * 60);
+  });
+
   it("checks on the runner that a planted regression still fails the gate", () => {
     const workflow = read(".github", "workflows", "stream-memory.yml");
     expect(workflow).toMatch(

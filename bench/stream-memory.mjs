@@ -9,10 +9,11 @@
 // and judges each reader on the median of its readings. It exits 1 when a gated reader's median
 // peak is more than PEAK_MULTIPLE times the largest item it read, and 2 when a reader cannot be
 // judged (missing, short of readings, or a reading that read nothing, failed an item or did not
-// finish). The 100 MiB reading runs on a GitHub-hosted runner, in the stream-memory workflow, never
-// on a shared developer machine; `--mib 1` is a quick local check. Every message is synthetic and
-// built here from an index, as the source produces it: the source is a generator of 64 KiB chunks,
-// so the batch is never held whole by anything but the reader under test.
+// finish in `--timeout` seconds, READING_TIMEOUT_SECONDS by default). The 100 MiB reading runs on a
+// GitHub-hosted runner, in the stream-memory workflow, never on a shared developer machine;
+// `--mib 1` is a quick local check. Every message is synthetic and built here from an index, as the
+// source produces it: the source is a generator of 64 KiB chunks, so the batch is never held whole
+// by anything but the reader under test.
 //
 // Each reading reads its source three times: a short read to warm the reader up, a timed read with
 // no collection forced, then a read that takes two full collections every few items and reads the
@@ -41,6 +42,13 @@ const SCRIPT = fileURLToPath(import.meta.url);
  * the limit; with five, a stray reading must come three times in one job to fail it.
  */
 export const RUNS = 5;
+
+/**
+ * How long one reading may take, in seconds, before its process is killed. A reading at 100 MiB
+ * takes seconds on a GitHub-hosted runner; a reading that hangs ends here as one that cannot be
+ * judged, rather than holding the job until the job's own timeout and reporting nothing.
+ */
+export const READING_TIMEOUT_SECONDS = 120;
 
 /**
  * The most a streaming reader may hold at its peak, as a multiple of the largest item it read: the
@@ -83,6 +91,9 @@ export function median(values) {
 
 /** Why a reading of a gated reader cannot be judged, or undefined when it can be. */
 function unjudgeable(r) {
+  if (r.timedOut === true) {
+    return `${r.reader}: a reading did not finish in ${String(r.timeoutSeconds)} seconds, so there is nothing to judge`;
+  }
   // A missing size gives a ratio of NaN, and NaN is over no limit: it must not read as within.
   if (!measured(r.peak) || !measured(r.largestItemBytes)) {
     return `${r.reader}: no peak or no largest item size, so there is nothing to judge`;
@@ -106,10 +117,10 @@ function unjudgeable(r) {
  * Exit code 0 when every gated reader's median is at or under `multiple` times its largest item, 1
  * when one is over, and 2 when a reader cannot be judged: a gated reader missing from `rows` or with
  * fewer than `runs` readings, or any one of its readings that read nothing or no bytes, whose peak or
- * largest item size is absent, not a finite number or negative, or that failed an item, whose
- * reading then misses that item's memory. A reading that cannot be judged is not outvoted by the
- * others, and it outranks a finding. A reader not in `gated` is listed with its ratio and never
- * changes the exit code.
+ * largest item size is absent, not a finite number or negative, that failed an item, whose
+ * reading then misses that item's memory, or that did not finish in its time (`timedOut`). A
+ * reading that cannot be judged is not outvoted by the others, and it outranks a finding. A reader
+ * not in `gated` is listed with its ratio and never changes the exit code.
  */
 export function judge(rows, multiple = PEAK_MULTIPLE, gated = GATED_READERS, runs = 1) {
   const lines = [];
@@ -361,26 +372,35 @@ async function child(target, reader, total) {
  * heap, the compiled code or the garbage of another. The rounds run one after another, each reading
  * the three readers in turn, so a change in the runner's load lands on all three.
  */
-function readings(target, mib, runs) {
+function readings(target, mib, runs, timeoutSeconds) {
   const rows = [];
   for (let run = 1; run <= runs; run++) {
     for (const reader of GATED_READERS) {
       const result = spawnSync(
         process.execPath,
         [SCRIPT, "--reader", reader, "--target", target, "--mib", mib],
-        { encoding: "utf8", maxBuffer: 16 * MIB, stdio: ["ignore", "pipe", "inherit"] },
+        {
+          encoding: "utf8",
+          maxBuffer: 16 * MIB,
+          stdio: ["ignore", "pipe", "inherit"],
+          timeout: timeoutSeconds * 1000,
+          killSignal: "SIGKILL",
+        },
       );
+      const timedOut = result.error?.code === "ETIMEDOUT";
       let row;
       try {
-        row = JSON.parse(result.stdout.trim().split("\n").at(-1) ?? "");
+        row = JSON.parse((result.stdout ?? "").trim().split("\n").at(-1) ?? "");
       } catch {
         row = undefined;
       }
       // A reading that did not finish is still a row, with no peak, so the reader cannot be judged.
       rows.push(
-        result.status === 0 && row !== undefined
+        result.status === 0 && row !== undefined && !timedOut
           ? { ...row, run }
-          : { reader, run, count: 0, failed: 0, exitStatus: result.status },
+          : timedOut
+            ? { reader, run, count: 0, failed: 0, timedOut, timeoutSeconds }
+            : { reader, run, count: 0, failed: 0, exitStatus: result.status },
       );
     }
   }
@@ -394,6 +414,7 @@ async function main() {
       target: { type: "string", default: "dist/index.mjs" },
       mib: { type: "string", default: "1" },
       runs: { type: "string", default: String(RUNS) },
+      timeout: { type: "string", default: String(READING_TIMEOUT_SECONDS) },
       reader: { type: "string" },
       out: { type: "string" },
       summary: { type: "string" },
@@ -407,7 +428,7 @@ async function main() {
 
   const runs = Number(values.runs);
   const mib = (n) => (n === undefined ? "-" : (n / MIB).toFixed(2));
-  const rows = readings(values.target, values.mib, runs).map((r) => ({
+  const rows = readings(values.target, values.mib, runs, Number(values.timeout)).map((r) => ({
     ...r,
     peakToLargest: r.peak / r.largestItemBytes,
     mibPerSecond: r.sourceBytes / MIB / (r.ms / 1000),
