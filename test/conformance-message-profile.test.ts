@@ -15,6 +15,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  DEFAULT_ENCODING_CHARACTERS,
+  Hl7Message,
   conformance,
   findMessageProfiles,
   parseHL7,
@@ -106,6 +108,53 @@ describe("findMessageProfiles: one match", () => {
   });
 });
 
+describe("findMessageProfiles: each condition of the match", () => {
+  it("matches on the universal ID when the entry omits its type and the message carries one", () => {
+    const untyped: MessageProfileEntry = {
+      identifier: { entityIdentifier: "EXPROF-2", universalId: OID_A },
+      profile: local,
+    };
+    expect(findMessageProfiles(message(`EXPROF-2^^${OID_A}^ISO`), [untyped]).outcome).toBe("one");
+  });
+
+  it("reads an empty component on an entry as absent", () => {
+    const emptyUniversal: MessageProfileEntry = {
+      identifier: {
+        entityIdentifier: "EXPROF-1",
+        namespaceId: "EXAMPLEORG",
+        universalId: "",
+        universalIdType: "",
+      },
+      profile: local,
+    };
+    const result = findMessageProfiles(message(`EXPROF-1^EXAMPLEORG^${OID_A}^ISO`), [
+      emptyUniversal,
+    ]);
+    expect(result.outcome).toBe("one");
+  });
+
+  it("does not match a universal-ID-only entry to an identifier with no authority", () => {
+    const byOid: MessageProfileEntry = {
+      identifier: { entityIdentifier: "EXPROF-1", universalId: OID_A, universalIdType: "ISO" },
+      profile: local,
+    };
+    expect(findMessageProfiles(message("EXPROF-1"), [byOid]).outcome).toBe("none");
+  });
+
+  it("compares the namespace IDs when only one side carries a universal ID", () => {
+    expect(findMessageProfiles(message("EXPROF-2^OTHERNAME"), [REGISTRY]).outcome).toBe("none");
+  });
+
+  it("never matches an entry that carries no entity identifier at all", () => {
+    // Outside the type, as a caller's untyped data can be: an entry with only an authority.
+    const noEntity = {
+      identifier: { namespaceId: "EXAMPLEORG" },
+      profile: local,
+    } as unknown as MessageProfileEntry;
+    expect(findMessageProfiles(message("^EXAMPLEORG"), [noEntity]).outcome).toBe("none");
+  });
+});
+
 describe("findMessageProfiles: no match", () => {
   it("is none when MSH-21 names profiles the list does not hold, and lists them", () => {
     const result = findMessageProfiles(message("EXPROF-9^EXAMPLEORG~EXPROF-8^EXAMPLEORG"), [
@@ -186,6 +235,16 @@ describe("findMessageProfiles: MSH-21 names nothing", () => {
   it("is undeclared when MSH-21 is empty", () => {
     const result = findMessageProfiles(message(""), [INTAKE]);
     expect(result).toEqual({ outcome: "undeclared", profiles: [], matches: [], unmatched: [] });
+  });
+
+  it("is undeclared for a message built with no MSH", () => {
+    const empty = new Hl7Message({
+      segments: [],
+      encodingCharacters: DEFAULT_ENCODING_CHARACTERS,
+      version: "2.5.1",
+      warnings: [],
+    });
+    expect(findMessageProfiles(empty, [INTAKE]).outcome).toBe("undeclared");
   });
 
   it("is undeclared when every repetition is empty", () => {

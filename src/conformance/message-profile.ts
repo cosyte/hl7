@@ -69,9 +69,9 @@ export interface MessageProfileLookup<P = ConformanceProfile> {
   readonly unmatched: readonly MessageProfileClaim[];
 }
 
-/** A component that carries a value. @internal */
-function valued(value: string | undefined): value is string {
-  return value !== undefined && value !== "";
+/** A component's value, or `undefined` when it is absent or empty. @internal */
+function present(value: string | undefined): string | undefined {
+  return value === "" ? undefined : value;
 }
 
 /**
@@ -85,19 +85,23 @@ function valued(value: string | undefined): value is string {
  * @internal
  */
 function sameIdentifier(a: EI, b: EI): boolean {
-  if (!valued(a.entityIdentifier) || a.entityIdentifier !== b.entityIdentifier) return false;
-  if (valued(a.universalId) && valued(b.universalId)) {
-    if (a.universalId !== b.universalId) return false;
-    return !(
-      valued(a.universalIdType) &&
-      valued(b.universalIdType) &&
-      a.universalIdType !== b.universalIdType
+  const entity = present(a.entityIdentifier);
+  if (entity === undefined || entity !== b.entityIdentifier) return false;
+  const aUniversal = present(a.universalId);
+  const bUniversal = present(b.universalId);
+  const aNamespace = present(a.namespaceId);
+  if (aUniversal !== undefined && bUniversal !== undefined) {
+    const aType = present(a.universalIdType);
+    const bType = present(b.universalIdType);
+    return (
+      aUniversal === bUniversal && (aType === undefined || bType === undefined || aType === bType)
     );
   }
-  if (valued(a.namespaceId) && valued(b.namespaceId)) return a.namespaceId === b.namespaceId;
-  const aNamed = valued(a.namespaceId) || valued(a.universalId);
-  const bNamed = valued(b.namespaceId) || valued(b.universalId);
-  return !aNamed && !bNamed;
+  // At most one side carries a universal ID. When neither does, the namespace IDs decide, and two
+  // absent ones are two identifiers with no authority. When one side does, the namespace IDs decide
+  // only if both carry one.
+  if (aUniversal === bUniversal) return aNamespace === present(b.namespaceId);
+  return aNamespace !== undefined && aNamespace === present(b.namespaceId);
 }
 
 /**
@@ -130,15 +134,14 @@ export function findMessageProfiles<P = ConformanceProfile>(
   const profiles: P[] = [];
   const matches: MessageProfileMatch<P>[] = [];
   const unmatched: MessageProfileClaim[] = [];
-  let claims = 0;
+  let declared = false;
 
+  // A message built by hand can have no MSH; it names no profile.
   const repetitions = msg.segments("MSH")[0]?.field(21).repetitions ?? [];
-  for (let repetition = 0; repetition < repetitions.length; repetition++) {
-    const rep = repetitions[repetition];
-    if (rep === undefined) continue;
+  for (const [repetition, rep] of repetitions.entries()) {
     const identifier = Object.freeze(parseEi(rep, msg.encodingCharacters));
     if (Object.keys(identifier).length === 0) continue;
-    claims++;
+    declared = true;
     let matched = false;
     for (const entry of entries) {
       if (!sameIdentifier(entry.identifier, identifier)) continue;
@@ -149,14 +152,13 @@ export function findMessageProfiles<P = ConformanceProfile>(
     if (!matched) unmatched.push(Object.freeze({ repetition, identifier }));
   }
 
-  const outcome =
-    claims === 0
-      ? "undeclared"
-      : profiles.length === 0
-        ? "none"
-        : profiles.length === 1
-          ? "one"
-          : "several";
+  const outcome = !declared
+    ? "undeclared"
+    : profiles.length === 0
+      ? "none"
+      : profiles.length === 1
+        ? "one"
+        : "several";
   return Object.freeze({
     outcome,
     profiles: Object.freeze(profiles),
