@@ -160,7 +160,7 @@ one file collides. Alias the import or use a namespace import:
 import { parseDtm, toISO as hl7ToISO } from "@cosyte/hl7";
 import { toISO as x12ToISO } from "@cosyte/x12";
 
-hl7ToISO(parseDtm("19880705")); // "1988-07-05"
+hl7ToISO(parseDtm("19880705")); // "1988-07-05" /* synthetic */
 // x12ToISO does the same for an X12 date value.
 ```
 

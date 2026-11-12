@@ -179,10 +179,17 @@ const PERSON_FIELDS: Record<
 /** HL7 escape sequences, which break a free-text field into the plain runs between them. */
 const ESCAPE = /\\[^\\]*\\/gu;
 
-/** The plain runs of a free-text value worth matching: two words or more. */
+/** A free-text value with its escape sequences taken out, as a reader sees the words. */
+function withoutEscapes(value: string): string {
+  return value.replace(ESCAPE, "").replace(/\s+/gu, " ").trim();
+}
+
+/**
+ * The plain runs of a free-text value worth matching: two words or more. Escapes can cut every run
+ * to one word (`Critical \H\value\N\ and`), so the words read with the escapes taken out count too.
+ */
 function freeTextRuns(value: string): string[] {
-  return value
-    .split(ESCAPE)
+  return [...value.split(ESCAPE), withoutEscapes(value)]
     .map((run) => run.trim())
     .filter((run) => run.length >= 6 && /\S\s+\S/u.test(run));
 }
@@ -335,7 +342,11 @@ function findIdentifying(value: string, ids: Identifying, patterns: RegExp[]): s
   for (const word of value.toLowerCase().match(/[\p{L}_]+/gu) ?? []) {
     if (ids.words.has(word) && !ORDINARY_WORDS.has(word)) found.push(word);
   }
-  for (const literal of ids.literals) if (holdsToken(value, literal)) found.push(literal);
+  // A shown value is source text: `\\` is one backslash, and free text is matched with its escapes out.
+  const words = withoutEscapes(value.replace(/\\\\/gu, "\\"));
+  for (const literal of ids.literals) {
+    if (holdsToken(value, literal) || holdsToken(words, literal)) found.push(literal);
+  }
   for (const p of patterns) if (p.test(value)) found.push(p.source);
   if (/[\w.+-]+@[\w-]+\.[\w.]+/u.test(value)) found.push("email");
   return found;
@@ -347,7 +358,16 @@ const SHOWN_SEGMENT = /(?:^|[^A-Za-z0-9])[A-Z][A-Z0-9]{2}\||<([A-Z][A-Z0-9]{2})>
 /** Info strings of a fence that shows output rather than code. */
 const OUTPUT_FENCE = /^(?:|text|xml|console|output)$/u;
 
-/** Every shown value on the pages, as `[where, value]`: `// =>` annotations and output blocks. */
+/**
+ * A plain trailing comment that shows a value after code: `parse(x); // "1988-07-05"`. A comment
+ * on a line of its own is prose, and `https://` is not a comment.
+ */
+const TRAILING_VALUE = /\S\s+\/\/\s+(["[{].*)$/u;
+
+/**
+ * Every shown value on the pages, as `[where, value]`: `// =>` annotations, plain trailing comments
+ * that show a value, and output blocks.
+ */
 function shownValues(): [string, string][] {
   const out: [string, string][] = [];
   for (const [label, text] of pages()) {
@@ -360,8 +380,11 @@ function shownValues(): [string, string][] {
         return;
       }
       const at = line.indexOf("// =>");
+      const trailing = TRAILING_VALUE.exec(line);
       if (at !== -1 && fence !== undefined && !OUTPUT_FENCE.test(fence)) {
         out.push([where, line.slice(at + "// =>".length).trim()]);
+      } else if (trailing && fence !== undefined && !OUTPUT_FENCE.test(fence)) {
+        out.push([where, (trailing[1] ?? "").trim()]);
       } else if (fence !== undefined && OUTPUT_FENCE.test(fence) && line.trim() !== "") {
         out.push([where, line.trim()]);
       }
@@ -393,11 +416,13 @@ describe("a shown value holding the synthetic data's identifying values", () => 
       "{ year: 1988, month: 7, day: 5 }",
       '"Smith"',
       '"Specimen slightly hemolyzed"',
+      '"Critical \\\\H\\\\value\\\\N\\\\ and A"',
     ]) {
       expect(findIdentifying(form, ids, dob)).not.toEqual([]);
     }
     expect(findIdentifying("[1988, 7, 50]", ids, dob)).toEqual([]);
     expect(findIdentifying('["SEGMENT_CASE"]', ids, dob)).toEqual([]);
+    expect(shown.some(([where]) => where === "read-dates-and-times.md:163")).toBe(true);
     expect(SHOWN_SEGMENT.test('"PID|||TESTID01^^^TESTLAB^MR||Test^Patient"')).toBe(true);
     expect(SHOWN_SEGMENT.test('"<PID><PID.3>TESTID01</PID.3></PID>"')).toBe(true);
     expect(SHOWN_SEGMENT.test('"ADT^A01^ADT_A01"')).toBe(false);
@@ -405,7 +430,7 @@ describe("a shown value holding the synthetic data's identifying values", () => 
 
   it("carries the synthetic mark", () => {
     const unmarked = shown
-      .filter(([, value]) => !value.endsWith("/* synthetic */"))
+      .filter(([, value]) => !/(?:\/\* synthetic \*\/|, synthetic)$/u.test(value))
       .filter(([, value]) => findIdentifying(value, ids, patterns).length > 0)
       .map(([where, value]) => `${where} ${value}`);
     expect(unmarked).toEqual([]);
