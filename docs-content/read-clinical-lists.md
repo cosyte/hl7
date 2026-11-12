@@ -116,7 +116,7 @@ const raw = [
 
 const msg = parseHL7(raw);
 
-msg.nextOfKin()[0]?.name?.givenName; // => "John"
+msg.nextOfKin()[0]?.name?.givenName; // => "John" /* synthetic */
 msg.nextOfKin()[0]?.relationship?.identifier; // => "SPO"
 msg.diagnoses()[0]?.code?.identifier; // => "E11.9"
 msg.diagnoses()[0]?.type; // => "A"

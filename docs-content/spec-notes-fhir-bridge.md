@@ -136,11 +136,11 @@ const pid = msg.segments("PID")[0];
 const obx = msg.segments("OBX")[0];
 
 // 1. Source-path addressing: segment.field.component, one-to-one with the IG.
-msg.get("PID.3.1"); // => "MRN0003223"
-resolvePath("PID.5.1", msg.rawSegments, msg.encodingCharacters); // => "DOE"
+msg.get("PID.3.1"); // => "MRN0003223" /* synthetic */
+resolvePath("PID.5.1", msg.rawSegments, msg.encodingCharacters); // => "DOE" /* synthetic */
 
 // 3. Typed composites: the datatype-map inputs (positional, verbatim).
-pid?.field(5).asXpn().familyName; // => "DOE"
+pid?.field(5).asXpn().familyName; // => "DOE" /* synthetic */
 pid?.field(3).asCx().identifierTypeCode; // => "MR"
 
 // 4. Code-system provenance: becomes Coding.system downstream.
@@ -153,7 +153,8 @@ parseDtm(msg.get("PID.7") ?? "").precision; // => "day"
 ## Semver posture (the promise)
 
 The mapping surface above is part of the public surface the package keeps stable. Below 1.0, a
-breaking change moves the minor version and the changelog says how to migrate. From 1.0, **semver**:
+breaking change can ship in a patch release and the changelog says how to migrate, so pin the exact
+version rather than a caret range. From 1.0, **semver**:
 
 - **Additive** (a new composite accessor, a new optional field on a returned shape, a new helper): a
   **minor** bump. A mapper written against v1 keeps working.

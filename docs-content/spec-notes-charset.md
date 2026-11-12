@@ -24,7 +24,7 @@ const bytes = Buffer.from(
   "utf8",
 );
 
-parseHL7(bytes).get("PID.5.1"); // => "Renée"
+parseHL7(bytes).get("PID.5.1"); // => "Renée" /* synthetic */
 bytes.toString("latin1").includes("RenÃ©e"); // => true
 ```
 

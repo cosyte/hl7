@@ -25,7 +25,7 @@ const raw =
 const msg = parseHL7(raw);
 const dob = msg.patient?.dateOfBirth;
 
-dob?.raw; // => "19880705"
+dob?.raw; // => "19880705" /* synthetic */
 dob?.precision; // => "day"
 [dob?.year, dob?.month, dob?.day]; // => [1988, 7, 5]
 dob?.hasTimezone; // => false

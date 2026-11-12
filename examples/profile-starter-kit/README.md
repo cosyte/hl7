@@ -20,7 +20,7 @@ import { MyProfile } from "@{{YOUR_ORG}}/hl7-profile-{{PROFILE_NAME}}";
 
 const msg = parseHL7(rawHL7, MyProfile);
 
-const mrn = msg.patient?.mrn; // read it, never log it
+const mrn = msg.patient?.mrn; // "MRN-KIT-001", synthetic: read it, never log it
 const zal = msg.segments("ZAL")[0];
 const allergyId = zal?.get("allergyId")?.value; // "ALG-0001", synthetic
 console.log(msg.meta.type, zal !== undefined);

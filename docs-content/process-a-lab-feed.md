@@ -45,8 +45,10 @@ batch.warnings; // => []
 
 ## Step 2: read each patient's results
 
-Each entry is either `{ ok: true, message }` or a failure. For each parsed message, read the
-patient's record number and every result with `observations()`.
+Each entry is either `{ ok: true, message }` or a failure. For each parsed message, read every
+result with `observations()` and key it on the message's control id (MSH-10), which ties a result
+back to its message without naming the patient. The record number stays in the message, where the
+step that files the result reads it.
 
 ```ts runnable
 import { splitBatch } from "@cosyte/hl7";
@@ -65,16 +67,17 @@ const feed = [
   "BTS|2",
 ].join("\r");
 
-const results: string[] = [];
+const results: { controlId: string; code: string; value: unknown }[] = [];
 for (const entry of splitBatch(feed).messages) {
   if (!entry.ok) continue;
-  const mrn = entry.message.patient?.mrn ?? "(no MRN)";
+  const controlId = entry.message.meta.controlId ?? "";
   for (const obs of entry.message.observations()) {
-    results.push(`${mrn} ${obs.identifier.identifier} ${String(obs.value)}`);
+    results.push({ controlId, code: obs.identifier.identifier ?? "", value: obs.value });
   }
 }
 
-results; // => ["MRN10001 GLU 182", "MRN10001 NA 139", "MRN10002 HGB 10.1"]
+results.map((r) => `${r.controlId} ${r.code}`); // => ["LAB-0001 GLU", "LAB-0001 NA", "LAB-0002 HGB"]
+results[0]?.value; // => 182
 ```
 
 The glucose value is the number `182`, not the string `"182"`: OBX-2 says the value is numeric
@@ -102,20 +105,19 @@ const feed = [
   "BTS|2",
 ].join("\r");
 
-const abnormal: string[] = [];
+const abnormal: { controlId: string; code: string; flag: string }[] = [];
 for (const entry of splitBatch(feed).messages) {
   if (!entry.ok) continue;
-  const mrn = entry.message.patient?.mrn ?? "(no MRN)";
+  const controlId = entry.message.meta.controlId ?? "";
   for (const obs of entry.message.observations()) {
     const flag = obs.abnormalFlags ?? "";
     if (flag !== "" && flag !== "N") {
-      const units = obs.units?.identifier ?? "";
-      abnormal.push(`${mrn} ${obs.identifier.text ?? ""} ${String(obs.value)} ${units} (${flag})`);
+      abnormal.push({ controlId, code: obs.identifier.identifier ?? "", flag });
     }
   }
 }
 
-abnormal; // => ["MRN10001 Glucose 182 mg/dL (H)", "MRN10002 Hemoglobin 10.1 g/dL (L)"]
+abnormal.map((a) => `${a.controlId} ${a.code} (${a.flag})`); // => ["LAB-0001 GLU (H)", "LAB-0002 HGB (L)"]
 ```
 
 ## Step 4: answer every message

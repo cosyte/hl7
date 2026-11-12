@@ -56,9 +56,9 @@ const xml = `<?xml version="1.0" encoding="UTF-8"?>
 const msg = parseHL7Xml(xml);
 
 msg.version; // => "2.6"
-msg.patient?.mrn; // => "TESTID01"
+msg.patient?.mrn; // => "TESTID01" /* synthetic */
 msg.observations()[0]?.value; // => 4.2
-msg.get("PID.5.1"); // => "Test"
+msg.get("PID.5.1"); // => "Test" /* synthetic */
 msg.get("NTE.3"); // => "Seen at 1 | 2 & recheck"
 msg.toString().split("\r")[1]; // => "PID|||TESTID01^^^TESTLAB^MR||Test^Patient"
 ```

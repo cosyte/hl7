@@ -28,11 +28,11 @@ const msg = buildMessage({
   receivingFacility: "REF",
 }).addSegment("PID", ["1", "", "MRN12345"]);
 
-msg.get("PID.3"); // => "MRN12345"
+msg.get("PID.3"); // => "MRN12345" /* synthetic */
 msg.meta.messageCode; // => "ADT"
 
 const reparsed = parseHL7(msg.toString());
-reparsed.patient?.mrn; // => "MRN12345"
+reparsed.patient?.mrn; // => "MRN12345" /* synthetic */
 reparsed.meta.controlId === msg.meta.controlId; // => true
 ```
 
@@ -74,8 +74,8 @@ const msg = buildAdt("A01", {
 
 const round = parseHL7(msg.toString());
 
-round.patient?.mrn; // => "MRN12345"
-round.patient?.familyName; // => "Test^Name"
+round.patient?.mrn; // => "MRN12345" /* synthetic */
+round.patient?.familyName; // => "Test^Name" /* synthetic */
 round.warnings.length; // => 0
 ```
 

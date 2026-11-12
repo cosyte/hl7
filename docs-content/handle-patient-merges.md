@@ -31,8 +31,8 @@ const [event] = parseHL7(raw).identityEvents();
 
 event?.kind; // => "merge"
 event?.direction; // => "MRG_TO_PID"
-event?.prior?.identifiers[0]?.idNumber; // => "MRN11111"
-event?.surviving?.identifiers[0]?.idNumber; // => "MRN22222"
+event?.prior?.identifiers[0]?.idNumber; // => "MRN11111" /* synthetic */
+event?.surviving?.identifiers[0]?.idNumber; // => "MRN22222" /* synthetic */
 event?.warnings; // => []
 ```
 

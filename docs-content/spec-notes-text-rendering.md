@@ -104,7 +104,7 @@ decodeText(encodeText(hostile)); // => "a|b^c~d\\e&f"
 
 // Placed in a field, it re-parses to exactly itself, no forged boundary:
 const msg = parseHL7(`MSH|^~\\&|A|B|C|D|20260101||ADT^A01|1|P|2.5\rNTE|1||${encodeText(hostile)}`);
-msg.segments("NTE")[0]?.field(3).value; // => "a|b^c~d\\e&f"
+msg.segments("NTE")[0]?.field(3).value; // => "a|b^c~d\\e&f" /* synthetic */
 ```
 
 The invariant `decodeText(encodeText(s)) === s`, and whole-field re-parse with

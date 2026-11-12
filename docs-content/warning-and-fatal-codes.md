@@ -110,13 +110,22 @@ redacts it. It is the field to scrub at your logging edge.
 Every message this library reads can carry a patient's identity, so what reaches a log is a choice
 field by field. The library itself logs nothing.
 
-| Safe to log                                                                               | Never log                                                                                                       |
-| ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `w.code` and `err.code`, from `WARNING_CODES`, `FATAL_CODES` and the other error classes  | `Hl7ParseError.snippet`: up to 40 characters of the raw input, verbatim and unredacted                          |
-| `w.position` and `err.position` (`segmentIndex`, `fieldIndex`), `Hl7XmlError.offset`      | a field that identifies a person: a name, a record or member number, a birth date, an address, a phone number   |
-| `Hl7XmlError.path`, `Hl7EncodeError.charset`                                              | free text: an NTE note, a narrative OBX value, a Z-segment text field                                           |
-| `msg.meta.type`, `msg.version`, `msg.warnings.length`, a date's `precision`               | a whole message, segment or field: `msg.toString()`, `JSON.stringify(msg)`, `msg.prettyPrint()`, `msg.get(...)` |
-| codes from a code system, counts, lengths and booleans (`msg.patient?.mrn !== undefined`) | a result value, a dose or an amount                                                                             |
+| Safe to log                                                                                       | Never log                                                                                                                                      |
+| ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `w.code` and `err.code`, from `WARNING_CODES`, `FATAL_CODES` and the other error classes          | `Hl7ParseError.snippet`: up to 40 characters of the raw input, verbatim and unredacted                                                         |
+| `w.position` and `err.position` (`segmentIndex`, `fieldIndex`), `Hl7XmlError.offset`              | `raw` on every entry `splitBatch` and `parseStream` return and every item `readMessages` yields, failed or parsed: the whole message, verbatim |
+| `Hl7XmlError.path`, `Hl7EncodeError.charset`                                                      | `raw` and `fields` on a `BatchEnvelopeSegment` (`fileHeader`, `header`, `trailer`, `fileTrailer`): the envelope segment, verbatim              |
+| `msg.meta.type`, `msg.meta.controlId`, `msg.version`, `msg.warnings.length`, a date's `precision` | `raw` on a parsed date (`DtmParts`) and on a `DtmAmbiguity`: the field as it arrived, a birth date included                                    |
+| `index`, `byteOffset` and `byteLength` on a `readMessages` item, `position` on an entry           | a field that identifies a person: a name, a record or member number, a birth date, an address, a phone number                                  |
+| codes from a code system, counts, lengths and booleans (`msg.patient?.mrn !== undefined`)         | free text: an NTE note, a narrative OBX value, a Z-segment text field                                                                          |
+|                                                                                                   | a whole message, segment or field: `msg.toString()`, `JSON.stringify(msg)`, `msg.prettyPrint()`, `msg.get(...)`                                |
+|                                                                                                   | a result value, a dose or an amount                                                                                                            |
+
+A failed result is the case to watch. An entry with `ok: false` carries its `error` and, beside it,
+`raw`, the message it could not parse. Logging the whole entry, or its error together with `raw`,
+writes that message to the log. Log `entry.error.code` and `entry.position` (for a `readMessages`
+item, `item.index` and `item.byteOffset` too), and quarantine `raw` where patient data may be kept,
+never in a log.
 
 `w.message` and `err.message` are bounded rather than content-free: they echo a token from the
 input only where it has a shape the spec defines, such as a segment id or a message type. Log the

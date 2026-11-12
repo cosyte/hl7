@@ -136,9 +136,9 @@ const raw =
 
 const msg = parseHL7(raw, site);
 
-msg.part("PID")?.get("siteMrn")?.value; // => "SITE-778"
+msg.part("PID")?.get("siteMrn")?.value; // => "SITE-778" /* synthetic */
 msg.part("AL1")?.get("localSeverityCode")?.value; // => "LOCAL-3"
-msg.patient?.mrn; // => "MRN12345"
+msg.patient?.mrn; // => "MRN12345" /* synthetic */
 msg.get("PID.19"); // => "SITE-778"
 ```
 

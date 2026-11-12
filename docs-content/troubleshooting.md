@@ -135,9 +135,9 @@ Design around these. They're deliberate scope choices, not bugs:
   happens to look like a segment identifier, so prefer logging `w.code` and `w.position` over
   `w.message` if your posture is strict.
 - **Below 1.0.** The 21 warning codes are a stable contract, and so are the exported functions and
-  the message and helper surfaces; below 1.0 a breaking change moves the minor version, and the
-  changelog says how to migrate. For the published version, ask the registry
-  (`npm view @cosyte/hl7 version`) rather than a doc page.
+  the message and helper surfaces. Below 1.0 a breaking change can ship in a patch release, and
+  the changelog says how to migrate, so pin the exact version rather than a caret range. For the
+  published version, ask the registry (`npm view @cosyte/hl7 version`) rather than a doc page.
 
 ## Still stuck?
 
