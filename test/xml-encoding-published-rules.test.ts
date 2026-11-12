@@ -134,7 +134,7 @@ describe("the writer places segments in the message structure's groups", () => {
   });
 
   it("lists the structures its tables cover: ORU_R01 in v2.5, the one it writes", () => {
-    expect(Object.keys(XML_GROUP_TABLES)).toEqual(["2.5"]);
+    expect(Object.keys(XML_GROUP_TABLES)).toEqual(["2.5", "2.6"]);
     expect(Object.keys(XML_GROUP_TABLES["2.5"] ?? {})).toEqual(["ORU_R01"]);
     const table = XML_GROUP_TABLES["2.5"]?.["ORU_R01"] as XmlMessageStructure;
     expect(Object.isFrozen(table.items)).toBe(true);
@@ -346,6 +346,269 @@ describe("the writer places segments in the message structure's groups", () => {
   });
 });
 
+describe("the v2.6 laboratory structures OPU_R25, OPL_O37 and OPR_O38", () => {
+  // Each table as the three public copies of the v2.6 schema give it, read by hand from them.
+  const OPU_R25: XmlMessageStructure = {
+    structure: "OPU_R25",
+    items: [
+      "MSH",
+      "SFT*",
+      "UAC?",
+      "NTE?",
+      "PV1",
+      "PV2?",
+      "OBX*",
+      "NTE*",
+      "ROL+",
+      {
+        group: "ACCESSION_DETAIL+",
+        items: [
+          "NK1+",
+          {
+            group: "PATIENT?",
+            items: ["PID", "PD1?", { group: "PATIENT_OBSERVATION*", items: ["OBX", "NTE*"] }],
+          },
+          {
+            group: "SPECIMEN+",
+            items: [
+              "SPM",
+              { group: "SPECIMEN_OBSERVATION*", items: ["OBX", "NTE*"] },
+              { group: "CONTAINER*", items: ["SAC", "INV?"] },
+              {
+                group: "ORDER+",
+                items: [
+                  "OBR",
+                  "ORC?",
+                  "NTE*",
+                  "ROL*",
+                  { group: "TIMING_QTY*", items: ["TQ1", "TQ2*"] },
+                  { group: "RESULT+", items: ["OBX", "NTE*"] },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+  const OPL_O37: XmlMessageStructure = {
+    structure: "OPL_O37",
+    items: [
+      "MSH",
+      "SFT*",
+      "UAC?",
+      "NTE*",
+      "ROL+",
+      { group: "GUARANTOR?", items: ["GT1", "NTE*"] },
+      {
+        group: "ORDER+",
+        items: [
+          "NK1+",
+          {
+            group: "PATIENT?",
+            items: [
+              "PID",
+              "PD1?",
+              "OBX*",
+              { group: "INSURANCE*", items: ["IN1", "IN2?", "IN3?"] },
+              "AL1*",
+            ],
+          },
+          {
+            group: "SPECIMEN+",
+            items: [
+              "SPM",
+              "OBX*",
+              { group: "CONTAINER*", items: ["SAC", "OBX*"] },
+              {
+                group: "OBSERVATION_REQUEST+",
+                items: [
+                  "ORC",
+                  "OBR",
+                  "ROL*",
+                  { group: "TIMING*", items: ["TQ1", "TQ2*"] },
+                  "TCD?",
+                  "DG1*",
+                  "OBX*",
+                ],
+              },
+            ],
+          },
+          {
+            group: "PRIOR_RESULT?",
+            items: [
+              "NK1+",
+              { group: "PATIENT_PRIOR?", items: ["PID", "PD1?"] },
+              { group: "PATIENT_VISIT_PRIOR?", items: ["PV1", "PV2?"] },
+              "AL1?",
+              {
+                group: "ORDER_PRIOR+",
+                items: [
+                  "OBR",
+                  "ORC?",
+                  "ROL*",
+                  { group: "TIMING?", items: ["TQ1", "TQ2*"] },
+                  "OBX+",
+                ],
+              },
+            ],
+          },
+          "FT1*",
+          "CTI*",
+          "BLG?",
+        ],
+      },
+    ],
+  };
+  const OPR_O38: XmlMessageStructure = {
+    structure: "OPR_O38",
+    items: [
+      "MSH",
+      "MSA",
+      "ERR*",
+      "SFT*",
+      "UAC?",
+      "NTE*",
+      {
+        group: "RESPONSE?",
+        items: [
+          {
+            group: "ORDER+",
+            items: [
+              "NK1+",
+              "PID?",
+              {
+                group: "SPECIMEN*",
+                items: [
+                  "SPM",
+                  "OBX*",
+                  "SAC*",
+                  { group: "OBSERVATION_REQUEST*", items: ["ORC", "OBR", "ROL*"] },
+                  { group: "TIMING*", items: ["TQ1", "TQ2*"] },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+
+  /** A v2.6 message of type `type` (code, trigger and structure) and `segments`. */
+  const lab = (type: string, ...segments: string[]): Hl7Message =>
+    parseHL7([`MSH|^~\\&|TESTLAB||||20260102101500||${type}|XMLL01|P|2.6`, ...segments].join("\r"));
+
+  /** The group elements `xml` opens, in order. */
+  const opened = (xml: string, root: string): string[] =>
+    xml
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.startsWith(`<${root}.`));
+
+  it("ships each table as the schema gives it, frozen", () => {
+    expect(Object.keys(XML_GROUP_TABLES["2.6"] ?? {})).toEqual(["OPU_R25", "OPL_O37", "OPR_O38"]);
+    expect(XML_GROUP_TABLES["2.6"]?.["OPU_R25"]).toEqual(OPU_R25);
+    expect(XML_GROUP_TABLES["2.6"]?.["OPL_O37"]).toEqual(OPL_O37);
+    expect(XML_GROUP_TABLES["2.6"]?.["OPR_O38"]).toEqual(OPR_O38);
+    for (const table of Object.values(XML_GROUP_TABLES["2.6"] ?? {})) {
+      expect(Object.isFrozen(table)).toBe(true);
+      expect(Object.isFrozen(table.items)).toBe(true);
+    }
+  });
+
+  it("writes a v2.6 OPU_R25 in its groups with no `groups` option, and reads it back", () => {
+    const msg = lab(
+      "OPU^R25^OPU_R25",
+      "PV1|1",
+      "ROL|1",
+      "NK1|1",
+      "PID|1||TESTPET01",
+      "SPM|1",
+      "OBX|1|ST|TST-1||Test",
+      "SAC|1",
+      "OBR|1",
+      "TQ1|1",
+      "OBX|1|NM|TST-2||4.2",
+      "NTE|1||Test note",
+      "OBX|2|NM|TST-3||7",
+      "NK1|2",
+      "SPM|2",
+      "OBR|2",
+      "OBX|1|NM|TST-4||1",
+    );
+    const dataTypes = { "MSH.9": "MSG" };
+    const xml = toHl7Xml(msg, { dataTypes });
+    expect(opened(xml, "OPU_R25")).toEqual([
+      "<OPU_R25.ACCESSION_DETAIL>",
+      "<OPU_R25.PATIENT>",
+      "<OPU_R25.SPECIMEN>",
+      "<OPU_R25.SPECIMEN_OBSERVATION>",
+      "<OPU_R25.CONTAINER>",
+      "<OPU_R25.ORDER>",
+      "<OPU_R25.TIMING_QTY>",
+      "<OPU_R25.RESULT>",
+      "<OPU_R25.RESULT>",
+      "<OPU_R25.ACCESSION_DETAIL>",
+      "<OPU_R25.SPECIMEN>",
+      "<OPU_R25.ORDER>",
+      "<OPU_R25.RESULT>",
+    ]);
+    expect(xml).toBe(toHl7Xml(msg, { dataTypes, groups: OPU_R25 }));
+    expect(parseHL7Xml(xml).rawSegments).toEqual(msg.rawSegments);
+  });
+
+  it("writes a v2.6 OPL_O37 and its OPR_O38 response in their groups", () => {
+    const order = lab(
+      "OPL^O37^OPL_O37",
+      "ROL|1",
+      "NK1|1",
+      "PID|1||TESTPET02",
+      "SPM|1",
+      "ORC|NW",
+      "OBR|1",
+      "NK1|2",
+      "PID|2",
+      "PV1|1",
+      "OBR|9",
+      "OBX|1|ST|TST-5||Test",
+    );
+    expect(opened(toHl7Xml(order, { dataTypes: { "MSH.9": "MSG" } }), "OPL_O37")).toEqual([
+      "<OPL_O37.ORDER>",
+      "<OPL_O37.PATIENT>",
+      "<OPL_O37.SPECIMEN>",
+      "<OPL_O37.OBSERVATION_REQUEST>",
+      "<OPL_O37.PRIOR_RESULT>",
+      "<OPL_O37.PATIENT_PRIOR>",
+      "<OPL_O37.PATIENT_VISIT_PRIOR>",
+      "<OPL_O37.ORDER_PRIOR>",
+    ]);
+    const response = lab("OPR^O38^OPR_O38", "MSA|AA|XMLL01", "NK1|1", "SPM|1", "ORC|OK", "OBR|1");
+    const xml = toHl7Xml(response, { dataTypes: { "MSH.9": "MSG" } });
+    expect(opened(xml, "OPR_O38")).toEqual([
+      "<OPR_O38.RESPONSE>",
+      "<OPR_O38.ORDER>",
+      "<OPR_O38.SPECIMEN>",
+      "<OPR_O38.OBSERVATION_REQUEST>",
+    ]);
+    expect(parseHL7Xml(xml).rawSegments).toEqual(response.rawSegments);
+  });
+
+  it("refuses a lab message that does not fit, and the same structures in another version", () => {
+    expect(
+      why(() => toHl7Xml(lab("OPU^R25^OPU_R25", "PV1|1"), { dataTypes: { "MSH.9": "MSG" } })),
+    ).toBe(
+      "STRUCTURE_MISMATCH: The message lacks a segment or group the message structure requires.",
+    );
+    const v25 = parseHL7("MSH|^~\\&|||||||OPU^R25^OPU_R25|X1|P|2.5\rPV1|1\r");
+    expect(why(() => toHl7Xml(v25))).toBe(
+      "GROUPS_UNKNOWN: No group table covers OPU_R25 in v2.5; pass `groups`.",
+    );
+    expect(why(() => toHl7Xml(lab("ORU^R01^ORU_R01", "PID|1", "OBR|1")))).toBe(
+      "GROUPS_UNKNOWN: No group table covers ORU_R01 in v2.6; pass `groups`.",
+    );
+  });
+});
+
 describe("the root element is the message structure", () => {
   it("takes the structure our registry maps MSH-9.1 and MSH-9.2 to when MSH-9.3 is empty", () => {
     // ADT^A04 shares the ADT_A01 structure, so no schema declares an ADT_A04 root.
@@ -547,6 +810,21 @@ describe("hex escapes are character references", () => {
     expect(why(() => flat(withCharset("8859/1", "\\X5C\\")))).toBe(
       "ESCAPE_NOT_SUPPORTED: A value holds the message's escape character. (NTE.3)",
     );
+  });
+
+  it("refuses the five bytes Windows-1252 leaves undefined, rather than write a C1 control", () => {
+    const refusal =
+      "ESCAPE_NOT_SUPPORTED: A hex escape's bytes are not text in the message's character set. (NTE.3)";
+    for (const byte of ["81", "8D", "8F", "90", "9D"]) {
+      expect(why(() => flat(withCharset("WINDOWS-1252", `\\X${byte}\\`)))).toBe(refusal);
+      expect(why(() => flat(withCharset("WINDOWS-1252", `\\X41${byte}42\\`)))).toBe(refusal);
+    }
+    // Their neighbours are defined, and stay character references.
+    expect(flat(withCharset("WINDOWS-1252", "\\X8E9E9F\\"))).toContain(
+      "<NTE.3>&#x17d;&#x17e;&#x178;</NTE.3>",
+    );
+    // In 8859/1 the same byte is a C1 control the set defines, and is still written.
+    expect(flat(withCharset("8859/1", "\\X81\\"))).toContain("<NTE.3>&#x81;</NTE.3>");
   });
 
   it("refuses character set and vendor escapes, which v2 XML does not carry", () => {

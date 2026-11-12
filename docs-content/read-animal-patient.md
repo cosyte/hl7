@@ -46,6 +46,33 @@ patient?.sex; // => "M"
 v2.7 the three coded fields are `CE`, whose components a `CWE` reads under the same names. When
 PID-38 carries more than one repetition, `productionClass` is the first.
 
+## A field that may not repeat, repeated
+
+PID-35, PID-36 and PID-37 may each hold one value. When a sender repeats one anyway, `species`,
+`breed` or `strain` is the first repetition, and `patient.warnings` carries a
+`NON_REPEATING_FIELD_REPEATED` warning for that field, naming it and the count and never a value,
+so the rest are not dropped unseen. The warnings stay on the patient view; `msg.warnings` is not
+changed. With no such field, `warnings` is absent.
+
+```ts runnable
+import { parseHL7 } from "@cosyte/hl7";
+
+const pid = ["PID", "1", "", "TESTPET04^^^CLINIC^MR"];
+while (pid.length < 35) pid.push("");
+pid.push("SPX01^Test canine^L~SPX02^Test feline^L"); // PID-35, repeated
+
+const raw = [
+  "MSH|^~\\&|VETAPP|CLINIC|LAB|REF|20260102101500||ADT^A01^ADT_A01|VET00004|P|2.5",
+  pid.join("|"),
+].join("\r");
+
+const patient = parseHL7(raw).patient;
+
+patient?.species?.identifier; // => "SPX01"
+patient?.warnings?.[0]?.code; // => "NON_REPEATING_FIELD_REPEATED"
+patient?.warnings?.[0]?.position; // => { segmentIndex: 1, fieldIndex: 35 }
+```
+
 ## Absent means the sender sent nothing
 
 Each key is absent when its field is empty, and is read only from its own field. A message from a

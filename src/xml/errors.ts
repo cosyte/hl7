@@ -33,7 +33,7 @@ export const XML_ERROR_CODES = {
   DTD_NOT_ALLOWED: "DTD_NOT_ALLOWED",
   /** The document references an entity other than the five XML predefines. */
   ENTITY_NOT_ALLOWED: "ENTITY_NOT_ALLOWED",
-  /** The document is not well-formed XML. */
+  /** The document is not well-formed XML, an element that repeats an attribute among them. */
   NOT_WELL_FORMED: "NOT_WELL_FORMED",
   /** The document or a value holds a character XML 1.0 does not allow. */
   FORBIDDEN_CHARACTER: "FORBIDDEN_CHARACTER",
@@ -58,8 +58,8 @@ export const XML_ERROR_CODES = {
    * The message's escape character in text, for which no published rule exists; an `escape`
    * element whose `V` is not a formatting escape, or that holds text or elements; or a value
    * whose escape sequence the writer cannot express: a formatting escape in a value whose data
-   * type is not TX or FT, a hex escape the message's character set cannot decode, or a character
-   * set or vendor escape.
+   * type is not TX or FT, a hex escape the message's character set cannot decode (a byte
+   * Windows-1252 assigns no character among them), or a character set or vendor escape.
    */
   ESCAPE_NOT_SUPPORTED: "ESCAPE_NOT_SUPPORTED",
   /** The writer needs the data type of a composite to name its elements and was not given it. */

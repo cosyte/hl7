@@ -28,6 +28,8 @@ import { parseCx } from "../model/types/cx.js";
 import type { XPN } from "../model/types/xpn.js";
 import type { XTN } from "../model/types/xtn.js";
 import { parseXtn } from "../model/types/xtn.js";
+import type { Hl7ParseWarning } from "../parser/warnings.js";
+import { nonRepeatingFieldRepeated } from "../parser/warnings.js";
 
 import { groupNotes } from "./notes.js";
 import { pickMrn } from "./pick-mrn.js";
@@ -148,6 +150,25 @@ export function buildPatient(msg: Hl7Message): Patient | undefined {
   // ─── PID-35 to PID-38: an animal patient's species, breed, strain and ─
   // production class. Each is read only from its own field and omitted when
   // that field is empty: nothing is inferred from PID-8 or anywhere else.
+  // PID-35, PID-36 and PID-37 may not repeat: each reads its first repetition,
+  // and one that holds more says so on the view rather than drop them unseen.
+  // PID-38 may repeat, and its documented reading is the first.
+  const warnings: Hl7ParseWarning[] = [];
+  for (const fieldIndex of [35, 36, 37]) {
+    const repetitions = pid.field(fieldIndex).repetitions.length;
+    if (repetitions > 1) {
+      warnings.push(
+        nonRepeatingFieldRepeated(
+          { segmentIndex: pid.absoluteIndex, fieldIndex },
+          "PID",
+          fieldIndex,
+          repetitions,
+        ),
+      );
+    }
+  }
+  if (warnings.length > 0) out.warnings = Object.freeze(warnings);
+
   const species = pid.field(35).asCwe();
   if (Object.keys(species).length > 0) out.species = species;
 

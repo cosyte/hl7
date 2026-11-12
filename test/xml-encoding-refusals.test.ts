@@ -117,6 +117,16 @@ describe("the reader names each refusal", () => {
     [`<ADT_A01 a=b>${MSH}</ADT_A01>`, "NOT_WELL_FORMED: An attribute value is not quoted."],
     [`<ADT_A01 a="b>${MSH}</ADT_A01>`, "NOT_WELL_FORMED: An attribute value does not end."],
     [`<ADT_A01 a="<">${MSH}</ADT_A01>`, "NOT_WELL_FORMED: An attribute value holds a '<'."],
+    [`<ADT_A01 a="1" a="2">${MSH}</ADT_A01>`, "NOT_WELL_FORMED: An element repeats an attribute."],
+    [doc('<NTE a="1" b="2" a="1"/>'), "NOT_WELL_FORMED: An element repeats an attribute."],
+    [
+      `<ADT_A01 xmlns="${V2_XML_NAMESPACE}" xmlns="${V2_XML_NAMESPACE}">${MSH}</ADT_A01>`,
+      "NOT_WELL_FORMED: An element repeats an attribute.",
+    ],
+    [
+      doc('<NTE><NTE.3><escape V="H" V="N"/></NTE.3></NTE>'),
+      "NOT_WELL_FORMED: An element repeats an attribute.",
+    ],
     [
       `<ADT_A01 xmlns="urn:example">${MSH}</ADT_A01>`,
       "NAMESPACE_NOT_SUPPORTED: An element declares a default namespace other than the v2 XML one.",
@@ -377,6 +387,17 @@ describe("the reader names each refusal", () => {
     } catch (error) {
       expect((error as Hl7XmlError).offset).toBe(head.length);
       expect((error as Hl7XmlError).path).toBeUndefined();
+    }
+  });
+
+  it("points at the repeated attribute's name", () => {
+    const head = '<ADT_A01 V="1" ';
+    try {
+      parseHL7Xml(`${head}V="2">${MSH}</ADT_A01>`);
+      expect.unreachable();
+    } catch (error) {
+      expect((error as Hl7XmlError).code).toBe("NOT_WELL_FORMED");
+      expect((error as Hl7XmlError).offset).toBe(head.length);
     }
   });
 
