@@ -177,7 +177,7 @@ export interface DefinedProfile<O> extends Omit<Profile, "customSegments"> {
  * const zdp = msg.part("ZDP");
  * console.log(zdp?.get("departmentCode")?.value); // narrowed, no cast
  * // zdp?.get("departmentCod"); // does not compile: not a declared ZDP name
- * console.log(msg.part("PID")?.field(5).value); // undeclared type: any name compiles
+ * const name = msg.part("PID")?.field(5).value; // undeclared type: any name compiles
  * ```
  */
 export interface ProfiledMessage<P> extends Hl7Message {

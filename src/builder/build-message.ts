@@ -62,8 +62,8 @@ import { formatHl7Timestamp } from "./format-timestamp.js";
  *   receivingFacility: "REF",
  *   timestamp: new Date("2026-04-19T10:15:00Z"),
  * })
- *   .addSegment("PID", ["", "", "MRN123", "", "Doe^John"]);
- * console.log(msg.toString());
+ *   .addSegment("PID", ["", "", "MRN123", "", "Doe^John"]); // synthetic values
+ * const wire = msg.toString(); // send it, never log it
  *
  * // To emit HL7 explicit null ("") instead of absent:
  * //   msg.setField("PID.2", '""');   // distinct from empty/omitted

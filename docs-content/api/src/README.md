@@ -3681,8 +3681,8 @@ const msg = buildMessage({
   receivingFacility: "REF",
   timestamp: new Date("2026-04-19T10:15:00Z"),
 })
-  .addSegment("PID", ["", "", "MRN123", "", "Doe^John"]);
-console.log(msg.toString());
+  .addSegment("PID", ["", "", "MRN123", "", "Doe^John"]); // synthetic values
+const wire = msg.toString(); // send it, never log it
 
 // To emit HL7 explicit null ("") instead of absent:
 //   msg.setField("PID.2", '""');   // distinct from empty/omitted
@@ -10341,7 +10341,7 @@ const msg = parseHL7(raw, epic);
 const zdp = msg.part("ZDP");
 console.log(zdp?.get("departmentCode")?.value); // narrowed, no cast
 // zdp?.get("departmentCod"); // does not compile: not a declared ZDP name
-console.log(msg.part("PID")?.field(5).value); // undeclared type: any name compiles
+const name = msg.part("PID")?.field(5).value; // undeclared type: any name compiles
 ```
 
 #### Extends
@@ -17757,7 +17757,7 @@ a programming error (`inbound` not an `Hl7Message`, or an unknown `code`).
 import { buildAck, parseHL7 } from "@cosyte/hl7";
 const inbound = parseHL7(raw);
 const ack = buildAck(inbound, { code: "AA" });
-console.log(ack.toString());            // MSH|...\rMSA|AA|<inbound MSH-10>
+const wire = ack.toString();            // MSH|...\rMSA|AA|<inbound MSH-10>
 parseHL7(ack.toString()).meta.type;     // "ACK" (round-trips clean)
 ```
 
