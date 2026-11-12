@@ -20,6 +20,8 @@ import {
   type XmlStructureItem,
 } from "../src/index.js";
 
+import { LAB_GROUPS } from "./_helpers/xml-groups.js";
+
 /** `CODE: message` of the `Hl7XmlError` `call` throws, or what it threw instead. */
 function why(call: () => unknown): string {
   try {
@@ -45,7 +47,7 @@ const ORU_MSH_XML =
   "<MSH.9><MSG.1>ORU</MSG.1><MSG.2>R01</MSG.2><MSG.3>ORU_R01</MSG.3></MSH.9><MSH.10>XMLG01</MSH.10>" +
   "<MSH.11>P</MSH.11><MSH.12>2.5</MSH.12></MSH>";
 
-/** A v2.6 ADT^A01 header, a structure the tables do not cover. */
+/** A v2.6 ADT^A01 header. */
 const ADT_MSH = "MSH|^~\\&|||||||ADT^A01|X1|P|2.6";
 
 /** A message of `ADT_MSH` and `segments`. */
@@ -68,7 +70,19 @@ function adtDoc(body: string): string {
 }
 
 describe("the writer places segments in the message structure's groups", () => {
-  it("writes a v2.5 ORU_R01 in the groups of the v2.5 schema, nested and repeated", () => {
+  it("ships no group table, so it refuses an ORU_R01 unless given its groups", () => {
+    expect(XML_GROUP_TABLES).toEqual({});
+    expect(Object.isFrozen(XML_GROUP_TABLES)).toBe(true);
+    const msg = oru("PID|1", "OBR|1", "OBX|1|NM|TST-1||4.2");
+    expect(why(() => toHl7Xml(msg, { dataTypes: { "MSH.9": "MSG" } }))).toBe(
+      "GROUPS_UNKNOWN: No group table ships for ORU_R01; pass `groups`.",
+    );
+    expect(why(() => toHl7Xml(msg, { dataTypes: { "MSH.9": "MSG" }, groups: LAB_GROUPS }))).toBe(
+      "no refusal",
+    );
+  });
+
+  it("writes an ORU_R01 in the groups it is given, nested and repeated", () => {
     const msg = oru(
       "PID|1||TESTID01",
       "OBR|1",
@@ -79,34 +93,32 @@ describe("the writer places segments in the message structure's groups", () => {
       "SPM|1",
       "OBX|1|ST|TST-3||Test",
     );
-    const xml = toHl7Xml(msg, { dataTypes: { "MSH.9": "MSG" } });
+    const xml = toHl7Xml(msg, { dataTypes: { "MSH.9": "MSG" }, groups: LAB_GROUPS });
     expect(xml).toBe(
       [
         '<?xml version="1.0" encoding="UTF-8"?>',
         '<ORU_R01 xmlns="urn:hl7-org:v2xml">',
         `  ${ORU_MSH_XML}`,
-        "  <ORU_R01.PATIENT_RESULT>",
-        "    <ORU_R01.PATIENT>",
-        "      <PID><PID.1>1</PID.1><PID.3>TESTID01</PID.3></PID>",
-        "    </ORU_R01.PATIENT>",
-        "    <ORU_R01.ORDER_OBSERVATION>",
+        "  <ORU_R01.REPORT>",
+        "    <PID><PID.1>1</PID.1><PID.3>TESTID01</PID.3></PID>",
+        "    <ORU_R01.ORDER>",
         "      <OBR><OBR.1>1</OBR.1></OBR>",
-        "      <ORU_R01.OBSERVATION>",
+        "      <ORU_R01.RESULT>",
         "        <OBX><OBX.1>1</OBX.1><OBX.2>NM</OBX.2><OBX.3>TST-1</OBX.3><OBX.5>4.2</OBX.5></OBX>",
         "        <NTE><NTE.1>1</NTE.1><NTE.3>Test note</NTE.3></NTE>",
-        "      </ORU_R01.OBSERVATION>",
-        "    </ORU_R01.ORDER_OBSERVATION>",
-        "    <ORU_R01.ORDER_OBSERVATION>",
+        "      </ORU_R01.RESULT>",
+        "    </ORU_R01.ORDER>",
+        "    <ORU_R01.ORDER>",
         "      <OBR><OBR.1>2</OBR.1></OBR>",
-        "      <ORU_R01.OBSERVATION>",
+        "      <ORU_R01.RESULT>",
         "        <OBX><OBX.1>1</OBX.1><OBX.2>NM</OBX.2><OBX.3>TST-2</OBX.3><OBX.5>7</OBX.5></OBX>",
-        "      </ORU_R01.OBSERVATION>",
-        "      <ORU_R01.SPECIMEN>",
+        "      </ORU_R01.RESULT>",
+        "      <ORU_R01.SAMPLE>",
         "        <SPM><SPM.1>1</SPM.1></SPM>",
         "        <OBX><OBX.1>1</OBX.1><OBX.2>ST</OBX.2><OBX.3>TST-3</OBX.3><OBX.5>Test</OBX.5></OBX>",
-        "      </ORU_R01.SPECIMEN>",
-        "    </ORU_R01.ORDER_OBSERVATION>",
-        "  </ORU_R01.PATIENT_RESULT>",
+        "      </ORU_R01.SAMPLE>",
+        "    </ORU_R01.ORDER>",
+        "  </ORU_R01.REPORT>",
         "</ORU_R01>",
         "",
       ].join("\n"),
@@ -114,79 +126,58 @@ describe("the writer places segments in the message structure's groups", () => {
     expect(parseHL7Xml(xml).rawSegments).toEqual(msg.rawSegments);
   });
 
-  it("starts a new patient result at a second PID, and a timing group at TQ1", () => {
-    const msg = oru("PID|1", "PV1|1", "OBR|1", "TQ1|1", "TQ2|1", "PID|2", "OBR|2");
-    const xml = toHl7Xml(msg, { dataTypes: { "MSH.9": "MSG" } });
+  it("starts a new report at a second PID, and a new order at a second OBR", () => {
+    const msg = oru("PID|1", "PV1|1", "OBR|1", "OBR|2", "PID|2", "OBR|3");
+    const xml = toHl7Xml(msg, { dataTypes: { "MSH.9": "MSG" }, groups: LAB_GROUPS });
     const opened = xml
       .split("\n")
       .map((line) => line.trim())
       .filter((line) => line.startsWith("<ORU_R01."));
     expect(opened).toEqual([
-      "<ORU_R01.PATIENT_RESULT>",
-      "<ORU_R01.PATIENT>",
-      "<ORU_R01.VISIT>",
-      "<ORU_R01.ORDER_OBSERVATION>",
-      "<ORU_R01.TIMING_QTY>",
-      "<ORU_R01.PATIENT_RESULT>",
-      "<ORU_R01.PATIENT>",
-      "<ORU_R01.ORDER_OBSERVATION>",
+      "<ORU_R01.REPORT>",
+      "<ORU_R01.ORDER>",
+      "<ORU_R01.ORDER>",
+      "<ORU_R01.REPORT>",
+      "<ORU_R01.ORDER>",
     ]);
-  });
-
-  it("lists the structures its tables cover: ORU_R01 in v2.5, the one it writes", () => {
-    expect(Object.keys(XML_GROUP_TABLES)).toEqual(["2.5"]);
-    expect(Object.keys(XML_GROUP_TABLES["2.5"] ?? {})).toEqual(["ORU_R01"]);
-    const table = XML_GROUP_TABLES["2.5"]?.["ORU_R01"] as XmlMessageStructure;
-    expect(Object.isFrozen(table.items)).toBe(true);
-    expect(Object.isFrozen(table.items[2])).toBe(true);
-    const msg = oru(
-      "PID|1",
-      "PD1|1",
-      "NK1|1",
-      "PV1|1",
-      "PV2|1",
-      "ORC|1",
-      "OBR|1",
-      "CTD|1",
-      "FT1|1",
-    );
-    const dataTypes = { "MSH.9": "MSG" };
-    expect(toHl7Xml(msg, { dataTypes, groups: table })).toBe(toHl7Xml(msg, { dataTypes }));
   });
 
   it("places each optional segment at most once", () => {
     expect(
       why(() =>
-        toHl7Xml(oru("PID|1", "PD1|1", "PD1|2", "OBR|1"), { dataTypes: { "MSH.9": "MSG" } }),
+        toHl7Xml(oru("PID|1", "PV1|1", "PV1|2", "OBR|1"), {
+          dataTypes: { "MSH.9": "MSG" },
+          groups: LAB_GROUPS,
+        }),
       ),
     ).toBe(
       "STRUCTURE_MISMATCH: The message lacks a segment or group the message structure requires.",
     );
   });
 
-  it("refuses a structure the tables do not cover, by name, unless given its groups", () => {
+  it("refuses a structure it is not given the groups of, by name", () => {
     expect(why(() => toHl7Xml(adt("PID|1"), { dataTypes: { "MSH.9": "MSG" } }))).toBe(
-      "GROUPS_UNKNOWN: No group table covers ADT_A01 in v2.6; pass `groups`.",
+      "GROUPS_UNKNOWN: No group table ships for ADT_A01; pass `groups`.",
     );
     const v26 = parseHL7(`${ORU_MSH.replace("|2.5", "|2.6")}\rPID|1\rOBR|1\r`);
     expect(why(() => toHl7Xml(v26, { dataTypes: { "MSH.9": "MSG" } }))).toBe(
-      "GROUPS_UNKNOWN: No group table covers ORU_R01 in v2.6; pass `groups`.",
+      "GROUPS_UNKNOWN: No group table ships for ORU_R01; pass `groups`.",
     );
     for (const structure of ["Test_Root", "xADT_A01", "ADT_A01x", "constructor"]) {
       expect(why(() => toHl7Xml(adt(), { structure }))).toBe(
-        "GROUPS_UNKNOWN: No group table covers this message structure in v2.6; pass `groups`.",
+        "GROUPS_UNKNOWN: No group table ships for this message structure; pass `groups`.",
       );
     }
     expect(why(() => toHl7Xml(oru(), { structure: "constructor" }))).toBe(
-      "GROUPS_UNKNOWN: No group table covers this message structure in v2.5; pass `groups`.",
+      "GROUPS_UNKNOWN: No group table ships for this message structure; pass `groups`.",
     );
     expect(why(() => toHl7Xml(adt(), { structure: "M1M_T01" }))).toBe(
-      "GROUPS_UNKNOWN: No group table covers M1M_T01 in v2.6; pass `groups`.",
+      "GROUPS_UNKNOWN: No group table ships for M1M_T01; pass `groups`.",
     );
     for (const version of ["", "|not a version"]) {
       const msg = parseHL7(`MSH|^~\\&|||||||ADT^A01|1|P${version}\r`);
       expect(why(() => toHl7Xml(msg))).toBe(
-        "GROUPS_UNKNOWN: No group table covers ADT_A01 in its version; pass `groups`.",
+        "GROUPS_UNKNOWN: No group table ships for ADT_A01; pass `groups`.",
       );
     }
   });
@@ -253,10 +244,10 @@ describe("the writer places segments in the message structure's groups", () => {
   });
 
   it("starts a new order at a second OBR, and requires OBR in each order", () => {
-    const msg = oru("PID|1", "OBR|1", "OBR|2");
-    const xml = toHl7Xml(msg, { dataTypes: { "MSH.9": "MSG" } });
-    expect(xml.split("<ORU_R01.ORDER_OBSERVATION>").length).toBe(3);
-    expect(why(() => toHl7Xml(oru("PID|1", "ORC|1"), { dataTypes: { "MSH.9": "MSG" } }))).toBe(
+    const write = (msg: Hl7Message): string =>
+      toHl7Xml(msg, { dataTypes: { "MSH.9": "MSG" }, groups: LAB_GROUPS });
+    expect(write(oru("PID|1", "OBR|1", "OBR|2")).split("<ORU_R01.ORDER>").length).toBe(3);
+    expect(why(() => write(oru("PID|1", "NTE|1")))).toBe(
       "STRUCTURE_MISMATCH: The message lacks a segment or group the message structure requires.",
     );
   });
@@ -278,7 +269,7 @@ describe("the writer places segments in the message structure's groups", () => {
 
   it("refuses segments that do not fit the structure", () => {
     const write = (msg: Hl7Message): string =>
-      why(() => toHl7Xml(msg, { dataTypes: { "MSH.9": "MSG" } }));
+      why(() => toHl7Xml(msg, { dataTypes: { "MSH.9": "MSG" }, groups: LAB_GROUPS }));
     expect(write(oru("PID|1"))).toBe(
       "STRUCTURE_MISMATCH: The message lacks a segment or group the message structure requires.",
     );
@@ -286,7 +277,10 @@ describe("the writer places segments in the message structure's groups", () => {
       "STRUCTURE_MISMATCH: Segment 4 of the message has no place in the message structure.",
     );
     expect(write(oru("OBR|1", "PID|1"))).toBe(
-      "STRUCTURE_MISMATCH: Segment 3 of the message has no place in the message structure.",
+      "STRUCTURE_MISMATCH: The message lacks a segment or group the message structure requires.",
+    );
+    expect(write(oru("PID|1", "OBR|1", "PV1|1"))).toBe(
+      "STRUCTURE_MISMATCH: Segment 4 of the message has no place in the message structure.",
     );
   });
 

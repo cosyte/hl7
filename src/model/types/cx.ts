@@ -111,7 +111,7 @@ function parseAssigningAuthority(
  *   { subcomponents: ["MR"] },
  * ] };
  * const cx = parseCx(rep, DEFAULT_ENCODING_CHARACTERS);
- * console.log(cx.idNumber);                       // "123"
+ * const id = cx.idNumber;                        // "123", synthetic
  * console.log(cx.assigningAuthority?.namespaceId); // "EPIC"
  * ```
  */

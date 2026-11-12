@@ -95,7 +95,7 @@ function finalizeDocument(txa: Segment, observations: readonly Observation[]): C
  * const msg = parseHL7(raw);
  * for (const doc of msg.documents()) {
  *   console.log(doc.documentType, doc.completionStatus, doc.availabilityStatus);
- *   for (const obx of doc.observations) console.log(obx.value); // narrative body
+ *   const body = doc.observations.map((obx) => obx.value); // narrative text: read it, never log it
  * }
  * ```
  *

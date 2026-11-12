@@ -22,8 +22,8 @@ const msg = parseHL7(
     "PV1|1|I|ICU^101^A^MAIN",
 );
 
-msg.patient?.mrn; // => "MRN12345"
-msg.get("PID.5.1"); // => "Smith"
+msg.patient?.mrn; // => "MRN12345" /* synthetic */
+msg.get("PID.5.1"); // => "Smith" /* synthetic */
 msg.meta.messageCode; // => "ADT"
 msg.warnings; // => []
 ```

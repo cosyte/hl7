@@ -15,6 +15,23 @@ shipped table to match.
 
 Both were read on 2026-11-10.
 
+## Terms, as the sources state them
+
+We record these facts and draw no conclusion from them.
+
+- hl7apy's code is published under the MIT licence.
+- For `HL7/v2ig`, read at commit `9c307dadb0bb3f99de399d30cd80c24b47bb08da`: the
+  guide's definition file, `input/v2plus.xml`, declares `CC0-1.0` in its
+  `license` element; the repository has no licence file, and GitHub reports no
+  licence for it; its README says the guide is in development and not yet
+  production ready, and the definition file gives its status as draft; and a
+  design record in the repository,
+  `docs/adr/0006-multi-corpus-v291-extraction.md`, says the guide is meant to
+  represent HL7 v2.9.1, so the list describes the HL7 v2+ draft.
+
+`THIRD-PARTY-NOTICES.md` at the root of this repository, which ships in the npm
+package, records the same facts.
+
 ## How the table is derived
 
 1. For hl7apy, each version's names are the keys of the `SEGMENTS` dict in

@@ -94,6 +94,7 @@
     "README.md",
     "LICENSE",
     "TRADEMARKS.md",
+    "THIRD-PARTY-NOTICES.md",
     "CHANGELOG.md"
   ],
   "sideEffects": false,
@@ -160,7 +161,7 @@
     "@cosyte/mllp": "^0.1.7",
     "@cosyte/prettier-config": "^0.1",
     "@cosyte/process": "^0.1.8",
-    "@cosyte/script-utils": "0.1.9",
+    "@cosyte/script-utils": "0.1.13",
     "@cosyte/test-utils": "^0.1.4",
     "@cosyte/tsconfig": "^0.1",
     "@cosyte/tsup-config": "^0.1.3",

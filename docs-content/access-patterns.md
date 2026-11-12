@@ -44,8 +44,8 @@ const msg = parseHL7(
     "PID|1||MRN12345^^^HOSP^MR||Smith^Jane^Q||19800115|F",
 );
 
-msg.patient?.mrn; // => "MRN12345"
-msg.patient?.fullName; // => "Jane Q Smith"
+msg.patient?.mrn; // => "MRN12345" /* synthetic */
+msg.patient?.fullName; // => "Jane Q Smith" /* synthetic */
 msg.patient?.dateOfBirth?.precision; // => "day"
 msg.meta.type; // => "ORU^R01"
 msg.visit; // => undefined
@@ -71,8 +71,8 @@ const msg = parseHL7(
     "OBX|2|NM|NA^Sodium^LN||140|mmol/L",
 );
 
-msg.get("PID.5.1"); // => "Smith"
-msg.get("PID.5.2"); // => "Jane"
+msg.get("PID.5.1"); // => "Smith" /* synthetic */
+msg.get("PID.5.2"); // => "Jane" /* synthetic */
 msg.get("OBX[1].5"); // => "140"
 msg.getAll("OBX").length; // => 2
 ```

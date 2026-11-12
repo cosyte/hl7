@@ -115,6 +115,10 @@ Design around these. They're deliberate scope choices, not bugs:
 - **No terminology validation, no network, no bundled codesets.** `codingSystem()` reports what a
   code _claims_ (HL7 Table 0396). It does not validate a value against LOINC, SNOMED CT, RxNorm, or
   any external system, and nothing here makes a network call.
+- **No v2 XML group table ships.** `toHl7Xml` takes each message structure's groups from you in
+  `groups` and refuses a message without them with `GROUPS_UNKNOWN`. We removed the ORU_R01 table
+  we used to ship because the licence of the HL7 schema it was taken from is unsettled (see
+  [Read and write the v2 XML encoding](./read-and-write-v2-xml.md)).
 - **One ACK acknowledges one message.** Batch-level ACK reconciliation is out of scope; for MLLP
   transport framing and ACK correlation over the wire, use the sibling package
   [`@cosyte/mllp`](https://docs.cosyte.com/mllp).
@@ -135,9 +139,9 @@ Design around these. They're deliberate scope choices, not bugs:
   happens to look like a segment identifier, so prefer logging `w.code` and `w.position` over
   `w.message` if your posture is strict.
 - **Below 1.0.** The 21 warning codes are a stable contract, and so are the exported functions and
-  the message and helper surfaces; below 1.0 a breaking change moves the minor version, and the
-  changelog says how to migrate. For the published version, ask the registry
-  (`npm view @cosyte/hl7 version`) rather than a doc page.
+  the message and helper surfaces. Below 1.0 a breaking change can ship in a patch release, and
+  the changelog says how to migrate, so pin the exact version rather than a caret range. For the
+  published version, ask the registry (`npm view @cosyte/hl7 version`) rather than a doc page.
 
 ## Still stuck?
 

@@ -31,8 +31,8 @@ import { renderText } from "@cosyte/hl7";
 
 const r = renderText("Specimen received.\\.br\\Result is \\H\\HIGH\\N\\.");
 
-r.text; // => "Specimen received.\nResult is HIGH."
-r.runs; // => [{ text: "Specimen received.\nResult is ", highlighted: false }, { text: "HIGH", highlighted: true }, { text: ".", highlighted: false }]
+r.text; // => "Specimen received.\nResult is HIGH." /* synthetic */
+r.runs; // => [{ text: "Specimen received.\nResult is ", highlighted: false }, { text: "HIGH", highlighted: true }, { text: ".", highlighted: false }] /* synthetic */
 r.unrenderedSequences; // => []
 ```
 
@@ -45,7 +45,7 @@ const raw =
   "MSH|^~\\&|LAB|MAIN|EHR|REF|20260701100000||ORU^R01|1|P|2.5\r" +
   "OBX|1|TX|N^Narrative^L||Gross exam unremarkable.\\.sp\\Microscopic pending.||||||F";
 
-parseHL7(raw).segments("OBX")[0]?.field(5).render().text; // => "Gross exam unremarkable.\nMicroscopic pending."
+parseHL7(raw).segments("OBX")[0]?.field(5).render().text; // => "Gross exam unremarkable.\nMicroscopic pending." /* synthetic */
 ```
 
 ### Normalization policy (conservative, not a page-layout engine)
@@ -104,7 +104,7 @@ decodeText(encodeText(hostile)); // => "a|b^c~d\\e&f"
 
 // Placed in a field, it re-parses to exactly itself, no forged boundary:
 const msg = parseHL7(`MSH|^~\\&|A|B|C|D|20260101||ADT^A01|1|P|2.5\rNTE|1||${encodeText(hostile)}`);
-msg.segments("NTE")[0]?.field(3).value; // => "a|b^c~d\\e&f"
+msg.segments("NTE")[0]?.field(3).value; // => "a|b^c~d\\e&f" /* synthetic */
 ```
 
 The invariant `decodeText(encodeText(s)) === s`, and whole-field re-parse with

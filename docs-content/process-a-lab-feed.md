@@ -29,7 +29,7 @@ const feed = [
   "OBX|1|NM|GLU^Glucose^LN||182|mg/dL|70-99|H|||F",
   "OBX|2|NM|NA^Sodium^LN||139|mmol/L|135-145|N|||F",
   "MSH|^~\\&|LAB|MAIN|EHR|REF|20260419143500||ORU^R01^ORU_R01|LAB-0002|P|2.5",
-  "PID|1||MRN10002^^^HOSP^MR||Roe^Bob||19620311|M",
+  "PID|1||MRN10002^^^HOSP^MR||Roe^Bob||19620305|M",
   "OBR|1|ORD-2|FLR-2|CBC^Complete Blood Count^L",
   "OBX|1|NM|HGB^Hemoglobin^LN||10.1|g/dL|13.5-17.5|L|||F",
   "BTS|2",
@@ -45,8 +45,10 @@ batch.warnings; // => []
 
 ## Step 2: read each patient's results
 
-Each entry is either `{ ok: true, message }` or a failure. For each parsed message, read the
-patient's record number and every result with `observations()`.
+Each entry is either `{ ok: true, message }` or a failure. For each parsed message, read every
+result with `observations()` and key it on the message's control id (MSH-10), which ties a result
+back to its message without naming the patient. The record number stays in the message, where the
+step that files the result reads it.
 
 ```ts runnable
 import { splitBatch } from "@cosyte/hl7";
@@ -59,22 +61,23 @@ const feed = [
   "OBX|1|NM|GLU^Glucose^LN||182|mg/dL|70-99|H|||F",
   "OBX|2|NM|NA^Sodium^LN||139|mmol/L|135-145|N|||F",
   "MSH|^~\\&|LAB|MAIN|EHR|REF|20260419143500||ORU^R01^ORU_R01|LAB-0002|P|2.5",
-  "PID|1||MRN10002^^^HOSP^MR||Roe^Bob||19620311|M",
+  "PID|1||MRN10002^^^HOSP^MR||Roe^Bob||19620305|M",
   "OBR|1|ORD-2|FLR-2|CBC^Complete Blood Count^L",
   "OBX|1|NM|HGB^Hemoglobin^LN||10.1|g/dL|13.5-17.5|L|||F",
   "BTS|2",
 ].join("\r");
 
-const results: string[] = [];
+const results: { controlId: string; code: string; value: unknown }[] = [];
 for (const entry of splitBatch(feed).messages) {
   if (!entry.ok) continue;
-  const mrn = entry.message.patient?.mrn ?? "(no MRN)";
+  const controlId = entry.message.meta.controlId ?? "";
   for (const obs of entry.message.observations()) {
-    results.push(`${mrn} ${obs.identifier.identifier} ${String(obs.value)}`);
+    results.push({ controlId, code: obs.identifier.identifier ?? "", value: obs.value });
   }
 }
 
-results; // => ["MRN10001 GLU 182", "MRN10001 NA 139", "MRN10002 HGB 10.1"]
+results.map((r) => `${r.controlId} ${r.code}`); // => ["LAB-0001 GLU", "LAB-0001 NA", "LAB-0002 HGB"]
+results[0]?.value; // => 182
 ```
 
 The glucose value is the number `182`, not the string `"182"`: OBX-2 says the value is numeric
@@ -96,26 +99,25 @@ const feed = [
   "OBX|1|NM|GLU^Glucose^LN||182|mg/dL|70-99|H|||F",
   "OBX|2|NM|NA^Sodium^LN||139|mmol/L|135-145|N|||F",
   "MSH|^~\\&|LAB|MAIN|EHR|REF|20260419143500||ORU^R01^ORU_R01|LAB-0002|P|2.5",
-  "PID|1||MRN10002^^^HOSP^MR||Roe^Bob||19620311|M",
+  "PID|1||MRN10002^^^HOSP^MR||Roe^Bob||19620305|M",
   "OBR|1|ORD-2|FLR-2|CBC^Complete Blood Count^L",
   "OBX|1|NM|HGB^Hemoglobin^LN||10.1|g/dL|13.5-17.5|L|||F",
   "BTS|2",
 ].join("\r");
 
-const abnormal: string[] = [];
+const abnormal: { controlId: string; code: string; flag: string }[] = [];
 for (const entry of splitBatch(feed).messages) {
   if (!entry.ok) continue;
-  const mrn = entry.message.patient?.mrn ?? "(no MRN)";
+  const controlId = entry.message.meta.controlId ?? "";
   for (const obs of entry.message.observations()) {
     const flag = obs.abnormalFlags ?? "";
     if (flag !== "" && flag !== "N") {
-      const units = obs.units?.identifier ?? "";
-      abnormal.push(`${mrn} ${obs.identifier.text ?? ""} ${String(obs.value)} ${units} (${flag})`);
+      abnormal.push({ controlId, code: obs.identifier.identifier ?? "", flag });
     }
   }
 }
 
-abnormal; // => ["MRN10001 Glucose 182 mg/dL (H)", "MRN10002 Hemoglobin 10.1 g/dL (L)"]
+abnormal.map((a) => `${a.controlId} ${a.code} (${a.flag})`); // => ["LAB-0001 GLU (H)", "LAB-0002 HGB (L)"]
 ```
 
 ## Step 4: answer every message
@@ -135,7 +137,7 @@ const feed = [
   "OBR|1|ORD-1|FLR-1|BMP^Basic Metabolic Panel^L",
   "OBX|1|NM|GLU^Glucose^LN||182|mg/dL|70-99|H|||F",
   "MSH|^~\\&|LAB|MAIN|EHR|REF|20260419143500||ORU^R01^ORU_R01|LAB-0002|P|2.5",
-  "PID|1||MRN10002^^^HOSP^MR||Roe^Bob||19620311|M",
+  "PID|1||MRN10002^^^HOSP^MR||Roe^Bob||19620305|M",
   "MSH|^",
   "BTS|3",
 ].join("\r");

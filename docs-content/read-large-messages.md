@@ -34,7 +34,7 @@ const msg = parseHL7(
     results.join("\r"),
 );
 
-msg.get("PID.5.1"); // => "Smith"
+msg.get("PID.5.1"); // => "Smith" /* synthetic */
 msg.part("PV1"); // => undefined
 const firstThree = msg.segments("OBX").slice(0, 3);
 firstThree.map((obx) => obx.field(5).value); // => ["80", "81", "82"]

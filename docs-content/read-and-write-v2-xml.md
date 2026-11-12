@@ -30,37 +30,30 @@ const xml = `<?xml version="1.0" encoding="UTF-8"?>
     <MSH.11><PT.1>P</PT.1></MSH.11>
     <MSH.12><VID.1>2.6</VID.1></MSH.12>
   </MSH>
-  <ORU_R01.PATIENT_RESULT>
-    <ORU_R01.PATIENT>
-      <PID>
-        <PID.3><CX.1>TESTID01</CX.1><CX.4><HD.1>TESTLAB</HD.1></CX.4><CX.5>MR</CX.5></PID.3>
-        <PID.5><XPN.1><FN.1>Test</FN.1></XPN.1><XPN.2>Patient</XPN.2></PID.5>
-      </PID>
-    </ORU_R01.PATIENT>
-    <ORU_R01.ORDER_OBSERVATION>
-      <OBR><OBR.1>1</OBR.1></OBR>
-      <ORU_R01.OBSERVATION>
-        <OBX>
-          <OBX.1>1</OBX.1>
-          <OBX.2>NM</OBX.2>
-          <OBX.3><CWE.1>TST-1</CWE.1><CWE.2>Test analyte</CWE.2></OBX.3>
-          <OBX.5>4.2</OBX.5>
-          <OBX.11>F</OBX.11>
-        </OBX>
-        <NTE><NTE.3>Seen at 1 | 2 &amp; recheck</NTE.3></NTE>
-      </ORU_R01.OBSERVATION>
-    </ORU_R01.ORDER_OBSERVATION>
-  </ORU_R01.PATIENT_RESULT>
+  <PID>
+    <PID.3><CX.1>TESTID01</CX.1><CX.4><HD.1>TESTLAB</HD.1></CX.4><CX.5>MR</CX.5></PID.3>
+    <PID.5><XPN.1><FN.1>Test</FN.1></XPN.1><XPN.2>Patient</XPN.2></PID.5>
+  </PID>
+  <OBR><OBR.1>1</OBR.1></OBR>
+  <OBX>
+    <OBX.1>1</OBX.1>
+    <OBX.2>NM</OBX.2>
+    <OBX.3><CWE.1>TST-1</CWE.1><CWE.2>Test analyte</CWE.2></OBX.3>
+    <OBX.5>4.2</OBX.5>
+    <OBX.11>F</OBX.11>
+  </OBX>
+  <NTE><NTE.3>Seen at 1 | 2 &amp; recheck</NTE.3></NTE>
 </ORU_R01>`;
 
 const msg = parseHL7Xml(xml);
 
 msg.version; // => "2.6"
-msg.patient?.mrn; // => "TESTID01"
+msg.patient?.mrn; // => "TESTID01" /* synthetic */
 msg.observations()[0]?.value; // => 4.2
-msg.get("PID.5.1"); // => "Test"
-msg.get("NTE.3"); // => "Seen at 1 | 2 & recheck"
-msg.toString().split("\r")[1]; // => "PID|||TESTID01^^^TESTLAB^MR||Test^Patient"
+msg.get("PID.5.1"); // => "Test" /* synthetic */
+msg.get("NTE.3"); // => "Seen at 1 | 2 & recheck" /* synthetic */
+const lines = msg.toString().split("\r").filter((line) => line !== "");
+lines.map((line) => line.slice(0, 3)); // => ["MSH", "PID", "OBR", "OBX", "NTE"]
 ```
 
 What the reader does:
@@ -71,8 +64,9 @@ What the reader does:
   things about it do: the components of one value must all name the same type, and none may be
   named for a segment, its own or another (`PID.3` or `OBX.1` inside `PID.5`). Either is refused
   with `UNEXPECTED_ELEMENT`.
-- **It walks through groups.** An element named `STRUCTURE.GROUP` (`ORU_R01.PATIENT_RESULT`) is a
-  group, and its segments are read in document order.
+- **It walks through groups.** An element named `STRUCTURE.GROUP`, whatever the group is called,
+  is a group, and its segments are read in document order. The reader needs no group table, so a
+  grouped document reads the same as the one above.
 - **Text is the value.** A `|` or `&` in text is that character, and reaches the model as the pipe
   form's `\F\` or `\T\` would. A line break in text is a line break, as `\.br\` is. Empty elements
   and absent positions are empty fields.
@@ -147,9 +141,9 @@ component key (`XPN.1`) to the type of its subcomponents (`FN`). The simplest wa
 is to read them from a message your partner sent, or from one of their examples, with
 `xmlDataTypes`.
 
-The writer also places the segments in the message structure's group elements. It knows the
-groups of the structures in `XML_GROUP_TABLES`, ORU_R01 in v2.5, and takes any other from you in
-`groups`. An ACK has no groups, so this one is written with `groups: "none"`:
+The writer also places the segments in the message structure's group elements. We ship no group
+table, so it takes the structure from you in `groups`, and refuses a message written without it
+with `GROUPS_UNKNOWN`. An ACK has no groups, so this one is written with `groups: "none"`:
 
 ```ts runnable
 import { parseHL7, toHl7Xml } from "@cosyte/hl7";
@@ -168,8 +162,25 @@ xml.includes("<MSH.9><MSG.1>ACK</MSG.1><MSG.2>R01</MSG.2><MSG.3>ACK</MSG.3></MSH
 xml.includes("<MSA><MSA.1>AA</MSA.1><MSA.2>XMLDOC01</MSA.2></MSA>"); // => true
 ```
 
+For a structure with groups, such as ORU_R01, you build the structure and pass it in `groups`:
+the structure id, then its segments and groups in order, each group with its name and its own
+items. Take the group names and their order from the schema your partner uses. The groups below
+are made up for this example, not a copy of any published structure:
+
 ```ts runnable
-import { parseHL7, toHl7Xml } from "@cosyte/hl7";
+import { parseHL7, toHl7Xml, type XmlMessageStructure } from "@cosyte/hl7";
+
+// An example structure; write yours from your partner's schema.
+const groups: XmlMessageStructure = {
+  structure: "ORU_R01",
+  items: [
+    "MSH",
+    {
+      group: "REPORT+",
+      items: ["PID", { group: "ORDER+", items: ["OBR", { group: "RESULT*", items: ["OBX"] }] }],
+    },
+  ],
+};
 
 const msg = parseHL7(
   [
@@ -180,11 +191,15 @@ const msg = parseHL7(
   ].join("\r"),
 );
 
-const xml = toHl7Xml(msg, { dataTypes: { "MSH.9": "MSG", "OBX.3": "CWE" } });
+const xml = toHl7Xml(msg, { dataTypes: { "MSH.9": "MSG", "OBX.3": "CWE" }, groups });
 
-xml.split("\n").slice(3, 6); // => ["  <ORU_R01.PATIENT_RESULT>", "    <ORU_R01.PATIENT>", "      <PID><PID.1>1</PID.1><PID.3>TESTID01</PID.3></PID>"]
+xml.split("\n")[3]; // => "  <ORU_R01.REPORT>"
+xml.split("\n")[4]?.trim().startsWith("<PID>"); // => true
 xml.includes("<OBX.3><CWE.1>TST-1</CWE.1></OBX.3>"); // => true
 ```
+
+A group name ends in a cardinality as a segment id may: `?` for at most once, `*` for any number,
+`+` for at least once, none for exactly once.
 
 ```ts runnable
 import { parseHL7Xml, toHl7Xml, xmlDataTypes } from "@cosyte/hl7";
@@ -213,10 +228,9 @@ What the writer does:
   structure. A code and trigger the registry does not map is refused with `STRUCTURE_UNKNOWN`
   rather than guessed. The namespace is `urn:hl7-org:v2xml`, or none with `namespace: null`.
 - **Segments are placed in groups,** each written as an element named for the structure and the
-  group (`ORU_R01.PATIENT_RESULT`), nested and repeated as the structure gives them. The structure
-  comes from `XML_GROUP_TABLES` for the message's version (MSH-12), or from `groups`. A structure
-  the tables do not cover is refused with `GROUPS_UNKNOWN`, which names it; `groups: "none"`
-  writes every segment directly under the root. Segments that do not fit the structure (a
+  group (`ORU_R01.REPORT`), nested and repeated as the structure gives them. The structure comes
+  from `groups`. Without it the writer refuses with `GROUPS_UNKNOWN`, which names the structure;
+  `groups: "none"` writes every segment directly under the root. Segments that do not fit the structure (a
   required segment missing, or one with no place in it) are refused with `STRUCTURE_MISMATCH`.
 - **A field or component with a composite type in `dataTypes` is written with child elements,**
   even when it holds one value (`<OBX.3><CWE.1>TST-1</CWE.1></OBX.3>`), as the encoding requires.
@@ -226,9 +240,9 @@ What the writer does:
 - **Formatting escapes are `escape` elements, in `TX` and `FT` values.** In a value typed `TX` or
   `FT`, `\H\` is written `<escape V="H"/>`, `\.br\` and a line break `<escape V=".br"/>`, and
   `\.in+4\` `<escape V=".in+4"/>`. In any other value a formatting escape is refused with
-  `ESCAPE_NOT_SUPPORTED`, except a line break, which is written `&#10;`: the schemas allow an
-  `escape` element only in those two types, so tell the writer which fields are `TX` or `FT`
-  (`"NTE.3": "FT"`).
+  `ESCAPE_NOT_SUPPORTED`, except a line break, which is written `&#10;`: the standard allows
+  formatting escapes only in text fields (HL7 v2 chapter 2, the escape sequences in text fields),
+  so tell the writer which fields are `TX` or `FT` (`"NTE.3": "FT"`).
 - **Hex escapes are character references.** `\Xc9\` in a message whose MSH-18 is `8859/1` is
   written `&#xc9;`. The bytes are decoded in MSH-18's character set: ASCII (MSH-18 blank),
   `UNICODE UTF-8`, `8859/1` or `WINDOWS-1252`. Bytes that are not text in it, or any other
@@ -261,10 +275,13 @@ XML schemas and an implementation guide that uses them. We quote none of their t
   them). They give the group element names, the `escape` element, character references in place
   of hex escapes, the component element kept for a one-component composite, MSH.1 and MSH.2, and
   the namespace.
+- The HL7 v2 standard, chapter 2, on escape sequences in text fields. It names `TX`, `FT` and `CF`
+  as the types that carry formatting escapes. The writer allows `escape` elements in `TX` and `FT`
+  only, so a `CF` value that holds a formatting escape is refused with `ESCAPE_NOT_SUPPORTED`; we
+  found no published rule for how the XML encoding writes it.
 - A public copy of the v2.5 and v2.4 v2 XML schemas
   (<https://schemas.liquid-technologies.com/HL7/hl7_25_xsd/oru_r01_xsd.html> and the pages beside
-  it). The ORU_R01 group table comes from its ORU_R01 message definition, and the rule that only
-  `TX` and `FT` take `escape` elements from its data type definitions.
+  it), for the element layout.
 - The NAHLN Order and Response implementation guide and its results schema, published by the
   Virginia Tech veterinary laboratory site
   (<https://vtsl.vetmed.vt.edu/vs/Documents/NAHLN_Order_Resp%20IG%20v2.1.pdf>,
@@ -273,8 +290,8 @@ XML schemas and an implementation guide that uses them. We quote none of their t
   pass in `groups`.
 
 Group names come from the schemas, not from the standard's chapter text, which leaves some groups
-unnamed or names them with spaces. We found a public schema for ORU_R01 in v2.5 only, so that is
-the one table we ship.
+unnamed or names them with spaces. We ship no group table, so you pass each structure's groups
+yourself.
 
 ## What the published rules leave open, and we refuse
 
@@ -286,8 +303,9 @@ the one table we ship.
   from you. A field whose type follows another field, such as OBX-5 following OBX-2, gets one type
   per key, so `xmlDataTypes` leaves out a key it saw with two types and the writer then refuses a
   composite there.
-- **Groups of other structures and versions.** The writer refuses a structure `XML_GROUP_TABLES`
-  does not cover unless you pass it in `groups`.
+- **Group tables.** We ship none, so the writer refuses a message unless you pass its structure
+  in `groups`. We removed the ORU_R01 table we used to ship because the licence of the HL7 schema
+  it was taken from is unsettled.
 - **Batches.** A batch (`BHS`, `FHS`) in XML is not read or written.
 
 Three things we wrote by our reading of a positional translation, rather than a rule we read: the

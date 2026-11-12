@@ -21,7 +21,7 @@ import { readdirSync } from "node:fs";
 const EXAMPLES_DIR = "examples";
 
 const expectedMarkers: Record<string, string> = {
-  "extract-patient-info.ts": "Patient MRN:",
+  "extract-patient-info.ts": "Message type:",
   "read-lab-results.ts": "Observation",
   "modify-and-resend.ts": "Re-serialized HL7",
 };

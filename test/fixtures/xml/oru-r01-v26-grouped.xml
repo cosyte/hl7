@@ -32,46 +32,44 @@
       <VID.1>2.6</VID.1>
     </MSH.12>
   </MSH>
-  <ORU_R01.PATIENT_RESULT>
-    <ORU_R01.PATIENT>
-      <PID>
-        <PID.1>1</PID.1>
-        <PID.3>
-          <CX.1>FAKE76704346</CX.1>
-          <CX.4>
-            <HD.1>COSYTE-SYNTH</HD.1>
-          </CX.4>
-          <CX.5>MR</CX.5>
-        </PID.3>
-        <PID.3>
-          <CX.1>SYN-0001</CX.1>
-          <CX.4>
-            <HD.1>SYNTH-FAC</HD.1>
-          </CX.4>
-          <CX.5>PI</CX.5>
-        </PID.3>
-        <PID.5>
-          <XPN.1>
-            <FN.1>Roe</FN.1>
-          </XPN.1>
-          <XPN.2>Sam</XPN.2>
-        </PID.5>
-        <PID.7>
-          <TS.1>19750615</TS.1>
-        </PID.7>
-        <PID.8>F</PID.8>
-        <PID.11>
-          <XAD.1>
-            <SAD.1>456 Elm St</SAD.1>
-          </XAD.1>
-          <XAD.3>Fixtureton</XAD.3>
-          <XAD.4>PA</XAD.4>
-          <XAD.5>00000</XAD.5>
-        </PID.11>
-        <PID.13>""</PID.13>
-      </PID>
-    </ORU_R01.PATIENT>
-    <ORU_R01.ORDER_OBSERVATION>
+  <ORU_R01.REPORT>
+    <PID>
+      <PID.1>1</PID.1>
+      <PID.3>
+        <CX.1>FAKE76704346</CX.1>
+        <CX.4>
+          <HD.1>COSYTE-SYNTH</HD.1>
+        </CX.4>
+        <CX.5>MR</CX.5>
+      </PID.3>
+      <PID.3>
+        <CX.1>SYN-0001</CX.1>
+        <CX.4>
+          <HD.1>SYNTH-FAC</HD.1>
+        </CX.4>
+        <CX.5>PI</CX.5>
+      </PID.3>
+      <PID.5>
+        <XPN.1>
+          <FN.1>Roe</FN.1>
+        </XPN.1>
+        <XPN.2>Sam</XPN.2>
+      </PID.5>
+      <PID.7>
+        <TS.1>19750615</TS.1>
+      </PID.7>
+      <PID.8>F</PID.8>
+      <PID.11>
+        <XAD.1>
+          <SAD.1>456 Elm St</SAD.1>
+        </XAD.1>
+        <XAD.3>Fixtureton</XAD.3>
+        <XAD.4>PA</XAD.4>
+        <XAD.5>00000</XAD.5>
+      </PID.11>
+      <PID.13>""</PID.13>
+    </PID>
+    <ORU_R01.ORDER>
       <OBR>
         <OBR.1>1</OBR.1>
         <OBR.2><EI.1>63975520</EI.1></OBR.2>
@@ -83,7 +81,7 @@
         </OBR.4>
         <OBR.7><TS.1>20230331031114</TS.1></OBR.7>
       </OBR>
-      <ORU_R01.OBSERVATION>
+      <ORU_R01.RESULT>
         <OBX>
           <OBX.1>1</OBX.1>
           <OBX.2>NM</OBX.2>
@@ -106,7 +104,7 @@
           <NTE.1>2</NTE.1>
           <NTE.3>Line one&#10;Line two</NTE.3>
         </NTE>
-      </ORU_R01.OBSERVATION>
-    </ORU_R01.ORDER_OBSERVATION>
-  </ORU_R01.PATIENT_RESULT>
+      </ORU_R01.RESULT>
+    </ORU_R01.ORDER>
+  </ORU_R01.REPORT>
 </ORU_R01>

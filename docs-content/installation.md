@@ -13,8 +13,8 @@ configuration.
 
 > **Status:** the 0.1 line, published on npm and public. The `npm install` command below is live. The
 > exported functions, the message and helper surfaces, and the 20 stable warning codes are the
-> surface we keep stable; below 1.0 a breaking change moves the minor version, and the changelog
-> says how to migrate. For the current published version, ask the registry
+> surface we keep stable. Below 1.0 a breaking change can ship in a patch release, and the
+> changelog says how to migrate, so pin the exact version rather than a caret range. For the current published version, ask the registry
 > (`npm view @cosyte/hl7 version`) rather than this page.
 
 ## Prerequisites
@@ -26,8 +26,12 @@ configuration.
 ## Install
 
 ```bash
-npm install @cosyte/hl7
+npm install --save-exact @cosyte/hl7
 ```
+
+`--save-exact` writes the version itself into `package.json` rather than a caret range such as
+`^0.1.0`, which would take in a patch release, breaking or not, on the next install. Move the pin on
+purpose, after reading the changelog. With pnpm it is `pnpm add --save-exact @cosyte/hl7`.
 
 ## Smoke test
 

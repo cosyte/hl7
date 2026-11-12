@@ -71,12 +71,11 @@ function composeFullName(name: XPN): string | undefined {
  * ```ts
  * import { parseHL7 } from "@cosyte/hl7";
  * const msg = parseHL7(raw);
- * console.log(msg.patient?.mrn);                        // first CX-5="MR" idNumber
- * console.log(msg.patient?.fullName);                   // "Jane Q Smith, Jr"
- * console.log(msg.patient?.dateOfBirth?.raw); // fidelity TS: e.g. "19800115"
- * for (const phone of msg.patient?.phoneNumbers ?? []) {
- *   console.log(phone.telephoneNumber);
- * }
+ * const mrn = msg.patient?.mrn; // first CX-5="MR" idNumber: "MRN12345", synthetic
+ * const fullName = msg.patient?.fullName; // "Jane Q Smith, Jr", synthetic
+ * console.log(msg.patient?.dateOfBirth?.precision); // "day": a fidelity TS
+ * const phones = (msg.patient?.phoneNumbers ?? []).map((p) => p.telephoneNumber);
+ * // phones: ["555-1234"], synthetic
  * ```
  *
  * @internal

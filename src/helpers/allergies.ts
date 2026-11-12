@@ -145,7 +145,8 @@ function fromIam(iam: Segment): Allergy {
  * import { parseHL7 } from "@cosyte/hl7";
  * const msg = parseHL7(raw);
  * for (const al of msg.allergies()) {
- *   console.log(al.source, al.code?.identifier, al.severity, al.actionCode);
+ *   const code = al.code?.identifier; // the allergen code
+ *   console.log(al.source, al.severity, al.actionCode);
  * }
  * ```
  *
