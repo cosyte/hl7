@@ -7,9 +7,10 @@
 //
 // It takes RUNS readings of each reader, each in a new process (this file again, with `--reader`),
 // and judges each reader on the median of its readings. It exits 1 when a gated reader's median
-// peak is more than PEAK_MULTIPLE times the largest item it read, and 2 when a reader cannot be
-// judged (missing, short of readings, or a reading that read nothing, failed an item or did not
-// finish in `--timeout` seconds, READING_TIMEOUT_SECONDS by default). The 100 MiB reading runs on a
+// peak is more than its limit in PEAK_LIMITS, a multiple of the largest item it read, and 2 when a
+// reader cannot be judged (missing, short of readings, with no limit, or a reading that read
+// nothing, failed an item or did not finish in `--timeout` seconds, READING_TIMEOUT_SECONDS by
+// default). The 100 MiB reading runs on a
 // GitHub-hosted runner, in the stream-memory workflow, never on a shared developer machine;
 // `--mib 1` is a quick local check. Every message is synthetic and built here from an index, as the
 // source produces it: the source is a generator of 64 KiB chunks, so the batch is never held whole
@@ -51,13 +52,25 @@ export const RUNS = 5;
 export const READING_TIMEOUT_SECONDS = 120;
 
 /**
- * The most a streaming reader may hold at its peak, as a multiple of the largest item it read: the
- * item itself, the text it was read from, and room for the reader's own state. A reader that
- * buffered its source would hold toward all of it, far past this on a 100 MiB source. The absolute
- * budgets of the parse benchmarks live in @cosyte/bench's budgets file; this ratio is not a measure
- * that file holds, so it is written here.
+ * The most each streaming reader may hold at its peak, as a multiple of the largest item it read,
+ * judged on the median of its readings. Each is set from forty readings of the reader on a
+ * GitHub-hosted runner, recorded in stream-memory-readings.json beside this file: midway between
+ * the highest of them and the lowest one plus one, the reading a reader would give holding one
+ * largest item more, rounded to a twentieth. So the reader as it is keeps at least a third of an
+ * item of room under its limit, and a reader holding one item more lands at least a third of an
+ * item over it. A reader that buffered its source would hold toward all of it, far past these on a
+ * 100 MiB source. The absolute budgets of the parse benchmarks live in @cosyte/bench's budgets
+ * file; these ratios are not a measure that file holds, so they are written here.
+ *
+ * - `readMessages`: forty readings of 1.75 to 1.99, so 2.35.
+ * - `parseStream`: forty readings of 0.82 to 1.09, so 1.45.
+ * - `readSegments`: forty readings of 1.11 to 1.12, so 1.6.
  */
-export const PEAK_MULTIPLE = 3;
+export const PEAK_LIMITS = Object.freeze({
+  readMessages: 2.35,
+  parseStream: 1.45,
+  readSegments: 1.6,
+});
 
 /**
  * The readers the gate judges: all three. `readMessages` and `parseStream` read the 100 MiB batch,
@@ -107,22 +120,29 @@ function unjudgeable(r) {
   return undefined;
 }
 
+/** The limit `limits` sets for `reader`: the number itself, or the reader's own entry. */
+function limitOf(limits, reader) {
+  return typeof limits === "number" ? limits : limits[reader];
+}
+
 /**
- * Judge readings against the limit. `rows` holds every reading, `runs` of them for each reader
+ * Judge readings against the limits. `rows` holds every reading, `runs` of them for each reader
  * (one, by default), each taken in a process of its own. A reader is judged on the median of its
  * readings' ratios, so one stray reading cannot fail unchanged code and one low reading cannot pass
  * a regression: with five readings, three must be over the limit to fail and three within it to
  * pass.
  *
- * Exit code 0 when every gated reader's median is at or under `multiple` times its largest item, 1
- * when one is over, and 2 when a reader cannot be judged: a gated reader missing from `rows` or with
- * fewer than `runs` readings, or any one of its readings that read nothing or no bytes, whose peak or
+ * `limits` is a multiple of the largest item for every reader, or an object holding one for each.
+ * Exit code 0 when every gated reader's median is at or under its limit times its largest item, 1
+ * when one is over, and 2 when a reader cannot be judged: a gated reader missing from `rows`, with
+ * no limit in `limits`, or with fewer than `runs` readings, or any one of its readings that read
+ * nothing or no bytes, whose peak or
  * largest item size is absent, not a finite number or negative, that failed an item, whose
  * reading then misses that item's memory, or that did not finish in its time (`timedOut`). A
  * reading that cannot be judged is not outvoted by the others, and it outranks a finding. A reader
  * not in `gated` is listed with its ratio and never changes the exit code.
  */
-export function judge(rows, multiple = PEAK_MULTIPLE, gated = GATED_READERS, runs = 1) {
+export function judge(rows, limits = PEAK_LIMITS, gated = GATED_READERS, runs = 1) {
   const lines = [];
   let over = false;
   let unjudged = false;
@@ -145,6 +165,7 @@ export function judge(rows, multiple = PEAK_MULTIPLE, gated = GATED_READERS, run
       continue;
     }
     const reasons = own.map(unjudgeable).filter((reason) => reason !== undefined);
+    const limit = limitOf(limits, reader);
     if (reasons.length > 0) {
       unjudged = true;
       lines.push(...new Set(reasons));
@@ -153,10 +174,14 @@ export function judge(rows, multiple = PEAK_MULTIPLE, gated = GATED_READERS, run
       lines.push(
         `${reader}: ${String(own.length)} of ${String(runs)} readings, so there is nothing to judge`,
       );
+    } else if (typeof limit !== "number" || !Number.isFinite(limit) || limit <= 0) {
+      // A reader with no limit is over no limit: it must not read as within.
+      unjudged = true;
+      lines.push(`${reader}: no limit, so there is nothing to judge`);
     } else {
-      const verdict = middle > multiple ? "over" : "within";
-      if (middle > multiple) over = true;
-      lines.push(`${reader}: ${peak}, ${verdict} the limit of ${String(multiple)}`);
+      const verdict = middle > limit ? "over" : "within";
+      if (middle > limit) over = true;
+      lines.push(`${reader}: ${peak}, ${verdict} the limit of ${String(limit)}`);
     }
   }
   // A gated reader with no row at all: a reading that skipped it must not pass on the others.
@@ -433,12 +458,16 @@ async function main() {
     peakToLargest: r.peak / r.largestItemBytes,
     mibPerSecond: r.sourceBytes / MIB / (r.ms / 1000),
   }));
-  const verdict = judge(rows, PEAK_MULTIPLE, GATED_READERS, runs);
+  const verdict = judge(rows, PEAK_LIMITS, GATED_READERS, runs);
   const ratio = (n) => (Number.isFinite(n) ? n.toFixed(2) : "-");
   const markdown = [
     `Node ${process.version}, ${values.mib} MiB source, read in 64 KiB chunks, ` +
-      `${String(runs)} readings of each reader, each in a process of its own. The limit: a median ` +
-      `peak of at most ${String(PEAK_MULTIPLE)} times the largest item.`,
+      `${String(runs)} readings of each reader, each in a process of its own. The limits: a median ` +
+      "peak of at most " +
+      GATED_READERS.map(
+        (reader) => `${String(PEAK_LIMITS[reader])} times the largest item for ${reader}`,
+      ).join(", ") +
+      ".",
     "",
     "| Reader | Reading | Source | Source MiB | Largest item MiB | Peak held MiB | Peak / largest | " +
       "Peak / largest, after one collection | Unswept array buffers MiB | MiB/s |",
@@ -461,7 +490,7 @@ async function main() {
   console.log(markdown);
   if (values.out !== undefined) {
     const document = {
-      peakMultiple: PEAK_MULTIPLE,
+      peakLimits: PEAK_LIMITS,
       runs,
       exitCode: verdict.exitCode,
       verdict: verdict.lines,
@@ -473,7 +502,7 @@ async function main() {
   process.exitCode = verdict.exitCode;
 }
 
-// Run only as a program: a test imports this file for `judge` and `PEAK_MULTIPLE`.
+// Run only as a program: a test imports this file for `judge` and `PEAK_LIMITS`.
 if (
   process.argv[1] !== undefined &&
   import.meta.url === pathToFileURL(resolve(process.argv[1])).href

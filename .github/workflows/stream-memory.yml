@@ -3,10 +3,10 @@ name: stream-memory
 # The streaming readers' memory gate: `readMessages` and `parseStream` over a 100 MiB batch and
 # `readSegments` over one 100 MiB message, read in 64 KiB chunks on a GitHub-hosted runner.
 # bench/stream-memory.mjs reads each reader five times, each in a process of its own, and exits 1
-# when a reader's median peak is more than PEAK_MULTIPLE (3) times the largest item it read, and 2
-# when a reader cannot be judged; either fails this job. A second step runs the same gate on
-# bench/planted-regression.mjs, the build with two regressions planted in it, and fails unless the
-# gate fails it.
+# when a reader's median peak is more than its own limit in PEAK_LIMITS times the largest item it
+# read, and 2 when a reader cannot be judged; either fails this job. A second step runs the same
+# gate on bench/planted-regression.mjs, the build with each reader holding one 4 MiB item more, and
+# fails unless the gate fails all three.
 #
 # It runs on every pull request, with no paths filter, so `stream-memory` can be a required check:
 # a required check whose workflow never starts never reports. The 100 MiB source is built in the
@@ -51,24 +51,24 @@ jobs:
           trap 'if [ -f "${out}/stream-memory.md" ]; then { echo "### Streaming readers, peak memory ($(git rev-parse HEAD))"; echo; cat "${out}/stream-memory.md"; } >> "${GITHUB_STEP_SUMMARY}"; fi' EXIT
           node bench/stream-memory.mjs --target dist/index.mjs --mib 100 \
             --out "${out}/stream-memory.json" --summary "${out}/stream-memory.md"
-      - name: Show that the gate fails a planted regression
+      - name: Show that the gate fails each reader holding one message more
         shell: bash
         run: |
           set -euo pipefail
           out="${RUNNER_TEMP}/stream-memory"
           mkdir -p "${out}"
           trap 'if [ -f "${out}/planted.md" ]; then { echo "### The gate on a planted regression"; echo; cat "${out}/planted.md"; } >> "${GITHUB_STEP_SUMMARY}"; fi' EXIT
-          # bench/planted-regression.mjs is the build with readMessages holding a copy of the last
-          # 12 MiB it read and parseStream buffering its source. The gate must fail it, on both.
+          # bench/planted-regression.mjs is the build with each reader holding a copy of the last
+          # 4 MiB of its source, one of the 4 MiB items it reads. The gate must fail all three.
           set +e
           node bench/stream-memory.mjs --target bench/planted-regression.mjs --mib 100 \
             --out "${out}/planted.json" --summary "${out}/planted.md"
           status=$?
           set -e
           test "${status}" -eq 1
-          grep -q '^- readMessages: median .*, over the limit of 3$' "${out}/planted.md"
-          grep -q '^- parseStream: median .*, over the limit of 3$' "${out}/planted.md"
-          grep -q '^- readSegments: median .*, within the limit of 3$' "${out}/planted.md"
+          grep -q '^- readMessages: median .*, over the limit of [0-9.]*$' "${out}/planted.md"
+          grep -q '^- parseStream: median .*, over the limit of [0-9.]*$' "${out}/planted.md"
+          grep -q '^- readSegments: median .*, over the limit of [0-9.]*$' "${out}/planted.md"
       - name: Keep the reading
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
