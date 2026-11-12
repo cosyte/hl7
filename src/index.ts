@@ -13,7 +13,7 @@
  * console.log(VERSION);
  * ```
  */
-export const VERSION: string = "0.1.12";
+export const VERSION: string = "0.1.9";
 
 export { parseHL7 } from "./parser/index.js";
 export { Hl7Message } from "./model/message.js";
@@ -591,9 +591,3 @@ export * as conformance from "./conformance/index.js";
 export { parseStream } from "./parser/stream.js";
 export type { Hl7StreamSource, StreamMessageEntry } from "./parser/stream.js";
 export { unterminatedStreamMessage } from "./parser/warnings.js";
-
-// The streaming readers, on the scanner every parse uses: `readMessages` yields each message of a
-// batch or stream as soon as it is complete, and `readSegments` each segment of one message, from
-// a string, bytes, a Node Readable or a web ReadableStream, pulling the next chunk only when asked.
-export { readMessages, readSegments } from "./parser/read.js";
-export type { Hl7ReadSource, ReadMessageItem, ReadSegmentItem } from "./parser/read.js";

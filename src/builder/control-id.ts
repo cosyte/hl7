@@ -5,17 +5,15 @@
  *
  * Decisions:
  * - Exact shape above; uniqueness via `Date.now()` + cryptographic
- *   random draws (it was `Math.random` originally); alphabet is plain
- *   `[A-Za-z0-9]` (readability doesn't matter: IDs aren't human-typed).
- * - The draws come from the Web Crypto global, `crypto.getRandomValues`,
- *   which Node.js, Bun and Deno all provide without an import. A static
- *   `import "node:crypto"` loaded the whole crypto module on every import of
- *   the package, a few milliseconds a caller paid before building anything;
- *   the global loads it on the first draw instead.
- * - Zero deps: runtime built-ins only.
+ *   random draws from `node:crypto.randomInt` (it was `Math.random`
+ *   originally); alphabet is plain `[A-Za-z0-9]` (readability doesn't
+ *   matter: IDs aren't human-typed).
+ * - Zero deps: Node stdlib only (`node:crypto` is stdlib).
  *
  * @internal
  */
+
+import { randomInt } from "node:crypto";
 
 /**
  * Alphabet for the random suffix: plain alphanumeric. Readability doesn't
@@ -36,16 +34,17 @@ function pad(n: number, width: number): string {
  * Generate an HL7 message control ID. Shape: 17-char UTC timestamp
  * `YYYYMMDDHHmmssSSS` + 6 random alphanumeric chars = 23 chars total.
  *
- * Each of the 6 suffix characters comes from a cryptographically secure
- * random byte (`crypto.getRandomValues`) that samples the 62-char alnum
- * alphabet uniformly: it rejects bytes of 248 and above rather than reducing
- * every byte modulo 62, which would favor the first 8 characters. This avoids
+ * Each of the 6 suffix characters is drawn with `node:crypto.randomInt`,
+ * a cryptographically secure source that samples the 62-char alnum
+ * alphabet uniformly (it rejects out-of-range draws rather than reducing
+ * them modulo 62, which would favor the first 8 characters). This avoids
  * the `Math.random` collision risk under heavy concurrent
  * load (many parallel workers generating IDs in the same millisecond): the
  * suffix carries 6 * log2(62), about 35.7 bits, and the 17-char ms
  * timestamp prefix further partitions the ID space.
  *
- * Zero dependencies: uses `Date` + the Web Crypto global only.
+ * Zero dependencies: uses `Date` + `node:crypto` only; both are
+ * Node stdlib.
  *
  * @internal
  */
@@ -59,32 +58,12 @@ export function generateControlId(): string {
     pad(now.getUTCMinutes(), 2) +
     pad(now.getUTCSeconds(), 2) +
     pad(now.getUTCMilliseconds(), 3);
-  return ts + randomSuffix((bytes) => globalThis.crypto.getRandomValues(bytes));
-}
-
-/**
- * The six random characters of a control ID, from the bytes `draw` fills in.
- * A byte below 248 maps onto the alphabet modulo 62; a byte of 248 or more is
- * skipped, and `draw` is called again until six characters are accepted.
- * `generateControlId` passes the Web Crypto global; a test passes fixed bytes.
- *
- * @internal
- */
-export function randomSuffix(draw: (bytes: Uint8Array) => void): string {
-  // The largest multiple of the alphabet's length that fits in a byte: 248,
-  // four times 62. A byte below it, reduced modulo 62, lands on every character
-  // with the same probability; a byte at or above it is skipped.
-  const unbiasedLimit = 256 - (256 % ALNUM_ALPHABET.length);
   let suffix = "";
-  // Sixteen bytes per draw: a byte is rejected with probability 8/256, so six
-  // accepted bytes almost always come from the first draw.
-  const bytes = new Uint8Array(16);
-  while (suffix.length < 6) {
-    draw(bytes);
-    for (const byte of bytes) {
-      if (suffix.length === 6) break;
-      if (byte < unbiasedLimit) suffix += ALNUM_ALPHABET.charAt(byte % ALNUM_ALPHABET.length);
-    }
+  for (let i = 0; i < 6; i++) {
+    // randomInt(max) returns an integer in [0, max) with every value equally
+    // likely, so ALNUM_ALPHABET.charAt(idx) is always a single-char string.
+    const idx = randomInt(ALNUM_ALPHABET.length);
+    suffix += ALNUM_ALPHABET.charAt(idx);
   }
-  return suffix;
+  return ts + suffix;
 }

@@ -163,10 +163,9 @@ function buildTable(): ReadonlyMap<string, CharsetEntry> {
 
 /**
  * The frozen HL7 v2 Table-0211 registry, keyed by normalized label. Read-only,
- * built once on the first declared MSH-18 rather than at module load, never
- * mutated.
+ * built once at module load, never mutated.
  */
-let charsetTable: ReadonlyMap<string, CharsetEntry> | undefined;
+const CHARSET_TABLE: ReadonlyMap<string, CharsetEntry> = buildTable();
 
 /**
  * The default resolution for a blank / absent MSH-18: **7-bit ASCII** per
@@ -200,8 +199,7 @@ export function resolveCharset(raw: string | undefined): CharsetResolution {
   if (raw === undefined) return DEFAULT_RESOLUTION;
   const key = normalizeLabel(raw);
   if (key === "") return DEFAULT_RESOLUTION;
-  charsetTable ??= buildTable();
-  const entry = charsetTable.get(key);
+  const entry = CHARSET_TABLE.get(key);
   if (entry !== undefined) {
     return {
       canonical: entry.canonical,

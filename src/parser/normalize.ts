@@ -15,11 +15,8 @@
  * transform that does NOT throw and does NOT strip BOM.
  */
 
-import { Buffer } from "node:buffer";
-
 import { resolveCharset } from "./charset.js";
-import { Hl7ParseError } from "./errors.js";
-import { WARNING_CODES, unknownCharset, unsupportedCharset } from "./warnings.js";
+import { unknownCharset, unsupportedCharset } from "./warnings.js";
 import type { Hl7ParseWarning } from "./warnings.js";
 
 /**
@@ -151,80 +148,4 @@ export function normalizeBuffer(input: Buffer, charset: string | undefined, emit
     emit(unknownCharset(CHARSET_POSITION, label));
   }
   return preserveVerbatim(input);
-}
-
-/**
- * Decodes a message's bytes one chunk at a time, by the same decisions {@link normalizeBuffer}
- * makes for the whole buffer, and reports the same warnings. Line endings are left as they are:
- * the reader that calls it splits lines itself.
- *
- * @internal
- */
-export interface ChunkDecoder {
-  /**
-   * The text of `bytes`, the next chunk. A character split across two chunks is returned whole
-   * with the second. `final` marks the last call; it may pass no bytes.
-   *
-   * Throws when a byte is invalid for a set decoded strictly: `normalizeBuffer` then reads the
-   * whole buffer verbatim instead, which a reader that has already handed out earlier text
-   * cannot do.
-   */
-  readonly decode: (bytes: Uint8Array, final: boolean) => string;
-}
-
-/** A chunk read through `latin1`, one byte to one character. */
-function latin1Chunk(bytes: Uint8Array): string {
-  return Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength).toString("latin1");
-}
-
-/**
- * A {@link ChunkDecoder} for `charset`: `latin1` for 8859/1 and for every set the parser keeps
- * verbatim, and a strict `TextDecoder` for the others. Reports `UNSUPPORTED_CHARSET` or
- * `UNKNOWN_CHARSET` through `emit` when it is created, as `normalizeBuffer` does.
- *
- * @example
- * ```ts
- * const decoder = chunkDecoder("UNICODE UTF-8", emit);
- * decoder.decode(bytes, false) + decoder.decode(new Uint8Array(0), true);
- * ```
- *
- * @internal
- */
-export function chunkDecoder(charset: string | undefined, emit: EmitFn): ChunkDecoder {
-  const resolution = resolveCharset(charset);
-  if (resolution.treatment === "decode") {
-    if (resolution.decoder === "latin1") return { decode: latin1Chunk };
-    let decoder: InstanceType<typeof TextDecoder> | undefined;
-    try {
-      decoder = new TextDecoder(resolution.decoder, { fatal: true });
-    } catch {
-      // A runtime without this decoder: `normalizeBuffer` keeps the bytes verbatim and warns.
-      emit(unsupportedCharset(CHARSET_POSITION, resolution.canonical));
-      return { decode: latin1Chunk };
-    }
-    const strict = decoder;
-    return {
-      decode: (bytes, final) => {
-        try {
-          return strict.decode(bytes, { stream: !final });
-        } catch {
-          throw new Hl7ParseError(
-            WARNING_CODES.UNSUPPORTED_CHARSET,
-            `A byte is not valid in the declared character set (${resolution.canonical}). ` +
-              "parseHL7 reads such a message verbatim, which a streamed read cannot do once it has " +
-              "handed out earlier segments: parse the message whole with parseHL7.",
-            CHARSET_POSITION,
-            "",
-          );
-        }
-      },
-    };
-  }
-  if (resolution.recognized) {
-    emit(unsupportedCharset(CHARSET_POSITION, resolution.canonical));
-  } else {
-    /* v8 ignore next -- resolveCharset answers recognized for an absent charset, so charset is defined on this branch */
-    emit(unknownCharset(CHARSET_POSITION, charset ?? ""));
-  }
-  return { decode: latin1Chunk };
 }

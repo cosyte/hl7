@@ -109,7 +109,7 @@ function toMutableArray<T>(arr: readonly T[]): T[] {
  *
  * @internal
  */
-export function segmentFieldMap(
+function segmentFieldMap(
   map: Readonly<Record<string, CustomSegmentDefinition>> | undefined,
   rawName: string,
 ): Readonly<Record<string, number>> | undefined {

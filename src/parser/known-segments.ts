@@ -3,97 +3,13 @@
  * warning detection. Any segment name NOT in this set AND NOT declared in
  * the active profile's customSegments map emits UNKNOWN_SEGMENT.
  *
- * Source. Every standard segment name of HL7 v2.1 through v2.9, each with the
- * version that introduced it, taken from two published lists vendored
- * verbatim or with their hashes under `vendor/segment-names/` (its README
- * records the commits and the extraction):
+ * Derived from HL7 v2.5.1 chapters 3-7 (core message segments, order/result
+ * tree, financial tree, scheduling, master files). Z-segments
+ * (`/^Z[A-Z0-9]{2}$/`) are NOT in this set: they're always user-defined
+ * and must be declared in a profile to avoid the warning.
  *
- * - v2.1 to v2.8.2: the per-version segment tables of hl7apy
- *   (github.com/crs4/hl7apy, MIT, `hl7apy/v<version>/segments.py`). A
- *   segment's version below is the first of v2.1, 2.2, 2.3, 2.3.1, 2.4,
- *   2.5, 2.5.1, 2.6, 2.7, 2.8, 2.8.1 and 2.8.2 whose table lists it.
- *   hl7apy carries no v2.7.1, so a segment first published in v2.7.1 shows
- *   here as v2.8.
- * - v2.9: the segment list of HL7's own v2+ publication
- *   (github.com/HL7/v2ig, `input/sourceOfTruth/control-manifests/segments.json`).
- *   A name it lists that no hl7apy table carries is marked v2.9. We could not
- *   read the v2.9 text itself, so a segment marked v2.9 may have been added by
- *   a later v2+ ballot rather than by v2.9 proper.
- *
- * HAPI's per-version structures (github.com/hapifhir/hapi-hl7v2) agree with
- * hl7apy except that HAPI lists IN3 and PV2 from v2.1 rather than v2.2, and
- * lists a QCK segment in v2.3 alone, which no other version or source carries
- * and which is not included here.
- *
- * Segments later versions dropped stay (EQL, ERQ, SPR and VTQ leave the
- * tables at v2.6; ORO and RX1 after v2.1): a name some version of the
- * standard defined is never an unknown segment in a message of that version.
- * Z-segments (`/^Z[A-Z0-9]{2}$/`) are NOT in this set: they're always
- * user-defined and must be declared in a profile to avoid the warning.
- *
- * `test/known-segments-source.test.ts` checks this table against the
- * vendored lists, name by name and version by version.
+ * Frozen as `ReadonlySet<string>` for O(1) lookup without mutation risk.
  */
-
-/**
- * The HL7 v2 versions that introduced at least one segment.
- *
- * @internal
- */
-export type SegmentIntroducedIn =
-  "2.1" | "2.2" | "2.3" | "2.4" | "2.5" | "2.6" | "2.7" | "2.8" | "2.8.2" | "2.9";
-
-/**
- * Every standard segment name, grouped by the version that introduced it.
- * Each group is one space-separated, alphabetical string.
- *
- * @internal
- */
-const SEGMENTS_BY_VERSION: Readonly<Record<SegmentIntroducedIn, string>> = {
-  "2.1":
-    "ACC ADD BHS BLG BTS DG1 DSC DSP ERR EVN FHS FT1 FTS GT1 IN1 MRG MSA MSH NCK NK1 NPU NSC " +
-    "NST NTE OBR OBX ORC ORO PD1 PID PR1 PV1 QRD QRF RX1 UB1 URD URS",
-  "2.2":
-    "AL1 IN2 IN3 MFA MFE MFI ODS ODT OM1 OM2 OM3 OM4 OM5 OM6 PRA PV2 RQ1 RQD RXA RXC RXD RXE " +
-    "RXG RXO RXR STF UB2",
-  "2.3":
-    "AIG AIL AIP AIS APR ARQ AUT CDM CM0 CM1 CM2 CSP CSR CSS CTD CTI DB1 DRG EQL ERQ FAC GOL " +
-    "LCC LCH LDP LOC LRL PCR PDC PEO PES PRB PRC PRD PSH PTH QAK RDF RDT RF1 RGS ROL SCH SPR " +
-    "TXA VAR VTQ",
-  "2.4":
-    "ABS AFF BLC CNS ECD ECR EDU EQP EQU GP1 GP2 IAM INV ISD LAN NDS OM7 ORG PDA QID QPD QRI " +
-    "RCP RMI SAC SID TCC TCD",
-  "2.5": "BPO BPX BTX CER CON IIM IPC OVR SFT SPM TQ1 TQ2",
-  "2.6":
-    "ADJ ARV DMI ILT IPR ITM IVC IVT PCE PKG PMT PSG PSL PSS PYE REL RFI SCD SCP SDD SLT STZ " +
-    "UAC VND",
-  "2.7": "IAR PAC PRT SHP",
-  "2.8": "BUI CDO DON RXV SGH SGT",
-  "2.8.2": "DPS MCP OMC PM1",
-  "2.9": "CTR DEV DST GSC GSP GSR OH1 OH2 OH3 OH4",
-};
-
-/**
- * Each standard segment name with the HL7 v2 version that introduced it.
- *
- * @internal
- */
-export const SEGMENT_INTRODUCED_IN: ReadonlyMap<string, SegmentIntroducedIn> = new Map(
-  (Object.keys(SEGMENTS_BY_VERSION) as SegmentIntroducedIn[]).flatMap((version) =>
-    SEGMENTS_BY_VERSION[version].split(" ").map((name) => [name, version] as const),
-  ),
-);
-
-/**
- * Names recognised although neither source lists them, each kept because
- * removing it would start warning on messages that parse quietly today.
- *
- * - `FAM`: in this registry before it was derived from a source; no HL7 v2
- *   version in either list defines it.
- *
- * @internal
- */
-export const RETAINED_UNLISTED_SEGMENTS: readonly string[] = ["FAM"];
 
 /**
  * Frozen set of every standard HL7 v2 segment name the library recognises.
@@ -109,8 +25,109 @@ export const RETAINED_UNLISTED_SEGMENTS: readonly string[] = ["FAM"];
  * ```
  */
 export const KNOWN_SEGMENTS: ReadonlySet<string> = new Set<string>([
-  ...SEGMENT_INTRODUCED_IN.keys(),
-  ...RETAINED_UNLISTED_SEGMENTS,
+  // Core message header + event + acknowledgement
+  "MSH",
+  "MSA",
+  "EVN",
+  "ERR",
+  "SFT",
+  // Patient identifiers + demographics + visit
+  "PID",
+  "PD1",
+  "MRG",
+  "PV1",
+  "PV2",
+  "PDA",
+  "PDC",
+  "PEO",
+  "DB1",
+  // Next of kin / guarantor / contacts / insurance
+  "NK1",
+  "GT1",
+  "IN1",
+  "IN2",
+  "IN3",
+  "ACC",
+  // Allergy / diagnosis / problem / history / goal
+  "AL1",
+  "DG1",
+  "PRB",
+  "IAM",
+  "FAM",
+  "GOL",
+  "PR1",
+  // Observation / order / result / timing
+  "OBR",
+  "OBX",
+  "ORC",
+  "SPM",
+  "TQ1",
+  "TQ2",
+  "NTE",
+  "UB1",
+  "UB2",
+  "FT1",
+  // Pharmacy / treatment
+  "RXA",
+  "RXC",
+  "RXD",
+  "RXE",
+  "RXG",
+  "RXO",
+  "RXR",
+  "RXV",
+  // Scheduling
+  "SCH",
+  "AIG",
+  "AIL",
+  "AIP",
+  "AIS",
+  "ARQ",
+  "APR",
+  "RGS",
+  // Document / master files
+  "TXA",
+  "MFE",
+  "MFI",
+  "MFA",
+  "MCP",
+  "LDP",
+  "LCH",
+  "LOC",
+  "LRL",
+  "LCC",
+  // Roles / staff / organizations
+  "ROL",
+  "STF",
+  "PRA",
+  "EDU",
+  "CER",
+  "CTD",
+  "CTI",
+  "ORG",
+  "PRC",
+  "PRD",
+  // Query + response
+  "QAK",
+  "QPD",
+  "QRF",
+  "QRI",
+  "QID",
+  "RDF",
+  "RDT",
+  "DSC",
+  "DSP",
+  "EQL",
+  "OMC",
+  // Batch / header envelope (out-of-scope per project OOS but valid tokens)
+  "FHS",
+  "BHS",
+  "BTS",
+  "FTS",
+  // Other legacy / clinical study
+  "CSR",
+  "CSP",
+  "CSS",
 ]);
 
 /**

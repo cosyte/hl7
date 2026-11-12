@@ -38,13 +38,10 @@ import { defineProfile } from "./define.js";
  * const msg = parseHL7(raw, profiles.visage);
  * ```
  */
-const options = {
+export const visage = defineProfile({
   name: "visage",
   description: "Visage 7 imaging/PACS: ZDS DICOM Study Instance UID segment (IHE RAD)",
   customSegments: {
     ZDS: { fields: { studyInstanceUid: 1 } },
   },
-};
-
-/** Build the profile above; `profiles.visage` calls it on its first read. @internal */
-export const visage = () => defineProfile(options);
+});
