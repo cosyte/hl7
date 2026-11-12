@@ -54,11 +54,17 @@ export const PEAK_MULTIPLE = 3;
  */
 export const GATED_READERS = Object.freeze(["readMessages", "parseStream", "readSegments"]);
 
+/** A byte count a reading can be judged on: a finite number, zero or more. */
+function measured(bytes) {
+  return typeof bytes === "number" && Number.isFinite(bytes) && bytes >= 0;
+}
+
 /**
  * Judge readings against the limit. Exit code 0 when every gated reader is at or under `multiple`
  * times its largest item, 1 when one is over, and 2 when a reading cannot be judged: a gated reader
- * missing from `rows`, one that read nothing or no bytes, or one that failed an item, whose reading
- * then misses that item's memory. A reading that cannot be judged outranks a finding. A reader not
+ * missing from `rows`, one that read nothing or no bytes, one whose peak or largest item size is
+ * absent, not a finite number or negative, or one that failed an item, whose reading then misses
+ * that item's memory. A reading that cannot be judged outranks a finding. A reader not
  * in `gated` is listed with its ratio and never changes the exit code.
  */
 export function judge(rows, multiple = PEAK_MULTIPLE, gated = GATED_READERS) {
@@ -71,6 +77,10 @@ export function judge(rows, multiple = PEAK_MULTIPLE, gated = GATED_READERS) {
       lines.push(
         `${r.reader}: peak ${ratio.toFixed(2)} times the largest item, measured, not gated`,
       );
+    } else if (!measured(r.peak) || !measured(r.largestItemBytes)) {
+      // A missing size gives a ratio of NaN, and NaN is over no limit: it must not read as within.
+      unjudged = true;
+      lines.push(`${r.reader}: no peak or no largest item size, so there is nothing to judge`);
     } else if (r.count === 0 || r.largestItemBytes === 0) {
       unjudged = true;
       lines.push(`${r.reader}: read nothing, so there is nothing to judge`);

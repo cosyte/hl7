@@ -287,6 +287,29 @@ describe("the streaming memory gate", () => {
     expect(judge([...broken, row({ reader: "readSegments" })]).exitCode).toBe(2);
   });
 
+  it.each([
+    ["peak", undefined],
+    ["peak", Number.NaN],
+    ["peak", Number.POSITIVE_INFINITY],
+    ["peak", -1],
+    ["largestItemBytes", undefined],
+    ["largestItemBytes", Number.NaN],
+    ["largestItemBytes", Number.POSITIVE_INFINITY],
+    ["largestItemBytes", -1],
+  ] as const)(
+    "cannot judge a row whose %s is %s, however well the others read",
+    async (field, value) => {
+      const { judge } = await importModule<{ judge: Judge }>("bench", "stream-memory.mjs");
+      // A row as a broken reading could hand over: the field absent, not a number, or negative.
+      const broken: Row = { ...row({}), [field]: value };
+      const verdict = judge([broken, ...readings().slice(1)]);
+      expect(verdict.exitCode).toBe(2);
+      expect(verdict.lines[0]).toBe(
+        "readMessages: no peak or no largest item size, so there is nothing to judge",
+      );
+    },
+  );
+
   it("runs as its own job on every pull request, at 100 MiB, and its exit fails the job", () => {
     const workflow = read(".github", "workflows", "stream-memory.yml");
     // No paths filter: a required check whose workflow does not start never reports.
