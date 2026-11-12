@@ -110,6 +110,7 @@ describe("a lazy parse (the default)", () => {
     { segment: "PID|1||FAKE1^^^HOSP^MR||Roe^Sam", built: false },
     { segment: "PID|1||", built: false },
     { segment: "PID|1", built: false },
+    { segment: "PID|1|A&B^C&D~E", built: false },
     { segment: 'PID|1|""|A^""', built: false },
     { segment: "PID|1|A~B~|C", built: false },
     { segment: "ZZZ", built: false },
