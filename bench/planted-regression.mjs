@@ -1,44 +1,29 @@
-// The built package with two regressions planted in it, for the stream-memory workflow to show that
-// the gate still fails a real one. bench/stream-memory.mjs reads this file as its target in place
-// of dist/index.mjs, and the workflow fails unless that reading exits 1.
+// The built package with a regression planted in each streaming reader, for the stream-memory
+// workflow to show that the gate fails a reader holding a single message more than it does.
+// bench/stream-memory.mjs reads this file as its target in place of dist/index.mjs, and the
+// workflow fails unless that reading exits 1 with all three readers over their limits.
 //
-// `readMessages` keeps a copy of the last 12 MiB of its source, three of the 4 MiB messages, beside
-// what it holds itself. `parseStream` reads its whole source before it parses any of it, the reader
-// that buffered its source the performance page describes, toward all 100 MiB. `readSegments` is
-// the build's own and stays within the limit.
+// Each reader is the build's own, fed its source through bench/hold-one-more.mjs, which keeps a
+// copy of the last 4 MiB of the source alive beside what the reader holds itself until the reader
+// has yielded its last item: one of the 4 MiB items each reader reads (a message for
+// `readMessages` and `parseStream`, a segment for `readSegments`), to within one 64 KiB chunk.
+// Nothing else changes, so at every sample from the first 4 MiB on, each reading is the reader's
+// own plus one item.
 
-import { Buffer } from "node:buffer";
+import * as built from "../dist/index.mjs";
+import { holdingOneMore } from "./hold-one-more.mjs";
 
-import {
-  parseStream as builtParseStream,
-  readMessages as builtReadMessages,
-} from "../dist/index.mjs";
-
-export { readSegments } from "../dist/index.mjs";
-
-const MIB = 1024 * 1024;
-
-/** `source` as it arrives, keeping a copy of the last `bytes` bytes of it alive meanwhile. */
-async function* keepingCopies(source, bytes) {
-  const copies = [];
-  let kept = 0;
-  for await (const chunk of source) {
-    const copy = Buffer.from(chunk);
-    copies.push(copy);
-    kept += copy.length;
-    while (kept - (copies[0]?.length ?? 0) >= bytes) kept -= copies.shift().length;
-    yield chunk;
-  }
-}
-
-/** `readMessages` holding a copy of the last 12 MiB of its source. */
+/** `readMessages` holding a copy of the last 4 MiB of its source, one message more. */
 export function readMessages(source, options) {
-  return builtReadMessages(keepingCopies(source, 12 * MIB), options);
+  return holdingOneMore(built.readMessages, source, options);
 }
 
-/** `parseStream` over its whole source, read into memory first. */
-export async function* parseStream(source, options) {
-  const chunks = [];
-  for await (const chunk of source) chunks.push(chunk);
-  yield* builtParseStream(chunks, options);
+/** `parseStream` holding a copy of the last 4 MiB of its source, one message more. */
+export function parseStream(source, options) {
+  return holdingOneMore(built.parseStream, source, options);
+}
+
+/** `readSegments` holding a copy of the last 4 MiB of its source, one segment more. */
+export function readSegments(source, options) {
+  return holdingOneMore(built.readSegments, source, options);
 }

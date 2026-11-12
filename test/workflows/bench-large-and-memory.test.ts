@@ -9,7 +9,7 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -174,19 +174,42 @@ interface Verdict {
   exitCode: 0 | 1 | 2;
   lines: string[];
 }
-type Judge = (rows: Row[], multiple?: number, gated?: string[], runs?: number) => Verdict;
+type Limits = number | Readonly<Record<string, number>>;
+type Judge = (rows: Row[], limits?: Limits, gated?: string[], runs?: number) => Verdict;
 
 const MIB = 1024 * 1024;
+
+/** A reading of each reader as it is, as a ratio of its largest item: the most common one on the runner. */
+const TYPICAL: Readonly<Record<string, number>> = {
+  readMessages: 1.98,
+  parseStream: 1.07,
+  readSegments: 1.12,
+};
+
+/** The readings the limits were set from, as bench/stream-memory-readings.json records them. */
+interface Recorded {
+  runs: ({ run: number; commit: string; node: string } & Record<string, number[]>)[];
+}
+
+/** The node-version the stream-memory workflow sets up, as written in it. */
+function workflowNode(): string | undefined {
+  return /^ {10}node-version: "([^"]*)"$/mu.exec(
+    read(".github", "workflows", "stream-memory.yml"),
+  )?.[1];
+}
+
+type NodeMismatch = (running: string, recorded: readonly unknown[]) => string | undefined;
 
 /** Whether the suite runs on Node. CI also runs it under Bun and under Deno. */
 const ON_NODE = process.versions["bun"] === undefined && !("Deno" in globalThis);
 
 function row(over: Partial<Row>): Row {
+  const reader = over.reader ?? "readMessages";
   return {
-    reader: "readMessages",
+    reader,
     count: 36_000,
     failed: 0,
-    peak: 8 * MIB,
+    peak: (TYPICAL[reader] ?? 2) * 4 * MIB,
     largestItemBytes: 4 * MIB,
     ...over,
   };
@@ -198,25 +221,169 @@ function readings(over: Partial<Row> = {}): Row[] {
 }
 
 describe("the streaming memory gate", () => {
-  it("writes its limit down: three times the largest item", async () => {
-    const { PEAK_MULTIPLE } = await importModule<{ PEAK_MULTIPLE: number }>(
+  it("writes a limit down for each reader, as a multiple of the largest item", async () => {
+    const { PEAK_LIMITS } = await importModule<{ PEAK_LIMITS: Record<string, number> }>(
       "bench",
       "stream-memory.mjs",
     );
-    expect(PEAK_MULTIPLE).toBe(3);
+    expect(PEAK_LIMITS).toEqual({ readMessages: 2.35, parseStream: 1.45, readSegments: 1.6 });
+    expect(Object.isFrozen(PEAK_LIMITS)).toBe(true);
+  });
+
+  it.each(["readMessages", "parseStream", "readSegments"])(
+    "sets the limit of %s from twenty readings or more on the runner, midway to one message more",
+    async (reader) => {
+      const { PEAK_LIMITS } = await importModule<{ PEAK_LIMITS: Record<string, number> }>(
+        "bench",
+        "stream-memory.mjs",
+      );
+      const recorded = JSON.parse(read("bench", "stream-memory-readings.json")) as Recorded;
+      const ratios = recorded.runs.flatMap((r) => r[reader] ?? []);
+      expect(ratios.length).toBeGreaterThanOrEqual(20);
+      const highest = Math.max(...ratios);
+      const oneMore = Math.min(...ratios) + 1;
+      const limit = PEAK_LIMITS[reader] ?? Number.NaN;
+      // Midway between the highest reading and the lowest a reader holding one message more gives,
+      // rounded to a twentieth, so each side keeps at least a quarter of a message.
+      expect(Math.abs(limit - (highest + oneMore) / 2)).toBeLessThanOrEqual(0.025);
+      expect(limit - highest).toBeGreaterThanOrEqual(0.25);
+      expect(oneMore - limit).toBeGreaterThanOrEqual(0.25);
+    },
+  );
+
+  it("records the Node each run of readings was taken on, and the workflow sets up exactly that Node", () => {
+    const recorded = JSON.parse(read("bench", "stream-memory-readings.json")) as Recorded;
+    const nodes = new Set(recorded.runs.map((r) => r.node));
+    // Every cited run's log prints this version: the limits are fitted to it.
+    expect([...nodes]).toEqual(["v22.23.4"]);
+    // An exact version, so a new Node is a change to this line and to the readings, never a drift.
+    expect(workflowNode()).toBe("22.23.4");
+    expect(`v${workflowNode() ?? ""}`).toBe(recorded.runs[0]?.node);
+  });
+
+  it("refuses to judge on a Node major the limits were not read on", async () => {
+    const { nodeMismatch } = await importModule<{ nodeMismatch: NodeMismatch }>(
+      "bench",
+      "stream-memory.mjs",
+    );
+    const recorded = ["v22.23.4", "v22.23.4"];
+    expect(nodeMismatch("v22.23.4", recorded)).toBeUndefined();
+    // A minor of the same major is judged; the workflow pins the exact version besides.
+    expect(nodeMismatch("v22.24.0", recorded)).toBeUndefined();
+    expect(nodeMismatch("v24.11.0", recorded)).toBe(
+      "the limits were read on Node v22.23.4 and this is Node v24.11.0: read them again on this " +
+        "Node (bench/stream-memory-readings.json), so there is nothing to judge",
+    );
+    expect(nodeMismatch("v20.19.0", recorded)).toMatch(/so there is nothing to judge$/u);
+    // Readings that record no Node, or more than one major, cannot tie the limits to a runtime.
+    for (const bad of [[], ["v22.23.4", undefined], ["v22.23.4", "v24.11.0"], ["22"], [22]]) {
+      expect(nodeMismatch("v22.23.4", bad)).toMatch(/so there is nothing to judge$/u);
+    }
+  });
+
+  it.skipIf(!ON_NODE)(
+    "exits 2 before taking a reading when the running Node is not the one the limits were read on",
+    () => {
+      const out = mkdtempSync(join(tmpdir(), "stream-memory-"));
+      try {
+        // Readings recorded on a Node this process is not.
+        const other = process.version.startsWith("v1.") ? "v2.0.0" : "v1.0.0";
+        const file = join(out, "readings.json");
+        writeFileSync(file, JSON.stringify({ runs: [{ run: 1, commit: "abc", node: other }] }));
+        const started = Date.now();
+        const result = spawnSync(
+          process.execPath,
+          [
+            join("bench", "stream-memory.mjs"),
+            "--target",
+            join("test", "fixtures", "stream-memory", "hang.mjs"),
+            "--mib",
+            "0.25",
+            "--readings",
+            file,
+            "--out",
+            join(out, "stream-memory.json"),
+            "--summary",
+            join(out, "stream-memory.md"),
+          ],
+          { cwd: REPO_ROOT, encoding: "utf8", shell: false, timeout: 60_000 },
+        );
+        expect(result.status).toBe(2);
+        // No reading was taken: the hanging target would have held each one to its timeout.
+        expect(Date.now() - started).toBeLessThan(30_000);
+        const document = JSON.parse(readFileSync(join(out, "stream-memory.json"), "utf8")) as {
+          verdict: string[];
+          readers: Row[];
+        };
+        expect(document.readers).toEqual([]);
+        expect(document.verdict).toEqual([
+          `the limits were read on Node ${other} and this is Node ${process.version}: read them ` +
+            "again on this Node (bench/stream-memory-readings.json), so there is nothing to judge",
+        ]);
+        expect(readFileSync(join(out, "stream-memory.md"), "utf8")).toContain(
+          "so there is nothing to judge",
+        );
+      } finally {
+        rmSync(out, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it("passes every recorded run of the readers as they are, and fails each holding one message more", async () => {
+    const { judge, RUNS } = await importModule<{ judge: Judge; RUNS: number }>(
+      "bench",
+      "stream-memory.mjs",
+    );
+    const recorded = JSON.parse(read("bench", "stream-memory-readings.json")) as Recorded;
+    const readers = ["readMessages", "parseStream", "readSegments"];
+    for (const run of recorded.runs) {
+      // A run of twenty readings is judged five at a time, as the gate takes them.
+      const length = (run["readMessages"] ?? []).length;
+      for (let start = 0; start < length; start += RUNS) {
+        const rows = (extra: string | undefined): Row[] =>
+          readers.flatMap((reader) =>
+            (run[reader] ?? [])
+              .slice(start, start + RUNS)
+              .map((ratio) =>
+                row({ reader, peak: (ratio + (reader === extra ? 1 : 0)) * 4 * MIB }),
+              ),
+          );
+        expect(judge(rows(undefined), undefined, undefined, RUNS).exitCode).toBe(0);
+        for (const reader of readers) {
+          const verdict = judge(rows(reader), undefined, undefined, RUNS);
+          expect(verdict.exitCode).toBe(1);
+          const over = verdict.lines.filter((line) => line.includes(", over the limit of "));
+          expect(over).toHaveLength(1);
+          expect(over[0]?.startsWith(`${reader}: `)).toBe(true);
+        }
+      }
+    }
   });
 
   it("passes a reading at or under the limit and fails one over it", async () => {
     const { judge } = await importModule<{ judge: Judge }>("bench", "stream-memory.mjs");
-    expect(judge(readings({ peak: 12 * MIB })).exitCode).toBe(0);
-    const over = judge([
-      row({ reader: "someOtherReader" }),
-      row({ peak: 12 * MIB + 1 }),
-      ...readings().slice(1),
-    ]);
-    expect(over.exitCode).toBe(1);
-    expect(over.lines.join("\n")).toMatch(/readMessages.*over/u);
+    const at = [
+      row({ peak: 2.35 * 4 * MIB }),
+      row({ reader: "parseStream", peak: 1.45 * 4 * MIB }),
+      row({ reader: "readSegments", peak: 1.6 * 4 * MIB }),
+    ];
+    expect(judge(at).exitCode).toBe(0);
+    for (let i = 0; i < at.length; i++) {
+      const over = judge([
+        row({ reader: "someOtherReader", peak: 100 * MIB }),
+        ...at.map((r, j) => (j === i ? { ...r, peak: r.peak + 64 * 1024 } : r)),
+      ]);
+      expect(over.exitCode).toBe(1);
+      expect(over.lines[i + 1]).toMatch(/, over the limit of /u);
+    }
     expect(judge(readings({ peak: 5 * MIB }), 1).exitCode).toBe(1);
+  });
+
+  it("cannot judge a gated reader it has no limit for", async () => {
+    const { judge } = await importModule<{ judge: Judge }>("bench", "stream-memory.mjs");
+    const verdict = judge(readings(), { readMessages: 3, parseStream: 3 });
+    expect(verdict.exitCode).toBe(2);
+    expect(verdict.lines[2]).toBe("readSegments: no limit, so there is nothing to judge");
   });
 
   it("judges readMessages, parseStream and readSegments", async () => {
@@ -226,15 +393,15 @@ describe("the streaming memory gate", () => {
     }>("bench", "stream-memory.mjs");
     expect(GATED_READERS).toEqual(["readMessages", "parseStream", "readSegments"]);
     const within = judge([
-      row({}),
+      row({ peak: 8 * MIB }),
       row({ reader: "parseStream", peak: 4.4 * MIB }),
       row({ reader: "readSegments", peak: 4.2 * MIB }),
     ]);
     expect(within.exitCode).toBe(0);
     expect(within.lines).toEqual([
-      "readMessages: peak 2.00 times the largest item, within the limit of 3",
-      "parseStream: peak 1.10 times the largest item, within the limit of 3",
-      "readSegments: peak 1.05 times the largest item, within the limit of 3",
+      "readMessages: peak 2.00 times the largest item, within the limit of 2.35",
+      "parseStream: peak 1.10 times the largest item, within the limit of 1.45",
+      "readSegments: peak 1.05 times the largest item, within the limit of 1.6",
     ]);
     // parseStream at the reading it gave before it was judged: over the limit.
     const over = judge([
@@ -244,11 +411,11 @@ describe("the streaming memory gate", () => {
     ]);
     expect(over.exitCode).toBe(1);
     expect(over.lines[1]).toBe(
-      "parseStream: peak 3.98 times the largest item, over the limit of 3",
+      "parseStream: peak 3.98 times the largest item, over the limit of 1.45",
     );
     const segments = judge([
       ...readings().slice(0, 2),
-      row({ reader: "readSegments", peak: 12 * MIB + 1 }),
+      row({ reader: "readSegments", peak: 1.6 * 4 * MIB + 64 * 1024 }),
     ]);
     expect(segments.exitCode).toBe(1);
   });
@@ -396,6 +563,7 @@ describe("the streaming memory gate", () => {
             join("test", "fixtures", "stream-memory", "target.mjs"),
             "--mib",
             "0.25",
+            "--any-node",
             "--out",
             join(out, "stream-memory.json"),
           ],
@@ -437,6 +605,7 @@ describe("the streaming memory gate", () => {
             "1",
             "--timeout",
             "2",
+            "--any-node",
             "--out",
             join(out, "stream-memory.json"),
           ],
@@ -473,14 +642,71 @@ describe("the streaming memory gate", () => {
     expect(READING_TIMEOUT_SECONDS * RUNS).toBeLessThanOrEqual(15 * 60);
   });
 
-  it("checks on the runner that a planted regression still fails the gate", () => {
+  it("checks on the runner that each reader holding one message more fails the gate", () => {
     const workflow = read(".github", "workflows", "stream-memory.yml");
     expect(workflow).toMatch(
       /node bench\/stream-memory\.mjs --target bench\/planted-regression\.mjs --mib 100/u,
     );
     expect(workflow).toContain('test "${status}" -eq 1');
+    for (const reader of ["readMessages", "parseStream", "readSegments"]) {
+      expect(workflow).toContain(
+        `grep -q '^- ${reader}: median .*, over the limit of [0-9.]*$' "\${out}/planted.md"`,
+      );
+    }
+    expect(workflow).not.toContain("within the limit");
     const planted = read("bench", "planted-regression.mjs");
     expect(planted).toContain('from "../dist/index.mjs"');
+    // Each of the three readers is the build's own, holding one item more.
+    for (const reader of ["readMessages", "parseStream", "readSegments"]) {
+      expect(planted).toContain(
+        `export function ${reader}(source, options) {\n  return holdingOneMore(built.${reader}, source, options);\n}`,
+      );
+    }
+  });
+
+  it("plants one 4 MiB item more, a copy, held until the reader has yielded its last item", async () => {
+    const { holdingOneMore, ONE_MESSAGE } = await importModule<{
+      holdingOneMore: (
+        read: (source: AsyncIterable<Buffer>) => AsyncIterable<string>,
+        source: Iterable<Buffer>,
+        options: undefined,
+        kept: { copies: Buffer[]; bytes: number },
+      ) => AsyncIterable<string>;
+      ONE_MESSAGE: number;
+    }>("bench", "hold-one-more.mjs");
+    expect(ONE_MESSAGE).toBe(4 * MIB);
+    const CHUNK = 64 * 1024;
+    const chunks = Array.from({ length: 96 }, (_, i) => Buffer.alloc(CHUNK, i));
+    const seen: Buffer[] = [];
+    // A reader that yields after each chunk, and once more after its source has ended, as the
+    // message readers yield the last message of a batch.
+    async function* reader(from: AsyncIterable<Buffer>): AsyncIterable<string> {
+      for await (const chunk of from) {
+        seen.push(chunk);
+        yield "chunk";
+      }
+      yield "last";
+    }
+    const kept = { copies: [] as Buffer[], bytes: 0 };
+    const items: string[] = [];
+    for await (const item of holdingOneMore(reader, chunks, undefined, kept)) {
+      items.push(item);
+      if (seen.length * CHUNK >= ONE_MESSAGE) {
+        // One item's worth, to within one chunk, from the first 4 MiB on.
+        expect(kept.bytes).toBeGreaterThanOrEqual(ONE_MESSAGE);
+        expect(kept.bytes).toBeLessThan(ONE_MESSAGE + CHUNK);
+        expect(kept.copies.reduce((n, copy) => n + copy.length, 0)).toBe(kept.bytes);
+      }
+    }
+    expect(items.at(-1)).toBe("last");
+    // The reader read the source's own chunks; what is kept is copies of the last ones.
+    expect(seen).toEqual(chunks);
+    expect(seen.every((chunk, i) => chunk === chunks[i])).toBe(true);
+    const last = chunks.slice(-kept.copies.length);
+    expect(kept.copies).toEqual(last);
+    expect(kept.copies.some((copy, i) => copy === last[i] || copy.buffer === last[i]?.buffer)).toBe(
+      false,
+    );
   });
 
   it("runs as its own job on every pull request, at 100 MiB, and its exit fails the job", () => {
@@ -491,6 +717,8 @@ describe("the streaming memory gate", () => {
     expect(workflow).toMatch(/^ {2}stream-memory:$/mu);
     expect(workflow).toMatch(/node bench\/stream-memory\.mjs --target dist\/index\.mjs --mib 100/u);
     expect(workflow).not.toContain("|| status");
+    // The quick local escape from the Node check never runs on the runner.
+    expect(workflow).not.toContain("--any-node");
     // The reading moved here; bench-reading no longer takes it.
     expect(read(".github", "workflows", "bench-reading.yml")).not.toContain(
       "node bench/stream-memory.mjs",
