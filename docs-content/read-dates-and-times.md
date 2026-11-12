@@ -25,9 +25,9 @@ const raw =
 const msg = parseHL7(raw);
 const dob = msg.patient?.dateOfBirth;
 
-dob?.raw; // => "19880705"
+dob?.raw; // => "19880705" /* synthetic */
 dob?.precision; // => "day"
-[dob?.year, dob?.month, dob?.day]; // => [1988, 7, 5]
+[dob?.year, dob?.month, dob?.day]; // => [1988, 7, 5] /* synthetic */
 dob?.hasTimezone; // => false
 
 const sent = msg.meta.timestamp;
@@ -52,8 +52,8 @@ names with the same meaning.
 ```ts runnable
 import { parseDtm, toISO, toObject } from "@cosyte/hl7";
 
-toObject(parseDtm("19880705")); // => { year: 1988, month: 7, day: 5 }
-toISO(parseDtm("19880705")); // => "1988-07-05"
+toObject(parseDtm("19880705")); // => { year: 1988, month: 7, day: 5 } /* synthetic */
+toISO(parseDtm("19880705")); // => "1988-07-05" /* synthetic */
 toISO(parseDtm("20250102153045.5-0500")); // => "2025-01-02T15:30:45.5-05:00"
 ```
 
@@ -160,7 +160,7 @@ one file collides. Alias the import or use a namespace import:
 import { parseDtm, toISO as hl7ToISO } from "@cosyte/hl7";
 import { toISO as x12ToISO } from "@cosyte/x12";
 
-hl7ToISO(parseDtm("19880705")); // "1988-07-05"
+hl7ToISO(parseDtm("19880705")); // "1988-07-05" /* synthetic */
 // x12ToISO does the same for an X12 date value.
 ```
 
@@ -206,7 +206,7 @@ msg.patient?.dateOfBirth; // => undefined
 
 const pid7 = msg.part("PID")?.field(7).asTs();
 pid7?.valid; // => false
-pid7?.raw; // => "07/05/1988"
+pid7?.raw; // => "07/05/1988" /* synthetic */
 ```
 
 `BUILTIN_DATE_FALLBACKS` (ISO 8601 and the US slash forms) is a last resort for `msg.meta.timestamp`
@@ -231,7 +231,7 @@ const ts = parseHL7(raw).meta.timestamp;
 
 ts?.valid; // => false
 ts?.ambiguity?.code === AMBIGUOUS_DATE_ORDER; // => true
-ts?.ambiguity?.candidates.map((c) => c.isoDate); // => ["1988-05-07", "1988-07-05"]
+ts?.ambiguity?.candidates.map((c) => c.isoDate); // => ["1988-05-07", "1988-07-05"] /* synthetic */
 
 parseHL7(raw, { dateFormats: ["DD/MM/YYYY"] }).meta.timestamp?.month; // => 7
 parseHL7(raw, { dateFormats: ["MM/DD/YYYY"] }).meta.timestamp?.month; // => 5

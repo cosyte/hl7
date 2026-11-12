@@ -2,7 +2,7 @@
 id: modify-and-resend
 title: Modify a message and send it on
 sidebar_label: Modify and re-send
-description: "Change fields, set typed composites, add and remove segments, then serialize spec-clean HL7, a JSON snapshot or a readable dump for logs."
+description: "Change fields, set typed composites, add and remove segments, then serialize spec-clean HL7, a JSON snapshot or a readable view for debugging."
 ---
 
 # Modify a message and send it on
@@ -50,8 +50,8 @@ const msg = parseHL7(
 );
 
 msg.setComposite("PID.5", "XPN", { familyName: "Smith-Jones", givenName: "Jane" });
-msg.get("PID.5.1"); // => "Smith-Jones"
-msg.patient?.fullName; // => "Jane Smith-Jones"
+msg.get("PID.5.1"); // => "Smith-Jones" /* synthetic */
+msg.patient?.fullName; // => "Jane Smith-Jones" /* synthetic */
 
 encodeComposite("XPN", { familyName: "Doe", givenName: "John" }).repetitions.length; // => 1
 ```
@@ -73,8 +73,10 @@ const msg = parseHL7(
 
 msg.removeSegment("NTE").addSegment("NTE", ["1", "", "Moved to | ward 2"]);
 
-msg.get("NTE.3"); // => "Moved to | ward 2"
-msg.toString().split("\r")[2]; // => "NTE|1||Moved to \\F\\ ward 2"
+msg.get("NTE.3"); // => "Moved to | ward 2" /* synthetic */
+const note = msg.toString().split("\r")[2] ?? "";
+note.split("|").length; // => 4
+note.includes("\\F\\"); // => true
 ```
 
 The `|` inside the note is written as the escape `\F\`, so a value can never add a field.
@@ -126,11 +128,16 @@ Buffer.from(msg.toString(), "utf8").equals(bytes); // => false
 
 [Character sets](./spec-notes-charset.md#write-bytes-back) lists how each set is written.
 
-## Print a message for a log
+## Read a message while you debug
 
-`prettyPrint()` returns a readable dump: a header line, then one line per segment with each
-populated field labeled by its number. It is for people reading logs, not for the wire. It prints
-field values, so treat it as patient data wherever you log it.
+`prettyPrint()` returns a readable view: a header line, then one line per segment with each
+populated field labeled by its number. It is for reading a synthetic or de-identified message while
+you develop or debug, never for a log in production and never for the wire. Every line after the
+header carries field values, names and record numbers included, so it is patient data. To record a
+message in a log, log what [What is safe to log](./warning-and-fatal-codes.md#what-is-safe-to-log)
+lists instead: its type, its control id, its warning codes and counts.
+
+The sample reads the view into a variable and checks its shape; it prints nothing.
 
 ```ts runnable
 import { parseHL7 } from "@cosyte/hl7";
@@ -142,7 +149,8 @@ const msg = parseHL7(
 
 const lines = msg.prettyPrint().split("\n");
 lines[0]; // => "HL7 ADT^A08^ADT_A01  controlId=MSG00006  timestamp=20250102153045  (2 segments)"
-lines[2]; // => "PID  [1]=1  [3]=MRN12345^^^HOSP^MR  [5]=Smith^Jane^Q  [7]=19800115  [8]=F"
+lines.length; // => 3
+lines.map((line) => line.slice(0, 3)); // => ["HL7", "MSH", "PID"]
 ```
 
 ## Reference

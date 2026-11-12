@@ -48,11 +48,12 @@ const xml = `<?xml version="1.0" encoding="UTF-8"?>
 const msg = parseHL7Xml(xml);
 
 msg.version; // => "2.6"
-msg.patient?.mrn; // => "TESTID01"
+msg.patient?.mrn; // => "TESTID01" /* synthetic */
 msg.observations()[0]?.value; // => 4.2
-msg.get("PID.5.1"); // => "Test"
-msg.get("NTE.3"); // => "Seen at 1 | 2 & recheck"
-msg.toString().split("\r")[1]; // => "PID|||TESTID01^^^TESTLAB^MR||Test^Patient"
+msg.get("PID.5.1"); // => "Test" /* synthetic */
+msg.get("NTE.3"); // => "Seen at 1 | 2 & recheck" /* synthetic */
+const lines = msg.toString().split("\r").filter((line) => line !== "");
+lines.map((line) => line.slice(0, 3)); // => ["MSH", "PID", "OBR", "OBX", "NTE"]
 ```
 
 What the reader does:
@@ -192,7 +193,8 @@ const msg = parseHL7(
 
 const xml = toHl7Xml(msg, { dataTypes: { "MSH.9": "MSG", "OBX.3": "CWE" }, groups });
 
-xml.split("\n").slice(3, 5); // => ["  <ORU_R01.REPORT>", "    <PID><PID.1>1</PID.1><PID.3>TESTID01</PID.3></PID>"]
+xml.split("\n")[3]; // => "  <ORU_R01.REPORT>"
+xml.split("\n")[4]?.trim().startsWith("<PID>"); // => true
 xml.includes("<OBX.3><CWE.1>TST-1</CWE.1></OBX.3>"); // => true
 ```
 

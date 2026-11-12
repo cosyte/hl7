@@ -30,8 +30,8 @@ const raw =
 const msg = parseHL7(raw);
 
 // `msg.patient` is `undefined` when the message has no PID segment.
-msg.patient?.mrn; // => "MRN12345"
-msg.patient?.fullName; // => "John Q Doe"
+msg.patient?.mrn; // => "MRN12345" /* synthetic */
+msg.patient?.fullName; // => "John Q Doe" /* synthetic */
 msg.patient?.sex; // => "M"
 msg.meta.type; // => "ADT^A01^ADT_A01"
 
@@ -53,7 +53,7 @@ const raw =
 
 const msg = parseHL7(raw);
 
-msg.get("PID.5.1"); // => "Doe"
+msg.get("PID.5.1"); // => "Doe" /* synthetic */
 ```
 
 ## Warnings carry stable codes

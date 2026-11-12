@@ -61,9 +61,11 @@ Permanently out of scope:
 ## Install
 
 ```bash
-# pnpm (recommended). Also works with: npm install @cosyte/hl7  |  yarn add @cosyte/hl7
-pnpm add @cosyte/hl7
+# pnpm (recommended). Also works with: npm install --save-exact @cosyte/hl7  |  yarn add --exact @cosyte/hl7
+pnpm add --save-exact @cosyte/hl7
 ```
+
+Pin the exact version. Below 1.0 a breaking change can ship in a patch release, so a caret range such as `^0.1.0` does not protect you from one: `--save-exact` writes the version itself into `package.json`, and you move it on purpose after reading the [changelog](https://github.com/cosyte/hl7/blob/main/CHANGELOG.md).
 
 Requires Node.js 22 or later, tested on 22, 24, and 26 (`engines.node` is `>=22.0.0`). The package ships dual ESM and CommonJS builds with type declarations for both, so `import` and `require` both work and neither needs a compatibility shim. There are zero runtime dependencies: the Node standard library is all it loads. The optional `@cosyte/hl7/arbitraries` entry point, fast-check generators for [property-testing your own code](https://github.com/cosyte/hl7/blob/main/docs-content/property-test-your-code.md), needs `fast-check` installed beside it; the main entry point never loads it.
 
@@ -85,28 +87,32 @@ const raw =
 
 const msg = parseHL7(raw);
 
-console.log("Patient record number:", msg.patient?.mrn);
-console.log("Full name:", msg.patient?.fullName);
-console.log("Date of birth:", msg.patient?.dateOfBirth?.raw);
-console.log("Precision:", msg.patient?.dateOfBirth?.precision);
+// Fields that identify a person are read into variables, never printed or logged.
+const mrn = msg.patient?.mrn; // "MRN12345", synthetic
+const fullName = msg.patient?.fullName; // "John Q Doe", synthetic
+const dateOfBirth = msg.patient?.dateOfBirth; // raw "19800115", synthetic
+
+// What is safe to log: types, codes, counts, precision, booleans.
 console.log("Message type:", msg.meta.type);
-console.log("Sent at:", msg.meta.timestamp?.raw);
 console.log("Ward:", msg.visit?.location?.pointOfCare);
+console.log("Has a record number:", mrn !== undefined);
+console.log("Has a name:", fullName !== undefined);
+console.log("Birth date precision:", dateOfBirth?.precision);
+console.log("Warnings:", msg.warnings.length);
 ```
 
 ```text
-Patient record number: MRN12345
-Full name: John Q Doe
-Date of birth: 19800115
-Precision: day
 Message type: ADT^A01^ADT_A01
-Sent at: 20260419101500
 Ward: ICU
+Has a record number: true
+Has a name: true
+Birth date precision: day
+Warnings: 0
 ```
 
 The test suite reads that block out of this README, runs it against the package, and fails if the output above ever stops matching what the code prints. The message is a copy of a synthetic fixture from the repository's test corpus.
 
-Note `precision`: a birth date is a day, not an instant, and every datetime is a fidelity `TS` that keeps the precision and timezone it arrived with rather than guessing a `Date`.
+Note what it prints: a type, a code, booleans and a count, never the record number, the name or the birth date, since an example that logs a patient's name teaches a reader to log one. Note `precision` too: a birth date is a day, not an instant, and every datetime is a fidelity `TS` that keeps the precision and timezone it arrived with rather than guessing a `Date`.
 
 That is the whole pitch: no config, no schema upload, no spec lookup. The parser accepts vendor-quirky input by default, strips MLLP framing if it's there, normalizes casing, and tolerates the dozen-or-so deviations real HL7 traffic routinely carries. You reach for strict mode, dot-paths, or profiles when you want them, not before.
 
@@ -145,9 +151,9 @@ Report a vulnerability privately, as the [security policy](https://github.com/co
 
 HL7 v2 messages carry patient data, so what this library does with the bytes you hand it is part of its contract.
 
-**It does not log.** There is no logger, no debug channel, and no `console` call anywhere in the library: diagnostics are returned to you, never printed. Tolerated deviations come back as `Hl7ParseWarning` values carrying a stable code, a bounded message, and a position (`segmentIndex`, `fieldIndex`), never the field value that triggered them, so a warning is safe to log as-is.
+**It does not log.** There is no logger, no debug channel, and no `console` call anywhere in the library: diagnostics are returned to you, never printed. Tolerated deviations come back as `Hl7ParseWarning` values carrying a stable code, a bounded message, and a position (`segmentIndex`, `fieldIndex`), never the field value that triggered them. Log a warning's `code` and `position`: its `message` is bounded but not content-free, since it can echo a short token from the input where the token has a shape the spec defines. [What is safe to log](https://github.com/cosyte/hl7/blob/main/docs-content/warning-and-fatal-codes.md#what-is-safe-to-log) lists every field, including the `raw` message a failed `splitBatch`, `parseStream` or `readMessages` result carries.
 
-**One field is an exception, and it is deliberate.** `Hl7ParseError.snippet` carries up to 40 characters of your input verbatim and unredacted so a fatal parse failure is actionable. It is the only field that echoes input without filtering, the library does not redact it, and it is the first thing to strip if your compliance posture requires it. `Hl7ParseError.message` is bounded rather than absolutely content-free: it echoes a token only where the token matches a shape the spec defines (a three-character segment identifier, a message type, a version, a known charset label) and withholds anything else.
+**One field is an exception, and it is deliberate.** `Hl7ParseError.snippet` carries up to 40 characters of your input verbatim and unredacted so a fatal parse failure is actionable. It is the only error field that echoes input without filtering, the library does not redact it, and it is the first thing to strip if your compliance posture requires it. Results carry input too, a failed entry's `raw` among them: [What is safe to log](https://github.com/cosyte/hl7/blob/main/docs-content/warning-and-fatal-codes.md#what-is-safe-to-log) names every such field. `Hl7ParseError.message` is bounded rather than absolutely content-free: it echoes a token only where the token matches a shape the spec defines (a three-character segment identifier, a message type, a version, a known charset label) and withholds anything else.
 
 **It retains nothing you do not hold.** Parsing returns an `Hl7Message` and the message content lives on that object and nowhere else. There is no cache, no pool, and no module-level store of message data, so the content is released when you drop your reference to it. The one piece of process-wide state the library keeps is an optional registered default profile, which holds parsing configuration, not patient data.
 

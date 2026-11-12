@@ -26,14 +26,14 @@ const raw = [
 
 const patient = parseHL7(raw).patient;
 
-patient?.mrn; // => "MRN12345"
-patient?.fullName; // => "Jane Q Smith"
-patient?.familyName; // => "Smith"
+patient?.mrn; // => "MRN12345" /* synthetic */
+patient?.fullName; // => "Jane Q Smith" /* synthetic */
+patient?.familyName; // => "Smith" /* synthetic */
 patient?.sex; // => "F"
-patient?.dateOfBirth?.raw; // => "19800115"
+patient?.dateOfBirth?.raw; // => "19800115" /* synthetic */
 patient?.dateOfBirth?.precision; // => "day"
-patient?.address?.city; // => "Springfield"
-patient?.address?.zipOrPostalCode; // => "62701"
+patient?.address?.city; // => "Springfield" /* synthetic */
+patient?.address?.zipOrPostalCode; // => "62701" /* synthetic */
 patient?.identifiers.length; // => 1
 ```
 
@@ -66,8 +66,8 @@ visit?.location?.pointOfCare; // => "ICU"
 visit?.location?.room; // => "101"
 visit?.location?.bed; // => "A"
 visit?.location?.facility?.namespaceId; // => "MAIN"
-visit?.attendingDoctor?.familyName; // => "Welby"
-visit?.visitNumber; // => "VISIT001"
+visit?.attendingDoctor?.familyName; // => "Welby" /* synthetic */
+visit?.visitNumber; // => "VISIT001" /* synthetic */
 ```
 
 ## Read what kind of message it is
@@ -117,7 +117,7 @@ msg.is("ADT^A01^ADT_A01"); // => false
 if (msg.is("ADT^A01")) {
   const code: "ADT" = msg.meta.messageCode; // a literal type, no longer optional
   code; // => "ADT"
-  msg.part("PID")?.field(3).value; // => "MRN12345"
+  msg.part("PID")?.field(3).value; // => "MRN12345" /* synthetic */
   msg.parts("EVN").length; // => 1
   // msg.part("OBX"); // does not compile: ADT^A01 does not require OBX
   msg.segments("OBX").length; // => 0
@@ -149,10 +149,10 @@ const raw = [
 
 const msg = parseHL7(raw);
 
-msg.get("PID.5.1"); // => "Smith"
-msg.get("PID.5.2"); // => "Jane"
-msg.get("PID.3[1].1"); // => "XYZ987"
-msg.get("NK1[1].2.2"); // => "Mary"
+msg.get("PID.5.1"); // => "Smith" /* synthetic */
+msg.get("PID.5.2"); // => "Jane" /* synthetic */
+msg.get("PID.3[1].1"); // => "XYZ987" /* synthetic */
+msg.get("NK1[1].2.2"); // => "Mary" /* synthetic */
 msg.getAll("NK1").length; // => 2
 ```
 

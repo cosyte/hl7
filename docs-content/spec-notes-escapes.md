@@ -23,8 +23,8 @@ const msg = parseHL7(
 );
 
 const obx5 = msg.segments("OBX")[0]?.field(5);
-obx5?.value; // => "Critical \\H\\value\\N\\ and A"
-obx5?.text; // => "Critical \\H\\value\\N\\ and \\X41\\"
+obx5?.value; // => "Critical \\H\\value\\N\\ and A" /* synthetic */
+obx5?.text; // => "Critical \\H\\value\\N\\ and \\X41\\" /* synthetic */
 ```
 
 `value` decodes on read (`\X41\` becomes `A`, and the formatting escapes stay as written for a

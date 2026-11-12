@@ -1,0 +1,17 @@
+{
+  "examplePrint": {
+    "required": true,
+    "accessors": [
+      "phoneNumbers",
+      "visitNumber",
+      "legacyPatientId",
+      "insuredName",
+      "attendingDoctor",
+      "referringDoctor",
+      "orderedBy",
+      "admitDateTime",
+      "dischargeDateTime"
+    ],
+    "wholeValues": ["ack"]
+  }
+}

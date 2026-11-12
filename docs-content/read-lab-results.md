@@ -39,7 +39,7 @@ wbc?.units?.identifier; // => "10*3/uL"
 wbc?.referenceRange; // => "4.5-11.0"
 hgb?.abnormalFlags; // => "L"
 hgb?.status; // => "F"
-comment?.value; // => "Specimen slightly hemolyzed"
+comment?.value; // => "Specimen slightly hemolyzed" /* synthetic */
 ```
 
 An observation's `value` takes its type from OBX-2: `NM` is a `number`, `SN` a structured
