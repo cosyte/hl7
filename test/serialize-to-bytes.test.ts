@@ -13,7 +13,13 @@ import { Buffer } from "node:buffer";
 
 import { describe, expect, it } from "vitest";
 
-import { Hl7EncodeError, WARNING_CODES, buildMessage, parseHL7 } from "../src/index.js";
+import {
+  Hl7EncodeError,
+  WARNING_CODES,
+  buildMessage,
+  parseHL7,
+  readMessages,
+} from "../src/index.js";
 
 /** An ADT^A01 header declaring `msh18` (omitted when empty), then `rest` segments. */
 function messageText(msh18: string, ...rest: string[]): string {
@@ -194,6 +200,43 @@ describe("toBytes: a message leaves in the set it declares", () => {
 
   it("returns a Buffer", () => {
     expect(Buffer.isBuffer(parseHL7(messageText("8859/1")).toBytes())).toBe(true);
+  });
+});
+
+describe("toBytes: the limit of a byte reading, line-ending bytes", () => {
+  // The bytes of a wide character whose code unit holds a line-ending byte: as UTF-16LE, U+010A is
+  // 0x0A 0x01, U+0A0D is 0x0D 0x0A and U+010D is 0x0D 0x01. The reader keeps a UTF-16 message as a latin1 reading, but
+  // it reads line endings before it frames segments, so these bytes do not come back as they came.
+  const name = (bytes: readonly number[]): Buffer => messageBytes("UNICODE UTF-16", bytes);
+  const at = (bytes: Buffer, byte: number): number =>
+    bytes.indexOf(Buffer.concat([Buffer.from("SYN^MR||", "latin1"), Buffer.from([byte])])) + 8;
+
+  it("writes a lone 0x0A byte back as 0x0D, and frames a segment on it", async () => {
+    const bytes = name([0x0a, 0x01]);
+    const msg = parseHL7(bytes);
+    expect(msg.warnings.map((w) => w.code)).toContain(WARNING_CODES.UNSUPPORTED_CHARSET);
+    const expected = Buffer.from(bytes);
+    expected[at(bytes, 0x0a)] = 0x0d;
+    expect(msg.toBytes()).toEqual(expected);
+    expect(msg.rawSegments.length).toBe(3);
+    // readMessages reads the same bytes the same way.
+    const read: (Buffer | false)[] = [];
+    for await (const item of readMessages([bytes])) read.push(item.ok && item.message.toBytes());
+    expect(read).toEqual([expected]);
+  });
+
+  it("writes a 0x0D 0x0A pair back as 0x0D alone, one byte shorter", () => {
+    const bytes = name([0x0d, 0x0a]);
+    const i = at(bytes, 0x0d);
+    const expected = Buffer.concat([bytes.subarray(0, i + 1), bytes.subarray(i + 2)]);
+    expect(parseHL7(bytes).toBytes()).toEqual(expected);
+  });
+
+  it("keeps a lone 0x0D byte, though it frames a segment on it too", () => {
+    const bytes = name([0x0d, 0x01]);
+    const msg = parseHL7(bytes);
+    expect(msg.toBytes()).toEqual(bytes);
+    expect(msg.rawSegments.length).toBe(3);
   });
 });
 

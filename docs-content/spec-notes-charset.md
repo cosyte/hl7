@@ -181,6 +181,13 @@ byte that equals a structural byte (a UTF-16 `0x0D`, say); the tokenizer then
 frames on it. That is precisely why multibyte **decode** is deferred rather than
 claimed. See the limitations below.
 
+**Line endings are read first, on the latin1 reading too.** A 0x0A byte becomes
+U+000D and a 0x0D 0x0A pair one U+000D before segments are framed. In a
+single-byte set those bytes are only ever line endings. In UTF-16 or UTF-32, a
+character can hold either byte (U+010A is 0x0A 0x01 as UTF-16LE, U+0A0D is
+0x0D 0x0A), so such a character is changed, not kept: a 0x0A byte comes back as
+0x0D, and a 0x0D 0x0A pair loses its 0x0A.
+
 ### `options.charset` override
 
 `parseHL7(buf, { charset })` forces the decode charset regardless of MSH-18. When
@@ -214,7 +221,10 @@ is written as UTF-8.
 `UNSUPPORTED_CHARSET` or `UNKNOWN_CHARSET`: a recognized set it does not decode, an unrecognized
 label, or a decodable set whose strict decode failed), its fields hold bytes, not text. `toBytes()`
 writes each segment that is still as it was read back as those bytes, one byte per character, so the
-message leaves as it arrived. A segment an edit added or replaced holds text the writer has no table
+message leaves as it arrived, except for line-ending bytes: the reader read a 0x0A byte as 0x0D and
+a 0x0D 0x0A pair as 0x0D alone before it framed segments, and those are the bytes written back. In
+a single-byte set that changes only line endings; in `UNICODE UTF-16` or `UNICODE UTF-32`, a
+character that holds either byte leaves changed. A segment an edit added or replaced holds text the writer has no table
 for in that set, so it must be ASCII: setting `PID.5.2` to `Renée` on a `CP850` message read from
 bytes throws, since writing U+00E9 as byte 0xE9 would be another letter in CP850. In `UNICODE
 UTF-16` and `UNICODE UTF-32` even ASCII is refused in an edited segment. If MSH-18 is edited to
