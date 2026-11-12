@@ -45,8 +45,10 @@ const CHARSET_POSITION = { segmentIndex: 0, fieldIndex: 18 } as const;
  * line-ending normalization and segment splitting then act on it, so framing is
  * best-effort: the documented reason multibyte decode is deferred, not claimed.
  * Line endings are normalized before that, so a content byte 0x0A becomes 0x0D
- * and a 0x0D 0x0A pair one 0x0D: those bytes do not survive in UTF-16 or UTF-32
- * content, the only sets kept here whose characters can hold them.
+ * and a 0x0D 0x0A pair one 0x0D: those bytes do not survive in content whose
+ * characters can hold them. Of the recognized sets kept here, UTF-16 and UTF-32
+ * are the ones; a label the parser does not recognize, such as `UTF-16LE`, takes
+ * this same path, and its content can hold them too.
  *
  * @internal
  */

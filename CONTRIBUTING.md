@@ -65,7 +65,8 @@ latency, memory and import cost against `dist/`: `pnpm build && pnpm bench:readi
 and on a pull request CI times the base build against the head build, the large sizes in the
 `bench-reading` workflow's `large-compare` job. Both comparisons are advisory. `bench/stream-memory.mjs`
 gates the streaming readers' memory on a 100 MiB source in the `stream-memory` workflow, which fails
-when `readMessages` holds more than 3 times the largest message it read.
+when the median of five readings of a reader, each in a process of its own, holds more than 3 times
+the largest item it read.
 
 ## Fuzz and differential testing
 

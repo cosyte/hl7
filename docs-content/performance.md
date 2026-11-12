@@ -104,11 +104,26 @@ readers read a batch of mostly `ADT^A01` with a 4 MiB message every 2000th. `rea
 one message of about 400,000 segments with a 4 MiB segment (a base64 document in one field) every
 20000th, and that segment is the item being read when memory is sampled.
 
-The job fails when any of the three readers peaks at more than **3 times** the largest item it
-read: the item, the text it came from, and room for the reader's own state. A reader that buffered
-its source would hold toward all 100 MiB. It also fails when a reading cannot be judged, because a
-reader is missing from it, gave no peak or largest item size, read nothing or failed an item. The
-limit is `PEAK_MULTIPLE` in the script.
+The limit is a peak of **3 times** the largest item a reader read: the item, the text it came from,
+and room for the reader's own state. A reader that buffered its source would hold toward all
+100 MiB. The limit is `PEAK_MULTIPLE` in the script.
+
+The gate judges each reader on five readings, not one. It reads each reader five times, each
+reading in a new Node.js process, the three readers in turn, and judges a reader on the median of
+its five ratios: the job fails when that median is over 3, so three readings of five must be over
+the limit to fail it and three within it to pass. A single stray reading cannot fail unchanged
+code, and a regression that shows in most readings still fails. The job also fails when a reader
+cannot be judged: it is missing, it has fewer than five readings, or any one of its readings did
+not finish, gave no peak or largest item size, read nothing or failed an item. A reading that
+cannot be judged is not outvoted by the other four. The count is `RUNS` in the script, and every
+reading is listed in the job's summary.
+
+A second step in the same job shows the gate still fails a real regression. It runs the gate on
+`bench/planted-regression.mjs`, the build with two regressions planted in it: `readMessages` keeps a
+copy of the last 8 MiB it read, about two messages more than it holds now, the size of the 3.98
+reading `parseStream` gave when it held a second copy of each message; and `parseStream` reads its
+whole source before parsing it. The step fails unless the gate exits 1 with both readers over the
+limit and `readSegments` within it.
 
 Peak held over the largest item, lowest to highest, on GitHub-hosted runners, over the readings
 named below:
@@ -152,7 +167,7 @@ under 1.5 times a 2 MiB message, from bytes and from text.
 `readSegments` was not judged while its largest segment was 256 KiB. Beside a segment that small,
 a few 64 KiB chunks and the text they decode to moved its ratio by more than the limit leaves room
 for, and that segment was never the item being read when memory was sampled. With a 4 MiB segment
-in hand when memory is sampled, what the reader holds besides it is small beside it, and the fifteen
+in hand when memory is sampled, what the reader holds besides it is small beside it, and the nineteen
 readings above sit at 1.10 to 1.68, well under the limit, so the gate judges it.
 
 These are ratios, not absolute budgets. The parse benchmarks' absolute budgets belong in
