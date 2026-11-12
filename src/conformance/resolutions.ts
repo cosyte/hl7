@@ -92,9 +92,6 @@ import type { ProfileDefect } from "./profile-shape.js";
 import type { FindingLocus, UsageResolution } from "./types.js";
 import { describeValueType, isRecord, parseUsageToken } from "./usage.js";
 
-/** A segment name: one capital letter, then two capitals or digits. @internal */
-const SEGMENT_NAME_RE = /^[A-Z][A-Z0-9]{2}$/u;
-
 /** A resolution the shape check accepted, with the locus it targets. @internal */
 interface WellFormedResolution {
   readonly locus: FindingLocus;
@@ -231,7 +228,9 @@ function memberDefect(member: unknown, index: number): string | undefined {
   if (segment.length === 0) {
     return `${at}.segment must be a non-empty segment name.`;
   }
-  if (!SEGMENT_NAME_RE.test(segment)) {
+  // A segment name: one capital letter, then two capitals or digits. Written
+  // here rather than as a module constant so that each test exercises it live.
+  if (!/^[A-Z][A-Z0-9]{2}$/u.test(segment)) {
     return `${at}.segment must be a valid segment name ([A-Z][A-Z0-9]{2}).`;
   }
   const field = member["field"];
@@ -292,7 +291,7 @@ export function analyzeResolutions(resolutions: unknown, profile: unknown): Reso
       continue;
     }
     const resolution = member as UsageResolution;
-    // The segment name has matched SEGMENT_NAME_RE in memberDefect, so the
+    // The segment name has matched the segment-name form in memberDefect, so the
     // locus carries a checked three-character name and never free text.
     const locus: FindingLocus =
       resolution.field === undefined

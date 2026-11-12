@@ -172,6 +172,21 @@ describe("a malformed resolution argument is not echoed", () => {
     expect(f?.locus.segment).not.toContain(SECRET);
   });
 
+  it("the segment-name form is held at every edge: a capital, then exactly two capitals or digits", () => {
+    for (const segment of ["PID1", "1PID", "pid", "PI", "P", "Pid", "P-D", "ZPID"]) {
+      const findings = run(conditional, [{ segment, outcome: true }]);
+      expect(findings, segment).toHaveLength(1);
+      expect(findings[0]?.locus.segment, segment).toBe("(profile)");
+      expect(findings[0]?.message, segment).toContain(
+        "resolutions[0].segment must be a valid segment name",
+      );
+    }
+    for (const segment of ["PID", "Z12", "ZZZ"]) {
+      const findings = run(conditional, [{ segment, outcome: true }]);
+      expect(findings[0]?.message ?? "", segment).not.toContain("must be a valid segment name");
+    }
+  });
+
   it("a resolution for a segment name the profile does not declare names that segment", () => {
     const findings = run(conditional, [{ segment: "ZZZ", outcome: true }]);
     expect(findings).toHaveLength(1);
