@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.1.16
+
+### Patch Changes
+
+- b9010e8: The examples in the doc comments of the message builders (`buildMessage`, `buildAck`) and the vendor profiles no longer print a whole message, a name or a free-text value.
+
+  These comments ship in the type declarations your editor shows and in the API reference. Each example now reads such a value into a variable, with its synthetic value in a comment, and prints only what is safe to log. No code changed, and a caller changes nothing.
+
+- 6aa05ca: The README usage example no longer prints a patient's record number, name or birth date.
+
+  It reads them into variables, with their synthetic values in comments, and prints only what is safe to log: the message type, a location code, booleans, a count and the precision of the birth date. The documentation gains a "What is safe to log" section on the warning and fatal codes page, which names the fields that carry raw input and must not be logged: `Hl7ParseError.snippet`, and `raw` on every entry `splitBatch` and `parseStream` return and every failed item `readMessages` yields, which holds the whole message. The README now says to log a warning's `code` and `position` rather than its `message`. The README install section now says that below 1.0 a breaking change can ship in a patch release, so a caret range does not protect you, and shows `pnpm add --save-exact @cosyte/hl7`. No code changed, and a caller changes nothing.
+
+- 7c4bf20: The examples in the doc comments of the message helpers (`patient`, `visit`, `orders`, `medications` and the rest) no longer print a name, record number, birth date, phone number or a clinical value.
+
+  These comments ship in the type declarations your editor shows and in the API reference. Each example now reads such a value into a variable, with its synthetic value in a comment, and prints only what is safe to log: a type, a code, a count or a precision. No code changed, and a caller changes nothing.
+
+- 98b1840: The examples in the doc comments of `Hl7Message`, `Segment`, `Field` and the data type parsers no longer print a name, record number, birth date, address or phone number.
+
+  These comments ship in the type declarations your editor shows and in the API reference. Each example now reads such a value into a variable, with its synthetic value in a comment, and prints only what is safe to log: a type, a code, a count or a precision. The `toString`, `toJSON` and `prettyPrint` examples keep the whole message in a variable instead of logging it. No code changed, and a caller changes nothing.
+
+- a65ca1f: Eight structural HL7 v2 code tables now ship on a new `@cosyte/hl7/tables` entry point, generated from HL7 Terminology 7.5.0 (CC0): 0003, 0008, 0076, 0103, 0104, 0155, 0211 and 0357. `V2_TABLES` gives each table's codes, display text, status and deprecation version, ready to bind into a profile's `valueSet`; `lookupV2Code(table, code, version)` answers `listed`, `deprecated` or `not-listed`, and `unknown` with a reason wherever the source does not settle it, so a code is never rejected for a version the table does not cover; `v2TableCodes` gives one version's list; `V2_TABLE_SOURCE` cites the source, its licence, the commit and every file's sha256. The tables are derived from HL7 Terminology and altered, and HL7 does not endorse this package. The main entry point does not import them.
+
+  `ERR_CONDITION_CODES` now matches table 0357: it adds `198` (Non-Conformant Cardinality) and `199` (Other HL7 Error), and `207` reads "Application error", the source's text, so `buildAck`'s default ERR-3.2 changes from "Application internal error" to "Application error". A caller that compares that text must update it. `105`, which the source does not list, is kept.
+
+- bd6fcd6: Narrowing: `toHl7Xml` no longer ships a group table for ORU_R01 in v2.5, so it takes every message structure's groups from you in `groups`.
+
+  The table was taken from an HL7 XML schema whose licence is unsettled, so we removed it until that is settled. `XML_GROUP_TABLES` stays exported and is now empty. A v2.5 ORU_R01 written without `groups` is refused with `GROUPS_UNKNOWN`, as every other structure already was, and the refusal now reads ``No group table ships for ORU_R01; pass `groups`.`` with no version in it. `parseHL7Xml` is unchanged: it reads group elements of any name without a table.
+
+  What to do: if you write ORU_R01 as v2 XML without `groups`, build the structure from your partner's schema and pass it, for example `toHl7Xml(msg, { dataTypes, groups: { structure: "ORU_R01", items: ["MSH", { group: "REPORT+", items: [...] }] } })`, or pass `groups: "none"` to write every segment directly under the root. If you read `XML_GROUP_TABLES["2.5"].ORU_R01`, keep your own copy of the structure instead. The how-to page "Read and write the v2 XML encoding" shows a full example.
+
+  The package now also ships `THIRD-PARTY-NOTICES.md`, which records where the HL7 v2+ structure files behind the structure registry came from: the repository, the commit, the date taken, the `CC0-1.0` its definition file declares, that the repository has no licence file and calls itself a draft, and that the structures describe the v2+ draft meant to represent v2.9.1.
+
 ## 0.1.15
 
 ### Patch Changes
