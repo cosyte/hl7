@@ -68,7 +68,7 @@ export interface XAD {
  *   { subcomponents: ["02101"] },
  * ] };
  * const addr = parseXad(rep, DEFAULT_ENCODING_CHARACTERS);
- * console.log(addr.city); // "Boston"
+ * const city = addr.city; // "Boston", synthetic
  * ```
  */
 export function parseXad(rep: RawRepetition, enc: EncodingCharacters): XAD {

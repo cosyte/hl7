@@ -54,7 +54,7 @@ let LAZY_RAW: PropertyDescriptor;
  * import { parseHL7 } from "@cosyte/hl7";
  * const msg = parseHL7(raw);
  * const pid = msg.segments("PID")[0];
- * if (pid !== undefined) console.log(pid.field(5).value);
+ * const name = pid?.field(5).value; // "Smith^Jane", synthetic
  * ```
  */
 export class Segment<FieldName extends string = string> {
@@ -256,7 +256,7 @@ export class Segment<FieldName extends string = string> {
    * @example
    * ```ts
    * const pid5 = msg.segments("PID")[0]?.field(5);
-   * console.log(pid5?.value); // "Smith"
+   * const name = pid5?.value; // "Smith", synthetic
    * const msh3 = msg.segments("MSH")[0]?.field(3);
    * console.log(msh3?.value); // sending application (HL7 MSH-3)
    * ```
@@ -328,10 +328,10 @@ export class Segment<FieldName extends string = string> {
    *   customSegments: { ZPI: { fields: { encounterId: 3 } } },
    * });
    * const msg = parseHL7(raw, profile);
-   * console.log(msg.part("ZPI")?.get("encounterId")?.value); // narrowed, no cast
+   * const encounter = msg.part("ZPI")?.get("encounterId")?.value; // narrowed, no cast
    * // msg.part("ZPI")?.get("encounterld"); // does not compile: not declared
    * const walked = msg.allSegments().find((s) => s.type === "ZPI");
-   * console.log(walked?.get("encounterId")?.value); // a walk takes any name
+   * const same = walked?.get("encounterId")?.value; // a walk takes any name
    * ```
    */
   public get(name: FieldName): Field | undefined {
