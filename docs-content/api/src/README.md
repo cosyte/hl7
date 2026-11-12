@@ -16876,7 +16876,7 @@ console.log(V2_XML_NAMESPACE); // "urn:hl7-org:v2xml"
 
 ### VERSION
 
-> `const` **VERSION**: `string` = `"0.1.12"`
+> `const` **VERSION**: `string` = `"0.1.13"`
 
 Library version string, kept equal to `package.json#version` by each
 release.
