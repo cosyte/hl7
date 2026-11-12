@@ -7,12 +7,21 @@
  * @see defineConformanceProfile: optional fail-fast profile-authoring gate.
  * @see usageOutcomes: read a declared conditional's true and false outcomes.
  * @see ConditionPredicate: the computable test that decides a conditional usage.
+ * @see findMessageProfiles: find the profile a message names in MSH-21, in a list you supply.
  */
 
 export { validateAgainstProfile } from "./validate-against-profile.js";
 export { collectProfileDefects, defineConformanceProfile } from "./profile-shape.js";
 export type { ProfileDefect } from "./profile-shape.js";
 export { usageOutcomes } from "./usage.js";
+export { findMessageProfiles } from "./message-profile.js";
+export type {
+  MessageProfileClaim,
+  MessageProfileEntry,
+  MessageProfileLookup,
+  MessageProfileMatch,
+  MessageProfileMiss,
+} from "./message-profile.js";
 export {
   FINDING_CODES,
   PREDICATE_CONNECTORS,

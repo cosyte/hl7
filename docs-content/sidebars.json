@@ -36,6 +36,7 @@
         "read-as-it-arrives",
         "read-and-write-v2-xml",
         "validate-messages",
+        "supply-your-own-codes-and-profiles",
         "schema-emission",
         "property-test-your-code"
       ]

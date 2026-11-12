@@ -56,6 +56,9 @@ profiles?.length; // => 1
 profiles?.[0]; // => { entityIdentifier: "Z22", namespaceId: "CDCPHINVS" }
 ```
 
+To pick the matching profile from a list you keep, see
+[Supply your own codes and profiles](./supply-your-own-codes-and-profiles.md#pick-the-profile-a-message-names).
+
 ## Read any field as a named composite
 
 Pick the accessor for the field's data type. A nested composite, such as the price inside a CP or
