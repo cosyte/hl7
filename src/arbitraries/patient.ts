@@ -13,13 +13,15 @@ import { value } from "./tree.js";
  * @internal
  */
 function codedValue(): Arbitrary<CWE> {
-  const part = value();
   return fc
-    .record(
-      { identifier: part, text: part, nameOfCodingSystem: part, originalText: part },
-      { requiredKeys: [] },
-    )
-    .filter((code) => Object.keys(code).length > 0);
+    .subarray(["identifier", "text", "nameOfCodingSystem", "originalText"] as const, {
+      minLength: 1,
+    })
+    .chain((keys) =>
+      fc
+        .array(value(), { minLength: keys.length, maxLength: keys.length })
+        .map((texts): CWE => Object.fromEntries(keys.map((key, i) => [key, texts[i]]))),
+    );
 }
 
 /**
