@@ -12797,11 +12797,10 @@ elements cannot be named. Only a value typed `TX` or `FT` may carry formatting e
 
 > `readonly` `optional` **groups?**: `"none"` \| [`XmlMessageStructure`](#xmlmessagestructure)
 
-The message structure whose groups the segments are placed in, for a structure
-`XML_GROUP_TABLES` does not cover (a partner's schema gives it), or `"none"` to write every
-segment directly under the root, for a structure with no groups or a receiver that asks for
-none. By default the writer takes the structure from `XML_GROUP_TABLES` for the message's
-version and refuses one it does not cover with `GROUPS_UNKNOWN`.
+The message structure whose groups the segments are placed in, as your partner's schema gives
+it, or `"none"` to write every segment directly under the root, for a structure with no groups
+or a receiver that asks for none. We ship no group table, so without it the writer refuses
+every message with `GROUPS_UNKNOWN`.
 
 ##### namespace?
 
@@ -14559,8 +14558,8 @@ Caps on the document; see [XmlLimits](#xmllimits).
 ### XmlGroupDefinition
 
 One segment group: its name without the structure prefix, ending in a cardinality as a segment
-id may (`"ORDER_OBSERVATION+"`), and its items in order. The writer names its element
-`STRUCTURE.GROUP` (`ORU_R01.ORDER_OBSERVATION`).
+id may (`"RESULT+"`), and its items in order. The writer names its element `STRUCTURE.GROUP`
+(`ORU_R01.RESULT`).
 
 #### Example
 
@@ -17364,8 +17363,8 @@ The document or a value holds a character XML 1.0 does not allow.
 
 > `readonly` **GROUPS\_UNKNOWN**: `"GROUPS_UNKNOWN"` = `"GROUPS_UNKNOWN"`
 
-The writer knows no groups for the message structure in the message's version and was not
-given them in `groups`: `XML_GROUP_TABLES` lists the structures it knows.
+The writer was not given the message structure's groups in `groups`. We ship no group table,
+so it takes every structure's groups from its caller.
 
 ##### INPUT\_TOO\_LARGE
 
@@ -17454,15 +17453,15 @@ try {
 > `const` **XML\_GROUP\_TABLES**: `Readonly`\<`Record`\<`string`, `Readonly`\<`Record`\<`string`, [`XmlMessageStructure`](#xmlmessagestructure)\>\>\>\>
 
 The message structures whose groups the v2 XML writer knows, by HL7 version (MSH-12) and then
-by structure id. Each is read from that version's published v2 XML schema. It covers ORU_R01 in
-v2.5 only: we found no public schema for any other version or structure. `toHl7Xml` refuses any
-other structure with `GROUPS_UNKNOWN` unless it is given one in `groups`.
+by structure id. It is empty: we ship no group table, so `toHl7Xml` refuses every structure with
+`GROUPS_UNKNOWN` unless it is given one in `groups`. The ORU_R01 table it once held for v2.5 was
+taken from an HL7 schema whose licence is unsettled, and was removed until that is settled.
 
 #### Example
 
 ```ts
 import { XML_GROUP_TABLES } from "@cosyte/hl7";
-console.log(Object.keys(XML_GROUP_TABLES["2.5"] ?? {})); // ["ORU_R01"]
+console.log(Object.keys(XML_GROUP_TABLES)); // []
 ```
 
 ## Functions
@@ -20724,7 +20723,7 @@ escapes and nulls, the same warnings, lazy by default.
 Element names are read by position: `PID.5` is the fifth field of PID, and inside it `XPN.1`
 (or any data type name ending in `.1`) is its first component, so no data type table is needed
 to read. The components of one value must all name the same data type, and none may be named
-for a segment (`PID.3` or `OBX.1` inside `PID.5`). Group elements (`ORU_R01.PATIENT_RESULT`) are
+for a segment (`PID.3` or `OBX.1` inside `PID.5`). Group elements (`ORU_R01.RESULT`) are
 walked through; segments are read in document order. One document is one message: a second
 MSH is refused. Text is the decoded value: a `|` or `^` in text is that character, written to
 the model as the pipe parser would read `\F\` or `\S`. A field whose text is `""` is the
@@ -22668,16 +22667,16 @@ toDate(parseDtm("20240230"), { assumeOffsetMinutes: 0 });
 > **toHl7Xml**(`message`, `options?`): `string`
 
 Write a message in the HL7 v2 XML encoding: a root element named for the message structure,
-an element for each segment group (`ORU_R01.PATIENT_RESULT`), one element per segment, `SEG.n`
+an element for each segment group (`ORU_R01.RESULT`), one element per segment, `SEG.n`
 for each field (repeated once per repetition), and each composite's components and
 subcomponents named for its data type (`XPN.1`, `FN.1`). MSH.1 and MSH.2 carry the message's
 delimiters; a field that is the explicit null is written `""`. Values are written decoded: a
 `|` in a value is a `|` in the text, a line break is `&#10;`.
 
-Groups: the segments are placed in the groups of the message structure, taken from
-`XML_GROUP_TABLES` for the message's version or from `options.groups`, and refused with
-`STRUCTURE_MISMATCH` when they do not fit it. A structure the tables do not cover is refused
-with `GROUPS_UNKNOWN`; `groups: "none"` writes the segments directly under the root.
+Groups: the segments are placed in the groups of the message structure given in
+`options.groups`, and refused with `STRUCTURE_MISMATCH` when they do not fit it. We ship no
+group table, so a message written without `groups` is refused with `GROUPS_UNKNOWN`;
+`groups: "none"` writes the segments directly under the root.
 
 Data types come from `options.dataTypes`, because the model does not carry them; a composite
 with no type there is refused with `DATA_TYPE_UNKNOWN`. In a value typed `TX` or `FT`, a

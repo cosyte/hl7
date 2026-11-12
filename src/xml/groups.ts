@@ -1,12 +1,11 @@
 /**
- * Segment groups for the HL7 v2 XML writer: the message structures it knows the groups of, by
- * version, and the matcher that places a message's segments in a structure's groups.
+ * Segment groups for the HL7 v2 XML writer: the shape of a message structure its caller passes,
+ * and the matcher that places a message's segments in that structure's groups.
  *
  * The v2 XML encoding writes each segment group as its own element, named for the message
- * structure and the group (`ORU_R01.PATIENT_RESULT`). The group names come from the schemas
- * published for each version, not from the chapter text, which leaves some groups unnamed. So the
- * writer only knows the structures listed in {@link XML_GROUP_TABLES} and takes any other from
- * its caller.
+ * structure and the group (`STRUCTURE.GROUP`). The group names come from the schemas published for
+ * each version, not from the chapter text, which leaves some groups unnamed. We ship no group
+ * table, so the writer takes every structure's groups from its caller.
  */
 
 import type { RawSegment } from "../parser/types.js";
@@ -28,8 +27,8 @@ export type XmlStructureItem = string | XmlGroupDefinition;
 
 /**
  * One segment group: its name without the structure prefix, ending in a cardinality as a segment
- * id may (`"ORDER_OBSERVATION+"`), and its items in order. The writer names its element
- * `STRUCTURE.GROUP` (`ORU_R01.ORDER_OBSERVATION`).
+ * id may (`"RESULT+"`), and its items in order. The writer names its element `STRUCTURE.GROUP`
+ * (`ORU_R01.RESULT`).
  *
  * @example
  * ```ts
@@ -61,66 +60,22 @@ export interface XmlMessageStructure {
   readonly items: readonly XmlStructureItem[];
 }
 
-/** A frozen group of a table. */
-function group(name: string, items: XmlStructureItem[]): XmlGroupDefinition {
-  return Object.freeze({ group: name, items: Object.freeze(items) });
-}
-
-/**
- * The ORU_R01 structure of the HL7 v2.5 XML schema (the message definition `ORU_R01.xsd` in the
- * `urn:hl7-org:v2xml` namespace), as a public copy of that schema shows it. Built on each call, so
- * the writer reads the same structure the tests pin.
- */
-function oruR01V25(): XmlMessageStructure {
-  return Object.freeze({
-    structure: "ORU_R01",
-    items: Object.freeze([
-      "MSH",
-      "SFT*",
-      group("PATIENT_RESULT+", [
-        group("PATIENT?", ["PID", "PD1?", "NTE*", "NK1*", group("VISIT?", ["PV1", "PV2?"])]),
-        group("ORDER_OBSERVATION+", [
-          "ORC?",
-          "OBR",
-          "NTE*",
-          group("TIMING_QTY*", ["TQ1", "TQ2*"]),
-          "CTD?",
-          group("OBSERVATION*", ["OBX", "NTE*"]),
-          "FT1*",
-          "CTI*",
-          group("SPECIMEN*", ["SPM", "OBX*"]),
-        ]),
-      ]),
-      "DSC?",
-    ]),
-  });
-}
-
-/**
- * The structure the tables give `root` in `version`, or `undefined` when they cover neither.
- *
- * @internal
- */
-export function groupTable(version: string, root: string): XmlMessageStructure | undefined {
-  return version === "2.5" && root === "ORU_R01" ? oruR01V25() : undefined;
-}
-
 /**
  * The message structures whose groups the v2 XML writer knows, by HL7 version (MSH-12) and then
- * by structure id. Each is read from that version's published v2 XML schema. It covers ORU_R01 in
- * v2.5 only: we found no public schema for any other version or structure. `toHl7Xml` refuses any
- * other structure with `GROUPS_UNKNOWN` unless it is given one in `groups`.
+ * by structure id. It is empty: we ship no group table, so `toHl7Xml` refuses every structure with
+ * `GROUPS_UNKNOWN` unless it is given one in `groups`. The ORU_R01 table it once held for v2.5 was
+ * taken from an HL7 schema whose licence is unsettled, and was removed until that is settled.
  *
  * @example
  * ```ts
  * import { XML_GROUP_TABLES } from "@cosyte/hl7";
- * console.log(Object.keys(XML_GROUP_TABLES["2.5"] ?? {})); // ["ORU_R01"]
+ * console.log(Object.keys(XML_GROUP_TABLES)); // []
  * ```
  */
-// Stryker disable all: a module constant, evaluated once when the test runner loads the module, so a mutant of it is never live; the writer reads groupTable, and a test pins this to it
+// Stryker disable all: a module constant, evaluated once when the test runner loads the module, so a mutant of it is never live; a test pins it empty and frozen
 export const XML_GROUP_TABLES: Readonly<
   Record<string, Readonly<Record<string, XmlMessageStructure>>>
-> = Object.freeze({ "2.5": Object.freeze({ ORU_R01: oruR01V25() }) });
+> = Object.freeze({});
 // Stryker restore all
 
 /** A structure item resolved: a segment or a group, how often it may stand, and its items. */
@@ -190,7 +145,7 @@ function resolve(items: unknown, prefix: string, depth: number): readonly Node[]
 }
 
 /**
- * Resolve a caller's or a table's structure, refusing a malformed one.
+ * Resolve a caller's structure, refusing a malformed one.
  *
  * @internal
  */

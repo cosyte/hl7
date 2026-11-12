@@ -5,7 +5,6 @@
 
 import { decodeWindows1252, resolveCharset } from "../parser/charset.js";
 import { findMessageStructureDefinition } from "../parser/message-structure.js";
-import { WITHHELD } from "../parser/tokens.js";
 import type { Hl7Message } from "../model/message.js";
 import type {
   EncodingCharacters,
@@ -18,7 +17,6 @@ import type {
 import { forbiddenCharacterAt } from "./chars.js";
 import { Hl7XmlError, XML_ERROR_CODES, safePath, type XmlErrorCode } from "./errors.js";
 import {
-  groupTable,
   placeSegments,
   resolveStructure,
   type PlacedGroup,
@@ -66,11 +64,10 @@ export interface ToHl7XmlOptions {
    */
   readonly namespace?: string | null;
   /**
-   * The message structure whose groups the segments are placed in, for a structure
-   * `XML_GROUP_TABLES` does not cover (a partner's schema gives it), or `"none"` to write every
-   * segment directly under the root, for a structure with no groups or a receiver that asks for
-   * none. By default the writer takes the structure from `XML_GROUP_TABLES` for the message's
-   * version and refuses one it does not cover with `GROUPS_UNKNOWN`.
+   * The message structure whose groups the segments are placed in, as your partner's schema gives
+   * it, or `"none"` to write every segment directly under the root, for a structure with no groups
+   * or a receiver that asks for none. We ship no group table, so without it the writer refuses
+   * every message with `GROUPS_UNKNOWN`.
    */
   readonly groups?: XmlMessageStructure | "none";
 }
@@ -460,40 +457,32 @@ function structureName(message: Hl7Message, options: ToHl7XmlOptions): string {
   return known;
 }
 
-/** The segments, placed in the groups the options or the tables give. */
+/** The segments, placed in the groups the options give. */
 function placed(
   message: Hl7Message,
   root: string,
   groups: ToHl7XmlOptions["groups"],
 ): readonly (RawSegment | PlacedGroup)[] {
   if (groups === "none") return message.rawSegments;
-  if (groups !== undefined)
-    return placeSegments(resolveStructure(groups).items, message.rawSegments);
-  const version = message.version;
-  const table = groupTable(version, root);
-  if (table === undefined) {
+  if (groups === undefined) {
     const name = safeStructure(root) ?? "this message structure";
-    const label = version === "" || version === WITHHELD ? "its version" : `v${version}`;
-    fail(
-      XML_ERROR_CODES.GROUPS_UNKNOWN,
-      `No group table covers ${name} in ${label}; pass \`groups\`.`,
-    );
+    fail(XML_ERROR_CODES.GROUPS_UNKNOWN, `No group table ships for ${name}; pass \`groups\`.`);
   }
-  return placeSegments(resolveStructure(table).items, message.rawSegments);
+  return placeSegments(resolveStructure(groups).items, message.rawSegments);
 }
 
 /**
  * Write a message in the HL7 v2 XML encoding: a root element named for the message structure,
- * an element for each segment group (`ORU_R01.PATIENT_RESULT`), one element per segment, `SEG.n`
+ * an element for each segment group (`ORU_R01.RESULT`), one element per segment, `SEG.n`
  * for each field (repeated once per repetition), and each composite's components and
  * subcomponents named for its data type (`XPN.1`, `FN.1`). MSH.1 and MSH.2 carry the message's
  * delimiters; a field that is the explicit null is written `""`. Values are written decoded: a
  * `|` in a value is a `|` in the text, a line break is `&#10;`.
  *
- * Groups: the segments are placed in the groups of the message structure, taken from
- * `XML_GROUP_TABLES` for the message's version or from `options.groups`, and refused with
- * `STRUCTURE_MISMATCH` when they do not fit it. A structure the tables do not cover is refused
- * with `GROUPS_UNKNOWN`; `groups: "none"` writes the segments directly under the root.
+ * Groups: the segments are placed in the groups of the message structure given in
+ * `options.groups`, and refused with `STRUCTURE_MISMATCH` when they do not fit it. We ship no
+ * group table, so a message written without `groups` is refused with `GROUPS_UNKNOWN`;
+ * `groups: "none"` writes the segments directly under the root.
  *
  * Data types come from `options.dataTypes`, because the model does not carry them; a composite
  * with no type there is refused with `DATA_TYPE_UNKNOWN`. In a value typed `TX` or `FT`, a
