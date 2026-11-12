@@ -178,6 +178,58 @@ describe("parser/normalize: Buffer path", () => {
   });
 });
 
+describe("parser/normalize: Buffer path given the bytes' latin1 text", () => {
+  // The latin1 text is the caller's, and normalizeBuffer trusts it. Each case passes one that
+  // differs from the bytes, so the result says which of the two the text was built from.
+  const quiet = (): void => undefined;
+
+  it("returns the latin1 text, line endings normalized, for ASCII under the default", () => {
+    const out = normalizeBuffer(Buffer.from("MSH|A\nPID|1"), undefined, quiet, "MSH|B\nPID|2");
+    expect(out).toBe("MSH|B\rPID|2");
+  });
+
+  it("returns the latin1 text for ASCII under every set it decodes", () => {
+    for (const charset of ["UNICODE UTF-8", "ASCII", "WINDOWS-1252", "8859/2"]) {
+      expect(normalizeBuffer(Buffer.from("MSH|A"), charset, quiet, "MSH|B")).toBe("MSH|B");
+    }
+  });
+
+  it("returns the latin1 text under 8859/1 whatever its characters", () => {
+    const bytes = Buffer.from([0x41, 0xe9]);
+    expect(normalizeBuffer(bytes, "8859/1", quiet, "Xé")).toBe("Xé");
+  });
+
+  it("decodes the bytes when the latin1 text is not all ASCII under another set", () => {
+    const bytes = Buffer.from("Café", "utf8");
+    const latin1 = bytes.toString("latin1");
+    expect(normalizeBuffer(bytes, undefined, quiet, latin1)).toBe("Café");
+    expect(normalizeBuffer(bytes, "UNICODE UTF-8", quiet, latin1)).toBe("Café");
+    const c1 = Buffer.from([0x41, 0x80]);
+    expect(normalizeBuffer(c1, "WINDOWS-1252", quiet, c1.toString("latin1"))).toBe("A€");
+  });
+
+  it("returns the latin1 text for a set it keeps verbatim, and for bytes a set rejects", () => {
+    expect(normalizeBuffer(Buffer.from("MSH|A"), "FAKE-SET", quiet, "MSH|B")).toBe("MSH|B");
+    expect(normalizeBuffer(Buffer.from("MSH|A"), "UNICODE UTF-16", quiet, "MSH|B")).toBe("MSH|B");
+    const invalid = Buffer.from([0x41, 0xff]);
+    const warnings: Hl7ParseWarning[] = [];
+    const out = normalizeBuffer(invalid, "UNICODE UTF-8", (w) => warnings.push(w), "Zÿ");
+    expect(out).toBe("Zÿ");
+    expect(warnings.map((w) => w.code)).toEqual([WARNING_CODES.UNSUPPORTED_CHARSET]);
+  });
+
+  it("gives the same text with or without the latin1 text when that text is the bytes' own", () => {
+    const sets = [undefined, "UNICODE UTF-8", "8859/1", "WINDOWS-1252", "8859/2", "FAKE-SET"];
+    const samples = [Buffer.from("MSH|A\r\nPID|1"), Buffer.from([0x41, 0xe9, 0x80, 0x0a, 0x42])];
+    for (const charset of sets) {
+      for (const bytes of samples) {
+        const own = normalizeBuffer(bytes, charset, quiet);
+        expect(normalizeBuffer(bytes, charset, quiet, bytes.toString("latin1"))).toBe(own);
+      }
+    }
+  });
+});
+
 describe("parser/charset: Table-0211 resolution", () => {
   it("resolves a blank / absent MSH-18 to the ASCII default (decoded, no warning)", () => {
     for (const raw of [undefined, "", "   "]) {

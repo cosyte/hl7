@@ -276,6 +276,7 @@ function resolveBufferCharset(
   raw: Buffer,
   options: ParseOptions,
   emit: (w: Hl7ParseWarning) => void,
+  latin1: string | undefined,
 ): string {
   // Pass 1: tentative UTF-8 decode to read MSH-18. This is cheap: for
   // UTF-8 payloads the tentative decode is exactly what `normalizeBuffer`
@@ -283,7 +284,7 @@ function resolveBufferCharset(
   // ASCII so MSH-18 still surfaces correctly even if the body garbles.
   const tentative = new TextDecoder("utf-8").decode(raw);
   const declared = extractMsh18FromTentativeDecode(tentative);
-  return normalizeBuffer(raw, chooseBufferCharset(declared, options, emit), emit);
+  return normalizeBuffer(raw, chooseBufferCharset(declared, options, emit), emit, latin1);
 }
 
 /**
@@ -569,6 +570,37 @@ export function parseHL7(
   raw: string | Buffer,
   optionsOrProfile?: ParseOptions | Profile,
 ): Hl7Message {
+  return parseInput(raw, optionsOrProfile, undefined);
+}
+
+/**
+ * Parse a message's bytes, given with the same bytes read through `latin1`, as `parseHL7` parses
+ * the bytes alone: the same message, warnings and errors. Where the decoded text would be that
+ * string's characters, the message keeps that string instead of decoding a second copy of it, so a
+ * caller that keeps `latin1` too holds the text once.
+ *
+ * @example
+ * ```ts
+ * const text = "MSH|^~\\&|A|F|B|G|20260101||ADT^A01|1|P|2.5";
+ * parseBytesRead(Buffer.from(text, "latin1"), text, undefined).version; // "2.5"
+ * ```
+ *
+ * @internal
+ */
+export function parseBytesRead(
+  bytes: Buffer,
+  latin1: string,
+  optionsOrProfile: ParseOptions | Profile | undefined,
+): Hl7Message {
+  return parseInput(bytes, optionsOrProfile, latin1);
+}
+
+/** `parseHL7`'s body; `latin1`, when given, is `raw` (bytes) read through `latin1`. */
+function parseInput(
+  raw: string | Buffer,
+  optionsOrProfile: ParseOptions | Profile | undefined,
+  latin1: string | undefined,
+): Hl7Message {
   const options = discriminateOptionsOrProfile(optionsOrProfile);
   const warnings: Hl7ParseWarning[] = [];
 
@@ -583,7 +615,7 @@ export function parseHL7(
   if (typeof raw === "string") {
     text = raw;
   } else {
-    text = resolveBufferCharset(raw, options, bufferEmit);
+    text = resolveBufferCharset(raw, options, bufferEmit, latin1);
   }
 
   // Step 2: EMPTY_INPUT fatal check at the top of the pipeline (D-03).
