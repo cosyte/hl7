@@ -22,6 +22,7 @@
  * Zero runtime deps: pure data derived from the registry at module load.
  */
 
+import { compareCodeUnits } from "../parser/code-order.js";
 import {
   MESSAGE_STRUCTURE_DEFINITIONS,
   findMessageStructureDefinition,
@@ -203,8 +204,8 @@ function derivePairs(): readonly SupportedBuilderMessage[] {
   }
   out.sort((a, b) =>
     a.messageCode === b.messageCode
-      ? a.triggerEvent.localeCompare(b.triggerEvent)
-      : a.messageCode.localeCompare(b.messageCode),
+      ? compareCodeUnits(a.triggerEvent, b.triggerEvent)
+      : compareCodeUnits(a.messageCode, b.messageCode),
   );
   return Object.freeze(out);
 }

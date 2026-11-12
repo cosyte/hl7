@@ -14,6 +14,7 @@
  */
 
 import type { Hl7Message } from "../model/message.js";
+import { parseEi, type EI } from "../model/types/ei.js";
 import { parseDtmCascade } from "../parser/dates.js";
 
 import type { Meta } from "./types.js";
@@ -122,6 +123,18 @@ export function buildMeta(msg: Hl7Message): Meta {
   // ─── MSH-11 processing ID (first component) ───────────────────────────
   const processingId = msg.get("MSH.11.1");
   if (processingId !== undefined && processingId !== "") out.processingId = processingId;
+
+  // ─── MSH-21 message profile identifiers (repeating EI) ────────────────
+  // Every repetition is read as an EI; an empty repetition is skipped, and the
+  // key is OMITTED when no repetition carries anything.
+  if (msh !== undefined) {
+    const profiles: EI[] = [];
+    for (const rep of msh.field(21).repetitions) {
+      const ei = parseEi(rep, msg.encodingCharacters);
+      if (Object.keys(ei).length > 0) profiles.push(Object.freeze(ei));
+    }
+    if (profiles.length > 0) out.messageProfileIdentifiers = Object.freeze(profiles);
+  }
 
   // D-01: freeze at boundary: callers see an immutable view.
   return Object.freeze(out);

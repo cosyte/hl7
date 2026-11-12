@@ -55,7 +55,7 @@ import { defineProfile } from "./define.js";
  * const msg = parseHL7(raw, profiles.meditech);
  * ```
  */
-export const meditech = defineProfile({
+const options = {
   name: "meditech",
   description:
     "MEDITECH MAGIC/6.x/Expanse: minute-precision timestamps and DFT charge Z-segments (ZF1/ZF2)",
@@ -84,4 +84,7 @@ export const meditech = defineProfile({
       },
     },
   },
-});
+};
+
+/** Build the profile above; `profiles.meditech` calls it on its first read. @internal */
+export const meditech = () => defineProfile(options);

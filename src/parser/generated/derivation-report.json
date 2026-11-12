@@ -18,13 +18,17 @@
     "OMI",
     "OML",
     "OMP",
+    "ORL",
     "ORM",
     "ORU",
+    "OUL",
+    "RAS",
+    "RDE",
     "SIU",
     "VXU"
   ],
-  "resolvedPairCount": 386,
-  "registryEntryCount": 42,
+  "resolvedPairCount": 401,
+  "registryEntryCount": 56,
   "unresolvedPairs": [
     {
       "messageCode": "ADT",
@@ -71,6 +75,12 @@
     {
       "messageCode": "ADT",
       "triggerEvent": "A48",
+      "referencedStructureId": "",
+      "reason": "The publication's message list names no structure for this pair."
+    },
+    {
+      "messageCode": "OUL",
+      "triggerEvent": "R21",
       "referencedStructureId": "",
       "reason": "The publication's message list names no structure for this pair."
     }
@@ -767,6 +777,126 @@
       "derivation": "published"
     },
     {
+      "messageCode": "ORL",
+      "triggerEvents": [
+        "O22"
+      ],
+      "structureId": "ORL_O22",
+      "structureIds": [
+        "ORL_O22"
+      ],
+      "requiredSegments": [
+        "MSA",
+        "MSH"
+      ],
+      "derivation": "published"
+    },
+    {
+      "messageCode": "ORL",
+      "triggerEvents": [
+        "O34"
+      ],
+      "structureId": "ORL_O34",
+      "structureIds": [
+        "ORL_O34"
+      ],
+      "requiredSegments": [
+        "MSA",
+        "MSH"
+      ],
+      "derivation": "published"
+    },
+    {
+      "messageCode": "ORL",
+      "triggerEvents": [
+        "O36"
+      ],
+      "structureId": "ORL_O36",
+      "structureIds": [
+        "ORL_O36"
+      ],
+      "requiredSegments": [
+        "MSA",
+        "MSH"
+      ],
+      "derivation": "published"
+    },
+    {
+      "messageCode": "ORL",
+      "triggerEvents": [
+        "O40"
+      ],
+      "structureId": "ORL_O40",
+      "structureIds": [
+        "ORL_O40"
+      ],
+      "requiredSegments": [
+        "MSA",
+        "MSH"
+      ],
+      "derivation": "published"
+    },
+    {
+      "messageCode": "ORL",
+      "triggerEvents": [
+        "O53"
+      ],
+      "structureId": "ORL_O53",
+      "structureIds": [
+        "ORL_O53"
+      ],
+      "requiredSegments": [
+        "MSA",
+        "MSH"
+      ],
+      "derivation": "published"
+    },
+    {
+      "messageCode": "ORL",
+      "triggerEvents": [
+        "O54"
+      ],
+      "structureId": "ORL_O54",
+      "structureIds": [
+        "ORL_O54"
+      ],
+      "requiredSegments": [
+        "MSA",
+        "MSH"
+      ],
+      "derivation": "published"
+    },
+    {
+      "messageCode": "ORL",
+      "triggerEvents": [
+        "O55"
+      ],
+      "structureId": "ORL_O55",
+      "structureIds": [
+        "ORL_O55"
+      ],
+      "requiredSegments": [
+        "MSA",
+        "MSH"
+      ],
+      "derivation": "published"
+    },
+    {
+      "messageCode": "ORL",
+      "triggerEvents": [
+        "O56"
+      ],
+      "structureId": "ORL_O56",
+      "structureIds": [
+        "ORL_O56"
+      ],
+      "requiredSegments": [
+        "MSA",
+        "MSH"
+      ],
+      "derivation": "published"
+    },
+    {
       "messageCode": "ORM",
       "triggerEvents": [
         "O01"
@@ -819,6 +949,109 @@
         "OBX",
         "ORC",
         "PID"
+      ],
+      "derivation": "published"
+    },
+    {
+      "messageCode": "OUL",
+      "triggerEvents": [
+        "R22"
+      ],
+      "structureId": "OUL_R22",
+      "structureIds": [
+        "OUL_R22"
+      ],
+      "requiredSegments": [
+        "MSH",
+        "OBR",
+        "SPM"
+      ],
+      "derivation": "published"
+    },
+    {
+      "messageCode": "OUL",
+      "triggerEvents": [
+        "R23"
+      ],
+      "structureId": "OUL_R23",
+      "structureIds": [
+        "OUL_R23"
+      ],
+      "requiredSegments": [
+        "MSH",
+        "OBR",
+        "SAC",
+        "SPM"
+      ],
+      "derivation": "published"
+    },
+    {
+      "messageCode": "OUL",
+      "triggerEvents": [
+        "R24"
+      ],
+      "structureId": "OUL_R24",
+      "structureIds": [
+        "OUL_R24"
+      ],
+      "requiredSegments": [
+        "MSH",
+        "OBR"
+      ],
+      "derivation": "published"
+    },
+    {
+      "messageCode": "RAS",
+      "triggerEvents": [
+        "O17"
+      ],
+      "structureId": "RAS_O17",
+      "structureIds": [
+        "RAS_O17"
+      ],
+      "requiredSegments": [
+        "MSH",
+        "ORC",
+        "RXA",
+        "RXR"
+      ],
+      "derivation": "published"
+    },
+    {
+      "messageCode": "RDE",
+      "triggerEvents": [
+        "O11",
+        "O25"
+      ],
+      "structureId": "RDE_O11",
+      "structureIds": [
+        "RDE_O11-A",
+        "RDE_O11-B"
+      ],
+      "requiredSegments": [
+        "MSH",
+        "ORC",
+        "RXE",
+        "RXR",
+        "TQ1"
+      ],
+      "derivation": "published"
+    },
+    {
+      "messageCode": "RDE",
+      "triggerEvents": [
+        "O49"
+      ],
+      "structureId": "RDE_O49",
+      "structureIds": [
+        "RDE_O49"
+      ],
+      "requiredSegments": [
+        "MSH",
+        "ORC",
+        "RXE",
+        "RXR",
+        "TQ1"
       ],
       "derivation": "published"
     },

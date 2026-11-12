@@ -32,6 +32,7 @@
 import { Hl7Message } from "../model/message.js";
 import { DEFAULT_ENCODING_CHARACTERS } from "../parser/delimiters.js";
 import type { RawField, RawSegment } from "../parser/types.js";
+import type { CWE } from "../model/types/cwe.js";
 import type { CX } from "../model/types/cx.js";
 import type { PL } from "../model/types/pl.js";
 import type { TS } from "../model/types/ts.js";
@@ -70,6 +71,14 @@ export interface AdtPatient {
   readonly phoneHome?: XTN | readonly XTN[];
   /** PID-18 Patient Account Number. */
   readonly accountNumber?: CX;
+  /** PID-35 Species Code, for a patient who is an animal. */
+  readonly species?: CWE;
+  /** PID-36 Breed Code. */
+  readonly breed?: CWE;
+  /** PID-37 Strain. */
+  readonly strain?: string;
+  /** PID-38 Production Class Code. */
+  readonly productionClass?: CWE;
 }
 
 /** Typed PV1 (patient visit) content for {@link buildAdt}. */
