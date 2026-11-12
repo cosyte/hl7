@@ -17,7 +17,7 @@
 
 import { Buffer } from "node:buffer";
 
-import { decodeWindows1252, resolveCharset } from "./charset.js";
+import { resolveCharset } from "./charset.js";
 import { Hl7ParseError } from "./errors.js";
 import { WARNING_CODES, unknownCharset, unsupportedCharset } from "./warnings.js";
 import type { Hl7ParseWarning } from "./warnings.js";
@@ -44,27 +44,11 @@ const CHARSET_POSITION = { segmentIndex: 0, fieldIndex: 18 } as const;
  * content a code-unit byte can equal a structural byte (e.g. a UTF-16 `0x0D`);
  * line-ending normalization and segment splitting then act on it, so framing is
  * best-effort: the documented reason multibyte decode is deferred, not claimed.
- * Line endings are normalized before that, so a content byte 0x0A becomes 0x0D
- * and a 0x0D 0x0A pair one 0x0D: those bytes do not survive in content whose
- * characters can hold them. Of the recognized sets kept here, UTF-16 and UTF-32
- * are the ones; a label the parser does not recognize, such as `UTF-16LE`, takes
- * this same path, and its content can hold them too.
  *
  * @internal
  */
-function preserveVerbatim(input: Buffer, latin1: string | undefined): string {
-  return normalize(latin1 ?? input.toString("latin1"));
-}
-
-/**
- * Whether every character of `text` is 7-bit ASCII. Every set the parser decodes (UTF-8, ASCII,
- * 8859/1 to 8859/16, WINDOWS-1252) reads a byte under 0x80 as the character of the same code, so
- * bytes whose `latin1` reading passes decode in any of them to that same text.
- *
- * @internal
- */
-function isAscii(text: string): boolean {
-  return /^[\u0000-\u007f]*$/u.test(text);
+function preserveVerbatim(input: Buffer): string {
+  return normalize(input.toString("latin1"));
 }
 
 /**
@@ -102,10 +86,6 @@ export function normalize(input: string): string {
  * registry ({@link resolveCharset}):
  *
  *  - `8859/1` (Latin-1) is decoded via `latin1`: byte-exact, never fails;
- *  - `WINDOWS-1252` (not a Table-0211 code) is decoded with the parser's own
- *    copy of the WHATWG table: bytes 0x80 to 0x9F become their Windows
- *    characters (0x80 the euro sign), the five bytes Windows leaves undefined
- *    become the C1 control of the same value, and it never fails;
  *  - the other faithfully-decodable sets (ASCII, `8859/2` to `8859/8`/`10`/`13` to `16`,
  *    UTF-8) are decoded **strictly** (`fatal: true`); a byte invalid / undefined
  *    for the declared set (or an ICU build lacking the label) falls through to
@@ -119,11 +99,7 @@ export function normalize(input: string): string {
  *
  * The fail-safe never guesses an encoding and never silently corrupts: an
  * undecoded / un-decodable set is preserved as a `latin1` byte reading, not
- * replacement characters, so single-byte content stays byte-recoverable. Line
- * endings are normalized on that reading too, so a 0x0A byte becomes U+000D and
- * a 0x0D 0x0A pair one U+000D: UTF-16 or UTF-32 content does not keep a
- * character that holds either byte. No character of an East Asian set kept
- * verbatim (ISO-2022, GB 18030, EUC, BIG-5) holds either one. A blank
+ * replacement characters, so single-byte content stays byte-recoverable. A blank
  * / `undefined` charset is the ASCII default, decoded strictly as UTF-8 (a
  * superset that renders 7-bit content identically and handles the common
  * undeclared-UTF-8 feed); non-UTF-8 bytes under that default preserve verbatim +
@@ -131,11 +107,6 @@ export function normalize(input: string): string {
  *
  * Callers remain responsible for the `EMPTY_INPUT` fatal check,
  * BOM stripping, and MLLP framing removal on the returned text.
- *
- * `latin1`, when given, is `input` already read through `latin1`. The text
- * returned is the same either way; with it, wherever the decode would give the
- * same characters (a `latin1` or verbatim reading, or bytes all under 0x80),
- * the text returned is built from that string rather than decoded again.
  *
  * @example
  * ```ts
@@ -147,27 +118,15 @@ export function normalize(input: string): string {
  * );
  * ```
  */
-export function normalizeBuffer(
-  input: Buffer,
-  charset: string | undefined,
-  emit: EmitFn,
-  latin1?: string,
-): string {
+export function normalizeBuffer(input: Buffer, charset: string | undefined, emit: EmitFn): string {
   const resolution = resolveCharset(charset);
   if (resolution.treatment === "decode") {
-    // A caller that already holds the bytes read through latin1 passes that text, and gets it back
-    // (line endings normalized) wherever a decode would give the same characters: so a message keeps
-    // the caller's string rather than a second copy of it.
-    if (latin1 !== undefined && (resolution.decoder === "latin1" || isAscii(latin1))) {
-      return normalize(latin1);
-    }
     if (resolution.decoder === "latin1") {
       // True ISO-8859-1: latin1 maps every byte losslessly and cannot fail.
       // (Node's `TextDecoder("iso-8859-1")` is windows-1252: wrong for the C1
       // range: so it is intentionally not used here.)
       return normalize(input.toString("latin1"));
     }
-    if (resolution.decoder === "windows-1252") return normalize(decodeWindows1252(input));
     try {
       // STRICT decode (fatal: true): a byte that is invalid / undefined for the
       // declared set throws rather than silently becoming U+FFFD (irreversible
@@ -178,9 +137,8 @@ export function normalizeBuffer(
       const decoder = new TextDecoder(resolution.decoder, { fatal: true });
       return normalize(decoder.decode(input));
     } catch {
-      // A byte the set does not define: the bytes are kept verbatim below, with
-      // UNSUPPORTED_CHARSET, as for a set the parser does not decode (every set it
-      // decodes is a recognized one).
+      emit(unsupportedCharset(CHARSET_POSITION, resolution.canonical));
+      return preserveVerbatim(input);
     }
   }
   // Verbatim path: recognized-but-not-decoded → UNSUPPORTED_CHARSET;
@@ -192,7 +150,7 @@ export function normalizeBuffer(
     const label = charset ?? "";
     emit(unknownCharset(CHARSET_POSITION, label));
   }
-  return preserveVerbatim(input, latin1);
+  return preserveVerbatim(input);
 }
 
 /**
@@ -221,7 +179,7 @@ function latin1Chunk(bytes: Uint8Array): string {
 
 /**
  * A {@link ChunkDecoder} for `charset`: `latin1` for 8859/1 and for every set the parser keeps
- * verbatim, the parser's own table for WINDOWS-1252, and a strict `TextDecoder` for the others. Reports `UNSUPPORTED_CHARSET` or
+ * verbatim, and a strict `TextDecoder` for the others. Reports `UNSUPPORTED_CHARSET` or
  * `UNKNOWN_CHARSET` through `emit` when it is created, as `normalizeBuffer` does.
  *
  * @example
@@ -236,7 +194,6 @@ export function chunkDecoder(charset: string | undefined, emit: EmitFn): ChunkDe
   const resolution = resolveCharset(charset);
   if (resolution.treatment === "decode") {
     if (resolution.decoder === "latin1") return { decode: latin1Chunk };
-    if (resolution.decoder === "windows-1252") return { decode: decodeWindows1252 };
     let decoder: InstanceType<typeof TextDecoder> | undefined;
     try {
       decoder = new TextDecoder(resolution.decoder, { fatal: true });

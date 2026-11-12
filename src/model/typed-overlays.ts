@@ -125,14 +125,6 @@ export interface OverlayStructures {
   readonly "OML^O39": readonly ["MSH", "ORC"];
   readonly "OML^O59_A": readonly ["MSH", "ORC"];
   readonly "OMP^O09": readonly ["MSH", "ORC", "RXO", "RXR"];
-  readonly "ORL^O22": readonly ["MSA", "MSH"];
-  readonly "ORL^O34": readonly ["MSA", "MSH"];
-  readonly "ORL^O36": readonly ["MSA", "MSH"];
-  readonly "ORL^O40": readonly ["MSA", "MSH"];
-  readonly "ORL^O53": readonly ["MSA", "MSH"];
-  readonly "ORL^O54": readonly ["MSA", "MSH"];
-  readonly "ORL^O55": readonly ["MSA", "MSH"];
-  readonly "ORL^O56": readonly ["MSA", "MSH"];
   readonly "ORM^O01": readonly ["ORC"];
   readonly "ORU^R01": readonly ["MSH", "OBR"];
   readonly "ORU^R30": readonly ["MSH", "OBR", "OBX", "ORC", "PID"];
@@ -141,13 +133,6 @@ export interface OverlayStructures {
   readonly "ORU^R40": readonly ["MSH", "OBR"];
   readonly "ORU^R42": readonly ["MSH", "OBR"];
   readonly "ORU^R43": readonly ["MSH", "OBR"];
-  readonly "OUL^R22": readonly ["MSH", "OBR", "SPM"];
-  readonly "OUL^R23": readonly ["MSH", "OBR", "SAC", "SPM"];
-  readonly "OUL^R24": readonly ["MSH", "OBR"];
-  readonly "RAS^O17": readonly ["MSH", "ORC", "RXA", "RXR"];
-  readonly "RDE^O11": readonly ["MSH", "ORC", "RXE", "RXR", "TQ1"];
-  readonly "RDE^O25": readonly ["MSH", "ORC", "RXE", "RXR", "TQ1"];
-  readonly "RDE^O49": readonly ["MSH", "ORC", "RXE", "RXR", "TQ1"];
   readonly "SIU^S12": readonly ["MSH", "RGS", "SCH"];
   readonly "SIU^S13": readonly ["MSH", "RGS", "SCH"];
   readonly "SIU^S14": readonly ["MSH", "RGS", "SCH"];

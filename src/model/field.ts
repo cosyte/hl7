@@ -6,9 +6,7 @@
  * calls `new Field(...)` directly.
  *
  * Typed composite coercions (`asXpn`, `asXad`, `asCx`, `asCwe`, `asCe`,
- * `asXtn`, `asPl`, `asTs`, `asNm`, `asHd`, `asXcn`, `asEi`, `asEip`, `asCne`,
- * `asDr`, `asMo`, `asCp`, `asCq`, `asVid`, `asMsg`, `asPt`, `asFc`) delegate
- * to the corresponding
+ * `asXtn`, `asPl`, `asTs`, `asNm`, `asHd`) delegate to the corresponding
  * composite parsers from `./types/*`. Coercions are lazy and NOT memoized
  * in v1: each call re-parses the first repetition. Empty fields
  * return empty typed objects (`{}` for optional-field composites,
@@ -22,22 +20,11 @@ import { denseRepetitions } from "./dense-raw.js";
 import { renderText, type RenderedText, type RenderTextOptions } from "../text/render.js";
 import type { EncodingCharacters, Hl7Position, RawField, RawRepetition } from "../parser/types.js";
 import { parseCe, type CE } from "./types/ce.js";
-import { parseCne, type CNE } from "./types/cne.js";
-import { parseCp, type CP } from "./types/cp.js";
-import { parseCq, type CQ } from "./types/cq.js";
 import { parseCwe, type CWE } from "./types/cwe.js";
 import { parseCx, type CX } from "./types/cx.js";
-import { parseDr, type DR } from "./types/dr.js";
-import { parseEi, type EI } from "./types/ei.js";
-import { parseEip, type EIP } from "./types/eip.js";
-import { parseFc, type FC } from "./types/fc.js";
 import { parseHd, type HD } from "./types/hd.js";
-import { parseMo, type MO } from "./types/mo.js";
-import { parseMsg, type MSG } from "./types/msg.js";
 import { parseNm, type NM } from "./types/nm.js";
 import { parsePl, type PL } from "./types/pl.js";
-import { parsePt, type PT } from "./types/pt.js";
-import { parseVid, type VID } from "./types/vid.js";
 import { parseSn, type SN } from "./types/sn.js";
 import { parseTs, type TS } from "./types/ts.js";
 import { parseXad, type XAD } from "./types/xad.js";
@@ -419,161 +406,6 @@ export class Field {
    */
   public asXcn(): XCN {
     return parseXcn(this.repetitions[0] ?? EMPTY_REP, this.enc);
-  }
-
-  /**
-   * Coerce this field's first repetition to a typed `EI` (Entity Identifier).
-   * Common on MSH-21 (message profile), OBR-2 and OBR-3, ORC-2 and ORC-3
-   * (placer and filler order numbers). Empty field gives `{}` (never throws).
-   *
-   * @example
-   * ```ts
-   * const placer = msg.segments("OBR")[0]?.field(2)?.asEi();
-   * console.log(placer?.entityIdentifier, placer?.namespaceId);
-   * ```
-   */
-  public asEi(): EI {
-    return parseEi(this.repetitions[0] ?? EMPTY_REP, this.enc);
-  }
-
-  /**
-   * Coerce this field's first repetition to a typed `EIP` (Entity Identifier
-   * Pair): a placer and a filler `EI`, each read from its subcomponents.
-   *
-   * @example
-   * ```ts
-   * const parent = msg.segments("OBR")[0]?.field(29)?.asEip();
-   * console.log(parent?.fillerAssignedIdentifier?.entityIdentifier);
-   * ```
-   */
-  public asEip(): EIP {
-    return parseEip(this.repetitions[0] ?? EMPTY_REP, this.enc);
-  }
-
-  /**
-   * Coerce this field's first repetition to a typed `CNE` (Coded with No
-   * Exceptions): the 22 CWE components under the same names.
-   *
-   * @example
-   * ```ts
-   * const code = msg.segments("OBX")[0]?.field(3)?.asCne();
-   * console.log(code?.identifier, code?.nameOfCodingSystem);
-   * ```
-   */
-  public asCne(): CNE {
-    return parseCne(this.repetitions[0] ?? EMPTY_REP, this.enc);
-  }
-
-  /**
-   * Coerce this field's first repetition to a typed `DR` (Date/Time Range).
-   * Each endpoint is the raw datetime text.
-   *
-   * @example
-   * ```ts
-   * // A site-defined segment carrying a coverage window in its first field:
-   * const range = msg.segments("ZCV")[0]?.field(1)?.asDr();
-   * console.log(range?.rangeStartDateTime, range?.rangeEndDateTime);
-   * ```
-   */
-  public asDr(): DR {
-    return parseDr(this.repetitions[0] ?? EMPTY_REP, this.enc);
-  }
-
-  /**
-   * Coerce this field's first repetition to a typed `MO` (Money). The amount
-   * stays the text the sender wrote, never a `number`.
-   *
-   * @example
-   * ```ts
-   * // A site-defined segment carrying an amount in its first field:
-   * const amount = msg.segments("ZBL")[0]?.field(1)?.asMo();
-   * console.log(amount?.quantity, amount?.denomination);
-   * ```
-   */
-  public asMo(): MO {
-    return parseMo(this.repetitions[0] ?? EMPTY_REP, this.enc);
-  }
-
-  /**
-   * Coerce this field's first repetition to a typed `CP` (Composite Price):
-   * `price` is a nested `MO`, `rangeUnits` a nested coded element.
-   *
-   * @example
-   * ```ts
-   * const amount = msg.segments("FT1")[0]?.field(11)?.asCp();
-   * console.log(amount?.price?.quantity, amount?.price?.denomination);
-   * ```
-   */
-  public asCp(): CP {
-    return parseCp(this.repetitions[0] ?? EMPTY_REP, this.enc);
-  }
-
-  /**
-   * Coerce this field's first repetition to a typed `CQ` (Composite Quantity
-   * with Units): `units` is a nested coded element.
-   *
-   * @example
-   * ```ts
-   * const quantity = msg.segments("TQ1")[0]?.field(2)?.asCq();
-   * console.log(quantity?.quantity, quantity?.units?.identifier);
-   * ```
-   */
-  public asCq(): CQ {
-    return parseCq(this.repetitions[0] ?? EMPTY_REP, this.enc);
-  }
-
-  /**
-   * Coerce this field's first repetition to a typed `VID` (Version
-   * Identifier).
-   *
-   * @example
-   * ```ts
-   * const version = msg.segments("MSH")[0]?.field(12)?.asVid();
-   * console.log(version?.versionId);
-   * ```
-   */
-  public asVid(): VID {
-    return parseVid(this.repetitions[0] ?? EMPTY_REP, this.enc);
-  }
-
-  /**
-   * Coerce this field's first repetition to a typed `MSG` (Message Type).
-   *
-   * @example
-   * ```ts
-   * const type = msg.segments("MSH")[0]?.field(9)?.asMsg();
-   * console.log(type?.messageCode, type?.triggerEvent, type?.messageStructure);
-   * ```
-   */
-  public asMsg(): MSG {
-    return parseMsg(this.repetitions[0] ?? EMPTY_REP, this.enc);
-  }
-
-  /**
-   * Coerce this field's first repetition to a typed `PT` (Processing Type).
-   *
-   * @example
-   * ```ts
-   * const processing = msg.segments("MSH")[0]?.field(11)?.asPt();
-   * console.log(processing?.processingId, processing?.processingMode);
-   * ```
-   */
-  public asPt(): PT {
-    return parsePt(this.repetitions[0] ?? EMPTY_REP, this.enc);
-  }
-
-  /**
-   * Coerce this field's first repetition to a typed `FC` (Financial Class):
-   * `financialClassCode` is a nested coded element.
-   *
-   * @example
-   * ```ts
-   * const financialClass = msg.segments("PV1")[0]?.field(20)?.asFc();
-   * console.log(financialClass?.financialClassCode?.identifier);
-   * ```
-   */
-  public asFc(): FC {
-    return parseFc(this.repetitions[0] ?? EMPTY_REP, this.enc);
   }
 }
 

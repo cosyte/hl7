@@ -226,7 +226,6 @@ function buildSnippet(input: string, _position: Hl7Position): string {
  */
 export function extractMsh18FromTentativeDecode(tentativeText: string): string | undefined {
   const firstSegment = tentativeText.split(/[\r\n]/)[0];
-  /* v8 ignore next -- split always returns at least one element, so the first is never undefined */
   if (firstSegment === undefined) return undefined;
   if (!firstSegment.startsWith("MSH")) return undefined;
   // HL7 field-separator character is at index 3 of the MSH segment (after
@@ -240,11 +239,7 @@ export function extractMsh18FromTentativeDecode(tentativeText: string): string |
   if (raw === undefined) return undefined;
   // Repetition separator = MSH-2 character 2 (0-indexed 1); default `~` when
   // MSH-2 is short/malformed. Take the first repetition = the message default.
-  // Stryker disable next-line StringLiteral: parts[1] is always defined here, so "" is never read
-  /* v8 ignore next -- parts[17] is defined above, so parts[1] is too */
-  const encodingCharacters = parts[1] ?? "";
-  const repSep = encodingCharacters.charAt(1) || "~";
-  /* v8 ignore next -- split always returns a first element */
+  const repSep = (parts[1] ?? "").charAt(1) || "~";
   const firstRep = raw.split(repSep)[0] ?? raw;
   const trimmed = firstRep.trim();
   return trimmed.length > 0 ? trimmed : undefined;
@@ -276,7 +271,6 @@ function resolveBufferCharset(
   raw: Buffer,
   options: ParseOptions,
   emit: (w: Hl7ParseWarning) => void,
-  latin1: string | undefined,
 ): string {
   // Pass 1: tentative UTF-8 decode to read MSH-18. This is cheap: for
   // UTF-8 payloads the tentative decode is exactly what `normalizeBuffer`
@@ -284,7 +278,7 @@ function resolveBufferCharset(
   // ASCII so MSH-18 still surfaces correctly even if the body garbles.
   const tentative = new TextDecoder("utf-8").decode(raw);
   const declared = extractMsh18FromTentativeDecode(tentative);
-  return normalizeBuffer(raw, chooseBufferCharset(declared, options, emit), emit, latin1);
+  return normalizeBuffer(raw, chooseBufferCharset(declared, options, emit), emit);
 }
 
 /**
@@ -570,37 +564,6 @@ export function parseHL7(
   raw: string | Buffer,
   optionsOrProfile?: ParseOptions | Profile,
 ): Hl7Message {
-  return parseInput(raw, optionsOrProfile, undefined);
-}
-
-/**
- * Parse a message's bytes, given with the same bytes read through `latin1`, as `parseHL7` parses
- * the bytes alone: the same message, warnings and errors. Where the decoded text would be that
- * string's characters, the message keeps that string instead of decoding a second copy of it, so a
- * caller that keeps `latin1` too holds the text once.
- *
- * @example
- * ```ts
- * const text = "MSH|^~\\&|A|F|B|G|20260101||ADT^A01|1|P|2.5";
- * parseBytesRead(Buffer.from(text, "latin1"), text, undefined).version; // "2.5"
- * ```
- *
- * @internal
- */
-export function parseBytesRead(
-  bytes: Buffer,
-  latin1: string,
-  optionsOrProfile: ParseOptions | Profile | undefined,
-): Hl7Message {
-  return parseInput(bytes, optionsOrProfile, latin1);
-}
-
-/** `parseHL7`'s body; `latin1`, when given, is `raw` (bytes) read through `latin1`. */
-function parseInput(
-  raw: string | Buffer,
-  optionsOrProfile: ParseOptions | Profile | undefined,
-  latin1: string | undefined,
-): Hl7Message {
   const options = discriminateOptionsOrProfile(optionsOrProfile);
   const warnings: Hl7ParseWarning[] = [];
 
@@ -615,7 +578,7 @@ function parseInput(
   if (typeof raw === "string") {
     text = raw;
   } else {
-    text = resolveBufferCharset(raw, options, bufferEmit, latin1);
+    text = resolveBufferCharset(raw, options, bufferEmit);
   }
 
   // Step 2: EMPTY_INPUT fatal check at the top of the pipeline (D-03).

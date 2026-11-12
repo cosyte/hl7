@@ -1,8 +1,8 @@
 /**
  * fast-check generators for HL7 v2, at `@cosyte/hl7/arbitraries`: encoding characters, escape
  * sequences, values, components, repetitions, fields, segments, message types, whole messages,
- * messy message text, hostile input, and an animal patient's species, breed, strain and production
- * class. We use them to test this library, and you can use them to test code you build on it.
+ * messy message text and hostile input. We use them to test this library, and you can use them
+ * to test code you build on it.
  *
  * `fast-check` is an optional peer dependency: install it to use this entry point. The main
  * entry point, `@cosyte/hl7`, never loads it.
@@ -30,4 +30,3 @@ export { component, field, repetition, segment, value } from "./tree.js";
 export type { SegmentOptions, TreeOptions, ValueOptions } from "./tree.js";
 export { hostileInput, message, messageText, messageType } from "./message.js";
 export type { HostileInputOptions, MessageOptions, MessageType } from "./message.js";
-export { breed, productionClass, species, strain } from "./patient.js";

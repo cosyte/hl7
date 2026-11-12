@@ -17,7 +17,6 @@
 
 import { Buffer } from "node:buffer";
 
-import { isBlankLine } from "./blank-line.js";
 import { readDelimiters } from "./delimiters.js";
 import { FATAL_CODES, Hl7ParseError } from "./errors.js";
 import {
@@ -482,7 +481,7 @@ export async function* readMessages(
     offset += bytes;
     const segment = lineIndex++;
     const open = parts.length > 0;
-    if (!open && isBlankLine(text, kinds.kind === "bytes")) return; // a blank line between messages
+    if (!open && text.trim() === "") return; // a blank line between messages
     const name = lineName(text);
     if (isEnvelopeName(name)) {
       flush(false);
@@ -542,8 +541,7 @@ export async function* readMessages(
     tail = lines.term === "" ? lines.text : "";
     line(lines.text, lines.term);
   }
-  // flush() returns at once when no message is open.
-  flush(!isBlankLine(tail, kinds.kind === "bytes"));
+  flush(parts.length > 0 && tail.trim() !== "");
   for (const item of out) {
     yield item;
     if (strict && !item.ok) return;
