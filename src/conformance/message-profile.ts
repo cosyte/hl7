@@ -100,12 +100,10 @@ const EI_COMPONENTS = 4;
  * @internal
  */
 function malformed(rep: RawRepetition): boolean {
-  return rep.components.some((component, index) => {
-    // `?.` and `??` read a `null` that a repetition built by hand carries as absent.
-    const subcomponents = component?.subcomponents ?? [];
-    const from = index < EI_COMPONENTS ? 1 : 0;
-    return subcomponents.slice(from).some((sub) => (sub ?? "") !== "");
-  });
+  // `Field.repetitions` already reads a hole or `null` in a repetition built by hand as empty.
+  return rep.components.some((component, index) =>
+    component.subcomponents.slice(index < EI_COMPONENTS ? 1 : 0).some((sub) => sub !== ""),
+  );
 }
 
 /** A component's value, or `undefined` when it is absent or empty. @internal */

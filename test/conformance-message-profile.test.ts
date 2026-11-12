@@ -22,6 +22,8 @@ import {
   parseHL7,
   type ConformanceProfile,
   type MessageProfileEntry,
+  type RawComponent,
+  type RawSegment,
 } from "../src/index.js";
 
 const OID_A = "2.16.840.1.113883.19.900.1";
@@ -46,6 +48,28 @@ function customMessage(msh21: string): ReturnType<typeof parseHL7> {
       msh21 +
       "\rPID#1##EX0001$$$EXHOSP$MR##Doe$Jane",
   );
+}
+
+/**
+ * The VXU with MSH-21 replaced by one repetition built by hand from `components`, which may hold a
+ * `null` a caller passed past the types, in place of a component or a subcomponent.
+ */
+function byHand(components: readonly (RawComponent | null)[]): Hl7Message {
+  const parsed = message("");
+  const [msh, ...rest]: readonly RawSegment[] = parsed.rawSegments;
+  if (msh === undefined) throw new Error("the synthetic message has an MSH");
+  const fields = [...msh.fields];
+  // MSH fields[0] is the field separator, so MSH-21 sits at index 20.
+  fields[20] = {
+    repetitions: [{ components: components as readonly RawComponent[] }],
+    isNull: false,
+  };
+  return new Hl7Message({
+    segments: [{ ...msh, fields }, ...rest],
+    encodingCharacters: parsed.encodingCharacters,
+    version: "2.5.1",
+    warnings: [],
+  });
 }
 
 const intake: ConformanceProfile = { name: "example-intake", segments: [] };
@@ -306,6 +330,29 @@ describe("findMessageProfiles: a repetition that is not the shape of an EI", () 
     expect(findMessageProfiles(message("EXPROF-1&^EXAMPLEORG"), [INTAKE]).outcome).toBe("one");
     expect(findMessageProfiles(message("EXPROF-1^EXAMPLEORG^^^"), [INTAKE]).outcome).toBe("one");
     expect(findMessageProfiles(message("EXPROF-1^EXAMPLEORG^^^&"), [INTAKE]).outcome).toBe("one");
+  });
+
+  it("reads a null component or subcomponent of a repetition built by hand as absent", () => {
+    const nullComponent = byHand([
+      { subcomponents: ["EXPROF-1"] },
+      { subcomponents: ["EXAMPLEORG"] },
+      null,
+      null,
+      null,
+    ]);
+    expect(findMessageProfiles(nullComponent, [INTAKE]).outcome).toBe("one");
+    const nullSub = byHand([
+      { subcomponents: ["EXPROF-1", null as unknown as string] },
+      { subcomponents: ["EXAMPLEORG"] },
+    ]);
+    expect(findMessageProfiles(nullSub, [INTAKE]).outcome).toBe("one");
+    const valued = byHand([
+      { subcomponents: ["EXPROF-1", "X"] },
+      { subcomponents: ["EXAMPLEORG"] },
+    ]);
+    expect(findMessageProfiles(valued, [INTAKE]).unmatched.map((u) => u.reason)).toEqual([
+      "malformed",
+    ]);
   });
 
   it("keeps a malformed repetition apart from a well-formed one beside it", () => {
