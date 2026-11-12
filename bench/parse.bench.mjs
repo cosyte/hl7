@@ -87,6 +87,34 @@ export function documentMessage(i, bytes) {
   return head + prefix + base64Document(documentBytes, i) + suffix;
 }
 
+/**
+ * A synthetic ORU^R01 of about 1.6 KiB with every identifying segment filled (PID, PV1, NK1, GT1,
+ * IN1), then an order, eight results and a note: the message a de-identifying pipeline reads and
+ * writes back, one at a time. Every name, identifier and value is made up.
+ */
+export function identifiedReport(i) {
+  const id = String(i).padStart(8, "0");
+  const lines = [
+    `MSH|^~\\&|LABAPP|LABFAC|EHRAPP|EHRFAC|20240115083000||ORU^R01|SYNTH${id}|P|2.5.1`,
+    `PID|1||ZZMRN${id}^^^HOSP^MR~9${id}^^^SSA^SS||Doe^Jane^Q||19800101|F|||ZZSTREET 001^^ZZCITY^MA^02100||5550000000|5550000001||||ZZACCT${id}|9${id}`,
+    `PV1|1|O|CLINIC^101^A||||DOC123^Smith^Robert|||MED||||1|||||ZZVISIT${id}|||||||||||||||||||||||||20240115080000|20240115120000`,
+    `NK1|1|Doe^John|SPO|ZZNKSTREET^^ZZNKCITY^MA^02101|5550000002`,
+    `GT1|1|ZZGT${id}^^^HOSP^AN|Roe^Sam||ZZGTSTREET^^ZZGTCITY^NY^10001|5550000003||19800108|M||SEL|9${id}`,
+    `IN1|1|PLAN001|INSCO001|SYNTH INSURANCE CO|ORGADDR^^ORGCITY^MA^02101||5559990000|ZZGROUP001||||||||Doe^Jane|SEL|19800104|ZZINSSTREET^^ZZINSCITY^MA^01890|||||||||||||||||ZZPOLICY${id}`,
+    `ORC|RE|ZZPLACER${id}|ZZFILLER${id}`,
+    `OBR|1|ZZPLACER${id}|ZZFILLER${id}|24323-8^Comprehensive metabolic panel^LN|||20240115081500|||||||||ORD1^Welby^Marcus||||||20240115082500|||F`,
+  ];
+  for (let k = 0; k < 8; k++) {
+    lines.push(
+      `OBX|${String(k + 1)}|NM|2951-2^Sodium^LN|1|${String(135 + k)}|mmol/L|135-145|N|||F|||20240115081500`,
+    );
+  }
+  lines.push(
+    `NTE|1|L|Reviewed in full for ZZACCT${id} by the ordering provider, with every result in range. Repeat the panel in three months, sooner if any new symptoms appear today.`,
+  );
+  return `${lines.join("\r")}\r`;
+}
+
 // Small to very large. The small size is the message a feed carries all day; 32 KiB is a long
 // result report; 1 MiB is far past any message a sender writes by hand. `messages` keeps a pass at
 // the small sizes from being one string repeated.
@@ -98,8 +126,17 @@ export function documentMessage(i, bytes) {
 // second budget on top of the small sizes. The 1 MiB document stays in the shared job: its parse is
 // one slice of the text, and its `toString()` is short. docs-content/performance.md gives the
 // large comparison's measured false alarm rate.
+//
+// The 1.6 KiB report is the message a de-identifying pipeline reads whole and writes back, one at
+// a time: its peak heap in a reading is what one such message costs, the fixed cost of a call
+// included.
 export const SIZES = [
   { label: "ADT^A01, 280 B", messages: 64, build: (i) => adtMessage(i) },
+  {
+    label: "ORU^R01 with every identifying segment, 1.6 KiB",
+    messages: 64,
+    build: (i) => identifiedReport(i),
+  },
   { label: "ORU^R01, 32 KiB", messages: 8, build: (i) => oruMessage(i, 32 * KIB) },
   {
     label: "ORU^R01, 1 MiB",

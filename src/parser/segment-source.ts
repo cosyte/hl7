@@ -16,6 +16,7 @@
  * @internal
  */
 
+import { HOLDS_ESCAPE } from "./scan.js";
 import { buildSegment } from "./tokenize.js";
 import { markAlteredFields } from "./wire-fidelity.js";
 import type { EncodingCharacters, RawField, RawSegment } from "./types.js";
@@ -30,6 +31,11 @@ export class SegmentSource {
   private readonly built: (RawSegment | undefined)[];
   /** The shared `fields[0]` placeholder of each segment name, for this message alone. */
   private readonly placeholders = new Map<string, RawField>();
+  /**
+   * What `textAsWritten` reads the encoding characters as: worked out on its first call, then
+   * kept; `null` when no segment can be written from its text.
+   */
+  private codes: WriteCodes | null | undefined;
 
   /**
    * @param text The normalized text the scanner read.
@@ -75,6 +81,89 @@ export class SegmentSource {
     this.built[index] = segment;
     return segment;
   }
+
+  /**
+   * Segment `index`'s own text, when it has not been built and writing its tree with `enc` would
+   * give that same text back; `undefined` otherwise, and the caller writes the built tree. So a
+   * message written out before anything reads a segment writes that segment without building it.
+   *
+   * It answers only when it is sure: never for a segment already built (its tree is what a caller
+   * may have changed), one that holds the escape character, had a field trimmed or a framing byte
+   * removed, or is written with encoding characters other than the ones it was read with. The text
+   * itself must hold nothing the writer changes (see `writesAsRead`).
+   */
+  public textAsWritten(index: number, enc: EncodingCharacters): string | undefined {
+    if (enc !== this.enc || this.built[index] !== undefined) return undefined;
+    if (this.trimmed[index] !== undefined || this.framing[index] !== undefined) return undefined;
+    const table = this.table;
+    if (((table[2 * index + 1] as number) & HOLDS_ESCAPE) !== 0) return undefined;
+    this.codes ??= writeCodes(enc) ?? null;
+    if (this.codes === null) return undefined;
+    const start = table[2 * index] as number;
+    const end = (table[2 * index + 2] as number) - 1;
+    return writesAsRead(this.text, start, end, this.codes)
+      ? this.text.slice(start, end)
+      : undefined;
+  }
+}
+
+/** The codes of the characters the writer treats specially, as `writesAsRead` reads them. */
+interface WriteCodes {
+  readonly field: number;
+  readonly component: number;
+  readonly repetition: number;
+  readonly subcomponent: number;
+  /** The truncation character's code, or `NaN` when the message declares none: equal to no code. */
+  readonly truncation: number;
+}
+
+/**
+ * The codes `writesAsRead` reads for `enc`, or `undefined` when a delimiter it reads is more than
+ * one UTF-16 code unit (MSH-2 can name a character outside the Basic Multilingual Plane), so no
+ * segment is written from its text. MSH-1 is always one code unit, and the parser has already
+ * refused encoding characters that repeat.
+ */
+function writeCodes(enc: EncodingCharacters): WriteCodes | undefined {
+  const read = enc.component + enc.repetition + enc.subcomponent + (enc.truncation ?? "");
+  if (read.length !== (enc.truncation === undefined ? 3 : 4)) return undefined;
+  return {
+    field: enc.field.charCodeAt(0),
+    component: read.charCodeAt(0),
+    repetition: read.charCodeAt(1),
+    subcomponent: read.charCodeAt(2),
+    truncation: read.charCodeAt(3),
+  };
+}
+
+/**
+ * Whether the segment that runs from `start` to `end` of `text`, holding no escape character, is
+ * written back exactly as it reads. The writer joins a tree's values with the delimiters, drops
+ * the empty subcomponents and components at the end of a component and a repetition, escapes the
+ * delimiters and the truncation character held in a value (and a line feed, which the text never
+ * holds: the parser reads every line ending as a segment's end), and writes a segment whose field
+ * region is one empty field (`PID|`) as its name alone. So the text is written as it reads unless
+ * it holds a component separator before a field or repetition separator or its end, a
+ * subcomponent separator before any of those or a component separator, or a truncation character,
+ * or is a name and one field separator.
+ */
+function writesAsRead(text: string, start: number, end: number, codes: WriteCodes): boolean {
+  const { field, component, repetition, subcomponent, truncation } = codes;
+  let separators = 0;
+  // Stryker disable next-line EqualityOperator: one step past the end reads the segment's CR, or past the text, which is no delimiter
+  for (let i = start; i < end; i++) {
+    const code = text.charCodeAt(i);
+    if (code === field) {
+      separators++;
+      continue;
+    }
+    if (code === truncation) return false;
+    if (code !== component && code !== subcomponent) continue;
+    // The end of the segment ends a field, as a field separator does.
+    const next = i + 1 < end ? text.charCodeAt(i + 1) : field;
+    if (next === field || next === repetition) return false;
+    if (code === subcomponent && next === component) return false;
+  }
+  return !(separators === 1 && text.charCodeAt(end - 1) === field);
 }
 
 /**
@@ -138,6 +227,15 @@ export class PendingSegment implements RawSegment {
   /** The built segment this entry stands for: the same object on every call. */
   public resolve(): RawSegment {
     return this.#source.segment(this.#index);
+  }
+
+  /**
+   * The segment's own text, when it has not been built and writing it with `enc` would give that
+   * text back, so it can be written without building it; `undefined` otherwise. An `MSH` segment
+   * is always built: its first two fields are written from the encoding characters.
+   */
+  public textAsWritten(enc: EncodingCharacters): string | undefined {
+    return this.name === "MSH" ? undefined : this.#source.textAsWritten(this.#index, enc);
   }
 }
 

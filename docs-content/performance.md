@@ -29,9 +29,12 @@ everything.
 `bench/parse.bench.mjs` is our benchmark suite, run by the shared `@cosyte/bench` tool against the
 built `dist/index.mjs`, the entry a consumer imports. It has four benchmarks: `parseHL7`, the parse
 followed by the reads most callers make (MSH, PID, PV1 and five OBX), `parseHL7` with
-`{ lazy: false }`, and the parse followed by `toString()`. Each runs at six sizes: an `ADT^A01` of
-280 bytes, `ORU^R01` result reports of 32 KiB, 1 MiB and 4 MiB, and `ORU^R01` messages of 1 MiB and
-4 MiB that carry one base64 document. Every message is synthetic and built in the process.
+`{ lazy: false }`, and the parse followed by `toString()`. Each runs at seven sizes: an `ADT^A01` of
+280 bytes, an `ORU^R01` of 1.6 KiB with every identifying segment filled (PID, PV1, NK1, GT1 and
+IN1), `ORU^R01` result reports of 32 KiB, 1 MiB and 4 MiB, and `ORU^R01` messages of 1 MiB and
+4 MiB that carry one base64 document. Every message is synthetic and built in the process. The
+1.6 KiB report is the message a de-identifying pipeline reads whole and writes back one at a time,
+so its peak heap in a reading is what one such message costs, the fixed cost of a call included.
 
 - **A reading** (`pnpm build && pnpm bench:reading`) measures one build: throughput, latency
   percentiles, allocations per call, the peak memory of one call, whether the heap stays flat over a
@@ -39,7 +42,7 @@ followed by the reads most callers make (MSH, PID, PV1 and five OBX), `parseHL7`
 - **A comparison** times the base build against the head build, interleaved in fresh processes on
   one machine, and calls a regression only when the whole interval on the median change is above
   3%. On a pull request it runs on a GitHub-hosted runner in two jobs: CI's `bench-compare` over the
-  280 B, 32 KiB and 1 MiB document sizes, and `large-compare` in the `bench-reading` workflow over
+  280 B, 1.6 KiB, 32 KiB and 1 MiB document sizes, and `large-compare` in the `bench-reading` workflow over
   the 1 MiB and 4 MiB result reports and the 4 MiB document (`bench/parse-large.compare.mjs`). The
   large cases each take one call at a time to warm up, until the median of the last five calls is
   within 5% of the five before them, which does not fit the shared job's time budget.

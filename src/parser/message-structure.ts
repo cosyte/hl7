@@ -141,7 +141,10 @@ function findDefinition(
   messageCode: string,
   triggerEvent: string,
 ): MessageStructureDefinition | undefined {
-  for (const def of MESSAGE_STRUCTURE_DEFINITIONS) {
+  // An indexed loop: every parse runs this over the list, and `for...of` made an iterator result
+  // for each definition it passed, a few KiB a parse.
+  for (let i = 0; i < MESSAGE_STRUCTURE_DEFINITIONS.length; i++) {
+    const def = MESSAGE_STRUCTURE_DEFINITIONS[i] as MessageStructureDefinition;
     if (def.messageCode !== messageCode) continue;
     if (def.triggerEvents.length === 0 || def.triggerEvents.includes(triggerEvent)) {
       return def;
