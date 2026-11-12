@@ -78,8 +78,18 @@ export function generateControlId(): string {
     pad(now.getUTCMinutes(), 2) +
     pad(now.getUTCSeconds(), 2) +
     pad(now.getUTCMilliseconds(), 3);
-  randomByte ??= byteSource((bytes) => globalThis.crypto.getRandomValues(bytes), RANDOM_POOL_BYTES);
+  randomByte ??= byteSource(fillRandom, RANDOM_POOL_BYTES);
   return ts + randomSuffix(randomByte);
+}
+
+/**
+ * Fill `bytes` from the Web Crypto global, which Node.js, Bun and Deno all
+ * provide without an import.
+ *
+ * @internal
+ */
+function fillRandom(bytes: Uint8Array): void {
+  globalThis.crypto.getRandomValues(bytes);
 }
 
 /**

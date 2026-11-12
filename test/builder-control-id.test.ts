@@ -115,11 +115,14 @@ describe("generateControlId (D-12)", () => {
 
   it("draws its random bytes from Web Crypto many IDs at a time, not once an ID", () => {
     // A `crypto.getRandomValues` call for every ID made each ACK measurably slower, so the bytes
-    // are drawn a pool at a time. 200 IDs read about 1,240 bytes.
+    // are drawn a pool of 1,024 at a time. 400 IDs read about 2,480 bytes: two or three pools,
+    // whatever an earlier test left in the one before.
     const spy = vi.spyOn(globalThis.crypto, "getRandomValues");
     try {
-      for (let i = 0; i < 200; i++) generateControlId();
-      expect(spy.mock.calls.length).toBeLessThanOrEqual(2);
+      for (let i = 0; i < 400; i++) generateControlId();
+      expect(spy.mock.calls.length).toBeGreaterThanOrEqual(2);
+      expect(spy.mock.calls.length).toBeLessThanOrEqual(3);
+      for (const [bytes] of spy.mock.calls) expect((bytes as Uint8Array).length).toBe(1024);
     } finally {
       spy.mockRestore();
     }
