@@ -38,8 +38,8 @@ and makes no network call (`docs-content/spec-notes-conformance.md`). MSH-21 is 
 helper returns its repetitions as `messageProfileIdentifiers`. Nothing resolves one to a profile.
 
 Two published files already cover part of 0076 and 0003. The vendored `messages.json` from HL7's
-v2+ publication (`vendor/hl7-v2ig/`) names 687 code and event pairs, built from 128 distinct
-message codes and 350 distinct event codes (counted with `grep` over the file at `4d89126`). These
+v2+ publication (`vendor/hl7-v2ig/`) names 694 code and event pairs, built from 128 distinct
+message codes and 356 distinct event codes (counted with `grep` over the file at `4d89126`). These
 are the codes the publication's messages use, not the tables: a table can carry a code no message
 uses, and the file carries no table's display text.
 
@@ -76,7 +76,7 @@ profiles and the character set table are today.
 
 - Bundle: every consumer downloads and loads the data whether or not it uses a table. Six of the
   eight tables are short lists. 0003 and 0076 are not: the event codes alone run to hundreds, going
-  by the 350 in the vendored publication.
+  by the 356 in the vendored publication.
 - Cold import: lazy building keeps the parse off the import path, but the module text is still read
   and compiled. The cold import is already the number this package watches most closely, held at 15
   ms on the CI runner. Any growth there has to be measured on the runner before it ships.
