@@ -32,17 +32,6 @@ export const SIMPLE_USAGE_CODES: readonly SimpleUsageCode[] = Object.freeze([
 ]);
 
 /**
- * The most characters of a profile-supplied token any finding or authoring
- * error may echo. A profile is author-supplied configuration rather than
- * message content, so echoing the token is what lets an author find their typo;
- * the bound keeps an unbounded author-supplied string out of a diagnostic all
- * the same.
- *
- * @internal
- */
-export const MAX_ECHOED_TOKEN_LENGTH = 32;
-
-/**
  * The shape of a token the grammar admits: a simple code, or a declared
  * conditional carrying its two outcomes.
  *
@@ -105,22 +94,9 @@ export function parseUsageToken(token: string): ParsedUsage | undefined {
 }
 
 /**
- * The at-most-32-character echo of a profile-supplied token, for a diagnostic
- * that names the offending token. Counts code points, so a surrogate pair is
- * never split in half. Never called on anything read from the message.
- *
- * @internal
- */
-export function boundedToken(token: string): string {
-  const points = Array.from(token);
-  if (points.length <= MAX_ECHOED_TOKEN_LENGTH) return token;
-  return points.slice(0, MAX_ECHOED_TOKEN_LENGTH).join("");
-}
-
-/**
  * Name a value's TYPE for a diagnostic, never its content. Used wherever a
- * profile-supplied value is of the wrong type entirely, so there is no token
- * worth echoing and echoing one would say nothing useful.
+ * profile-supplied value is of the wrong type entirely: no diagnostic echoes a
+ * profile-supplied value, so its type is the most a diagnostic says about it.
  *
  * @internal
  */

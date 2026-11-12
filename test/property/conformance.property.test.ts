@@ -24,6 +24,8 @@ import {
   PREDICATE_CONNECTORS,
   PREDICATE_VERBS,
   PROFILE_LEVELS,
+  ProfileDefinitionError,
+  defineConformanceProfile,
   parseHL7,
   validateAgainstProfile,
   type ConditionPredicate,
@@ -260,6 +262,161 @@ const resolutionArgArb = fc.oneof(
   fc.array(resolutionMemberArb, { maxLength: 5 }),
 );
 
+/**
+ * The values in the message pool that identify a patient. A finding names a
+ * locus and a rule, so none of these may ever appear in one.
+ */
+const MESSAGE_VALUES: readonly string[] = [
+  "MRN1",
+  "MRN2",
+  "MRN3",
+  "MRN4",
+  "Doe",
+  "John",
+  "Roe",
+  "Jane",
+  "Poe",
+  "19800101",
+  "19700101",
+  "19900101",
+];
+
+/**
+ * A mark no fixed diagnostic text contains. Every free-text profile value the
+ * marked arbitraries draw starts with it, so a finding that contains it has
+ * echoed a profile value.
+ */
+const PROFILE_MARK = "QPV~";
+
+/**
+ * Free text in a profile position: any string, marked, and never containing a
+ * message value, so a profile value and a message value are always told apart.
+ */
+const profileText = fc
+  .string()
+  .map((s) => `${PROFILE_MARK}${s}`)
+  .filter((s) => MESSAGE_VALUES.every((v) => !s.includes(v)));
+
+/** A condition whose every free-text position is marked profile text. */
+const markedConditionArb = fc.record(
+  {
+    location: fc.record(
+      {
+        segment: fc.oneof(VALID_SEGMENT, profileText),
+        field: fc.oneof(fc.integer({ min: 1, max: 20 }), fc.integer(), profileText),
+      },
+      { requiredKeys: [] },
+    ),
+    verb: fc.oneof(fc.constantFrom(...PREDICATE_VERBS), profileText),
+    values: fc.oneof(fc.array(profileText, { maxLength: 3 }), profileText),
+  },
+  { requiredKeys: ["location"] },
+);
+
+/**
+ * A well-formed profile whose free text (its name and its value sets) is
+ * marked, so the engine reaches the message-level checks: a value-set finding
+ * then has both a profile value and a message value at hand, and may show
+ * neither.
+ */
+const markedWellFormedProfileArb = fc.record({
+  name: profileText.filter((s) => s.trim().length > 0),
+  segments: fc.array(
+    fc.record(
+      {
+        segment: VALID_SEGMENT,
+        usage: VALID_USAGE,
+        fields: fc.array(
+          fc.record(
+            {
+              field: fc.integer({ min: 1, max: 12 }),
+              usage: VALID_USAGE,
+              length: fc.nat({ max: 10 }),
+              valueSet: fc.array(profileText, { minLength: 1, maxLength: 3 }),
+            },
+            { requiredKeys: ["field"] },
+          ),
+          { maxLength: 3 },
+        ),
+      },
+      { requiredKeys: ["segment"] },
+    ),
+    { maxLength: 4 },
+  ),
+});
+
+/** The wider vocabulary with every free-text position marked: usage, level, coding system and more. */
+const markedMalformedProfileArb = fc.record(
+  {
+    name: fc.oneof(profileText, fc.integer()),
+    level: fc.oneof(fc.constantFrom(...PROFILE_LEVELS), profileText),
+    segments: fc.oneof(
+      fc.array(
+        fc.record(
+          {
+            segment: fc.oneof(VALID_SEGMENT, profileText),
+            usage: fc.oneof(WIDE_USAGE, profileText),
+            condition: markedConditionArb,
+            cardinality: cardinalityArb,
+            severity: fc.oneof(fc.constantFrom("error", "warning", "info"), profileText),
+            fields: fc.array(
+              fc.record(
+                {
+                  field: fc.oneof(fc.integer({ min: 1, max: 20 }), profileText),
+                  usage: fc.oneof(WIDE_USAGE, profileText),
+                  cardinality: cardinalityArb,
+                  length: fc.nat({ max: 10 }),
+                  valueSet: fc.array(profileText, { maxLength: 3 }),
+                  codingSystem: fc.oneof(fc.constantFrom("HL70001", "LN"), profileText),
+                  components: fc.array(
+                    fc.record(
+                      {
+                        component: fc.oneof(fc.integer({ min: 1, max: 4 }), profileText),
+                        usage: fc.oneof(WIDE_USAGE, profileText),
+                      },
+                      { requiredKeys: ["component"] },
+                    ),
+                    { maxLength: 2 },
+                  ),
+                },
+                { requiredKeys: ["field"] },
+              ),
+              { maxLength: 3 },
+            ),
+          },
+          { requiredKeys: ["segment"] },
+        ),
+        { maxLength: 4 },
+      ),
+      profileText,
+    ),
+  },
+  { requiredKeys: ["name", "segments"] },
+);
+
+/** Marked profiles, well-formed and malformed in equal measure. */
+const markedProfileArb = fc.oneof(markedWellFormedProfileArb, markedMalformedProfileArb);
+
+/** A resolution argument whose every free-text position is marked profile text. */
+const markedResolutionArgArb = fc.oneof(
+  fc.constant(undefined),
+  profileText,
+  fc.array(
+    fc.oneof(
+      fc.record(
+        {
+          segment: fc.oneof(VALID_SEGMENT, profileText),
+          field: fc.oneof(fc.integer({ min: 1, max: 20 }), profileText),
+          outcome: fc.oneof(fc.boolean(), profileText),
+        },
+        { requiredKeys: [] },
+      ),
+      profileText,
+    ),
+    { maxLength: 4 },
+  ),
+);
+
 /** The engine's signature is typed; these properties feed it what a caller can. */
 const runWith = (
   msg: (typeof MESSAGE_POOL)[number],
@@ -309,7 +466,13 @@ describe("property: the wider vocabulary and caller-supplied resolutions", () =>
     );
   });
 
-  it("every finding stays well-formed and PHI-free of the message's own values", () => {
+  it("replays the case a pull request's run found: a profile value that reads as a message value", () => {
+    // The property this replaces drew a profile whose usage was the free text
+    // "Doe", the same text as the first message's family name, and the
+    // malformed-profile finding echoed it. The seed and path replay that draw
+    // exactly; the explicit case is pinned beside it in
+    // test/conformance-no-echo.test.ts, which holds if a fast-check upgrade
+    // ever moves what this path draws.
     checkProperty(
       fc.property(
         fc.nat({ max: MESSAGE_POOL.length - 1 }),
@@ -319,14 +482,52 @@ describe("property: the wider vocabulary and caller-supplied resolutions", () =>
           const msg = MESSAGE_POOL[idx];
           if (msg === undefined) return;
           for (const f of runWith(msg, profile, resolutions).findings) {
-            expect(["error", "warning", "info"]).toContain(f.severity);
-            expect(typeof f.locus.segment).toBe("string");
-            expect(f.message.length).toBeGreaterThan(0);
             expect(f.message).not.toContain("MRN1");
             expect(f.message).not.toContain("Doe");
           }
         },
       ),
+      { seed: 187685056, path: "444:0:0:2:1:5:1:27:25:25:25:25" },
+    );
+  });
+
+  it("every finding stays well-formed, echoes no profile value and no message value", () => {
+    // Every free-text value in the profile and the resolution argument carries
+    // PROFILE_MARK and none contains a MESSAGE_VALUES entry, so the two are
+    // told apart: a hit on the mark is a profile value echoed, a hit on a
+    // message value is the message leaking, and neither can pass for the other.
+    checkProperty(
+      fc.property(
+        fc.nat({ max: MESSAGE_POOL.length - 1 }),
+        markedProfileArb,
+        markedResolutionArgArb,
+        (idx, profile, resolutions) => {
+          const msg = MESSAGE_POOL[idx];
+          if (msg === undefined) return;
+          for (const f of runWith(msg, profile, resolutions).findings) {
+            expect(["error", "warning", "info"]).toContain(f.severity);
+            expect(typeof f.locus.segment).toBe("string");
+            expect(f.message.length).toBeGreaterThan(0);
+            expect(f.message).not.toContain(PROFILE_MARK);
+            expect(f.locus.segment).not.toContain(PROFILE_MARK);
+            for (const value of MESSAGE_VALUES) expect(f.message).not.toContain(value);
+          }
+        },
+      ),
+      RUN_CONFIG,
+    );
+  });
+
+  it("the authoring error echoes no profile value either", () => {
+    checkProperty(
+      fc.property(markedProfileArb, (profile) => {
+        try {
+          defineConformanceProfile(profile);
+        } catch (err) {
+          expect(err).toBeInstanceOf(ProfileDefinitionError);
+          expect((err as ProfileDefinitionError).message).not.toContain(PROFILE_MARK);
+        }
+      }),
       RUN_CONFIG,
     );
   });

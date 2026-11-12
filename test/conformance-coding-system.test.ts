@@ -359,14 +359,15 @@ describe("coding-system binding: an unrecognized identifier is refused when the 
     expect(() => defineConformanceProfile(withUnrecognized("ZZZ"))).toThrow(ProfileDefinitionError);
   });
 
-  it("the error names the identifier and says the LIBRARY does not recognize it", () => {
+  it("the error names the position, says the LIBRARY does not recognize it, never echoes it", () => {
     let message = "";
     try {
       defineConformanceProfile(withUnrecognized("ZZZ"));
     } catch (err) {
       message = err instanceof Error ? err.message : "";
     }
-    expect(message).toContain("ZZZ");
+    expect(message).not.toContain("ZZZ");
+    expect(message).toContain("codingSystem is not a coding-system identifier");
     expect(message).toContain("this library recognizes");
     // The recognition oracle is a deliberate subset, so the refusal must not
     // claim the identifier is absent from the published registry.

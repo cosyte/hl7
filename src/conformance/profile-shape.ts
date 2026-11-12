@@ -14,7 +14,14 @@
  *   profile-authoring time; the engine itself never throws (task invariant).
  *
  * A defect `detail` describes the profile's SHAPE (`segments[2].fields[0].field
- * must be a positive integer`): profile structure only, never PHI.
+ * must be a positive integer`): profile structure only, never PHI. It names the
+ * position, the kind of fault and what was expected, and **never the offending
+ * value**: a profile is caller-supplied text, a caller may build one from
+ * anything, and a diagnostic that echoes it is how a value ends up in a log. The
+ * one kind of value a detail does show is a token already checked against a
+ * fixed set, so it is profile structure rather than free text: a segment name
+ * that matched `[A-Z][A-Z0-9]{2}`, a usage token the declarable-usage grammar
+ * admits, and the numbers of a cardinality that passed its own check.
  *
  * Three families of check here are about COHERENCE rather than shape, and all
  * three come from the HL7 conformance methodology rather than from this
@@ -41,7 +48,6 @@ import { collectPredicateDefects } from "./predicate.js";
 import { PROFILE_LEVELS, type ConformanceProfile, type FindingLocus } from "./types.js";
 import {
   SIMPLE_USAGE_CODES,
-  boundedToken,
   describeValueType,
   parseUsageToken,
   predicateOutcomes,
@@ -226,11 +232,10 @@ function checkUsageCardinalityCoherence(
  *
  * A level that is not one of the three is a defect however it is wrong: a token
  * outside the set, a mis-spelling, or a value of another type entirely reaching
- * the engine through an unchecked cast. The detail names the offending
- * declaration the way {@link checkUsage} names an offending usage token, which
- * is to say bounded and by type where there is no token worth echoing. A
- * profile's level is author-supplied configuration rather than message content,
- * so echoing it is what lets an author find their typo.
+ * the engine through an unchecked cast. The detail names the position, the
+ * fault and the three levels it expected, and never the value declared: a
+ * string outside the set is free text, and a value of another type is named by
+ * its type alone.
  *
  * @internal
  */
@@ -248,7 +253,7 @@ function checkLevel(level: unknown, out: ProfileDefect[]): void {
   if ((PROFILE_LEVELS as readonly string[]).includes(level)) return;
   out.push({
     locus,
-    detail: `profile.level "${boundedToken(level)}" is not a conformance profile level. ${expected}`,
+    detail: `profile.level is not a conformance profile level. ${expected}`,
   });
 }
 
@@ -290,7 +295,9 @@ const IMPLEMENTABLE_TERMINUS =
  *
  * A token the declarable-usage grammar does not admit at all is skipped:
  * {@link checkUsage} has already reported it, and a level complaint derived
- * from a token that means nothing would only restate it.
+ * from a token that means nothing would only restate it. So the usage this
+ * detail names has passed that grammar first: it is one of the fixed codes or a
+ * conditional built from them, never free text.
  *
  * @internal
  */
@@ -311,7 +318,7 @@ function checkImplementableUsage(usage: unknown, locus: FindingLocus, out: Profi
   out.push({
     locus,
     detail:
-      `${where} declares usage "${boundedToken(usage)}", which this profile's claim of the implementable level does not admit. ` +
+      `${where} declares usage "${usage}", which this profile's claim of the implementable level does not admit. ` +
       IMPLEMENTABLE_TERMINUS,
   });
 }
@@ -484,10 +491,9 @@ export function collectProfileDefects(profile: unknown): readonly ProfileDefect[
  * placeholder notation and a token whose outcomes are not simple codes, and it
  * yields exactly ONE `PROFILE_MALFORMED` finding, not one for each reading.
  *
- * The defect names the offending token AS A WHOLE (rather than only its bad
- * part) so an author can find their typo, bounded to the first 32 characters; a
- * usage that is not a string at all has no token worth echoing, so that defect
- * names the value's TYPE instead.
+ * The defect names the rule's position and the codes it expected, and never the
+ * token declared: a token the grammar refuses is free text by definition. A
+ * usage that is not a string at all is named by its TYPE.
  *
  * @internal
  */
@@ -504,7 +510,7 @@ function checkUsage(usage: unknown, locus: FindingLocus, out: ProfileDefect[]): 
   out.push({
     locus,
     detail:
-      `${describe(locus)} usage "${boundedToken(usage)}" is not a usage code this profile may declare. ` +
+      `${describe(locus)} usage is not a usage code this profile may declare. ` +
       `Expected one of ${SIMPLE_USAGE_CODES.join("/")}, or a declared conditional written C(<true>/<false>) with both outcomes drawn from them.`,
   });
 }
@@ -588,7 +594,8 @@ const RECOGNIZED_CODING_SYSTEMS: string = KNOWN_CODING_SYSTEMS.map((s) => s.id).
  * detail says the identifier is not one this library recognizes: it is not a
  * claim that the identifier is unregistered, and refusing at authoring time is
  * the fail-safe direction against silently comparing a message to a system that
- * cannot be resolved.
+ * cannot be resolved. The detail lists the identifiers it recognizes and never
+ * echoes the one declared.
  *
  * @internal
  */
@@ -633,7 +640,7 @@ function checkCodingSystem(
     out.push({
       locus,
       detail:
-        `${describe(locus)} codingSystem "${boundedToken(bound)}" is not a coding-system identifier this library recognizes. ` +
+        `${describe(locus)} codingSystem is not a coding-system identifier this library recognizes. ` +
         `Recognized identifiers (and their well-known aliases): ${RECOGNIZED_CODING_SYSTEMS}.`,
     });
   }

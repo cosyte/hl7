@@ -400,13 +400,14 @@ describe("an implementable claim is checked, not believed (AC7 to AC13)", () => 
 // ---------------------------------------------------------------------------
 
 describe("a level outside the three defined ones (AC14 to AC16)", () => {
-  it("a token outside the set is PROFILE_MALFORMED naming the offending declaration", () => {
+  it("a token outside the set is PROFILE_MALFORMED naming the declaration, never its value", () => {
     for (const level of ["Implementable", "IMPLEMENTABLE", "certified", "", "conformant"]) {
       const { findings, level: inForce } = run(withPid8Usage("RE", level));
       const defects = malformed(findings);
       expect(defects).toHaveLength(1);
       expect(defects[0]?.locus).toMatchObject({ segment: "(profile)" });
-      expect(defects[0]?.message).toContain(`"${level}"`);
+      expect(defects[0]?.message).toContain("profile.level is not a conformance profile level.");
+      expect(defects[0]?.message).not.toContain(`"${level}"`);
       expect(inForce).toBe("constrainable");
     }
   });

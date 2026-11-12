@@ -273,8 +273,9 @@ export function conditionUnevaluatable(
 /**
  * The profile ITSELF is structurally malformed. A diagnostic about the
  * **profile**, not the message: always `error` severity. `detail` describes
- * the shape defect (a profile is author-supplied configuration, not clinical
- * data, so it carries no PHI).
+ * the shape defect by position, kind of fault and what was expected, and never
+ * echoes the offending value: a profile is caller-supplied text, and a caller
+ * may build one from anything, message content included.
  *
  * @internal
  */

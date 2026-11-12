@@ -1106,7 +1106,8 @@ describe("a predicate the language does not admit is refused (criterion 9)", () 
     };
     const findings = looseFindings(DOE, profile);
     expect(codes(findings)).toEqual([FINDING_CODES.PROFILE_MALFORMED]);
-    expect(findings[0]?.message).toContain("RQ");
+    expect(findings[0]?.message).toContain('segment "PID" field 8 usage is not a usage code');
+    expect(findings[0]?.message).not.toContain("RQ");
   });
 
   it("no defect message echoes a value drawn from the predicate's value list", () => {

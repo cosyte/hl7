@@ -408,31 +408,34 @@ describe("usage vocabulary: what a rule may declare (AC1, AC6)", () => {
 });
 
 describe("usage vocabulary: refusing what the grammar rejects (AC2, AC7, AC8, AC14, AC15)", () => {
-  it("an undefined usage code is one PROFILE_MALFORMED finding NAMING that code", () => {
+  it("an undefined usage code is one PROFILE_MALFORMED finding naming its position, not the code", () => {
     const findings = validateWith(WITH_SEX, pid8Profile("RQ"), undefined);
     expect(findings).toHaveLength(1);
     expect(findings[0]?.code).toBe(FINDING_CODES.PROFILE_MALFORMED);
     expect(findings[0]?.severity).toBe("error");
-    expect(findings[0]?.message).toContain("RQ");
+    expect(findings[0]?.message).toContain('segment "PID" field 8 usage is not a usage code');
+    expect(findings[0]?.message).not.toContain("RQ");
     expect(findings[0]?.locus).toMatchObject({ segment: "PID", field: 8 });
   });
 
-  it("the literal C(a/b) on a rule is EXACTLY ONE finding naming that token, never two", () => {
+  it("the literal C(a/b) on a rule is EXACTLY ONE finding, never two", () => {
     // The placeholder satisfies both "the reserved notation" and "an outcome
     // that is not a simple code". A rule declares ONE usage token, so a token
     // the grammar rejects is ONE defect however many ways it is wrong.
     const findings = validateWith(WITH_SEX, pid8Profile("C(a/b)"), undefined);
     expect(findings).toHaveLength(1);
     expect(findings[0]?.code).toBe(FINDING_CODES.PROFILE_MALFORMED);
-    expect(findings[0]?.message).toContain("C(a/b)");
+    expect(findings[0]?.message).toContain('segment "PID" field 8 usage is not a usage code');
+    expect(findings[0]?.message).not.toContain("C(a/b)");
   });
 
-  it("a bad, nested, spaced or lower-case token is one finding naming the token AS A WHOLE", () => {
+  it("a bad, nested, spaced or lower-case token is one finding that never echoes the token", () => {
     for (const token of ["C(C(R/X)/O)", "c(r/x)", "C(R / X)", "C(R/ZZ)", "C(R/X", "C(R/X/O)"]) {
       const findings = validateWith(WITH_SEX, pid8Profile(token), undefined);
       expect(findings, token).toHaveLength(1);
       expect(findings[0]?.code).toBe(FINDING_CODES.PROFILE_MALFORMED);
-      expect(findings[0]?.message, token).toContain(token);
+      expect(findings[0]?.message, token).toContain("usage is not a usage code");
+      expect(findings[0]?.message, token).not.toContain(token);
     }
   });
 
@@ -455,15 +458,14 @@ describe("usage vocabulary: refusing what the grammar rejects (AC2, AC7, AC8, AC
     expect(findings.every(isProfileMalformed)).toBe(true);
   });
 
-  it("an over-length token is echoed at its first 32 characters and no further", () => {
+  it("an over-length token is not echoed, not even its first characters", () => {
     const garbage = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcd"; // 40 characters
     const token = `C(R/${garbage})`;
     const findings = validateWith(WITH_SEX, pid8Profile(token), undefined);
     expect(findings).toHaveLength(1);
     const message = findings[0]?.message ?? "";
-    expect(message).toContain(token.slice(0, 32));
-    expect(message).not.toContain(token.slice(0, 33));
-    expect(message).not.toContain(token);
+    expect(message).toContain("usage is not a usage code");
+    expect(message).not.toContain(garbage.slice(0, 4));
   });
 
   it("a non-string usage names the offending value's TYPE, never its content", () => {
@@ -819,14 +821,17 @@ describe("resolutions: what is refused, and how many findings that is (AC12, AC1
     for (const f of findings) expect(f.severity).toBe("error");
   });
 
-  it("a resolution's segment name is echoed under the same 32-character bound", () => {
+  it("a resolution segment that is not a segment name is refused by position, never echoed", () => {
     const long = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcd";
     const findings = validateWith(WITHOUT_SEX, pid8Profile("C(R/X)"), [
       { segment: long, outcome: true },
     ]);
     expect(findings).toHaveLength(1);
-    expect(findings[0]?.locus.segment).toBe(long.slice(0, 32));
-    expect(findings[0]?.message).not.toContain(long);
+    expect(findings[0]?.locus.segment).toBe("(profile)");
+    expect(findings[0]?.message).toContain(
+      "resolutions[0].segment must be a valid segment name ([A-Z][A-Z0-9]{2}).",
+    );
+    expect(findings[0]?.message).not.toContain(long.slice(0, 4));
   });
 });
 
@@ -876,13 +881,15 @@ describe("the engine never throws for any resolution argument (AC16)", () => {
 });
 
 describe("the fail-fast gate refuses exactly what validation refuses (AC17, AC23)", () => {
-  it("raises on a typo and names the offending token", () => {
+  it("raises on a typo and names its position, never the token", () => {
     expect(() => defineConformanceProfile(pid8Profile("RQ"))).toThrow(ProfileDefinitionError);
     try {
       defineConformanceProfile(pid8Profile("RQ"));
       expect.unreachable("should have thrown");
     } catch (err) {
-      expect((err as ProfileDefinitionError).message).toContain("RQ");
+      const { message } = err as ProfileDefinitionError;
+      expect(message).toContain('segment "PID" field 8 usage is not a usage code');
+      expect(message).not.toContain("RQ");
     }
   });
 
@@ -895,7 +902,7 @@ describe("the fail-fast gate refuses exactly what validation refuses (AC17, AC23
     expect(() => defineConformanceProfile(pid8Profile(7))).toThrow(ProfileDefinitionError);
   });
 
-  it("names EVERY usage defect it found, each bounded to 32 characters", () => {
+  it("names EVERY usage defect it found, by position, echoing none of them", () => {
     const garbage = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcd";
     const long = `C(R/${garbage})`;
     const profile = {
@@ -910,10 +917,12 @@ describe("the fail-fast gate refuses exactly what validation refuses (AC17, AC23
       expect.unreachable("should have thrown");
     } catch (err) {
       const { message } = err as ProfileDefinitionError;
-      expect(message).toContain("RQ");
-      expect(message).toContain("c(r/x)");
-      expect(message).toContain(long.slice(0, 32));
-      expect(message).not.toContain(long);
+      expect(message).toContain('segment "PID" usage is not a usage code');
+      expect(message).toContain('segment "PID" field 8 usage is not a usage code');
+      expect(message).toContain('segment "PV1" usage is not a usage code');
+      expect(message).not.toContain("RQ");
+      expect(message).not.toContain("c(r/x)");
+      expect(message).not.toContain(garbage.slice(0, 4));
     }
   });
 
