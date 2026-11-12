@@ -162,6 +162,13 @@ planted `readMessages` read 2.07 to 2.09, within its limit, where the same run r
 `readSegments` 2.12 in all five, against the build's own 1.06 to 1.09 and 1.11 to 1.12. A copy
 dropped at the end of the source missed the sample that gave `readMessages` its peak.
 
+With the copy held to the reader's last item, in stream-memory run 43149078594 (commit dafe91b),
+the planted `readMessages` read 2.99 to 3.01, the planted `parseStream` 2.06 to 2.08 and the
+planted `readSegments` 2.12 in all five, each over its limit, and the gate failed all three. The
+same run read the build's own readers at 1.76 to 1.99, 0.84 to 1.08 and 1.11 to 1.12, each within
+its limit. Against the shared limit of 3, the planted `readMessages` median, 3.005, would have
+failed by 0.005, and the planted `parseStream` and `readSegments` would have passed.
+
 Before this change the planted build held more, and only two readers: `readMessages` kept a copy
 of the last 12 MiB it read, three of the 4 MiB messages, and `parseStream` read its whole source
 before parsing it. In stream-memory runs 43139826801 (commit 55c53ca) and 43140852250 (commit
