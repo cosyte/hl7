@@ -81,6 +81,7 @@
     "README.md",
     "LICENSE",
     "TRADEMARKS.md",
+    "THIRD-PARTY-NOTICES.md",
     "CHANGELOG.md"
   ],
   "sideEffects": false,

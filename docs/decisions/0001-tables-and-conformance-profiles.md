@@ -194,8 +194,27 @@ measures its own cost on the CI runner, before and after, and states it in its p
 2. Profiles: option A, MSH-21 resolution against a caller-supplied registry. Profile XML waits for a
    caller who needs it.
 
+## Choices recorded on the sources we already ship
+
+On 2026-11-12, after research into the sources of HL7 material the package already held, the
+operator chose on two questions. Their choices, verbatim, with the journal entry that records each:
+
+1. The ORU_R01 group table the v2 XML writer shipped, taken from an HL7 v2.5 XML schema:
+   "Remove ORU_R01 until settled" (`noahDesktop.20261112T190414Z.1`). The table is removed: the
+   package ships no message-structure group table, and `toHl7Xml` takes every structure's groups
+   from the caller in `groups`, refusing with `GROUPS_UNKNOWN` without them.
+2. The exact copy of files from HL7's v2 guide (`HL7/v2ig`) and the structure registry built from
+   it: "Record it honestly now (Recommended)" (`noahDesktop.20261112T190414Z.2`). Both stay. The
+   READMEs beside them (`vendor/hl7-v2ig/README.md`, `vendor/segment-names/README.md`) and
+   `THIRD-PARTY-NOTICES.md` record the repository, the commit, the date taken, that the guide's
+   definition file declares `CC0-1.0`, that the repository has no licence file and describes itself
+   as a draft that is not production ready, and that the structures describe the v2+ draft meant to
+   represent v2.9.1. They draw no legal conclusion.
+
+These choices do not answer questions 1 and 2 above.
+
 ## Decision
 
-Not yet recorded. When the operator chooses, this section records the choice in their words, with
+Not yet recorded for questions 1 and 2. When the operator chooses, this section records the choice in their words, with
 the date, and the status above changes to Accepted or Rejected. Each option chosen becomes its own
 piece of work.

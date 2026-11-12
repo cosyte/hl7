@@ -35,6 +35,24 @@ cardinalities below are therefore this publication's, not a restatement of
 v2.5.1, and `docs-content/spec-notes-structure.md` records every place the
 derived registry disagrees with the transcription it replaced.
 
+## Terms, as the source states them
+
+We record these facts and draw no conclusion from them. Each was read at commit
+`51dfdd968cf2a14038505c5b2f3d97edd21f1b02`.
+
+- The guide's definition file, `input/v2plus.xml`, declares `CC0-1.0` in its
+  `license` element.
+- The repository has no licence file, and GitHub reports no licence for it.
+- The repository describes itself as a draft that is not production ready: its
+  README says the guide is in development and not yet production ready, and the
+  definition file gives its status as draft.
+- The structures describe the HL7 v2+ draft. A design record in the
+  repository, `docs/adr/0006-multi-corpus-v291-extraction.md`, says the guide is
+  meant to represent HL7 v2.9.1.
+
+`THIRD-PARTY-NOTICES.md` at the root of this repository, which ships in the npm
+package, records the same facts.
+
 ## Layout
 
 ```
