@@ -21,9 +21,6 @@
 /** The largest number a diagnostic shows. @internal */
 export const MAX_SHOWN_NUMBER = 9999;
 
-/** What a diagnostic shows in place of a number it does not show. @internal */
-export const UNSHOWN_NUMBER = `(a number above ${String(MAX_SHOWN_NUMBER)})`;
-
 /**
  * Is `n` a number a diagnostic may show: a non-negative integer of at most
  * {@link MAX_SHOWN_NUMBER}? The caller has already checked it against its own
@@ -37,10 +34,14 @@ export function isShownNumber(n: number): boolean {
 
 /**
  * Render a checked number for a diagnostic: the number itself when
- * {@link isShownNumber} admits it, otherwise {@link UNSHOWN_NUMBER}.
+ * {@link isShownNumber} admits it, otherwise the fixed phrase
+ * `(a number above 9999)`. Every caller passes a number that has already passed
+ * its own check (a non-negative integer), so the phrase is true of it. The
+ * phrase is built on each call rather than held in a module constant, which is
+ * evaluated once when the module loads.
  *
  * @internal
  */
 export function showNumber(n: number): string {
-  return isShownNumber(n) ? String(n) : UNSHOWN_NUMBER;
+  return isShownNumber(n) ? String(n) : `(a number above ${String(MAX_SHOWN_NUMBER)})`;
 }
