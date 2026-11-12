@@ -168,7 +168,7 @@ function dispatchValue(valueType: string, valueField: Field, common: Observation
  * const obx = msg.segments("OBX")[0];
  * if (obx !== undefined) {
  *   const obs = buildObservation(obx);
- *   if (obs.valueType === "NM") console.log(obs.value);
+ *   if (obs.valueType === "NM") console.log(typeof obs.value); // "number" or "undefined"
  * }
  * ```
  */
@@ -194,8 +194,8 @@ export function buildObservation(obx: Segment, notes?: readonly string[]): Obser
  * import { parseHL7 } from "@cosyte/hl7";
  * const msg = parseHL7(raw);
  * for (const obs of msg.observations()) {
- *   if (obs.valueType === "NM") console.log(obs.value); // number | undefined
- *   else if (obs.valueType === "TS") console.log(obs.value?.raw, obs.value?.precision);
+ *   if (obs.valueType === "NM") console.log(typeof obs.value); // "number" or "undefined"
+ *   else if (obs.valueType === "TS") console.log(obs.value?.precision);
  * }
  * ```
  *

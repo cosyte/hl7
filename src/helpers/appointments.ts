@@ -147,9 +147,11 @@ function finalizeAppointment(sch: Segment, resources: readonly AppointmentResour
  * import { parseHL7 } from "@cosyte/hl7";
  * const msg = parseHL7(raw);
  * for (const appt of msg.appointments()) {
- *   console.log(appt.fillerAppointmentId, appt.fillerStatusCode?.identifier);
- *   console.log(appt.startDateTime?.raw, appt.endDateTime?.raw);
- *   for (const r of appt.resources) console.log(r.kind, r.code?.identifier, r.person?.familyName);
+ *   const id = appt.fillerAppointmentId; // "APPT-001", synthetic
+ *   const status = appt.fillerStatusCode?.identifier; // "Booked"
+ *   console.log(appt.startDateTime?.precision, appt.endDateTime?.precision); // "minute" "minute"
+ *   const people = appt.resources.map((r) => r.person?.familyName); // ["Smith"], synthetic
+ *   console.log(appt.resources.map((r) => r.kind)); // ["location", "personnel"]
  * }
  * ```
  *
