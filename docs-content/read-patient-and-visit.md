@@ -41,7 +41,9 @@ patient?.identifiers.length; // => 1
 is typed `MR`; `identifiers` is every PID-3 repetition as a `CX` composite, always present and
 possibly empty. A birth date is a fidelity `TS`
 that keeps the precision the sender wrote, never a `Date` (see
-[Read dates and times](./read-dates-and-times.md)).
+[Read dates and times](./read-dates-and-times.md)). For a patient who is an animal,
+[Read an animal patient](./read-animal-patient.md) reads species, breed, strain and production
+class.
 
 ## Read the visit
 

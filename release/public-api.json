@@ -107,11 +107,15 @@
         "address?: XAD | readonly XAD[] | undefined",
         "administrativeSex?: string | undefined",
         "birthDateTime?: string | DtmParts | undefined",
+        "breed?: CWE | undefined",
         "identifiers?: CX | readonly CX[] | undefined",
         "mothersMaidenName?: XPN | undefined",
         "name?: XPN | readonly XPN[] | undefined",
         "phoneHome?: XTN | readonly XTN[] | undefined",
-        "setId?: string | undefined"
+        "productionClass?: CWE | undefined",
+        "setId?: string | undefined",
+        "species?: CWE | undefined",
+        "strain?: string | undefined"
       ]
     },
     {
@@ -897,11 +901,15 @@
         "address?: XAD | readonly XAD[] | undefined",
         "administrativeSex?: string | undefined",
         "birthDateTime?: string | DtmParts | undefined",
+        "breed?: CWE | undefined",
         "identifiers?: CX | readonly CX[] | undefined",
         "mothersMaidenName?: XPN | undefined",
         "name?: XPN | readonly XPN[] | undefined",
         "phoneHome?: XTN | readonly XTN[] | undefined",
-        "setId?: string | undefined"
+        "productionClass?: CWE | undefined",
+        "setId?: string | undefined",
+        "species?: CWE | undefined",
+        "strain?: string | undefined"
       ]
     },
     {
@@ -1656,11 +1664,15 @@
         "address?: XAD | readonly XAD[] | undefined",
         "administrativeSex?: string | undefined",
         "birthDateTime?: string | DtmParts | undefined",
+        "breed?: CWE | undefined",
         "identifiers?: CX | readonly CX[] | undefined",
         "mothersMaidenName?: XPN | undefined",
         "name?: XPN | readonly XPN[] | undefined",
         "phoneHome?: XTN | readonly XTN[] | undefined",
-        "setId?: string | undefined"
+        "productionClass?: CWE | undefined",
+        "setId?: string | undefined",
+        "species?: CWE | undefined",
+        "strain?: string | undefined"
       ]
     },
     {
@@ -1915,11 +1927,15 @@
         "address?: XAD | readonly XAD[] | undefined",
         "administrativeSex?: string | undefined",
         "birthDateTime?: string | DtmParts | undefined",
+        "breed?: CWE | undefined",
         "identifiers?: CX | readonly CX[] | undefined",
         "mothersMaidenName?: XPN | undefined",
         "name?: XPN | readonly XPN[] | undefined",
         "phoneHome?: XTN | readonly XTN[] | undefined",
-        "setId?: string | undefined"
+        "productionClass?: CWE | undefined",
+        "setId?: string | undefined",
+        "species?: CWE | undefined",
+        "strain?: string | undefined"
       ]
     },
     {
@@ -1961,11 +1977,15 @@
         "address?: XAD | readonly XAD[] | undefined",
         "administrativeSex?: string | undefined",
         "birthDateTime?: string | DtmParts | undefined",
+        "breed?: CWE | undefined",
         "identifiers?: CX | readonly CX[] | undefined",
         "mothersMaidenName?: XPN | undefined",
         "name?: XPN | readonly XPN[] | undefined",
         "phoneHome?: XTN | readonly XTN[] | undefined",
-        "setId?: string | undefined"
+        "productionClass?: CWE | undefined",
+        "setId?: string | undefined",
+        "species?: CWE | undefined",
+        "strain?: string | undefined"
       ]
     },
     {
@@ -2440,6 +2460,7 @@
       "type": "",
       "members": [
         "address?: XAD | undefined",
+        "breed?: CWE | undefined",
         "dateOfBirth?: DtmParts | undefined",
         "ethnicity?: CWE | undefined",
         "familyName?: string | undefined",
@@ -2452,8 +2473,11 @@
         "name: XPN",
         "notes?: readonly string[] | undefined",
         "phoneNumbers: readonly XTN[]",
+        "productionClass?: CWE | undefined",
         "race?: CWE | undefined",
-        "sex?: string | undefined"
+        "sex?: string | undefined",
+        "species?: CWE | undefined",
+        "strain?: string | undefined"
       ]
     },
     {
@@ -2940,11 +2964,15 @@
         "address?: XAD | readonly XAD[] | undefined",
         "administrativeSex?: string | undefined",
         "birthDateTime?: string | DtmParts | undefined",
+        "breed?: CWE | undefined",
         "identifiers?: CX | readonly CX[] | undefined",
         "mothersMaidenName?: XPN | undefined",
         "name?: XPN | readonly XPN[] | undefined",
         "phoneHome?: XTN | readonly XTN[] | undefined",
-        "setId?: string | undefined"
+        "productionClass?: CWE | undefined",
+        "setId?: string | undefined",
+        "species?: CWE | undefined",
+        "strain?: string | undefined"
       ]
     },
     {
@@ -3460,11 +3488,15 @@
         "address?: XAD | readonly XAD[] | undefined",
         "administrativeSex?: string | undefined",
         "birthDateTime?: string | DtmParts | undefined",
+        "breed?: CWE | undefined",
         "identifiers?: CX | readonly CX[] | undefined",
         "mothersMaidenName?: XPN | undefined",
         "name?: XPN | readonly XPN[] | undefined",
         "phoneHome?: XTN | readonly XTN[] | undefined",
-        "setId?: string | undefined"
+        "productionClass?: CWE | undefined",
+        "setId?: string | undefined",
+        "species?: CWE | undefined",
+        "strain?: string | undefined"
       ]
     },
     {

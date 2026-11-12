@@ -21,6 +21,7 @@
       "label": "How-to guides",
       "items": [
         "read-patient-and-visit",
+        "read-animal-patient",
         "read-lab-results",
         "read-large-messages",
         "read-clinical-lists",

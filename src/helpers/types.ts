@@ -141,6 +141,20 @@ export interface Patient {
   /** PID-15 primary language. */
   readonly language?: CE;
   /**
+   * PID-35 Species Code, for a patient who is an animal. Absent when PID-35 is
+   * empty; the library never infers a species from any other field.
+   */
+  readonly species?: CWE;
+  /** PID-36 Breed Code. Absent when PID-36 is empty. */
+  readonly breed?: CWE;
+  /** PID-37 Strain, a free-text string. Absent when PID-37 is empty. */
+  readonly strain?: string;
+  /**
+   * PID-38 Production Class Code (for example a dairy or breeding class), the
+   * first repetition. Absent when PID-38 is empty.
+   */
+  readonly productionClass?: CWE;
+  /**
    * NTE note lines positionally attached to the (first) PID: notes
    * immediately following the patient's PID segment, HL7-unescaped, in
    * document order. OMITTED when the patient carries no notes. High-PHI-risk
