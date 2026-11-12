@@ -48,8 +48,8 @@ function nonEmptyXcn(xcn: XCN): XCN | undefined {
  * const msg = parseHL7(raw);
  * console.log(msg.visit?.patientClass);                 // "I"
  * console.log(msg.visit?.location?.pointOfCare);        // "ICU"
- * console.log(msg.visit?.admitDateTime?.raw); // fidelity TS
- * console.log(msg.visit?.attendingDoctor?.familyName);  // XCN composite
+ * console.log(msg.visit?.admitDateTime?.precision);   // "minute": a fidelity TS
+ * const doctor = msg.visit?.attendingDoctor?.familyName; // XCN composite: "Smith", synthetic
  * ```
  *
  * @internal

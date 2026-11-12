@@ -22,7 +22,7 @@ import { defineProfile, profiles } from "@cosyte/hl7";
  *
  * const msg = parseHL7(raw, MyProfile);
  * const zal = msg.segments("ZAL")[0];
- * console.log(zal?.get("allergyId")?.value);
+ * const allergyId = zal?.get("allergyId")?.value; // "ALG-0001", synthetic
  * ```
  */
 export const MyProfile = defineProfile({

@@ -21,7 +21,7 @@ per segment position.
 import { parseHL7 } from "@cosyte/hl7";
 const msg = parseHL7(raw);
 const pid5 = msg.segments("PID")[0]?.field(5);
-console.log(pid5?.value);              // "Smith": decoded at parse
+const name = pid5?.value;              // "Smith", synthetic: decoded at parse
 console.log(pid5?.isNull);             // false: HL7 explicit null is "", absent is not
 console.log(pid5?.repetitions.length); // 1
 ```
@@ -176,7 +176,7 @@ empty or HL7 null. Equivalent to `msg.get('SEG.N')` for a top-level access.
 ```ts
 const pid5 = msg.segments("PID")[0]?.field(5);
 // wire "Smith\F\Jr" was decoded at parse → the field separator escape:
-console.log(pid5?.value); // "Smith|Jr"
+const name = pid5?.value; // "Smith|Jr", synthetic
 ```
 
 ###### Returns
@@ -199,7 +199,8 @@ Coerce this field's first repetition to a typed `CE` (Coded Element).
 
 ```ts
 const code = msg.segments("OBX")[0]?.field(3)?.asCe();
-console.log(code?.identifier, code?.text);
+code?.identifier; // "GLU"
+code?.text;       // "Glucose"
 ```
 
 ##### asCne()
@@ -217,7 +218,8 @@ Exceptions): the 22 CWE components under the same names.
 
 ```ts
 const code = msg.segments("OBX")[0]?.field(3)?.asCne();
-console.log(code?.identifier, code?.nameOfCodingSystem);
+code?.identifier;         // "Y"
+code?.nameOfCodingSystem; // "HL70136"
 ```
 
 ##### asCp()
@@ -253,7 +255,8 @@ with Units): `units` is a nested coded element.
 
 ```ts
 const quantity = msg.segments("TQ1")[0]?.field(2)?.asCq();
-console.log(quantity?.quantity, quantity?.units?.identifier);
+quantity?.quantity;          // "2"
+quantity?.units?.identifier; // "TAB"
 ```
 
 ##### asCwe()
@@ -271,7 +274,8 @@ Exceptions).
 
 ```ts
 const code = msg.segments("OBX")[0]?.field(3)?.asCwe();
-console.log(code?.identifier, code?.text);
+code?.identifier; // "GLU"
+code?.text;       // "Glucose"
 ```
 
 ##### asCx()
@@ -289,7 +293,8 @@ ID). `assigningAuthority` is a nested `HD`.
 
 ```ts
 const mrn = msg.segments("PID")[0]?.field(3)?.asCx();
-console.log(mrn?.idNumber, mrn?.assigningAuthority?.namespaceId);
+const id = mrn?.idNumber; // "MRN12345", synthetic
+mrn?.assigningAuthority?.namespaceId; // "HOSP"
 ```
 
 ##### asDr()
@@ -327,7 +332,8 @@ Common on MSH-21 (message profile), OBR-2 and OBR-3, ORC-2 and ORC-3
 
 ```ts
 const placer = msg.segments("OBR")[0]?.field(2)?.asEi();
-console.log(placer?.entityIdentifier, placer?.namespaceId);
+const id = placer?.entityIdentifier; // "ORD-001", synthetic
+console.log(placer?.namespaceId); // "CLINIC"
 ```
 
 ##### asEip()
@@ -345,7 +351,7 @@ Pair): a placer and a filler `EI`, each read from its subcomponents.
 
 ```ts
 const parent = msg.segments("OBR")[0]?.field(29)?.asEip();
-console.log(parent?.fillerAssignedIdentifier?.entityIdentifier);
+const filler = parent?.fillerAssignedIdentifier?.entityIdentifier; // "FL-2002", synthetic
 ```
 
 ##### asFc()
@@ -363,7 +369,7 @@ Coerce this field's first repetition to a typed `FC` (Financial Class):
 
 ```ts
 const financialClass = msg.segments("PV1")[0]?.field(20)?.asFc();
-console.log(financialClass?.financialClassCode?.identifier);
+financialClass?.financialClassCode?.identifier; // "SP"
 ```
 
 ##### asHd()
@@ -435,7 +441,7 @@ Coerce this field's first repetition to a typed `NM` (Numeric).
 
 ```ts
 const nm = msg.segments("OBX")[0]?.field(5)?.asNm();
-console.log(nm?.value);
+const value = nm?.value; // 7.5, synthetic
 ```
 
 ##### asPl()
@@ -519,11 +525,12 @@ date.
 
 ```ts
 const ts = msg.segments("MSH")[0]?.field(7)?.asTs();
-console.log(ts?.raw, ts?.precision, ts?.hasTimezone);
+console.log(ts?.precision, ts?.hasTimezone);
 
 // parseHL7(raw, { dateFormats: ["MM/DD/YYYY"] }) on a PID-7 of "07/05/1988":
 const dob = msg.segments("PID")[0]?.field(7)?.asTs();
-console.log(dob?.month, dob?.matchedFormat); // 7 "MM/DD/YYYY"
+dob?.month; // 7, synthetic
+dob?.matchedFormat; // "MM/DD/YYYY"
 ```
 
 ##### asVid()
@@ -558,7 +565,8 @@ Coerce this field's first repetition to a typed `XAD` (Extended Address).
 
 ```ts
 const addr = msg.segments("PID")[0]?.field(11)?.asXad();
-console.log(addr?.street, addr?.city, addr?.stateOrProvince);
+const street = addr?.street; // "123 Main St", synthetic
+const city = addr?.city;     // "Boston", synthetic
 ```
 
 ##### asXcn()
@@ -578,7 +586,9 @@ Common on OBR-16 (ordering provider), PV1-7 (attending doctor), PV1-8
 
 ```ts
 const orderedBy = msg.segments("OBR")[0]?.field(16)?.asXcn();
-console.log(orderedBy?.idNumber, orderedBy?.familyName, orderedBy?.identifierTypeCode);
+const id = orderedBy?.idNumber;         // "1234567890", synthetic
+const family = orderedBy?.familyName;   // "Smith", synthetic
+orderedBy?.identifierTypeCode;          // "NPI"
 ```
 
 ##### asXpn()
@@ -598,7 +608,8 @@ Name). Absent components are OMITTED from the result
 ```ts
 const pid5 = msg.segments("PID")[0]?.field(5);
 const name = pid5?.asXpn();
-console.log(name?.familyName, name?.givenName);
+const family = name?.familyName; // "Smith", synthetic
+const given = name?.givenName;   // "Jane", synthetic
 ```
 
 ##### asXtn()
@@ -616,7 +627,7 @@ Telecommunication Number).
 
 ```ts
 const phone = msg.segments("PID")[0]?.field(13)?.asXtn();
-console.log(phone?.telephoneNumber);
+const number = phone?.telephoneNumber; // "555-1234", synthetic
 ```
 
 ##### render()
@@ -806,10 +817,8 @@ builds only the segments it has to write from a tree.
 ```ts
 import { parseHL7 } from "@cosyte/hl7";
 const msg = parseHL7(raw);
-console.log(msg.get("PID.5.1"));         // "Smith"
-for (const obx of msg.segments("OBX")) {
-  console.log(obx.field(5).value);
-}
+const family = msg.get("PID.5.1"); // "Smith", synthetic
+const results = msg.segments("OBX").map((obx) => obx.field(5).value);
 for (const w of msg.warnings) console.warn(w.code);
 ```
 
@@ -908,7 +917,7 @@ throws `NO_MSH_SEGMENT` at parse time).
 
 ```ts
 console.log(msg.meta.type);                     // "ADT^A01"
-console.log(msg.meta.timestamp?.raw);           // fidelity TS
+console.log(msg.meta.timestamp?.precision);     // "second": a fidelity TS
 console.log(msg.meta.controlId);                // "MSG001"
 ```
 
@@ -929,9 +938,9 @@ surface as `undefined` on the returned `Patient` object.
 ###### Example
 
 ```ts
-console.log(msg.patient?.mrn);
-console.log(msg.patient?.fullName);
-console.log(msg.patient?.dateOfBirth?.raw); // fidelity TS: e.g. "19800115"
+const mrn = msg.patient?.mrn; // "MRN12345", synthetic
+const fullName = msg.patient?.fullName; // "John Q Doe", synthetic
+console.log(msg.patient?.dateOfBirth?.precision); // "day": a fidelity TS
 ```
 
 ###### Returns
@@ -976,8 +985,8 @@ Memoized. Never throws.
 
 ```ts
 console.log(msg.visit?.patientClass);                 // "I"
-console.log(msg.visit?.admitDateTime?.raw); // fidelity TS
-console.log(msg.visit?.attendingDoctor?.familyName);
+console.log(msg.visit?.admitDateTime?.precision);   // "minute": a fidelity TS
+const doctor = msg.visit?.attendingDoctor?.familyName; // "Smith", synthetic
 ```
 
 ###### Returns
@@ -1049,7 +1058,7 @@ readonly [`Allergy`](#allergy)[]
 ```ts
 for (const al of msg.allergies()) {
   const kind = al.deleteRequested === true ? "delete request" : "allergy";
-  console.log(kind, al.source, al.code?.text, al.severity, al.actionCode);
+  console.log(kind, al.source, al.severity, al.actionCode);
 }
 ```
 
@@ -1094,8 +1103,9 @@ readonly [`Appointment`](#appointment)[]
 
 ```ts
 for (const appt of msg.appointments()) {
-  console.log(appt.fillerAppointmentId, appt.fillerStatusCode?.identifier);
-  for (const r of appt.resources) console.log(r.kind, r.code?.identifier);
+  const id = appt.fillerAppointmentId; // "APPT-001", synthetic
+  const status = appt.fillerStatusCode?.identifier; // "Booked"
+  console.log(appt.resources.map((r) => r.kind)); // ["location", "personnel"]
 }
 ```
 
@@ -1118,8 +1128,9 @@ readonly [`Charge`](#charge)[]
 
 ```ts
 for (const charge of msg.charges()) {
-  console.log(charge.transactionType, charge.transactionCode?.identifier);
-  console.log(charge.amountExtended); // verbatim, never a number
+  const code = charge.transactionCode?.identifier; // the charge code
+  const amount = charge.amountExtended; // "150.00^USD", synthetic: verbatim, never a number
+  console.log(charge.transactionType); // "CG"
 }
 ```
 
@@ -1137,7 +1148,7 @@ readonly [`Diagnosis`](#diagnosis)[]
 ###### Example
 
 ```ts
-for (const dg of msg.diagnoses()) console.log(dg.code?.identifier);
+const codes = msg.diagnoses().map((dg) => dg.code?.identifier); // ["I10"], synthetic
 ```
 
 ##### documents()
@@ -1161,7 +1172,7 @@ readonly [`ClinicalDocument`](#clinicaldocument)[]
 ```ts
 for (const doc of msg.documents()) {
   console.log(doc.documentType, doc.completionStatus, doc.availabilityStatus);
-  for (const obx of doc.observations) console.log(obx.value); // narrative body
+  const body = doc.observations.map((obx) => obx.value); // narrative text: read it, never log it
 }
 ```
 
@@ -1217,9 +1228,7 @@ readonly [`Segment`](#segment)\<`string`\>[]
 ###### Example
 
 ```ts
-for (const obx of msg.getAll("OBX")) {
-  console.log(obx.field(5).value);
-}
+const results = msg.getAll("OBX").map((obx) => obx.field(5).value);
 ```
 
 ##### identityEvents()
@@ -1270,7 +1279,8 @@ readonly [`Immunization`](#immunization)[]
 
 ```ts
 for (const imm of msg.immunizations()) {
-  console.log(imm.vaccineCode?.identifier, imm.doseAmount, imm.recordOrigin);
+  const vaccine = imm.vaccineCode?.identifier; // a CVX code, such as "08"
+  console.log(imm.vaccineCode?.nameOfCodingSystem, imm.recordOrigin);
   console.log(imm.actionCode, imm.completionStatus);
 }
 ```
@@ -1392,8 +1402,9 @@ readonly [`Medication`](#medication)[]
 ```ts
 for (const med of msg.medications()) {
   console.log(med.orderControl); // e.g. "NW" (new) or "DC" (discontinue), verbatim
-  console.log(med.context, med.giveCode?.identifier, med.giveCode?.nameOfCodingSystem);
-  console.log(med.amount?.minimum, med.strength?.value);
+  const giveCode = med.giveCode?.identifier; // the drug code, such as an NDC
+  console.log(med.context, med.giveCode?.nameOfCodingSystem);
+  const amount = med.amount?.minimum; // the dose: read it, never log it
   for (const t of med.timings) console.log(t.repeatPattern?.code, t.totalOccurrences);
 }
 ```
@@ -1413,7 +1424,8 @@ readonly [`NextOfKin`](#nextofkin-1)[]
 
 ```ts
 for (const nk of msg.nextOfKin()) {
-  console.log(nk.name?.familyName, nk.relationship?.text);
+  const family = nk.name?.familyName; // "Smith", synthetic
+  console.log(nk.relationship?.text); // "Spouse"
 }
 ```
 
@@ -1435,7 +1447,8 @@ readonly `string`[]
 ###### Example
 
 ```ts
-for (const note of msg.notes()) console.log(note); // message-level narrative
+const notes = msg.notes(); // message-level narrative: read it, never log it
+console.log(notes.length);
 ```
 
 ##### observations()
@@ -1454,7 +1467,7 @@ readonly [`Observation`](#observation)[]
 
 ```ts
 for (const obs of msg.observations()) {
-  if (obs.valueType === "NM") console.log(obs.value); // number | undefined
+  if (obs.valueType === "NM") console.log(typeof obs.value); // "number" or "undefined"
 }
 ```
 
@@ -1475,7 +1488,8 @@ readonly [`Order`](#order-1)[]
 
 ```ts
 for (const order of msg.orders()) {
-  console.log(order.placerOrderNumber, order.observations.length);
+  const placer = order.placerOrderNumber; // "ORD-001", synthetic
+  console.log(order.observations.length);
   for (const t of order.timings) console.log(t.repeatPattern?.code); // e.g. "Q6H": verbatim
 }
 ```
@@ -1509,7 +1523,7 @@ never a presence guarantee.
 
 ```ts
 const pid = msg.part("PID");
-console.log(pid?.field(5).value);
+const name = pid?.field(5).value; // "Smith^Jane", synthetic
 ```
 
 ##### parts()
@@ -1538,7 +1552,7 @@ readonly [`Segment`](#segment)\<`string`\>[]
 ###### Example
 
 ```ts
-for (const obx of msg.parts("OBX")) console.log(obx.field(5).value);
+const results = msg.parts("OBX").map((obx) => obx.field(5).value);
 ```
 
 ##### prettyPrint()
@@ -1570,7 +1584,7 @@ already-decoded strings.
 ```ts
 import { parseHL7 } from "@cosyte/hl7";
 const msg = parseHL7(raw);
-console.log(msg.prettyPrint());
+const view = msg.prettyPrint(); // a debug view of patient data: never log it
 // HL7 ADT^A01  controlId=MSG001  timestamp=2026-04-19T10:15:00Z  (5 segments)
 // MSH  [3]=SENDAPP  [4]=SENDFAC  ...
 // PID  [1]=1  [3]=MRN123  [5]=Doe^John
@@ -1644,7 +1658,7 @@ readonly [`Segment`](#segment)\<`string`\>[]
 
 ```ts
 const pid = msg.segments("PID")[0];
-if (pid !== undefined) console.log(pid.field(5).value);
+const name = pid?.field(5).value; // "Smith^Jane", synthetic
 ```
 
 ##### setComposite()
@@ -1824,7 +1838,7 @@ import { parseHL7 } from "@cosyte/hl7";
 const msg = parseHL7(raw);
 const snap = msg.toJSON();
 console.log(snap.segments[0]?.name); // "MSH"
-console.log(JSON.stringify(msg));     // same content, auto-invokes toJSON
+const json = JSON.stringify(msg);     // same content, auto-invokes toJSON
 ```
 
 ##### toString()
@@ -1851,7 +1865,7 @@ HL7 literal `""`. Pure: never warns, never throws.
 ```ts
 import { parseHL7 } from "@cosyte/hl7";
 const msg = parseHL7(raw);
-console.log(msg.toString()); // spec-clean, CR-separated HL7
+const wire = msg.toString(); // spec-clean, CR-separated HL7: send it, never log it
 ```
 
 ***
@@ -2192,7 +2206,7 @@ a message parsed with one carries that type's declared names instead.
 import { parseHL7 } from "@cosyte/hl7";
 const msg = parseHL7(raw);
 const pid = msg.segments("PID")[0];
-if (pid !== undefined) console.log(pid.field(5).value);
+const name = pid?.field(5).value; // "Smith^Jane", synthetic
 ```
 
 #### Type Parameters
@@ -2367,7 +2381,7 @@ the same `n` return the same `Field` instance.
 
 ```ts
 const pid5 = msg.segments("PID")[0]?.field(5);
-console.log(pid5?.value); // "Smith"
+const name = pid5?.value; // "Smith", synthetic
 const msh3 = msg.segments("MSH")[0]?.field(3);
 console.log(msh3?.value); // sending application (HL7 MSH-3)
 ```
@@ -2429,10 +2443,10 @@ const profile = defineProfile({
   customSegments: { ZPI: { fields: { encounterId: 3 } } },
 });
 const msg = parseHL7(raw, profile);
-console.log(msg.part("ZPI")?.get("encounterId")?.value); // narrowed, no cast
+const encounter = msg.part("ZPI")?.get("encounterId")?.value; // narrowed, no cast
 // msg.part("ZPI")?.get("encounterld"); // does not compile: not declared
 const walked = msg.allSegments().find((s) => s.type === "ZPI");
-console.log(walked?.get("encounterId")?.value); // a walk takes any name
+const same = walked?.get("encounterId")?.value; // a walk takes any name
 ```
 
 ## Interfaces
@@ -2835,7 +2849,7 @@ repetition's component 1, joined by the message's repetition separator
 
 ```ts
 for (const al of msg.allergies()) {
-  if (al.actionCode === "U") console.log("update to", al.uniqueIdentifier?.entityIdentifier);
+  if (al.actionCode === "U") console.log("update to", al.uniqueIdentifier !== undefined);
 }
 ```
 
@@ -3665,7 +3679,7 @@ const msg = buildMessage({
   timestamp: new Date("2026-04-19T10:15:00Z"),
 })
   .addSegment("PID", ["", "", "MRN123", "", "Doe^John"]);
-console.log(msg.toString());
+const wire = msg.toString(); // send it, never log it
 
 // To emit HL7 explicit null ("") instead of absent:
 //   msg.setField("PID.2", '""');   // distinct from empty/omitted
@@ -6985,7 +6999,7 @@ const ev = parseHL7(raw).identityEvents()[0];
 if (ev?.prior) {
   console.log(ev.prior.role);          // "prior"
   console.log(ev.prior.sourceSegment); // "MRG"
-  for (const cx of ev.prior.identifiers) console.log(cx.idNumber);
+  const prior = ev.prior.identifiers.map((cx) => cx.idNumber); // ["MRN-OLD-1"], synthetic
 }
 ```
 
@@ -8333,7 +8347,7 @@ const meta: Meta = {
   controlId: "MSG001",
   version: "2.5",
 };
-console.log(meta.timestamp?.raw, meta.timestamp?.precision);
+console.log(meta.timestamp?.precision); // undefined: no MSH-7 here
 ```
 
 #### Properties
@@ -9899,7 +9913,7 @@ const p: Patient = {
   fullName: "Jane Smith",
   phoneNumbers: [],
 };
-console.log(p.dateOfBirth?.raw, p.dateOfBirth?.precision);
+console.log(p.dateOfBirth?.precision); // undefined: no PID-7 here
 ```
 
 #### Properties
@@ -10324,7 +10338,7 @@ const msg = parseHL7(raw, epic);
 const zdp = msg.part("ZDP");
 console.log(zdp?.get("departmentCode")?.value); // narrowed, no cast
 // zdp?.get("departmentCod"); // does not compile: not a declared ZDP name
-console.log(msg.part("PID")?.field(5).value); // undeclared type: any name compiles
+const name = msg.part("PID")?.field(5).value; // undeclared type: any name compiles
 ```
 
 #### Extends
@@ -10429,7 +10443,7 @@ throws `NO_MSH_SEGMENT` at parse time).
 
 ```ts
 console.log(msg.meta.type);                     // "ADT^A01"
-console.log(msg.meta.timestamp?.raw);           // fidelity TS
+console.log(msg.meta.timestamp?.precision);     // "second": a fidelity TS
 console.log(msg.meta.controlId);                // "MSG001"
 ```
 
@@ -10454,9 +10468,9 @@ surface as `undefined` on the returned `Patient` object.
 ###### Example
 
 ```ts
-console.log(msg.patient?.mrn);
-console.log(msg.patient?.fullName);
-console.log(msg.patient?.dateOfBirth?.raw); // fidelity TS: e.g. "19800115"
+const mrn = msg.patient?.mrn; // "MRN12345", synthetic
+const fullName = msg.patient?.fullName; // "John Q Doe", synthetic
+console.log(msg.patient?.dateOfBirth?.precision); // "day": a fidelity TS
 ```
 
 ###### Returns
@@ -10509,8 +10523,8 @@ Memoized. Never throws.
 
 ```ts
 console.log(msg.visit?.patientClass);                 // "I"
-console.log(msg.visit?.admitDateTime?.raw); // fidelity TS
-console.log(msg.visit?.attendingDoctor?.familyName);
+console.log(msg.visit?.admitDateTime?.precision);   // "minute": a fidelity TS
+const doctor = msg.visit?.attendingDoctor?.familyName; // "Smith", synthetic
 ```
 
 ###### Returns
@@ -10590,7 +10604,7 @@ readonly [`Allergy`](#allergy)[]
 ```ts
 for (const al of msg.allergies()) {
   const kind = al.deleteRequested === true ? "delete request" : "allergy";
-  console.log(kind, al.source, al.code?.text, al.severity, al.actionCode);
+  console.log(kind, al.source, al.severity, al.actionCode);
 }
 ```
 
@@ -10643,8 +10657,9 @@ readonly [`Appointment`](#appointment)[]
 
 ```ts
 for (const appt of msg.appointments()) {
-  console.log(appt.fillerAppointmentId, appt.fillerStatusCode?.identifier);
-  for (const r of appt.resources) console.log(r.kind, r.code?.identifier);
+  const id = appt.fillerAppointmentId; // "APPT-001", synthetic
+  const status = appt.fillerStatusCode?.identifier; // "Booked"
+  console.log(appt.resources.map((r) => r.kind)); // ["location", "personnel"]
 }
 ```
 
@@ -10671,8 +10686,9 @@ readonly [`Charge`](#charge)[]
 
 ```ts
 for (const charge of msg.charges()) {
-  console.log(charge.transactionType, charge.transactionCode?.identifier);
-  console.log(charge.amountExtended); // verbatim, never a number
+  const code = charge.transactionCode?.identifier; // the charge code
+  const amount = charge.amountExtended; // "150.00^USD", synthetic: verbatim, never a number
+  console.log(charge.transactionType); // "CG"
 }
 ```
 
@@ -10694,7 +10710,7 @@ readonly [`Diagnosis`](#diagnosis)[]
 ###### Example
 
 ```ts
-for (const dg of msg.diagnoses()) console.log(dg.code?.identifier);
+const codes = msg.diagnoses().map((dg) => dg.code?.identifier); // ["I10"], synthetic
 ```
 
 ###### Inherited from
@@ -10722,7 +10738,7 @@ readonly [`ClinicalDocument`](#clinicaldocument)[]
 ```ts
 for (const doc of msg.documents()) {
   console.log(doc.documentType, doc.completionStatus, doc.availabilityStatus);
-  for (const obx of doc.observations) console.log(obx.value); // narrative body
+  const body = doc.observations.map((obx) => obx.value); // narrative text: read it, never log it
 }
 ```
 
@@ -10842,7 +10858,8 @@ readonly [`Immunization`](#immunization)[]
 
 ```ts
 for (const imm of msg.immunizations()) {
-  console.log(imm.vaccineCode?.identifier, imm.doseAmount, imm.recordOrigin);
+  const vaccine = imm.vaccineCode?.identifier; // a CVX code, such as "08"
+  console.log(imm.vaccineCode?.nameOfCodingSystem, imm.recordOrigin);
   console.log(imm.actionCode, imm.completionStatus);
 }
 ```
@@ -10980,8 +10997,9 @@ readonly [`Medication`](#medication)[]
 ```ts
 for (const med of msg.medications()) {
   console.log(med.orderControl); // e.g. "NW" (new) or "DC" (discontinue), verbatim
-  console.log(med.context, med.giveCode?.identifier, med.giveCode?.nameOfCodingSystem);
-  console.log(med.amount?.minimum, med.strength?.value);
+  const giveCode = med.giveCode?.identifier; // the drug code, such as an NDC
+  console.log(med.context, med.giveCode?.nameOfCodingSystem);
+  const amount = med.amount?.minimum; // the dose: read it, never log it
   for (const t of med.timings) console.log(t.repeatPattern?.code, t.totalOccurrences);
 }
 ```
@@ -11005,7 +11023,8 @@ readonly [`NextOfKin`](#nextofkin-1)[]
 
 ```ts
 for (const nk of msg.nextOfKin()) {
-  console.log(nk.name?.familyName, nk.relationship?.text);
+  const family = nk.name?.familyName; // "Smith", synthetic
+  console.log(nk.relationship?.text); // "Spouse"
 }
 ```
 
@@ -11031,7 +11050,8 @@ readonly `string`[]
 ###### Example
 
 ```ts
-for (const note of msg.notes()) console.log(note); // message-level narrative
+const notes = msg.notes(); // message-level narrative: read it, never log it
+console.log(notes.length);
 ```
 
 ###### Inherited from
@@ -11054,7 +11074,7 @@ readonly [`Observation`](#observation)[]
 
 ```ts
 for (const obs of msg.observations()) {
-  if (obs.valueType === "NM") console.log(obs.value); // number | undefined
+  if (obs.valueType === "NM") console.log(typeof obs.value); // "number" or "undefined"
 }
 ```
 
@@ -11079,7 +11099,8 @@ readonly [`Order`](#order-1)[]
 
 ```ts
 for (const order of msg.orders()) {
-  console.log(order.placerOrderNumber, order.observations.length);
+  const placer = order.placerOrderNumber; // "ORD-001", synthetic
+  console.log(order.observations.length);
   for (const t of order.timings) console.log(t.repeatPattern?.code); // e.g. "Q6H": verbatim
 }
 ```
@@ -11169,7 +11190,7 @@ already-decoded strings.
 ```ts
 import { parseHL7 } from "@cosyte/hl7";
 const msg = parseHL7(raw);
-console.log(msg.prettyPrint());
+const view = msg.prettyPrint(); // a debug view of patient data: never log it
 // HL7 ADT^A01  controlId=MSG001  timestamp=2026-04-19T10:15:00Z  (5 segments)
 // MSH  [3]=SENDAPP  [4]=SENDFAC  ...
 // PID  [1]=1  [3]=MRN123  [5]=Doe^John
@@ -11437,7 +11458,7 @@ import { parseHL7 } from "@cosyte/hl7";
 const msg = parseHL7(raw);
 const snap = msg.toJSON();
 console.log(snap.segments[0]?.name); // "MSH"
-console.log(JSON.stringify(msg));     // same content, auto-invokes toJSON
+const json = JSON.stringify(msg);     // same content, auto-invokes toJSON
 ```
 
 ###### Inherited from
@@ -11468,7 +11489,7 @@ HL7 literal `""`. Pure: never warns, never throws.
 ```ts
 import { parseHL7 } from "@cosyte/hl7";
 const msg = parseHL7(raw);
-console.log(msg.toString()); // spec-clean, CR-separated HL7
+const wire = msg.toString(); // spec-clean, CR-separated HL7: send it, never log it
 ```
 
 ###### Inherited from
@@ -13000,9 +13021,9 @@ surface as `undefined` on the returned `Patient` object.
 ###### Example
 
 ```ts
-console.log(msg.patient?.mrn);
-console.log(msg.patient?.fullName);
-console.log(msg.patient?.dateOfBirth?.raw); // fidelity TS: e.g. "19800115"
+const mrn = msg.patient?.mrn; // "MRN12345", synthetic
+const fullName = msg.patient?.fullName; // "John Q Doe", synthetic
+console.log(msg.patient?.dateOfBirth?.precision); // "day": a fidelity TS
 ```
 
 ###### Returns
@@ -13055,8 +13076,8 @@ Memoized. Never throws.
 
 ```ts
 console.log(msg.visit?.patientClass);                 // "I"
-console.log(msg.visit?.admitDateTime?.raw); // fidelity TS
-console.log(msg.visit?.attendingDoctor?.familyName);
+console.log(msg.visit?.admitDateTime?.precision);   // "minute": a fidelity TS
+const doctor = msg.visit?.attendingDoctor?.familyName; // "Smith", synthetic
 ```
 
 ###### Returns
@@ -13136,7 +13157,7 @@ readonly [`Allergy`](#allergy)[]
 ```ts
 for (const al of msg.allergies()) {
   const kind = al.deleteRequested === true ? "delete request" : "allergy";
-  console.log(kind, al.source, al.code?.text, al.severity, al.actionCode);
+  console.log(kind, al.source, al.severity, al.actionCode);
 }
 ```
 
@@ -13189,8 +13210,9 @@ readonly [`Appointment`](#appointment)[]
 
 ```ts
 for (const appt of msg.appointments()) {
-  console.log(appt.fillerAppointmentId, appt.fillerStatusCode?.identifier);
-  for (const r of appt.resources) console.log(r.kind, r.code?.identifier);
+  const id = appt.fillerAppointmentId; // "APPT-001", synthetic
+  const status = appt.fillerStatusCode?.identifier; // "Booked"
+  console.log(appt.resources.map((r) => r.kind)); // ["location", "personnel"]
 }
 ```
 
@@ -13217,8 +13239,9 @@ readonly [`Charge`](#charge)[]
 
 ```ts
 for (const charge of msg.charges()) {
-  console.log(charge.transactionType, charge.transactionCode?.identifier);
-  console.log(charge.amountExtended); // verbatim, never a number
+  const code = charge.transactionCode?.identifier; // the charge code
+  const amount = charge.amountExtended; // "150.00^USD", synthetic: verbatim, never a number
+  console.log(charge.transactionType); // "CG"
 }
 ```
 
@@ -13240,7 +13263,7 @@ readonly [`Diagnosis`](#diagnosis)[]
 ###### Example
 
 ```ts
-for (const dg of msg.diagnoses()) console.log(dg.code?.identifier);
+const codes = msg.diagnoses().map((dg) => dg.code?.identifier); // ["I10"], synthetic
 ```
 
 ###### Inherited from
@@ -13268,7 +13291,7 @@ readonly [`ClinicalDocument`](#clinicaldocument)[]
 ```ts
 for (const doc of msg.documents()) {
   console.log(doc.documentType, doc.completionStatus, doc.availabilityStatus);
-  for (const obx of doc.observations) console.log(obx.value); // narrative body
+  const body = doc.observations.map((obx) => obx.value); // narrative text: read it, never log it
 }
 ```
 
@@ -13332,9 +13355,7 @@ readonly [`Segment`](#segment)\<`string`\>[]
 ###### Example
 
 ```ts
-for (const obx of msg.getAll("OBX")) {
-  console.log(obx.field(5).value);
-}
+const results = msg.getAll("OBX").map((obx) => obx.field(5).value);
 ```
 
 ###### Inherited from
@@ -13393,7 +13414,8 @@ readonly [`Immunization`](#immunization)[]
 
 ```ts
 for (const imm of msg.immunizations()) {
-  console.log(imm.vaccineCode?.identifier, imm.doseAmount, imm.recordOrigin);
+  const vaccine = imm.vaccineCode?.identifier; // a CVX code, such as "08"
+  console.log(imm.vaccineCode?.nameOfCodingSystem, imm.recordOrigin);
   console.log(imm.actionCode, imm.completionStatus);
 }
 ```
@@ -13531,8 +13553,9 @@ readonly [`Medication`](#medication)[]
 ```ts
 for (const med of msg.medications()) {
   console.log(med.orderControl); // e.g. "NW" (new) or "DC" (discontinue), verbatim
-  console.log(med.context, med.giveCode?.identifier, med.giveCode?.nameOfCodingSystem);
-  console.log(med.amount?.minimum, med.strength?.value);
+  const giveCode = med.giveCode?.identifier; // the drug code, such as an NDC
+  console.log(med.context, med.giveCode?.nameOfCodingSystem);
+  const amount = med.amount?.minimum; // the dose: read it, never log it
   for (const t of med.timings) console.log(t.repeatPattern?.code, t.totalOccurrences);
 }
 ```
@@ -13556,7 +13579,8 @@ readonly [`NextOfKin`](#nextofkin-1)[]
 
 ```ts
 for (const nk of msg.nextOfKin()) {
-  console.log(nk.name?.familyName, nk.relationship?.text);
+  const family = nk.name?.familyName; // "Smith", synthetic
+  console.log(nk.relationship?.text); // "Spouse"
 }
 ```
 
@@ -13582,7 +13606,8 @@ readonly `string`[]
 ###### Example
 
 ```ts
-for (const note of msg.notes()) console.log(note); // message-level narrative
+const notes = msg.notes(); // message-level narrative: read it, never log it
+console.log(notes.length);
 ```
 
 ###### Inherited from
@@ -13605,7 +13630,7 @@ readonly [`Observation`](#observation)[]
 
 ```ts
 for (const obs of msg.observations()) {
-  if (obs.valueType === "NM") console.log(obs.value); // number | undefined
+  if (obs.valueType === "NM") console.log(typeof obs.value); // "number" or "undefined"
 }
 ```
 
@@ -13630,7 +13655,8 @@ readonly [`Order`](#order-1)[]
 
 ```ts
 for (const order of msg.orders()) {
-  console.log(order.placerOrderNumber, order.observations.length);
+  const placer = order.placerOrderNumber; // "ORD-001", synthetic
+  console.log(order.observations.length);
   for (const t of order.timings) console.log(t.repeatPattern?.code); // e.g. "Q6H": verbatim
 }
 ```
@@ -13708,7 +13734,7 @@ already-decoded strings.
 ```ts
 import { parseHL7 } from "@cosyte/hl7";
 const msg = parseHL7(raw);
-console.log(msg.prettyPrint());
+const view = msg.prettyPrint(); // a debug view of patient data: never log it
 // HL7 ADT^A01  controlId=MSG001  timestamp=2026-04-19T10:15:00Z  (5 segments)
 // MSH  [3]=SENDAPP  [4]=SENDFAC  ...
 // PID  [1]=1  [3]=MRN123  [5]=Doe^John
@@ -13790,7 +13816,7 @@ readonly [`Segment`](#segment)\<`string`\>[]
 
 ```ts
 const pid = msg.segments("PID")[0];
-if (pid !== undefined) console.log(pid.field(5).value);
+const name = pid?.field(5).value; // "Smith^Jane", synthetic
 ```
 
 ###### Inherited from
@@ -13986,7 +14012,7 @@ import { parseHL7 } from "@cosyte/hl7";
 const msg = parseHL7(raw);
 const snap = msg.toJSON();
 console.log(snap.segments[0]?.name); // "MSH"
-console.log(JSON.stringify(msg));     // same content, auto-invokes toJSON
+const json = JSON.stringify(msg);     // same content, auto-invokes toJSON
 ```
 
 ###### Inherited from
@@ -14017,7 +14043,7 @@ HL7 literal `""`. Pure: never warns, never throws.
 ```ts
 import { parseHL7 } from "@cosyte/hl7";
 const msg = parseHL7(raw);
-console.log(msg.toString()); // spec-clean, CR-separated HL7
+const wire = msg.toString(); // spec-clean, CR-separated HL7: send it, never log it
 ```
 
 ###### Inherited from
@@ -14166,8 +14192,8 @@ const v: Visit = {
   location: { pointOfCare: "ICU", room: "101" },
   visitNumber: "VISIT001",
 };
-console.log(v.attendingDoctor?.familyName);
-console.log(v.admitDateTime?.raw);
+const doctor = v.attendingDoctor?.familyName; // undefined: no PV1-7 here
+console.log(v.admitDateTime?.precision); // undefined: no PV1-44 here
 ```
 
 #### Properties
@@ -16133,8 +16159,8 @@ import type { TS } from "@cosyte/hl7";
 import { dtmToDate } from "@cosyte/hl7";
 const dob: TS = { raw: "19880705", valid: true, precision: "day",
   year: 1988, month: 7, day: 5, hasTimezone: false };
-console.log(dob.precision);          // "day": not a full timestamp
-console.log(dtmToDate(dob));         // undefined: refuses to guess the zone
+console.log(dob.precision);                   // "day": not a full timestamp
+console.log(dtmToDate(dob) === undefined);    // true: refuses to guess the zone
 ```
 
 ***
@@ -17727,7 +17753,7 @@ a programming error (`inbound` not an `Hl7Message`, or an unknown `code`).
 import { buildAck, parseHL7 } from "@cosyte/hl7";
 const inbound = parseHL7(raw);
 const ack = buildAck(inbound, { code: "AA" });
-console.log(ack.toString());            // MSH|...\rMSA|AA|<inbound MSH-10>
+const wire = ack.toString();            // MSH|...\rMSA|AA|<inbound MSH-10>
 parseHL7(ack.toString()).meta.type;     // "ACK" (round-trips clean)
 ```
 
@@ -18314,7 +18340,8 @@ import { parseHL7, codingSystemOf } from "@cosyte/hl7";
 const msg = parseHL7(raw);
 for (const dg of msg.diagnoses()) {
   const sys = dg.code && codingSystemOf(dg.code);
-  console.log(dg.code?.identifier, sys?.name ?? sys?.claimed ?? "(no system)");
+  const code = dg.code?.identifier; // "I10", synthetic
+  console.log(sys?.name ?? sys?.claimed ?? "(no system)");
 }
 ```
 
@@ -20076,7 +20103,7 @@ const rep = { components: [
   { subcomponents: ["LN"] },
 ] };
 const ce = parseCe(rep, DEFAULT_ENCODING_CHARACTERS);
-console.log(ce.identifier); // "GLU"
+ce.identifier; // "GLU"
 ```
 
 ***
@@ -20113,7 +20140,8 @@ const rep = { components: [
   { subcomponents: ["HL70136"] },
 ] };
 const cne = parseCne(rep, DEFAULT_ENCODING_CHARACTERS);
-console.log(cne.identifier, cne.nameOfCodingSystem); // "Y" "HL70136"
+cne.identifier; // "Y"
+cne.nameOfCodingSystem; // "HL70136"
 ```
 
 ***
@@ -20177,7 +20205,8 @@ components are OMITTED from the result.
 import { parseCq, DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7";
 const rep = { components: [{ subcomponents: ["2"] }, { subcomponents: ["TAB", "tablet"] }] };
 const cq = parseCq(rep, DEFAULT_ENCODING_CHARACTERS);
-console.log(cq.quantity, cq.units?.identifier); // "2" "TAB"
+cq.quantity; // "2"
+cq.units?.identifier; // "TAB"
 ```
 
 ***
@@ -20215,7 +20244,7 @@ const rep = { components: [
   { subcomponents: ["LN"] },
 ] };
 const cwe = parseCwe(rep, DEFAULT_ENCODING_CHARACTERS);
-console.log(cwe.identifier); // "GLU"
+cwe.identifier; // "GLU"
 ```
 
 ***
@@ -20257,7 +20286,7 @@ const rep = { components: [
   { subcomponents: ["MR"] },
 ] };
 const cx = parseCx(rep, DEFAULT_ENCODING_CHARACTERS);
-console.log(cx.idNumber);                       // "123"
+const id = cx.idNumber;                        // "123", synthetic
 console.log(cx.assigningAuthority?.namespaceId); // "EPIC"
 ```
 
@@ -20365,7 +20394,8 @@ const rep = { components: [
   { subcomponents: ["CLINIC"] },
 ] };
 const ei = parseEi(rep, DEFAULT_ENCODING_CHARACTERS);
-console.log(ei.entityIdentifier, ei.namespaceId); // "PL-1001" "CLINIC"
+const id = ei.entityIdentifier; // "PL-1001", synthetic
+console.log(ei.namespaceId); // "CLINIC"
 ```
 
 ***
@@ -20401,7 +20431,7 @@ const rep = { components: [
   { subcomponents: ["FL-2002", "LAB"] },
 ] };
 const eip = parseEip(rep, DEFAULT_ENCODING_CHARACTERS);
-console.log(eip.fillerAssignedIdentifier?.entityIdentifier); // "FL-2002"
+const filler = eip.fillerAssignedIdentifier?.entityIdentifier; // "FL-2002", synthetic
 ```
 
 ***
@@ -20433,7 +20463,8 @@ components are OMITTED from the result.
 import { parseFc, DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7";
 const rep = { components: [{ subcomponents: ["SP"] }, { subcomponents: ["20260101"] }] };
 const fc = parseFc(rep, DEFAULT_ENCODING_CHARACTERS);
-console.log(fc.financialClassCode?.identifier, fc.effectiveDate); // "SP" "20260101"
+fc.financialClassCode?.identifier; // "SP"
+fc.effectiveDate; // "20260101"
 ```
 
 ***
@@ -21365,13 +21396,14 @@ readonly `string`[]
 import { parseTs, DEFAULT_ENCODING_CHARACTERS, dtmToDate } from "@cosyte/hl7";
 const rep = { components: [{ subcomponents: ["20250102153045-0500"] }] };
 const ts = parseTs(rep, DEFAULT_ENCODING_CHARACTERS);
-console.log(ts.raw);                     // "20250102153045-0500"
+ts.raw;                                  // "20250102153045-0500"
 console.log(ts.precision, ts.hasTimezone); // "second" true
-console.log(dtmToDate(ts)?.toISOString()); // "2025-01-02T20:30:45.000Z"
+dtmToDate(ts)?.toISOString();             // "2025-01-02T20:30:45.000Z"
 
 const vendor = { components: [{ subcomponents: ["07/05/1988"] }] };
 const dob = parseTs(vendor, DEFAULT_ENCODING_CHARACTERS, ["MM/DD/YYYY"]);
-console.log(dob.month, dob.matchedFormat); // 7 "MM/DD/YYYY"
+dob.month; // 7, synthetic
+dob.matchedFormat; // "MM/DD/YYYY"
 ```
 
 ***
@@ -21403,7 +21435,8 @@ empty components are OMITTED from the result.
 import { parseVid, DEFAULT_ENCODING_CHARACTERS } from "@cosyte/hl7";
 const rep = { components: [{ subcomponents: ["2.5.1"] }, { subcomponents: ["USA"] }] };
 const vid = parseVid(rep, DEFAULT_ENCODING_CHARACTERS);
-console.log(vid.versionId, vid.internationalizationCode?.identifier); // "2.5.1" "USA"
+vid.versionId; // "2.5.1"
+vid.internationalizationCode?.identifier; // "USA"
 ```
 
 ***
@@ -21443,7 +21476,7 @@ const rep = { components: [
   { subcomponents: ["02101"] },
 ] };
 const addr = parseXad(rep, DEFAULT_ENCODING_CHARACTERS);
-console.log(addr.city); // "Boston"
+const city = addr.city; // "Boston", synthetic
 ```
 
 ***
@@ -21493,8 +21526,8 @@ const rep = { components: [
   { subcomponents: ["NPI"] },
 ] };
 const xcn = parseXcn(rep, DEFAULT_ENCODING_CHARACTERS);
-console.log(xcn.idNumber);                        // "1234567890"
-console.log(xcn.familyName);                      // "Smith"
+const id = xcn.idNumber;                         // "1234567890", synthetic
+const family = xcn.familyName;                   // "Smith", synthetic
 console.log(xcn.assigningAuthority?.namespaceId); // "HOSP"
 console.log(xcn.identifierTypeCode);              // "NPI"
 ```
@@ -21533,8 +21566,8 @@ const rep = { components: [
   { subcomponents: ["Jane"] },
 ] };
 const xpn = parseXpn(rep, DEFAULT_ENCODING_CHARACTERS);
-console.log(xpn.familyName); // "Smith"
-console.log(xpn.givenName);  // "Jane"
+const family = xpn.familyName; // "Smith", synthetic
+const given = xpn.givenName;   // "Jane", synthetic
 ```
 
 ***
@@ -21573,7 +21606,7 @@ const rep = { components: [
   { subcomponents: ["PH"] },
 ] };
 const xtn = parseXtn(rep, DEFAULT_ENCODING_CHARACTERS);
-console.log(xtn.telephoneNumber); // "555-1234"
+const phone = xtn.telephoneNumber; // "555-1234", synthetic
 ```
 
 ***

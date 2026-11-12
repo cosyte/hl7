@@ -104,3 +104,21 @@ matched; // => true
 
 `Hl7ParseError.snippet` carries up to 40 characters of the raw input verbatim and the library never
 redacts it. It is the field to scrub at your logging edge.
+
+## What is safe to log
+
+Every message this library reads can carry a patient's identity, so what reaches a log is a choice
+field by field. The library itself logs nothing.
+
+| Safe to log                                                                               | Never log                                                                                                       |
+| ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `w.code` and `err.code`, from `WARNING_CODES`, `FATAL_CODES` and the other error classes  | `Hl7ParseError.snippet`: up to 40 characters of the raw input, verbatim and unredacted                          |
+| `w.position` and `err.position` (`segmentIndex`, `fieldIndex`), `Hl7XmlError.offset`      | a field that identifies a person: a name, a record or member number, a birth date, an address, a phone number   |
+| `Hl7XmlError.path`, `Hl7EncodeError.charset`                                              | free text: an NTE note, a narrative OBX value, a Z-segment text field                                           |
+| `msg.meta.type`, `msg.version`, `msg.warnings.length`, a date's `precision`               | a whole message, segment or field: `msg.toString()`, `JSON.stringify(msg)`, `msg.prettyPrint()`, `msg.get(...)` |
+| codes from a code system, counts, lengths and booleans (`msg.patient?.mrn !== undefined`) | a result value, a dose or an amount                                                                             |
+
+`w.message` and `err.message` are bounded rather than content-free: they echo a token from the
+input only where it has a shape the spec defines, such as a segment id or a message type. Log the
+code and the position instead. To show what a field holds in a test or an example, read it into a
+variable or assert on it; never print it.

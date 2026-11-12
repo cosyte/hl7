@@ -44,7 +44,7 @@ import type { Hl7ParseWarning } from "../parser/warnings.js";
  *   controlId: "MSG001",
  *   version: "2.5",
  * };
- * console.log(meta.timestamp?.raw, meta.timestamp?.precision);
+ * console.log(meta.timestamp?.precision); // undefined: no MSH-7 here
  * ```
  */
 export interface Meta {
@@ -105,7 +105,7 @@ export interface Meta {
  *   fullName: "Jane Smith",
  *   phoneNumbers: [],
  * };
- * console.log(p.dateOfBirth?.raw, p.dateOfBirth?.precision);
+ * console.log(p.dateOfBirth?.precision); // undefined: no PID-7 here
  * ```
  */
 export interface Patient {
@@ -193,8 +193,8 @@ export interface Patient {
  *   location: { pointOfCare: "ICU", room: "101" },
  *   visitNumber: "VISIT001",
  * };
- * console.log(v.attendingDoctor?.familyName);
- * console.log(v.admitDateTime?.raw);
+ * const doctor = v.attendingDoctor?.familyName; // undefined: no PV1-7 here
+ * console.log(v.admitDateTime?.precision); // undefined: no PV1-44 here
  * ```
  */
 export interface Visit {
@@ -782,7 +782,7 @@ export interface Allergy {
    * @example
    * ```ts
    * for (const al of msg.allergies()) {
-   *   if (al.actionCode === "U") console.log("update to", al.uniqueIdentifier?.entityIdentifier);
+   *   if (al.actionCode === "U") console.log("update to", al.uniqueIdentifier !== undefined);
    * }
    * ```
    */

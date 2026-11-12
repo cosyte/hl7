@@ -61,9 +61,11 @@ Permanently out of scope:
 ## Install
 
 ```bash
-# pnpm (recommended). Also works with: npm install @cosyte/hl7  |  yarn add @cosyte/hl7
-pnpm add @cosyte/hl7
+# pnpm (recommended). Also works with: npm install --save-exact @cosyte/hl7  |  yarn add --exact @cosyte/hl7
+pnpm add --save-exact @cosyte/hl7
 ```
+
+Pin the exact version. Below 1.0 a breaking change can ship in a patch release, so a caret range such as `^0.1.0` does not protect you from one: `--save-exact` writes the version itself into `package.json`, and you move it on purpose after reading the [changelog](https://github.com/cosyte/hl7/blob/main/CHANGELOG.md).
 
 Requires Node.js 22 or later, tested on 22, 24, and 26 (`engines.node` is `>=22.0.0`). The package ships dual ESM and CommonJS builds with type declarations for both, so `import` and `require` both work and neither needs a compatibility shim. There are zero runtime dependencies: the Node standard library is all it loads. The optional `@cosyte/hl7/arbitraries` entry point, fast-check generators for [property-testing your own code](https://github.com/cosyte/hl7/blob/main/docs-content/property-test-your-code.md), needs `fast-check` installed beside it; the main entry point never loads it.
 
@@ -85,28 +87,32 @@ const raw =
 
 const msg = parseHL7(raw);
 
-console.log("Patient record number:", msg.patient?.mrn);
-console.log("Full name:", msg.patient?.fullName);
-console.log("Date of birth:", msg.patient?.dateOfBirth?.raw);
-console.log("Precision:", msg.patient?.dateOfBirth?.precision);
+// Fields that identify a person are read into variables, never printed or logged.
+const mrn = msg.patient?.mrn; // "MRN12345", synthetic
+const fullName = msg.patient?.fullName; // "John Q Doe", synthetic
+const dateOfBirth = msg.patient?.dateOfBirth; // raw "19800115", synthetic
+
+// What is safe to log: types, codes, counts, precision, booleans.
 console.log("Message type:", msg.meta.type);
-console.log("Sent at:", msg.meta.timestamp?.raw);
 console.log("Ward:", msg.visit?.location?.pointOfCare);
+console.log("Has a record number:", mrn !== undefined);
+console.log("Has a name:", fullName !== undefined);
+console.log("Birth date precision:", dateOfBirth?.precision);
+console.log("Warnings:", msg.warnings.length);
 ```
 
 ```text
-Patient record number: MRN12345
-Full name: John Q Doe
-Date of birth: 19800115
-Precision: day
 Message type: ADT^A01^ADT_A01
-Sent at: 20260419101500
 Ward: ICU
+Has a record number: true
+Has a name: true
+Birth date precision: day
+Warnings: 0
 ```
 
 The test suite reads that block out of this README, runs it against the package, and fails if the output above ever stops matching what the code prints. The message is a copy of a synthetic fixture from the repository's test corpus.
 
-Note `precision`: a birth date is a day, not an instant, and every datetime is a fidelity `TS` that keeps the precision and timezone it arrived with rather than guessing a `Date`.
+Note what it prints: a type, a code, booleans and a count, never the record number, the name or the birth date, since an example that logs a patient's name teaches a reader to log one. Note `precision` too: a birth date is a day, not an instant, and every datetime is a fidelity `TS` that keeps the precision and timezone it arrived with rather than guessing a `Date`.
 
 That is the whole pitch: no config, no schema upload, no spec lookup. The parser accepts vendor-quirky input by default, strips MLLP framing if it's there, normalizes casing, and tolerates the dozen-or-so deviations real HL7 traffic routinely carries. You reach for strict mode, dot-paths, or profiles when you want them, not before.
 

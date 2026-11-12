@@ -63,7 +63,8 @@ export interface EI {
  *   { subcomponents: ["CLINIC"] },
  * ] };
  * const ei = parseEi(rep, DEFAULT_ENCODING_CHARACTERS);
- * console.log(ei.entityIdentifier, ei.namespaceId); // "PL-1001" "CLINIC"
+ * const id = ei.entityIdentifier; // "PL-1001", synthetic
+ * console.log(ei.namespaceId); // "CLINIC"
  * ```
  */
 export function parseEi(rep: RawRepetition, enc: EncodingCharacters): EI {

@@ -108,7 +108,7 @@ validateAgainstProfile(msg, profile).findings.map((f) => f.code); // => ["PROFIL
 own shape. `MessageProfileEntry<string>` lists names, and the result's `profiles` is then a list of
 strings.
 
-## How an identifier matches
+## When an identifier matches
 
 An EI is an entity identifier (EI.1) and the authority that assigned it (EI.2 namespace ID, EI.3
 universal ID, EI.4 universal ID type), the same three parts as an HD. HL7 defines an HD by its

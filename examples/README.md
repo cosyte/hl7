@@ -3,7 +3,12 @@
 Three runnable TypeScript scripts that demonstrate the one-line-extraction
 value prop of `@cosyte/hl7`. Each example reads a synthetic HL7
 fixture from `examples/data/`, calls the library, and prints labeled
-human-readable output via `console.log`. Run them from the repo root with
+output via `console.log`. What they print is only what is safe to log: message
+types, codes, counts, positions, the precision of a date and booleans. A field
+that identifies the patient (a name, a record number, a birth date) and the
+whole message are read into variables and never printed, synthetic as they
+are, since an example that logs a patient's name teaches a reader to log one.
+Run them from the repo root with
 `pnpm tsx examples/<file>.ts`, or run all three at once with
 `pnpm examples`, which runs `scripts/run-examples.ts` and fails if an
 example exits non-zero or stops printing its expected output.

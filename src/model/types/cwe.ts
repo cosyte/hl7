@@ -128,7 +128,7 @@ export interface CWE {
  *   { subcomponents: ["LN"] },
  * ] };
  * const cwe = parseCwe(rep, DEFAULT_ENCODING_CHARACTERS);
- * console.log(cwe.identifier); // "GLU"
+ * cwe.identifier; // "GLU"
  * ```
  */
 export function parseCwe(rep: RawRepetition, enc: EncodingCharacters): CWE {

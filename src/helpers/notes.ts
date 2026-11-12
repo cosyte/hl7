@@ -219,7 +219,8 @@ export function groupNotes(msg: Hl7Message): NoteGrouping {
  * ```ts
  * import { parseHL7 } from "@cosyte/hl7";
  * const msg = parseHL7(raw);
- * for (const note of msg.notes()) console.log(note); // message-level narrative
+ * const notes = msg.notes(); // message-level narrative: read it, never log it
+ * console.log(notes.length);
  * ```
  *
  * @internal

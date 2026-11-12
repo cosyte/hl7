@@ -69,8 +69,8 @@ export interface XPN {
  *   { subcomponents: ["Jane"] },
  * ] };
  * const xpn = parseXpn(rep, DEFAULT_ENCODING_CHARACTERS);
- * console.log(xpn.familyName); // "Smith"
- * console.log(xpn.givenName);  // "Jane"
+ * const family = xpn.familyName; // "Smith", synthetic
+ * const given = xpn.givenName;   // "Jane", synthetic
  * ```
  */
 export function parseXpn(rep: RawRepetition, enc: EncodingCharacters): XPN {

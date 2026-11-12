@@ -177,7 +177,8 @@ export interface CodedSystemFields {
  * const msg = parseHL7(raw);
  * for (const dg of msg.diagnoses()) {
  *   const sys = dg.code && codingSystemOf(dg.code);
- *   console.log(dg.code?.identifier, sys?.name ?? sys?.claimed ?? "(no system)");
+ *   const code = dg.code?.identifier; // "I10", synthetic
+ *   console.log(sys?.name ?? sys?.claimed ?? "(no system)");
  * }
  * ```
  */

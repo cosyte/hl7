@@ -10,7 +10,7 @@
  * import { parseHL7, profiles } from "@cosyte/hl7";
  * const msg = parseHL7(raw, profiles.cerner);
  * const zds = msg.allSegments().find((s) => s.type === "ZDS");
- * console.log(zds?.get("summaryText")?.value);
+ * const summary = zds?.get("summaryText")?.value; // free text: read it, never log it
  * ```
  */
 
