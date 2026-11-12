@@ -12,7 +12,7 @@
  * import { parseHL7, profiles } from "@cosyte/hl7";
  * const msg = parseHL7(raw, profiles.athena);
  * const zca = msg.allSegments().find((s) => s.type === "ZCA");
- * console.log(zca?.get("providerName")?.value);
+ * const provider = zca?.get("providerName")?.value; // "Smith^Jane", synthetic
  * ```
  */
 
