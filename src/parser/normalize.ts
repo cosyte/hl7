@@ -45,7 +45,8 @@ const CHARSET_POSITION = { segmentIndex: 0, fieldIndex: 18 } as const;
  * line-ending normalization and segment splitting then act on it, so framing is
  * best-effort: the documented reason multibyte decode is deferred, not claimed.
  * Line endings are normalized before that, so a content byte 0x0A becomes 0x0D
- * and a 0x0D 0x0A pair one 0x0D: those bytes do not survive in multibyte content.
+ * and a 0x0D 0x0A pair one 0x0D: those bytes do not survive in UTF-16 or UTF-32
+ * content, the only sets kept here whose characters can hold them.
  *
  * @internal
  */
@@ -118,9 +119,9 @@ export function normalize(input: string): string {
  * undecoded / un-decodable set is preserved as a `latin1` byte reading, not
  * replacement characters, so single-byte content stays byte-recoverable. Line
  * endings are normalized on that reading too, so a 0x0A byte becomes U+000D and
- * a 0x0D 0x0A pair one U+000D: content whose characters take more than one byte
- * (UTF-16, UTF-32, the East Asian sets) does not keep a character that holds
- * either byte. A blank
+ * a 0x0D 0x0A pair one U+000D: UTF-16 or UTF-32 content does not keep a
+ * character that holds either byte. No character of an East Asian set kept
+ * verbatim (ISO-2022, GB 18030, EUC, BIG-5) holds either one. A blank
  * / `undefined` charset is the ASCII default, decoded strictly as UTF-8 (a
  * superset that renders 7-bit content identically and handles the common
  * undeclared-UTF-8 feed); non-UTF-8 bytes under that default preserve verbatim +

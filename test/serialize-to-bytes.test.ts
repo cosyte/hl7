@@ -238,6 +238,28 @@ describe("toBytes: the limit of a byte reading, line-ending bytes", () => {
     expect(msg.toBytes()).toEqual(bytes);
     expect(msg.rawSegments.length).toBe(3);
   });
+
+  // The East Asian sets kept as a byte reading never put 0x0A or 0x0D inside a character: ISO-2022
+  // uses ESC and 0x21 to 0x7E, GB 18030 0x30 to 0x39 and 0x40 to 0xFE past its lead byte, EUC 0xA1
+  // to 0xFE, BIG-5 trail bytes 0x40 to 0x7E and 0xA1 to 0xFE. So the limit above does not reach them.
+  it.each([
+    ["ISO IR87", [0x1b, 0x24, 0x42, 0x30, 0x21, 0x1b, 0x28, 0x42]],
+    ["ISO IR159", [0x1b, 0x24, 0x28, 0x44, 0x30, 0x21, 0x1b, 0x28, 0x42]],
+    ["GB 18030-2000", [0xb0, 0xa1, 0x81, 0x30, 0x81, 0x30]],
+    ["KS X 1001", [0xb0, 0xa1, 0xc8, 0xfe]],
+    ["CNS 11643-1992", [0xa1, 0xa1, 0xc4, 0xa1]],
+    ["BIG-5", [0xa4, 0x40, 0xa4, 0xa1]],
+  ] as const)("writes a %s byte reading back byte for byte", async (set, chars) => {
+    const bytes = messageBytes(set, chars);
+    expect(bytes.includes(0x0a)).toBe(false);
+    const msg = parseHL7(bytes);
+    expect(msg.warnings.map((w) => w.code)).toContain(WARNING_CODES.UNSUPPORTED_CHARSET);
+    expect(msg.rawSegments.length).toBe(2);
+    expect(msg.toBytes()).toEqual(bytes);
+    const read: (Buffer | false)[] = [];
+    for await (const item of readMessages([bytes])) read.push(item.ok && item.message.toBytes());
+    expect(read).toEqual([bytes]);
+  });
 });
 
 describe("toBytes: refuses a character the set cannot hold", () => {

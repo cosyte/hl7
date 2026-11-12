@@ -1767,10 +1767,10 @@ is not either of them.
 
 One limit holds for every message read from bytes: the reader reads line endings before it
 frames segments, so a 0x0A byte comes back as 0x0D and a 0x0D 0x0A pair as 0x0D alone. In a
-single-byte set those bytes are only ever line endings. In a set kept as a latin1 reading whose
-characters take more than one byte (`UNICODE UTF-16`, `UNICODE UTF-32`, the East Asian
-sets), a character can hold either byte: the reader frames a segment on it, and the bytes
-written back differ there from the bytes read.
+single-byte set those bytes are only ever line endings, and no character of an East Asian set
+the parser keeps as bytes (ISO-2022, GB 18030, EUC, BIG-5) holds either one. In `UNICODE
+UTF-16` and `UNICODE UTF-32` a character can hold either byte: the reader frames a segment on
+it, and the bytes written back differ there from the bytes read.
 
 Throws [Hl7EncodeError](#hl7encodeerror) for a character the set cannot hold, never writing a substitute:
 the euro sign in `8859/1`, a lone surrogate in UTF-8, a letter with an accent in a declared
@@ -10881,10 +10881,10 @@ is not either of them.
 
 One limit holds for every message read from bytes: the reader reads line endings before it
 frames segments, so a 0x0A byte comes back as 0x0D and a 0x0D 0x0A pair as 0x0D alone. In a
-single-byte set those bytes are only ever line endings. In a set kept as a latin1 reading whose
-characters take more than one byte (`UNICODE UTF-16`, `UNICODE UTF-32`, the East Asian
-sets), a character can hold either byte: the reader frames a segment on it, and the bytes
-written back differ there from the bytes read.
+single-byte set those bytes are only ever line endings, and no character of an East Asian set
+the parser keeps as bytes (ISO-2022, GB 18030, EUC, BIG-5) holds either one. In `UNICODE
+UTF-16` and `UNICODE UTF-32` a character can hold either byte: the reader frames a segment on
+it, and the bytes written back differ there from the bytes read.
 
 Throws [Hl7EncodeError](#hl7encodeerror) for a character the set cannot hold, never writing a substitute:
 the euro sign in `8859/1`, a lone surrogate in UTF-8, a letter with an accent in a declared
@@ -13367,10 +13367,10 @@ is not either of them.
 
 One limit holds for every message read from bytes: the reader reads line endings before it
 frames segments, so a 0x0A byte comes back as 0x0D and a 0x0D 0x0A pair as 0x0D alone. In a
-single-byte set those bytes are only ever line endings. In a set kept as a latin1 reading whose
-characters take more than one byte (`UNICODE UTF-16`, `UNICODE UTF-32`, the East Asian
-sets), a character can hold either byte: the reader frames a segment on it, and the bytes
-written back differ there from the bytes read.
+single-byte set those bytes are only ever line endings, and no character of an East Asian set
+the parser keeps as bytes (ISO-2022, GB 18030, EUC, BIG-5) holds either one. In `UNICODE
+UTF-16` and `UNICODE UTF-32` a character can hold either byte: the reader frames a segment on
+it, and the bytes written back differ there from the bytes read.
 
 Throws [Hl7EncodeError](#hl7encodeerror) for a character the set cannot hold, never writing a substitute:
 the euro sign in `8859/1`, a lone surrogate in UTF-8, a letter with an accent in a declared

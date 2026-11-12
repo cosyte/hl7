@@ -287,8 +287,8 @@ no option to write such a message back as the bytes it arrived as.
   read as `latin1` and still tokenized, so a content byte that equals an HL7
   structural byte (the segment terminator CR (`0x0D`) / LF (`0x0A`), or a
   `|^~\&` delimiter) is framed as structure. This applies to **every** verbatim
-  set (UTF-16/32 code units routinely embed `0x0D`/`0x0A`; the East-Asian DBCS
-  sets less so) and to the `UNKNOWN_CHARSET` path. Byte-recoverability therefore
+  set (UTF-16/32 code units routinely embed `0x0D`/`0x0A`; no East-Asian set
+  does, but an ISO-2022, BIG-5 or GB 18030 byte can equal a delimiter) and to the `UNKNOWN_CHARSET` path. Byte-recoverability therefore
   holds for **single-byte** content only; multibyte framing is best-effort, which
   is why decode is deferred. The `UNSUPPORTED_CHARSET` / `UNKNOWN_CHARSET` warning
   flags that the charset was not decoded.
