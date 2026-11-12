@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.1.15
+
+### Patch Changes
+
+- f46a95b: Add `findMessageProfiles(msg, entries)`, which finds the profile or profiles a message names in MSH-21 in a list you supply.
+
+  Each entry pairs an EI identifier with a profile (a `ConformanceProfile` by default, or any value). Each MSH-21 repetition matches an entry when the entity identifiers are equal and the assigning authorities agree: the universal ID decides when both carry one (with its type when both carry a type), else the namespace ID, and an identifier with no authority matches only an entry with none. The result's `outcome` is `undeclared`, `none`, `one` or `several`, so an unknown profile is never a silent pass, and `unmatched` lists every repetition nothing matched, with a `reason` of `unlisted` or `malformed`. A repetition that is not the shape of an EI (a non-empty subcomponent after the first in any component, or a non-empty component past the fourth, under the message's own delimiters) never matches: it is listed as `malformed` and counts as declared, so a partial read never picks a wrong profile. The result hands the MSH-21 identifiers back to you by design, unlike conformance findings, which withhold message values. No profile XML is read and no network call is made. Nothing existing changes, so a caller changes nothing. A new how-to page, Supply your own codes and profiles, shows binding your own code lists and picking a profile.
+
+- 3bb0cf8: A malformed conformance profile's error no longer repeats the value you declared: it names the position, the kind of fault and what was expected, so a profile built from message text cannot carry that text into a log.
+
+  - `PROFILE_MALFORMED` findings and the `ProfileDefinitionError` that `defineConformanceProfile` throws drop the echoed value from four defects: a usage the grammar does not admit (`segment "PID" field 8 usage is not a usage code this profile may declare. Expected one of R/RE/C/CE/O/X/B, ...`, where it read `usage "RQ" is not ...`), a level outside the three, a coding system this library does not recognize, and a resolution's segment. Before, each showed up to 32 characters of the value.
+  - A resolution whose `segment` is not a segment name (`[A-Z][A-Z0-9]{2}`) is now refused by its index, `resolutions[0].segment must be a valid segment name`, at the `(profile)` locus. It used to report "matches no rule the profile declares" with the text in both the message and `locus.segment`, and several such members at one text were one finding; now each is its own.
+  - A number from the profile or the resolutions (a field, component or subcomponent index, a cardinality bound, a declared length) is shown only when it passed its own check and is at most 9999; otherwise the text reads `(a number above 9999)`, in malformed-profile details and in findings alike (`PID-(a number above 9999)`). A cardinality conflict is no longer reported when one of its bounds failed its own check, so `{ min: 3, max: -1 }` gives one defect, not two, and a conflict where either bound is above 9999 reads `cardinality.max is less than min.`
+  - A message still shows a value it has checked against a fixed set first: a segment name, a usage the grammar admits (as in the implementable-level defect) and a number within that bound. If you matched on the old text to find the offending value, use the position the message names instead.
+  - The profile's name is the one caller-chosen text handed back, as `result.profileName` and `ProfileDefinitionError.profileName`: it is your own identifier for telling results apart, not diagnostic text, and no message contains it.
+
+- 14cf173: The v2 XML reader, the XML writer and `msg.patient` each refuse or flag a value they used to pass on quietly.
+
+  - `parseHL7Xml` refuses an element that repeats an attribute (`<NTE a="1" a="2">`) with `NOT_WELL_FORMED`, as XML requires, where it used to keep the last value.
+  - `toHl7Xml` refuses a hex escape holding a byte Windows-1252 assigns no character (81, 8D, 8F, 90 or 9D) with `ESCAPE_NOT_SUPPORTED`, where it used to write the C1 control of the same number as a character reference.
+  - `msg.patient.warnings` carries a new `NON_REPEATING_FIELD_REPEATED` warning for each of PID-35 Species Code, PID-36 Breed Code and PID-37 Strain that holds more than one repetition. `species`, `breed` and `strain` still read the first. The warning stays on the patient view and never reaches `msg.warnings`. New exports: the `NON_REPEATING_FIELD_REPEATED` code in `WARNING_CODES` and its factory `nonRepeatingFieldRepeated`.
+
+  What a caller must change: a `switch` over `WarningCode` that must cover every code needs a case for `NON_REPEATING_FIELD_REPEATED`. A document with a repeated attribute, or a Windows-1252 message whose hex escape holds one of those five bytes, is now refused rather than read or written.
+
 ## 0.1.14
 
 ### Patch Changes
