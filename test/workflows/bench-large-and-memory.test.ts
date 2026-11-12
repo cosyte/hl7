@@ -9,7 +9,7 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -188,8 +188,17 @@ const TYPICAL: Readonly<Record<string, number>> = {
 
 /** The readings the limits were set from, as bench/stream-memory-readings.json records them. */
 interface Recorded {
-  runs: ({ run: number; commit: string } & Record<string, number[]>)[];
+  runs: ({ run: number; commit: string; node: string } & Record<string, number[]>)[];
 }
+
+/** The node-version the stream-memory workflow sets up, as written in it. */
+function workflowNode(): string | undefined {
+  return /^ {10}node-version: "([^"]*)"$/mu.exec(
+    read(".github", "workflows", "stream-memory.yml"),
+  )?.[1];
+}
+
+type NodeMismatch = (running: string, recorded: readonly unknown[]) => string | undefined;
 
 /** Whether the suite runs on Node. CI also runs it under Bun and under Deno. */
 const ON_NODE = process.versions["bun"] === undefined && !("Deno" in globalThis);
@@ -239,6 +248,84 @@ describe("the streaming memory gate", () => {
       expect(Math.abs(limit - (highest + oneMore) / 2)).toBeLessThanOrEqual(0.025);
       expect(limit - highest).toBeGreaterThanOrEqual(0.25);
       expect(oneMore - limit).toBeGreaterThanOrEqual(0.25);
+    },
+  );
+
+  it("records the Node each run of readings was taken on, and the workflow sets up exactly that Node", () => {
+    const recorded = JSON.parse(read("bench", "stream-memory-readings.json")) as Recorded;
+    const nodes = new Set(recorded.runs.map((r) => r.node));
+    // Every cited run's log prints this version: the limits are fitted to it.
+    expect([...nodes]).toEqual(["v22.23.4"]);
+    // An exact version, so a new Node is a change to this line and to the readings, never a drift.
+    expect(workflowNode()).toBe("22.23.4");
+    expect(`v${workflowNode() ?? ""}`).toBe(recorded.runs[0]?.node);
+  });
+
+  it("refuses to judge on a Node major the limits were not read on", async () => {
+    const { nodeMismatch } = await importModule<{ nodeMismatch: NodeMismatch }>(
+      "bench",
+      "stream-memory.mjs",
+    );
+    const recorded = ["v22.23.4", "v22.23.4"];
+    expect(nodeMismatch("v22.23.4", recorded)).toBeUndefined();
+    // A minor of the same major is judged; the workflow pins the exact version besides.
+    expect(nodeMismatch("v22.24.0", recorded)).toBeUndefined();
+    expect(nodeMismatch("v24.11.0", recorded)).toBe(
+      "the limits were read on Node v22.23.4 and this is Node v24.11.0: read them again on this " +
+        "Node (bench/stream-memory-readings.json), so there is nothing to judge",
+    );
+    expect(nodeMismatch("v20.19.0", recorded)).toMatch(/so there is nothing to judge$/u);
+    // Readings that record no Node, or more than one major, cannot tie the limits to a runtime.
+    for (const bad of [[], ["v22.23.4", undefined], ["v22.23.4", "v24.11.0"], ["22"], [22]]) {
+      expect(nodeMismatch("v22.23.4", bad)).toMatch(/so there is nothing to judge$/u);
+    }
+  });
+
+  it.skipIf(!ON_NODE)(
+    "exits 2 before taking a reading when the running Node is not the one the limits were read on",
+    () => {
+      const out = mkdtempSync(join(tmpdir(), "stream-memory-"));
+      try {
+        // Readings recorded on a Node this process is not.
+        const other = process.version.startsWith("v1.") ? "v2.0.0" : "v1.0.0";
+        const file = join(out, "readings.json");
+        writeFileSync(file, JSON.stringify({ runs: [{ run: 1, commit: "abc", node: other }] }));
+        const started = Date.now();
+        const result = spawnSync(
+          process.execPath,
+          [
+            join("bench", "stream-memory.mjs"),
+            "--target",
+            join("test", "fixtures", "stream-memory", "hang.mjs"),
+            "--mib",
+            "0.25",
+            "--readings",
+            file,
+            "--out",
+            join(out, "stream-memory.json"),
+            "--summary",
+            join(out, "stream-memory.md"),
+          ],
+          { cwd: REPO_ROOT, encoding: "utf8", shell: false, timeout: 60_000 },
+        );
+        expect(result.status).toBe(2);
+        // No reading was taken: the hanging target would have held each one to its timeout.
+        expect(Date.now() - started).toBeLessThan(30_000);
+        const document = JSON.parse(readFileSync(join(out, "stream-memory.json"), "utf8")) as {
+          verdict: string[];
+          readers: Row[];
+        };
+        expect(document.readers).toEqual([]);
+        expect(document.verdict).toEqual([
+          `the limits were read on Node ${other} and this is Node ${process.version}: read them ` +
+            "again on this Node (bench/stream-memory-readings.json), so there is nothing to judge",
+        ]);
+        expect(readFileSync(join(out, "stream-memory.md"), "utf8")).toContain(
+          "so there is nothing to judge",
+        );
+      } finally {
+        rmSync(out, { recursive: true, force: true });
+      }
     },
   );
 
@@ -476,6 +563,7 @@ describe("the streaming memory gate", () => {
             join("test", "fixtures", "stream-memory", "target.mjs"),
             "--mib",
             "0.25",
+            "--any-node",
             "--out",
             join(out, "stream-memory.json"),
           ],
@@ -517,6 +605,7 @@ describe("the streaming memory gate", () => {
             "1",
             "--timeout",
             "2",
+            "--any-node",
             "--out",
             join(out, "stream-memory.json"),
           ],
@@ -628,6 +717,8 @@ describe("the streaming memory gate", () => {
     expect(workflow).toMatch(/^ {2}stream-memory:$/mu);
     expect(workflow).toMatch(/node bench\/stream-memory\.mjs --target dist\/index\.mjs --mib 100/u);
     expect(workflow).not.toContain("|| status");
+    // The quick local escape from the Node check never runs on the runner.
+    expect(workflow).not.toContain("--any-node");
     // The reading moved here; bench-reading no longer takes it.
     expect(read(".github", "workflows", "bench-reading.yml")).not.toContain(
       "node bench/stream-memory.mjs",

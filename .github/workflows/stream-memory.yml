@@ -4,9 +4,9 @@ name: stream-memory
 # `readSegments` over one 100 MiB message, read in 64 KiB chunks on a GitHub-hosted runner.
 # bench/stream-memory.mjs reads each reader five times, each in a process of its own, and exits 1
 # when a reader's median peak is more than its own limit in PEAK_LIMITS times the largest item it
-# read, and 2 when a reader cannot be judged; either fails this job. A second step runs the same
-# gate on bench/planted-regression.mjs, the build with each reader holding one 4 MiB item more, and
-# fails unless the gate fails all three.
+# read, and 2 when a reader cannot be judged or the Node is not the one the limits were read on;
+# either fails this job. A second step runs the same gate on bench/planted-regression.mjs, the
+# build with each reader holding one 4 MiB item more, and fails unless the gate fails all three.
 #
 # It runs on every pull request, with no paths filter, so `stream-memory` can be a required check:
 # a required check whose workflow never starts never reports. The 100 MiB source is built in the
@@ -35,9 +35,13 @@ jobs:
         with:
           persist-credentials: false
       - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+      # Exactly the Node every reading in bench/stream-memory-readings.json was taken on: the
+      # limits in PEAK_LIMITS were set from those readings and hold for that Node only. To move
+      # it, read the readers again on the new Node, record those runs and set the limits from
+      # them; the gate refuses to judge on another major.
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: "22"
+          node-version: "22.23.4"
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm build

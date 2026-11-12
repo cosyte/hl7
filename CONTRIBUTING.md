@@ -67,7 +67,9 @@ and on a pull request CI times the base build against the head build, the large 
 gates the streaming readers' memory on a 100 MiB source in the `stream-memory` workflow, which fails
 when the median of five readings of a reader, each in a process of its own, holds more than that
 reader's limit times the largest item it read (`PEAK_LIMITS` in the script, set from readings on
-the runner as `docs-content/performance.md` says).
+the runner as `docs-content/performance.md` says). The limits hold for the Node they were read on,
+which the workflow pins: on another Node major the script exits 2 before it reads, and
+`--any-node` skips that check for a quick local look such as `--mib 1`.
 
 ## Fuzz and differential testing
 

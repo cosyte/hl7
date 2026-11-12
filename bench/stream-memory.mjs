@@ -10,7 +10,9 @@
 // peak is more than its limit in PEAK_LIMITS, a multiple of the largest item it read, and 2 when a
 // reader cannot be judged (missing, short of readings, with no limit, or a reading that read
 // nothing, failed an item or did not finish in `--timeout` seconds, READING_TIMEOUT_SECONDS by
-// default). The 100 MiB reading runs on a
+// default). It also exits 2, before taking a reading, when the running Node's major version is not
+// the one READINGS records the limits were read on; `--any-node` skips that check for a quick
+// local look, and the workflow never passes it. The 100 MiB reading runs on a
 // GitHub-hosted runner, in the stream-memory workflow, never on a shared developer machine;
 // `--mib 1` is a quick local check. Every message is synthetic and built here from an index, as the
 // source produces it: the source is a generator of 64 KiB chunks, so the batch is never held whole
@@ -24,11 +26,11 @@
 import { spawnSync } from "node:child_process";
 import { performance } from "node:perf_hooks";
 import { parseArgs } from "node:util";
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { setFlagsFromString } from "node:v8";
 import { runInNewContext } from "node:vm";
-import { resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 
 import { adtMessage, documentMessage, oruMessage } from "./parse.bench.mjs";
 
@@ -36,6 +38,8 @@ const MIB = 1024 * 1024;
 const CHUNK = 64 * 1024;
 /** This file, run again with `--reader` for each reading. */
 const SCRIPT = fileURLToPath(import.meta.url);
+/** The readings PEAK_LIMITS were set from, each run with the Node it was read on. */
+const READINGS = join(dirname(SCRIPT), "stream-memory-readings.json");
 
 /**
  * How many readings of each reader the gate takes, each in a process of its own, and judges on
@@ -59,7 +63,14 @@ export const READING_TIMEOUT_SECONDS = 120;
  * largest item more, rounded to a twentieth. So the reader as it is keeps at least a third of an
  * item of room under its limit, and a reader holding one item more lands at least a third of an
  * item over it. A reader that buffered its source would hold toward all of it, far past these on a
- * 100 MiB source. The absolute budgets of the parse benchmarks live in @cosyte/bench's budgets
+ * 100 MiB source.
+ *
+ * Every one of the forty readings was taken on Node v22.23.4, as each run in
+ * stream-memory-readings.json records, and the stream-memory workflow sets up exactly that version.
+ * How V8 counts the heap and array buffers can change between Node versions, so the limits hold for
+ * that Node only: when the workflow's Node changes, read the readers again on the new Node, record
+ * those runs, and set the limits from them. The gate refuses to judge on another Node major (see
+ * `nodeMismatch`). The absolute budgets of the parse benchmarks live in @cosyte/bench's budgets
  * file; these ratios are not a measure that file holds, so they are written here.
  *
  * - `readMessages`: forty readings of 1.75 to 1.99, so 2.35.
@@ -87,6 +98,35 @@ export const PEAK_LIMITS = Object.freeze({
  * sampled, so the reader's own state is small beside it.
  */
 export const GATED_READERS = Object.freeze(["readMessages", "parseStream", "readSegments"]);
+
+/** The major version of a Node version string such as `v22.23.4`, or undefined when it is not one. */
+function majorOf(version) {
+  const match = typeof version === "string" ? /^v(\d+)\.\d+\.\d+$/u.exec(version) : null;
+  return match === null ? undefined : match[1];
+}
+
+/**
+ * Why the gate cannot judge on the Node `running` (`process.version`), given the Node versions
+ * `recorded` with each run of the readings the limits were set from, or undefined when it can. The
+ * limits hold for the Node they were read on: on another major, a reader as it is could read over
+ * its limit, or one holding a message more could read under it, with nothing pointing at why.
+ * Readings that record no Node, or more than one major, tie the limits to no runtime.
+ */
+export function nodeMismatch(running, recorded) {
+  const majors = new Set(recorded.map(majorOf));
+  if (recorded.length === 0 || majors.has(undefined) || majors.size !== 1) {
+    return (
+      "the readings the limits were set from do not each record one Node version of one major " +
+      "(bench/stream-memory-readings.json), so there is nothing to judge"
+    );
+  }
+  const readOn = recorded.find((version) => majorOf(version) !== undefined);
+  if (majorOf(running) === [...majors][0]) return undefined;
+  return (
+    `the limits were read on Node ${String(readOn)} and this is Node ${String(running)}: read them ` +
+    "again on this Node (bench/stream-memory-readings.json), so there is nothing to judge"
+  );
+}
 
 /** A byte count a reading can be judged on: a finite number, zero or more. */
 function measured(bytes) {
@@ -443,6 +483,8 @@ async function main() {
       reader: { type: "string" },
       out: { type: "string" },
       summary: { type: "string" },
+      readings: { type: "string", default: READINGS },
+      "any-node": { type: "boolean", default: false },
     },
   });
   const total = Number(values.mib) * MIB;
@@ -453,12 +495,20 @@ async function main() {
 
   const runs = Number(values.runs);
   const mib = (n) => (n === undefined ? "-" : (n / MIB).toFixed(2));
-  const rows = readings(values.target, values.mib, runs, Number(values.timeout)).map((r) => ({
+  const recorded = JSON.parse(readFileSync(values.readings, "utf8")).runs.map((r) => r.node);
+  // On a Node the limits were not read on, take no reading: there is nothing to judge it against.
+  const wrongNode = values["any-node"] ? undefined : nodeMismatch(process.version, recorded);
+  const rows = (
+    wrongNode === undefined ? readings(values.target, values.mib, runs, Number(values.timeout)) : []
+  ).map((r) => ({
     ...r,
     peakToLargest: r.peak / r.largestItemBytes,
     mibPerSecond: r.sourceBytes / MIB / (r.ms / 1000),
   }));
-  const verdict = judge(rows, PEAK_LIMITS, GATED_READERS, runs);
+  const verdict =
+    wrongNode === undefined
+      ? judge(rows, PEAK_LIMITS, GATED_READERS, runs)
+      : { exitCode: 2, lines: [wrongNode] };
   const ratio = (n) => (Number.isFinite(n) ? n.toFixed(2) : "-");
   const markdown = [
     `Node ${process.version}, ${values.mib} MiB source, read in 64 KiB chunks, ` +
@@ -467,7 +517,7 @@ async function main() {
       GATED_READERS.map(
         (reader) => `${String(PEAK_LIMITS[reader])} times the largest item for ${reader}`,
       ).join(", ") +
-      ".",
+      `, read on Node ${[...new Set(recorded)].map(String).join(", ")}.`,
     "",
     "| Reader | Reading | Source | Source MiB | Largest item MiB | Peak held MiB | Peak / largest | " +
       "Peak / largest, after one collection | Unswept array buffers MiB | MiB/s |",
@@ -491,6 +541,8 @@ async function main() {
   if (values.out !== undefined) {
     const document = {
       peakLimits: PEAK_LIMITS,
+      limitsReadOn: recorded,
+      node: process.version,
       runs,
       exitCode: verdict.exitCode,
       verdict: verdict.lines,

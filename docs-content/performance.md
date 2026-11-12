@@ -113,7 +113,7 @@ We set each limit from forty readings of the reader on GitHub-hosted runners, al
 code as it is now and of the gate as it reads now, kept in `bench/stream-memory-readings.json`:
 twenty from stream-memory run 43139826801 (commit 55c53ca), and five from each of runs 43140852250
 (commit 4f3ec2d), 43143019320 (commit 35104df), 43144602455 (commit 9a2c2c9, on `main`) and
-43144961655 (the release pull request on that commit). A limit sits midway between the highest
+43144961655 (commit 3c25b85, the release pull request opened from that commit). A limit sits midway between the highest
 reading and the lowest reading plus one, which is the least a reader holding one more 4 MiB item
 would read, rounded to a twentieth. So each side keeps a margin of more than a third of an item:
 
@@ -122,6 +122,14 @@ would read, rounded to a twentieth. So each side keeps a margin of more than a t
 | `readMessages` | 1.75 to 1.99   | 2.75            |  2.35 |                   0.36 |                     0.40 |
 | `parseStream`  | 0.82 to 1.09   | 1.82            |  1.45 |                   0.36 |                     0.37 |
 | `readSegments` | 1.11 to 1.12   | 2.11            |   1.6 |                   0.48 |                     0.51 |
+
+Every one of the forty readings was taken on Node v22.23.4, and the limits hold for that Node
+only: how V8 counts the heap and array buffers can move between Node versions, which would move
+every reading with no change to a reader. So the stream-memory workflow sets up exactly Node
+22.23.4, each run in `bench/stream-memory-readings.json` records the Node it was read on, and the
+gate refuses to judge (exit 2, before it takes a reading) on a Node whose major is not the one
+recorded. When the workflow's Node changes, we read the readers again on the new Node, record those
+runs, and set the limits from them by the same rule.
 
 Until this change all three shared a limit of 3. At those readings it let `readMessages` hold one
 whole message more without failing, and the other two nearly two more.
@@ -134,7 +142,7 @@ reading in a new Node.js process, the three readers in turn, and judges a reader
 its five ratios: the job fails when that median is over the reader's limit, so three readings of
 five must be over the limit to fail it and three within it to pass. A single stray reading cannot
 fail unchanged code, and a regression that shows in most readings still fails. The job also fails
-when a reader cannot be judged: it is missing, it has no limit, it has fewer than five readings, or
+when a reader cannot be judged: the Node is not the one the limits were read on, it is missing, it has no limit, it has fewer than five readings, or
 any one of its readings did not finish, gave no peak or largest item size, read nothing or failed
 an item. A reading that has not finished in two minutes is ended and counts as one that did not
 finish, so a reader that hangs fails the job in minutes rather than holding it to the job's own
