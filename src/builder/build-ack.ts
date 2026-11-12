@@ -178,6 +178,7 @@ export function buildAck(inbound: Hl7Message, options: BuildAckOptions): Hl7Mess
   }
 
   const enc = DEFAULT_ENCODING_CHARACTERS;
+  const meta = inbound.meta;
 
   // Swap the addressing HDs by ALIASING the inbound RAW field objects (not
   // the component-1-only `meta` scalars), so multi-component HDs like
@@ -218,13 +219,9 @@ export function buildAck(inbound: Hl7Message, options: BuildAckOptions): Hl7Mess
       : options.code;
 
   // ── MSH ────────────────────────────────────────────────────────────────
-  // The three values echoed from the inbound header, read as `meta` reads them (an empty value is
-  // absent) but without building `meta`, which parses the whole header, MSH-7's date and MSH-21
-  // included: an ACK builder that parses each header it answers would pay for it on every ACK.
-  const triggerEvent = nonEmpty(inbound.get("MSH.9.2"));
-  const ackType = triggerEvent !== undefined ? `ACK^${triggerEvent}^ACK` : "ACK";
-  const version = nonEmpty(inbound.get("MSH.12")) ?? "2.5";
-  const processingId = nonEmpty(inbound.get("MSH.11.1")) ?? "P";
+  const ackType = meta.triggerEvent !== undefined ? `ACK^${meta.triggerEvent}^ACK` : "ACK";
+  const version = meta.version ?? "2.5";
+  const processingId = meta.processingId ?? "P";
 
   const mshFields: RawField[] = [
     scalarField(enc.field),
@@ -270,11 +267,6 @@ export function buildAck(inbound: Hl7Message, options: BuildAckOptions): Hl7Mess
     version,
     warnings,
   });
-}
-
-/** `value`, or `undefined` when it is empty, as `meta` omits an empty value. @internal */
-function nonEmpty(value: string | undefined): string | undefined {
-  return value === "" ? undefined : value;
 }
 
 /** Normalize the `error` option to a (possibly empty) array. @internal */

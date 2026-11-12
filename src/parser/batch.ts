@@ -33,7 +33,6 @@
 import { Buffer } from "node:buffer";
 
 import { parseHL7 } from "./index.js";
-import { isBlankLine } from "./blank-line.js";
 import { Hl7ParseError } from "./errors.js";
 import { normalize } from "./normalize.js";
 import { splitSegments } from "./segments.js";
@@ -392,13 +391,12 @@ export function splitBatch(
   // payload embeds 0x0A/0x0D bytes. Such batch files effectively do not exist.
   let text = wasBuffer ? raw.toString("latin1") : raw;
 
-  // Strip a leading BOM (UTF-8 as a string codepoint, or its raw bytes read
-  // through latin1) so the first FHS/MSH is still detected. Per-message BOMs are
-  // stripped again by parseHL7. In a string, the three latin1 characters are
-  // text, as parseHL7 and readMessages read them.
+  // Strip a leading BOM (UTF-8 as a string codepoint, or its raw latin1 bytes)
+  // so the first FHS/MSH is still detected. Per-message BOMs are stripped again
+  // by parseHL7.
   if (text.charCodeAt(0) === 0xfeff) {
     text = text.slice(1);
-  } else if (wasBuffer && text.startsWith("ï»¿")) {
+  } else if (text.startsWith("ï»¿")) {
     text = text.slice(3);
   }
 
@@ -516,7 +514,7 @@ export function splitBatch(
     // blank segment INSIDE an open message is meaningful (HL7 keeps middle empty
     // segments for positional stability) and rides along so the message's `raw`
     // re-parses identically.
-    if (messageLines.length === 0 && isBlankLine(segment, wasBuffer)) continue;
+    if (messageLines.length === 0 && segment.trim() === "") continue;
     const name = segmentName(segment);
 
     if (isEnvelopeName(name)) {

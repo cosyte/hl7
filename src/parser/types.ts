@@ -128,15 +128,12 @@ export interface ParseOptions {
    * this wins over MSH-18 auto-discovery. When both are supplied and they
    * disagree (after alias normalization) the parser emits
    * `ENCODING_MISMATCH` and honours this override. Ignored for `string`
-   * input. Takes any HL7 Table-0211 code and `WINDOWS-1252`, which the
-   * parser decodes apart from `8859/1`: bytes 0x80 to 0x9F become the
-   * Windows characters, where `8859/1` keeps them as C1 controls.
+   * input.
    *
    * @example
    * ```ts
    * import { parseHL7 } from "@cosyte/hl7";
    * parseHL7(buf, { charset: "ISO-8859-1" });
-   * parseHL7(buf, { charset: "WINDOWS-1252" });
    * ```
    */
   readonly charset?: string;

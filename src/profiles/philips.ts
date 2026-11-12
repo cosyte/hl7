@@ -61,7 +61,7 @@ import { defineProfile } from "./define.js";
  * const msg = parseHL7(raw, profiles.philips);
  * ```
  */
-const options = {
+export const philips = defineProfile({
   name: "philips",
   description:
     "Philips Vue PACS (IS Link) imaging: ZDS/ZLK/ZAO/ZEB/ZAP/ZAV order/patient/visit-filler Z-segments",
@@ -129,7 +129,4 @@ const options = {
     // §5.16 ZAV: Visit Filler: visit additional details.
     ZAV: { fields: { visitAdditionalDetails: 1 } },
   },
-};
-
-/** Build the profile above; `profiles.philips` calls it on its first read. @internal */
-export const philips = () => defineProfile(options);
+});

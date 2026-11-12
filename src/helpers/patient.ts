@@ -145,21 +145,6 @@ export function buildPatient(msg: Hl7Message): Patient | undefined {
   const language = pid.field(15).asCe();
   if (Object.keys(language).length > 0) out.language = language;
 
-  // ─── PID-35 to PID-38: an animal patient's species, breed, strain and ─
-  // production class. Each is read only from its own field and omitted when
-  // that field is empty: nothing is inferred from PID-8 or anywhere else.
-  const species = pid.field(35).asCwe();
-  if (Object.keys(species).length > 0) out.species = species;
-
-  const breed = pid.field(36).asCwe();
-  if (Object.keys(breed).length > 0) out.breed = breed;
-
-  const strain = pid.field(37).value;
-  if (strain !== "") out.strain = strain;
-
-  const productionClass = pid.field(38).asCwe();
-  if (Object.keys(productionClass).length > 0) out.productionClass = productionClass;
-
   // ─── Phase P: NTE notes positionally attached to this PID ─────────────
   // Notes immediately following the (first) PID segment attach to the patient.
   // A second PID's group notes ride on that PID segment but are not surfaced

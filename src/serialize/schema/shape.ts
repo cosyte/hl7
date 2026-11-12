@@ -24,7 +24,6 @@
  * references it. `objects` is therefore ordered leaves first, root last.
  */
 
-import { compareCodeUnits } from "../../parser/code-order.js";
 import { WARNING_CODES } from "../../parser/warnings.js";
 
 /**
@@ -122,7 +121,7 @@ function optional(name: string, node: ShapeNode): ShapeMember {
  */
 const WARNING_CODE_VALUES: readonly string[] = Object.values(WARNING_CODES)
   .slice()
-  .sort(compareCodeUnits);
+  .sort((a, b) => a.localeCompare(b, "en"));
 
 /**
  * The measured shape of `Hl7Message.toJSON()`, read off live projections rather

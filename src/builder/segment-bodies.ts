@@ -38,10 +38,6 @@ export function pidSegment(p: AdtPatient): RawSegment {
       [11, repField("XAD", p.address)],
       [13, repField("XTN", p.phoneHome)],
       [18, p.accountNumber !== undefined ? encodeComposite("CX", p.accountNumber) : undefined],
-      [35, p.species !== undefined ? encodeComposite("CWE", p.species) : undefined],
-      [36, p.breed !== undefined ? encodeComposite("CWE", p.breed) : undefined],
-      [37, p.strain !== undefined ? scalarField(p.strain) : undefined],
-      [38, p.productionClass !== undefined ? encodeComposite("CWE", p.productionClass) : undefined],
     ]),
   );
 }

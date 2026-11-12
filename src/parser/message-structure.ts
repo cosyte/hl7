@@ -78,7 +78,7 @@ function freezeDefinition(def: MessageStructureDefinition): MessageStructureDefi
  * The derived expected-segment registry. Generated from HL7's published,
  * machine-readable message structures (see `STRUCTURE_REGISTRY_PROVENANCE` for
  * the publication, the commit and the per-file hashes) and frozen: data, not
- * config. Deliberately narrow in COVERAGE (sixteen message codes) and not narrow
+ * config. Deliberately narrow in COVERAGE (twelve message codes) and not narrow
  * in CONTENT: within those codes it expects exactly what the publication marks
  * required. It is still a safety net, not a conformance validator.
  *
@@ -141,10 +141,7 @@ function findDefinition(
   messageCode: string,
   triggerEvent: string,
 ): MessageStructureDefinition | undefined {
-  // An indexed loop: every parse runs this over the list, and `for...of` made an iterator result
-  // for each definition it passed, a few KiB a parse.
-  for (let i = 0; i < MESSAGE_STRUCTURE_DEFINITIONS.length; i++) {
-    const def = MESSAGE_STRUCTURE_DEFINITIONS[i] as MessageStructureDefinition;
+  for (const def of MESSAGE_STRUCTURE_DEFINITIONS) {
     if (def.messageCode !== messageCode) continue;
     if (def.triggerEvents.length === 0 || def.triggerEvents.includes(triggerEvent)) {
       return def;
