@@ -46,12 +46,16 @@ describe("the large message comparison", () => {
       "bench",
       "parse-large.compare.mjs",
     );
-    expect(large.benchmarks.map((b) => b.name)).toEqual(main.benchmarks.map((b) => b.name));
+    // The suite's benchmarks with a size the shared comparison leaves out: the four parse
+    // benchmarks, not the ACK benchmarks, whose one size is compared there.
+    const withLarge = main.benchmarks.filter((b) => b.sizes.some((s) => !s.compare));
+    expect(withLarge).toHaveLength(4);
+    expect(large.benchmarks.map((b) => b.name)).toEqual(withLarge.map((b) => b.name));
     for (const [i, benchmark] of large.benchmarks.entries()) {
       expect(benchmark.sizes.map((s) => s.label)).toEqual(LARGE);
       expect(benchmark.sizes.every((s) => s.compare)).toBe(true);
       // Every size of the suite is compared in exactly one of the two comparisons.
-      const left = (main.benchmarks[i]?.sizes ?? []).filter((s) => !s.compare).map((s) => s.label);
+      const left = (withLarge[i]?.sizes ?? []).filter((s) => !s.compare).map((s) => s.label);
       expect(left).toEqual(LARGE);
     }
     expect(large.name).not.toBe(main.name);
