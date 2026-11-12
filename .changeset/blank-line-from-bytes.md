@@ -1,5 +1,0 @@
----
-"@cosyte/hl7": patch
----
-
-`readMessages`, `parseStream` and `splitBatch` now read bytes as they read the same text: a line holding only a byte order mark, a no-break space or other non-ASCII whitespace between messages is skipped from bytes too. Before, from bytes such a line became an extra failed `NO_MSH_SEGMENT` item or entry before the next message, and a last message ending in one was flagged `UNTERMINATED_STREAM_MESSAGE`; from text it was skipped, as it still is. One change reaches text: `splitBatch` and `parseStream` no longer strip the three characters U+00EF U+00BB U+00BF from the start of a string. Those are what a UTF-8 byte order mark becomes when its bytes are read one byte to one character, and in a string they are text, as `parseHL7` and `readMessages` already read them, so such a string now gives a failed first entry. A caller who decoded bytes that way should pass the bytes instead. A byte order mark in bytes, or the character U+FEFF at the start of a string, is stripped as before.
