@@ -16501,7 +16501,7 @@ USAGE_CODES[0]; // "R"
 
 ### VERSION
 
-> `const` **VERSION**: `string` = `"0.1.12"`
+> `const` **VERSION**: `string` = `"0.1.13"`
 
 Library version string, kept equal to `package.json#version` by each
 release.
