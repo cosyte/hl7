@@ -14,10 +14,10 @@ import {
   V2_XML_NAMESPACE,
   parseHL7,
   parseHL7Xml,
-  toHl7Xml,
+  toHl7Xml as writeXml,
   xmlDataTypes,
 } from "../src/index.js";
-import type { RawField, RawSegment } from "../src/index.js";
+import type { RawField, RawSegment, ToHl7XmlOptions } from "../src/index.js";
 import { xmlToPipe } from "../src/xml/read.js";
 
 /** An MSH opening with the standard delimiters: 10 elements, MSH.3 to MSH.8 empty. */
@@ -27,6 +27,14 @@ const MSH =
 
 /** The pipe text of `MSH`. */
 const PIPE_MSH = "MSH|^~\\&|||||||ADT^A01|X1|P|2.6\r";
+
+/**
+ * `toHl7Xml` with every segment directly under the root: these messages are v2.6 ADT_A01, a
+ * structure the group tables do not cover.
+ */
+function toHl7Xml(message: Hl7Message, options: ToHl7XmlOptions = {}): string {
+  return writeXml(message, { groups: "none", ...options });
+}
 
 /** A one-message document: `MSH`, then `body`, in an `ADT_A01` root. */
 function doc(body: string): string {
@@ -153,13 +161,13 @@ describe("the reader names each refusal", () => {
       "MIXED_CONTENT: An element holds both text and elements. (XPN.1)",
     ],
     [
-      `<v2:ADT_A01 xmlns:v2="urn:hl7-org:v2xml">${MSH}</v2:ADT_A01>`,
-      "NAMESPACE_NOT_SUPPORTED: An element name carries a namespace prefix.",
+      `<v2:ADT_A01 xmlns:v2="urn:example">${MSH}</v2:ADT_A01>`,
+      "NAMESPACE_NOT_SUPPORTED: An element's namespace prefix is not bound to the v2 XML namespace.",
     ],
     [`${doc("")}<ADT_A01/>`, "NOT_WELL_FORMED: The document has two root elements."],
     [
-      doc('<PID><PID.5><XPN.1><FN.1><escape V="N"/></FN.1></XPN.1></PID.5></PID>'),
-      "ESCAPE_NOT_SUPPORTED: The document uses an escape element. (FN.1)",
+      doc('<PID><PID.5><XPN.1><FN.1><escape V="E"/></FN.1></XPN.1></PID.5></PID>'),
+      "ESCAPE_NOT_SUPPORTED: An escape element's V is not a formatting escape. (FN.1)",
     ],
     [
       doc("<PID><PID.5><XPN.1><FN.1><X.1>x</X.1></FN.1></XPN.1></PID.5></PID>"),
@@ -231,12 +239,12 @@ describe("the reader names each refusal", () => {
       "OUT_OF_ORDER: A field comes before one it should follow. (PID.3)",
     ],
     [
-      doc('<NTE><NTE.3>a<escape V=".br"/>b</NTE.3></NTE>'),
-      "ESCAPE_NOT_SUPPORTED: The document uses an escape element. (NTE.3)",
+      doc('<NTE><NTE.3>a<escape V=".zz"/>b</NTE.3></NTE>'),
+      "ESCAPE_NOT_SUPPORTED: An escape element's V is not a formatting escape. (NTE.3)",
     ],
     [
-      doc('<NTE><NTE.3><FT.1>a<escape V="H"/></FT.1></NTE.3></NTE>'),
-      "ESCAPE_NOT_SUPPORTED: The document uses an escape element. (FT.1)",
+      doc('<NTE><NTE.3><FT.1>a<escape V="T"/></FT.1></NTE.3></NTE>'),
+      "ESCAPE_NOT_SUPPORTED: An escape element's V is not a formatting escape. (FT.1)",
     ],
     [
       "<A><MSH><MSH.1>|</MSH.1><MSH.2><X.1>^</X.1></MSH.2></MSH></A>",
@@ -492,7 +500,7 @@ describe("the writer names each refusal", () => {
       "DATA_TYPE_UNKNOWN: A composite has no data type to name its subcomponents. (NTE.3)",
     );
     expect(why(() => write(pipe("NTE|||a\\H\\b")))).toBe(
-      "ESCAPE_NOT_SUPPORTED: A value carries a formatting, hex or other escape sequence the XML writer cannot express. (NTE.3)",
+      "ESCAPE_NOT_SUPPORTED: A formatting escape stands in a value whose data type is not TX or FT. (NTE.3)",
     );
     expect(why(() => write(pipe("NTE|||a\\E\\b")))).toBe(
       "ESCAPE_NOT_SUPPORTED: A value holds the message's escape character. (NTE.3)",
@@ -504,7 +512,7 @@ describe("the writer names each refusal", () => {
       "INVALID_OPTIONS: The structure name is not an XML name.",
     );
     expect(why(() => toHl7Xml(parseHL7("MSH|^~\\&|||||||||P|2.6\r")))).toBe(
-      "STRUCTURE_UNKNOWN: No message structure name can be taken from MSH-9; pass `structure`.",
+      "STRUCTURE_UNKNOWN: No message structure can be taken from MSH-9; pass `structure`.",
     );
   });
 
@@ -527,8 +535,8 @@ describe("the writer's edges", () => {
       dataTypes: { "MSH.9": "MSG" },
     });
     expect(xml.split("\n")[1]).toBe('<ACK xmlns="urn:hl7-org:v2xml">');
-    expect(toHl7Xml(parseHL7("MSH|^~\\&|||||||ADT|1|P|2.6\r")).split("\n")[1]).toBe(
-      '<ADT xmlns="urn:hl7-org:v2xml">',
+    expect(why(() => toHl7Xml(parseHL7("MSH|^~\\&|||||||ADT|1|P|2.6\r")))).toBe(
+      "STRUCTURE_UNKNOWN: No message structure can be taken from MSH-9; pass `structure`.",
     );
   });
 
@@ -673,12 +681,12 @@ describe("components are named for one data type, not for the segment", () => {
     [
       "a component named for its segment",
       doc("<PID><PID.5><PID.3>A</PID.3></PID.5></PID>"),
-      "UNEXPECTED_ELEMENT: A component or subcomponent is named for its segment, not a data type. (PID.3)",
+      "UNEXPECTED_ELEMENT: A component or subcomponent is named for a segment, not a data type. (PID.3)",
     ],
     [
       "a subcomponent named for its segment",
       doc("<PID><PID.5><XPN.1><PID.1>A</PID.1></XPN.1></PID.5></PID>"),
-      "UNEXPECTED_ELEMENT: A component or subcomponent is named for its segment, not a data type. (PID.1)",
+      "UNEXPECTED_ELEMENT: A component or subcomponent is named for a segment, not a data type. (PID.1)",
     ],
     [
       "components of two types in one field",
@@ -707,10 +715,10 @@ describe("components are named for one data type, not for the segment", () => {
 
   it("refuses to write a data type named for the segment it stands in", () => {
     expect(why(() => write(pipe("PID|||1^2"), { "PID.3": "PID" }))).toBe(
-      "INVALID_OPTIONS: A data type is named for its segment. (PID.3)",
+      "INVALID_OPTIONS: A data type is named for a segment. (PID.3)",
     );
     expect(why(() => write(pipe("PID|||1&2"), { "PID.3": "CX", "CX.1": "PID" }))).toBe(
-      "INVALID_OPTIONS: A data type is named for its segment. (CX.1)",
+      "INVALID_OPTIONS: A data type is named for a segment. (CX.1)",
     );
   });
 });

@@ -60,7 +60,7 @@ function readTypical(msg: Hl7Message): unknown[] {
 describe("the heap a message read from v2 XML holds", () => {
   it("is under 6 times its pipe text for a 1 MiB result report read at MSH, PID, PV1 and five OBX", () => {
     const pipe = denseMessage(1024 * 1024);
-    const xml = toHl7Xml(parseHL7(pipe), { dataTypes: DATA_TYPES });
+    const xml = toHl7Xml(parseHL7(pipe), { dataTypes: DATA_TYPES, groups: "none" });
     for (let k = 0; k < 3; k++) readTypical(parseHL7Xml(xml));
     collect();
     collect();

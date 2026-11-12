@@ -1,8 +1,11 @@
 /**
  * The HL7 v2 XML encoding writer: a parsed or built `Hl7Message` written as a v2 XML document,
- * one segment element per line under the message structure's root element.
+ * its segments placed in the message structure's group elements, one segment element per line.
  */
 
+import { decodeWindows1252, resolveCharset } from "../parser/charset.js";
+import { findMessageStructureDefinition } from "../parser/message-structure.js";
+import { WITHHELD } from "../parser/tokens.js";
 import type { Hl7Message } from "../model/message.js";
 import type {
   EncodingCharacters,
@@ -14,7 +17,14 @@ import type {
 
 import { forbiddenCharacterAt } from "./chars.js";
 import { Hl7XmlError, XML_ERROR_CODES, safePath, type XmlErrorCode } from "./errors.js";
-import { V2_XML_NAMESPACE } from "./read.js";
+import {
+  groupTable,
+  placeSegments,
+  resolveStructure,
+  type PlacedGroup,
+  type XmlMessageStructure,
+} from "./groups.js";
+import { V2_XML_NAMESPACE, isFormattingEscape, isSegmentId } from "./read.js";
 
 /**
  * Options for `toHl7Xml`.
@@ -23,27 +33,31 @@ import { V2_XML_NAMESPACE } from "./read.js";
  * ```ts
  * import type { ToHl7XmlOptions } from "@cosyte/hl7";
  * const options: ToHl7XmlOptions = {
- *   dataTypes: { "PID.5": "XPN", "XPN.1": "FN" },
+ *   dataTypes: { "PID.5": "XPN", "XPN.1": "FN", "NTE.3": "FT" },
  *   namespace: null,
+ *   groups: "none",
  * };
  * ```
  */
 export interface ToHl7XmlOptions {
   /**
-   * The data type of each composite the message carries, which names its child elements: a
-   * field key (`PID.5`) to its type (`XPN`), whose components are written `XPN.1`, `XPN.2`, and
-   * a component key (`XPN.1`) to its type (`FN`), whose subcomponents are written `FN.1`, `FN.2`.
-   * A map or a function from key to type. `xmlDataTypes` reads one from a sample document.
+   * The data type of each field and component the message carries, which names its child
+   * elements: a field key (`PID.5`) to its type (`XPN`), whose components are written `XPN.1`,
+   * `XPN.2`, and a component key (`XPN.1`) to its type (`FN`), whose subcomponents are written
+   * `FN.1`, `FN.2`. A map or a function from key to type. `xmlDataTypes` reads the composite
+   * ones from a sample document.
    *
-   * A field or component with a type is written with child elements, even when it holds one
-   * value. One without a type is written as text when it holds one value, and refused with
-   * `DATA_TYPE_UNKNOWN` when it holds more, because its child elements cannot be named. List
-   * composite types only: a primitive type given here would be written as a composite.
+   * A field or component with a composite type is written with child elements, even when it
+   * holds one value, as the encoding requires. One with a primitive type (`ST`, `TX`, `FT`, `NM`,
+   * `ID`, `IS`, `SI`, `DT`, `DTM`, `TM`, `GTS`, `SNM`) or none is written as text when it holds
+   * one value, and refused with `DATA_TYPE_UNKNOWN` when it holds more, because its child
+   * elements cannot be named. Only a value typed `TX` or `FT` may carry formatting escapes.
    */
   readonly dataTypes?: Readonly<Record<string, string>> | ((key: string) => string | undefined);
   /**
-   * The root element's name, the message structure (`ORU_R01`). Defaults to MSH-9.3, else
-   * MSH-9.1 and MSH-9.2 joined by `_`, else MSH-9.1.
+   * The root element's name, the message structure (`ORU_R01`). Defaults to the structure in
+   * `groups`, else MSH-9.3, else the structure our message structure registry gives MSH-9.1 and
+   * MSH-9.2 (`ADT^A04` is `ADT_A01`).
    */
   readonly structure?: string;
   /**
@@ -51,6 +65,22 @@ export interface ToHl7XmlOptions {
    * networks ask for none).
    */
   readonly namespace?: string | null;
+  /**
+   * The message structure whose groups the segments are placed in, for a structure
+   * `XML_GROUP_TABLES` does not cover (a partner's schema gives it), or `"none"` to write every
+   * segment directly under the root, for a structure with no groups or a receiver that asks for
+   * none. By default the writer takes the structure from `XML_GROUP_TABLES` for the message's
+   * version and refuses one it does not cover with `GROUPS_UNKNOWN`.
+   */
+  readonly groups?: XmlMessageStructure | "none";
+}
+
+/**
+ * Whether `type` is a primitive data type: a value of one is text, never child elements. HL7 v2
+ * chapter 2A lists them; `TS` and `TN` were primitives in early versions, so they are left out.
+ */
+function isPrimitive(type: string): boolean {
+  return ["DT", "DTM", "FT", "GTS", "ID", "IS", "NM", "SI", "SNM", "ST", "TM", "TX"].includes(type);
 }
 
 /** Whether `name` is an XML name with no namespace prefix and no dot. */
@@ -88,13 +118,38 @@ function extent<T>(items: readonly T[], keep: (item: T) => boolean): number {
   return items.findLastIndex(keep) + 1;
 }
 
+/**
+ * A hex escape's bytes decoded in character set `charset`, a canonical MSH-18 code, or
+ * `undefined` when the set is not one we decode or the bytes are not text in it.
+ */
+function decodeBytes(bytes: Uint8Array, charset: string, key: string): string | undefined {
+  if (charset === "8859/1") return String.fromCharCode(...bytes);
+  if (charset === "ASCII") {
+    return bytes.every((b) => b < 0x80) ? String.fromCharCode(...bytes) : undefined;
+  }
+  if (charset === "WINDOWS-1252") return decodeWindows1252(bytes);
+  if (charset !== "UTF-8") return undefined;
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    fail(XML_ERROR_CODES.ESCAPE_NOT_SUPPORTED, "A hex escape's bytes are not UTF-8.", key);
+  }
+}
+
 /** Writes one message. */
 class XmlWriter {
   private readonly enc: EncodingCharacters;
   private readonly lookup: (key: string) => string | undefined;
+  /** MSH-18, the character set a hex escape's bytes are decoded in. */
+  private readonly charset: string | undefined;
 
-  public constructor(enc: EncodingCharacters, dataTypes: ToHl7XmlOptions["dataTypes"]) {
+  public constructor(
+    enc: EncodingCharacters,
+    dataTypes: ToHl7XmlOptions["dataTypes"],
+    charset: string | undefined,
+  ) {
     this.enc = enc;
+    this.charset = charset;
     this.lookup =
       typeof dataTypes === "function"
         ? dataTypes
@@ -109,15 +164,17 @@ class XmlWriter {
 
   /**
    * The data type `dataTypes` gives `key`, refused when it is not an XML name or is the name of
-   * the segment it stands in, which the reader would refuse.
+   * a segment, which the reader would refuse.
    */
   private typeOf(key: string): string | undefined {
     const type = this.lookup(key);
-    if (type?.match(/^[A-Za-z][A-Za-z0-9_]*$/u) === null) {
-      fail(XML_ERROR_CODES.INVALID_OPTIONS, "A data type is not an XML name.", key);
-    }
-    if (type === this.segmentName) {
-      fail(XML_ERROR_CODES.INVALID_OPTIONS, "A data type is named for its segment.", key);
+    if (type !== undefined) {
+      if (type.match(/^[A-Za-z][A-Za-z0-9_]*$/u) === null) {
+        fail(XML_ERROR_CODES.INVALID_OPTIONS, "A data type is not an XML name.", key);
+      }
+      if (type === this.segmentName || isSegmentId(type)) {
+        fail(XML_ERROR_CODES.INVALID_OPTIONS, "A data type is named for a segment.", key);
+      }
     }
     return type;
   }
@@ -174,12 +231,14 @@ class XmlWriter {
   private repetition(key: string, rep: RawRepetition): string {
     const components = rep.components;
     const type = this.typeOf(key);
-    if (type === undefined) {
+    if (type === undefined || isPrimitive(type)) {
       const count = extent(components, hasValue);
       if (count > 1) {
         fail(
           XML_ERROR_CODES.DATA_TYPE_UNKNOWN,
-          "A composite field has no data type to name its components.",
+          type === undefined
+            ? "A composite field has no data type to name its components."
+            : "A field given a primitive data type holds components.",
           key,
         );
       }
@@ -195,41 +254,144 @@ class XmlWriter {
   }
 
   /**
-   * A component's content: text, or subcomponent elements. For the one value of an untyped field
-   * `key` is the field's own, which has no type, so the value is written as text.
+   * A component's content: text, or subcomponent elements. For the one value of a field with no
+   * composite type `key` is the field's own, so the value is written as text.
    */
   private component(key: string, component: RawComponent): string {
     const subs = component.subcomponents;
     const type = this.typeOf(key);
-    if (type === undefined) {
+    if (type === undefined || isPrimitive(type)) {
       if (extent(subs, isFilled) > 1) {
         fail(
           XML_ERROR_CODES.DATA_TYPE_UNKNOWN,
-          "A composite has no data type to name its subcomponents.",
+          type === undefined
+            ? "A composite has no data type to name its subcomponents."
+            : "A component given a primitive data type holds subcomponents.",
           key,
         );
       }
-      return this.value(component, 0, key);
+      return this.value(component, 0, key, type);
     }
     let out = "";
     for (const [s, sub] of subs.entries()) {
       if (sub === "") continue;
       const name = `${type}.${String(s + 1)}`;
-      out += `<${name}>${this.value(component, s, name)}</${name}>`;
+      out += `<${name}>${this.value(component, s, name, this.typeOf(name))}</${name}>`;
     }
     return out;
   }
 
-  /** One subcomponent's text, refused when the XML encoding cannot carry it as we know it. */
-  private value(component: RawComponent, index: number, key: string): string {
-    if (component.rawSubcomponents?.[index] !== undefined) {
+  /**
+   * One subcomponent's content. Its pipe text, where the model kept it, is read sequence by
+   * sequence; otherwise its decoded text is written. `type` says whether formatting escapes may
+   * stand in it as `escape` elements: only in `TX` and `FT`.
+   */
+  private value(
+    component: RawComponent,
+    index: number,
+    key: string,
+    type: string | undefined,
+  ): string {
+    const formatted = type === "TX" || type === "FT";
+    const raw = component.rawSubcomponents?.[index];
+    if (raw === undefined)
+      return this.text(component.subcomponents[index] as string, key, formatted);
+    const esc = this.enc.escape;
+    let out = "";
+    let from = 0;
+    let open = raw.indexOf(esc);
+    while (open !== -1) {
+      const close = raw.indexOf(esc, open + 1);
+      if (close === -1) {
+        fail(
+          XML_ERROR_CODES.ESCAPE_NOT_SUPPORTED,
+          "A value holds the message's escape character.",
+          key,
+        );
+      }
+      out += this.text(raw.slice(from, open), key, formatted);
+      out += this.sequence(raw.slice(open + 1, close), key, formatted);
+      from = close + 1;
+      open = raw.indexOf(esc, from);
+    }
+    return out + this.text(raw.slice(from), key, formatted);
+  }
+
+  /** One escape sequence of a value's pipe text, as the v2 XML encoding writes it. */
+  private sequence(seq: string, key: string, formatted: boolean): string {
+    const enc = this.enc;
+    // The delimiter escapes are not needed in XML: the delimiter is written as itself.
+    const delimiter =
+      seq === "F"
+        ? enc.field
+        : seq === "S"
+          ? enc.component
+          : seq === "T"
+            ? enc.subcomponent
+            : seq === "R"
+              ? enc.repetition
+              : seq === "P"
+                ? (enc.truncation ?? "#")
+                : undefined;
+    if (delimiter !== undefined) return escapeText(delimiter);
+    if (seq === "E") {
       fail(
         XML_ERROR_CODES.ESCAPE_NOT_SUPPORTED,
-        "A value carries a formatting, hex or other escape sequence the XML writer cannot express.",
+        "A value holds the message's escape character.",
         key,
       );
     }
-    const text = component.subcomponents[index] as string;
+    if (isFormattingEscape(seq)) {
+      if (formatted) return `<escape V="${seq}"/>`;
+      if (seq === ".br") return "&#10;";
+      fail(
+        XML_ERROR_CODES.ESCAPE_NOT_SUPPORTED,
+        "A formatting escape stands in a value whose data type is not TX or FT.",
+        key,
+      );
+    }
+    if (/^X(?:[0-9A-Fa-f]{2})+$/u.test(seq)) return this.hex(seq.slice(1), key);
+    fail(
+      XML_ERROR_CODES.ESCAPE_NOT_SUPPORTED,
+      "A value carries a character set, vendor or unknown escape sequence.",
+      key,
+    );
+  }
+
+  /**
+   * A hex escape's bytes as character references, decoded in the message's character set (MSH-18,
+   * ASCII when blank): the v2 XML encoding writes a character reference where the pipe form has a
+   * hex escape.
+   */
+  private hex(digits: string, key: string): string {
+    const bytes = Uint8Array.from(digits.match(/../gu) as string[], (pair) =>
+      Number.parseInt(pair, 16),
+    );
+    const text = decodeBytes(bytes, resolveCharset(this.charset).canonical, key);
+    if (text === undefined) {
+      fail(
+        XML_ERROR_CODES.ESCAPE_NOT_SUPPORTED,
+        "A hex escape's bytes are not text in the message's character set.",
+        key,
+      );
+    }
+    // The escape character, which the reader would refuse, and characters XML forbids.
+    this.check(text, key);
+    let out = "";
+    for (const ch of text) out += `&#x${(ch.codePointAt(0) as number).toString(16)};`;
+    return out;
+  }
+
+  /** Decoded text, refused when it holds the escape character or a character XML forbids. */
+  private text(text: string, key: string, formatted: boolean): string {
+    this.check(text, key);
+    return formatted
+      ? text.split("\n").map(escapeText).join('<escape V=".br"/>')
+      : escapeText(text);
+  }
+
+  /** Refuse decoded text holding the escape character or a character XML forbids. */
+  private check(text: string, key: string): void {
     if (text.includes(this.enc.escape)) {
       fail(
         XML_ERROR_CODES.ESCAPE_NOT_SUPPORTED,
@@ -244,73 +406,141 @@ class XmlWriter {
         key,
       );
     }
-    return escapeText(text);
   }
 }
 
-/** The root element's name: the `structure` option, else what MSH-9 gives. */
-function structureName(message: Hl7Message, option: string | undefined): string {
+/** The structure name to echo in an error: a message structure id's shape, or nothing. */
+function safeStructure(name: string): string | undefined {
+  return /^[A-Z][A-Z0-9]{2}_[A-Z0-9]{3}$/u.exec(name)?.[0];
+}
+
+/**
+ * The root element's name: the `structure` option, else the structure `groups` gives, else
+ * MSH-9.3, else the structure our registry maps MSH-9.1 and MSH-9.2 to.
+ */
+function structureName(message: Hl7Message, options: ToHl7XmlOptions): string {
+  const groups = typeof options.groups === "object" ? resolveStructure(options.groups) : undefined;
+  const option = options.structure;
   if (option !== undefined) {
     if (!isXmlName(option)) {
       fail(XML_ERROR_CODES.INVALID_OPTIONS, "The structure name is not an XML name.");
     }
+    if (groups !== undefined && groups.root !== option) {
+      fail(
+        XML_ERROR_CODES.INVALID_OPTIONS,
+        "The structure option names another root than `groups`.",
+      );
+    }
     return option;
   }
+  if (groups !== undefined) return groups.root;
   const structure = message.get("MSH.9.3") ?? "";
-  const code =
-    message.get("MSH.9.1") ??
-    // Stryker disable next-line StringLiteral: with no MSH-9.1 the name is empty or starts with "_", and the mutant's text holds a space, so isXmlName refuses either way with the same error
-    "";
+  if (structure !== "") {
+    if (!isXmlName(structure)) {
+      fail(XML_ERROR_CODES.STRUCTURE_UNKNOWN, "MSH-9.3 is not an XML name; pass `structure`.");
+    }
+    return structure;
+  }
+  // Stryker disable next-line StringLiteral: with no MSH-9.1 no definition matches the empty code or the mutant's text, so the refusal is the same
+  const code = message.get("MSH.9.1") ?? "";
   const trigger = message.get("MSH.9.2") ?? "";
-  const name = structure !== "" ? structure : trigger !== "" ? `${code}_${trigger}` : code;
-  if (!isXmlName(name)) {
+  const known = findMessageStructureDefinition(code, trigger)?.structureId ?? "";
+  if (known === "") {
     fail(
       XML_ERROR_CODES.STRUCTURE_UNKNOWN,
-      "No message structure name can be taken from MSH-9; pass `structure`.",
+      "No message structure can be taken from MSH-9; pass `structure`.",
     );
   }
-  return name;
+  return known;
+}
+
+/** The segments, placed in the groups the options or the tables give. */
+function placed(
+  message: Hl7Message,
+  root: string,
+  groups: ToHl7XmlOptions["groups"],
+): readonly (RawSegment | PlacedGroup)[] {
+  if (groups === "none") return message.rawSegments;
+  if (groups !== undefined)
+    return placeSegments(resolveStructure(groups).items, message.rawSegments);
+  const version = message.version;
+  const table = groupTable(version, root);
+  if (table === undefined) {
+    const name = safeStructure(root) ?? "this message structure";
+    const label = version === "" || version === WITHHELD ? "its version" : `v${version}`;
+    fail(
+      XML_ERROR_CODES.GROUPS_UNKNOWN,
+      `No group table covers ${name} in ${label}; pass \`groups\`.`,
+    );
+  }
+  return placeSegments(resolveStructure(table).items, message.rawSegments);
 }
 
 /**
  * Write a message in the HL7 v2 XML encoding: a root element named for the message structure,
- * one element per segment, `SEG.n` for each field (repeated once per repetition), and each
- * composite's components and subcomponents named for its data type (`XPN.1`, `FN.1`). MSH.1 and
- * MSH.2 carry the message's delimiters; a field that is the explicit null is written `""`. Values
- * are written decoded: a `|` in a value is a `|` in the text, a line break is `&#10;`.
+ * an element for each segment group (`ORU_R01.PATIENT_RESULT`), one element per segment, `SEG.n`
+ * for each field (repeated once per repetition), and each composite's components and
+ * subcomponents named for its data type (`XPN.1`, `FN.1`). MSH.1 and MSH.2 carry the message's
+ * delimiters; a field that is the explicit null is written `""`. Values are written decoded: a
+ * `|` in a value is a `|` in the text, a line break is `&#10;`.
  *
- * The data types come from `options.dataTypes`, because the model does not carry them; a
- * composite with no type there is refused with `DATA_TYPE_UNKNOWN`. Segments are written in
- * order directly under the root: group elements are not written, so a receiver that validates
- * against a schema with groups will not accept the document as it stands. A value holding the
- * escape character, or carrying a formatting or hex escape sequence, is refused with
- * `ESCAPE_NOT_SUPPORTED`, since we have not confirmed how the XML encoding writes those. An empty
- * field is left out, except that a segment ending in empty fields gets one empty element at its
- * last position (`<PID.3/>`), so it reads back with the same field count. A message holding a
- * second MSH is refused, since one document is one message.
+ * Groups: the segments are placed in the groups of the message structure, taken from
+ * `XML_GROUP_TABLES` for the message's version or from `options.groups`, and refused with
+ * `STRUCTURE_MISMATCH` when they do not fit it. A structure the tables do not cover is refused
+ * with `GROUPS_UNKNOWN`; `groups: "none"` writes the segments directly under the root.
+ *
+ * Data types come from `options.dataTypes`, because the model does not carry them; a composite
+ * with no type there is refused with `DATA_TYPE_UNKNOWN`. In a value typed `TX` or `FT`, a
+ * formatting escape (`\H\`, `\.br\`, `\.in+4\`) is written as an `escape` element
+ * (`<escape V="H"/>`); in any other it is refused with `ESCAPE_NOT_SUPPORTED`, except a line break.
+ * A hex escape is written as character references, its bytes decoded in MSH-18's character set
+ * (ASCII, UTF-8, 8859/1 or Windows-1252). The escape character itself in a value, and a character
+ * set or vendor escape, are refused with `ESCAPE_NOT_SUPPORTED`. An empty field is left out,
+ * except that a segment ending in empty fields gets one empty element at its last position
+ * (`<PID.3/>`), so it reads back with the same field count. A message holding a second MSH is
+ * refused, since one document is one message.
  *
  * `parseHL7Xml` reads the result back to the same model.
  *
  * @param message The message.
- * @param options The data types, the root element's name and its namespace.
+ * @param options The data types, the root element's name, its namespace and the groups.
  * @returns The document, with an XML declaration, UTF-8, and a trailing line break.
  * @throws {Hl7XmlError} When the message cannot be written without guessing.
  * @example
  * ```ts
  * import { parseHL7, toHl7Xml } from "@cosyte/hl7";
  * const msg = parseHL7("MSH|^~\\&|LAB||||20260101||ACK^R01^ACK|1|P|2.6\rMSA|AA|1\r");
- * toHl7Xml(msg, { dataTypes: { "MSH.9": "MSG", "MSH.11": "PT", "MSH.12": "VID" } });
+ * toHl7Xml(msg, {
+ *   dataTypes: { "MSH.9": "MSG", "MSH.11": "PT", "MSH.12": "VID" },
+ *   groups: "none",
+ * });
  * ```
  */
 export function toHl7Xml(message: Hl7Message, options: ToHl7XmlOptions = {}): string {
-  const root = structureName(message, options.structure);
+  const root = structureName(message, options);
+  const segments = placed(message, root, options.groups);
   const namespace = options.namespace === undefined ? V2_XML_NAMESPACE : options.namespace;
-  const writer = new XmlWriter(message.encodingCharacters, options.dataTypes);
+  const writer = new XmlWriter(
+    message.encodingCharacters,
+    options.dataTypes,
+    message.get("MSH.18"),
+  );
   let out = '<?xml version="1.0" encoding="UTF-8"?>\n';
   out +=
     namespace === null
       ? `<${root}>\n`
       : `<${root} xmlns="${escapeText(namespace).replace(/"/gu, "&quot;")}">\n`;
-  for (const seg of message.rawSegments) out += `  ${writer.segment(seg)}\n`;
+  const write = (items: readonly (RawSegment | PlacedGroup)[], indent: string): void => {
+    for (const item of items) {
+      if ("children" in item) {
+        out += `${indent}<${item.name}>\n`;
+        write(item.children, `${indent}  `);
+        out += `${indent}</${item.name}>\n`;
+      } else {
+        out += `${indent}${writer.segment(item)}\n`;
+      }
+    }
+  };
+  write(segments, "  ");
   return `${out}</${root}>\n`;
 }
