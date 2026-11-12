@@ -8,7 +8,9 @@
  * runs only on some pull requests cannot be required.
  */
 
-import { existsSync, readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -166,14 +168,18 @@ interface Row {
   failed: number;
   peak: number;
   largestItemBytes: number;
+  pid?: number;
 }
 interface Verdict {
   exitCode: 0 | 1 | 2;
   lines: string[];
 }
-type Judge = (rows: Row[], multiple?: number) => Verdict;
+type Judge = (rows: Row[], multiple?: number, gated?: string[], runs?: number) => Verdict;
 
 const MIB = 1024 * 1024;
+
+/** Whether the suite runs on Node. CI also runs it under Bun and under Deno. */
+const ON_NODE = process.versions["bun"] === undefined && !("Deno" in globalThis);
 
 function row(over: Partial<Row>): Row {
   return {
@@ -309,6 +315,173 @@ describe("the streaming memory gate", () => {
       );
     },
   );
+
+  it("takes five readings of each reader", async () => {
+    const { RUNS } = await importModule<{ RUNS: number }>("bench", "stream-memory.mjs");
+    expect(RUNS).toBe(5);
+  });
+
+  it("judges a reader on the median of its readings, so one stray reading cannot fail it", async () => {
+    const { judge } = await importModule<{ judge: Judge }>("bench", "stream-memory.mjs");
+    // Run 43130463133: readMessages read 3.02 on reader code that read 1.99 to 2.09 everywhere else.
+    const ratios = (reader: string, values: number[]): Row[] =>
+      values.map((ratio) => row({ reader, peak: ratio * 4 * MIB }));
+    const stray = [
+      ...ratios("readMessages", [2.0, 2.07, 3.02, 1.99, 2.02]),
+      ...ratios("parseStream", [2.1, 2.07, 2.06, 2.06, 2.02]),
+      ...ratios("readSegments", [1.1, 1.11, 1.68, 1.11, 1.11]),
+    ];
+    const verdict = judge(stray, 3, undefined, 5);
+    expect(verdict.exitCode).toBe(0);
+    expect(verdict.lines[0]).toBe(
+      "readMessages: median peak 2.02 times the largest item over 5 readings (1.99 to 3.02), within the limit of 3",
+    );
+    // Two stray readings in five still leave the median with the code.
+    const two = judge(
+      [...ratios("readMessages", [2.0, 3.02, 3.98, 1.99, 2.02]), ...stray.slice(5)],
+      3,
+      undefined,
+      5,
+    );
+    expect(two.exitCode).toBe(0);
+  });
+
+  it("fails a planted regression of a message or more on the median of five", async () => {
+    const { judge } = await importModule<{ judge: Judge }>("bench", "stream-memory.mjs");
+    const others = readings()
+      .slice(1)
+      .flatMap((r) => [r, r, r, r, r]);
+    // A reader holding two messages more than readMessages does, as parseStream read at 3.98.
+    const planted = [3.98, 4.01, 3.97, 3.99, 3.02].map((ratio) => row({ peak: ratio * 4 * MIB }));
+    const verdict = judge([...planted, ...others], 3, undefined, 5);
+    expect(verdict.exitCode).toBe(1);
+    expect(verdict.lines[0]).toBe(
+      "readMessages: median peak 3.98 times the largest item over 5 readings (3.02 to 4.01), over the limit of 3",
+    );
+    // A regression that shows in three readings of five, the rest read low, still fails.
+    const three = [3.1, 3.2, 3.3, 2.0, 2.0].map((ratio) => row({ peak: ratio * 4 * MIB }));
+    expect(judge([...three, ...others], 3, undefined, 5).exitCode).toBe(1);
+    // A reader that buffered its source holds toward all 100 MiB.
+    const buffered = [25, 25, 25, 25, 25].map((ratio) => row({ peak: ratio * 4 * MIB }));
+    expect(judge([...buffered, ...others], 3, undefined, 5).exitCode).toBe(1);
+  });
+
+  it("cannot judge a reader with fewer readings than the run took, or one that did not read", async () => {
+    const { judge } = await importModule<{ judge: Judge }>("bench", "stream-memory.mjs");
+    const five = (r: Row): Row[] => [r, r, r, r, r];
+    const all = readings().flatMap(five);
+    expect(judge(all, 3, undefined, 5).exitCode).toBe(0);
+    const short = judge(all.slice(1), 3, undefined, 5);
+    expect(short.exitCode).toBe(2);
+    expect(short.lines[0]).toBe("readMessages: 4 of 5 readings, so there is nothing to judge");
+    // One reading of five that cannot be judged is not outvoted by the other four.
+    const broken = judge([row({ failed: 1 }), ...all.slice(1)], 3, undefined, 5);
+    expect(broken.exitCode).toBe(2);
+    const lost = judge([{ ...row({}), peak: Number.NaN }, ...all.slice(1)], 3, undefined, 5);
+    expect(lost.exitCode).toBe(2);
+  });
+
+  // The gate is Node tooling, run by Node in its workflow; CI also runs this suite under Bun and
+  // Deno, where the process it would spawn is not Node.
+  it.skipIf(!ON_NODE)(
+    "reads each reader in a process of its own, five times, and writes every reading",
+    () => {
+      const out = mkdtempSync(join(tmpdir(), "stream-memory-"));
+      try {
+        const result = spawnSync(
+          process.execPath,
+          [
+            join("bench", "stream-memory.mjs"),
+            "--target",
+            join("test", "fixtures", "stream-memory", "target.mjs"),
+            "--mib",
+            "0.25",
+            "--out",
+            join(out, "stream-memory.json"),
+          ],
+          { cwd: REPO_ROOT, encoding: "utf8", shell: false, timeout: 60_000 },
+        );
+        expect(result.status).not.toBe(2);
+        const document = JSON.parse(readFileSync(join(out, "stream-memory.json"), "utf8")) as {
+          runs: number;
+          readers: Row[];
+        };
+        expect(document.runs).toBe(5);
+        const pids = new Set(document.readers.map((r) => r.pid));
+        for (const reader of ["readMessages", "parseStream", "readSegments"]) {
+          expect(document.readers.filter((r) => r.reader === reader)).toHaveLength(5);
+        }
+        expect(pids.size).toBe(15);
+        expect(pids.has(process.pid)).toBe(false);
+      } finally {
+        rmSync(out, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it.skipIf(!ON_NODE)(
+    "ends a reading that hangs at its timeout, and cannot judge the reader it was of",
+    () => {
+      const out = mkdtempSync(join(tmpdir(), "stream-memory-"));
+      try {
+        const started = Date.now();
+        const result = spawnSync(
+          process.execPath,
+          [
+            join("bench", "stream-memory.mjs"),
+            "--target",
+            join("test", "fixtures", "stream-memory", "hang.mjs"),
+            "--mib",
+            "0.25",
+            "--runs",
+            "1",
+            "--timeout",
+            "2",
+            "--out",
+            join(out, "stream-memory.json"),
+          ],
+          { cwd: REPO_ROOT, encoding: "utf8", shell: false, timeout: 60_000 },
+        );
+        expect(result.error).toBeUndefined();
+        expect(result.status).toBe(2);
+        expect(Date.now() - started).toBeLessThan(30_000);
+        const document = JSON.parse(readFileSync(join(out, "stream-memory.json"), "utf8")) as {
+          verdict: string[];
+          readers: (Row & { timedOut?: boolean })[];
+        };
+        expect(document.verdict).toContain(
+          "readMessages: a reading did not finish in 2 seconds, so there is nothing to judge",
+        );
+        const hung = document.readers.filter((r) => r.reader === "readMessages");
+        expect(hung.map((r) => r.timedOut)).toEqual([true]);
+        // The readers that finished are still read and listed.
+        expect(document.readers.filter((r) => r.timedOut !== true)).toHaveLength(2);
+      } finally {
+        rmSync(out, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it("gives each reading a timeout well inside the job's", async () => {
+    const { READING_TIMEOUT_SECONDS, RUNS } = await importModule<{
+      READING_TIMEOUT_SECONDS: number;
+      RUNS: number;
+    }>("bench", "stream-memory.mjs");
+    // A reading at 100 MiB takes seconds on a GitHub-hosted runner; a whole step's worth of hung
+    // readings of one reader still ends inside the job's 30 minutes.
+    expect(READING_TIMEOUT_SECONDS).toBeGreaterThanOrEqual(60);
+    expect(READING_TIMEOUT_SECONDS * RUNS).toBeLessThanOrEqual(15 * 60);
+  });
+
+  it("checks on the runner that a planted regression still fails the gate", () => {
+    const workflow = read(".github", "workflows", "stream-memory.yml");
+    expect(workflow).toMatch(
+      /node bench\/stream-memory\.mjs --target bench\/planted-regression\.mjs --mib 100/u,
+    );
+    expect(workflow).toContain('test "${status}" -eq 1');
+    const planted = read("bench", "planted-regression.mjs");
+    expect(planted).toContain('from "../dist/index.mjs"');
+  });
 
   it("runs as its own job on every pull request, at 100 MiB, and its exit fails the job", () => {
     const workflow = read(".github", "workflows", "stream-memory.yml");

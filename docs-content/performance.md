@@ -99,16 +99,43 @@ and each skipped `parseHL7 with { lazy: false }` at 1 MiB, one of them `parseHL7
 message one segment at a time, so what they hold should track the largest item they read, not the
 size of the source. `bench/stream-memory.mjs` checks that on a GitHub-hosted runner, in the
 `stream-memory` workflow on every pull request: each reader reads a synthetic source of 100 MiB in
-64 KiB chunks, and the memory held is read after a full collection every few items. The message
+64 KiB chunks, and the memory held is read after two full collections every few items. The message
 readers read a batch of mostly `ADT^A01` with a 4 MiB message every 2000th. `readSegments` reads
 one message of about 400,000 segments with a 4 MiB segment (a base64 document in one field) every
 20000th, and that segment is the item being read when memory is sampled.
 
-The job fails when any of the three readers peaks at more than **3 times** the largest item it
-read: the item, the text it came from, and room for the reader's own state. A reader that buffered
-its source would hold toward all 100 MiB. It also fails when a reading cannot be judged, because a
-reader is missing from it, gave no peak or largest item size, read nothing or failed an item. The
-limit is `PEAK_MULTIPLE` in the script.
+The limit is a peak of **3 times** the largest item a reader read: the item, the text it came from,
+and room for the reader's own state. A reader that buffered its source would hold toward all
+100 MiB. The limit is `PEAK_MULTIPLE` in the script.
+
+The gate judges each reader on five readings, not one. It reads each reader five times, each
+reading in a new Node.js process, the three readers in turn, and judges a reader on the median of
+its five ratios: the job fails when that median is over 3, so three readings of five must be over
+the limit to fail it and three within it to pass. A single stray reading cannot fail unchanged
+code, and a regression that shows in most readings still fails. The job also fails when a reader
+cannot be judged: it is missing, it has fewer than five readings, or any one of its readings did
+not finish, gave no peak or largest item size, read nothing or failed an item. A reading that has
+not finished in two minutes is ended and counts as one that did not finish, so a reader that hangs
+fails the job in minutes rather than holding it to the job's own timeout; a reading takes seconds.
+A reading that cannot be judged is not outvoted by the other four. The count is `RUNS` in the script, and every
+reading is listed in the job's summary.
+
+Memory is read after a second full collection, and the gate judges that reading. A collection
+finds array buffers dead but frees them in a sweep that can finish after it returns, so a reading
+taken straight after one collection can count buffers nothing holds; a second collection finishes
+the first one's sweep before it starts. The summary lists both readings of each, and the most a
+single collection left unfreed.
+
+A second step in the same job shows the gate still fails a real regression. It runs the gate on
+`bench/planted-regression.mjs`, the build with two regressions planted in it: `readMessages` keeps a
+copy of the last 12 MiB it read, three of the 4 MiB messages, and `parseStream` reads its whole
+source before parsing it. The step fails unless the gate exits 1 with both readers over the limit
+and `readSegments` within it. In stream-memory runs 43139826801 (commit 55c53ca) and 43140852250
+(commit 4f3ec2d), five readings of each reader in each, the planted `readMessages` read 4.07 to
+4.10 and the planted `parseStream` 28.43 to 28.45, against 1.11 to 1.12 for `readSegments`.
+
+The readings in the table below were taken after one collection, the three readers read once each
+in one process.
 
 Peak held over the largest item, lowest to highest, on GitHub-hosted runners, over the readings
 named below:
@@ -134,10 +161,30 @@ messages. `readMessages` read 2.00; 2.07, 2.02, 1.99, 2.07 and 1.99; 2.07 and 2.
 `readSegments` read 1.10; 1.11, 1.68, 1.11, 1.11 and 1.65; 1.11 and 1.11; 1.11, 1.49, 1.10, 1.11 and
 1.10; 1.10; 1.10; 1.10; 1.32; 1.11; and 1.10, 1.10 to 1.68.
 
-Each reading must stay at or under 3 for the job to pass. Eighteen of the nineteen did. The
+Each reading had to stay at or under 3 for the job to pass. Eighteen of the nineteen did. The
 exception is `readMessages` at 3.02 in run 43130463133, over the limit, and that job failed: the
-same code read 1.99 to 2.09 in the other eighteen, so one reading in nineteen held about a message
-more than the rest, enough to cross the limit.
+same code read 1.99 to 2.09 in the other eighteen. Its peak was 12.08 MiB, 4.08 MiB above two of its
+4 MiB messages, so one reading in nineteen counted about a message more than the rest, enough to
+cross the limit.
+
+That message was most likely a buffer nobody held. The benchmark's source builds each 4 MiB message
+as a buffer and joins it into a second, and both are dead once the message is sent; the reading was
+taken straight after one collection, which can return before the sweep that frees dead buffers
+does. Two stream-memory runs on this change read every sample after one collection and again after
+a second: run 43138574424 (commit 9dd84da) and run 43139826801 (commit 55c53ca), each with twenty
+readings of each reader, every reading in its own process. In every one of the eighty message reader
+readings, at some sample one collection left 3.62 to 8.24 MiB of array buffers counted that the
+second collection freed, up to two of the 4 MiB messages. Run 43138574424 read the heap apart too,
+and there the two readings differed by at most 0.006 MiB.
+After one collection, the forty `readMessages` readings read 1.76 to 2.12 and the forty
+`parseStream` readings 1.57 to 2.16; after two, 1.75 to 2.01 and 0.82 to 1.09. `readSegments` read
+1.11 to 1.68 after one and 1.11 to 1.12 after two. The 3.02 did not come again in those eighty
+readings, so its own buffers were not seen; what the runs show is a single collection counting a
+4 MiB buffer nobody holds, in every message reader reading, and a reading that lands it on the
+sample taken while a 4 MiB message is in hand reads about one message high. The planted
+`parseStream`, which holds its whole source, read 0.00 to 4.40 after one collection in the planted
+step of those runs, a median within the limit though its highest reading was over it, with up to
+100 MiB of dead array buffers counted at one sample; after two collections it read 28.43 to 28.45.
 
 `parseStream` used to hold about a message more than `readMessages`, at and over the limit. It cut
 every segment from one buffer that grew with each chunk, and that buffer stayed alive while the
@@ -152,7 +199,7 @@ under 1.5 times a 2 MiB message, from bytes and from text.
 `readSegments` was not judged while its largest segment was 256 KiB. Beside a segment that small,
 a few 64 KiB chunks and the text they decode to moved its ratio by more than the limit leaves room
 for, and that segment was never the item being read when memory was sampled. With a 4 MiB segment
-in hand when memory is sampled, what the reader holds besides it is small beside it, and the fifteen
+in hand when memory is sampled, what the reader holds besides it is small beside it, and the nineteen
 readings above sit at 1.10 to 1.68, well under the limit, so the gate judges it.
 
 These are ratios, not absolute budgets. The parse benchmarks' absolute budgets belong in
