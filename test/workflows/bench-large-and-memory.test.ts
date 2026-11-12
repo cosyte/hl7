@@ -178,6 +178,9 @@ type Judge = (rows: Row[], multiple?: number, gated?: string[], runs?: number) =
 
 const MIB = 1024 * 1024;
 
+/** Whether the suite runs on Node. CI also runs it under Bun and under Deno. */
+const ON_NODE = process.versions["bun"] === undefined && !("Deno" in globalThis);
+
 function row(over: Partial<Row>): Row {
   return {
     reader: "readMessages",
@@ -378,38 +381,43 @@ describe("the streaming memory gate", () => {
     expect(lost.exitCode).toBe(2);
   });
 
-  it("reads each reader in a process of its own, five times, and writes every reading", () => {
-    const out = mkdtempSync(join(tmpdir(), "stream-memory-"));
-    try {
-      const result = spawnSync(
-        process.execPath,
-        [
-          join("bench", "stream-memory.mjs"),
-          "--target",
-          join("test", "fixtures", "stream-memory", "target.mjs"),
-          "--mib",
-          "0.25",
-          "--out",
-          join(out, "stream-memory.json"),
-        ],
-        { cwd: REPO_ROOT, encoding: "utf8", shell: false, timeout: 60_000 },
-      );
-      expect(result.status).not.toBe(2);
-      const document = JSON.parse(readFileSync(join(out, "stream-memory.json"), "utf8")) as {
-        runs: number;
-        readers: Row[];
-      };
-      expect(document.runs).toBe(5);
-      const pids = new Set(document.readers.map((r) => r.pid));
-      for (const reader of ["readMessages", "parseStream", "readSegments"]) {
-        expect(document.readers.filter((r) => r.reader === reader)).toHaveLength(5);
+  // The gate is Node tooling, run by Node in its workflow; CI also runs this suite under Bun and
+  // Deno, where the process it would spawn is not Node.
+  it.skipIf(!ON_NODE)(
+    "reads each reader in a process of its own, five times, and writes every reading",
+    () => {
+      const out = mkdtempSync(join(tmpdir(), "stream-memory-"));
+      try {
+        const result = spawnSync(
+          process.execPath,
+          [
+            join("bench", "stream-memory.mjs"),
+            "--target",
+            join("test", "fixtures", "stream-memory", "target.mjs"),
+            "--mib",
+            "0.25",
+            "--out",
+            join(out, "stream-memory.json"),
+          ],
+          { cwd: REPO_ROOT, encoding: "utf8", shell: false, timeout: 60_000 },
+        );
+        expect(result.status).not.toBe(2);
+        const document = JSON.parse(readFileSync(join(out, "stream-memory.json"), "utf8")) as {
+          runs: number;
+          readers: Row[];
+        };
+        expect(document.runs).toBe(5);
+        const pids = new Set(document.readers.map((r) => r.pid));
+        for (const reader of ["readMessages", "parseStream", "readSegments"]) {
+          expect(document.readers.filter((r) => r.reader === reader)).toHaveLength(5);
+        }
+        expect(pids.size).toBe(15);
+        expect(pids.has(process.pid)).toBe(false);
+      } finally {
+        rmSync(out, { recursive: true, force: true });
       }
-      expect(pids.size).toBe(15);
-      expect(pids.has(process.pid)).toBe(false);
-    } finally {
-      rmSync(out, { recursive: true, force: true });
-    }
-  });
+    },
+  );
 
   it("checks on the runner that a planted regression still fails the gate", () => {
     const workflow = read(".github", "workflows", "stream-memory.yml");

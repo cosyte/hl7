@@ -2,11 +2,10 @@
 // the gate still fails a real one. bench/stream-memory.mjs reads this file as its target in place
 // of dist/index.mjs, and the workflow fails unless that reading exits 1.
 //
-// `readMessages` keeps a copy of the last 8 MiB it read, two of the 4 MiB messages, so it holds
-// about two messages more than it does: the size of the 3.98 reading `parseStream` gave when it
-// held a second copy of each message. `parseStream` reads its whole source before it parses any of
-// it, the reader that buffered its source the performance page describes, toward all 100 MiB.
-// `readSegments` is the build's own and stays within the limit.
+// `readMessages` keeps a copy of the last 12 MiB of its source, three of the 4 MiB messages, beside
+// what it holds itself. `parseStream` reads its whole source before it parses any of it, the reader
+// that buffered its source the performance page describes, toward all 100 MiB. `readSegments` is
+// the build's own and stays within the limit.
 
 import { Buffer } from "node:buffer";
 
@@ -32,9 +31,9 @@ async function* keepingCopies(source, bytes) {
   }
 }
 
-/** `readMessages` holding a copy of the last 8 MiB of its source. */
+/** `readMessages` holding a copy of the last 12 MiB of its source. */
 export function readMessages(source, options) {
-  return builtReadMessages(keepingCopies(source, 8 * MIB), options);
+  return builtReadMessages(keepingCopies(source, 12 * MIB), options);
 }
 
 /** `parseStream` over its whole source, read into memory first. */

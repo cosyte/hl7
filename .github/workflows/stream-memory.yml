@@ -58,8 +58,8 @@ jobs:
           out="${RUNNER_TEMP}/stream-memory"
           mkdir -p "${out}"
           trap 'if [ -f "${out}/planted.md" ]; then { echo "### The gate on a planted regression"; echo; cat "${out}/planted.md"; } >> "${GITHUB_STEP_SUMMARY}"; fi' EXIT
-          # bench/planted-regression.mjs is the build with readMessages holding two messages more
-          # and parseStream buffering its source. The gate must fail it, on both readers.
+          # bench/planted-regression.mjs is the build with readMessages holding a copy of the last
+          # 12 MiB it read and parseStream buffering its source. The gate must fail it, on both.
           set +e
           node bench/stream-memory.mjs --target bench/planted-regression.mjs --mib 100 \
             --out "${out}/planted.json" --summary "${out}/planted.md"

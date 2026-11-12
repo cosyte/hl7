@@ -15,8 +15,9 @@
 // so the batch is never held whole by anything but the reader under test.
 //
 // Each reading reads its source three times: a short read to warm the reader up, a timed read with
-// no collection forced, then a read that takes a full collection every few items and reads the heap
-// and the array buffers. `peak` is the most they held above the reading taken before that read.
+// no collection forced, then a read that takes two full collections every few items and reads the
+// heap and the array buffers after each. `peak` is the most they held above the reading taken
+// before that read, after the second collection (see `measure` for why the second).
 
 import { spawnSync } from "node:child_process";
 import { performance } from "node:perf_hooks";
@@ -227,12 +228,13 @@ async function* messageChunks(bytes, onSegment) {
  * `held` reads the memory held after a full collection. A first, short read warms the reader up, so
  * the code it compiles is not counted as memory it holds.
  *
- * Each sample is read twice: after one full collection, the reading the gate judges, and again
- * after a second. Array buffers a collection finds dead are freed by a sweep that can finish after
- * the collection returns, and a second collection waits for the first one's sweep, so the two
- * readings differ by the buffers still waiting to be freed at the first. `peak` is the most held
- * above the reading taken before that read, `settledPeak` the same after the second collection, and
- * `unswept` the most the two readings of one sample differed by, heap and array buffers apart.
+ * Each sample is read after one full collection and again after a second, and the gate judges the
+ * second. A collection finds array buffers dead but frees them in a sweep that can finish after it
+ * returns, so a reading taken straight after one collection can still count megabytes of buffers
+ * nothing holds; the second collection finishes the first one's sweep before it starts. `peak` is
+ * the most held above the reading taken before that read, after the second collection;
+ * `peakAfterOneCollection` the same read after the first, and `unsweptArrayBuffers` the most the
+ * two readings of one sample's array buffers differed by.
  */
 async function measure(read, every, onItem, total, held) {
   for await (const item of read(Math.min(total, MIB / 4))) onItem(item);
@@ -245,21 +247,12 @@ async function measure(read, every, onItem, total, held) {
   const ms = performance.now() - start;
   const before = held();
   let peak = 0;
-  let peakHeap = 0;
-  let peakArrayBuffers = 0;
-  let settledPeak = 0;
-  let unsweptHeap = 0;
+  let peakAfterOneCollection = 0;
   let unsweptArrayBuffers = 0;
   const sample = () => {
     const now = held();
-    const above = now.once.total - before.once.total;
-    if (above > peak) {
-      peak = above;
-      peakHeap = now.once.heap - before.once.heap;
-      peakArrayBuffers = now.once.arrayBuffers - before.once.arrayBuffers;
-    }
-    settledPeak = Math.max(settledPeak, now.twice.total - before.twice.total);
-    unsweptHeap = Math.max(unsweptHeap, now.once.heap - now.twice.heap);
+    peak = Math.max(peak, now.twice.total - before.twice.total);
+    peakAfterOneCollection = Math.max(peakAfterOneCollection, now.once.total - before.once.total);
     unsweptArrayBuffers = Math.max(
       unsweptArrayBuffers,
       now.once.arrayBuffers - now.twice.arrayBuffers,
@@ -272,16 +265,7 @@ async function measure(read, every, onItem, total, held) {
     if (sampled % every === 0) sample();
   }
   sample();
-  return {
-    count,
-    ms,
-    peak,
-    peakHeap,
-    peakArrayBuffers,
-    settledPeak,
-    unsweptHeap,
-    unsweptArrayBuffers,
-  };
+  return { count, ms, peak, peakAfterOneCollection, unsweptArrayBuffers };
 }
 
 /** Measure `reader` once from the build at `hl7`, on a source of `total` bytes. */
@@ -351,14 +335,16 @@ async function measureReader(hl7, reader, total, held) {
 
 /** One reading of `reader`, in this process: the row is written to stdout as one line of JSON. */
 async function child(target, reader, total) {
-  // A full collection before each reading, as test/perf/parse-memory.perf.ts takes one.
   setFlagsFromString("--expose-gc");
   const gc = runInNewContext("gc");
   const usage = () => {
     const { heapUsed, arrayBuffers } = process.memoryUsage();
     return { heap: heapUsed, arrayBuffers, total: heapUsed + arrayBuffers };
   };
-  /** Heap and array buffers held now, after one full collection and again after a second. */
+  /**
+   * Heap and array buffers held now, after one full collection and again after a second, as
+   * test/perf/stream-memory.perf.ts reads them.
+   */
   const held = () => {
     gc();
     const once = usage();
@@ -434,7 +420,7 @@ async function main() {
       `peak of at most ${String(PEAK_MULTIPLE)} times the largest item.`,
     "",
     "| Reader | Reading | Source | Source MiB | Largest item MiB | Peak held MiB | Peak / largest | " +
-      "After a second collection | Unswept array buffers MiB | MiB/s |",
+      "Peak / largest, after one collection | Unswept array buffers MiB | MiB/s |",
     "| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
     ...GATED_READERS.flatMap((reader) =>
       rows
@@ -443,7 +429,7 @@ async function main() {
           (r) =>
             `| ${r.reader} | ${String(r.run)} | ${r.source ?? "did not finish"} | ` +
             `${mib(r.sourceBytes)} | ${mib(r.largestItemBytes)} | ${mib(r.peak)} | ` +
-            `${ratio(r.peakToLargest)} | ${ratio(r.settledPeak / r.largestItemBytes)} | ` +
+            `${ratio(r.peakToLargest)} | ${ratio(r.peakAfterOneCollection / r.largestItemBytes)} | ` +
             `${mib(r.unsweptArrayBuffers)} | ${ratio(r.mibPerSecond)} |`,
         ),
     ),
