@@ -13,7 +13,7 @@
  * console.log(VERSION);
  * ```
  */
-export const VERSION: string = "0.1.15";
+export const VERSION: string = "0.1.16";
 
 export { parseHL7 } from "./parser/index.js";
 export { Hl7Message } from "./model/message.js";
