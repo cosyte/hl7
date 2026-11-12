@@ -15,17 +15,17 @@ import {
   Hl7Message,
   Hl7XmlError,
   XML_ERROR_CODES,
-  XML_GROUP_TABLES,
   parseHL7,
   parseHL7Xml,
   toHl7Xml as writeXml,
   xmlDataTypes,
   type ToHl7XmlOptions,
   type XmlErrorCode,
-  type XmlMessageStructure,
 } from "../src/index.js";
 import type { RawField } from "../src/index.js";
 import { forbiddenCharacterAt } from "../src/xml/chars.js";
+
+import { LAB_GROUPS } from "./_helpers/xml-groups.js";
 
 const FIXTURES = join(import.meta.dirname, "fixtures", "xml");
 
@@ -52,8 +52,8 @@ function refusal(call: () => unknown): XmlErrorCode {
 }
 
 /**
- * `toHl7Xml` with every segment directly under the root unless the test asks for groups: most of
- * these messages are v2.6 ADT_A01, a structure the group tables do not cover.
+ * `toHl7Xml` with every segment directly under the root unless the test asks for groups: the
+ * package ships no group table, so a message written in groups needs them passed.
  */
 function toHl7Xml(message: Hl7Message, options: ToHl7XmlOptions = {}): string {
   return writeXml(message, { groups: "none", ...options });
@@ -151,7 +151,9 @@ describe("toHl7Xml writes v2 XML", () => {
     const dataTypes = xmlDataTypes(xml);
     expect(dataTypes["PID.5"]).toBe("XPN");
     expect(dataTypes["XPN.1"]).toBe("FN");
-    expect(writeXml(parseHL7(fixture("oru-r01-v25.hl7")), { dataTypes })).toBe(xml);
+    const msg = parseHL7(fixture("oru-r01-v25.hl7"));
+    expect(refusal(() => writeXml(msg, { dataTypes }))).toBe("GROUPS_UNKNOWN");
+    expect(writeXml(msg, { dataTypes, groups: LAB_GROUPS })).toBe(xml);
   });
 
   it("writes the grouped 2.6 fixture back to the same model, in the groups it is given", () => {
@@ -159,15 +161,14 @@ describe("toHl7Xml writes v2 XML", () => {
     const msg = parseHL7Xml(xml);
     const dataTypes = xmlDataTypes(xml);
     expect(refusal(() => writeXml(msg, { dataTypes }))).toBe("GROUPS_UNKNOWN");
-    const groups = XML_GROUP_TABLES["2.5"]?.["ORU_R01"] as XmlMessageStructure;
-    const written = writeXml(msg, { dataTypes, groups });
-    for (const group of ["PATIENT_RESULT", "PATIENT", "ORDER_OBSERVATION", "OBSERVATION"]) {
+    const written = writeXml(msg, { dataTypes, groups: LAB_GROUPS });
+    for (const group of ["REPORT", "ORDER", "RESULT"]) {
       expect(written).toContain(`<ORU_R01.${group}>`);
     }
     expect(written).toContain('<PID.13>""</PID.13>');
     expect(written).toContain("Line one&#10;Line two");
     expect(parseHL7Xml(written).rawSegments).toEqual(msg.rawSegments);
-    expect(toHl7Xml(msg, { dataTypes })).not.toContain("ORU_R01.PATIENT_RESULT");
+    expect(toHl7Xml(msg, { dataTypes })).not.toContain("ORU_R01.REPORT");
   });
 
   it("writes MSH.2 with the truncation character and a value holding it", () => {

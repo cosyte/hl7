@@ -1,5 +1,5 @@
 {
-  "$comment": "The public-surface gate's axes for @cosyte/hl7, read by cosyte-internal-refs (@cosyte/script-utils). Keys starting with $ are notes. The surface is what npm ships and docs.cosyte.com publishes: README.md, TRADEMARKS.md and LICENSE in the tarball, and every tracked file under docs-content/. package.json's description and keywords are scanned too. src/ doc comments compile into dist/*.d.ts, so they are scanned as well. CHANGELOG.md is accounted for, not scanned: it is where item identifiers belong. The standards designations are names a consumer of an HL7 toolkit must be able to read (HL7-V2, FHIR-R4, X12-837P); the extra samples are this repository's measured reference material, which a widened rule would destroy.",
+  "$comment": "The public-surface gate's axes for @cosyte/hl7, read by cosyte-internal-refs (@cosyte/script-utils). Keys starting with $ are notes. The surface is what npm ships and docs.cosyte.com publishes: README.md, TRADEMARKS.md, THIRD-PARTY-NOTICES.md and LICENSE in the tarball, and every tracked file under docs-content/. package.json's description and keywords are scanned too. src/ doc comments compile into dist/*.d.ts, so they are scanned as well. CHANGELOG.md is accounted for, not scanned: it is where item identifiers belong. The standards designations are names a consumer of an HL7 toolkit must be able to read (HL7-V2, FHIR-R4, X12-837P); the extra samples are this repository's measured reference material, which a widened rule would destroy.",
   "projectPrefixes": [
     "PARSERS-PUBLIC",
     "DOCS-CONTENT",
@@ -51,7 +51,13 @@
     "CCDA-R\\d(?:\\.\\d)?",
     "ASTM-E\\d+"
   ],
-  "surfacePaths": ["README.md", "TRADEMARKS.md", "LICENSE", "docs-content"],
+  "surfacePaths": [
+    "README.md",
+    "TRADEMARKS.md",
+    "THIRD-PARTY-NOTICES.md",
+    "LICENSE",
+    "docs-content"
+  ],
   "accountedTarballFiles": ["CHANGELOG.md", "dist"],
   "sourceDocComments": {
     "enabled": true,
