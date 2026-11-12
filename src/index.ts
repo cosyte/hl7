@@ -637,3 +637,13 @@ export { unterminatedStreamMessage } from "./parser/warnings.js";
 // a string, bytes, a Node Readable or a web ReadableStream, pulling the next chunk only when asked.
 export { readMessages, readSegments } from "./parser/read.js";
 export type { Hl7ReadSource, ReadMessageItem, ReadSegmentItem } from "./parser/read.js";
+
+// The HL7 v2 XML encoding: `parseHL7Xml` reads a v2 XML message into the model the pipe-delimited
+// parser builds, `toHl7Xml` writes a message back as v2 XML, and `xmlDataTypes` reads from a sample
+// document the data type names the writer needs.
+export { DEFAULT_XML_LIMITS, V2_XML_NAMESPACE, parseHL7Xml, xmlDataTypes } from "./xml/read.js";
+export type { ParseHl7XmlOptions, XmlDataTypesOptions, XmlLimits } from "./xml/read.js";
+export { toHl7Xml } from "./xml/write.js";
+export type { ToHl7XmlOptions } from "./xml/write.js";
+export { Hl7XmlError, XML_ERROR_CODES } from "./xml/errors.js";
+export type { XmlErrorCode } from "./xml/errors.js";
