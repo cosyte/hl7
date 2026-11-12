@@ -219,6 +219,20 @@ describe("lookupV2Code", () => {
 
   it("says listed for the same code in a version before its deprecation", () => {
     expect(lookupV2Code("0104", "2.3.2", "2.8").result).toBe("listed");
+    // Marked deprecated and dated: before the date it is listed, not undated.
+    expect(lookupV2Code("0003", "varies", "2.5").result).toBe("listed");
+    expect(lookupV2Code("0003", "varies", "2.9").result).toBe("deprecated");
+  });
+
+  it("says listed at the newest version for a code the source keeps active", () => {
+    expect(lookupV2Code("0103", "P", "2.9").result).toBe("listed");
+    expect(v2TableCodes("0103", "2.9", { excludeDeprecated: true })).toEqual([
+      "D",
+      "P",
+      "T",
+      "N",
+      "V",
+    ]);
   });
 
   it("says deprecated with no date for an undated deprecation at the newest version", () => {

@@ -43,6 +43,7 @@ export type {
 function compareReleases(a: string, b: string): number {
   const left = a.split(".").map(Number);
   const right = b.split(".").map(Number);
+  // Stryker disable next-line EqualityOperator: one step past the end reads undefined on both sides, which counts as 0 and changes no comparison
   for (let i = 0; i < Math.max(left.length, right.length); i += 1) {
     const difference = (left[i] ?? 0) - (right[i] ?? 0);
     if (difference !== 0) return difference;
@@ -152,6 +153,15 @@ function tableFor(id: string): V2Table | undefined {
 }
 
 /**
+ * Whether `table` covers `version`: a release in table 0104, from the table's introduction on.
+ * Decided on each call rather than read from `versions`, so the comparison is the one a caller
+ * exercises.
+ */
+function covers(table: V2Table, version: string): boolean {
+  return V2_VERSIONS.includes(version) && compareReleases(version, table.introducedIn) >= 0;
+}
+
+/**
  * Whether `entry` is deprecated at `version`: a recorded deprecation version at or before it, or
  * an undated deprecation at the newest version.
  */
@@ -183,7 +193,7 @@ export function v2TableCodes(
   options: V2TableCodesOptions = {},
 ): readonly string[] | undefined {
   const table = tableFor(id);
-  if (table === undefined || !table.versions.includes(version)) return undefined;
+  if (table === undefined || !covers(table, version)) return undefined;
   if (options.excludeDeprecated !== true) return table.codes;
   return Object.freeze(
     table.entries.filter((entry) => !deprecatedAt(entry, version)).map((entry) => entry.code),
@@ -215,7 +225,7 @@ export function lookupV2Code(id: V2TableId, code: string, version: string): V2Co
   if (table === undefined) {
     return { result: "unknown", reason: "table-not-shipped", table: id, code, version };
   }
-  if (!table.versions.includes(version)) {
+  if (!covers(table, version)) {
     return { result: "unknown", reason: "version-not-covered", table: id, code, version };
   }
   // Every table `tableFor` returns was indexed when it was built.

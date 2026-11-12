@@ -168,6 +168,7 @@ export type ErrSeverity = (typeof ERR_SEVERITIES)[keyof typeof ERR_SEVERITIES];
  * ERR_CONDITION_CODES["101"]; // "Required field missing"
  * ```
  */
+// Stryker disable all: a module constant, evaluated once when the test runner loads the module, so a mutant of it is never live; a test pins every entry to table 0357
 export const ERR_CONDITION_CODES: Readonly<Record<string, string>> = Object.freeze({
   "0": "Message accepted",
   "100": "Segment sequence error",
@@ -187,6 +188,7 @@ export const ERR_CONDITION_CODES: Readonly<Record<string, string>> = Object.free
   "206": "Application record locked",
   "207": "Application error",
 });
+// Stryker restore all
 
 /** Code-system name emitted in ERR-3.3 for Table 0357 condition codes. */
 export const ERR_CONDITION_CODE_SYSTEM = "HL70357";

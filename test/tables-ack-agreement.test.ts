@@ -56,6 +56,6 @@ describe("the provenance cited in ack-tables.ts", () => {
   });
 
   it("cites no unversioned HL7 Terminology page", () => {
-    expect(text).not.toMatch(/https:\/\/terminology\.hl7\.org\/CodeSystem-/u);
+    expect(text.includes("https://terminology.hl7.org/CodeSystem-")).toBe(false);
   });
 });
