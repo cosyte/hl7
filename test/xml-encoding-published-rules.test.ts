@@ -603,6 +603,18 @@ describe("the v2.6 laboratory structures OPU_R25, OPL_O37 and OPR_O38", () => {
     expect(why(() => toHl7Xml(v25))).toBe(
       "GROUPS_UNKNOWN: No group table covers OPU_R25 in v2.5; pass `groups`.",
     );
+    for (const [version, structure] of [
+      ["2.5.1", "OPU_R25"],
+      ["2.7", "OPL_O37"],
+      ["2.6.1", "OPR_O38"],
+    ] as const) {
+      const msg = parseHL7(
+        `MSH|^~\\&|||||||${structure.replace("_", "^")}^${structure}|X1|P|${version}\r`,
+      );
+      expect(why(() => toHl7Xml(msg))).toBe(
+        `GROUPS_UNKNOWN: No group table covers ${structure} in v${version}; pass \`groups\`.`,
+      );
+    }
     expect(why(() => toHl7Xml(lab("ORU^R01^ORU_R01", "PID|1", "OBR|1")))).toBe(
       "GROUPS_UNKNOWN: No group table covers ORU_R01 in v2.6; pass `groups`.",
     );
