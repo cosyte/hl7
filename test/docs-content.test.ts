@@ -49,7 +49,12 @@ const resolve = (specifier: string): string | undefined =>
         : undefined;
 
 beforeAll(() => {
-  execFileSync("pnpm", ["build"], { cwd: root, stdio: "inherit" });
+  // On Windows `pnpm` is a `.cmd` shim, which Node runs only through a shell.
+  execFileSync("pnpm", ["build"], {
+    cwd: root,
+    stdio: "inherit",
+    shell: process.platform === "win32",
+  });
 }, 120_000);
 
 const docsDir = join(root, "docs-content");

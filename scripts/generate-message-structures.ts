@@ -607,8 +607,10 @@ export function deriveRegistry(vendorDir: string): GeneratedRegistry {
     schemas.push({ structureId: id, nodes: orderedNodesOfVariant(elements) });
   }
 
-  const messagesRel = path.join("control-manifests", "messages.json");
-  const structuresRel = path.join("control-manifests", "message_structures.json");
+  // A vendored path is a key into snapshot.json and is written into the generated module, so it
+  // keeps forward slashes on every system; `path.join` would give backslashes on Windows.
+  const messagesRel = path.posix.join("control-manifests", "messages.json");
+  const structuresRel = path.posix.join("control-manifests", "message_structures.json");
   const published = readPublishedMessages(path.join(vendorDir, messagesRel));
   const publishedStructureIds = readPublishedStructureIds(path.join(vendorDir, structuresRel));
 
@@ -617,7 +619,7 @@ export function deriveRegistry(vendorDir: string): GeneratedRegistry {
     snapshotFile(vendorDir, structuresRel, urls),
   ];
   for (const name of structureFiles) {
-    files.push(snapshotFile(vendorDir, path.join("message-structure", name), urls));
+    files.push(snapshotFile(vendorDir, path.posix.join("message-structure", name), urls));
   }
   files.sort((a, b) => a.path.localeCompare(b.path, "en"));
 

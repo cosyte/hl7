@@ -289,4 +289,25 @@ describe("the workflow callers", () => {
       'property-runs: "10000"',
     );
   });
+
+  it("ci.yml runs verify on Linux and macOS", () => {
+    const ci = read(".github", "workflows", "ci.yml");
+    expect(ci).toMatch(/^ {6}os: '\["ubuntu-latest", "macos-latest"\]'$/mu);
+  });
+
+  it("release.yml calls the shared release at the reference ci.yml uses, with every release gate on", () => {
+    const release = read(".github", "workflows", "release.yml");
+    const commit = sharedCommit(read(".github", "workflows", "ci.yml"), "ci.yml");
+    expect(commit).toBeDefined();
+    expect(sharedCommit(release, "release.yml")).toBe(commit);
+    // The package checks and the docs samples run against the packed tarball before a publish.
+    expect(release).toMatch(/^ {6}run-package-checks: true$/mu);
+    expect(release).toMatch(/^ {6}run-tarball-samples: true$/mu);
+    expect(release).toMatch(/^ {6}docs-dir: "docs-content"$/mu);
+    // The weekly mutation gate is on by default: it reads weekly-mutation.yml, at most 8 days old.
+    // Pointing it at another file or widening the age would loosen it, so neither input is set.
+    expect(existsSync(join(WORKFLOWS, "weekly-mutation.yml"))).toBe(true);
+    expect(release).not.toMatch(/^ {6}mutation-workflow:/mu);
+    expect(release).not.toMatch(/^ {6}mutation-max-age-days:/mu);
+  });
 });

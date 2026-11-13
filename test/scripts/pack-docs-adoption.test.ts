@@ -102,8 +102,9 @@ function fileMembers(archive: string): string[] {
     timeout: SLOW,
   });
   expect(listed.status, listed.stderr).toBe(0);
+  // Windows' tar ends each line with CRLF.
   return listed.stdout
-    .split("\n")
+    .split(/\r?\n/)
     .map((line) => line.replace(/^\.\//, ""))
     .filter((line) => line !== "" && !line.endsWith("/"))
     .sort();

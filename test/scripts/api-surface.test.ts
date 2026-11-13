@@ -41,8 +41,12 @@ import { dirname, join } from "node:path";
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { requireBinScript } from "../_helpers/bin-script.js";
+
 const REPO_ROOT = process.cwd();
-const TSX_BIN = join(REPO_ROOT, "node_modules", ".bin", "tsx");
+// Spawned with the running Node rather than through `node_modules/.bin`, whose entry Node cannot
+// start on Windows.
+const TSX_CLI = requireBinScript(REPO_ROOT, "tsx");
 const TSUP_BIN = tsupBinPath();
 const SCRIPT_PATH = join(REPO_ROOT, "scripts", "api-surface.ts");
 const INVENTORY_PATH = join(REPO_ROOT, "release", "public-api.json");
@@ -92,7 +96,7 @@ interface Run {
 }
 
 function runCheck(args: readonly string[]): Run {
-  const result = spawnSync(TSX_BIN, [SCRIPT_PATH, ...args], {
+  const result = spawnSync(process.execPath, [TSX_CLI, SCRIPT_PATH, ...args], {
     cwd: REPO_ROOT,
     encoding: "utf8",
     shell: false,
